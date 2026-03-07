@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
 import { Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
-import AdminMap from "@/components/AdminMap";
+
+const AdminMap = lazy(() => import("@/components/AdminMap"));
 
 interface Submission {
   id: string;
@@ -149,7 +150,9 @@ const Admin = () => {
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : view === "map" ? (
-          <AdminMap submissions={submissions} />
+          <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
+            <AdminMap submissions={submissions} />
+          </Suspense>
         ) : submissions.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-muted-foreground font-body">Aucune demande pour le moment.</p>
