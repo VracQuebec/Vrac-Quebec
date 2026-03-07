@@ -4,7 +4,8 @@ import StepDetails from "./StepDetails";
 import StepContact from "./StepContact";
 import { initialFormData, MATERIAL_TYPES, type QuestionnaireData } from "@/lib/questionnaire-data";
 import { toast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, Send, Check } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { ChevronLeft, ChevronRight, Send, Check, Loader2 } from "lucide-react";
 
 const STEPS = [
   { label: "Matériel", number: 1 },
@@ -16,6 +17,7 @@ const Questionnaire = () => {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<QuestionnaireData>(initialFormData);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const update = (updates: Partial<QuestionnaireData>) => {
     setData((prev) => ({ ...prev, ...updates }));
@@ -28,20 +30,61 @@ const Questionnaire = () => {
     return false;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canNext()) {
       toast({ title: "Champs manquants", description: "Veuillez remplir les champs obligatoires.", variant: "destructive" });
       return;
     }
 
-    const selectedLabels = data.materials
-      .map((id) => MATERIAL_TYPES.find((m) => m.id === id)?.label)
-      .filter(Boolean)
-      .join(", ");
+    setLoading(true);
+    try {
+      const { error } = await supabase.from("submissions").insert({
+        materials: data.materials,
+        other_material: data.otherMaterial,
+        property_type: data.propertyType,
+        quantity: data.quantity,
+        tonnage: data.tonnage,
+        budget_unit: data.budgetUnit,
+        budget_max: data.budgetMax,
+        machinery_available: data.machineryAvailable ?? false,
+        machinery_description: data.machineryDescription,
+        accessibility: data.accessibility,
+        address: data.address,
+        postal_code: data.postalCode,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        description: data.description,
+      });
 
-    console.log("Demande soumise:", { ...data, materialsLabels: selectedLabels });
-    setSubmitted(true);
-    toast({ title: "Demande envoyée! ✅", description: "Nous vous contacterons rapidement." });
+      if (error) throw error;
+
+      // Send email notification
+      try {
+        await supabase.functions.invoke("notify-submission", {
+          body: {
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            materials: data.materials.map((id) => MATERIAL_TYPES.find((m) => m.id === id)?.label || id).join(", "),
+            otherMaterial: data.otherMaterial,
+            address: data.address,
+            quantity: data.quantity,
+            tonnage: data.tonnage,
+          },
+        });
+      } catch {
+        // Email is best-effort, don't block the user
+      }
+
+      setSubmitted(true);
+      toast({ title: "Demande envoyée! ✅", description: "Nous vous contacterons rapidement." });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Erreur", description: "Impossible d'envoyer la demande. Réessayez.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -128,10 +171,11 @@ const Questionnaire = () => {
           ) : (
             <button
               onClick={handleSubmit}
-              disabled={!canNext()}
+              disabled={!canNext() || loading}
               className="flex items-center gap-1.5 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
             >
-              Envoyer <Send className="w-4 h-4" />
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {loading ? "Envoi..." : "Envoyer"}
             </button>
           )}
         </div>
