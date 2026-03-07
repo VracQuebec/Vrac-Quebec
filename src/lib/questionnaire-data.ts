@@ -1,10 +1,18 @@
+import terreImg from "@/assets/terre.jpg";
+import sableImg from "@/assets/sable.jpg";
+import gravierImg from "@/assets/gravier.jpg";
+import rocheImg from "@/assets/roche.jpg";
+import rocheConcasseeImg from "@/assets/roche-concassee.jpg";
+import glaiseImg from "@/assets/glaise.jpg";
+
 export const MATERIAL_TYPES = [
-  { id: "terre", label: "Terre", icon: "🌍" },
-  { id: "sable", label: "Sable", icon: "🏖️" },
-  { id: "gravier", label: "Gravier", icon: "🪨" },
-  { id: "roche-concassee", label: "Roche concassée", icon: "⛏️" },
-  { id: "roche", label: "Roche", icon: "🏔️" },
-  { id: "glaise", label: "Glaise", icon: "🧱" },
+  { id: "terre", label: "Terre", image: terreImg },
+  { id: "sable", label: "Sable", image: sableImg },
+  { id: "gravier", label: "Gravier", image: gravierImg },
+  { id: "roche", label: "Roche", image: rocheImg },
+  { id: "roche-concassee", label: "Roche concassée", image: rocheConcasseeImg },
+  { id: "glaise", label: "Glaise", image: glaiseImg },
+  { id: "autre", label: "Autre", image: "" },
 ] as const;
 
 export const PROPERTY_TYPES = [
@@ -46,11 +54,6 @@ export const BUDGET_OPTIONS = [
   "Plus de 1000 $",
 ] as const;
 
-export const MACHINERY_OPTIONS = [
-  "Oui, machinerie disponible",
-  "Non, aucune machinerie",
-] as const;
-
 export const ACCESSIBILITY_OPTIONS = [
   "10 roues",
   "12 roues",
@@ -61,12 +64,13 @@ export const ACCESSIBILITY_OPTIONS = [
 
 export interface QuestionnaireData {
   materials: string[];
+  otherMaterial: string;
   propertyType: string;
   quantity: string;
   tonnage: string;
   budgetUnit: string;
   budgetMax: string;
-  machineryAvailable: string;
+  machineryDescription: string;
   accessibility: string[];
   address: string;
   postalCode: string;
@@ -78,12 +82,13 @@ export interface QuestionnaireData {
 
 export const initialFormData: QuestionnaireData = {
   materials: [],
+  otherMaterial: "",
   propertyType: "",
   quantity: "",
   tonnage: "",
   budgetUnit: "",
   budgetMax: "",
-  machineryAvailable: "",
+  machineryDescription: "",
   accessibility: [],
   address: "",
   postalCode: "",

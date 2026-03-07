@@ -99,7 +99,9 @@ const Questionnaire = () => {
         {step === 0 && (
           <StepMaterials
             selected={data.materials}
+            otherMaterial={data.otherMaterial}
             onSelect={(materials) => update({ materials })}
+            onOtherChange={(otherMaterial) => update({ otherMaterial })}
           />
         )}
         {step === 1 && <StepDetails data={data} onChange={update} />}
