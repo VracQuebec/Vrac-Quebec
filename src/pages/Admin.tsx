@@ -119,9 +119,29 @@ const Admin = () => {
           <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
             Demandes reçues
           </h1>
-          <button onClick={fetchSubmissions} className="text-sm text-primary hover:underline font-body">
-            Actualiser
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex bg-secondary rounded-lg p-0.5">
+              <button
+                onClick={() => setView("map")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-display font-semibold transition-colors ${
+                  view === "map" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Map className="w-4 h-4" /> Carte
+              </button>
+              <button
+                onClick={() => setView("list")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-display font-semibold transition-colors ${
+                  view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <List className="w-4 h-4" /> Liste
+              </button>
+            </div>
+            <button onClick={fetchSubmissions} className="text-sm text-primary hover:underline font-body">
+              Actualiser
+            </button>
+          </div>
         </div>
 
         {loading ? (
