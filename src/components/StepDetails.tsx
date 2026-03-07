@@ -105,16 +105,42 @@ const StepDetails = ({ data, onChange }: Props) => {
           )}
         </div>
 
-        {/* Machinerie — champ texte libre */}
+        {/* Machinerie — Oui/Non puis détail */}
         <div>
           <label className={labelClass}>Machinerie disponible sur place</label>
-          <p className="text-xs text-muted-foreground mb-2">Décrivez la machinerie que vous avez sur place (ou écrivez « Aucune »)</p>
-          <input
-            value={data.machineryDescription}
-            onChange={(e) => onChange({ machineryDescription: e.target.value })}
-            className={inputClass}
-            placeholder="Ex: Pelle mécanique, tracteur, aucune..."
-          />
+          <div className="flex gap-6 mt-2">
+            <label className={checkboxLabelClass}>
+              <input
+                type="radio"
+                name="machineryAvailable"
+                checked={data.machineryAvailable === true}
+                onChange={() => onChange({ machineryAvailable: true })}
+                className="w-4 h-4 accent-primary cursor-pointer"
+              />
+              Oui
+            </label>
+            <label className={checkboxLabelClass}>
+              <input
+                type="radio"
+                name="machineryAvailable"
+                checked={data.machineryAvailable === false}
+                onChange={() => onChange({ machineryAvailable: false, machineryDescription: "" })}
+                className="w-4 h-4 accent-primary cursor-pointer"
+              />
+              Non
+            </label>
+          </div>
+          {data.machineryAvailable === true && (
+            <div className="mt-3">
+              <label className={labelClass}>Quel type de machinerie avez-vous?</label>
+              <input
+                value={data.machineryDescription}
+                onChange={(e) => onChange({ machineryDescription: e.target.value })}
+                className={inputClass}
+                placeholder="Ex: Pelle mécanique, tracteur, chargeuse..."
+              />
+            </div>
+          )}
         </div>
 
         {/* Accessibilité */}
