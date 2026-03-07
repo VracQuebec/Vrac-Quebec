@@ -1,12 +1,14 @@
-import { useState } from "react";
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
+import { PenLine } from "lucide-react";
 
 interface Props {
   selected: string[];
+  otherMaterial: string;
   onSelect: (materials: string[]) => void;
+  onOtherChange: (value: string) => void;
 }
 
-const StepMaterials = ({ selected, onSelect }: Props) => {
+const StepMaterials = ({ selected, otherMaterial, onSelect, onOtherChange }: Props) => {
   const toggle = (id: string) => {
     onSelect(
       selected.includes(id)
@@ -29,17 +31,50 @@ const StepMaterials = ({ selected, onSelect }: Props) => {
             key={mat.id}
             type="button"
             onClick={() => toggle(mat.id)}
-            className={`flex flex-col items-center gap-2 p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer ${
+            className={`relative flex flex-col items-center gap-2 rounded-xl border-2 overflow-hidden transition-all duration-200 cursor-pointer ${
               selected.includes(mat.id)
-                ? "border-primary bg-primary/10 shadow-md"
+                ? "border-primary shadow-md ring-2 ring-primary/30"
                 : "border-border bg-card hover:border-primary/40 hover:shadow-sm"
             }`}
           >
-            <span className="text-3xl">{mat.icon}</span>
-            <span className="font-display font-semibold text-sm text-foreground">{mat.label}</span>
+            {mat.image ? (
+              <div className="w-full aspect-square overflow-hidden">
+                <img
+                  src={mat.image}
+                  alt={mat.label}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-full aspect-square overflow-hidden bg-muted flex items-center justify-center">
+                <PenLine className="w-10 h-10 text-muted-foreground" />
+              </div>
+            )}
+            <span className="font-display font-semibold text-sm text-foreground pb-3">{mat.label}</span>
+            {selected.includes(mat.id) && (
+              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                <svg className="w-3.5 h-3.5 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            )}
           </button>
         ))}
       </div>
+
+      {selected.includes("autre") && (
+        <div>
+          <label className="block text-sm font-semibold text-foreground mb-1.5 font-display">
+            Décrivez le matériel désiré
+          </label>
+          <input
+            value={otherMaterial}
+            onChange={(e) => onOtherChange(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-shadow font-body"
+            placeholder="Ex: Pierre décorative, terre végétale..."
+          />
+        </div>
+      )}
     </div>
   );
 };

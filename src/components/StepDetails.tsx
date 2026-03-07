@@ -4,7 +4,6 @@ import {
   TONNAGE_OPTIONS,
   BUDGET_UNITS,
   BUDGET_OPTIONS,
-  MACHINERY_OPTIONS,
   ACCESSIBILITY_OPTIONS,
   type QuestionnaireData,
 } from "@/lib/questionnaire-data";
@@ -17,6 +16,8 @@ interface Props {
 const StepDetails = ({ data, onChange }: Props) => {
   const selectClass =
     "w-full px-4 py-3 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-shadow font-body appearance-none";
+  const inputClass =
+    "w-full px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-shadow font-body";
   const labelClass = "block text-sm font-semibold text-foreground mb-1.5 font-display";
   const checkboxLabelClass = "flex items-center gap-2.5 cursor-pointer text-sm text-foreground font-body";
 
@@ -104,25 +105,19 @@ const StepDetails = ({ data, onChange }: Props) => {
           )}
         </div>
 
+        {/* Machinerie — champ texte libre */}
         <div>
           <label className={labelClass}>Machinerie disponible sur place</label>
-          <div className="flex gap-4 mt-2">
-            {MACHINERY_OPTIONS.map((m) => (
-              <label key={m} className={checkboxLabelClass}>
-                <input
-                  type="radio"
-                  name="machinery"
-                  value={m}
-                  checked={data.machineryAvailable === m}
-                  onChange={() => onChange({ machineryAvailable: m })}
-                  className="w-4 h-4 accent-primary cursor-pointer"
-                />
-                {m}
-              </label>
-            ))}
-          </div>
+          <p className="text-xs text-muted-foreground mb-2">Décrivez la machinerie que vous avez sur place (ou écrivez « Aucune »)</p>
+          <input
+            value={data.machineryDescription}
+            onChange={(e) => onChange({ machineryDescription: e.target.value })}
+            className={inputClass}
+            placeholder="Ex: Pelle mécanique, tracteur, aucune..."
+          />
         </div>
 
+        {/* Accessibilité */}
         <div>
           <label className={labelClass}>Accessibilité du terrain</label>
           <p className="text-xs text-muted-foreground mb-2">Véhicules pouvant accéder au terrain</p>
