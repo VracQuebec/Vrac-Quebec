@@ -30,6 +30,20 @@ const Questionnaire = () => {
     return false;
   };
 
+  const geocodeAddress = async (address: string, postalCode: string): Promise<{ lat: number; lng: number } | null> => {
+    try {
+      const query = `${address}${postalCode ? `, ${postalCode}` : ""}, Québec, Canada`;
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+      const results = await res.json();
+      if (results.length > 0) {
+        return { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
+      }
+    } catch {
+      // Geocoding is best-effort
+    }
+    return null;
+  };
+
   const handleSubmit = async () => {
     if (!canNext()) {
       toast({ title: "Champs manquants", description: "Veuillez remplir les champs obligatoires.", variant: "destructive" });
@@ -38,6 +52,9 @@ const Questionnaire = () => {
 
     setLoading(true);
     try {
+      // Geocode address
+      const coords = await geocodeAddress(data.address, data.postalCode);
+
       const { error } = await supabase.from("submissions").insert({
         materials: data.materials,
         other_material: data.otherMaterial,
@@ -55,6 +72,8 @@ const Questionnaire = () => {
         email: data.email,
         phone: data.phone,
         description: data.description,
+        latitude: coords?.lat ?? null,
+        longitude: coords?.lng ?? null,
       });
 
       if (error) throw error;

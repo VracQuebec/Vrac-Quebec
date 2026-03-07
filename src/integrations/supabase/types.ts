@@ -24,6 +24,8 @@ export type Database = {
           description: string | null
           email: string
           id: string
+          latitude: number | null
+          longitude: number | null
           machinery_available: boolean | null
           machinery_description: string | null
           materials: string[]
@@ -33,6 +35,7 @@ export type Database = {
           postal_code: string | null
           property_type: string
           quantity: string
+          submission_number: number
           tonnage: string
         }
         Insert: {
@@ -44,6 +47,8 @@ export type Database = {
           description?: string | null
           email: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           machinery_available?: boolean | null
           machinery_description?: string | null
           materials: string[]
@@ -53,6 +58,7 @@ export type Database = {
           postal_code?: string | null
           property_type: string
           quantity: string
+          submission_number?: number
           tonnage: string
         }
         Update: {
@@ -64,6 +70,8 @@ export type Database = {
           description?: string | null
           email?: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           machinery_available?: boolean | null
           machinery_description?: string | null
           materials?: string[]
@@ -73,6 +81,7 @@ export type Database = {
           postal_code?: string | null
           property_type?: string
           quantity?: string
+          submission_number?: number
           tonnage?: string
         }
         Relationships: []

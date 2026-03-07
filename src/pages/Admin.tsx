@@ -3,11 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
-import { Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+import AdminMap from "@/components/AdminMap";
 
 interface Submission {
   id: string;
+  submission_number: number | null;
+  latitude: number | null;
+  longitude: number | null;
   materials: string[];
   other_material: string | null;
   property_type: string;
@@ -32,6 +36,7 @@ const Admin = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [view, setView] = useState<"list" | "map">("map");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -114,15 +119,37 @@ const Admin = () => {
           <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
             Demandes reçues
           </h1>
-          <button onClick={fetchSubmissions} className="text-sm text-primary hover:underline font-body">
-            Actualiser
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex bg-secondary rounded-lg p-0.5">
+              <button
+                onClick={() => setView("map")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-display font-semibold transition-colors ${
+                  view === "map" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Map className="w-4 h-4" /> Carte
+              </button>
+              <button
+                onClick={() => setView("list")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-display font-semibold transition-colors ${
+                  view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <List className="w-4 h-4" /> Liste
+              </button>
+            </div>
+            <button onClick={fetchSubmissions} className="text-sm text-primary hover:underline font-body">
+              Actualiser
+            </button>
+          </div>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
+        ) : view === "map" ? (
+          <AdminMap submissions={submissions} />
         ) : submissions.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-muted-foreground font-body">Aucune demande pour le moment.</p>
