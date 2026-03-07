@@ -3,11 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
-import { Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+import AdminMap from "@/components/AdminMap";
 
 interface Submission {
   id: string;
+  submission_number: number | null;
+  latitude: number | null;
+  longitude: number | null;
   materials: string[];
   other_material: string | null;
   property_type: string;
