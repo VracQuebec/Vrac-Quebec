@@ -149,9 +149,7 @@ const Admin = () => {
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : view === "map" ? (
-          <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
-            <AdminMap submissions={submissions} />
-          </Suspense>
+          <AdminMap submissions={submissions} />
         ) : submissions.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-muted-foreground font-body">Aucune demande pour le moment.</p>
