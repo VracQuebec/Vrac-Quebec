@@ -1,33 +1,28 @@
 import Questionnaire from "@/components/Questionnaire";
-import { Truck } from "lucide-react";
+import heroBanner from "@/assets/hero-banner.png";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Truck className="w-6 h-6 text-primary" />
-            <span className="font-display font-bold text-xl text-foreground">
-              Vrac<span className="text-primary">Québec</span>
-            </span>
-          </div>
-          <span className="text-xs text-muted-foreground font-body hidden sm:block">
-            Matériaux en vrac • Livraison rapide
-          </span>
-        </div>
-      </nav>
+      {/* Hero Banner */}
+      <header className="relative w-full overflow-hidden">
+        <img
+          src={heroBanner}
+          alt="Vrac Québec — Sites de dépôt, terre, sable, gravier, remblai"
+          className="w-full h-[280px] sm:h-[360px] md:h-[420px] object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+      </header>
 
-      {/* Hero + Questionnaire */}
-      <main className="py-12 md:py-20">
+      {/* Questionnaire */}
+      <main className="-mt-16 relative z-10 pb-12 md:pb-20">
         <div className="container mx-auto px-6">
-          <div className="text-center mb-12">
-            <h1 className="text-3xl md:text-5xl font-display font-extrabold text-foreground leading-tight">
-              Trouvez votre matériel<br />
+          <div className="text-center mb-10">
+            <h1 className="text-2xl md:text-4xl font-display font-extrabold text-foreground leading-tight">
+              Trouvez votre matériel{" "}
               <span className="text-primary">en quelques clics</span>
             </h1>
-            <p className="text-muted-foreground mt-4 max-w-md mx-auto font-body">
+            <p className="text-muted-foreground mt-3 max-w-md mx-auto font-body text-sm md:text-base">
               Terre, sable, gravier, roche concassée — répondez à quelques questions et recevez une soumission rapidement.
             </p>
           </div>
