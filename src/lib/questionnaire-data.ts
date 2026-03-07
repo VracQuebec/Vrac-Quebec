@@ -11,7 +11,7 @@ export const MATERIAL_TYPES = [
   { id: "gravier", label: "Gravier", image: gravierImg },
   { id: "roche", label: "Roche", image: rocheImg },
   { id: "roche-concassee", label: "Roche concassée", image: rocheConcasseeImg },
-  { id: "glaise", label: "Glaise", image: glaiseImg },
+  { id: "remplissage", label: "Matériel de remplissage", image: remplissageImg },
   { id: "autre", label: "Autre", image: "" },
 ] as const;
 
