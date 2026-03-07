@@ -1,12 +1,11 @@
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
 import { Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
-
-const AdminMap = lazy(() => import("@/components/AdminMap"));
+import AdminMap from "@/components/AdminMap";
 
 interface Submission {
   id: string;
