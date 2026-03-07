@@ -14,7 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      submissions: {
+        Row: {
+          accessibility: string[] | null
+          address: string
+          budget_max: string | null
+          budget_unit: string | null
+          created_at: string
+          description: string | null
+          email: string
+          id: string
+          machinery_available: boolean | null
+          machinery_description: string | null
+          materials: string[]
+          name: string
+          other_material: string | null
+          phone: string | null
+          postal_code: string | null
+          property_type: string
+          quantity: string
+          tonnage: string
+        }
+        Insert: {
+          accessibility?: string[] | null
+          address: string
+          budget_max?: string | null
+          budget_unit?: string | null
+          created_at?: string
+          description?: string | null
+          email: string
+          id?: string
+          machinery_available?: boolean | null
+          machinery_description?: string | null
+          materials: string[]
+          name: string
+          other_material?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          property_type: string
+          quantity: string
+          tonnage: string
+        }
+        Update: {
+          accessibility?: string[] | null
+          address?: string
+          budget_max?: string | null
+          budget_unit?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string
+          id?: string
+          machinery_available?: boolean | null
+          machinery_description?: string | null
+          materials?: string[]
+          name?: string
+          other_material?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          property_type?: string
+          quantity?: string
+          tonnage?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
