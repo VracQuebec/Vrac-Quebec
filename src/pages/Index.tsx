@@ -38,8 +38,11 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="py-8 border-t border-border">
-        <div className="container mx-auto px-6 text-center text-sm text-muted-foreground font-body">
-          © 2026 VracQuébec. Tous droits réservés.
+        <div className="container mx-auto px-6 flex items-center justify-between text-sm text-muted-foreground font-body">
+          <span>© 2026 VracQuébec. Tous droits réservés.</span>
+          <a href="/login" className="hover:text-foreground transition-colors">
+            Administration
+          </a>
         </div>
       </footer>
     </div>
