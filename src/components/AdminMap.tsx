@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
@@ -55,16 +54,26 @@ const getMaterialLabels = (ids: string[]) =>
 const formatDate = (d: string) =>
   new Date(d).toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
-const FitBounds = ({ submissions }: { submissions: Submission[] }) => {
-  const map = useMap();
-  useEffect(() => {
-    const points = submissions.filter((s) => s.latitude && s.longitude);
-    if (points.length > 0) {
-      const bounds = L.latLngBounds(points.map((s) => [s.latitude!, s.longitude!]));
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
-    }
-  }, [submissions, map]);
-  return null;
+const buildPopup = (sub: Submission) => {
+  let html = `<div style="font-size:13px;line-height:1.6">
+    <div style="font-weight:800;font-size:16px;margin-bottom:6px;color:#1a1a1a">
+      #${sub.submission_number} — ${sub.name}
+    </div>
+    <div><b>Matériaux:</b> ${getMaterialLabels(sub.materials)}</div>`;
+  if (sub.other_material) html += `<div><b>Autre:</b> ${sub.other_material}</div>`;
+  html += `<div><b>Type:</b> ${sub.property_type}</div>
+    <div><b>Voyages:</b> ${sub.quantity}</div>
+    <div><b>Tonnage:</b> ${sub.tonnage}</div>`;
+  if (sub.budget_unit) html += `<div><b>Budget:</b> ${sub.budget_max} ${sub.budget_unit}</div>`;
+  html += `<div><b>Machinerie:</b> ${sub.machinery_available ? `Oui — ${sub.machinery_description || ""}` : "Non"}</div>`;
+  if (sub.accessibility && sub.accessibility.length > 0)
+    html += `<div><b>Accessibilité:</b> ${sub.accessibility.join(", ")}</div>`;
+  html += `<div><b>Adresse:</b> ${sub.address}${sub.postal_code ? `, ${sub.postal_code}` : ""}</div>
+    <div><b>Courriel:</b> ${sub.email}</div>`;
+  if (sub.phone) html += `<div><b>Téléphone:</b> ${sub.phone}</div>`;
+  if (sub.description) html += `<div><b>Notes:</b> ${sub.description}</div>`;
+  html += `<div style="margin-top:6px;color:#888;font-size:11px">${formatDate(sub.created_at)}</div></div>`;
+  return html;
 };
 
 interface Props {
@@ -72,7 +81,47 @@ interface Props {
 }
 
 const AdminMap = ({ submissions }: Props) => {
+  const mapRef = useRef<L.Map | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const geoSubs = submissions.filter((s) => s.latitude && s.longitude);
+
+  useEffect(() => {
+    if (!containerRef.current || geoSubs.length === 0) return;
+
+    // Clean up previous map
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+
+    const map = L.map(containerRef.current).setView([46.8, -71.2], 7);
+    mapRef.current = map;
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    const markers: L.Marker[] = [];
+    geoSubs.forEach((sub) => {
+      const marker = L.marker([sub.latitude!, sub.longitude!], {
+        icon: createNumberIcon(sub.submission_number || 0),
+      })
+        .bindPopup(buildPopup(sub), { maxWidth: 320, minWidth: 260 })
+        .addTo(map);
+      markers.push(marker);
+    });
+
+    if (markers.length > 0) {
+      const bounds = L.latLngBounds(markers.map((m) => m.getLatLng()));
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+    }
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, [geoSubs.map((s) => s.id).join(",")]);
 
   if (geoSubs.length === 0) {
     return (
@@ -84,48 +133,7 @@ const AdminMap = ({ submissions }: Props) => {
 
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
-      <MapContainer
-        center={[46.8, -71.2]}
-        zoom={7}
-        style={{ height: "500px", width: "100%" }}
-        scrollWheelZoom={true}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <FitBounds submissions={geoSubs} />
-        {geoSubs.map((sub) => (
-          <Marker
-            key={sub.id}
-            position={[sub.latitude!, sub.longitude!]}
-            icon={createNumberIcon(sub.submission_number || 0)}
-          >
-            <Popup maxWidth={320} minWidth={260}>
-              <div style={{ fontFamily: "inherit", fontSize: "13px", lineHeight: 1.6 }}>
-                <div style={{ fontWeight: 800, fontSize: "16px", marginBottom: 6, color: "#1a1a1a" }}>
-                  #{sub.submission_number} — {sub.name}
-                </div>
-                <div><b>Matériaux:</b> {getMaterialLabels(sub.materials)}</div>
-                {sub.other_material && <div><b>Autre:</b> {sub.other_material}</div>}
-                <div><b>Type:</b> {sub.property_type}</div>
-                <div><b>Voyages:</b> {sub.quantity}</div>
-                <div><b>Tonnage:</b> {sub.tonnage}</div>
-                {sub.budget_unit && <div><b>Budget:</b> {sub.budget_max} {sub.budget_unit}</div>}
-                <div><b>Machinerie:</b> {sub.machinery_available ? `Oui — ${sub.machinery_description || ""}` : "Non"}</div>
-                {sub.accessibility && sub.accessibility.length > 0 && (
-                  <div><b>Accessibilité:</b> {sub.accessibility.join(", ")}</div>
-                )}
-                <div><b>Adresse:</b> {sub.address}{sub.postal_code ? `, ${sub.postal_code}` : ""}</div>
-                <div><b>Courriel:</b> {sub.email}</div>
-                {sub.phone && <div><b>Téléphone:</b> {sub.phone}</div>}
-                {sub.description && <div><b>Notes:</b> {sub.description}</div>}
-                <div style={{ marginTop: 6, color: "#888", fontSize: "11px" }}>{formatDate(sub.created_at)}</div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-      </MapContainer>
+      <div ref={containerRef} style={{ height: "500px", width: "100%" }} />
     </div>
   );
 };
