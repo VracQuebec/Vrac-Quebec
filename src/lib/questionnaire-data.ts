@@ -70,6 +70,7 @@ export interface QuestionnaireData {
   tonnage: string;
   budgetUnit: string;
   budgetMax: string;
+  machineryAvailable: boolean | null;
   machineryDescription: string;
   accessibility: string[];
   address: string;
@@ -88,6 +89,7 @@ export const initialFormData: QuestionnaireData = {
   tonnage: "",
   budgetUnit: "",
   budgetMax: "",
+  machineryAvailable: null,
   machineryDescription: "",
   accessibility: [],
   address: "",
