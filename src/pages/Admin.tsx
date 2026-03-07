@@ -36,6 +36,7 @@ const Admin = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [view, setView] = useState<"list" | "map">("map");
   const navigate = useNavigate();
 
   useEffect(() => {
