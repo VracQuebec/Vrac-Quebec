@@ -25,8 +25,8 @@ const StepDetails = ({ data, onChange }: Props) => {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <div className="inline-flex items-center gap-2 bg-primary text-primary-foreground text-base md:text-lg font-bold px-5 py-2.5 rounded-full mb-4 font-display shadow-lg uppercase tracking-wide">
-          <span className="text-xl">⏱️</span>
+        <div className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full mb-3 font-display">
+          <span>⏱️</span>
           Estimation rapide — aucun engagement
         </div>
         <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground">
@@ -47,8 +47,21 @@ const StepDetails = ({ data, onChange }: Props) => {
               onClick={() => onChange({ propertyType: p.value })}
               className={optionBtn(data.propertyType === p.value)}
             >
-              <span className="mr-2">{p.emoji}</span>
-              {p.value}
+              <div className="flex items-center gap-2">
+                {p.image ? (
+                  <img
+                    src={p.image}
+                    alt={p.value}
+                    loading="lazy"
+                    width={512}
+                    height={512}
+                    className="w-8 h-8 object-cover rounded shrink-0"
+                  />
+                ) : (
+                  <span className="text-lg w-8 text-center shrink-0">{p.emoji}</span>
+                )}
+                <span>{p.value}</span>
+              </div>
             </button>
           ))}
         </div>
