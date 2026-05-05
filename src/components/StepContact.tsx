@@ -64,6 +64,16 @@ const StepContact = ({ data, onChange }: Props) => {
         </div>
 
         <div>
+          <label className={labelClass}>Code postal</label>
+          <input
+            value={data.postalCode}
+            onChange={(e) => onChange({ postalCode: e.target.value })}
+            className={inputClass}
+            placeholder="G1A 1A1"
+          />
+        </div>
+
+        <div>
           <label className={labelClass}>Notes additionnelles</label>
           <textarea
             value={data.description}
@@ -82,7 +92,7 @@ const StepContact = ({ data, onChange }: Props) => {
             <Phone className="w-4 h-4" /> Appeler maintenant
           </a>
           <a
-            href="https://m.me/vracquebec"
+            href="https://www.facebook.com/share/1B2yGEaTL1/"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-border text-foreground font-display font-semibold text-sm hover:border-primary/50 transition-colors"
