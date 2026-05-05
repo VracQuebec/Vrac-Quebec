@@ -1,6 +1,5 @@
 import terreImg from "@/assets/terre.jpg";
 import sableImg from "@/assets/sable.jpg";
-import gravierImg from "@/assets/gravier.jpg";
 import rocheImg from "@/assets/roche.jpg";
 import rocheConcasseeImg from "@/assets/roche-concassee.jpg";
 import remplissageImg from "@/assets/remplissage.jpg";
@@ -8,7 +7,6 @@ import remplissageImg from "@/assets/remplissage.jpg";
 export const MATERIAL_TYPES = [
   { id: "terre", label: "Terre", image: terreImg },
   { id: "sable", label: "Sable", image: sableImg },
-  { id: "gravier", label: "Gravier", image: gravierImg },
   { id: "roche", label: "Roche", image: rocheImg },
   { id: "roche-concassee", label: "Roche concassée", image: rocheConcasseeImg },
   { id: "remplissage", label: "Matériel de remplissage", image: remplissageImg },
