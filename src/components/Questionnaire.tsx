@@ -124,15 +124,19 @@ const Questionnaire = () => {
           <Check className="w-10 h-10 text-success" />
         </div>
         <h2 className="text-3xl font-display font-bold text-foreground mb-3">✅ Demande envoyée !</h2>
-        <p className="text-muted-foreground mb-8">
-          On vous contacte rapidement (moins de 30 minutes).
+        <p className="text-muted-foreground mb-4">
+          On analyse votre besoin et on vous contacte en moins de 30 minutes.
         </p>
+        <div className="text-sm text-muted-foreground mb-8 space-y-1">
+          <p>📍 Livraison rapide dans la région de Québec</p>
+          <p>🚛 Plusieurs camions disponibles aujourd'hui</p>
+        </div>
 
         <div className="bg-card rounded-2xl p-6 mb-6" style={{ boxShadow: "var(--shadow-lg)" }}>
           <p className="text-base font-display font-semibold text-foreground mb-1">
             Besoin d'une réponse immédiate ?
           </p>
-          <p className="text-sm text-muted-foreground mb-4">Contactez-nous directement 👇</p>
+          <p className="text-sm text-muted-foreground mb-4">Passez en priorité 👇</p>
           <div className="grid grid-cols-1 gap-3">
             <a
               href="tel:5819947717"
@@ -163,6 +167,16 @@ const Questionnaire = () => {
               <Facebook className="w-4 h-4" /> Facebook / Messenger
             </a>
           </div>
+        </div>
+
+        <div className="bg-primary/10 border border-primary/20 rounded-2xl p-5 mb-6 text-left">
+          <p className="text-sm font-display font-semibold text-foreground mb-2">💡 Astuce :</p>
+          <p className="text-sm text-muted-foreground mb-2">
+            On peut souvent livrer aujourd'hui ou demain selon votre secteur.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Mentionnez si votre besoin est urgent pour passer en priorité.
+          </p>
         </div>
 
         <button
