@@ -25,8 +25,9 @@ const StepDetails = ({ data, onChange }: Props) => {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <div className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-3 font-body">
-          ⏱️ Estimation rapide — aucun engagement
+        <div className="inline-flex items-center gap-2 bg-primary text-primary-foreground text-base md:text-lg font-bold px-5 py-2.5 rounded-full mb-4 font-display shadow-lg uppercase tracking-wide">
+          <span className="text-xl">⏱️</span>
+          Estimation rapide — aucun engagement
         </div>
         <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground">
           Détails de votre projet
