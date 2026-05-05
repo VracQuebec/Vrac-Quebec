@@ -63,6 +63,9 @@ export interface QuestionnaireData {
   lengthFt: string;
   widthFt: string;
   depthIn: string;
+  deliverOrRemove: string;
+  contamination: string;
+  photos: string[];
 }
 
 export const initialFormData: QuestionnaireData = {
@@ -85,6 +88,9 @@ export const initialFormData: QuestionnaireData = {
   lengthFt: "",
   widthFt: "",
   depthIn: "",
+  deliverOrRemove: "",
+  contamination: "",
+  photos: [],
 };
 
 // Materials that trigger the "remblai / dépôt / matériel à sortir" special form
