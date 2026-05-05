@@ -1,4 +1,5 @@
 import { type QuestionnaireData } from "@/lib/questionnaire-data";
+import { Phone, MessageCircle } from "lucide-react";
 
 interface Props {
   data: QuestionnaireData;
@@ -14,14 +15,14 @@ const StepContact = ({ data, onChange }: Props) => {
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground">
-          Vos coordonnées
+          Recevez votre prix rapidement
         </h2>
-        <p className="text-muted-foreground mt-2">Pour qu'on puisse vous contacter</p>
+        <p className="text-muted-foreground mt-2">On vous répond en moins de 30 minutes</p>
       </div>
 
       <div className="space-y-4">
         <div>
-          <label className={labelClass}>Nom complet *</label>
+          <label className={labelClass}>Nom *</label>
           <input
             value={data.name}
             onChange={(e) => onChange({ name: e.target.value })}
@@ -32,7 +33,7 @@ const StepContact = ({ data, onChange }: Props) => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Courriel *</label>
+            <label className={labelClass}>Courriel (optionnel)</label>
             <input
               type="email"
               value={data.email}
@@ -42,7 +43,7 @@ const StepContact = ({ data, onChange }: Props) => {
             />
           </div>
           <div>
-            <label className={labelClass}>Téléphone</label>
+            <label className={labelClass}>Téléphone *</label>
             <input
               value={data.phone}
               onChange={(e) => onChange({ phone: e.target.value })}
@@ -53,22 +54,12 @@ const StepContact = ({ data, onChange }: Props) => {
         </div>
 
         <div>
-          <label className={labelClass}>Adresse de livraison *</label>
+          <label className={labelClass}>Adresse ou secteur de livraison *</label>
           <input
             value={data.address}
             onChange={(e) => onChange({ address: e.target.value })}
             className={inputClass}
             placeholder="123 Rue Principale, Québec, QC"
-          />
-        </div>
-
-        <div>
-          <label className={labelClass}>Code postal</label>
-          <input
-            value={data.postalCode}
-            onChange={(e) => onChange({ postalCode: e.target.value })}
-            className={inputClass}
-            placeholder="G1A 1A1"
           />
         </div>
 
@@ -79,8 +70,25 @@ const StepContact = ({ data, onChange }: Props) => {
             onChange={(e) => onChange({ description: e.target.value })}
             className={`${inputClass} resize-none`}
             rows={3}
-            placeholder="Détails supplémentaires..."
+            placeholder="Accès difficile ? Détails importants ? Précisez ici."
           />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <a
+            href="tel:5819947717"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-primary text-primary font-display font-semibold text-sm hover:bg-primary/5 transition-colors"
+          >
+            <Phone className="w-4 h-4" /> Appeler maintenant
+          </a>
+          <a
+            href="https://m.me/vracquebec"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-border text-foreground font-display font-semibold text-sm hover:border-primary/50 transition-colors"
+          >
+            <MessageCircle className="w-4 h-4" /> Messenger
+          </a>
         </div>
       </div>
     </div>
