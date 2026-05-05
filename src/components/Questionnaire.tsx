@@ -25,7 +25,7 @@ const Questionnaire = () => {
 
   const canNext = () => {
     if (step === 0) return data.materials.length > 0;
-    if (step === 1) return data.propertyType && data.quantity && data.tonnage;
+    if (step === 1) return data.propertyType && data.quantity;
     if (step === 2) return data.name && data.email && data.address;
     return false;
   };
@@ -201,7 +201,7 @@ const Questionnaire = () => {
               className="flex items-center gap-1.5 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              {loading ? "Envoi..." : "Envoyer"}
+              {loading ? "Envoi..." : "Obtenir mon prix →"}
             </button>
           )}
         </div>

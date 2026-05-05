@@ -1,10 +1,7 @@
 import {
-  PROPERTY_TYPES,
-  TRIP_VOYAGE_OPTIONS,
-  TONNAGE_OPTIONS,
-  BUDGET_UNITS,
-  BUDGET_OPTIONS,
-  ACCESSIBILITY_OPTIONS,
+  PROJECT_TYPES,
+  PROJECT_SIZES,
+  TRUCK_ACCESS_OPTIONS,
   type QuestionnaireData,
 } from "@/lib/questionnaire-data";
 
@@ -14,159 +11,149 @@ interface Props {
 }
 
 const StepDetails = ({ data, onChange }: Props) => {
-  const selectClass =
-    "w-full px-4 py-3 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-shadow font-body appearance-none";
+  const labelClass = "block text-sm font-semibold text-foreground mb-2 font-display";
   const inputClass =
     "w-full px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-shadow font-body";
-  const labelClass = "block text-sm font-semibold text-foreground mb-1.5 font-display";
-  const checkboxLabelClass = "flex items-center gap-2.5 cursor-pointer text-sm text-foreground font-body";
+
+  const optionBtn = (active: boolean) =>
+    `w-full text-left px-4 py-3 rounded-lg border-2 transition-all font-body text-sm ${
+      active
+        ? "border-primary bg-primary/5 text-foreground font-semibold"
+        : "border-border bg-card text-foreground hover:border-primary/50"
+    }`;
 
   return (
     <div className="space-y-6">
       <div className="text-center">
+        <div className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-3 font-body">
+          ⏱️ Estimation rapide — aucun engagement
+        </div>
         <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground">
-          Détails de votre besoin
+          Détails de votre projet
         </h2>
-        <p className="text-muted-foreground mt-2">Précisez les quantités et contraintes</p>
+        <p className="text-muted-foreground mt-2">
+          Répondez à quelques questions simples (30 secondes)
+        </p>
       </div>
 
-      <div className="space-y-5">
-        <div>
-          <label className={labelClass}>Type de propriété</label>
-          <select
-            value={data.propertyType}
-            onChange={(e) => onChange({ propertyType: e.target.value })}
-            className={selectClass}
-          >
-            <option value="">Sélectionner...</option>
-            {PROPERTY_TYPES.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
+      <div>
+        <label className={labelClass}>Quel est votre projet ?</label>
+        <div className="grid grid-cols-1 gap-2">
+          {PROJECT_TYPES.map((p) => (
+            <button
+              key={p.value}
+              type="button"
+              onClick={() => onChange({ propertyType: p.value })}
+              className={optionBtn(data.propertyType === p.value)}
+            >
+              <span className="mr-2">{p.emoji}</span>
+              {p.value}
+            </button>
+          ))}
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>Nombre de voyages estimé</label>
-            <select
-              value={data.quantity}
-              onChange={(e) => onChange({ quantity: e.target.value })}
-              className={selectClass}
+      <div>
+        <label className={labelClass}>Quelle est la taille de votre projet ?</label>
+        <div className="grid grid-cols-1 gap-2">
+          {PROJECT_SIZES.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onChange({ quantity: s })}
+              className={optionBtn(data.quantity === s)}
             >
-              <option value="">Sélectionner...</option>
-              {TRIP_VOYAGE_OPTIONS.map((q) => (
-                <option key={q} value={q}>{q}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={labelClass}>Tonnage estimé</label>
-            <select
-              value={data.tonnage}
-              onChange={(e) => onChange({ tonnage: e.target.value })}
-              className={selectClass}
-            >
-              <option value="">Sélectionner...</option>
-              {TONNAGE_OPTIONS.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-          </div>
+              {s}
+            </button>
+          ))}
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>Budget — unité</label>
-            <select
-              value={data.budgetUnit}
-              onChange={(e) => onChange({ budgetUnit: e.target.value, budgetMax: "" })}
-              className={selectClass}
-            >
-              <option value="">Sélectionner...</option>
-              {BUDGET_UNITS.map((u) => (
-                <option key={u} value={u}>{u}</option>
-              ))}
-            </select>
-          </div>
-          {data.budgetUnit && (
-            <div>
-              <label className={labelClass}>Montant maximum</label>
-              <select
-                value={data.budgetMax}
-                onChange={(e) => onChange({ budgetMax: e.target.value })}
-                className={selectClass}
+      <div>
+        <label className={labelClass}>Quel camion peut accéder à votre terrain ?</label>
+        <div className="grid grid-cols-2 gap-2">
+          {TRUCK_ACCESS_OPTIONS.map((t) => {
+            const active = data.accessibility.includes(t.value);
+            return (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() =>
+                  onChange({
+                    accessibility: active
+                      ? data.accessibility.filter((v) => v !== t.value)
+                      : [...data.accessibility, t.value],
+                  })
+                }
+                className={optionBtn(active)}
               >
-                <option value="">Sélectionner...</option>
-                {BUDGET_OPTIONS.map((b) => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
-            </div>
-          )}
+                <span className="mr-1.5">{t.emoji}</span>
+                {t.value}
+              </button>
+            );
+          })}
         </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Pas certain ? Aucun problème, on peut vous conseiller.
+        </p>
+      </div>
 
-        {/* Machinerie — Oui/Non puis détail */}
-        <div>
-          <label className={labelClass}>Machinerie disponible sur place</label>
-          <div className="flex gap-6 mt-2">
-            <label className={checkboxLabelClass}>
-              <input
-                type="radio"
-                name="machineryAvailable"
-                checked={data.machineryAvailable === true}
-                onChange={() => onChange({ machineryAvailable: true })}
-                className="w-4 h-4 accent-primary cursor-pointer"
-              />
-              Oui
-            </label>
-            <label className={checkboxLabelClass}>
-              <input
-                type="radio"
-                name="machineryAvailable"
-                checked={data.machineryAvailable === false}
-                onChange={() => onChange({ machineryAvailable: false, machineryDescription: "" })}
-                className="w-4 h-4 accent-primary cursor-pointer"
-              />
-              Non
-            </label>
-          </div>
-          {data.machineryAvailable === true && (
-            <div className="mt-3">
-              <label className={labelClass}>Quel type de machinerie avez-vous?</label>
-              <input
-                value={data.machineryDescription}
-                onChange={(e) => onChange({ machineryDescription: e.target.value })}
-                className={inputClass}
-                placeholder="Ex: Pelle mécanique, tracteur, chargeuse..."
-              />
-            </div>
-          )}
+      <div>
+        <label className={labelClass}>
+          Avez-vous de la machinerie pour étendre le matériel ?
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => onChange({ machineryAvailable: true })}
+            className={optionBtn(data.machineryAvailable === true)}
+          >
+            Oui
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ machineryAvailable: false, machineryDescription: "" })}
+            className={optionBtn(data.machineryAvailable === false)}
+          >
+            Non
+          </button>
         </div>
+      </div>
 
-        {/* Accessibilité */}
-        <div>
-          <label className={labelClass}>Accessibilité du terrain</label>
-          <p className="text-xs text-muted-foreground mb-2">Véhicules pouvant accéder au terrain</p>
-          <div className="grid grid-cols-2 gap-2">
-            {ACCESSIBILITY_OPTIONS.map((a) => (
-              <label key={a} className={checkboxLabelClass}>
-                <input
-                  type="checkbox"
-                  checked={data.accessibility.includes(a)}
-                  onChange={() =>
-                    onChange({
-                      accessibility: data.accessibility.includes(a)
-                        ? data.accessibility.filter((v) => v !== a)
-                        : [...data.accessibility, a],
-                    })
-                  }
-                  className="w-4 h-4 accent-primary cursor-pointer"
-                />
-                {a}
-              </label>
-            ))}
-          </div>
+      <div>
+        <label className={labelClass}>
+          Connaissez-vous les dimensions de votre projet ?{" "}
+          <span className="text-muted-foreground font-normal">(optionnel)</span>
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          <input
+            type="number"
+            min="0"
+            value={data.lengthFt}
+            onChange={(e) => onChange({ lengthFt: e.target.value })}
+            className={inputClass}
+            placeholder="Long. (pi)"
+          />
+          <input
+            type="number"
+            min="0"
+            value={data.widthFt}
+            onChange={(e) => onChange({ widthFt: e.target.value })}
+            className={inputClass}
+            placeholder="Larg. (pi)"
+          />
+          <input
+            type="number"
+            min="0"
+            value={data.depthIn}
+            onChange={(e) => onChange({ depthIn: e.target.value })}
+            className={inputClass}
+            placeholder="Prof. (po)"
+          />
         </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          On peut calculer automatiquement la quantité pour vous.
+        </p>
       </div>
     </div>
   );

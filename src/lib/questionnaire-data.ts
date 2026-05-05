@@ -13,51 +13,26 @@ export const MATERIAL_TYPES = [
   { id: "autre", label: "Autre", image: "" },
 ] as const;
 
-export const PROPERTY_TYPES = [
-  "Résidentiel",
-  "Commercial",
-  "Industriel",
+export const PROJECT_TYPES = [
+  { value: "Entrée / stationnement", emoji: "🏡" },
+  { value: "Fondation / base (garage, cabanon, patio)", emoji: "🧱" },
+  { value: "Aménagement / terrain (nivelage, pelouse, jardin)", emoji: "🌿" },
+  { value: "Remplissage / remblai", emoji: "🚧" },
+  { value: "Je ne sais pas", emoji: "❓" },
 ] as const;
 
-export const TRIP_VOYAGE_OPTIONS = [
-  "1 - 5 voyages",
-  "5 - 10 voyages",
-  "10 - 25 voyages",
-  "25 - 50 voyages",
-  "50 - 100 voyages",
-  "100 - 500 voyages",
-  "500+ voyages",
+export const PROJECT_SIZES = [
+  "Petit (1 à 3 voyages)",
+  "Moyen (4 à 10 voyages)",
+  "Gros (11 voyages et +)",
+  "Je ne sais pas",
 ] as const;
 
-export const TONNAGE_OPTIONS = [
-  "Moins de 10 tonnes",
-  "10 - 50 tonnes",
-  "50 - 100 tonnes",
-  "100 - 500 tonnes",
-  "500 - 1000 tonnes",
-  "1000+ tonnes",
-] as const;
-
-export const BUDGET_UNITS = [
-  "Par voyage",
-  "Par tonne",
-] as const;
-
-export const BUDGET_OPTIONS = [
-  "Moins de 50 $",
-  "50 - 100 $",
-  "100 - 200 $",
-  "200 - 500 $",
-  "500 - 1000 $",
-  "Plus de 1000 $",
-] as const;
-
-export const ACCESSIBILITY_OPTIONS = [
-  "10 roues",
-  "12 roues",
-  "Semi-remorque 2 essieux",
-  "Semi-remorque 3 essieux",
-  "Semi-remorque 4 essieux",
+export const TRUCK_ACCESS_OPTIONS = [
+  { value: "10 roues", emoji: "🚛" },
+  { value: "12 roues", emoji: "🚛" },
+  { value: "Semi-remorque", emoji: "🚛" },
+  { value: "Je ne sais pas", emoji: "❓" },
 ] as const;
 
 export interface QuestionnaireData {
@@ -77,6 +52,9 @@ export interface QuestionnaireData {
   email: string;
   phone: string;
   description: string;
+  lengthFt: string;
+  widthFt: string;
+  depthIn: string;
 }
 
 export const initialFormData: QuestionnaireData = {
@@ -96,4 +74,7 @@ export const initialFormData: QuestionnaireData = {
   email: "",
   phone: "",
   description: "",
+  lengthFt: "",
+  widthFt: "",
+  depthIn: "",
 };
