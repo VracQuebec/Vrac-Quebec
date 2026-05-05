@@ -6,6 +6,7 @@ import remplissageImg from "@/assets/remplissage.jpg";
 import truck10 from "@/assets/truck-10-wheels.png";
 import truck12 from "@/assets/truck-12-wheels.png";
 import truckSemi from "@/assets/truck-semi.png";
+import projectEntree from "@/assets/project-entree.jpg";
 
 export const MATERIAL_TYPES = [
   { id: "terre", label: "Terre", image: terreImg },
@@ -17,11 +18,11 @@ export const MATERIAL_TYPES = [
 ] as const;
 
 export const PROJECT_TYPES = [
-  { value: "Entrée / stationnement", emoji: "🏡" },
-  { value: "Fondation / base (garage, cabanon, patio)", emoji: "🧱" },
-  { value: "Aménagement / terrain (nivelage, pelouse, jardin)", emoji: "🌿" },
-  { value: "Remplissage / remblai", emoji: "🚧" },
-  { value: "Je ne sais pas", emoji: "❓" },
+  { value: "Entrée / stationnement", emoji: "🏡", image: projectEntree },
+  { value: "Fondation / base (garage, cabanon, patio)", emoji: "🧱", image: null },
+  { value: "Aménagement / terrain (nivelage, pelouse, jardin)", emoji: "🌿", image: null },
+  { value: "Remplissage / remblai", emoji: "🚧", image: null },
+  { value: "Je ne sais pas", emoji: "❓", image: null },
 ] as const;
 
 export const PROJECT_SIZES = [
