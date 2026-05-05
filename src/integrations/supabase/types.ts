@@ -63,6 +63,7 @@ export type Database = {
           description: string | null
           email: string
           id: string
+          internal_notes: string
           latitude: number | null
           length_ft: string | null
           longitude: number | null
@@ -74,12 +75,14 @@ export type Database = {
           phone: string | null
           photos: string[] | null
           postal_code: string | null
+          priority: string
           property_type: string
           quantity: string
           request_type: string
           status: string
           submission_number: number
           tonnage: string
+          visible_to_entrepreneur: boolean
           width_ft: string | null
         }
         Insert: {
@@ -95,6 +98,7 @@ export type Database = {
           description?: string | null
           email: string
           id?: string
+          internal_notes?: string
           latitude?: number | null
           length_ft?: string | null
           longitude?: number | null
@@ -106,12 +110,14 @@ export type Database = {
           phone?: string | null
           photos?: string[] | null
           postal_code?: string | null
+          priority?: string
           property_type: string
           quantity: string
           request_type?: string
           status?: string
           submission_number?: number
           tonnage: string
+          visible_to_entrepreneur?: boolean
           width_ft?: string | null
         }
         Update: {
@@ -127,6 +133,7 @@ export type Database = {
           description?: string | null
           email?: string
           id?: string
+          internal_notes?: string
           latitude?: number | null
           length_ft?: string | null
           longitude?: number | null
@@ -138,12 +145,14 @@ export type Database = {
           phone?: string | null
           photos?: string[] | null
           postal_code?: string | null
+          priority?: string
           property_type?: string
           quantity?: string
           request_type?: string
           status?: string
           submission_number?: number
           tonnage?: string
+          visible_to_entrepreneur?: boolean
           width_ft?: string | null
         }
         Relationships: []
