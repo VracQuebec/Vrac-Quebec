@@ -64,7 +64,7 @@ const StepContact = ({ data, onChange }: Props) => {
         </div>
 
         <div>
-          <label className={labelClass}>Code postal</label>
+          <label className={labelClass}>Code postal *</label>
           <input
             value={data.postalCode}
             onChange={(e) => onChange({ postalCode: e.target.value })}
