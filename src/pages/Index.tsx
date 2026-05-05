@@ -40,16 +40,16 @@ const Index = () => {
       </main>
 
       {/* Floating mobile contact bar */}
-      <div className="md:hidden fixed bottom-3 left-3 right-3 z-50 grid grid-cols-3 gap-2">
+      <div className="md:hidden fixed bottom-2 left-2 right-2 z-50 grid grid-cols-3 gap-1.5">
         <a
           href="tel:5819947717"
-          className="flex items-center justify-center gap-1 px-2 py-3 rounded-full bg-primary text-primary-foreground font-display font-semibold text-xs shadow-lg"
+          className="flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-primary text-primary-foreground font-display font-semibold text-xs shadow-lg"
         >
           📞 Appeler
         </a>
         <a
           href="sms:15819947717?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
-          className="flex items-center justify-center gap-1 px-2 py-3 rounded-full bg-foreground text-background font-display font-semibold text-xs shadow-lg"
+          className="flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-foreground text-background font-display font-semibold text-xs shadow-lg"
         >
           💬 Texto
         </a>
@@ -57,14 +57,14 @@ const Index = () => {
           href="https://wa.me/15819947717?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1 px-2 py-3 rounded-full bg-[#25D366] text-white font-display font-semibold text-xs shadow-lg"
+          className="flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-[#25D366] text-white font-display font-semibold text-xs shadow-lg"
         >
           🟢 WhatsApp
         </a>
       </div>
 
       {/* Footer */}
-      <footer className="py-8 pb-24 md:pb-8 border-t border-border">
+      <footer className="py-8 pb-20 md:pb-8 border-t border-border">
         <div className="container mx-auto px-6 flex items-center justify-between text-sm text-muted-foreground font-body">
           <span>© 2026 VracQuébec. Tous droits réservés.</span>
           <a href="/login" className="hover:text-foreground transition-colors">
