@@ -14,17 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      lead_notes: {
+        Row: {
+          author_email: string | null
+          author_id: string
+          created_at: string
+          id: string
+          note: string
+          submission_id: string
+        }
+        Insert: {
+          author_email?: string | null
+          author_id: string
+          created_at?: string
+          id?: string
+          note: string
+          submission_id: string
+        }
+        Update: {
+          author_email?: string | null
+          author_id?: string
+          created_at?: string
+          id?: string
+          note?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_notes_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submissions: {
         Row: {
           accessibility: string[] | null
           address: string
+          assigned_entrepreneur: string | null
           budget_max: string | null
           budget_unit: string | null
+          contamination: string | null
           created_at: string
+          deliver_or_remove: string | null
+          depth_in: string | null
           description: string | null
           email: string
           id: string
           latitude: number | null
+          length_ft: string | null
           longitude: number | null
           machinery_available: boolean | null
           machinery_description: string | null
@@ -32,22 +72,31 @@ export type Database = {
           name: string
           other_material: string | null
           phone: string | null
+          photos: string[] | null
           postal_code: string | null
           property_type: string
           quantity: string
+          request_type: string
+          status: string
           submission_number: number
           tonnage: string
+          width_ft: string | null
         }
         Insert: {
           accessibility?: string[] | null
           address: string
+          assigned_entrepreneur?: string | null
           budget_max?: string | null
           budget_unit?: string | null
+          contamination?: string | null
           created_at?: string
+          deliver_or_remove?: string | null
+          depth_in?: string | null
           description?: string | null
           email: string
           id?: string
           latitude?: number | null
+          length_ft?: string | null
           longitude?: number | null
           machinery_available?: boolean | null
           machinery_description?: string | null
@@ -55,22 +104,31 @@ export type Database = {
           name: string
           other_material?: string | null
           phone?: string | null
+          photos?: string[] | null
           postal_code?: string | null
           property_type: string
           quantity: string
+          request_type?: string
+          status?: string
           submission_number?: number
           tonnage: string
+          width_ft?: string | null
         }
         Update: {
           accessibility?: string[] | null
           address?: string
+          assigned_entrepreneur?: string | null
           budget_max?: string | null
           budget_unit?: string | null
+          contamination?: string | null
           created_at?: string
+          deliver_or_remove?: string | null
+          depth_in?: string | null
           description?: string | null
           email?: string
           id?: string
           latitude?: number | null
+          length_ft?: string | null
           longitude?: number | null
           machinery_available?: boolean | null
           machinery_description?: string | null
@@ -78,11 +136,15 @@ export type Database = {
           name?: string
           other_material?: string | null
           phone?: string | null
+          photos?: string[] | null
           postal_code?: string | null
           property_type?: string
           quantity?: string
+          request_type?: string
+          status?: string
           submission_number?: number
           tonnage?: string
+          width_ft?: string | null
         }
         Relationships: []
       }
@@ -109,12 +171,42 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_entrepreneur_leads: {
+        Args: never
+        Returns: {
+          contamination: string
+          created_at: string
+          deliver_or_remove: string
+          description: string
+          id: string
+          is_assigned: boolean
+          latitude: number
+          longitude: number
+          materials: string[]
+          other_material: string
+          postal_prefix: string
+          property_type: string
+          quantity: string
+          request_type: string
+          status: string
+          submission_number: number
+          tonnage: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      list_users_with_roles: {
+        Args: never
+        Returns: {
+          email: string
+          roles: Database["public"]["Enums"]["app_role"][]
+          user_id: string
+        }[]
       }
     }
     Enums: {
