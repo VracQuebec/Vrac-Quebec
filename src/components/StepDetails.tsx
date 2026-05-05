@@ -99,7 +99,7 @@ const StepDetails = ({ data, onChange }: Props) => {
                       : [...data.accessibility, t.value],
                   })
                 }
-                className={`${optionBtn(active)} !py-1 !px-2`}
+                className={`${optionBtn(active)} !py-0.5 !px-2`}
               >
                 <div className="flex items-center gap-2">
                   {t.image ? (
