@@ -14,10 +14,11 @@ import projectRemplissage from "@/assets/project-remplissage.jpg";
 export const MATERIAL_TYPES = [
   { id: "terre", label: "Terre", image: terreImg },
   { id: "sable", label: "Sable", image: sableImg },
-  { id: "roche", label: "Roche", image: rocheImg },
-  { id: "roche-concassee", label: "Roche concassée", image: rocheConcasseeImg },
-  { id: "remplissage", label: "Matériel de remplissage", image: remplissageImg },
+  { id: "roche", label: "Grosse roche / enrochement", image: rocheImg },
+  { id: "roche-concassee", label: "Pierre concassée", image: rocheConcasseeImg },
+  { id: "remplissage", label: "Remblai (économique)", image: remplissageImg },
   { id: "autre", label: "Autre", image: "" },
+  { id: "ne-sais-pas", label: "Je ne sais pas", image: "" },
 ] as const;
 
 export const PROJECT_TYPES = [
@@ -29,9 +30,9 @@ export const PROJECT_TYPES = [
 ] as const;
 
 export const PROJECT_SIZES = [
-  "Petit (1 à 3 voyages)",
-  "Moyen (4 à 10 voyages)",
-  "Gros (11 voyages et +)",
+  "Petit (1 à 2 voyages)",
+  "Moyen (3 à 6 voyages)",
+  "Gros (6 voyages et +)",
   "Je ne sais pas",
 ] as const;
 
