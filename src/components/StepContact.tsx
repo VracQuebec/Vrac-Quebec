@@ -33,7 +33,7 @@ const StepContact = ({ data, onChange }: Props) => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Courriel (optionnel)</label>
+            <label className={labelClass}>Courriel *</label>
             <input
               type="email"
               value={data.email}
@@ -116,7 +116,7 @@ const StepContact = ({ data, onChange }: Props) => {
             rel="noopener noreferrer"
             className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 border-[#0084FF] bg-[#0084FF] text-white font-display font-semibold text-sm hover:opacity-90 transition-opacity"
           >
-            <Facebook className="w-4 h-4" /> Aussi disponibles sur Facebook / Messenger
+            <Facebook className="w-4 h-4" /> Facebook / Messenger
           </a>
         </div>
       </div>
