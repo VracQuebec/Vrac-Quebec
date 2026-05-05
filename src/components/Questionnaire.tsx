@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import StepMaterials from "./StepMaterials";
 import StepDetails from "./StepDetails";
 import StepContact from "./StepContact";
-import { initialFormData, MATERIAL_TYPES, type QuestionnaireData } from "@/lib/questionnaire-data";
+import { initialFormData, MATERIAL_TYPES, detectRequestType, isRemblaiRequest, type QuestionnaireData } from "@/lib/questionnaire-data";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, ChevronRight, Send, Check, Loader2, Facebook } from "lucide-react";
@@ -85,6 +85,13 @@ const Questionnaire = () => {
         description: data.description,
         latitude: coords?.lat ?? null,
         longitude: coords?.lng ?? null,
+        request_type: detectRequestType(data.materials, data.propertyType),
+        deliver_or_remove: data.deliverOrRemove || null,
+        contamination: data.contamination || null,
+        photos: data.photos || [],
+        length_ft: data.lengthFt || null,
+        width_ft: data.widthFt || null,
+        depth_in: data.depthIn || null,
       });
 
       if (error) throw error;
