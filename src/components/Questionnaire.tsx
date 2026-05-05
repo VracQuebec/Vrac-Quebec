@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import StepMaterials from "./StepMaterials";
 import StepDetails from "./StepDetails";
 import StepContact from "./StepContact";
@@ -19,6 +19,10 @@ const Questionnaire = () => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [step, submitted]);
+
   const update = (updates: Partial<QuestionnaireData>) => {
     setData((prev) => ({ ...prev, ...updates }));
   };
@@ -26,7 +30,7 @@ const Questionnaire = () => {
   const canNext = () => {
     if (step === 0) return data.materials.length > 0;
     if (step === 1) return data.propertyType && data.quantity;
-    if (step === 2) return data.name && data.phone && data.email && data.address;
+    if (step === 2) return data.name && data.phone && data.email && data.address && data.postalCode;
     return false;
   };
 
