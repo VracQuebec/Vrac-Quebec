@@ -5,7 +5,7 @@ import StepContact from "./StepContact";
 import { initialFormData, MATERIAL_TYPES, type QuestionnaireData } from "@/lib/questionnaire-data";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, Send, Check, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Send, Check, Loader2, Facebook } from "lucide-react";
 
 const STEPS = [
   { label: "Matériel", number: 1 },
@@ -153,6 +153,14 @@ const Questionnaire = () => {
               className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-[#25D366] text-white font-display font-semibold text-sm hover:opacity-90 transition-opacity"
             >
               🟢 WhatsApp
+            </a>
+            <a
+              href="https://www.facebook.com/share/1B2yGEaTL1/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-[#0084FF] text-white font-display font-semibold text-sm hover:opacity-90 transition-opacity"
+            >
+              <Facebook className="w-4 h-4" /> Facebook / Messenger
             </a>
           </div>
         </div>
