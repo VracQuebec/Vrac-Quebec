@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { MATERIAL_TYPES, LEAD_STATUSES, REQUEST_TYPES } from "@/lib/questionnaire-data";
+import { MATERIAL_TYPES, LEAD_STATUSES, REQUEST_TYPES, LEAD_PRIORITIES } from "@/lib/questionnaire-data";
 import {
   Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List,
-  Phone, MessageSquare, Mail, MapPin, Archive, Download, Users, Plus,
+  Phone, MessageSquare, Mail, MapPin, Archive, Download, Users, Plus, Eye, EyeOff, Save,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import AdminMap from "@/components/AdminMap";
@@ -41,6 +41,10 @@ interface Submission {
   length_ft: string | null;
   width_ft: string | null;
   depth_in: string | null;
+  priority: string;
+  visible_to_entrepreneur: boolean;
+  internal_notes: string;
+  assigned_entrepreneur: string | null;
 }
 
 interface LeadNote {
@@ -100,6 +104,12 @@ const Admin = () => {
     const { error } = await supabase.from("submissions").update({ status }).eq("id", id);
     if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
     else setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
+  };
+
+  const updateField = async (id: string, patch: Partial<Submission>) => {
+    const { error } = await supabase.from("submissions").update(patch as any).eq("id", id);
+    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    else setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   };
 
   const archive = (id: string) => updateStatus(id, "archivé");
@@ -216,6 +226,7 @@ const Admin = () => {
                 expanded={expanded === sub.id}
                 onToggle={() => setExpanded(expanded === sub.id ? null : sub.id)}
                 onStatusChange={(s) => updateStatus(sub.id, s)}
+                onUpdate={(patch) => updateField(sub.id, patch)}
                 onDelete={() => handleDelete(sub.id)}
                 onArchive={() => archive(sub.id)}
                 userEmail={user.email || ""}
