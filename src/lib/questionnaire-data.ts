@@ -63,6 +63,9 @@ export interface QuestionnaireData {
   lengthFt: string;
   widthFt: string;
   depthIn: string;
+  deliverOrRemove: string;
+  contamination: string;
+  photos: string[];
 }
 
 export const initialFormData: QuestionnaireData = {
@@ -85,4 +88,39 @@ export const initialFormData: QuestionnaireData = {
   lengthFt: "",
   widthFt: "",
   depthIn: "",
+  deliverOrRemove: "",
+  contamination: "",
+  photos: [],
 };
+
+// Materials that trigger the "remblai / dépôt / matériel à sortir" special form
+export const REMBLAI_MATERIAL_IDS = ["remplissage"];
+export const REMBLAI_PROJECT_TYPES = ["Remplissage / remblai"];
+
+export const isRemblaiRequest = (materials: string[], projectType?: string) =>
+  materials.some((m) => REMBLAI_MATERIAL_IDS.includes(m)) ||
+  (!!projectType && REMBLAI_PROJECT_TYPES.includes(projectType));
+
+export const detectRequestType = (materials: string[], projectType?: string): string =>
+  isRemblaiRequest(materials, projectType) ? "remblai" : "livraison";
+
+export const LEAD_STATUSES = [
+  { value: "nouveau", label: "Nouveau", color: "bg-orange-500 text-white" },
+  { value: "à rappeler", label: "À rappeler", color: "bg-amber-500 text-white" },
+  { value: "contacté", label: "Contacté", color: "bg-sky-500 text-white" },
+  { value: "soumission envoyée", label: "Soumission envoyée", color: "bg-indigo-500 text-white" },
+  { value: "en attente", label: "En attente", color: "bg-blue-500 text-white" },
+  { value: "gagné", label: "Gagné", color: "bg-emerald-600 text-white" },
+  { value: "perdu", label: "Perdu", color: "bg-rose-600 text-white" },
+  { value: "archivé", label: "Archivé", color: "bg-slate-500 text-white" },
+] as const;
+
+export const REQUEST_TYPES = [
+  { value: "livraison", label: "Livraison", color: "bg-primary/15 text-primary border-primary/30" },
+  { value: "remblai", label: "Remblai / Dépôt", color: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
+  { value: "depot", label: "Matériel à sortir", color: "bg-purple-500/15 text-purple-700 border-purple-500/30" },
+  { value: "entrepreneur", label: "Entrepreneur", color: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30" },
+] as const;
+
+export const CONTAMINATION_OPTIONS = ["Non", "Oui", "Je ne sais pas"] as const;
+export const DELIVER_OR_REMOVE_OPTIONS = ["À livrer", "À sortir du chantier"] as const;

@@ -14,9 +14,16 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      navigate("/admin");
+      // Route based on role
+      if (data.user) {
+        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
+        const roleList = (roles || []).map((r: any) => r.role);
+        if (roleList.includes("admin")) navigate("/admin");
+        else if (roleList.includes("entrepreneur")) navigate("/entrepreneur");
+        else navigate("/admin");
+      }
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Connexion échouée", variant: "destructive" });
     } finally {
