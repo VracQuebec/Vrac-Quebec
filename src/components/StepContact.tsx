@@ -1,5 +1,5 @@
 import { type QuestionnaireData } from "@/lib/questionnaire-data";
-import { MessageCircle } from "lucide-react";
+import { Facebook } from "lucide-react";
 
 interface Props {
   data: QuestionnaireData;
@@ -114,9 +114,9 @@ const StepContact = ({ data, onChange }: Props) => {
             href="https://www.facebook.com/share/1B2yGEaTL1/"
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors font-body"
+            className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 border-[#0084FF] bg-[#0084FF] text-white font-display font-semibold text-sm hover:opacity-90 transition-opacity"
           >
-            <MessageCircle className="w-4 h-4" /> Aussi disponibles sur Messenger
+            <Facebook className="w-4 h-4" /> Aussi disponibles sur Facebook / Messenger
           </a>
         </div>
       </div>
