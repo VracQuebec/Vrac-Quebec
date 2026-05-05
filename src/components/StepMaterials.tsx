@@ -1,5 +1,5 @@
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
-import { PenLine } from "lucide-react";
+import { PenLine, HelpCircle } from "lucide-react";
 
 interface Props {
   selected: string[];
@@ -23,7 +23,7 @@ const StepMaterials = ({ selected, otherMaterial, onSelect, onOtherChange }: Pro
         <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground">
           Quel matériel recherchez-vous?
         </h2>
-        <p className="text-muted-foreground mt-2">Sélectionnez un ou plusieurs matériaux</p>
+        <p className="text-muted-foreground mt-2">Pas certain du bon matériel ? On vous guide.</p>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {MATERIAL_TYPES.map((mat) => (
@@ -46,8 +46,17 @@ const StepMaterials = ({ selected, otherMaterial, onSelect, onOtherChange }: Pro
                 />
               </div>
             ) : (
-              <div className="w-full aspect-square overflow-hidden bg-muted flex items-center justify-center">
-                <PenLine className="w-10 h-10 text-muted-foreground" />
+              <div className="w-full aspect-square overflow-hidden bg-muted flex flex-col items-center justify-center p-2 text-center">
+                {mat.id === "ne-sais-pas" ? (
+                  <>
+                    <HelpCircle className="w-8 h-8 text-muted-foreground mb-1" />
+                    <span className="text-[10px] text-muted-foreground leading-tight">
+                      On vous guide pour choisir le bon matériel
+                    </span>
+                  </>
+                ) : (
+                  <PenLine className="w-10 h-10 text-muted-foreground" />
+                )}
               </div>
             )}
             <span className="font-display font-semibold text-sm text-foreground pb-3">{mat.label}</span>
