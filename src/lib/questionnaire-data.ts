@@ -110,9 +110,15 @@ export const LEAD_STATUSES = [
   { value: "contacté", label: "Contacté", color: "bg-sky-500 text-white" },
   { value: "soumission envoyée", label: "Soumission envoyée", color: "bg-indigo-500 text-white" },
   { value: "en attente", label: "En attente", color: "bg-blue-500 text-white" },
+  { value: "assigné", label: "Assigné", color: "bg-teal-600 text-white" },
   { value: "gagné", label: "Gagné", color: "bg-emerald-600 text-white" },
   { value: "perdu", label: "Perdu", color: "bg-rose-600 text-white" },
   { value: "archivé", label: "Archivé", color: "bg-slate-500 text-white" },
+] as const;
+
+export const LEAD_PRIORITIES = [
+  { value: "normal", label: "Normal", color: "bg-slate-200 text-slate-800" },
+  { value: "urgent", label: "Urgent", color: "bg-red-600 text-white" },
 ] as const;
 
 export const REQUEST_TYPES = [
