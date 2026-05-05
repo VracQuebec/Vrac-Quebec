@@ -1,5 +1,5 @@
 import { type QuestionnaireData } from "@/lib/questionnaire-data";
-import { Phone, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
 interface Props {
   data: QuestionnaireData;
