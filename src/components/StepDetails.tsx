@@ -87,8 +87,24 @@ const StepDetails = ({ data, onChange }: Props) => {
                 }
                 className={optionBtn(active)}
               >
-                <span className="mr-1.5">{t.emoji}</span>
-                {t.value}
+                {t.image ? (
+                  <div className="flex flex-col items-center gap-1.5">
+                    <img
+                      src={t.image}
+                      alt={t.value}
+                      loading="lazy"
+                      width={512}
+                      height={512}
+                      className="w-full h-16 object-contain"
+                    />
+                    <span className="text-center">{t.value}</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-1.5 h-full justify-center min-h-[88px]">
+                    <span className="text-2xl">{t.emoji}</span>
+                    <span className="text-center">{t.value}</span>
+                  </div>
+                )}
               </button>
             );
           })}

@@ -3,6 +3,9 @@ import sableImg from "@/assets/sable.jpg";
 import rocheImg from "@/assets/roche.jpg";
 import rocheConcasseeImg from "@/assets/roche-concassee.jpg";
 import remplissageImg from "@/assets/remplissage.jpg";
+import truck10 from "@/assets/truck-10-wheels.png";
+import truck12 from "@/assets/truck-12-wheels.png";
+import truckSemi from "@/assets/truck-semi.png";
 
 export const MATERIAL_TYPES = [
   { id: "terre", label: "Terre", image: terreImg },
@@ -29,10 +32,10 @@ export const PROJECT_SIZES = [
 ] as const;
 
 export const TRUCK_ACCESS_OPTIONS = [
-  { value: "10 roues", emoji: "🚛" },
-  { value: "12 roues", emoji: "🚛" },
-  { value: "Semi-remorque", emoji: "🚛" },
-  { value: "Je ne sais pas", emoji: "❓" },
+  { value: "10 roues", emoji: "🚛", image: truck10 },
+  { value: "12 roues", emoji: "🚛", image: truck12 },
+  { value: "Semi-remorque", emoji: "🚛", image: truckSemi },
+  { value: "Je ne sais pas", emoji: "❓", image: null },
 ] as const;
 
 export interface QuestionnaireData {
