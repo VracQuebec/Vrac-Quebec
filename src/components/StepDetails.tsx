@@ -121,13 +121,14 @@ const StepDetails = ({ data, onChange }: Props) => {
           })}
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          Pas certain ? Aucun problème, on peut vous conseiller.
+          💡 12 roues = meilleur rapport volume / prix
         </p>
       </div>
 
       <div>
         <label className={labelClass}>
-          Avez-vous de la machinerie pour étendre le matériel ?
+          Avez-vous de la machinerie pour étendre le matériel ?{" "}
+          <span className="text-muted-foreground font-normal">(sinon, on peut s'en occuper)</span>
         </label>
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -179,7 +180,8 @@ const StepDetails = ({ data, onChange }: Props) => {
           />
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          On peut calculer automatiquement la quantité pour vous.
+          On peut calculer automatiquement la quantité pour vous.<br />
+          Vous verrez une estimation en tonnes et en nombre de voyages.
         </p>
       </div>
     </div>
