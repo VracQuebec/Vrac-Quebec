@@ -85,7 +85,7 @@ const StepDetails = ({ data, onChange }: Props) => {
 
       <div>
         <label className={labelClass}>Quel camion peut accéder à votre terrain ?</label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           {TRUCK_ACCESS_OPTIONS.map((t) => {
             const active = data.accessibility.includes(t.value);
             return (
@@ -101,7 +101,7 @@ const StepDetails = ({ data, onChange }: Props) => {
                 }
                 className={optionBtn(active)}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {t.image ? (
                     <img
                       src={t.image}
@@ -109,10 +109,10 @@ const StepDetails = ({ data, onChange }: Props) => {
                       loading="lazy"
                       width={512}
                       height={512}
-                      className="w-8 h-8 object-contain shrink-0"
+                      className="w-24 h-16 object-contain shrink-0"
                     />
                   ) : (
-                    <span className="text-lg w-8 text-center shrink-0">{t.emoji}</span>
+                    <span className="text-3xl w-24 text-center shrink-0">{t.emoji}</span>
                   )}
                   <span>{t.value}</span>
                 </div>
