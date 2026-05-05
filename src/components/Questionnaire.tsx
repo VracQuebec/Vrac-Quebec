@@ -119,17 +119,47 @@ const Questionnaire = () => {
 
   if (submitted) {
     return (
-      <div className="max-w-lg mx-auto text-center py-16 px-6">
+      <div className="max-w-lg mx-auto text-center py-12 px-6">
         <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6">
           <Check className="w-10 h-10 text-success" />
         </div>
-        <h2 className="text-3xl font-display font-bold text-foreground mb-3">Merci!</h2>
+        <h2 className="text-3xl font-display font-bold text-foreground mb-3">✅ Demande envoyée !</h2>
         <p className="text-muted-foreground mb-8">
-          Votre demande a été envoyée avec succès. Un membre de notre équipe vous contactera sous peu.
+          On vous contacte rapidement (moins de 30 minutes).
         </p>
+
+        <div className="bg-card rounded-2xl p-6 mb-6" style={{ boxShadow: "var(--shadow-lg)" }}>
+          <p className="text-base font-display font-semibold text-foreground mb-1">
+            Besoin d'une réponse immédiate ?
+          </p>
+          <p className="text-sm text-muted-foreground mb-4">Contactez-nous directement 👇</p>
+          <div className="grid grid-cols-1 gap-3">
+            <a
+              href="tel:5819947717"
+              className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 transition-opacity"
+            >
+              📞 Appeler maintenant
+            </a>
+            <a
+              href="sms:15819947717?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
+              className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 border-foreground text-foreground font-display font-semibold text-sm hover:bg-foreground/5 transition-colors"
+            >
+              💬 Envoyer un texto
+            </a>
+            <a
+              href="https://wa.me/15819947717?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-[#25D366] text-white font-display font-semibold text-sm hover:opacity-90 transition-opacity"
+            >
+              🟢 WhatsApp
+            </a>
+          </div>
+        </div>
+
         <button
           onClick={() => { setSubmitted(false); setStep(0); setData(initialFormData); }}
-          className="px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold hover:opacity-90 transition-opacity"
+          className="text-sm text-muted-foreground hover:text-foreground underline font-display"
         >
           Nouvelle demande
         </button>
@@ -199,14 +229,19 @@ const Questionnaire = () => {
               Suivant <ChevronRight className="w-4 h-4" />
             </button>
           ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={!canNext() || loading}
-              className="flex items-center gap-1.5 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              {loading ? "Envoi..." : "📩 Envoyer ma demande"}
-            </button>
+            <div className="flex flex-col items-end gap-2">
+              <button
+                onClick={handleSubmit}
+                disabled={!canNext() || loading}
+                className="flex items-center gap-1.5 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base shadow-md hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {loading ? "Envoi..." : "Recevoir mon prix →"}
+              </button>
+              <p className="text-xs text-muted-foreground font-body text-right">
+                ✔ Réponse rapide &nbsp; ✔ Aucun engagement &nbsp; ✔ Conseils inclus
+              </p>
+            </div>
           )}
         </div>
       </div>
