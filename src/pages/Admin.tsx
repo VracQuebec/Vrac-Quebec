@@ -116,26 +116,45 @@ const Admin = () => {
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/login"); };
 
-  const exportCSV = () => {
-    const cols = [
-      "submission_number","created_at","status","request_type","name","phone","email",
-      "address","postal_code","latitude","longitude","materials","other_material",
-      "property_type","quantity","tonnage","deliver_or_remove","contamination",
-      "machinery_available","machinery_description","accessibility",
-      "length_ft","width_ft","depth_in","description","photos",
-    ];
+  const downloadCSV = (filename: string, cols: string[], rowsData: any[]) => {
     const escape = (v: any) => {
       if (v == null) return "";
       const s = Array.isArray(v) ? v.join("|") : String(v);
       return `"${s.replace(/"/g, '""')}"`;
     };
     const rows = [cols.join(",")];
-    for (const s of filtered) rows.push(cols.map((c) => escape((s as any)[c])).join(","));
-    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+    for (const s of rowsData) rows.push(cols.map((c) => escape(s[c])).join(","));
+    const blob = new Blob(["\uFEFF" + rows.join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `vracquebec-leads-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.href = url; a.download = `${filename}-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click(); URL.revokeObjectURL(url);
+  };
+
+  const exportCSVAdmin = () => {
+    const cols = [
+      "submission_number","created_at","name","phone","email","address","postal_code",
+      "materials","request_type","property_type","quantity","tonnage","accessibility",
+      "machinery_available","machinery_description","description",
+      "status","priority","internal_notes","assigned_entrepreneur","visible_to_entrepreneur",
+    ];
+    downloadCSV("vracquebec-admin", cols, filtered);
+  };
+
+  const exportCSVEntrepreneur = () => {
+    const cols = [
+      "submission_number","request_type","materials","quantity","tonnage",
+      "accessibility","postal_prefix","latitude","longitude","status",
+    ];
+    const data = filtered
+      .filter((s: any) => s.visible_to_entrepreneur !== false)
+      .map((s: any) => ({
+        ...s,
+        postal_prefix: (s.postal_code || "").slice(0, 3),
+        latitude: s.latitude != null ? Math.round(s.latitude * 100) / 100 : null,
+        longitude: s.longitude != null ? Math.round(s.longitude * 100) / 100 : null,
+      }));
+    downloadCSV("vracquebec-entrepreneur", cols, data);
   };
 
   const filtered = useMemo(() => {
@@ -193,8 +212,11 @@ const Admin = () => {
                 <Map className="w-4 h-4" /> Carte
               </button>
             </div>
-            <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground text-background text-sm font-display font-semibold hover:opacity-90">
-              <Download className="w-4 h-4" /> CSV
+            <button onClick={exportCSVAdmin} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground text-background text-sm font-display font-semibold hover:opacity-90">
+              <Download className="w-4 h-4" /> CSV admin
+            </button>
+            <button onClick={exportCSVEntrepreneur} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
+              <Download className="w-4 h-4" /> CSV entrepreneur
             </button>
             <button onClick={fetchSubmissions} className="text-sm text-primary hover:underline font-body">Actualiser</button>
           </div>
