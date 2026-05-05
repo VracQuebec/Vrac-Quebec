@@ -19,20 +19,36 @@ const Index = () => {
         <div className="container mx-auto px-6">
           <div className="text-center mb-10">
             <h1 className="text-2xl md:text-4xl font-display font-extrabold text-foreground leading-tight">
-              Trouvez votre matériel{" "}
-              <span className="text-primary">en quelques clics</span>
+              Commandez votre vrac{" "}
+              <span className="text-primary">rapidement au Québec</span>
             </h1>
             <p className="text-muted-foreground mt-3 max-w-md mx-auto font-body text-sm md:text-base">
-              Terre, sable, gravier, roche concassée — répondez à quelques questions et recevez une soumission rapidement.
+              Terre, sable, pierre concassée, remblai — livraison rapide
             </p>
+            <a
+              href="#questionnaire"
+              className="inline-block mt-5 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 transition-opacity"
+            >
+              Obtenir mon prix →
+            </a>
           </div>
 
-          <Questionnaire />
+          <div id="questionnaire">
+            <Questionnaire />
+          </div>
         </div>
       </main>
 
+      {/* Floating mobile call button */}
+      <a
+        href="tel:5819947717"
+        className="md:hidden fixed bottom-4 left-4 right-4 z-50 flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-primary text-primary-foreground font-display font-semibold text-sm shadow-lg"
+      >
+        📞 581-994-7717 — Appel rapide
+      </a>
+
       {/* Footer */}
-      <footer className="py-8 border-t border-border">
+      <footer className="py-8 pb-24 md:pb-8 border-t border-border">
         <div className="container mx-auto px-6 flex items-center justify-between text-sm text-muted-foreground font-body">
           <span>© 2026 VracQuébec. Tous droits réservés.</span>
           <a href="/login" className="hover:text-foreground transition-colors">
