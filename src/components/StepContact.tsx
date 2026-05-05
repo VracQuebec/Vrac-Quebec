@@ -84,20 +84,39 @@ const StepContact = ({ data, onChange }: Props) => {
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-          <a
-            href="tel:5819947717"
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-primary text-primary font-display font-semibold text-sm hover:bg-primary/5 transition-colors"
-          >
-            <Phone className="w-4 h-4" /> Appeler maintenant
-          </a>
+        <div className="pt-2">
+          <p className="text-sm text-center text-muted-foreground mb-3 font-body">
+            Besoin rapide ? Contactez-nous directement 👇
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <a
+              href="tel:5819947717"
+              className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 border-primary text-primary font-display font-semibold text-sm hover:bg-primary/5 transition-colors"
+            >
+              📞 Appeler
+            </a>
+            <a
+              href="sms:15819947717?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
+              className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 border-border text-foreground font-display font-semibold text-sm hover:border-primary/50 transition-colors"
+            >
+              💬 Texto
+            </a>
+            <a
+              href="https://wa.me/15819947717?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 border-[#25D366] text-[#128C7E] font-display font-semibold text-sm hover:bg-[#25D366]/10 transition-colors"
+            >
+              🟢 WhatsApp
+            </a>
+          </div>
           <a
             href="https://www.facebook.com/share/1B2yGEaTL1/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-border text-foreground font-display font-semibold text-sm hover:border-primary/50 transition-colors"
+            className="mt-3 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors font-body"
           >
-            <MessageCircle className="w-4 h-4" /> Messenger
+            <MessageCircle className="w-4 h-4" /> Aussi disponibles sur Messenger
           </a>
         </div>
       </div>
