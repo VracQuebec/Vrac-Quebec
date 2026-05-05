@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { MATERIAL_TYPES, LEAD_STATUSES, REQUEST_TYPES } from "@/lib/questionnaire-data";
+import { MATERIAL_TYPES, LEAD_STATUSES, REQUEST_TYPES, LEAD_PRIORITIES } from "@/lib/questionnaire-data";
 import {
   Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List,
-  Phone, MessageSquare, Mail, MapPin, Archive, Download, Users, Plus,
+  Phone, MessageSquare, Mail, MapPin, Archive, Download, Users, Plus, Eye, EyeOff, Save,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import AdminMap from "@/components/AdminMap";
@@ -41,6 +41,10 @@ interface Submission {
   length_ft: string | null;
   width_ft: string | null;
   depth_in: string | null;
+  priority: string;
+  visible_to_entrepreneur: boolean;
+  internal_notes: string;
+  assigned_entrepreneur: string | null;
 }
 
 interface LeadNote {
@@ -100,6 +104,12 @@ const Admin = () => {
     const { error } = await supabase.from("submissions").update({ status }).eq("id", id);
     if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
     else setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
+  };
+
+  const updateField = async (id: string, patch: Partial<Submission>) => {
+    const { error } = await supabase.from("submissions").update(patch as any).eq("id", id);
+    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    else setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   };
 
   const archive = (id: string) => updateStatus(id, "archivé");
@@ -216,6 +226,7 @@ const Admin = () => {
                 expanded={expanded === sub.id}
                 onToggle={() => setExpanded(expanded === sub.id ? null : sub.id)}
                 onStatusChange={(s) => updateStatus(sub.id, s)}
+                onUpdate={(patch) => updateField(sub.id, patch)}
                 onDelete={() => handleDelete(sub.id)}
                 onArchive={() => archive(sub.id)}
                 userEmail={user.email || ""}
@@ -245,15 +256,29 @@ interface CardProps {
   expanded: boolean;
   onToggle: () => void;
   onStatusChange: (s: string) => void;
+  onUpdate: (patch: Partial<Submission>) => void;
   onDelete: () => void;
   onArchive: () => void;
   userEmail: string;
 }
 
-const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onDelete, onArchive, userEmail }: CardProps) => {
+const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete, onArchive, userEmail }: CardProps) => {
   const [notes, setNotes] = useState<LeadNote[]>([]);
   const [newNote, setNewNote] = useState("");
   const [savingNote, setSavingNote] = useState(false);
+  const [internalDraft, setInternalDraft] = useState(sub.internal_notes || "");
+  const [entrepreneurs, setEntrepreneurs] = useState<{ user_id: string; email: string }[]>([]);
+
+  useEffect(() => { setInternalDraft(sub.internal_notes || ""); }, [sub.internal_notes]);
+
+  useEffect(() => {
+    if (!expanded) return;
+    supabase.rpc("list_users_with_roles").then(({ data }) => {
+      const list = ((data as any) || []).filter((u: any) => (u.roles || []).includes("entrepreneur"))
+        .map((u: any) => ({ user_id: u.user_id, email: u.email }));
+      setEntrepreneurs(list);
+    });
+  }, [expanded]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -325,6 +350,39 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onDelete, onArchive
             </div>
           </div>
 
+          {/* Priority + visibility + assigned */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Priorité</label>
+              <div className="flex gap-1.5">
+                {LEAD_PRIORITIES.map((p) => (
+                  <button key={p.value} onClick={() => onUpdate({ priority: p.value })}
+                    className={`px-2.5 py-1 rounded text-[11px] font-display font-bold uppercase border transition-all ${sub.priority === p.value ? p.color + " border-transparent" : "bg-card text-muted-foreground border-border hover:border-foreground/30"}`}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Entrepreneur assigné</label>
+              <select value={sub.assigned_entrepreneur || ""}
+                onChange={(e) => onUpdate({ assigned_entrepreneur: e.target.value || null })}
+                className="w-full px-2 py-1.5 text-xs rounded-lg border border-border bg-background font-body">
+                <option value="">— Aucun —</option>
+                {entrepreneurs.map((e) => (
+                  <option key={e.user_id} value={e.user_id}>{e.email}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Visible entrepreneur</label>
+              <button onClick={() => onUpdate({ visible_to_entrepreneur: !sub.visible_to_entrepreneur })}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-bold uppercase border ${sub.visible_to_entrepreneur ? "bg-emerald-600 text-white border-transparent" : "bg-card text-muted-foreground border-border"}`}>
+                {sub.visible_to_entrepreneur ? <><Eye className="w-3.5 h-3.5" /> Oui</> : <><EyeOff className="w-3.5 h-3.5" /> Non</>}
+              </button>
+            </div>
+          </div>
+
           {/* Details grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm font-body">
             <D label="Matériaux" v={getMaterialLabels(sub.materials)} />
@@ -364,9 +422,19 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onDelete, onArchive
           {/* Internal notes timeline */}
           <div>
             <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Notes internes (privées)</label>
+            <div className="mb-3">
+              <textarea value={internalDraft} onChange={(e) => setInternalDraft(e.target.value)}
+                placeholder="Bloc-notes libre (toujours visible sur ce lead)…"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background font-body resize-none mb-1.5" rows={2} />
+              <button onClick={() => onUpdate({ internal_notes: internalDraft })}
+                disabled={internalDraft === (sub.internal_notes || "")}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground text-background text-xs font-display font-semibold disabled:opacity-40">
+                <Save className="w-3.5 h-3.5" /> Enregistrer le bloc-notes
+              </button>
+            </div>
             <div className="flex gap-2 mb-3">
               <textarea value={newNote} onChange={(e) => setNewNote(e.target.value)}
-                placeholder="Ajouter une note horodatée…"
+                placeholder="Ajouter une note horodatée à l'historique…"
                 className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background font-body resize-none" rows={2} />
               <button onClick={addNote} disabled={savingNote || !newNote.trim()}
                 className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold disabled:opacity-40 self-start">
