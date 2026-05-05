@@ -39,13 +39,29 @@ const Index = () => {
         </div>
       </main>
 
-      {/* Floating mobile call button */}
-      <a
-        href="tel:5819947717"
-        className="md:hidden fixed bottom-4 left-4 right-4 z-50 flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-primary text-primary-foreground font-display font-semibold text-sm shadow-lg"
-      >
-        📞 581-994-7717 — Appel rapide
-      </a>
+      {/* Floating mobile contact bar */}
+      <div className="md:hidden fixed bottom-3 left-3 right-3 z-50 grid grid-cols-3 gap-2">
+        <a
+          href="tel:5819947717"
+          className="flex items-center justify-center gap-1 px-2 py-3 rounded-full bg-primary text-primary-foreground font-display font-semibold text-xs shadow-lg"
+        >
+          📞 Appeler
+        </a>
+        <a
+          href="sms:15819947717?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
+          className="flex items-center justify-center gap-1 px-2 py-3 rounded-full bg-foreground text-background font-display font-semibold text-xs shadow-lg"
+        >
+          💬 Texto
+        </a>
+        <a
+          href="https://wa.me/15819947717?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1 px-2 py-3 rounded-full bg-[#25D366] text-white font-display font-semibold text-xs shadow-lg"
+        >
+          🟢 WhatsApp
+        </a>
+      </div>
 
       {/* Footer */}
       <footer className="py-8 pb-24 md:pb-8 border-t border-border">
