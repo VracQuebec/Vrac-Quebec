@@ -2,8 +2,14 @@ import {
   PROJECT_TYPES,
   PROJECT_SIZES,
   TRUCK_ACCESS_OPTIONS,
+  CONTAMINATION_OPTIONS,
+  DELIVER_OR_REMOVE_OPTIONS,
+  isRemblaiRequest,
   type QuestionnaireData,
 } from "@/lib/questionnaire-data";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { Upload, X, Loader2 } from "lucide-react";
 
 interface Props {
   data: QuestionnaireData;
@@ -11,6 +17,29 @@ interface Props {
 }
 
 const StepDetails = ({ data, onChange }: Props) => {
+  const [uploading, setUploading] = useState(false);
+  const isRemblai = isRemblaiRequest(data.materials, data.propertyType);
+
+  const handlePhotoUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const urls: string[] = [];
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop();
+        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error } = await supabase.storage.from("lead-photos").upload(path, file);
+        if (!error) {
+          const { data: pub } = supabase.storage.from("lead-photos").getPublicUrl(path);
+          urls.push(pub.publicUrl);
+        }
+      }
+      onChange({ photos: [...(data.photos || []), ...urls] });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const labelClass = "block text-sm font-semibold text-foreground mb-2 font-display";
   const inputClass =
     "w-full px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-shadow font-body";
@@ -184,6 +213,80 @@ const StepDetails = ({ data, onChange }: Props) => {
           Vous verrez une estimation en tonnes et en nombre de voyages.
         </p>
       </div>
+
+      {isRemblai && (
+        <div className="space-y-5 p-4 rounded-xl bg-amber-500/5 border border-amber-500/30">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🚧</span>
+            <span className="font-display font-bold text-foreground">Demande de remblai / dépôt</span>
+          </div>
+
+          <div>
+            <label className={labelClass}>S'agit-il de matériel à livrer ou à sortir du chantier ?</label>
+            <div className="grid grid-cols-1 gap-2">
+              {DELIVER_OR_REMOVE_OPTIONS.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => onChange({ deliverOrRemove: opt })}
+                  className={optionBtn(data.deliverOrRemove === opt)}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Présence de contamination connue ?</label>
+            <div className="grid grid-cols-3 gap-2">
+              {CONTAMINATION_OPTIONS.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => onChange({ contamination: opt })}
+                  className={optionBtn(data.contamination === opt)}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>
+              Photos du matériel <span className="text-muted-foreground font-normal">(optionnel)</span>
+            </label>
+            <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed border-border bg-card cursor-pointer hover:border-primary/50 transition-colors">
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              <span className="text-sm font-body">{uploading ? "Téléversement..." : "Ajouter des photos"}</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => handlePhotoUpload(e.target.files)}
+              />
+            </label>
+            {data.photos && data.photos.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {data.photos.map((url, i) => (
+                  <div key={url} className="relative">
+                    <img src={url} alt="" className="w-full h-20 object-cover rounded" />
+                    <button
+                      type="button"
+                      onClick={() => onChange({ photos: data.photos.filter((_, j) => j !== i) })}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-foreground/80 text-background flex items-center justify-center"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
