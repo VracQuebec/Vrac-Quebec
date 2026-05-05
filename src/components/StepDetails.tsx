@@ -45,9 +45,9 @@ const StepDetails = ({ data, onChange }: Props) => {
               key={p.value}
               type="button"
               onClick={() => onChange({ propertyType: p.value })}
-              className={optionBtn(data.propertyType === p.value)}
+              className={`${optionBtn(data.propertyType === p.value)} !py-3`}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 {p.image ? (
                   <img
                     src={p.image}
@@ -55,10 +55,10 @@ const StepDetails = ({ data, onChange }: Props) => {
                     loading="lazy"
                     width={512}
                     height={512}
-                    className="w-8 h-8 object-cover rounded shrink-0"
+                    className="w-14 h-14 object-cover rounded shrink-0"
                   />
                 ) : (
-                  <span className="text-lg w-8 text-center shrink-0">{p.emoji}</span>
+                  <span className="text-2xl w-14 text-center shrink-0">{p.emoji}</span>
                 )}
                 <span>{p.value}</span>
               </div>
