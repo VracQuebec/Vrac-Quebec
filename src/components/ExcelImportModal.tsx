@@ -22,13 +22,25 @@ const num = (v: any): number | null => {
 };
 const splitList = (v: any): string[] => s(v).split(/[;,]/).map((x) => x.trim()).filter(Boolean);
 
-const findSheet = (titles: string[], keyword: string): string | null => {
-  const k = keyword.toLowerCase();
-  return (
-    titles.find((t) => t.toLowerCase().trim().startsWith(k)) ||
-    titles.find((t) => t.toLowerCase().includes(k)) ||
-    null
-  );
+// Normalize: lowercase, strip diacritics, collapse whitespace.
+// Handles trailing spaces ("Paiements ") and variants ("Factures 2025").
+const norm = (v: string) =>
+  (v || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const findSheet = (titles: string[], keywords: string[]): string | null => {
+  const ks = keywords.map(norm);
+  // 1) exact match (after normalization)
+  for (const t of titles) if (ks.includes(norm(t))) return t;
+  // 2) starts-with
+  for (const t of titles) { const n = norm(t); if (ks.some((k) => n.startsWith(k))) return t; }
+  // 3) contains
+  for (const t of titles) { const n = norm(t); if (ks.some((k) => n.includes(k))) return t; }
+  return null;
 };
 
 function emptyReport(tab: string | null): TabReport {
@@ -177,10 +189,10 @@ export default function ExcelImportModal({ onClose, onImported }: { onClose: () 
       const wb = XLSX.read(buf, { type: "array", cellDates: true });
       const titles = wb.SheetNames;
 
-      const tabClients = findSheet(titles, "client");
-      const tabEntrepreneurs = findSheet(titles, "entrepreneur");
-      const tabPayments = findSheet(titles, "paiement");
-      const tabExpenses = findSheet(titles, "facture");
+      const tabClients = findSheet(titles, ["clients", "client"]);
+      const tabEntrepreneurs = findSheet(titles, ["entrepreneurs", "entrepreneur"]);
+      const tabPayments = findSheet(titles, ["paiements", "paiement"]);
+      const tabExpenses = findSheet(titles, ["factures 2025", "factures", "facture"]);
 
       const reports: Record<string, TabReport> = {
         clients: emptyReport(tabClients),
