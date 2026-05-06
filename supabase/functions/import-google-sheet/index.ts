@@ -8,11 +8,23 @@ const corsHeaders = {
 const SHEET_ID = '17qJgVMdmVQj5MYeNDP2qQnmz6cBIa4Xc7NrZzo9eMlo'
 const GATEWAY = 'https://connector-gateway.lovable.dev/google_sheets/v4'
 
-const TABS = {
-  clients: 'Clients!A1:Z2000',
-  entrepreneurs: 'Entrepreneurs!A1:Z2000',
-  payments: "'Paiements '!A1:Z2000",
-  expenses: "'Factures 2025'!A1:Z2000",
+function authHeaders() {
+  return {
+    Authorization: `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
+    'X-Connection-Api-Key': Deno.env.get('GOOGLE_SHEETS_API_KEY')!,
+  }
+}
+
+async function listSheetTitles(): Promise<string[]> {
+  const r = await fetch(`${GATEWAY}/spreadsheets/${SHEET_ID}?fields=sheets.properties.title`, { headers: authHeaders() })
+  if (!r.ok) throw new Error(`Sheet metadata fetch failed ${r.status}: ${await r.text()}`)
+  const j = await r.json()
+  return (j.sheets || []).map((s: any) => s.properties.title as string)
+}
+
+function findTitle(titles: string[], keyword: string): string | null {
+  const k = keyword.toLowerCase()
+  return titles.find((t) => t.toLowerCase().trim().startsWith(k)) || titles.find((t) => t.toLowerCase().includes(k)) || null
 }
 
 function num(v: any): number | null {
@@ -26,15 +38,15 @@ function splitList(v: any): string[] {
   return s(v).split(/[;,]/).map((x) => x.trim()).filter(Boolean)
 }
 
-async function fetchTab(range: string) {
-  const url = `${GATEWAY}/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`
-  const r = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
-      'X-Connection-Api-Key': Deno.env.get('GOOGLE_SHEETS_API_KEY')!,
-    },
-  })
-  if (!r.ok) throw new Error(`Sheet fetch failed [${range}] ${r.status}: ${await r.text()}`)
+async function fetchTab(sheetTitle: string) {
+  // Wrap in single quotes; double any internal single quotes (per Sheets A1 grammar)
+  const quoted = `'${sheetTitle.replace(/'/g, "''")}'`
+  const range = `${quoted}!A1:Z2000`
+  // Encode only the path segment (preserves !, : as path-safe per Google rules) — encode quotes & spaces only
+  const safeRange = range.replace(/'/g, '%27').replace(/ /g, '%20')
+  const url = `${GATEWAY}/spreadsheets/${SHEET_ID}/values/${safeRange}`
+  const r = await fetch(url, { headers: authHeaders() })
+  if (!r.ok) throw new Error(`Sheet fetch failed [${sheetTitle}] ${r.status}: ${await r.text()}`)
   const j = await r.json()
   return (j.values || []) as string[][]
 }
@@ -58,11 +70,19 @@ Deno.serve(async (req) => {
     if (!roleCheck) return new Response(JSON.stringify({ error: 'Admin only' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
     const admin = createClient(supabaseUrl, serviceKey)
-    const result = { clients: 0, entrepreneurs: 0, payments: 0, expenses: 0, skipped: 0, errors: [] as string[] }
+    const result = { clients: 0, entrepreneurs: 0, payments: 0, expenses: 0, skipped: 0, errors: [] as string[], tabs: {} as Record<string, string | null> }
+
+    const titles = await listSheetTitles()
+    const tabClients = findTitle(titles, 'client')
+    const tabEntrepreneurs = findTitle(titles, 'entrepreneur')
+    const tabPayments = findTitle(titles, 'paiement')
+    const tabExpenses = findTitle(titles, 'facture')
+    result.tabs = { clients: tabClients, entrepreneurs: tabEntrepreneurs, payments: tabPayments, expenses: tabExpenses }
 
     // ========== ENTREPRENEURS ==========
     try {
-      const rows = await fetchTab(TABS.entrepreneurs)
+      if (!tabEntrepreneurs) throw new Error(`Onglet introuvable. Onglets disponibles: ${titles.join(', ')}`)
+      const rows = await fetchTab(tabEntrepreneurs)
       const data = rows.slice(1).filter((r) => s(r[0]) || s(r[1]))
       // dedupe by email
       const { data: existing } = await admin.from('entrepreneurs').select('email')
@@ -93,7 +113,8 @@ Deno.serve(async (req) => {
 
     // ========== CLIENTS (leads → submissions) ==========
     try {
-      const rows = await fetchTab(TABS.clients)
+      if (!tabClients) throw new Error(`Onglet introuvable. Onglets: ${titles.join(', ')}`)
+      const rows = await fetchTab(tabClients)
       const data = rows.slice(1).filter((r) => s(r[0]) || s(r[2]))
       const { data: existing } = await admin.from('submissions').select('email,phone')
       const seen = new Set((existing || []).map((e) => `${(e.email || '').toLowerCase()}|${(e.phone || '').replace(/\D/g, '')}`))
@@ -136,7 +157,8 @@ Deno.serve(async (req) => {
 
     // ========== PAYMENTS ==========
     try {
-      const rows = await fetchTab(TABS.payments)
+      if (!tabPayments) throw new Error(`Onglet introuvable. Onglets: ${titles.join(', ')}`)
+      const rows = await fetchTab(tabPayments)
       const data = rows.slice(1).filter((r) => s(r[0]) || s(r[2]))
       const { data: existing } = await admin.from('payments').select('delivery_date,client_name,map_point')
       const seen = new Set((existing || []).map((e) => `${e.delivery_date}|${e.client_name}|${e.map_point}`))
@@ -176,7 +198,8 @@ Deno.serve(async (req) => {
     // ========== EXPENSES (Factures 2025) ==========
     // Two columns groups: Fournitures (A-H) and Gaz (J-P starting at col J=index 9)
     try {
-      const rows = await fetchTab(TABS.expenses)
+      if (!tabExpenses) throw new Error(`Onglet introuvable. Onglets: ${titles.join(', ')}`)
+      const rows = await fetchTab(tabExpenses)
       const toInsert: any[] = []
       // Skip first 2 header rows
       for (let i = 2; i < rows.length; i++) {
