@@ -220,6 +220,7 @@ export type Database = {
           deliver_or_remove: string | null
           depth_in: string | null
           description: string | null
+          dompe_number: string | null
           email: string
           id: string
           internal_notes: string
@@ -255,6 +256,7 @@ export type Database = {
           deliver_or_remove?: string | null
           depth_in?: string | null
           description?: string | null
+          dompe_number?: string | null
           email: string
           id?: string
           internal_notes?: string
@@ -290,6 +292,7 @@ export type Database = {
           deliver_or_remove?: string | null
           depth_in?: string | null
           description?: string | null
+          dompe_number?: string | null
           email?: string
           id?: string
           internal_notes?: string
