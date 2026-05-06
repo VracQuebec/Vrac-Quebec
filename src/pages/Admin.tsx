@@ -12,6 +12,7 @@ import AdminMap from "@/components/AdminMap";
 import { useUserRoles } from "@/hooks/useUserRole";
 import CsvImportModal from "@/components/CsvImportModal";
 import GoogleSheetImportModal from "@/components/GoogleSheetImportModal";
+import ExcelImportModal from "@/components/ExcelImportModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
 
