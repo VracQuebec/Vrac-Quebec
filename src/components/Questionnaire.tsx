@@ -66,7 +66,7 @@ const Questionnaire = () => {
       // Geocode address
       const coords = await geocodeAddress(data.address, data.postalCode);
 
-      const { error } = await supabase.from("submissions").insert({
+      const submissionPayload = {
         materials: data.materials,
         other_material: data.otherMaterial,
         property_type: data.propertyType,
@@ -92,9 +92,32 @@ const Questionnaire = () => {
         length_ft: data.lengthFt || null,
         width_ft: data.widthFt || null,
         depth_in: data.depthIn || null,
-      });
+      };
+
+      const { data: inserted, error } = await supabase
+        .from("submissions")
+        .insert(submissionPayload)
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Backup to Google Sheet (best-effort, never blocks the user)
+      try {
+        await supabase.functions.invoke("backup-to-sheet", {
+          body: {
+            submission: {
+              ...submissionPayload,
+              ...inserted,
+              materials: (inserted?.materials ?? data.materials)?.map(
+                (id: string) => MATERIAL_TYPES.find((m) => m.id === id)?.label || id
+              ),
+            },
+          },
+        });
+      } catch (e) {
+        console.warn("Backup to sheet failed:", e);
+      }
 
       // Send email notification
       try {
