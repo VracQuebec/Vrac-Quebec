@@ -39,11 +39,12 @@ function splitList(v: any): string[] {
 }
 
 async function fetchTab(sheetTitle: string) {
-  // Wrap in single quotes; double any internal single quotes (per Sheets A1 grammar)
-  const quoted = `'${sheetTitle.replace(/'/g, "''")}'`
-  const range = `${quoted}!A1:Z2000`
-  // Encode only the path segment (preserves !, : as path-safe per Google rules) — encode quotes & spaces only
-  const safeRange = range.replace(/'/g, '%27').replace(/ /g, '%20')
+  // Only quote when the title has spaces or special chars; never URL-encode the quotes/colons.
+  const needsQuotes = /[^A-Za-z0-9_]/.test(sheetTitle)
+  const namePart = needsQuotes ? `'${sheetTitle.replace(/'/g, "''")}'` : sheetTitle
+  const range = `${namePart}!A1:Z2000`
+  // Encode only spaces (as %20). Leave !, :, ' untouched — they are valid in path segments and Sheets requires them literal.
+  const safeRange = range.replace(/ /g, '%20')
   const url = `${GATEWAY}/spreadsheets/${SHEET_ID}/values/${safeRange}`
   const r = await fetch(url, { headers: authHeaders() })
   if (!r.ok) throw new Error(`Sheet fetch failed [${sheetTitle}] ${r.status}: ${await r.text()}`)
