@@ -29,8 +29,8 @@ function findTitle(titles: string[], keyword: string): string | null {
 
 function num(v: any): number | null {
   if (v === undefined || v === null || v === '') return null
-  const s = String(v).replace(/[^0-9.,-]/g, '').replace(/\s/g, '').replace(',', '.')
-  const n = parseFloat(s)
+  const str = String(v).replace(/[^0-9.,-]/g, '').replace(/\s/g, '').replace(',', '.')
+  const n = parseFloat(str)
   return isNaN(n) ? null : n
 }
 function s(v: any): string { return v === undefined || v === null ? '' : String(v).trim() }
@@ -39,17 +39,22 @@ function splitList(v: any): string[] {
 }
 
 async function fetchTab(sheetTitle: string) {
-  // Only quote when the title has spaces or special chars; never URL-encode the quotes/colons.
   const needsQuotes = /[^A-Za-z0-9_]/.test(sheetTitle)
   const namePart = needsQuotes ? `'${sheetTitle.replace(/'/g, "''")}'` : sheetTitle
   const range = `${namePart}!A1:Z2000`
-  // Encode only spaces (as %20). Leave !, :, ' untouched — they are valid in path segments and Sheets requires them literal.
   const safeRange = range.replace(/ /g, '%20')
   const url = `${GATEWAY}/spreadsheets/${SHEET_ID}/values/${safeRange}`
   const r = await fetch(url, { headers: authHeaders() })
   if (!r.ok) throw new Error(`Sheet fetch failed [${sheetTitle}] ${r.status}: ${await r.text()}`)
   const j = await r.json()
   return (j.values || []) as string[][]
+}
+
+type RowReport = { row: number; dompe?: string; identifier?: string; reason: string; status: 'inserted' | 'skipped' | 'failed' | 'backfilled' }
+type TabReport = { tab: string | null; total: number; inserted: number; skipped: number; failed: number; backfilled: number; rows: RowReport[] }
+
+function emptyReport(tab: string | null): TabReport {
+  return { tab, total: 0, inserted: 0, skipped: 0, failed: 0, backfilled: 0, rows: [] }
 }
 
 Deno.serve(async (req) => {
@@ -63,7 +68,6 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
 
-    // Verify caller is admin
     const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } })
     const { data: { user } } = await userClient.auth.getUser()
     if (!user) return new Response(JSON.stringify({ error: 'Unauthenticated' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -71,212 +75,161 @@ Deno.serve(async (req) => {
     if (!roleCheck) return new Response(JSON.stringify({ error: 'Admin only' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
     const admin = createClient(supabaseUrl, serviceKey)
-    const result = { clients: 0, entrepreneurs: 0, payments: 0, expenses: 0, skipped: 0, errors: [] as string[], tabs: {} as Record<string, string | null> }
 
     const titles = await listSheetTitles()
     const tabClients = findTitle(titles, 'client')
     const tabEntrepreneurs = findTitle(titles, 'entrepreneur')
     const tabPayments = findTitle(titles, 'paiement')
     const tabExpenses = findTitle(titles, 'facture')
-    result.tabs = { clients: tabClients, entrepreneurs: tabEntrepreneurs, payments: tabPayments, expenses: tabExpenses }
+
+    const reports: Record<string, TabReport> = {
+      clients: emptyReport(tabClients),
+      entrepreneurs: emptyReport(tabEntrepreneurs),
+      payments: emptyReport(tabPayments),
+      expenses: emptyReport(tabExpenses),
+    }
+    const globalErrors: string[] = []
 
     // ========== ENTREPRENEURS ==========
+    const repE = reports.entrepreneurs
     try {
       if (!tabEntrepreneurs) throw new Error(`Onglet introuvable. Onglets disponibles: ${titles.join(', ')}`)
       const rows = await fetchTab(tabEntrepreneurs)
-      const data = rows.slice(1).filter((r) => s(r[0]) || s(r[1]))
-      // dedupe by email
       const { data: existing } = await admin.from('entrepreneurs').select('email')
       const existingEmails = new Set((existing || []).map((e) => (e.email || '').toLowerCase()))
-      const toInsert = []
-      for (const r of data) {
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i]; const rowNum = i + 1
+        if (!s(r[0]) && !s(r[1])) continue
+        repE.total++
+        const ident = s(r[0]) || s(r[1])
         const email = s(r[3]).toLowerCase()
-        if (email && existingEmails.has(email)) { result.skipped++; continue }
-        toInsert.push({
-          name: s(r[0]) || 'Sans nom',
-          company: s(r[1]),
-          phone: s(r[2]),
-          email: s(r[3]),
-          address: s(r[4]),
-          truck_types: splitList(r[5]),
-          map_number: s(r[6]),
-          truck_count: s(r[7]),
-          notes: s(r[8]),
-        })
-        if (email) existingEmails.add(email)
+        if (!s(r[0]) && !s(r[1])) { repE.skipped++; repE.rows.push({ row: rowNum, identifier: ident, status: 'skipped', reason: 'Données vides' }); continue }
+        if (email && existingEmails.has(email)) { repE.skipped++; repE.rows.push({ row: rowNum, identifier: ident, status: 'skipped', reason: `Doublon (email ${email})` }); continue }
+        const payload = {
+          name: s(r[0]) || 'Sans nom', company: s(r[1]), phone: s(r[2]), email: s(r[3]),
+          address: s(r[4]), truck_types: splitList(r[5]), map_number: s(r[6]),
+          truck_count: s(r[7]), notes: s(r[8]),
+        }
+        const { error } = await admin.from('entrepreneurs').insert(payload)
+        if (error) { repE.failed++; repE.rows.push({ row: rowNum, identifier: ident, status: 'failed', reason: error.message }) }
+        else { repE.inserted++; if (email) existingEmails.add(email) }
       }
-      if (toInsert.length) {
-        const { error } = await admin.from('entrepreneurs').insert(toInsert)
-        if (error) result.errors.push(`entrepreneurs: ${error.message}`)
-        else result.entrepreneurs = toInsert.length
-      }
-    } catch (e) { result.errors.push(`entrepreneurs: ${(e as Error).message}`) }
+    } catch (e) { globalErrors.push(`entrepreneurs: ${(e as Error).message}`) }
 
     // ========== CLIENTS (leads → submissions) ==========
+    const repC = reports.clients
     try {
       if (!tabClients) throw new Error(`Onglet introuvable. Onglets: ${titles.join(', ')}`)
       const rows = await fetchTab(tabClients)
-      const data = rows.slice(1).filter((r) => s(r[0]) || s(r[2]))
-      const { data: existing } = await admin.from('submissions').select('email,phone,dompe_number')
+      const { data: existing } = await admin.from('submissions').select('id,email,phone,dompe_number')
       const seen = new Set((existing || []).map((e) => `${(e.email || '').toLowerCase()}|${(e.phone || '').replace(/\D/g, '')}`))
       const seenDompe = new Set((existing || []).map((e: any) => (e.dompe_number || '').toLowerCase().trim()).filter(Boolean))
-      const toInsert = []
-      // Backfill dompe_number on previously imported rows that match by email+phone
-      const { data: backfillRows } = await admin.from('submissions').select('id,email,phone,dompe_number')
       const byKey = new Map<string, { id: string; dompe_number: string | null }>()
-      for (const row of backfillRows || []) {
+      for (const row of existing || []) {
         const k = `${(row.email || '').toLowerCase()}|${(row.phone || '').replace(/\D/g, '')}`
-        if (k !== '|' && !byKey.has(k)) byKey.set(k, { id: row.id, dompe_number: row.dompe_number })
+        if (k !== '|' && !byKey.has(k)) byKey.set(k, { id: row.id, dompe_number: (row as any).dompe_number })
       }
-      for (const r of data) {
-        const email = s(r[2])
-        const phone = s(r[1])
-        const dompe = s(r[5]) // Column F: "Point sur la MAP" (Dompe N)
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i]; const rowNum = i + 1
+        if (!s(r[0]) && !s(r[2])) continue
+        repC.total++
+        const email = s(r[2]); const phone = s(r[1]); const dompe = s(r[5])
+        const ident = s(r[0]) || email || phone
         const key = `${email.toLowerCase()}|${phone.replace(/\D/g, '')}`
-        // Backfill: if a matching row exists without a dompe_number, set it.
         if (dompe) {
           const match = byKey.get(key)
           if (match && !(match.dompe_number || '').trim()) {
-            await admin.from('submissions').update({ dompe_number: dompe }).eq('id', match.id)
-            seenDompe.add(dompe.toLowerCase())
-            result.skipped++
+            const { error } = await admin.from('submissions').update({ dompe_number: dompe }).eq('id', match.id)
+            if (error) { repC.failed++; repC.rows.push({ row: rowNum, dompe, identifier: ident, status: 'failed', reason: `Backfill: ${error.message}` }) }
+            else { repC.backfilled++; seenDompe.add(dompe.toLowerCase()); repC.rows.push({ row: rowNum, dompe, identifier: ident, status: 'backfilled', reason: 'Numéro DOMPE ajouté à un lead existant' }) }
             continue
           }
         }
-        if (dompe && seenDompe.has(dompe.toLowerCase())) { result.skipped++; continue }
-        if (!dompe && key !== '|' && seen.has(key)) { result.skipped++; continue }
+        if (dompe && seenDompe.has(dompe.toLowerCase())) { repC.skipped++; repC.rows.push({ row: rowNum, dompe, identifier: ident, status: 'skipped', reason: `Doublon (DOMPE ${dompe} déjà importé)` }); continue }
+        if (!dompe && key !== '|' && seen.has(key)) { repC.skipped++; repC.rows.push({ row: rowNum, identifier: ident, status: 'skipped', reason: `Doublon (email/téléphone déjà présent)` }); continue }
         const lat = num(r[12]); const lon = num(r[13])
-        toInsert.push({
-          dompe_number: dompe,
-          name: s(r[0]) || 'Sans nom',
-          phone,
-          email: email || 'no-email@import.local',
-          address: s(r[3]) || s(r[4]),
-          postal_code: s(r[4]),
+        const payload = {
+          dompe_number: dompe, name: s(r[0]) || 'Sans nom', phone, email: email || 'no-email@import.local',
+          address: s(r[3]) || s(r[4]), postal_code: s(r[4]),
           materials: splitList(r[6]).length ? splitList(r[6]) : ['Autre'],
-          quantity: s(r[7]),
-          accessibility: splitList(r[8]),
+          quantity: s(r[7]), accessibility: splitList(r[8]),
           machinery_available: /oui|yes|tracteur|pelle|bobcat|mini/i.test(s(r[9])) && !/aucune/i.test(s(r[9])),
-          machinery_description: s(r[9]),
-          budget_max: s(r[10]),
+          machinery_description: s(r[9]), budget_max: s(r[10]),
           internal_notes: s(r[11]) ? `[Import Google Sheet${dompe ? ' - ' + dompe : ''}] ${s(r[11])}` : `[Import Google Sheet${dompe ? ' - ' + dompe : ''}]`,
-          latitude: lat,
-          longitude: lon,
-          property_type: 'résidentiel',
-          tonnage: '',
-          request_type: 'livraison',
-          status: 'nouveau',
-          visible_to_entrepreneur: true,
-        })
-        seen.add(key)
-        if (dompe) seenDompe.add(dompe.toLowerCase())
+          latitude: lat, longitude: lon, property_type: 'résidentiel', tonnage: '',
+          request_type: 'livraison', status: 'nouveau', visible_to_entrepreneur: true,
+        }
+        const { error } = await admin.from('submissions').insert(payload)
+        if (error) { repC.failed++; repC.rows.push({ row: rowNum, dompe, identifier: ident, status: 'failed', reason: error.message }) }
+        else { repC.inserted++; seen.add(key); if (dompe) seenDompe.add(dompe.toLowerCase()) }
       }
-      if (toInsert.length) {
-        const { error } = await admin.from('submissions').insert(toInsert)
-        if (error) result.errors.push(`clients: ${error.message}`)
-        else result.clients = toInsert.length
-      }
-    } catch (e) { result.errors.push(`clients: ${(e as Error).message}`) }
+    } catch (e) { globalErrors.push(`clients: ${(e as Error).message}`) }
 
     // ========== PAYMENTS ==========
+    const repP = reports.payments
     try {
       if (!tabPayments) throw new Error(`Onglet introuvable. Onglets: ${titles.join(', ')}`)
       const rows = await fetchTab(tabPayments)
-      const data = rows.slice(1).filter((r) => s(r[0]) || s(r[2]))
       const { data: existing } = await admin.from('payments').select('delivery_date,client_name,map_point')
       const seen = new Set((existing || []).map((e) => `${e.delivery_date}|${e.client_name}|${e.map_point}`))
-      const toInsert = []
-      for (const r of data) {
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i]; const rowNum = i + 1
+        if (!s(r[0]) && !s(r[2])) continue
+        repP.total++
+        const ident = s(r[2]) || s(r[0])
         const key = `${s(r[0])}|${s(r[2])}|${s(r[1])}`
-        if (seen.has(key)) { result.skipped++; continue }
-        toInsert.push({
-          delivery_date: s(r[0]),
-          map_point: s(r[1]),
-          client_name: s(r[2]),
-          client_phone: s(r[3]),
-          client_email: s(r[4]),
-          client_address: s(r[5]),
-          material: s(r[6]),
-          trips: s(r[7]),
-          price_sold: num(r[8]),
-          charged_to_entrepreneur: num(r[9]),
-          total: num(r[10]),
-          entrepreneur_invoiced: s(r[11]),
-          client_invoiced: s(r[12]),
-          client_payment_date: s(r[13]),
-          client_confirmation: s(r[14]),
-          entrepreneur_payment_date: s(r[15]),
-          entrepreneur_confirmation: s(r[16]),
-          notes: s(r[17]),
-        })
-        seen.add(key)
+        if (seen.has(key)) { repP.skipped++; repP.rows.push({ row: rowNum, identifier: ident, status: 'skipped', reason: 'Doublon (date+client+map déjà présent)' }); continue }
+        const payload = {
+          delivery_date: s(r[0]), map_point: s(r[1]), client_name: s(r[2]), client_phone: s(r[3]),
+          client_email: s(r[4]), client_address: s(r[5]), material: s(r[6]), trips: s(r[7]),
+          price_sold: num(r[8]), charged_to_entrepreneur: num(r[9]), total: num(r[10]),
+          entrepreneur_invoiced: s(r[11]), client_invoiced: s(r[12]), client_payment_date: s(r[13]),
+          client_confirmation: s(r[14]), entrepreneur_payment_date: s(r[15]),
+          entrepreneur_confirmation: s(r[16]), notes: s(r[17]),
+        }
+        const { error } = await admin.from('payments').insert(payload)
+        if (error) { repP.failed++; repP.rows.push({ row: rowNum, identifier: ident, status: 'failed', reason: error.message }) }
+        else { repP.inserted++; seen.add(key) }
       }
-      if (toInsert.length) {
-        const { error } = await admin.from('payments').insert(toInsert)
-        if (error) result.errors.push(`payments: ${error.message}`)
-        else result.payments = toInsert.length
-      }
-    } catch (e) { result.errors.push(`payments: ${(e as Error).message}`) }
+    } catch (e) { globalErrors.push(`payments: ${(e as Error).message}`) }
 
-    // ========== EXPENSES (Factures 2025) ==========
-    // Two columns groups: Fournitures (A-H) and Gaz (J-P starting at col J=index 9)
+    // ========== EXPENSES ==========
+    const repX = reports.expenses
     try {
       if (!tabExpenses) throw new Error(`Onglet introuvable. Onglets: ${titles.join(', ')}`)
       const rows = await fetchTab(tabExpenses)
-      const toInsert: any[] = []
-      // Skip first 2 header rows
-      for (let i = 2; i < rows.length; i++) {
-        const r = rows[i]
-        // Fournitures group: A-H
-        if (s(r[0]) && s(r[1])) {
-          toInsert.push({
-            category: 'fournitures',
-            expense_date: s(r[0]),
-            company: s(r[1]),
-            invoice_number: s(r[2]),
-            tps: num(r[3]),
-            tvq: num(r[4]),
-            fees: num(r[5]),
-            amount_before_tax: num(r[6]),
-            amount_total: num(r[7]),
-          })
-        }
-        // Gaz group: J-P (index 9..15)
-        if (s(r[9]) && s(r[10])) {
-          toInsert.push({
-            category: 'gaz',
-            expense_date: s(r[9]),
-            company: s(r[10]),
-            invoice_number: s(r[11]),
-            tps: num(r[12]),
-            tvq: num(r[13]),
-            amount_before_tax: num(r[14]),
-            amount_total: num(r[15]),
-          })
-        }
-      }
-      // dedupe vs existing
       const { data: existing } = await admin.from('expenses').select('expense_date,invoice_number,category')
       const seen = new Set((existing || []).map((e) => `${e.category}|${e.expense_date}|${e.invoice_number}`))
-      const filtered = toInsert.filter((x) => {
-        const k = `${x.category}|${x.expense_date}|${x.invoice_number}`
-        if (seen.has(k)) { result.skipped++; return false }
-        seen.add(k); return true
-      })
-      if (filtered.length) {
-        const { error } = await admin.from('expenses').insert(filtered)
-        if (error) result.errors.push(`expenses: ${error.message}`)
-        else result.expenses = filtered.length
+      for (let i = 2; i < rows.length; i++) {
+        const r = rows[i]; const rowNum = i + 1
+        const groups: { cat: 'fournitures' | 'gaz'; payload: any; ident: string }[] = []
+        if (s(r[0]) && s(r[1])) groups.push({ cat: 'fournitures', ident: `${s(r[1])} ${s(r[2])}`, payload: { category: 'fournitures', expense_date: s(r[0]), company: s(r[1]), invoice_number: s(r[2]), tps: num(r[3]), tvq: num(r[4]), fees: num(r[5]), amount_before_tax: num(r[6]), amount_total: num(r[7]) } })
+        if (s(r[9]) && s(r[10])) groups.push({ cat: 'gaz', ident: `${s(r[10])} ${s(r[11])}`, payload: { category: 'gaz', expense_date: s(r[9]), company: s(r[10]), invoice_number: s(r[11]), tps: num(r[12]), tvq: num(r[13]), amount_before_tax: num(r[14]), amount_total: num(r[15]) } })
+        for (const g of groups) {
+          repX.total++
+          const k = `${g.cat}|${g.payload.expense_date}|${g.payload.invoice_number}`
+          if (seen.has(k)) { repX.skipped++; repX.rows.push({ row: rowNum, identifier: `[${g.cat}] ${g.ident}`, status: 'skipped', reason: 'Doublon (catégorie+date+facture)' }); continue }
+          const { error } = await admin.from('expenses').insert(g.payload)
+          if (error) { repX.failed++; repX.rows.push({ row: rowNum, identifier: `[${g.cat}] ${g.ident}`, status: 'failed', reason: error.message }) }
+          else { repX.inserted++; seen.add(k) }
+        }
       }
-    } catch (e) { result.errors.push(`expenses: ${(e as Error).message}`) }
+    } catch (e) { globalErrors.push(`expenses: ${(e as Error).message}`) }
 
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    // Legacy summary fields kept for backward compat
+    const result = {
+      clients: repC.inserted,
+      entrepreneurs: repE.inserted,
+      payments: repP.inserted,
+      expenses: repX.inserted,
+      skipped: repC.skipped + repE.skipped + repP.skipped + repX.skipped,
+      errors: globalErrors,
+      tabs: { clients: tabClients, entrepreneurs: tabEntrepreneurs, payments: tabPayments, expenses: tabExpenses },
+      report: reports,
+    }
+
+    return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   } catch (e) {
-    return new Response(JSON.stringify({ error: (e as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })
