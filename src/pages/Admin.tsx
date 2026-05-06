@@ -18,6 +18,7 @@ import { Database as DatabaseIcon } from "lucide-react";
 interface Submission {
   id: string;
   submission_number: number | null;
+  dompe_number?: string | null;
   latitude: number | null;
   longitude: number | null;
   materials: string[];
@@ -349,6 +350,9 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="font-display font-bold text-foreground">#{sub.submission_number}</span>
+            {sub.dompe_number ? (
+              <span className="text-xs font-display font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">{sub.dompe_number}</span>
+            ) : null}
             <span className="font-display font-bold text-foreground">{sub.name}</span>
             {statusBadge(sub.status)}
             {typeBadge(sub.request_type)}
