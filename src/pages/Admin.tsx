@@ -12,6 +12,7 @@ import AdminMap from "@/components/AdminMap";
 import { useUserRoles } from "@/hooks/useUserRole";
 import CsvImportModal from "@/components/CsvImportModal";
 import GoogleSheetImportModal from "@/components/GoogleSheetImportModal";
+import ExcelImportModal from "@/components/ExcelImportModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
 
@@ -76,6 +77,7 @@ const Admin = () => {
   const [showUsers, setShowUsers] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showSheetImport, setShowSheetImport] = useState(false);
+  const [showExcelImport, setShowExcelImport] = useState(false);
   const navigate = useNavigate();
   const { isAdmin, loading: roleLoading } = useUserRoles();
 
@@ -231,6 +233,9 @@ const Admin = () => {
             <button onClick={() => setShowSheetImport(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-display font-semibold hover:opacity-90">
               <Upload className="w-4 h-4" /> Importer Google Sheet
             </button>
+            <button onClick={() => setShowExcelImport(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 text-white text-sm font-display font-semibold hover:opacity-90">
+              <Upload className="w-4 h-4" /> Importer Excel (.xlsx)
+            </button>
             <Link to="/admin/donnees" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
               <DatabaseIcon className="w-4 h-4" /> Données importées
             </Link>
@@ -277,6 +282,7 @@ const Admin = () => {
       {showUsers && <UsersModal onClose={() => setShowUsers(false)} />}
       {showImport && <CsvImportModal onClose={() => setShowImport(false)} onImported={fetchSubmissions} />}
       {showSheetImport && <GoogleSheetImportModal onClose={() => setShowSheetImport(false)} onImported={fetchSubmissions} />}
+      {showExcelImport && <ExcelImportModal onClose={() => setShowExcelImport(false)} onImported={fetchSubmissions} />}
     </div>
   );
 };
