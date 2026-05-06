@@ -14,6 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
+      entrepreneurs: {
+        Row: {
+          address: string | null
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          map_number: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          truck_count: string | null
+          truck_types: string[] | null
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          map_number?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          truck_count?: string | null
+          truck_types?: string[] | null
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          map_number?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          truck_count?: string | null
+          truck_types?: string[] | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount_before_tax: number | null
+          amount_total: number | null
+          category: string | null
+          company: string | null
+          created_at: string
+          expense_date: string | null
+          fees: number | null
+          id: string
+          invoice_number: string | null
+          notes: string | null
+          tps: number | null
+          tvq: number | null
+        }
+        Insert: {
+          amount_before_tax?: number | null
+          amount_total?: number | null
+          category?: string | null
+          company?: string | null
+          created_at?: string
+          expense_date?: string | null
+          fees?: number | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          tps?: number | null
+          tvq?: number | null
+        }
+        Update: {
+          amount_before_tax?: number | null
+          amount_total?: number | null
+          category?: string | null
+          company?: string | null
+          created_at?: string
+          expense_date?: string | null
+          fees?: number | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          tps?: number | null
+          tvq?: number | null
+        }
+        Relationships: []
+      }
       lead_notes: {
         Row: {
           author_email: string | null
@@ -48,6 +138,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payments: {
+        Row: {
+          charged_to_entrepreneur: number | null
+          client_address: string | null
+          client_confirmation: string | null
+          client_email: string | null
+          client_invoiced: string | null
+          client_name: string | null
+          client_payment_date: string | null
+          client_phone: string | null
+          created_at: string
+          delivery_date: string | null
+          entrepreneur_confirmation: string | null
+          entrepreneur_invoiced: string | null
+          entrepreneur_payment_date: string | null
+          id: string
+          map_point: string | null
+          material: string | null
+          notes: string | null
+          price_sold: number | null
+          total: number | null
+          trips: string | null
+        }
+        Insert: {
+          charged_to_entrepreneur?: number | null
+          client_address?: string | null
+          client_confirmation?: string | null
+          client_email?: string | null
+          client_invoiced?: string | null
+          client_name?: string | null
+          client_payment_date?: string | null
+          client_phone?: string | null
+          created_at?: string
+          delivery_date?: string | null
+          entrepreneur_confirmation?: string | null
+          entrepreneur_invoiced?: string | null
+          entrepreneur_payment_date?: string | null
+          id?: string
+          map_point?: string | null
+          material?: string | null
+          notes?: string | null
+          price_sold?: number | null
+          total?: number | null
+          trips?: string | null
+        }
+        Update: {
+          charged_to_entrepreneur?: number | null
+          client_address?: string | null
+          client_confirmation?: string | null
+          client_email?: string | null
+          client_invoiced?: string | null
+          client_name?: string | null
+          client_payment_date?: string | null
+          client_phone?: string | null
+          created_at?: string
+          delivery_date?: string | null
+          entrepreneur_confirmation?: string | null
+          entrepreneur_invoiced?: string | null
+          entrepreneur_payment_date?: string | null
+          id?: string
+          map_point?: string | null
+          material?: string | null
+          notes?: string | null
+          price_sold?: number | null
+          total?: number | null
+          trips?: string | null
+        }
+        Relationships: []
       }
       submissions: {
         Row: {
