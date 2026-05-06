@@ -167,10 +167,24 @@ const Admin = () => {
   };
 
   const filtered = useMemo(() => {
-    return submissions.filter((s) =>
+    const list = submissions.filter((s) =>
       (filterStatus === "all" || s.status === filterStatus) &&
       (filterType === "all" || s.request_type === filterType)
     );
+    const dompeNum = (s: Submission) => {
+      const m = (s.dompe_number || "").match(/\d+/);
+      return m ? parseInt(m[0], 10) : NaN;
+    };
+    return [...list].sort((a, b) => {
+      const na = dompeNum(a);
+      const nb = dompeNum(b);
+      const aHas = !isNaN(na);
+      const bHas = !isNaN(nb);
+      if (aHas && bHas) return na - nb;
+      if (aHas) return -1;
+      if (bHas) return 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
   }, [submissions, filterStatus, filterType]);
 
   if (!user || roleLoading) return null;
@@ -355,7 +369,6 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
       <button onClick={onToggle} className="w-full px-4 sm:px-5 py-4 flex items-center justify-between text-left gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="font-display font-bold text-foreground">#{sub.submission_number}</span>
             {sub.dompe_number ? (
               <span className="text-xs font-display font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">{sub.dompe_number}</span>
             ) : null}
