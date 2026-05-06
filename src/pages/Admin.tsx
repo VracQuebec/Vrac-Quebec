@@ -5,11 +5,12 @@ import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES, LEAD_STATUSES, REQUEST_TYPES, LEAD_PRIORITIES } from "@/lib/questionnaire-data";
 import {
   Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List,
-  Phone, MessageSquare, Mail, MapPin, Archive, Download, Users, Plus, Eye, EyeOff, Save,
+  Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import AdminMap from "@/components/AdminMap";
 import { useUserRoles } from "@/hooks/useUserRole";
+import CsvImportModal from "@/components/CsvImportModal";
 
 interface Submission {
   id: string;
@@ -69,6 +70,7 @@ const Admin = () => {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [showUsers, setShowUsers] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const navigate = useNavigate();
   const { isAdmin, loading: roleLoading } = useUserRoles();
 
@@ -218,6 +220,9 @@ const Admin = () => {
             <button onClick={exportCSVEntrepreneur} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
               <Download className="w-4 h-4" /> CSV entrepreneur
             </button>
+            <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm font-display font-semibold hover:opacity-90">
+              <Upload className="w-4 h-4" /> Importer CSV
+            </button>
             <button onClick={fetchSubmissions} className="text-sm text-primary hover:underline font-body">Actualiser</button>
           </div>
         </div>
@@ -259,6 +264,7 @@ const Admin = () => {
       </main>
 
       {showUsers && <UsersModal onClose={() => setShowUsers(false)} />}
+      {showImport && <CsvImportModal onClose={() => setShowImport(false)} onImported={fetchSubmissions} />}
     </div>
   );
 };
