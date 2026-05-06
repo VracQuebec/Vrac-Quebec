@@ -121,11 +121,28 @@ Deno.serve(async (req) => {
       const seen = new Set((existing || []).map((e) => `${(e.email || '').toLowerCase()}|${(e.phone || '').replace(/\D/g, '')}`))
       const seenDompe = new Set((existing || []).map((e: any) => (e.dompe_number || '').toLowerCase().trim()).filter(Boolean))
       const toInsert = []
+      // Backfill dompe_number on previously imported rows that match by email+phone
+      const { data: backfillRows } = await admin.from('submissions').select('id,email,phone,dompe_number')
+      const byKey = new Map<string, { id: string; dompe_number: string | null }>()
+      for (const row of backfillRows || []) {
+        const k = `${(row.email || '').toLowerCase()}|${(row.phone || '').replace(/\D/g, '')}`
+        if (k !== '|' && !byKey.has(k)) byKey.set(k, { id: row.id, dompe_number: row.dompe_number })
+      }
       for (const r of data) {
         const email = s(r[2])
         const phone = s(r[1])
         const dompe = s(r[5]) // Column F: "Point sur la MAP" (Dompe N)
         const key = `${email.toLowerCase()}|${phone.replace(/\D/g, '')}`
+        // Backfill: if a matching row exists without a dompe_number, set it.
+        if (dompe) {
+          const match = byKey.get(key)
+          if (match && !(match.dompe_number || '').trim()) {
+            await admin.from('submissions').update({ dompe_number: dompe }).eq('id', match.id)
+            seenDompe.add(dompe.toLowerCase())
+            result.skipped++
+            continue
+          }
+        }
         if (dompe && seenDompe.has(dompe.toLowerCase())) { result.skipped++; continue }
         if (!dompe && key !== '|' && seen.has(key)) { result.skipped++; continue }
         const lat = num(r[12]); const lon = num(r[13])
