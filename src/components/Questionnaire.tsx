@@ -123,14 +123,24 @@ const Questionnaire = () => {
       try {
         await supabase.functions.invoke("notify-submission", {
           body: {
+            id: inserted?.id,
+            submission_number: inserted?.submission_number,
+            dompe_number: inserted?.dompe_number,
             name: data.name,
             email: data.email,
             phone: data.phone,
             materials: data.materials.map((id) => MATERIAL_TYPES.find((m) => m.id === id)?.label || id).join(", "),
             otherMaterial: data.otherMaterial,
             address: data.address,
+            postal_code: data.postalCode,
             quantity: data.quantity,
             tonnage: data.tonnage,
+            accessibility: data.accessibility,
+            machinery_available: data.machineryAvailable,
+            machinery_description: data.machineryDescription,
+            budget_unit: data.budgetUnit,
+            budget_max: data.budgetMax,
+            description: data.description,
           },
         });
       } catch {
