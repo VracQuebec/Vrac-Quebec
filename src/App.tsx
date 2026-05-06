@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
+import AdminData from "./pages/AdminData";
 import Entrepreneur from "./pages/Entrepreneur";
 import NotFound from "./pages/NotFound";
 
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/admin/donnees" element={<AdminData />} />
           <Route path="/entrepreneur" element={<Entrepreneur />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
