@@ -117,16 +117,20 @@ Deno.serve(async (req) => {
       if (!tabClients) throw new Error(`Onglet introuvable. Onglets: ${titles.join(', ')}`)
       const rows = await fetchTab(tabClients)
       const data = rows.slice(1).filter((r) => s(r[0]) || s(r[2]))
-      const { data: existing } = await admin.from('submissions').select('email,phone')
+      const { data: existing } = await admin.from('submissions').select('email,phone,dompe_number')
       const seen = new Set((existing || []).map((e) => `${(e.email || '').toLowerCase()}|${(e.phone || '').replace(/\D/g, '')}`))
+      const seenDompe = new Set((existing || []).map((e: any) => (e.dompe_number || '').toLowerCase().trim()).filter(Boolean))
       const toInsert = []
       for (const r of data) {
         const email = s(r[2])
         const phone = s(r[1])
+        const dompe = s(r[5]) // Column F: "Point sur la MAP" (Dompe N)
         const key = `${email.toLowerCase()}|${phone.replace(/\D/g, '')}`
-        if (key !== '|' && seen.has(key)) { result.skipped++; continue }
+        if (dompe && seenDompe.has(dompe.toLowerCase())) { result.skipped++; continue }
+        if (!dompe && key !== '|' && seen.has(key)) { result.skipped++; continue }
         const lat = num(r[12]); const lon = num(r[13])
         toInsert.push({
+          dompe_number: dompe,
           name: s(r[0]) || 'Sans nom',
           phone,
           email: email || 'no-email@import.local',
@@ -138,7 +142,7 @@ Deno.serve(async (req) => {
           machinery_available: /oui|yes|tracteur|pelle|bobcat|mini/i.test(s(r[9])) && !/aucune/i.test(s(r[9])),
           machinery_description: s(r[9]),
           budget_max: s(r[10]),
-          internal_notes: s(r[11]) ? `[Import Google Sheet] ${s(r[11])}` : '[Import Google Sheet]',
+          internal_notes: s(r[11]) ? `[Import Google Sheet${dompe ? ' - ' + dompe : ''}] ${s(r[11])}` : `[Import Google Sheet${dompe ? ' - ' + dompe : ''}]`,
           latitude: lat,
           longitude: lon,
           property_type: 'résidentiel',
@@ -148,6 +152,7 @@ Deno.serve(async (req) => {
           visible_to_entrepreneur: true,
         })
         seen.add(key)
+        if (dompe) seenDompe.add(dompe.toLowerCase())
       }
       if (toInsert.length) {
         const { error } = await admin.from('submissions').insert(toInsert)
