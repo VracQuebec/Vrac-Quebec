@@ -11,6 +11,9 @@ import type { User } from "@supabase/supabase-js";
 import AdminMap from "@/components/AdminMap";
 import { useUserRoles } from "@/hooks/useUserRole";
 import CsvImportModal from "@/components/CsvImportModal";
+import GoogleSheetImportModal from "@/components/GoogleSheetImportModal";
+import { Link } from "react-router-dom";
+import { Database as DatabaseIcon } from "lucide-react";
 
 interface Submission {
   id: string;
@@ -71,6 +74,7 @@ const Admin = () => {
   const [filterType, setFilterType] = useState<string>("all");
   const [showUsers, setShowUsers] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showSheetImport, setShowSheetImport] = useState(false);
   const navigate = useNavigate();
   const { isAdmin, loading: roleLoading } = useUserRoles();
 
@@ -223,6 +227,12 @@ const Admin = () => {
             <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm font-display font-semibold hover:opacity-90">
               <Upload className="w-4 h-4" /> Importer CSV
             </button>
+            <button onClick={() => setShowSheetImport(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-display font-semibold hover:opacity-90">
+              <Upload className="w-4 h-4" /> Importer Google Sheet
+            </button>
+            <Link to="/admin/donnees" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
+              <DatabaseIcon className="w-4 h-4" /> Données importées
+            </Link>
             <button onClick={fetchSubmissions} className="text-sm text-primary hover:underline font-body">Actualiser</button>
           </div>
         </div>
@@ -265,6 +275,7 @@ const Admin = () => {
 
       {showUsers && <UsersModal onClose={() => setShowUsers(false)} />}
       {showImport && <CsvImportModal onClose={() => setShowImport(false)} onImported={fetchSubmissions} />}
+      {showSheetImport && <GoogleSheetImportModal onClose={() => setShowSheetImport(false)} onImported={fetchSubmissions} />}
     </div>
   );
 };
