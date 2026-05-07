@@ -46,6 +46,7 @@ export const DELIVERY_FLEXIBILITY_OPTIONS = [
 ] as const;
 
 export const TRUCK_ACCESS_OPTIONS = [
+  { value: "6 roues", emoji: "🚚", image: null },
   { value: "10 roues", emoji: "🚛", image: truck10 },
   { value: "12 roues", emoji: "🚛", image: truck12 },
   { value: "Semi-remorque", emoji: "🚛", image: truckSemi },
@@ -131,6 +132,7 @@ export const REMBLAI_MATERIAL_OPTIONS = [
 ] as const;
 
 export const REMBLAI_TRUCK_OPTIONS = [
+  "Camion 6 roues",
   "Camion 10 roues",
   "Camion 12 roues",
   "Semi-Remorque 2 essieux",
