@@ -177,7 +177,69 @@ const Admin = () => {
 
   const archive = (id: string) => updateStatus(id, "archivé");
 
-  // Géocode toutes les adresses sans coordonnées via Nominatim (limite ~1 req/sec)
+  // Géocode adresses via plusieurs sources (Nominatim structuré + geocoder.ca en fallback)
+  // Pour précision maximale on combine numéro+rue, ville, province, code postal.
+  const geocodeOne = async (
+    address: string,
+    postal: string | null
+  ): Promise<{ lat: number; lon: number } | null> => {
+    // Parse "15 rue Griffin, Shannon" -> number, street, city
+    const cleaned = (address || "").trim();
+    const parts = cleaned.split(",").map((p) => p.trim()).filter(Boolean);
+    const streetPart = parts[0] || "";
+    const cityPart = parts[1] || "";
+    const m = streetPart.match(/^(\d+[A-Za-z]?)\s+(.+)$/);
+    const number = m?.[1];
+    const street = m?.[2] || streetPart;
+
+    // 1) Nominatim structuré (le plus précis quand on a numéro + rue + ville)
+    try {
+      const params = new URLSearchParams({
+        format: "json",
+        limit: "1",
+        countrycodes: "ca",
+        state: "Quebec",
+      });
+      if (number) params.set("street", `${number} ${street}`);
+      else if (street) params.set("street", street);
+      if (cityPart) params.set("city", cityPart);
+      if (postal) params.set("postalcode", postal);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
+      const data = await res.json();
+      if (data?.[0]) {
+        // On accepte uniquement si c'est une adresse précise (house/building) ou rue avec numéro
+        const t = data[0].addresstype || data[0].type;
+        if (number || ["house", "building", "place"].includes(t)) {
+          return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+        }
+      }
+    } catch { /* ignore */ }
+
+    // 2) Fallback geocoder.ca (souvent meilleur pour adresses civiques au Québec)
+    try {
+      const q = [cleaned, postal, "QC"].filter(Boolean).join(", ");
+      const res = await fetch(
+        `https://geocoder.ca/?locate=${encodeURIComponent(q)}&json=1`
+      );
+      const data = await res.json();
+      if (data?.latt && data?.longt) {
+        return { lat: parseFloat(data.latt), lon: parseFloat(data.longt) };
+      }
+    } catch { /* ignore */ }
+
+    // 3) Dernier recours: requête libre Nominatim
+    try {
+      const q = [cleaned, postal, "Québec, Canada"].filter(Boolean).join(", ");
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=ca`
+      );
+      const data = await res.json();
+      if (data?.[0]) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+    } catch { /* ignore */ }
+
+    return null;
+  };
+
   const geocodeMissing = async () => {
     const missing = submissions.filter(
       (s) => (!s.latitude || !s.longitude) && (s.address || s.postal_code)
@@ -191,28 +253,18 @@ const Admin = () => {
     let ok = 0;
     for (let i = 0; i < missing.length; i++) {
       const s = missing[i];
-      const q = [s.address, s.postal_code, "Québec, Canada"].filter(Boolean).join(", ");
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=ca`
-        );
-        const data = await res.json();
-        if (data && data[0]) {
-          const lat = parseFloat(data[0].lat);
-          const lon = parseFloat(data[0].lon);
-          const { error } = await supabase
-            .from("submissions")
-            .update({ latitude: lat, longitude: lon })
-            .eq("id", s.id);
-          if (!error) {
-            ok++;
-            setSubmissions((prev) =>
-              prev.map((x) => (x.id === s.id ? { ...x, latitude: lat, longitude: lon } : x))
-            );
-          }
+      const found = await geocodeOne(s.address, s.postal_code);
+      if (found) {
+        const { error } = await supabase
+          .from("submissions")
+          .update({ latitude: found.lat, longitude: found.lon })
+          .eq("id", s.id);
+        if (!error) {
+          ok++;
+          setSubmissions((prev) =>
+            prev.map((x) => (x.id === s.id ? { ...x, latitude: found.lat, longitude: found.lon } : x))
+          );
         }
-      } catch {
-        // ignore individual failures
       }
       setGeocoding({ done: i + 1, total: missing.length });
       await new Promise((r) => setTimeout(r, 1100));
