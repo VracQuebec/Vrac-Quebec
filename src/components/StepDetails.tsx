@@ -139,6 +139,24 @@ const StepDetails = ({ data, onChange }: Props) => {
       </div>
 
       <div>
+        <label className={labelClass}>
+          Jusqu'à quelle date pouvez-vous recevoir le matériel ?{" "}
+          <span className="text-destructive">*</span>
+        </label>
+        <input
+          type="date"
+          required
+          value={data.deliveryDeadline}
+          min={new Date().toISOString().split("T")[0]}
+          onChange={(e) => onChange({ deliveryDeadline: e.target.value })}
+          className={inputClass}
+        />
+        <p className="text-xs text-muted-foreground mt-2">
+          Date limite à laquelle vous devez avoir reçu le matériel sur le chantier.
+        </p>
+      </div>
+
+      <div>
         <label className={labelClass}>Quel camion peut accéder à votre terrain ?</label>
         <div className="grid grid-cols-1 gap-2">
           {TRUCK_ACCESS_OPTIONS.map((t) => {

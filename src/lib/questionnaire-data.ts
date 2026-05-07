@@ -66,6 +66,7 @@ export interface QuestionnaireData {
   deliverOrRemove: string;
   contamination: string;
   photos: string[];
+  deliveryDeadline: string;
 }
 
 export const initialFormData: QuestionnaireData = {
@@ -91,6 +92,7 @@ export const initialFormData: QuestionnaireData = {
   deliverOrRemove: "",
   contamination: "",
   photos: [],
+  deliveryDeadline: "",
 };
 
 // Materials that trigger the "remblai / dépôt / matériel à sortir" special form

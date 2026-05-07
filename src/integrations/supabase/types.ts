@@ -305,6 +305,7 @@ export type Database = {
           contamination: string | null
           created_at: string
           deliver_or_remove: string | null
+          delivery_deadline: string | null
           depth_in: string | null
           description: string | null
           dompe_number: string | null
@@ -341,6 +342,7 @@ export type Database = {
           contamination?: string | null
           created_at?: string
           deliver_or_remove?: string | null
+          delivery_deadline?: string | null
           depth_in?: string | null
           description?: string | null
           dompe_number?: string | null
@@ -377,6 +379,7 @@ export type Database = {
           contamination?: string | null
           created_at?: string
           deliver_or_remove?: string | null
+          delivery_deadline?: string | null
           depth_in?: string | null
           description?: string | null
           dompe_number?: string | null
