@@ -18,6 +18,11 @@ interface NewLeadProps {
   submissionNumber?: string | number
   submittedAt?: string
   deliveryDeadline?: string
+  deliveryTimeframe?: string
+  accessibility?: string
+  machinery?: string
+  photosCount?: number
+  requestType?: string
   crmLink?: string
 }
 
@@ -30,7 +35,8 @@ const Row = ({ label, value }: { label: string; value?: string | number }) => (
 
 const NewLeadEmail = ({
   name, phone, email, address, postalCode, materials, quantity,
-  budget, notes, dompeNumber, submissionNumber, submittedAt, deliveryDeadline, crmLink,
+  budget, notes, dompeNumber, submissionNumber, submittedAt, deliveryDeadline,
+  deliveryTimeframe, accessibility, machinery, photosCount, requestType, crmLink,
 }: NewLeadProps) => (
   <Html lang="fr" dir="ltr">
     <Head />
@@ -50,10 +56,15 @@ const NewLeadEmail = ({
             <Row label="Courriel" value={email} />
             <Row label="Adresse" value={address} />
             <Row label="Code postal" value={postalCode} />
+            <Row label="Type de demande" value={requestType} />
             <Row label="Matériel demandé" value={materials} />
             <Row label="Nombre de voyages" value={quantity} />
+            <Row label="Accessibilité (camions)" value={accessibility} />
+            <Row label="Machinerie sur place" value={machinery} />
             <Row label="Budget" value={budget} />
+            <Row label="Délai souhaité" value={deliveryTimeframe} />
             <Row label="Date limite de réception" value={deliveryDeadline} />
+            <Row label="Photos jointes" value={photosCount !== undefined ? `${photosCount}` : ''} />
             <Row label="Notes" value={notes} />
             <Row label="Numéro DOMPE" value={dompeNumber} />
             <Row label="Date de soumission" value={submittedAt} />
