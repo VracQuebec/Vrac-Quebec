@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import StepMaterials from "./StepMaterials";
 import StepDetails from "./StepDetails";
 import StepContact from "./StepContact";
@@ -20,9 +20,14 @@ const Questionnaire = () => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const isRemblai = isRemblaiRequest(data.materials, data.propertyType);
+  const formTopRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (formTopRef.current) {
+      const offset = 80;
+      const top = formTopRef.current.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(top, 0), behavior: "smooth" });
+    }
   }, [step, submitted]);
 
   const update = (updates: Partial<QuestionnaireData>) => {
@@ -279,7 +284,7 @@ const Questionnaire = () => {
   }
 
   return (
-    <div className="max-w-xl mx-auto px-4">
+    <div ref={formTopRef} className="max-w-xl mx-auto px-4 scroll-mt-24">
       {/* Simplified Remblai flow */}
       {step === 0 && (
         <div className="bg-card rounded-2xl p-6 md:p-8" style={{ boxShadow: "var(--shadow-lg)" }}>
