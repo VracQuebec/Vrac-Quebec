@@ -7,6 +7,7 @@ import { Truck, Loader2 } from "lucide-react";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [stayLoggedIn, setStayLoggedIn] = useState(true);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -16,6 +17,13 @@ const Login = () => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      // Persist user preference. When "Rester connecté" is unchecked,
+      // we'll sign the user out automatically when the tab/window closes.
+      try {
+        localStorage.setItem("vq_stay_logged_in", stayLoggedIn ? "1" : "0");
+      } catch {
+        // ignore storage errors
+      }
       // Route based on role
       if (data.user) {
         const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
@@ -79,6 +87,15 @@ const Login = () => {
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             {loading ? "Connexion..." : "Se connecter"}
           </button>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground font-body cursor-pointer select-none pt-1">
+            <input
+              type="checkbox"
+              checked={stayLoggedIn}
+              onChange={(e) => setStayLoggedIn(e.target.checked)}
+              className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
+            />
+            Rester connecté sur cet appareil
+          </label>
         </form>
       </div>
     </div>
