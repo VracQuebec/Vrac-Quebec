@@ -6,7 +6,7 @@ import RemblaiForm from "./RemblaiForm";
 import { initialFormData, MATERIAL_TYPES, detectRequestType, isRemblaiRequest, type QuestionnaireData } from "@/lib/questionnaire-data";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, Send, Check, Loader2, Facebook } from "lucide-react";
+import { ChevronLeft, ChevronRight, Send, Check, Loader2 } from "lucide-react";
 
 const STEPS = [
   { label: "Matériel", number: 1 },
