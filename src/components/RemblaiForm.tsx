@@ -51,6 +51,9 @@ const checkboxRow = (active: boolean) =>
 const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
   const [uploading, setUploading] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+  const selectedVisibleMaterials = (data.materials || []).filter((m) =>
+    REMBLAI_MATERIAL_OPTIONS.includes(m as (typeof REMBLAI_MATERIAL_OPTIONS)[number])
+  );
 
   const toggleArr = (key: "materials" | "accessibility" | "machineryList", v: string) => {
     const arr = (data[key] as string[] | undefined) || [];
@@ -85,7 +88,7 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
     email: !data.email.trim(),
     address: !data.address.trim(),
     postalCode: !data.postalCode.trim(),
-    materials: (data.materials || []).length === 0,
+    materials: selectedVisibleMaterials.length === 0,
     quantity: !data.quantity.trim() || Number(data.quantity) <= 0,
     accessibility: (data.accessibility || []).length === 0,
     machineryList: (data.machineryList || []).length === 0,
