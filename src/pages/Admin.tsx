@@ -80,6 +80,7 @@ const Admin = () => {
   const [showImport, setShowImport] = useState(false);
   const [showSheetImport, setShowSheetImport] = useState(false);
   const [showExcelImport, setShowExcelImport] = useState(false);
+  const [geocoding, setGeocoding] = useState<{ done: number; total: number } | null>(null);
   const navigate = useNavigate();
   const { isAdmin, loading: roleLoading } = useUserRoles();
 
@@ -175,6 +176,50 @@ const Admin = () => {
   };
 
   const archive = (id: string) => updateStatus(id, "archivé");
+
+  // Géocode toutes les adresses sans coordonnées via Nominatim (limite ~1 req/sec)
+  const geocodeMissing = async () => {
+    const missing = submissions.filter(
+      (s) => (!s.latitude || !s.longitude) && (s.address || s.postal_code)
+    );
+    if (missing.length === 0) {
+      toast({ title: "Tout est déjà géolocalisé." });
+      return;
+    }
+    if (!confirm(`Géocoder ${missing.length} adresse(s) ? (~1 seconde par adresse)`)) return;
+    setGeocoding({ done: 0, total: missing.length });
+    let ok = 0;
+    for (let i = 0; i < missing.length; i++) {
+      const s = missing[i];
+      const q = [s.address, s.postal_code, "Québec, Canada"].filter(Boolean).join(", ");
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=ca`
+        );
+        const data = await res.json();
+        if (data && data[0]) {
+          const lat = parseFloat(data[0].lat);
+          const lon = parseFloat(data[0].lon);
+          const { error } = await supabase
+            .from("submissions")
+            .update({ latitude: lat, longitude: lon })
+            .eq("id", s.id);
+          if (!error) {
+            ok++;
+            setSubmissions((prev) =>
+              prev.map((x) => (x.id === s.id ? { ...x, latitude: lat, longitude: lon } : x))
+            );
+          }
+        }
+      } catch {
+        // ignore individual failures
+      }
+      setGeocoding({ done: i + 1, total: missing.length });
+      await new Promise((r) => setTimeout(r, 1100));
+    }
+    setGeocoding(null);
+    toast({ title: "Géocodage terminé", description: `${ok}/${missing.length} adresses localisées.` });
+  };
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/login"); };
 
@@ -288,6 +333,16 @@ const Admin = () => {
                 <Map className="w-4 h-4" /> Carte
               </button>
             </div>
+            <button
+              onClick={geocodeMissing}
+              disabled={!!geocoding}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-sm font-display font-semibold hover:opacity-90 disabled:opacity-60"
+            >
+              <MapPin className="w-4 h-4" />
+              {geocoding
+                ? `Géocodage ${geocoding.done}/${geocoding.total}…`
+                : "Géocoder adresses"}
+            </button>
             <button onClick={exportCSVAdmin} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground text-background text-sm font-display font-semibold hover:opacity-90">
               <Download className="w-4 h-4" /> CSV admin
             </button>
