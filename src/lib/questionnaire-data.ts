@@ -67,6 +67,8 @@ export interface QuestionnaireData {
   contamination: string;
   photos: string[];
   deliveryDeadline: string;
+  deliveryTimeframe: string;
+  machineryList: string[];
 }
 
 export const initialFormData: QuestionnaireData = {
@@ -93,7 +95,48 @@ export const initialFormData: QuestionnaireData = {
   contamination: "",
   photos: [],
   deliveryDeadline: "",
+  deliveryTimeframe: "",
+  machineryList: [],
 };
+
+// ---- Simplified Remblai form (Microsoft Forms style) ----
+export const REMBLAI_MATERIAL_OPTIONS = [
+  "Terre",
+  "Terre mélangée",
+  "Sable",
+  "Gravier",
+  "Pierre",
+  "Roches",
+  "Béton",
+  "Asphalte",
+  "Souches",
+  "Autre",
+] as const;
+
+export const REMBLAI_TRUCK_OPTIONS = [
+  "Camion 10 roues",
+  "Camion 12 roues",
+  "Semi-Remorque 2 essieux",
+  "Semi-Remorque 3 essieux",
+  "Semi-Remorque 4 essieux",
+  "Je ne sais pas",
+] as const;
+
+export const REMBLAI_MACHINERY_OPTIONS = [
+  "Pelle mécanique",
+  "Bulldozer",
+  "Tracteur",
+  "Aucune",
+  "Autre",
+] as const;
+
+export const REMBLAI_TIMEFRAME_OPTIONS = [
+  "Le plus rapidement possible",
+  "Cette semaine",
+  "Dans les prochaines semaines",
+  "Flexible",
+  "Je ne sais pas",
+] as const;
 
 // Materials that trigger the "remblai / dépôt / matériel à sortir" special form
 export const REMBLAI_MATERIAL_IDS = ["remplissage"];

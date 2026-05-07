@@ -49,6 +49,7 @@ interface Submission {
   depth_in: string | null;
   priority: string;
   delivery_deadline?: string | null;
+  delivery_timeframe?: string | null;
   visible_to_entrepreneur: boolean;
   internal_notes: string;
   assigned_entrepreneur: string | null;
@@ -462,6 +463,7 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                 v={new Date(sub.delivery_deadline + "T00:00:00").toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric" })}
               />
             )}
+            {sub.delivery_timeframe && <D label="Délai souhaité" v={sub.delivery_timeframe} />}
             <D label="Camion accessible" v={(sub.accessibility || []).join(", ") || "—"} />
             <D label="Machinerie" v={sub.machinery_available ? `Oui — ${sub.machinery_description || ""}` : "Non"} />
             {(sub.length_ft || sub.width_ft || sub.depth_in) && (

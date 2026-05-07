@@ -306,6 +306,7 @@ export type Database = {
           created_at: string
           deliver_or_remove: string | null
           delivery_deadline: string | null
+          delivery_timeframe: string | null
           depth_in: string | null
           description: string | null
           dompe_number: string | null
@@ -343,6 +344,7 @@ export type Database = {
           created_at?: string
           deliver_or_remove?: string | null
           delivery_deadline?: string | null
+          delivery_timeframe?: string | null
           depth_in?: string | null
           description?: string | null
           dompe_number?: string | null
@@ -380,6 +382,7 @@ export type Database = {
           created_at?: string
           deliver_or_remove?: string | null
           delivery_deadline?: string | null
+          delivery_timeframe?: string | null
           depth_in?: string | null
           description?: string | null
           dompe_number?: string | null
