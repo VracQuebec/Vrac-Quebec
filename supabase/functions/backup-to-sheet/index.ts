@@ -1,7 +1,7 @@
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const SPREADSHEET_ID = "17qJgVMdmVQj5MYeNDP2qQnmz6cBIa4Xc7NrZzo9eMlo";
-const SHEET_NAME = "Backup Leads";
+const SHEET_NAME = "Backup_Leads";
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_sheets/v4";
 
 const HEADERS = [
@@ -68,7 +68,7 @@ async function ensureSheetAndHeader(lovableKey: string, sheetsKey: string) {
   }
 
   // Check if header row exists
-  const range = `${SHEET_NAME}!A1:AE1`;
+  const range = `${SHEET_NAME}!A1:AF1`;
   const hRes = await fetch(`${GATEWAY_URL}/spreadsheets/${SPREADSHEET_ID}/values/${range}`, {
     headers: {
       Authorization: `Bearer ${lovableKey}`,
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
       s.delivery_deadline ?? "",
     ];
 
-    const appendRange = `${SHEET_NAME}!A:AE`;
+    const appendRange = `${SHEET_NAME}!A:AF`;
     const appendRes = await fetch(
       `${GATEWAY_URL}/spreadsheets/${SPREADSHEET_ID}/values/${appendRange}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
       {
