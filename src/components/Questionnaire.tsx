@@ -31,7 +31,7 @@ const Questionnaire = () => {
 
   const canNext = () => {
     if (step === 0) return data.materials.length > 0;
-    if (step === 1) return data.propertyType && data.quantity && data.budgetMax && Number(data.budgetMax) > 0 && data.deliveryDeadline;
+    if (step === 1) return data.propertyType && data.quantity && data.deliveryDeadline;
     if (step === 2) return data.name && data.phone && data.email && data.address && data.postalCode;
     return false;
   };
@@ -95,7 +95,25 @@ const Questionnaire = () => {
         name: data.name,
         email: data.email,
         phone: data.phone,
-        description: data.description,
+        description: [
+          data.description,
+          data.propertyType === "Autre" && data.projectDescription
+            ? `Projet: ${data.projectDescription}`
+            : "",
+          data.quantity === "Autre" && data.quantityOther
+            ? `Taille: ${data.quantityOther}`
+            : "",
+          Object.entries(data.materialQuantities || {})
+            .filter(([, v]) => v && v.trim())
+            .map(([id, v]) => {
+              const label = MATERIAL_TYPES.find((m) => m.id === id)?.label || id;
+              return `${label}: ${v}`;
+            })
+            .join(" | "),
+          data.deliveryFlexibility ? `Flexibilité: ${data.deliveryFlexibility}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n"),
         latitude: coords?.lat ?? null,
         longitude: coords?.lng ?? null,
         request_type: isRemblai ? "remblai" : detectRequestType(data.materials, data.propertyType),
