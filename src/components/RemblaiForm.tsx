@@ -53,7 +53,7 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
   const [showErrors, setShowErrors] = useState(false);
 
   const toggleArr = (key: "materials" | "accessibility" | "machineryList", v: string) => {
-    const arr = (data[key] as string[]) || [];
+    const arr = (data[key] as string[] | undefined) || [];
     onChange({
       [key]: arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v],
     } as Partial<QuestionnaireData>);
@@ -85,10 +85,10 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
     email: !data.email.trim(),
     address: !data.address.trim(),
     postalCode: !data.postalCode.trim(),
-    materials: data.materials.length === 0,
+    materials: (data.materials || []).length === 0,
     quantity: !data.quantity.trim() || Number(data.quantity) <= 0,
-    accessibility: data.accessibility.length === 0,
-    machineryList: data.machineryList.length === 0,
+    accessibility: (data.accessibility || []).length === 0,
+    machineryList: (data.machineryList || []).length === 0,
     deliveryTimeframe: !data.deliveryTimeframe,
   };
   const hasErrors = Object.values(errors).some(Boolean);
