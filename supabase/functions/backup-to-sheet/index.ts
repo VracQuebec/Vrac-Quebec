@@ -36,6 +36,7 @@ const HEADERS = [
   "Photos",
   "Statut",
   "Priorité",
+  "Date limite réception",
 ];
 
 async function ensureSheetAndHeader(lovableKey: string, sheetsKey: string) {
@@ -147,6 +148,7 @@ Deno.serve(async (req) => {
       Array.isArray(s.photos) ? s.photos.join(" | ") : (s.photos ?? ""),
       s.status ?? "",
       s.priority ?? "",
+      s.delivery_deadline ?? "",
     ];
 
     const appendRange = `${SHEET_NAME}!A:AE`;
