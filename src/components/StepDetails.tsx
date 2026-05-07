@@ -192,6 +192,43 @@ const StepDetails = ({ data, onChange }: Props) => {
       </div>
 
       <div>
+        <label className={labelClass}>
+          Combien êtes-vous prêt à payer par voyage ?{" "}
+          <span className="text-destructive">*</span>
+        </label>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-body">
+              $
+            </span>
+            <input
+              type="number"
+              min="0"
+              inputMode="numeric"
+              value={data.budgetMax}
+              onChange={(e) => onChange({ budgetMax: e.target.value })}
+              className={`${inputClass} pl-7`}
+              placeholder="Ex : 250"
+              required
+            />
+          </div>
+          <select
+            value={data.budgetUnit}
+            onChange={(e) => onChange({ budgetUnit: e.target.value })}
+            className={`${inputClass} w-auto`}
+          >
+            <option value="">/ unité</option>
+            <option value="/ voyage">/ voyage</option>
+            <option value="/ tonne">/ tonne</option>
+            <option value="total">total</option>
+          </select>
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Indiquez votre budget approximatif par voyage de camion.
+        </p>
+      </div>
+
+      <div>
         <label className={labelClass}>Quel camion peut accéder à votre terrain ?</label>
         <div className="grid grid-cols-1 gap-2">
           {TRUCK_ACCESS_OPTIONS.map((t) => {

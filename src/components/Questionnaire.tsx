@@ -67,7 +67,14 @@ const Questionnaire = () => {
 
   const canNext = () => {
     if (step === 0) return data.materials.length > 0;
-    if (step === 1) return data.propertyType && data.quantity && data.deliveryDeadline;
+    if (step === 1)
+      return (
+        data.propertyType &&
+        data.quantity &&
+        data.deliveryDeadline &&
+        data.budgetMax &&
+        data.budgetMax.trim() !== ""
+      );
     if (step === 2) return data.name && data.phone && data.email && data.address && data.postalCode;
     return false;
   };
@@ -78,6 +85,8 @@ const Questionnaire = () => {
       if (!data.propertyType) missing.push("Type de projet");
       if (!data.quantity) missing.push("Taille du projet");
       if (!data.deliveryDeadline) missing.push("Date de livraison");
+      if (!data.budgetMax || !data.budgetMax.trim())
+        missing.push("Budget par voyage");
     }
     if (step === 2) {
       if (!data.name) missing.push("Nom");
