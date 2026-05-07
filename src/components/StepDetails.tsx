@@ -139,10 +139,10 @@ const StepDetails = ({ data, onChange }: Props) => {
       {selectedMaterialLabels.length > 0 && (
         <div>
           <label className={labelClass}>Quantité désirée pour chaque matériau</label>
-          <div className="space-y-2">
+          <div className="space-y-4">
             {selectedMaterialLabels.map((m) => (
               <div key={m.id}>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1 font-display">
+                <label className="block text-base font-bold text-foreground mb-2 font-display">
                   {m.label}
                 </label>
                 <input
