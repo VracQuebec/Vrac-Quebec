@@ -431,7 +431,28 @@ const Admin = () => {
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
         ) : view === "map" ? (
-          <AdminMap submissions={filtered as any} />
+          <>
+            <div className="mb-2 text-xs text-muted-foreground font-body">
+              💡 Glissez une pin sur la carte pour corriger sa position.
+            </div>
+            <AdminMap
+              submissions={filtered as any}
+              onMove={async (id, lat, lon) => {
+                const { error } = await supabase
+                  .from("submissions")
+                  .update({ latitude: lat, longitude: lon })
+                  .eq("id", id);
+                if (error) {
+                  toast({ title: "Erreur", description: error.message, variant: "destructive" });
+                  return;
+                }
+                setSubmissions((prev) =>
+                  prev.map((x) => (x.id === id ? { ...x, latitude: lat, longitude: lon } : x))
+                );
+                toast({ title: "Position enregistrée" });
+              }}
+            />
+          </>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20"><p className="text-muted-foreground font-body">Aucune demande.</p></div>
         ) : (

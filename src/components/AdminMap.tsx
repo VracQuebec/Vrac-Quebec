@@ -78,9 +78,10 @@ const buildPopup = (sub: Submission) => {
 
 interface Props {
   submissions: Submission[];
+  onMove?: (id: string, lat: number, lon: number) => void;
 }
 
-const AdminMap = ({ submissions }: Props) => {
+const AdminMap = ({ submissions, onMove }: Props) => {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -106,9 +107,16 @@ const AdminMap = ({ submissions }: Props) => {
     geoSubs.forEach((sub) => {
       const marker = L.marker([sub.latitude!, sub.longitude!], {
         icon: createNumberIcon(sub.submission_number || 0),
+        draggable: !!onMove,
       })
         .bindPopup(buildPopup(sub), { maxWidth: 320, minWidth: 260 })
         .addTo(map);
+      if (onMove) {
+        marker.on("dragend", () => {
+          const { lat, lng } = marker.getLatLng();
+          onMove(sub.id, lat, lng);
+        });
+      }
       markers.push(marker);
     });
 
