@@ -348,7 +348,7 @@ const Questionnaire = () => {
         </div>
 
         <button
-          onClick={() => { setSubmitted(false); setStep(0); setData(initialFormData); }}
+          onClick={() => { setSubmitted(false); setStep(0); setRemblaiMode(false); setData(initialFormData); }}
           className="text-sm text-muted-foreground hover:text-foreground underline font-display"
         >
           Nouvelle demande
