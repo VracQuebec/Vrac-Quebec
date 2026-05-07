@@ -22,6 +22,7 @@ const Questionnaire = () => {
   const isRemblai = isRemblaiRequest(data.materials, data.propertyType);
   const formTopRef = useRef<HTMLDivElement>(null);
   const isPopStateRef = useRef(false);
+  const [showErrors, setShowErrors] = useState(false);
 
   // Sync browser history with current step
   useEffect(() => {
@@ -69,6 +70,40 @@ const Questionnaire = () => {
     return false;
   };
 
+  const getMissingFields = (): string[] => {
+    const missing: string[] = [];
+    if (step === 1) {
+      if (!data.propertyType) missing.push("Type de projet");
+      if (!data.quantity) missing.push("Taille du projet");
+      if (!data.deliveryDeadline) missing.push("Date de livraison");
+    }
+    if (step === 2) {
+      if (!data.name) missing.push("Nom");
+      if (!data.phone) missing.push("Téléphone");
+      if (!data.email) missing.push("Courriel");
+      if (!data.address) missing.push("Adresse");
+      if (!data.postalCode) missing.push("Code postal");
+    }
+    return missing;
+  };
+
+  const handleNext = () => {
+    if (!canNext()) {
+      setShowErrors(true);
+      const missing = getMissingFields();
+      toast({
+        title: "Champs à remplir",
+        description: missing.length
+          ? `Merci de compléter : ${missing.join(", ")}`
+          : "Veuillez compléter cette étape.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowErrors(false);
+    setStep((s) => s + 1);
+  };
+
   const geocodeAddress = async (address: string, postalCode: string): Promise<{ lat: number; lng: number } | null> => {
     const queries = [
       `${address}, ${postalCode}, Québec, Canada`,
@@ -92,7 +127,15 @@ const Questionnaire = () => {
 
   const handleSubmit = async () => {
     if (!canNext()) {
-      toast({ title: "Champs manquants", description: "Veuillez remplir les champs obligatoires.", variant: "destructive" });
+      setShowErrors(true);
+      const missing = getMissingFields();
+      toast({
+        title: "Champs manquants",
+        description: missing.length
+          ? `Merci de compléter : ${missing.join(", ")}`
+          : "Veuillez remplir les champs obligatoires.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -233,7 +276,8 @@ const Questionnaire = () => {
       toast({ title: "Demande envoyée! ✅", description: "Nous vous contacterons rapidement." });
     } catch (err) {
       console.error(err);
-      toast({ title: "Erreur", description: "Impossible d'envoyer la demande. Réessayez.", variant: "destructive" });
+      const msg = (err as { message?: string })?.message || "Impossible d'envoyer la demande. Réessayez.";
+      toast({ title: "Erreur", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -393,9 +437,8 @@ const Questionnaire = () => {
 
           {step < 2 ? (
             <button
-              onClick={() => canNext() && setStep((s) => s + 1)}
-              disabled={!canNext()}
-              className="flex items-center gap-1.5 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+              onClick={handleNext}
+              className="flex items-center gap-1.5 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 transition-opacity"
             >
               Suivant <ChevronRight className="w-4 h-4" />
             </button>
@@ -403,8 +446,8 @@ const Questionnaire = () => {
             <div className="flex flex-col items-end gap-2">
               <button
                 onClick={handleSubmit}
-                disabled={!canNext() || loading}
-                className="flex items-center gap-1.5 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base shadow-md hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+                disabled={loading}
+                className="flex items-center gap-1.5 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base shadow-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 {loading ? "Envoi..." : "Recevoir mon prix →"}
