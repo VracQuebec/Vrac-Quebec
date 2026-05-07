@@ -313,8 +313,8 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
         )}
       </Section>
 
-      {/* Section 6 - Machinerie disponible */}
-      <Section number={6} title="Machinerie disponible sur place *">
+      {/* Section 7 - Machinerie disponible */}
+      <Section number={7} title="Machinerie disponible sur place *">
         <div data-error={showErrors && errors.machineryList} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {REMBLAI_MACHINERY_OPTIONS.map((m) => {
             const active = data.machineryList.includes(m);
@@ -341,8 +341,8 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
         )}
       </Section>
 
-      {/* Section 7 - Délai souhaité */}
-      <Section number={7} title="Délai souhaité *">
+      {/* Section 8 - Délai souhaité */}
+      <Section number={8} title="Délai souhaité *">
         <div data-error={showErrors && errors.deliveryTimeframe} className="grid grid-cols-1 gap-2">
           {REMBLAI_TIMEFRAME_OPTIONS.map((t) => {
             const active = data.deliveryTimeframe === t;
@@ -361,8 +361,8 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
         )}
       </Section>
 
-      {/* Section 8 - Photos */}
-      <Section number={8} title="Photos de l'emplacement (optionnel)">
+      {/* Section 9 - Photos */}
+      <Section number={9} title="Photos de l'emplacement (optionnel)">
         <label className="flex items-center justify-center gap-2 px-4 py-5 rounded-lg border-2 border-dashed border-border bg-background cursor-pointer hover:border-primary/50 transition-colors">
           {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
           <span className="text-sm font-body font-semibold">
@@ -394,8 +394,8 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
         )}
       </Section>
 
-      {/* Section 9 - Commentaires */}
-      <Section number={9} title="Commentaires / précisions (optionnel)">
+      {/* Section 10 - Commentaires */}
+      <Section number={10} title="Commentaires / précisions (optionnel)">
         <textarea
           value={data.description}
           onChange={(e) => onChange({ description: e.target.value })}
