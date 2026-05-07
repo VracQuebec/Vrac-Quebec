@@ -1,0 +1,1 @@
+GRANT INSERT ON public.submissions TO anon, authenticated;
