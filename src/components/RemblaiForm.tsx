@@ -95,6 +95,7 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
     accessibility: (data.accessibility || []).length === 0,
     machineryList: (data.machineryList || []).length === 0,
     deliveryTimeframe: !data.deliveryTimeframe,
+    budgetMax: !data.budgetMax || !data.budgetMax.trim() || Number(data.budgetMax) <= 0,
   };
   const hasErrors = Object.values(errors).some(Boolean);
 
@@ -251,8 +252,45 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
         </div>
       </Section>
 
+      {/* Section budget */}
+      <Section number={5} title="Combien êtes-vous prêt à payer par voyage ? *">
+        <div data-error={showErrors && errors.budgetMax}>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-body">
+                $
+              </span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min="0"
+                value={data.budgetMax}
+                onChange={(e) => onChange({ budgetMax: e.target.value })}
+                className={`${inputClass} pl-7 ${errClass(errors.budgetMax)}`}
+                placeholder="Ex : 250"
+              />
+            </div>
+            <select
+              value={data.budgetUnit}
+              onChange={(e) => onChange({ budgetUnit: e.target.value })}
+              className={`${inputClass} w-auto`}
+            >
+              <option value="">/ unité</option>
+              <option value="/ voyage">/ voyage</option>
+              <option value="/ tonne">/ tonne</option>
+              <option value="total">total</option>
+            </select>
+          </div>
+          {showErrors && errors.budgetMax && (
+            <p className="text-sm text-destructive font-body mt-2">
+              ⚠ Indiquez votre budget par voyage
+            </p>
+          )}
+        </div>
+      </Section>
+
       {/* Section 5 - Accessibilité */}
-      <Section number={5} title="Accessibilité du terrain *">
+      <Section number={6} title="Accessibilité du terrain *">
         <p className="text-sm text-muted-foreground mb-2">
           Cochez tous les types de camions qui peuvent accéder au terrain.
         </p>
