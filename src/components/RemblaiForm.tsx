@@ -9,6 +9,8 @@ import {
   type QuestionnaireData,
 } from "@/lib/questionnaire-data";
 
+type RemblaiMaterial = (typeof REMBLAI_MATERIAL_OPTIONS)[number];
+
 interface Props {
   data: QuestionnaireData;
   onChange: (updates: Partial<QuestionnaireData>) => void;
@@ -51,6 +53,9 @@ const checkboxRow = (active: boolean) =>
 const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
   const [uploading, setUploading] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+  const selectedVisibleMaterials = (data.materials || []).filter((m): m is RemblaiMaterial =>
+    (REMBLAI_MATERIAL_OPTIONS as readonly string[]).includes(m)
+  );
 
   const toggleArr = (key: "materials" | "accessibility" | "machineryList", v: string) => {
     const arr = (data[key] as string[] | undefined) || [];
@@ -85,7 +90,7 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
     email: !data.email.trim(),
     address: !data.address.trim(),
     postalCode: !data.postalCode.trim(),
-    materials: (data.materials || []).length === 0,
+    materials: selectedVisibleMaterials.length === 0,
     quantity: !data.quantity.trim() || Number(data.quantity) <= 0,
     accessibility: (data.accessibility || []).length === 0,
     machineryList: (data.machineryList || []).length === 0,
@@ -202,15 +207,12 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
           {REMBLAI_MATERIAL_OPTIONS.map((m) => {
             const active = data.materials.includes(m);
             return (
-              <label key={m} className={checkboxRow(active)}>
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={() => toggleArr("materials", m)}
-                  className="w-5 h-5 accent-primary"
-                />
+              <button key={m} type="button" onClick={() => toggleArr("materials", m)} className={checkboxRow(active)}>
+                <span className="w-5 h-5 rounded border-2 border-primary flex items-center justify-center shrink-0">
+                  {active ? "✓" : ""}
+                </span>
                 <span>{m}</span>
-              </label>
+              </button>
             );
           })}
         </div>
@@ -258,16 +260,13 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
           {REMBLAI_TRUCK_OPTIONS.map((t) => {
             const active = data.accessibility.includes(t);
             return (
-              <label key={t} className={checkboxRow(active)}>
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={() => toggleArr("accessibility", t)}
-                  className="w-5 h-5 accent-primary"
-                />
+              <button key={t} type="button" onClick={() => toggleArr("accessibility", t)} className={checkboxRow(active)}>
+                <span className="w-5 h-5 rounded border-2 border-primary flex items-center justify-center shrink-0">
+                  {active ? "✓" : ""}
+                </span>
                 <Truck className="w-4 h-4 text-muted-foreground" />
                 <span>{t}</span>
-              </label>
+              </button>
             );
           })}
         </div>
@@ -282,15 +281,12 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
           {REMBLAI_MACHINERY_OPTIONS.map((m) => {
             const active = data.machineryList.includes(m);
             return (
-              <label key={m} className={checkboxRow(active)}>
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={() => toggleArr("machineryList", m)}
-                  className="w-5 h-5 accent-primary"
-                />
+              <button key={m} type="button" onClick={() => toggleArr("machineryList", m)} className={checkboxRow(active)}>
+                <span className="w-5 h-5 rounded border-2 border-primary flex items-center justify-center shrink-0">
+                  {active ? "✓" : ""}
+                </span>
                 <span>{m}</span>
-              </label>
+              </button>
             );
           })}
         </div>
@@ -313,16 +309,12 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
           {REMBLAI_TIMEFRAME_OPTIONS.map((t) => {
             const active = data.deliveryTimeframe === t;
             return (
-              <label key={t} className={checkboxRow(active)}>
-                <input
-                  type="radio"
-                  name="timeframe"
-                  checked={active}
-                  onChange={() => onChange({ deliveryTimeframe: t })}
-                  className="w-5 h-5 accent-primary"
-                />
+              <button key={t} type="button" onClick={() => onChange({ deliveryTimeframe: t })} className={checkboxRow(active)}>
+                <span className="w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center shrink-0">
+                  {active ? "•" : ""}
+                </span>
                 <span>{t}</span>
-              </label>
+              </button>
             );
           })}
         </div>

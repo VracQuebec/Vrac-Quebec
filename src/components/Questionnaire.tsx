@@ -372,7 +372,11 @@ const Questionnaire = () => {
             <button
               onClick={() => {
                 if (!canNext()) return;
-                setRemblaiMode(isRemblaiRequest(data.materials, data.propertyType));
+                const enteringRemblaiMode = isRemblaiRequest(data.materials, data.propertyType);
+                setRemblaiMode(enteringRemblaiMode);
+                if (enteringRemblaiMode) {
+                  update({ materials: [], otherMaterial: "", propertyType: "Remplissage / remblai" });
+                }
                 setStep(1);
               }}
               disabled={!canNext()}
