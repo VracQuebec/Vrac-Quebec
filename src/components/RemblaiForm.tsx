@@ -9,6 +9,8 @@ import {
   type QuestionnaireData,
 } from "@/lib/questionnaire-data";
 
+type RemblaiMaterial = (typeof REMBLAI_MATERIAL_OPTIONS)[number];
+
 interface Props {
   data: QuestionnaireData;
   onChange: (updates: Partial<QuestionnaireData>) => void;
@@ -51,8 +53,8 @@ const checkboxRow = (active: boolean) =>
 const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
   const [uploading, setUploading] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
-  const selectedVisibleMaterials = (data.materials || []).filter((m) =>
-    REMBLAI_MATERIAL_OPTIONS.includes(m as (typeof REMBLAI_MATERIAL_OPTIONS)[number])
+  const selectedVisibleMaterials = (data.materials || []).filter((m): m is RemblaiMaterial =>
+    (REMBLAI_MATERIAL_OPTIONS as readonly string[]).includes(m)
   );
 
   const toggleArr = (key: "materials" | "accessibility" | "machineryList", v: string) => {
