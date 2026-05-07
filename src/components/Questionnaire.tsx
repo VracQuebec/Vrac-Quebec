@@ -29,7 +29,7 @@ const Questionnaire = () => {
 
   const canNext = () => {
     if (step === 0) return data.materials.length > 0;
-    if (step === 1) return data.propertyType && data.quantity;
+    if (step === 1) return data.propertyType && data.quantity && data.budgetMax && Number(data.budgetMax) > 0;
     if (step === 2) return data.name && data.phone && data.email && data.address && data.postalCode;
     return false;
   };
