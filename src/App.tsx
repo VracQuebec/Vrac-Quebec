@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import AdminData from "./pages/AdminData";
 import Entrepreneur from "./pages/Entrepreneur";
+import Unsubscribe from "./pages/Unsubscribe";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,7 @@ const App = () => (
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/donnees" element={<AdminData />} />
           <Route path="/entrepreneur" element={<Entrepreneur />} />
+          <Route path="/unsubscribe" element={<Unsubscribe />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
