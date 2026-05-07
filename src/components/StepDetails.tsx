@@ -198,15 +198,18 @@ const StepDetails = ({ data, onChange }: Props) => {
         </label>
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-body">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-body">
               $
             </span>
             <input
-              type="number"
-              min="0"
-              inputMode="numeric"
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9]*"
+              autoComplete="off"
               value={data.budgetMax}
-              onChange={(e) => onChange({ budgetMax: e.target.value })}
+              onChange={(e) =>
+                onChange({ budgetMax: e.target.value.replace(/[^\d.,]/g, "") })
+              }
               className={`${inputClass} pl-7`}
               placeholder="Ex : 250"
               required
