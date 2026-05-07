@@ -283,6 +283,22 @@ const Questionnaire = () => {
         // Email is best-effort, don't block the user
       }
 
+      // Send confirmation email to the client (best-effort)
+      if (data.email) {
+        try {
+          await supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "client-confirmation",
+              recipientEmail: data.email,
+              idempotencyKey: `client-confirm-${submissionId}`,
+              templateData: { name: data.name || "" },
+            },
+          });
+        } catch {
+          // Best-effort
+        }
+      }
+
       setSubmitted(true);
       toast({ title: "Demande envoyée! ✅", description: "Nous vous contacterons rapidement." });
     } catch (err) {
