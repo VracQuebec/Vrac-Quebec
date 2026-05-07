@@ -29,7 +29,7 @@ const Questionnaire = () => {
 
   const canNext = () => {
     if (step === 0) return data.materials.length > 0;
-    if (step === 1) return data.propertyType && data.quantity && data.budgetMax && Number(data.budgetMax) > 0;
+    if (step === 1) return data.propertyType && data.quantity && data.budgetMax && Number(data.budgetMax) > 0 && data.deliveryDeadline;
     if (step === 2) return data.name && data.phone && data.email && data.address && data.postalCode;
     return false;
   };
@@ -92,6 +92,7 @@ const Questionnaire = () => {
         length_ft: data.lengthFt || null,
         width_ft: data.widthFt || null,
         depth_in: data.depthIn || null,
+        delivery_deadline: data.deliveryDeadline || null,
       };
 
       const { data: inserted, error } = await supabase
@@ -142,6 +143,9 @@ const Questionnaire = () => {
               quantity: data.quantity,
               budget: budgetStr,
               notes: data.description,
+              deliveryDeadline: data.deliveryDeadline
+                ? new Date(data.deliveryDeadline + "T00:00:00").toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric" })
+                : "",
               dompeNumber: inserted?.dompe_number,
               submissionNumber: inserted?.submission_number,
               submittedAt: new Date().toLocaleString("fr-CA", { timeZone: "America/Toronto" }),
