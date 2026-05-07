@@ -126,7 +126,8 @@ const Questionnaire = () => {
   };
 
   const handleSubmit = async () => {
-    if (!canNext()) {
+    // Remblai form has its own validation — skip the multi-step canNext check
+    if (!isRemblai && !canNext()) {
       setShowErrors(true);
       const missing = getMissingFields();
       toast({
