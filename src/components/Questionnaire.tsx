@@ -119,28 +119,34 @@ const Questionnaire = () => {
         console.warn("Backup to sheet failed:", e);
       }
 
-      // Send email notification
+      // Send internal email notification to admin (via Lovable Emails)
       try {
-        await supabase.functions.invoke("notify-submission", {
+        const materialsLabel = data.materials
+          .map((id) => MATERIAL_TYPES.find((m) => m.id === id)?.label || id)
+          .join(", ") + (data.otherMaterial ? ` (Autre: ${data.otherMaterial})` : "");
+        const budgetStr = data.budgetMax
+          ? `${data.budgetMax}${data.budgetUnit ? ` ${data.budgetUnit}` : ""}`
+          : "";
+        await supabase.functions.invoke("send-transactional-email", {
           body: {
-            id: inserted?.id,
-            submission_number: inserted?.submission_number,
-            dompe_number: inserted?.dompe_number,
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-            materials: data.materials.map((id) => MATERIAL_TYPES.find((m) => m.id === id)?.label || id).join(", "),
-            otherMaterial: data.otherMaterial,
-            address: data.address,
-            postal_code: data.postalCode,
-            quantity: data.quantity,
-            tonnage: data.tonnage,
-            accessibility: data.accessibility,
-            machinery_available: data.machineryAvailable,
-            machinery_description: data.machineryDescription,
-            budget_unit: data.budgetUnit,
-            budget_max: data.budgetMax,
-            description: data.description,
+            templateName: "new-lead-notification",
+            recipientEmail: "TransportJSC@hotmail.com",
+            idempotencyKey: `new-lead-${inserted?.id}`,
+            templateData: {
+              name: data.name,
+              phone: data.phone,
+              email: data.email,
+              address: data.address,
+              postalCode: data.postalCode,
+              materials: materialsLabel,
+              quantity: data.quantity,
+              budget: budgetStr,
+              notes: data.description,
+              dompeNumber: inserted?.dompe_number,
+              submissionNumber: inserted?.submission_number,
+              submittedAt: new Date().toLocaleString("fr-CA", { timeZone: "America/Toronto" }),
+              crmLink: `https://vracquebec.ca/admin?lead=${inserted?.id}`,
+            },
           },
         });
       } catch {
