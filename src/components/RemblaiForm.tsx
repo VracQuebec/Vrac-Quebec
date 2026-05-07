@@ -207,15 +207,12 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
           {REMBLAI_MATERIAL_OPTIONS.map((m) => {
             const active = data.materials.includes(m);
             return (
-              <label key={m} className={checkboxRow(active)}>
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={() => toggleArr("materials", m)}
-                  className="w-5 h-5 accent-primary"
-                />
+              <button key={m} type="button" onClick={() => toggleArr("materials", m)} className={checkboxRow(active)}>
+                <span className="w-5 h-5 rounded border-2 border-primary flex items-center justify-center shrink-0">
+                  {active ? "✓" : ""}
+                </span>
                 <span>{m}</span>
-              </label>
+              </button>
             );
           })}
         </div>
@@ -263,16 +260,13 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
           {REMBLAI_TRUCK_OPTIONS.map((t) => {
             const active = data.accessibility.includes(t);
             return (
-              <label key={t} className={checkboxRow(active)}>
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={() => toggleArr("accessibility", t)}
-                  className="w-5 h-5 accent-primary"
-                />
+              <button key={t} type="button" onClick={() => toggleArr("accessibility", t)} className={checkboxRow(active)}>
+                <span className="w-5 h-5 rounded border-2 border-primary flex items-center justify-center shrink-0">
+                  {active ? "✓" : ""}
+                </span>
                 <Truck className="w-4 h-4 text-muted-foreground" />
                 <span>{t}</span>
-              </label>
+              </button>
             );
           })}
         </div>
