@@ -49,6 +49,7 @@ interface Submission {
   depth_in: string | null;
   priority: string;
   delivery_deadline?: string | null;
+  delivery_timeframe?: string | null;
   visible_to_entrepreneur: boolean;
   internal_notes: string;
   assigned_entrepreneur: string | null;
