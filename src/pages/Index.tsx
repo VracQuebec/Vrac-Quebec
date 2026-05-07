@@ -14,30 +14,30 @@ const Index = () => {
         />
         <div className="md:hidden absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
 
-        {/* Desktop hero — image branding (VRAC QUÉBEC) stays visible up top, text content sits at the bottom over a dark gradient */}
+        {/* Desktop hero — image branding (VRAC QUÉBEC) stays visible up top, text content sits lower over a dark gradient with breathing room */}
         <div
-          className="hidden md:flex relative w-full min-h-[560px] lg:min-h-[620px] xl:min-h-[680px] items-end bg-no-repeat"
+          className="hidden md:flex relative w-full min-h-[580px] lg:min-h-[660px] xl:min-h-[720px] items-end bg-no-repeat"
           style={{
             backgroundImage: `url(${heroBanner})`,
             backgroundSize: "cover",
-            backgroundPosition: "center 30%",
+            backgroundPosition: "center 15%",
           }}
         >
           {/* Gradient: transparent on top to keep logo/camion visible, dark at bottom for text legibility */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/80" />
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-background" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/75" />
+          <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-b from-transparent to-background" />
 
-          <div className="relative z-10 container mx-auto px-6 pb-20 lg:pb-24 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="relative z-10 container mx-auto px-6 pb-14 lg:pb-16 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-extrabold text-white leading-[1.1] max-w-3xl mx-auto drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
               Commandez votre vrac{" "}
               <span className="text-primary">rapidement au Québec</span>
             </h1>
-            <p className="text-white/85 mt-5 max-w-xl mx-auto font-body text-base lg:text-lg leading-relaxed">
+            <p className="text-white/85 mt-8 max-w-xl mx-auto font-body text-base lg:text-lg leading-relaxed">
               Terre, sable, pierre concassée, remblai — livraison rapide partout dans la région de Québec et Lévis.
             </p>
             <a
               href="#questionnaire"
-              className="inline-block mt-7 px-9 py-3.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base lg:text-lg shadow-[0_10px_30px_-8px_hsl(25_95%_53%/0.7)] hover:scale-[1.03] hover:shadow-[0_14px_40px_-8px_hsl(25_95%_53%/0.85)] transition-all"
+              className="inline-block mt-9 px-9 py-3.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base lg:text-lg shadow-[0_10px_30px_-8px_hsl(25_95%_53%/0.7)] hover:scale-[1.03] hover:shadow-[0_14px_40px_-8px_hsl(25_95%_53%/0.85)] transition-all"
             >
               Obtenir mon prix →
             </a>
