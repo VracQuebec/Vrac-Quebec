@@ -112,6 +112,10 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
   const errClass = (isErr: boolean) =>
     showErrors && isErr ? "border-destructive" : "";
 
+  const handleBudgetChange = (value: string) => {
+    onChange({ budgetMax: value.replace(/[^0-9]/g, "") });
+  };
+
   return (
     <div className="max-w-2xl mx-auto px-3 md:px-4 space-y-4 md:space-y-5">
       {/* Header */}
@@ -255,21 +259,21 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
       {/* Section budget */}
       <Section number={5} title="Combien êtes-vous prêt à payer par voyage ? *">
         <div data-error={showErrors && errors.budgetMax}>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-body">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+            <div className={`flex min-w-0 overflow-hidden rounded-lg border-2 bg-background focus-within:border-primary transition-colors ${errClass(errors.budgetMax) || "border-border"}`}>
+              <span className="flex items-center px-3 text-muted-foreground font-body border-r border-border bg-muted/40 select-none">
                 $
               </span>
               <input
-                type="text"
-                inputMode="decimal"
-                pattern="[0-9]*"
+                id="remblai-budget-max"
+                name="budgetMax"
+                type="tel"
+                inputMode="numeric"
                 autoComplete="off"
                 value={data.budgetMax}
-                onChange={(e) =>
-                  onChange({ budgetMax: e.target.value.replace(/[^\d.,]/g, "") })
-                }
-                className={`${inputClass} pl-7 ${errClass(errors.budgetMax)}`}
+                onInput={(e) => handleBudgetChange(e.currentTarget.value)}
+                onChange={(e) => handleBudgetChange(e.target.value)}
+                className="w-full min-w-0 px-4 py-4 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none font-body text-base"
                 placeholder="Ex : 250"
               />
             </div>

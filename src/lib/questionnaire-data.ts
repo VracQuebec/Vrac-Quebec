@@ -93,7 +93,7 @@ export const initialFormData: QuestionnaireData = {
   quantity: "",
   quantityOther: "",
   tonnage: "",
-  budgetUnit: "",
+  budgetUnit: "/ voyage",
   budgetMax: "",
   machineryAvailable: null,
   machineryDescription: "",
