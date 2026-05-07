@@ -19,7 +19,9 @@ const Questionnaire = () => {
   const [data, setData] = useState<QuestionnaireData>(initialFormData);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const isRemblai = isRemblaiRequest(data.materials, data.propertyType);
+  const [remblaiMode, setRemblaiMode] = useState(false);
+  const isRemblai =
+    remblaiMode || isRemblaiRequest(data.materials, data.propertyType);
   const formTopRef = useRef<HTMLDivElement>(null);
   const isPopStateRef = useRef(false);
   const [showErrors, setShowErrors] = useState(false);
@@ -369,7 +371,11 @@ const Questionnaire = () => {
           />
           <div className="flex justify-end mt-8 pt-6 border-t border-border">
             <button
-              onClick={() => canNext() && setStep(1)}
+              onClick={() => {
+                if (!canNext()) return;
+                setRemblaiMode(isRemblaiRequest(data.materials, data.propertyType));
+                setStep(1);
+              }}
               disabled={!canNext()}
               className="flex items-center gap-1.5 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
             >
@@ -382,7 +388,7 @@ const Questionnaire = () => {
       {step > 0 && isRemblai && (
         <div>
           <button
-            onClick={() => setStep(0)}
+            onClick={() => { setRemblaiMode(false); setStep(0); }}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 font-display"
           >
             <ChevronLeft className="w-4 h-4" /> Changer de matériel
