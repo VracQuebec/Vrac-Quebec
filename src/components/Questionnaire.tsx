@@ -21,6 +21,34 @@ const Questionnaire = () => {
   const [loading, setLoading] = useState(false);
   const isRemblai = isRemblaiRequest(data.materials, data.propertyType);
   const formTopRef = useRef<HTMLDivElement>(null);
+  const isPopStateRef = useRef(false);
+
+  // Sync browser history with current step
+  useEffect(() => {
+    if (isPopStateRef.current) {
+      isPopStateRef.current = false;
+      return;
+    }
+    const state = { questionnaireStep: step };
+    if (step === 0) {
+      window.history.replaceState(state, "");
+    } else {
+      window.history.pushState(state, "");
+    }
+  }, [step]);
+
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => {
+      const targetStep =
+        e.state && typeof e.state.questionnaireStep === "number"
+          ? e.state.questionnaireStep
+          : 0;
+      isPopStateRef.current = true;
+      setStep(targetStep);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   useEffect(() => {
     if (formTopRef.current) {
