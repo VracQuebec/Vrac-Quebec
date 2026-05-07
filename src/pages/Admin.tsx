@@ -465,6 +465,19 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
             </div>
           </div>
 
+          {/* Request type selector */}
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Type de demande</label>
+            <div className="flex flex-wrap gap-1.5">
+              {REQUEST_TYPES.map((t) => (
+                <button key={t.value} onClick={() => onUpdate({ request_type: t.value })}
+                  className={`px-2.5 py-1 rounded text-[11px] font-display font-bold border transition-all ${sub.request_type === t.value ? t.color : "bg-card text-muted-foreground border-border hover:border-foreground/30"}`}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Priority + visibility + assigned */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
