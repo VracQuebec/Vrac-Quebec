@@ -283,6 +283,22 @@ const Questionnaire = () => {
         // Email is best-effort, don't block the user
       }
 
+      // Send confirmation email to the client (best-effort)
+      if (data.email) {
+        try {
+          await supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "client-confirmation",
+              recipientEmail: data.email,
+              idempotencyKey: `client-confirm-${submissionId}`,
+              templateData: { name: data.name || "" },
+            },
+          });
+        } catch {
+          // Best-effort
+        }
+      }
+
       setSubmitted(true);
       toast({ title: "Demande envoyée! ✅", description: "Nous vous contacterons rapidement." });
     } catch (err) {
@@ -304,6 +320,9 @@ const Questionnaire = () => {
         <p className="text-muted-foreground mb-4">
           On analyse votre besoin et on vous contacte en moins de 30 minutes.
         </p>
+        <div className="bg-success/5 border border-success/20 rounded-xl p-4 mb-6 text-sm text-foreground/80">
+          Nous avons bien reçu votre demande. Une confirmation a été envoyée à votre adresse courriel. Un membre de notre équipe vous contactera sous peu.
+        </div>
         <div className="text-sm text-muted-foreground mb-8 space-y-1">
           <p>📍 Livraison rapide dans la région de Québec</p>
           <p>🚛 Plusieurs camions disponibles aujourd'hui</p>
