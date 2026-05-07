@@ -68,7 +68,7 @@ async function ensureSheetAndHeader(lovableKey: string, sheetsKey: string) {
   }
 
   // Check if header row exists
-  const range = `${SHEET_NAME}!A1:AE1`;
+  const range = `${SHEET_NAME}!A1:AF1`;
   const hRes = await fetch(`${GATEWAY_URL}/spreadsheets/${SPREADSHEET_ID}/values/${range}`, {
     headers: {
       Authorization: `Bearer ${lovableKey}`,
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
       s.delivery_deadline ?? "",
     ];
 
-    const appendRange = `${SHEET_NAME}!A:AE`;
+    const appendRange = `${SHEET_NAME}!A:AF`;
     const appendRes = await fetch(
       `${GATEWAY_URL}/spreadsheets/${SPREADSHEET_ID}/values/${appendRange}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
       {
