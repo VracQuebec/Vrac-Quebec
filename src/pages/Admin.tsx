@@ -112,15 +112,49 @@ const Admin = () => {
   };
 
   const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("submissions").update({ status }).eq("id", id);
-    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    else setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
+    const { data, error } = await supabase
+      .from("submissions")
+      .update({ status })
+      .eq("id", id)
+      .select("id, status")
+      .maybeSingle();
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (!data) {
+      toast({
+        title: "Modification refusée",
+        description: "La mise à jour n'a affecté aucune ligne (permissions ou session expirée). Reconnectez-vous.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
+    toast({ title: "Statut mis à jour", description: status });
   };
 
   const updateField = async (id: string, patch: Partial<Submission>) => {
-    const { error } = await supabase.from("submissions").update(patch as any).eq("id", id);
-    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    else setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    const { data, error } = await supabase
+      .from("submissions")
+      .update(patch as any)
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (!data) {
+      toast({
+        title: "Modification refusée",
+        description: "La mise à jour n'a affecté aucune ligne (permissions ou session expirée). Reconnectez-vous.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    toast({ title: "Enregistré" });
   };
 
   const archive = (id: string) => updateStatus(id, "archivé");
