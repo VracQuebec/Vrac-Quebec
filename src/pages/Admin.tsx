@@ -86,14 +86,31 @@ const Admin = () => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null);
-      if (!session?.user) navigate("/login");
+      if (!session?.user) navigate("/login", { replace: true });
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) navigate("/login");
+      if (!session?.user) navigate("/login", { replace: true });
       else { setUser(session.user); fetchSubmissions(); }
     });
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // Empêcher le bouton "précédent" du navigateur/téléphone de quitter le site
+  // depuis la page admin. On pousse un état factice puis on le re-pousse à
+  // chaque popstate tant que l'utilisateur reste sur /admin.
+  useEffect(() => {
+    const tag = "vq_admin_guard";
+    if (!window.history.state || window.history.state.tag !== tag) {
+      window.history.pushState({ tag }, "");
+    }
+    const onPop = () => {
+      if (window.location.pathname.startsWith("/admin")) {
+        window.history.pushState({ tag }, "");
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   const fetchSubmissions = async () => {
     setLoading(true);

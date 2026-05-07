@@ -28,9 +28,9 @@ const Login = () => {
       if (data.user) {
         const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
         const roleList = (roles || []).map((r: any) => r.role);
-        if (roleList.includes("admin")) navigate("/admin");
-        else if (roleList.includes("entrepreneur")) navigate("/entrepreneur");
-        else navigate("/admin");
+        if (roleList.includes("admin")) navigate("/admin", { replace: true });
+        else if (roleList.includes("entrepreneur")) navigate("/entrepreneur", { replace: true });
+        else navigate("/admin", { replace: true });
       }
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Connexion échouée", variant: "destructive" });
