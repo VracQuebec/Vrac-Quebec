@@ -317,60 +317,11 @@ const Questionnaire = () => {
           <Check className="w-10 h-10 text-success" />
         </div>
         <h2 className="text-3xl font-display font-bold text-foreground mb-3">✅ Demande envoyée !</h2>
-        <p className="text-muted-foreground mb-4">
-          On analyse votre besoin et on vous contacte en moins de 30 minutes.
+        <p className="text-muted-foreground mb-8 leading-relaxed">
+          Nous avons bien reçu votre demande. Une confirmation a été envoyée à
+          votre adresse courriel. Un membre de notre équipe vous contactera
+          sous peu.
         </p>
-        <div className="text-sm text-muted-foreground mb-8 space-y-1">
-          <p>📍 Livraison rapide dans la région de Québec</p>
-          <p>🚛 Plusieurs camions disponibles aujourd'hui</p>
-        </div>
-
-        <div className="bg-card rounded-2xl p-6 mb-6" style={{ boxShadow: "var(--shadow-lg)" }}>
-          <p className="text-base font-display font-semibold text-foreground mb-1">
-            Besoin d'une réponse immédiate ?
-          </p>
-          <p className="text-sm text-muted-foreground mb-4">Passez en priorité 👇</p>
-          <div className="grid grid-cols-1 gap-3">
-            <a
-              href="tel:5819947717"
-              className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 transition-opacity"
-            >
-              📞 Appeler maintenant
-            </a>
-            <a
-              href="sms:15819947717?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
-              className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 border-foreground text-foreground font-display font-semibold text-sm hover:bg-foreground/5 transition-colors"
-            >
-              💬 Envoyer un texto
-            </a>
-            <a
-              href="https://wa.me/15819947717?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-[#25D366] text-white font-display font-semibold text-sm hover:opacity-90 transition-opacity"
-            >
-              🟢 WhatsApp
-            </a>
-            <a
-              href="https://www.facebook.com/share/1B2yGEaTL1/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-[#0084FF] text-white font-display font-semibold text-sm hover:opacity-90 transition-opacity"
-            >
-              <Facebook className="w-4 h-4" /> Facebook / Messenger
-            </a>
-          </div>
-        </div>
-
-        <div className="bg-primary/10 border border-primary/20 rounded-2xl p-5 mb-6 text-left">
-          <p className="text-sm font-display font-semibold text-foreground mb-2">💡 Astuce :</p>
-          <p className="text-sm text-muted-foreground mb-2">
-            On peut souvent livrer aujourd'hui ou demain selon votre secteur.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Mentionnez si votre besoin est urgent pour passer en priorité.
-          </p>
-        </div>
 
         <button
           onClick={() => { setSubmitted(false); setStep(0); setRemblaiMode(false); setData(initialFormData); }}
