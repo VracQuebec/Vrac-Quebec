@@ -144,10 +144,12 @@ const Questionnaire = () => {
 
     setLoading(true);
     try {
+      const submissionId = crypto.randomUUID();
       // Geocode address
       const coords = await geocodeAddress(data.address, data.postalCode);
 
       const submissionPayload = {
+        id: submissionId,
         materials: data.materials,
         other_material: data.otherMaterial,
         property_type: data.propertyType || (isRemblai ? "Remplissage / remblai" : ""),
@@ -206,11 +208,9 @@ const Questionnaire = () => {
         delivery_timeframe: data.deliveryTimeframe || null,
       };
 
-      const { data: inserted, error } = await supabase
+      const { error } = await supabase
         .from("submissions")
-        .insert(submissionPayload)
-        .select()
-        .single();
+        .insert(submissionPayload);
 
       if (error) throw error;
 
@@ -220,8 +220,7 @@ const Questionnaire = () => {
           body: {
             submission: {
               ...submissionPayload,
-              ...inserted,
-              materials: (inserted?.materials ?? data.materials)?.map(
+              materials: data.materials.map(
                 (id: string) => MATERIAL_TYPES.find((m) => m.id === id)?.label || id
               ),
             },
@@ -243,7 +242,7 @@ const Questionnaire = () => {
           body: {
             templateName: "new-lead-notification",
             recipientEmail: "TransportJSC@hotmail.com",
-            idempotencyKey: `new-lead-${inserted?.id}`,
+            idempotencyKey: `new-lead-${submissionId}`,
             templateData: {
               name: data.name,
               phone: data.phone,
@@ -264,10 +263,10 @@ const Questionnaire = () => {
                 : (data.machineryAvailable ? `Oui — ${data.machineryDescription || ""}` : "Non"),
               photosCount: (data.photos || []).length,
               requestType: isRemblai ? "Remblai / dépôt" : "Livraison",
-              dompeNumber: inserted?.dompe_number,
-              submissionNumber: inserted?.submission_number,
+              dompeNumber: "",
+              submissionNumber: "",
               submittedAt: new Date().toLocaleString("fr-CA", { timeZone: "America/Toronto" }),
-              crmLink: `https://vracquebec.ca/admin?lead=${inserted?.id}`,
+              crmLink: `https://vracquebec.ca/admin?lead=${submissionId}`,
             },
           },
         });
@@ -349,7 +348,7 @@ const Questionnaire = () => {
         </div>
 
         <button
-          onClick={() => { setSubmitted(false); setStep(0); setData(initialFormData); }}
+          onClick={() => { setSubmitted(false); setStep(0); setRemblaiMode(false); setData(initialFormData); }}
           className="text-sm text-muted-foreground hover:text-foreground underline font-display"
         >
           Nouvelle demande
