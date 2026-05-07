@@ -17,6 +17,7 @@ interface NewLeadProps {
   dompeNumber?: string | number
   submissionNumber?: string | number
   submittedAt?: string
+  deliveryDeadline?: string
   crmLink?: string
 }
 
@@ -29,7 +30,7 @@ const Row = ({ label, value }: { label: string; value?: string | number }) => (
 
 const NewLeadEmail = ({
   name, phone, email, address, postalCode, materials, quantity,
-  budget, notes, dompeNumber, submissionNumber, submittedAt, crmLink,
+  budget, notes, dompeNumber, submissionNumber, submittedAt, deliveryDeadline, crmLink,
 }: NewLeadProps) => (
   <Html lang="fr" dir="ltr">
     <Head />
@@ -52,6 +53,7 @@ const NewLeadEmail = ({
             <Row label="Matériel demandé" value={materials} />
             <Row label="Nombre de voyages" value={quantity} />
             <Row label="Budget" value={budget} />
+            <Row label="Date limite de réception" value={deliveryDeadline} />
             <Row label="Notes" value={notes} />
             <Row label="Numéro DOMPE" value={dompeNumber} />
             <Row label="Date de soumission" value={submittedAt} />
