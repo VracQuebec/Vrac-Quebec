@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import StepMaterials from "./StepMaterials";
 import StepDetails from "./StepDetails";
 import StepContact from "./StepContact";
+import RemblaiForm from "./RemblaiForm";
 import { initialFormData, MATERIAL_TYPES, detectRequestType, isRemblaiRequest, type QuestionnaireData } from "@/lib/questionnaire-data";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +19,7 @@ const Questionnaire = () => {
   const [data, setData] = useState<QuestionnaireData>(initialFormData);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const isRemblai = isRemblaiRequest(data.materials, data.propertyType);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -69,13 +71,24 @@ const Questionnaire = () => {
       const submissionPayload = {
         materials: data.materials,
         other_material: data.otherMaterial,
-        property_type: data.propertyType,
+        property_type: data.propertyType || (isRemblai ? "Remplissage / remblai" : ""),
         quantity: data.quantity,
         tonnage: data.tonnage,
         budget_unit: data.budgetUnit,
         budget_max: data.budgetMax,
-        machinery_available: data.machineryAvailable ?? false,
-        machinery_description: data.machineryDescription,
+        machinery_available:
+          data.machineryAvailable ??
+          (isRemblai
+            ? data.machineryList.length > 0 && !(data.machineryList.length === 1 && data.machineryList[0] === "Aucune")
+            : false),
+        machinery_description: isRemblai
+          ? [
+              data.machineryList.join(", "),
+              data.machineryDescription ? `Autre: ${data.machineryDescription}` : "",
+            ]
+              .filter(Boolean)
+              .join(" — ")
+          : data.machineryDescription,
         accessibility: data.accessibility,
         address: data.address,
         postal_code: data.postalCode,
@@ -85,7 +98,7 @@ const Questionnaire = () => {
         description: data.description,
         latitude: coords?.lat ?? null,
         longitude: coords?.lng ?? null,
-        request_type: detectRequestType(data.materials, data.propertyType),
+        request_type: isRemblai ? "remblai" : detectRequestType(data.materials, data.propertyType),
         deliver_or_remove: data.deliverOrRemove || null,
         contamination: data.contamination || null,
         photos: data.photos || [],
@@ -93,6 +106,7 @@ const Questionnaire = () => {
         width_ft: data.widthFt || null,
         depth_in: data.depthIn || null,
         delivery_deadline: data.deliveryDeadline || null,
+        delivery_timeframe: data.deliveryTimeframe || null,
       };
 
       const { data: inserted, error } = await supabase
@@ -146,6 +160,13 @@ const Questionnaire = () => {
               deliveryDeadline: data.deliveryDeadline
                 ? new Date(data.deliveryDeadline + "T00:00:00").toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric" })
                 : "",
+              deliveryTimeframe: data.deliveryTimeframe || "",
+              accessibility: (data.accessibility || []).join(", "),
+              machinery: isRemblai
+                ? data.machineryList.join(", ") + (data.machineryDescription ? ` (Autre: ${data.machineryDescription})` : "")
+                : (data.machineryAvailable ? `Oui — ${data.machineryDescription || ""}` : "Non"),
+              photosCount: (data.photos || []).length,
+              requestType: isRemblai ? "Remblai / dépôt" : "Livraison",
               dompeNumber: inserted?.dompe_number,
               submissionNumber: inserted?.submission_number,
               submittedAt: new Date().toLocaleString("fr-CA", { timeZone: "America/Toronto" }),
@@ -241,6 +262,41 @@ const Questionnaire = () => {
 
   return (
     <div className="max-w-xl mx-auto px-4">
+      {/* Simplified Remblai flow */}
+      {step === 0 && (
+        <div className="bg-card rounded-2xl p-6 md:p-8" style={{ boxShadow: "var(--shadow-lg)" }}>
+          <StepMaterials
+            selected={data.materials}
+            otherMaterial={data.otherMaterial}
+            onSelect={(materials) => update({ materials })}
+            onOtherChange={(otherMaterial) => update({ otherMaterial })}
+          />
+          <div className="flex justify-end mt-8 pt-6 border-t border-border">
+            <button
+              onClick={() => canNext() && setStep(1)}
+              disabled={!canNext()}
+              className="flex items-center gap-1.5 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+            >
+              Suivant <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step > 0 && isRemblai && (
+        <div>
+          <button
+            onClick={() => setStep(0)}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 font-display"
+          >
+            <ChevronLeft className="w-4 h-4" /> Changer de matériel
+          </button>
+          <RemblaiForm data={data} onChange={update} onSubmit={handleSubmit} loading={loading} />
+        </div>
+      )}
+
+      {step > 0 && !isRemblai && (
+        <>
       {/* Progress */}
       <div className="flex items-center justify-center gap-2 mb-10">
         {STEPS.map((s, i) => (
@@ -271,14 +327,6 @@ const Questionnaire = () => {
 
       {/* Step content */}
       <div className="bg-card rounded-2xl p-6 md:p-8" style={{ boxShadow: "var(--shadow-lg)" }}>
-        {step === 0 && (
-          <StepMaterials
-            selected={data.materials}
-            otherMaterial={data.otherMaterial}
-            onSelect={(materials) => update({ materials })}
-            onOtherChange={(otherMaterial) => update({ otherMaterial })}
-          />
-        )}
         {step === 1 && <StepDetails data={data} onChange={update} />}
         {step === 2 && <StepContact data={data} onChange={update} />}
 
@@ -317,6 +365,8 @@ const Questionnaire = () => {
           )}
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };
