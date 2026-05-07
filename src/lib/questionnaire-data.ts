@@ -26,14 +26,23 @@ export const PROJECT_TYPES = [
   { value: "Fondation / base (garage, cabanon, patio)", emoji: "🧱", image: projectFondation },
   { value: "Aménagement / terrain (nivelage, pelouse, jardin)", emoji: "🌿", image: projectAmenagement },
   { value: "Remplissage / remblai", emoji: "🚧", image: projectRemplissage },
-  { value: "Je ne sais pas", emoji: "❓", image: null },
+  { value: "Autre", emoji: "✏️", image: null },
 ] as const;
 
 export const PROJECT_SIZES = [
   "Petit (1 à 2 voyages)",
   "Moyen (3 à 6 voyages)",
   "Gros (6 voyages et +)",
-  "Je ne sais pas",
+  "Autre",
+] as const;
+
+export const DELIVERY_FLEXIBILITY_OPTIONS = [
+  "Date exacte",
+  "Flexible ± 1 jour",
+  "Flexible ± 2 jours",
+  "Flexible ± 3 jours",
+  "Flexible ± 5 jours",
+  "Flexible ± 1 semaine",
 ] as const;
 
 export const TRUCK_ACCESS_OPTIONS = [
@@ -47,7 +56,9 @@ export interface QuestionnaireData {
   materials: string[];
   otherMaterial: string;
   propertyType: string;
+  projectDescription: string;
   quantity: string;
+  quantityOther: string;
   tonnage: string;
   budgetUnit: string;
   budgetMax: string;
@@ -69,13 +80,17 @@ export interface QuestionnaireData {
   deliveryDeadline: string;
   deliveryTimeframe: string;
   machineryList: string[];
+  deliveryFlexibility: string;
+  materialQuantities: Record<string, string>;
 }
 
 export const initialFormData: QuestionnaireData = {
   materials: [],
   otherMaterial: "",
   propertyType: "",
+  projectDescription: "",
   quantity: "",
+  quantityOther: "",
   tonnage: "",
   budgetUnit: "",
   budgetMax: "",
@@ -97,6 +112,8 @@ export const initialFormData: QuestionnaireData = {
   deliveryDeadline: "",
   deliveryTimeframe: "",
   machineryList: [],
+  deliveryFlexibility: "",
+  materialQuantities: {},
 };
 
 // ---- Simplified Remblai form (Microsoft Forms style) ----

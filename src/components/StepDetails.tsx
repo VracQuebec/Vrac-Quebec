@@ -4,6 +4,8 @@ import {
   TRUCK_ACCESS_OPTIONS,
   CONTAMINATION_OPTIONS,
   DELIVER_OR_REMOVE_OPTIONS,
+  DELIVERY_FLEXIBILITY_OPTIONS,
+  MATERIAL_TYPES,
   isRemblaiRequest,
   type QuestionnaireData,
 } from "@/lib/questionnaire-data";
@@ -19,6 +21,12 @@ interface Props {
 const StepDetails = ({ data, onChange }: Props) => {
   const [uploading, setUploading] = useState(false);
   const isRemblai = isRemblaiRequest(data.materials, data.propertyType);
+  const selectedMaterialLabels = data.materials
+    .filter((id) => id !== "autre" && id !== "ne-sais-pas")
+    .map((id) => ({
+      id,
+      label: MATERIAL_TYPES.find((m) => m.id === id)?.label || id,
+    }));
 
   const handlePhotoUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -94,6 +102,14 @@ const StepDetails = ({ data, onChange }: Props) => {
             </button>
           ))}
         </div>
+        {data.propertyType === "Autre" && (
+          <input
+            value={data.projectDescription}
+            onChange={(e) => onChange({ projectDescription: e.target.value })}
+            className={`${inputClass} mt-3`}
+            placeholder="Décrivez votre projet"
+          />
+        )}
       </div>
 
       <div>
@@ -110,37 +126,47 @@ const StepDetails = ({ data, onChange }: Props) => {
             </button>
           ))}
         </div>
-      </div>
-
-      <div>
-        <label className={labelClass}>
-          Quel prix êtes-vous prêt à payer par voyage ?{" "}
-          <span className="text-destructive">*</span>
-        </label>
-        <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-body pointer-events-none">$</span>
+        {data.quantity === "Autre" && (
           <input
-            type="number"
-            inputMode="numeric"
-            min="0"
-            step="1"
-            required
-            value={data.budgetMax}
-            onChange={(e) =>
-              onChange({ budgetMax: e.target.value, budgetUnit: "$/voyage" })
-            }
-            className={`${inputClass} pl-8`}
-            placeholder="Ex: 125"
+            value={data.quantityOther}
+            onChange={(e) => onChange({ quantityOther: e.target.value })}
+            className={`${inputClass} mt-3`}
+            placeholder="Nombre de voyages ou quantité estimée"
           />
-        </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          Indiquez un montant en dollars CAD par voyage de camion.
-        </p>
+        )}
       </div>
+
+      {selectedMaterialLabels.length > 0 && (
+        <div>
+          <label className={labelClass}>Quantité désirée pour chaque matériau</label>
+          <div className="space-y-2">
+            {selectedMaterialLabels.map((m) => (
+              <div key={m.id}>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1 font-display">
+                  {m.label}
+                </label>
+                <input
+                  value={data.materialQuantities?.[m.id] || ""}
+                  onChange={(e) =>
+                    onChange({
+                      materialQuantities: {
+                        ...(data.materialQuantities || {}),
+                        [m.id]: e.target.value,
+                      },
+                    })
+                  }
+                  className={inputClass}
+                  placeholder="Ex: 2 voyages, 10 tonnes, je ne sais pas..."
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div>
         <label className={labelClass}>
-          Jusqu'à quelle date pouvez-vous recevoir le matériel ?{" "}
+          Pour quelle date aimeriez-vous recevoir le matériel ?{" "}
           <span className="text-destructive">*</span>
         </label>
         <input
@@ -151,9 +177,18 @@ const StepDetails = ({ data, onChange }: Props) => {
           onChange={(e) => onChange({ deliveryDeadline: e.target.value })}
           className={inputClass}
         />
-        <p className="text-xs text-muted-foreground mt-2">
-          Date limite à laquelle vous devez avoir reçu le matériel sur le chantier.
-        </p>
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          {DELIVERY_FLEXIBILITY_OPTIONS.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => onChange({ deliveryFlexibility: opt })}
+              className={optionBtn(data.deliveryFlexibility === opt)}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div>
