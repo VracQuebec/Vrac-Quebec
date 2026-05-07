@@ -37,6 +37,7 @@ const HEADERS = [
   "Statut",
   "Priorité",
   "Date limite réception",
+  "Délai souhaité",
 ];
 
 async function ensureSheetAndHeader(lovableKey: string, sheetsKey: string) {
