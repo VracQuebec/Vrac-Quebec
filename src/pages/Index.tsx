@@ -46,7 +46,8 @@ const Index = () => {
       </header>
 
       {/* Questionnaire */}
-      <main className="-mt-16 md:mt-0 relative z-10 pb-12 md:pb-20 md:pt-12">
+      {/* Extra bottom padding on mobile so the floating contact bar never overlaps interactive content (tiles / Suivant button). */}
+      <main className="-mt-16 md:mt-0 relative z-10 pb-32 md:pb-20 md:pt-12">
         <div className="container mx-auto px-6">
           {/* Mobile-only intro (desktop has hero text above) */}
           <div className="md:hidden text-center mb-10">
@@ -71,17 +72,20 @@ const Index = () => {
         </div>
       </main>
 
-      {/* Floating mobile contact bar */}
-      <div className="md:hidden fixed bottom-2 left-2 right-2 z-50 grid grid-cols-3 gap-1.5">
+      {/* Floating mobile contact bar.
+          pointer-events-none on the wrapper + pointer-events-auto on each link
+          ensures only the buttons themselves capture taps — the surrounding gaps
+          let the user interact with the questionnaire underneath. */}
+      <div className="md:hidden fixed bottom-2 left-2 right-2 z-50 grid grid-cols-3 gap-1.5 pointer-events-none">
         <a
           href="tel:5819947717"
-          className="flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-primary text-primary-foreground font-display font-semibold text-xs shadow-lg"
+          className="pointer-events-auto flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-primary text-primary-foreground font-display font-semibold text-xs shadow-lg"
         >
           📞 Appeler
         </a>
         <a
           href="sms:15819947717?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
-          className="flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-foreground text-background font-display font-semibold text-xs shadow-lg"
+          className="pointer-events-auto flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-foreground text-background font-display font-semibold text-xs shadow-lg"
         >
           💬 Texto
         </a>
@@ -89,7 +93,7 @@ const Index = () => {
           href="https://wa.me/15819947717?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-[#25D366] text-white font-display font-semibold text-xs shadow-lg"
+          className="pointer-events-auto flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-[#25D366] text-white font-display font-semibold text-xs shadow-lg"
         >
           🟢 WhatsApp
         </a>
