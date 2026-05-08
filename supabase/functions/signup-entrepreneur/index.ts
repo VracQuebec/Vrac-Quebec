@@ -45,11 +45,14 @@ Deno.serve(async (req) => {
       return json(403, { error: "Inscription expirée. Recommencez." });
     }
 
-    // Insert unapproved entrepreneur role (idempotent)
-    const { error: roleErr } = await admin
-      .from("user_roles")
-      .upsert({ user_id: userId, role: "entrepreneur", approved: false }, { onConflict: "user_id,role" });
-    if (roleErr) return json(500, { error: roleErr.message });
+    // Insert unapproved entrepreneur role (idempotent — ignore duplicates)
+    const { data: existing } = await admin
+      .from("user_roles").select("id").eq("user_id", userId).eq("role", "entrepreneur").maybeSingle();
+    if (!existing) {
+      const { error: roleErr } = await admin
+        .from("user_roles").insert({ user_id: userId, role: "entrepreneur", approved: false });
+      if (roleErr) return json(500, { error: roleErr.message });
+    }
 
     // Optional entrepreneur profile (best-effort)
     if (name || company || phone) {
