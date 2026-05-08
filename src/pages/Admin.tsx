@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { MATERIAL_TYPES, LEAD_STATUSES, REQUEST_TYPES, LEAD_PRIORITIES } from "@/lib/questionnaire-data";
+import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES } from "@/lib/questionnaire-data";
+import { useLeadStatuses, findStatus, type LeadStatus } from "@/hooks/useLeadStatuses";
+import StatusManagerModal from "@/components/StatusManagerModal";
 import {
   Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List,
-  Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save,
+  Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import AdminMap from "@/components/AdminMap";
