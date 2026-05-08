@@ -29,16 +29,7 @@ export const useLeadStatuses = () => {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchStatuses();
-    const channel = supabase
-      .channel("lead_statuses_changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "lead_statuses" }, () => {
-        fetchStatuses();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [fetchStatuses]);
+  useEffect(() => { fetchStatuses(); }, [fetchStatuses]);
 
   return { statuses, loading, refresh: fetchStatuses };
 };
