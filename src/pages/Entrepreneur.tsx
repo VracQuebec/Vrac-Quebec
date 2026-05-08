@@ -109,7 +109,6 @@ const Entrepreneur = () => {
     const geo = leads.filter((l) => l.latitude && l.longitude);
     const map = L.map(containerRef.current, {
       scrollWheelZoom: false,
-      tap: true,
     }).setView([46.8, -71.2], 8);
     mapRef.current = map;
     markersRef.current = {};
