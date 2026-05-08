@@ -226,6 +226,42 @@ export type Database = {
           },
         ]
       }
+      lead_statuses: {
+        Row: {
+          color: string
+          created_at: string
+          enabled: boolean
+          id: string
+          label: string
+          sort_order: number
+          text_color: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          label: string
+          sort_order?: number
+          text_color?: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          label?: string
+          sort_order?: number
+          text_color?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           charged_to_entrepreneur: number | null

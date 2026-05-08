@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { MATERIAL_TYPES, LEAD_STATUSES, REQUEST_TYPES, LEAD_PRIORITIES } from "@/lib/questionnaire-data";
+import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES } from "@/lib/questionnaire-data";
+import { useLeadStatuses, findStatus, type LeadStatus } from "@/hooks/useLeadStatuses";
+import StatusManagerModal from "@/components/StatusManagerModal";
 import {
   Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List,
-  Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save,
+  Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import AdminMap from "@/components/AdminMap";
@@ -83,6 +85,8 @@ const Admin = () => {
   const [showSheetImport, setShowSheetImport] = useState(false);
   const [showExcelImport, setShowExcelImport] = useState(false);
   const [geocoding, setGeocoding] = useState<{ done: number; total: number } | null>(null);
+  const [showStatusManager, setShowStatusManager] = useState(false);
+  const { statuses: leadStatuses } = useLeadStatuses();
   const navigate = useNavigate();
   const { isAdmin, loading: roleLoading } = useUserRoles();
 
@@ -430,6 +434,9 @@ const Admin = () => {
               <DatabaseIcon className="w-4 h-4" /> Données importées
             </Link>
             <button onClick={fetchSubmissions} className="text-sm text-primary hover:underline font-body">Actualiser</button>
+            <button onClick={() => setShowStatusManager(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
+              <Settings className="w-4 h-4" /> Statuts
+            </button>
           </div>
         </div>
 
@@ -456,7 +463,7 @@ const Admin = () => {
           </div>
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
             <option value="all">Tous statuts</option>
-            {LEAD_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            {leadStatuses.map((s) => <option key={s.id} value={s.value}>{s.label}</option>)}
           </select>
           <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
             <option value="all">Tous types</option>
@@ -504,6 +511,7 @@ const Admin = () => {
                 onDelete={() => handleDelete(sub.id)}
                 onArchive={() => archive(sub.id)}
                 userEmail={user.email || ""}
+                leadStatuses={leadStatuses}
               />
             ))}
           </div>
@@ -514,13 +522,21 @@ const Admin = () => {
       {showImport && <CsvImportModal onClose={() => setShowImport(false)} onImported={fetchSubmissions} />}
       {showSheetImport && <GoogleSheetImportModal onClose={() => setShowSheetImport(false)} onImported={fetchSubmissions} />}
       {showExcelImport && <ExcelImportModal onClose={() => setShowExcelImport(false)} onImported={fetchSubmissions} />}
+      {showStatusManager && <StatusManagerModal onClose={() => setShowStatusManager(false)} />}
     </div>
   );
 };
 
-const statusBadge = (status: string) => {
-  const s = LEAD_STATUSES.find((x) => x.value === status) || LEAD_STATUSES[0];
-  return <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-display font-bold uppercase ${s.color}`}>{s.label}</span>;
+const statusBadge = (status: string, statuses: LeadStatus[]) => {
+  const s = findStatus(statuses, status);
+  return (
+    <span
+      className="inline-block px-2 py-0.5 rounded text-[10px] font-display font-bold uppercase"
+      style={{ backgroundColor: s.color, color: s.text_color }}
+    >
+      {s.label}
+    </span>
+  );
 };
 
 const typeBadge = (type: string) => {
@@ -537,9 +553,10 @@ interface CardProps {
   onDelete: () => void;
   onArchive: () => void;
   userEmail: string;
+  leadStatuses: LeadStatus[];
 }
 
-const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete, onArchive, userEmail }: CardProps) => {
+const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete, onArchive, userEmail, leadStatuses }: CardProps) => {
   const [notes, setNotes] = useState<LeadNote[]>([]);
   const [newNote, setNewNote] = useState("");
   const [savingNote, setSavingNote] = useState(false);
@@ -590,7 +607,7 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               <span className="text-xs font-display font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">{sub.dompe_number}</span>
             ) : null}
             <span className="font-display font-bold text-foreground">{sub.name}</span>
-            {statusBadge(sub.status)}
+            {statusBadge(sub.status, leadStatuses)}
             {typeBadge(sub.request_type)}
           </div>
           <p className="text-xs text-muted-foreground font-body truncate">
@@ -619,13 +636,21 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
           {/* Status selector */}
           <div>
             <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Statut du lead</label>
-            <div className="flex flex-wrap gap-1.5">
-              {LEAD_STATUSES.map((s) => (
-                <button key={s.value} onClick={() => onStatusChange(s.value)}
-                  className={`px-2.5 py-1 rounded text-[11px] font-display font-bold uppercase border transition-all ${sub.status === s.value ? s.color + " border-transparent" : "bg-card text-muted-foreground border-border hover:border-foreground/30"}`}>
-                  {s.label}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {leadStatuses.filter((s) => s.enabled || s.value === sub.status).map((s) => {
+                const active = sub.status === s.value;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => onStatusChange(s.value)}
+                    style={active ? { backgroundColor: s.color, color: s.text_color, borderColor: "transparent" } : undefined}
+                    className={`px-3 py-2 min-h-[36px] rounded-md text-[11px] font-display font-bold uppercase border transition-all touch-manipulation ${active ? "" : "bg-card text-muted-foreground border-border hover:border-foreground/30 active:bg-secondary"}`}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
