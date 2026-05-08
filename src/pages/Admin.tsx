@@ -568,7 +568,8 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
   useEffect(() => {
     if (!expanded) return;
     supabase.rpc("list_users_with_roles").then(({ data }) => {
-      const list = ((data as any) || []).filter((u: any) => (u.roles || []).includes("entrepreneur"))
+      const list = ((data as any) || [])
+        .filter((u: any) => (u.roles || []).includes("entrepreneur") && u.approved)
         .map((u: any) => ({ user_id: u.user_id, email: u.email }));
       setEntrepreneurs(list);
     });
@@ -799,7 +800,7 @@ const D = ({ label, v }: { label: string; v: string }) => (
 );
 
 // --- Entrepreneur management modal ---
-interface UserRow { user_id: string; email: string; roles: string[] }
+interface UserRow { user_id: string; email: string; roles: string[]; approved: boolean; created_at: string }
 
 const UsersModal = ({ onClose }: { onClose: () => void }) => {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -822,9 +823,22 @@ const UsersModal = ({ onClose }: { onClose: () => void }) => {
     if (hasIt) {
       await supabase.from("user_roles").delete().eq("user_id", uid).eq("role", "entrepreneur");
     } else {
-      await supabase.from("user_roles").insert({ user_id: uid, role: "entrepreneur" });
+      await supabase.from("user_roles").insert({ user_id: uid, role: "entrepreneur", approved: true });
     }
     load();
+  };
+
+  const toggleApproval = async (uid: string, currentlyApproved: boolean) => {
+    const { error } = await supabase
+      .from("user_roles")
+      .update({ approved: !currentlyApproved })
+      .eq("user_id", uid)
+      .eq("role", "entrepreneur");
+    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    else {
+      toast({ title: currentlyApproved ? "Accès suspendu" : "Compte approuvé" });
+      load();
+    }
   };
 
   const createEntrepreneur = async () => {
@@ -875,14 +889,28 @@ const UsersModal = ({ onClose }: { onClose: () => void }) => {
                     <div key={u.user_id} className="flex items-center justify-between gap-2 p-3 bg-card rounded-lg border border-border">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-body truncate">{u.email}</p>
-                        <p className="text-[10px] text-muted-foreground">{u.roles.join(", ") || "aucun rôle"}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {u.roles.join(", ") || "aucun rôle"}
+                          {hasEnt && (u.approved
+                            ? <span className="ml-2 text-emerald-600 font-semibold">approuvé</span>
+                            : <span className="ml-2 text-amber-600 font-semibold">en attente</span>
+                          )}
+                        </p>
                       </div>
-                      {!isAdm && (
-                        <button onClick={() => toggleRole(u.user_id, hasEnt)}
-                          className={`px-3 py-1.5 rounded text-xs font-display font-semibold ${hasEnt ? "bg-rose-600 text-white" : "bg-emerald-600 text-white"}`}>
-                          {hasEnt ? "Retirer" : "Activer entrepreneur"}
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        {hasEnt && !isAdm && (
+                          <button onClick={() => toggleApproval(u.user_id, u.approved)}
+                            className={`px-3 py-1.5 rounded text-xs font-display font-semibold ${u.approved ? "bg-amber-600 text-white" : "bg-emerald-600 text-white"}`}>
+                            {u.approved ? "Suspendre" : "Approuver"}
+                          </button>
+                        )}
+                        {!isAdm && (
+                          <button onClick={() => toggleRole(u.user_id, hasEnt)}
+                            className={`px-3 py-1.5 rounded text-xs font-display font-semibold ${hasEnt ? "bg-rose-600 text-white" : "bg-slate-600 text-white"}`}>
+                            {hasEnt ? "Retirer" : "Activer"}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

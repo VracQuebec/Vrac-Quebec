@@ -474,16 +474,19 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          approved: boolean
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          approved?: boolean
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          approved?: boolean
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
@@ -506,17 +509,20 @@ export type Database = {
       get_entrepreneur_leads: {
         Args: never
         Returns: {
+          accessibility: string[]
           contamination: string
           created_at: string
           deliver_or_remove: string
-          description: string
           id: string
           is_assigned: boolean
           latitude: number
           longitude: number
+          machinery_available: boolean
+          machinery_description: string
           materials: string[]
           other_material: string
           postal_prefix: string
+          priority: string
           property_type: string
           quantity: string
           request_type: string
@@ -532,9 +538,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_approved_entrepreneur: { Args: { _uid: string }; Returns: boolean }
       list_users_with_roles: {
         Args: never
         Returns: {
+          approved: boolean
+          created_at: string
           email: string
           roles: Database["public"]["Enums"]["app_role"][]
           user_id: string

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Truck, Loader2 } from "lucide-react";
 
 const Login = () => {
@@ -95,6 +96,14 @@ const Login = () => {
             />
             Rester connecté sur cet appareil
           </label>
+          <div className="flex items-center justify-between text-xs font-body pt-1">
+            <Link to="/forgot-password" className="text-muted-foreground hover:text-primary underline">
+              Mot de passe oublié ?
+            </Link>
+            <Link to="/entrepreneur/inscription" className="text-primary hover:underline font-semibold">
+              Créer un compte entrepreneur
+            </Link>
+          </div>
         </form>
       </div>
     </div>
