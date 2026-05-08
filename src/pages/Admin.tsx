@@ -15,6 +15,7 @@ import GoogleSheetImportModal from "@/components/GoogleSheetImportModal";
 import ExcelImportModal from "@/components/ExcelImportModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
+import { Search } from "lucide-react";
 
 interface Submission {
   id: string;
