@@ -9,6 +9,9 @@ import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import AdminData from "./pages/AdminData";
 import Entrepreneur from "./pages/Entrepreneur";
+import EntrepreneurSignup from "./pages/EntrepreneurSignup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,9 +34,12 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/donnees" element={<AdminData />} />
           <Route path="/entrepreneur" element={<Entrepreneur />} />
+          <Route path="/entrepreneur/inscription" element={<EntrepreneurSignup />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
