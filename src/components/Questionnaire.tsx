@@ -3,7 +3,7 @@ import StepMaterials from "./StepMaterials";
 import StepDetails from "./StepDetails";
 import StepContact from "./StepContact";
 import RemblaiForm from "./RemblaiForm";
-import { initialFormData, MATERIAL_TYPES, detectRequestType, isRemblaiRequest, type QuestionnaireData } from "@/lib/questionnaire-data";
+import { initialFormData, MATERIAL_TYPES, detectRequestType, getVisibleToEntrepreneurForRequestType, isRemblaiRequest, type QuestionnaireData } from "@/lib/questionnaire-data";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, ChevronRight, Send, Check, Loader2, Facebook } from "lucide-react";
@@ -157,6 +157,7 @@ const Questionnaire = () => {
       // Geocode address
       const coords = await geocodeAddress(data.address, data.postalCode);
 
+      const requestType = isRemblai ? "remblai" : detectRequestType(data.materials, data.propertyType);
       const submissionPayload = {
         id: submissionId,
         materials: data.materials,
@@ -206,8 +207,8 @@ const Questionnaire = () => {
           .join("\n"),
         latitude: coords?.lat ?? null,
         longitude: coords?.lng ?? null,
-        request_type: isRemblai ? "remblai" : detectRequestType(data.materials, data.propertyType),
-        visible_to_entrepreneur: (isRemblai ? "remblai" : detectRequestType(data.materials, data.propertyType)) === "vrac" ? false : true,
+        request_type: requestType,
+        visible_to_entrepreneur: getVisibleToEntrepreneurForRequestType(requestType),
         deliver_or_remove: data.deliverOrRemove || null,
         contamination: data.contamination || null,
         photos: data.photos || [],
