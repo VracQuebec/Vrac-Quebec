@@ -166,7 +166,7 @@ export const isRemblaiRequest = (materials: string[], projectType?: string) =>
   (!!projectType && REMBLAI_PROJECT_TYPES.includes(projectType));
 
 export const detectRequestType = (materials: string[], projectType?: string): string =>
-  isRemblaiRequest(materials, projectType) ? "remblai" : "livraison";
+  isRemblaiRequest(materials, projectType) ? "remblai" : "vrac";
 
 export const LEAD_STATUSES = [
   { value: "nouveau", label: "Nouveau", color: "bg-orange-500 text-white" },
@@ -186,7 +186,8 @@ export const LEAD_PRIORITIES = [
 ] as const;
 
 export const REQUEST_TYPES = [
-  { value: "livraison", label: "Livraison", color: "bg-primary/15 text-primary border-primary/30" },
+  { value: "vrac", label: "Vrac", color: "bg-primary/15 text-primary border-primary/30" },
+  { value: "livraison", label: "Livraison", color: "bg-sky-500/15 text-sky-700 border-sky-500/30" },
   { value: "remblai", label: "Remblai / Dépôt", color: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
   { value: "depot", label: "Matériel à sortir", color: "bg-purple-500/15 text-purple-700 border-purple-500/30" },
   { value: "entrepreneur", label: "Entrepreneur", color: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30" },
