@@ -20,7 +20,7 @@ const Login = () => {
       // Keep the admin session persistent across refreshes, browser restarts,
       // tablet/mobile tab suspensions, and Lovable preview updates.
       try {
-        localStorage.setItem("vq_stay_logged_in", stayLoggedIn ? "1" : "1");
+        localStorage.setItem("vq_stay_logged_in", "1");
       } catch {
         // ignore storage errors
       }
