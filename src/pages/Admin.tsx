@@ -831,16 +831,13 @@ const UsersModal = ({ onClose }: { onClose: () => void }) => {
     if (!newEmail || !newPass) return;
     setCreating(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: newEmail, password: newPass,
-        options: { emailRedirectTo: `${window.location.origin}/entrepreneur` },
+      const { data, error } = await supabase.functions.invoke("create-entrepreneur", {
+        body: { email: newEmail, password: newPass },
       });
       if (error) throw error;
-      if (data.user) {
-        await supabase.from("user_roles").insert({ user_id: data.user.id, role: "entrepreneur" });
-        toast({ title: "Entrepreneur créé", description: newEmail });
-        setNewEmail(""); setNewPass(""); load();
-      }
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast({ title: "Entrepreneur créé ✓", description: `${newEmail} peut maintenant se connecter sur /entrepreneur` });
+      setNewEmail(""); setNewPass(""); await load();
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     } finally { setCreating(false); }
