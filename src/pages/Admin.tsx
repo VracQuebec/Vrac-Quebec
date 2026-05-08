@@ -15,6 +15,7 @@ import GoogleSheetImportModal from "@/components/GoogleSheetImportModal";
 import ExcelImportModal from "@/components/ExcelImportModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
+import { Search } from "lucide-react";
 
 interface Submission {
   id: string;
@@ -76,6 +77,7 @@ const Admin = () => {
   const [view, setView] = useState<"list" | "map">("list");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [showUsers, setShowUsers] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showSheetImport, setShowSheetImport] = useState(false);
@@ -317,10 +319,22 @@ const Admin = () => {
   };
 
   const filtered = useMemo(() => {
-    const list = submissions.filter((s) =>
-      (filterStatus === "all" || s.status === filterStatus) &&
-      (filterType === "all" || s.request_type === filterType)
-    );
+    const norm = (v: any) => (v ?? "").toString().toLowerCase();
+    const normPhone = (v: any) => (v ?? "").toString().replace(/\D/g, "");
+    const q = searchQuery.trim().toLowerCase();
+    const qDigits = q.replace(/\D/g, "");
+    const list = submissions.filter((s) => {
+      if (filterStatus !== "all" && s.status !== filterStatus) return false;
+      if (filterType !== "all" && s.request_type !== filterType) return false;
+      if (!q) return true;
+      const haystack = [s.dompe_number, s.name, s.address, s.postal_code, s.email]
+        .map(norm)
+        .join(" | ");
+      if (haystack.includes(q)) return true;
+      if (qDigits && normPhone(s.phone).includes(qDigits)) return true;
+      if (qDigits && normPhone(s.dompe_number).includes(qDigits)) return true;
+      return false;
+    });
     const dompeNum = (s: Submission) => {
       const m = (s.dompe_number || "").match(/\d+/);
       return m ? parseInt(m[0], 10) : NaN;
@@ -335,7 +349,7 @@ const Admin = () => {
       if (bHas) return 1;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [submissions, filterStatus, filterType]);
+  }, [submissions, filterStatus, filterType, searchQuery]);
 
   if (!user || roleLoading) return null;
   if (!isAdmin) {
@@ -418,6 +432,26 @@ const Admin = () => {
         </div>
 
         <div className="flex flex-wrap gap-3 mb-5">
+          <div className="relative flex-1 min-w-[220px] max-w-md">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher : nom, téléphone, adresse, # dompe…"
+              className="w-full pl-9 pr-9 py-2 text-sm rounded-lg border border-border bg-card font-body focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                aria-label="Effacer la recherche"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-lg leading-none px-1"
+              >
+                ×
+              </button>
+            )}
+          </div>
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
             <option value="all">Tous statuts</option>
             {LEAD_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
