@@ -1,0 +1,1 @@
+ALTER TABLE public.submissions ALTER COLUMN visible_to_entrepreneur SET DEFAULT false;
