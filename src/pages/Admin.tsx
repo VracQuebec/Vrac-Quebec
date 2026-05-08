@@ -607,7 +607,7 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               <span className="text-xs font-display font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">{sub.dompe_number}</span>
             ) : null}
             <span className="font-display font-bold text-foreground">{sub.name}</span>
-            {statusBadge(sub.status)}
+            {statusBadge(sub.status, leadStatuses)}
             {typeBadge(sub.request_type)}
           </div>
           <p className="text-xs text-muted-foreground font-body truncate">
@@ -636,13 +636,21 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
           {/* Status selector */}
           <div>
             <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Statut du lead</label>
-            <div className="flex flex-wrap gap-1.5">
-              {LEAD_STATUSES.map((s) => (
-                <button key={s.value} onClick={() => onStatusChange(s.value)}
-                  className={`px-2.5 py-1 rounded text-[11px] font-display font-bold uppercase border transition-all ${sub.status === s.value ? s.color + " border-transparent" : "bg-card text-muted-foreground border-border hover:border-foreground/30"}`}>
-                  {s.label}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {leadStatuses.filter((s) => s.enabled || s.value === sub.status).map((s) => {
+                const active = sub.status === s.value;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => onStatusChange(s.value)}
+                    style={active ? { backgroundColor: s.color, color: s.text_color, borderColor: "transparent" } : undefined}
+                    className={`px-3 py-2 min-h-[36px] rounded-md text-[11px] font-display font-bold uppercase border transition-all touch-manipulation ${active ? "" : "bg-card text-muted-foreground border-border hover:border-foreground/30 active:bg-secondary"}`}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
