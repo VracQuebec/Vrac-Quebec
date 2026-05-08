@@ -17,10 +17,10 @@ const Login = () => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      // Persist user preference. When "Rester connecté" is unchecked,
-      // we'll sign the user out automatically when the tab/window closes.
+      // Keep the admin session persistent across refreshes, browser restarts,
+      // tablet/mobile tab suspensions, and Lovable preview updates.
       try {
-        localStorage.setItem("vq_stay_logged_in", stayLoggedIn ? "1" : "0");
+        localStorage.setItem("vq_stay_logged_in", stayLoggedIn ? "1" : "1");
       } catch {
         // ignore storage errors
       }
