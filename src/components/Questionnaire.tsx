@@ -207,9 +207,6 @@ const Questionnaire = () => {
         latitude: coords?.lat ?? null,
         longitude: coords?.lng ?? null,
         request_type: isRemblai ? "remblai" : detectRequestType(data.materials, data.propertyType),
-        visible_to_entrepreneur: isRemblai
-          ? false
-          : detectRequestType(data.materials, data.propertyType) === "vrac",
         deliver_or_remove: data.deliverOrRemove || null,
         contamination: data.contamination || null,
         photos: data.photos || [],
