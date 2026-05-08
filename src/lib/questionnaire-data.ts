@@ -171,11 +171,11 @@ export const detectRequestType = (materials: string[], projectType?: string): st
 export const LEAD_STATUSES = [
   { value: "nouveau", label: "Nouveau", color: "bg-orange-500 text-white" },
   { value: "à rappeler", label: "À rappeler", color: "bg-amber-500 text-white" },
-  { value: "contacté", label: "Contacté", color: "bg-sky-500 text-white" },
+  { value: "message texte envoyé", label: "Message texte envoyé", color: "bg-sky-500 text-white" },
   { value: "soumission envoyée", label: "Soumission envoyée", color: "bg-indigo-500 text-white" },
-  { value: "en attente", label: "En attente", color: "bg-blue-500 text-white" },
-  { value: "assigné", label: "Assigné", color: "bg-teal-600 text-white" },
-  { value: "gagné", label: "Gagné", color: "bg-emerald-600 text-white" },
+  { value: "en attente de livraison", label: "En attente de livraison", color: "bg-blue-500 text-white" },
+  { value: "en attente de paiement", label: "En attente de paiement", color: "bg-teal-600 text-white" },
+  { value: "paiement effectué", label: "Paiement effectué", color: "bg-emerald-600 text-white" },
   { value: "perdu", label: "Perdu", color: "bg-rose-600 text-white" },
   { value: "archivé", label: "Archivé", color: "bg-slate-500 text-white" },
 ] as const;
