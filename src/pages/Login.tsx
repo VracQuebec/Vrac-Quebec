@@ -9,6 +9,9 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [stayLoggedIn, setStayLoggedIn] = useState(() => {
+    try { return localStorage.getItem("vq_stay_logged_in") !== "0"; } catch { return true; }
+  });
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -17,10 +20,9 @@ const Login = () => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      // Keep the admin session persistent across refreshes, browser restarts,
-      // tablet/mobile tab suspensions, and Lovable preview updates.
+      // Persist the user's "stay logged in" preference. Default = on.
       try {
-        localStorage.setItem("vq_stay_logged_in", "1");
+        localStorage.setItem("vq_stay_logged_in", stayLoggedIn ? "1" : "0");
       } catch {
         // ignore storage errors
       }
@@ -90,8 +92,8 @@ const Login = () => {
           <label className="flex items-center gap-2 text-sm text-muted-foreground font-body cursor-pointer select-none pt-1">
             <input
               type="checkbox"
-              checked
-              readOnly
+              checked={stayLoggedIn}
+              onChange={(e) => setStayLoggedIn(e.target.checked)}
               className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
             />
             Rester connecté sur cet appareil
