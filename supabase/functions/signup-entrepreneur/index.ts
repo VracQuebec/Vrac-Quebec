@@ -36,11 +36,16 @@ Deno.serve(async (req) => {
 
     if (!userId || !email) return json(400, { error: "user_id et email requis" });
 
-    // Verify the user exists, was created within the last 5 minutes, and the email matches
-    const { data: u, error: ue } = await admin.auth.admin.getUserById(userId);
-    if (ue || !u?.user) return json(404, { error: "Utilisateur introuvable" });
-    if ((u.user.email || "").toLowerCase() !== email) return json(403, { error: "Courriel non concordant" });
-    const createdAt = new Date(u.user.created_at).getTime();
+    // Verify the user exists. signUp -> getUserById can race, so retry briefly.
+    let user: any = null;
+    for (let i = 0; i < 5; i++) {
+      const { data: u } = await admin.auth.admin.getUserById(userId);
+      if (u?.user) { user = u.user; break; }
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    if (!user) return json(404, { error: "Utilisateur introuvable" });
+    if ((user.email || "").toLowerCase() !== email) return json(403, { error: "Courriel non concordant" });
+    const createdAt = new Date(user.created_at).getTime();
     if (Date.now() - createdAt > 5 * 60 * 1000) {
       return json(403, { error: "Inscription expirée. Recommencez." });
     }
