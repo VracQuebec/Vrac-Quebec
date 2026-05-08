@@ -41,10 +41,10 @@ const colorForStatus = (status: string, isAssigned: boolean) => {
 const Entrepreneur = () => {
   const [leads, setLeads] = useState<EntLead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<EntLead | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const markersRef = useRef<Record<string, L.Marker>>({});
   const navigate = useNavigate();
   const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles();
   const [approved, setApproved] = useState<boolean | null>(null);
@@ -107,8 +107,11 @@ const Entrepreneur = () => {
     if (!containerRef.current) return;
     if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
     const geo = leads.filter((l) => l.latitude && l.longitude);
-    const map = L.map(containerRef.current).setView([46.8, -71.2], 8);
+    const map = L.map(containerRef.current, {
+      scrollWheelZoom: false,
+    }).setView([46.8, -71.2], 8);
     mapRef.current = map;
+    markersRef.current = {};
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; OpenStreetMap',
     }).addTo(map);
@@ -122,7 +125,15 @@ const Entrepreneur = () => {
         iconSize: [30, 30], iconAnchor: [15, 15],
       });
       const m = L.marker([l.latitude!, l.longitude!], { icon })
-        .on("click", () => setSelected(l)).addTo(map);
+        .bindPopup(buildPopupHtml(l, color), {
+          maxWidth: 320,
+          minWidth: 220,
+          autoPan: true,
+          autoPanPadding: [20, 20],
+          closeButton: true,
+        })
+        .addTo(map);
+      markersRef.current[l.id] = m;
       markers.push(m);
     });
     if (markers.length > 0) {
@@ -130,6 +141,16 @@ const Entrepreneur = () => {
     }
     return () => { map.remove(); mapRef.current = null; };
   }, [leads]);
+
+  const focusLead = (l: EntLead) => {
+    const m = markersRef.current[l.id];
+    if (m && mapRef.current) {
+      mapRef.current.setView(m.getLatLng(), Math.max(mapRef.current.getZoom(), 11), { animate: true });
+      m.openPopup();
+      // Scroll map into view on mobile
+      containerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/login"); };
 
@@ -162,7 +183,7 @@ const Entrepreneur = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
+      <nav className="sticky top-0 z-[1000] bg-card/80 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Truck className="w-6 h-6 text-primary" />
@@ -190,13 +211,13 @@ const Entrepreneur = () => {
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 bg-card rounded-xl border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
+            <div className="lg:col-span-2 bg-card rounded-xl border border-border overflow-hidden relative isolate" style={{ boxShadow: "var(--shadow-sm)" }}>
               <div ref={containerRef} style={{ height: "60vh", minHeight: 400, width: "100%" }} />
             </div>
-            <div className="space-y-2 max-h-[60vh] overflow-auto">
+            <div className="space-y-2 lg:max-h-[60vh] lg:overflow-auto">
               {leads.length === 0 && <p className="text-sm text-muted-foreground">Aucune dompe pour le moment.</p>}
               {leads.map((l) => (
-                <button key={l.id} onClick={() => setSelected(l)}
+                <button key={l.id} onClick={() => focusLead(l)}
                   className="w-full text-left p-3 bg-card rounded-lg border border-border hover:border-primary/50 transition-colors">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-display font-bold text-sm">#{l.submission_number}</span>
@@ -211,42 +232,35 @@ const Entrepreneur = () => {
           </div>
         )}
       </main>
-
-      {selected && (
-        <div className="fixed inset-0 z-[100] bg-foreground/50 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
-          <div className="bg-background rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-display font-bold text-lg">Dompe #{selected.submission_number}</h3>
-              <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground">✕</button>
-            </div>
-            <div className="space-y-2 text-sm font-body">
-              <p><b>Type :</b> {selected.request_type}</p>
-              {selected.priority && selected.priority !== "normal" && (
-                <p><b>Priorité :</b> {selected.priority}</p>
-              )}
-              <p><b>Matériaux :</b> {matLabels(selected.materials)}</p>
-              {selected.other_material && <p><b>Autre :</b> {selected.other_material}</p>}
-              <p><b>Projet :</b> {selected.property_type}</p>
-              <p><b>Nombre de voyages :</b> {selected.tonnage || selected.quantity || "—"}</p>
-              {selected.deliver_or_remove && <p><b>Livraison :</b> {selected.deliver_or_remove}</p>}
-              {selected.contamination && <p><b>Contamination :</b> {selected.contamination}</p>}
-              {selected.accessibility && selected.accessibility.length > 0 && (
-                <p><b>Accessibilité :</b> {selected.accessibility.join(", ")}</p>
-              )}
-              <p><b>Machinerie sur place :</b> {selected.machinery_available ? "Oui" : "Non"}
-                {selected.machinery_available && selected.machinery_description ? ` — ${selected.machinery_description}` : ""}
-              </p>
-              <p><b>Secteur :</b> {selected.postal_prefix}</p>
-              <p><b>Statut :</b> {selected.is_assigned ? "Attribué" : selected.status}</p>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-4 italic">
-              Position approximative (rayon ~1 km). Coordonnées du client masquées — contactez l'admin pour les détails.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
+};
+
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+const matLabelsHtml = (ids: string[]) =>
+  escapeHtml(ids.map((i) => MATERIAL_TYPES.find((m) => m.id === i)?.label || i).join(", "));
+
+const buildPopupHtml = (l: EntLead, color: string) => {
+  const statusLabel = l.is_assigned ? "Attribué" : l.status;
+  const acc = l.accessibility && l.accessibility.length > 0 ? escapeHtml(l.accessibility.join(", ")) : "—";
+  const mach = l.machinery_available
+    ? `Oui${l.machinery_description ? ` — ${escapeHtml(l.machinery_description)}` : ""}`
+    : "Non";
+  const voyages = escapeHtml(l.tonnage || l.quantity || "—");
+  return `
+    <div class="ent-pop-title">
+      <span>Dompe #${l.submission_number}</span>
+      <span class="ent-pop-badge" style="background:${color}">${escapeHtml(statusLabel)}</span>
+    </div>
+    <div class="ent-pop-row"><b>Type :</b> ${escapeHtml(l.request_type || "—")}</div>
+    <div class="ent-pop-row"><b>Matériaux :</b> ${matLabelsHtml(l.materials)}</div>
+    <div class="ent-pop-row"><b>Nombre de voyages :</b> ${voyages}</div>
+    <div class="ent-pop-row"><b>Accessibilité :</b> ${acc}</div>
+    <div class="ent-pop-row"><b>Machinerie sur place :</b> ${mach}</div>
+    <div class="ent-pop-row"><b>Secteur :</b> ${escapeHtml(l.postal_prefix || "—")}</div>
+  `;
 };
 
 const Legend = ({ color, label }: { color: string; label: string }) => (
