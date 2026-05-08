@@ -36,15 +36,27 @@ Deno.serve(async (req) => {
 
     if (!userId || !email) return json(400, { error: "user_id et email requis" });
 
-    // Verify the user exists. signUp -> getUserById can race, so retry briefly.
+    // Verify the user exists. signUp -> admin API can race; retry with backoff,
+    // and fall back to listUsers-by-email if getUserById keeps missing.
     let user: any = null;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 8; i++) {
       const { data: u } = await admin.auth.admin.getUserById(userId);
       if (u?.user) { user = u.user; break; }
-      await new Promise((r) => setTimeout(r, 400));
+      await new Promise((r) => setTimeout(r, 300 + i * 200));
+    }
+    if (!user) {
+      // Fallback: search by email (handles replication lag on getUserById)
+      try {
+        const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+        user = list?.users?.find((x: any) =>
+          x.id === userId || (x.email || "").toLowerCase() === email
+        ) || null;
+      } catch (_) { /* ignore */ }
     }
     if (!user) return json(404, { error: "Utilisateur introuvable" });
     if ((user.email || "").toLowerCase() !== email) return json(403, { error: "Courriel non concordant" });
+    // Use the verified id from auth (in case the client sent a stale one)
+    const verifiedUserId = user.id as string;
     const createdAt = new Date(user.created_at).getTime();
     if (Date.now() - createdAt > 5 * 60 * 1000) {
       return json(403, { error: "Inscription expirée. Recommencez." });
@@ -52,17 +64,17 @@ Deno.serve(async (req) => {
 
     // Insert unapproved entrepreneur role (idempotent — ignore duplicates)
     const { data: existing } = await admin
-      .from("user_roles").select("id").eq("user_id", userId).eq("role", "entrepreneur").maybeSingle();
+      .from("user_roles").select("id").eq("user_id", verifiedUserId).eq("role", "entrepreneur").maybeSingle();
     if (!existing) {
       const { error: roleErr } = await admin
-        .from("user_roles").insert({ user_id: userId, role: "entrepreneur", approved: false });
+        .from("user_roles").insert({ user_id: verifiedUserId, role: "entrepreneur", approved: false });
       if (roleErr) return json(500, { error: roleErr.message });
     }
 
     // Optional entrepreneur profile (best-effort)
     if (name || company || phone) {
       await admin.from("entrepreneurs").insert({
-        user_id: userId,
+        user_id: verifiedUserId,
         name: name || email,
         email,
         company,
