@@ -6,84 +6,140 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-/**
- * Public endpoint: registers an entrepreneur AFTER they have signed up via
- * supabase.auth.signUp on the client. The client passes their newly created
- * user_id; we validate it actually corresponds to a user created moments ago
- * and that the email matches, then insert an unapproved entrepreneur role.
- * The account stays inactive until an admin approves it from the CRM.
- */
+const json = (status: number, body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+const findUserByEmail = async (admin: ReturnType<typeof createClient>, email: string) => {
+  for (let page = 1; page <= 5; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw error;
+    const user = data.users.find((u: any) => (u.email || "").toLowerCase() === email);
+    if (user) return user;
+    if (data.users.length < 200) break;
+  }
+  return null;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const json = (status: number, body: unknown) =>
-    new Response(JSON.stringify(body), {
-      status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-
   try {
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!SUPABASE_URL || !SERVICE_ROLE) {
+      return json(500, { error: "Configuration serveur incomplète" });
+    }
+
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    const body = await req.json().catch(() => ({}));
-    const userId = String(body.user_id || "").trim();
-    const email = String(body.email || "").trim().toLowerCase();
-    const company = String(body.company || "").trim();
-    const phone = String(body.phone || "").trim();
-    const name = String(body.name || "").trim();
-
-    if (!userId || !email) return json(400, { error: "user_id et email requis" });
-
-    // Verify the user exists. signUp -> admin API can race; retry with backoff,
-    // and fall back to listUsers-by-email if getUserById keeps missing.
-    let user: any = null;
-    for (let i = 0; i < 8; i++) {
-      const { data: u } = await admin.auth.admin.getUserById(userId);
-      if (u?.user) { user = u.user; break; }
-      await new Promise((r) => setTimeout(r, 300 + i * 200));
-    }
-    if (!user) {
-      // Fallback: search by email (handles replication lag on getUserById)
-      try {
-        const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-        user = list?.users?.find((x: any) =>
-          x.id === userId || (x.email || "").toLowerCase() === email
-        ) || null;
-      } catch (_) { /* ignore */ }
-    }
-    if (!user) return json(404, { error: "Utilisateur introuvable" });
-    if ((user.email || "").toLowerCase() !== email) return json(403, { error: "Courriel non concordant" });
-    // Use the verified id from auth (in case the client sent a stale one)
-    const verifiedUserId = user.id as string;
-    const createdAt = new Date(user.created_at).getTime();
-    if (Date.now() - createdAt > 5 * 60 * 1000) {
-      return json(403, { error: "Inscription expirée. Recommencez." });
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return json(400, { error: "Corps de requête invalide" });
     }
 
-    // Insert unapproved entrepreneur role (idempotent — ignore duplicates)
-    const { data: existing } = await admin
-      .from("user_roles").select("id").eq("user_id", verifiedUserId).eq("role", "entrepreneur").maybeSingle();
-    if (!existing) {
-      const { error: roleErr } = await admin
-        .from("user_roles").insert({ user_id: verifiedUserId, role: "entrepreneur", approved: false });
-      if (roleErr) return json(500, { error: roleErr.message });
+    const email = String((body as Record<string, unknown>).email || "").trim().toLowerCase();
+    const password = String((body as Record<string, unknown>).password || "");
+    const company = String((body as Record<string, unknown>).company || "").trim();
+    const phone = String((body as Record<string, unknown>).phone || "").trim();
+    const name = String((body as Record<string, unknown>).name || "").trim();
+
+    if (!email) return json(400, { error: "Courriel requis" });
+    if (!password || password.length < 8) return json(400, { error: "Mot de passe minimum 8 caractères" });
+    if (!name) return json(400, { error: "Nom requis" });
+
+    const { data: matchingProfiles } = await admin
+      .from("entrepreneurs")
+      .select("id,user_id")
+      .eq("email", email)
+      .limit(1);
+
+    const matchingProfile = matchingProfiles?.[0] || null;
+    if (matchingProfile?.user_id) {
+      return json(409, { error: "Un compte entrepreneur existe déjà avec ce courriel" });
     }
 
-    // Optional entrepreneur profile (best-effort)
-    if (name || company || phone) {
-      await admin.from("entrepreneurs").insert({
-        user_id: verifiedUserId,
-        name: name || email,
-        email,
-        company,
-        phone,
+    let userId = "";
+    let createdNewUser = false;
+    const metadata = {
+      requested_role: "entrepreneur",
+      name,
+      company,
+      phone,
+    };
+
+    const existingUser = await findUserByEmail(admin, email);
+    if (existingUser) {
+      const { data: existingRoles } = await admin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", existingUser.id);
+      if (existingRoles && existingRoles.length > 0) {
+        return json(409, { error: "Un compte existe déjà avec ce courriel. Connectez-vous ou utilisez Mot de passe oublié." });
+      }
+      const wasEntrepreneurSignup = existingUser.user_metadata?.requested_role === "entrepreneur";
+      const isUnconfirmed = !existingUser.email_confirmed_at && !existingUser.confirmed_at;
+      if (!isUnconfirmed || !wasEntrepreneurSignup) {
+        return json(409, { error: "Un compte existe déjà avec ce courriel. Connectez-vous ou utilisez Mot de passe oublié." });
+      }
+
+      const { data: updated, error: updateErr } = await admin.auth.admin.updateUserById(existingUser.id, {
+        password,
+        email_confirm: true,
+        user_metadata: { ...existingUser.user_metadata, ...metadata },
       });
+      if (updateErr || !updated.user) {
+        return json(400, { error: updateErr?.message || "Mise à jour du compte échouée" });
+      }
+      userId = updated.user.id;
+    } else {
+      const { data: created, error: createErr } = await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: metadata,
+      });
+
+      if (createErr || !created.user) {
+        const message = createErr?.message || "Création du compte échouée";
+        return json(400, { error: message });
+      }
+
+      userId = created.user.id;
+      createdNewUser = true;
     }
 
-    return json(200, { ok: true });
+    const { error: roleErr } = await admin
+      .from("user_roles")
+      .insert({ user_id: userId, role: "entrepreneur", approved: false });
+
+    if (roleErr) {
+      if (createdNewUser) await admin.auth.admin.deleteUser(userId);
+      return json(500, { error: `Rôle entrepreneur non assigné: ${roleErr.message}` });
+    }
+
+    const profilePayload = { user_id: userId, name, email, company, phone };
+    const { error: profileErr } = matchingProfile
+      ? await admin.from("entrepreneurs").update(profilePayload).eq("id", matchingProfile.id)
+      : await admin.from("entrepreneurs").insert(profilePayload);
+
+    if (profileErr) {
+      await admin.from("user_roles").delete().eq("user_id", userId).eq("role", "entrepreneur");
+      if (createdNewUser) await admin.auth.admin.deleteUser(userId);
+      return json(500, { error: `Profil entrepreneur non créé: ${profileErr.message}` });
+    }
+
+    return json(200, {
+      ok: true,
+      user_id: userId,
+      email,
+      approved: false,
+      message: "Compte entrepreneur créé avec succès",
+    });
   } catch (e) {
-    return json(500, { error: (e as Error).message });
+    return json(500, { error: (e as Error).message || "Erreur serveur" });
   }
 });

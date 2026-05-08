@@ -2,10 +2,21 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Truck, Loader2, CheckCircle2 } from "lucide-react";
+import { Truck, Loader2 } from "lucide-react";
 
 const inputClass =
   "w-full px-4 py-3 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-shadow font-body";
+
+const getFunctionError = async (response: Response) => {
+  const raw = await response.text();
+  if (!raw) return `Erreur ${response.status}: ${response.statusText}`;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed?.error || parsed?.message || raw;
+  } catch {
+    return raw;
+  }
+};
 
 const EntrepreneurSignup = () => {
   const [email, setEmail] = useState("");
@@ -14,7 +25,6 @@ const EntrepreneurSignup = () => {
   const [company, setCompany] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
   const navigate = useNavigate();
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -25,52 +35,28 @@ const EntrepreneurSignup = () => {
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/entrepreneur`,
-          data: { requested_role: "entrepreneur", name, company, phone },
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/signup-entrepreneur`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
+        body: JSON.stringify({ email, password, name, company, phone }),
       });
-      if (error) throw error;
-      if (!data.user) throw new Error("Inscription échouée");
+      if (!response.ok) throw new Error(await getFunctionError(response));
 
-      // Register the entrepreneur intent + profile (unapproved)
-      const { error: fnErr } = await supabase.functions.invoke("signup-entrepreneur", {
-        body: { user_id: data.user.id, email, name, company, phone },
-      });
-      if (fnErr) throw fnErr;
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+      if (loginError) throw loginError;
 
-      // Sign out any auto-session so the user must verify their email before logging in
-      await supabase.auth.signOut();
-      setDone(true);
+      try { localStorage.setItem("vq_stay_logged_in", "1"); } catch { /* ignore storage errors */ }
+      toast({ title: "Compte créé", description: "Votre compte entrepreneur est créé et en attente d’approbation." });
+      navigate("/entrepreneur", { replace: true });
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Inscription échouée", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
-
-  if (done) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <div className="w-full max-w-sm text-center bg-card p-6 rounded-2xl" style={{ boxShadow: "var(--shadow-lg)" }}>
-          <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
-          <h1 className="font-display font-bold text-xl mb-2">Compte créé</h1>
-          <p className="text-sm text-muted-foreground font-body mb-4">
-            Un courriel de confirmation a été envoyé à <b>{email}</b>. Cliquez sur le lien pour valider votre adresse.
-          </p>
-          <p className="text-xs text-muted-foreground font-body mb-4">
-            Une fois votre courriel validé, un administrateur doit approuver votre compte avant que vous puissiez voir les dompes.
-          </p>
-          <button onClick={() => navigate("/login")} className="text-primary text-sm font-display font-semibold underline">
-            Aller à la connexion
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
