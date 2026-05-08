@@ -109,3 +109,52 @@
     font-family: 'Plus Jakarta Sans', sans-serif;
   }
 }
+
+/* Leaflet — keep map panes below sticky nav (nav uses z-[1000]) */
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom { z-index: 400 !important; }
+.leaflet-popup-pane { z-index: 600 !important; }
+
+/* Custom popup styling — works mobile + desktop */
+.leaflet-popup-content-wrapper {
+  border-radius: 14px;
+  padding: 4px;
+  box-shadow: 0 10px 30px -8px hsl(220 20% 10% / 0.25);
+}
+.leaflet-popup-content {
+  margin: 12px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  line-height: 1.55;
+  max-width: 260px;
+  width: max-content !important;
+}
+@media (max-width: 640px) {
+  .leaflet-popup-content { max-width: 78vw; }
+}
+.leaflet-popup-content .ent-pop-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.leaflet-popup-content .ent-pop-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.leaflet-popup-content .ent-pop-row { margin: 2px 0; }
+.leaflet-popup-content .ent-pop-row b { font-weight: 600; color: hsl(220 20% 25%); }
+.leaflet-popup-close-button {
+  font-size: 22px !important;
+  padding: 6px 10px !important;
+  color: hsl(220 10% 45%) !important;
+}
