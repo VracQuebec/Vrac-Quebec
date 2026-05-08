@@ -150,7 +150,7 @@ const Entrepreneur = () => {
         <div className="max-w-md">
           <h2 className="font-display font-bold text-xl mb-2">Compte en attente d'approbation</h2>
           <p className="text-muted-foreground font-body mb-4">
-            Votre compte entrepreneur a bien été créé, mais un administrateur doit l'approuver avant que vous puissiez voir les leads disponibles.
+            Votre compte entrepreneur a bien été créé, mais un administrateur doit l'approuver avant que vous puissiez voir les dompes disponibles.
           </p>
           <button onClick={handleLogout} className="text-primary underline">Se déconnecter</button>
         </div>
@@ -177,7 +177,7 @@ const Entrepreneur = () => {
 
       <main className="flex-1 container mx-auto px-4 sm:px-6 py-6">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <h1 className="text-2xl font-display font-bold">Leads disponibles ({leads.length})</h1>
+          <h1 className="text-2xl font-display font-bold">Dompes disponibles ({leads.length})</h1>
           <div className="flex items-center gap-3 text-xs font-body">
             <Legend color="#f97316" label="Nouveau" />
             <Legend color="#2563eb" label="En attente" />
@@ -194,7 +194,7 @@ const Entrepreneur = () => {
               <div ref={containerRef} style={{ height: "60vh", minHeight: 400, width: "100%" }} />
             </div>
             <div className="space-y-2 max-h-[60vh] overflow-auto">
-              {leads.length === 0 && <p className="text-sm text-muted-foreground">Aucun lead pour le moment.</p>}
+              {leads.length === 0 && <p className="text-sm text-muted-foreground">Aucune dompe pour le moment.</p>}
               {leads.map((l) => (
                 <button key={l.id} onClick={() => setSelected(l)}
                   className="w-full text-left p-3 bg-card rounded-lg border border-border hover:border-primary/50 transition-colors">
@@ -216,7 +216,7 @@ const Entrepreneur = () => {
         <div className="fixed inset-0 z-[100] bg-foreground/50 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
           <div className="bg-background rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-display font-bold text-lg">Lead #{selected.submission_number}</h3>
+              <h3 className="font-display font-bold text-lg">Dompe #{selected.submission_number}</h3>
               <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground">✕</button>
             </div>
             <div className="space-y-2 text-sm font-body">

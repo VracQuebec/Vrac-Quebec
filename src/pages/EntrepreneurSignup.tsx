@@ -62,7 +62,7 @@ const EntrepreneurSignup = () => {
             Un courriel de confirmation a été envoyé à <b>{email}</b>. Cliquez sur le lien pour valider votre adresse.
           </p>
           <p className="text-xs text-muted-foreground font-body mb-4">
-            Une fois votre courriel validé, un administrateur doit approuver votre compte avant que vous puissiez voir les leads.
+            Une fois votre courriel validé, un administrateur doit approuver votre compte avant que vous puissiez voir les dompes.
           </p>
           <button onClick={() => navigate("/login")} className="text-primary text-sm font-display font-semibold underline">
             Aller à la connexion
@@ -83,7 +83,7 @@ const EntrepreneurSignup = () => {
             </span>
           </div>
           <h1 className="text-2xl font-display font-bold text-foreground">Espace entrepreneur</h1>
-          <p className="text-muted-foreground text-sm mt-1">Créez votre compte pour accéder aux leads disponibles</p>
+          <p className="text-muted-foreground text-sm mt-1">Créez votre compte pour accéder aux dompes disponibles</p>
         </div>
 
         <form onSubmit={handleSignup} className="space-y-3 bg-card p-6 rounded-2xl" style={{ boxShadow: "var(--shadow-lg)" }}>
