@@ -660,7 +660,7 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
             <div className="flex flex-wrap gap-1.5">
               {REQUEST_TYPES.map((t) => (
                 <button key={t.value} onClick={() => {
-                  const updates: Record<string, unknown> = { request_type: t.value };
+                  const updates: Partial<Submission> = { request_type: t.value };
                   if (t.value === "remblai" || t.value === "depot") updates.visible_to_entrepreneur = false;
                   else if (t.value === "vrac") updates.visible_to_entrepreneur = true;
                   onUpdate(updates);
