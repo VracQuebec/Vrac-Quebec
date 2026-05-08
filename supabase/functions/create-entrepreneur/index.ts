@@ -36,8 +36,8 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const email = String(body.email || "").trim().toLowerCase();
     const password = String(body.password || "");
-    if (!email || !password || password.length < 6) {
-      return new Response(JSON.stringify({ error: "Courriel et mot de passe (min. 6 caractères) requis" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!email || !password || password.length < 8) {
+      return new Response(JSON.stringify({ error: "Courriel et mot de passe (min. 8 caractères) requis" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Create the user with email already confirmed (no email verification needed)
