@@ -168,11 +168,6 @@ export const isRemblaiRequest = (materials: string[], projectType?: string) =>
 export const detectRequestType = (materials: string[], projectType?: string): string =>
   isRemblaiRequest(materials, projectType) ? "remblai" : "vrac";
 
-export const getVisibleToEntrepreneurForRequestType = (requestType: string): boolean => {
-  const normalized = requestType.trim().toLowerCase();
-  return ["remblai", "depot", "dépôt", "remblai / dépôt", "remblai / depot", "matériel à sortir", "materiel a sortir"].includes(normalized);
-};
-
 export const LEAD_STATUSES = [
   { value: "nouveau", label: "Nouveau", color: "bg-orange-500 text-white" },
   { value: "à rappeler", label: "À rappeler", color: "bg-amber-500 text-white" },

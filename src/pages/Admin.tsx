@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES, getVisibleToEntrepreneurForRequestType } from "@/lib/questionnaire-data";
+import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES } from "@/lib/questionnaire-data";
 import { useLeadStatuses, findStatus, type LeadStatus } from "@/hooks/useLeadStatuses";
 import StatusManagerModal from "@/components/StatusManagerModal";
 import {
@@ -179,8 +179,7 @@ const Admin = () => {
       });
       return;
     }
-    const appliedPatch = data as Partial<Submission>;
-    setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch, ...appliedPatch } : s)));
+    setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
     toast({ title: "Enregistré" });
   };
 
@@ -661,10 +660,10 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
             <div className="flex flex-wrap gap-1.5">
               {REQUEST_TYPES.map((t) => (
                 <button key={t.value} onClick={() => {
-                  onUpdate({
-                    request_type: t.value,
-                    visible_to_entrepreneur: getVisibleToEntrepreneurForRequestType(t.value),
-                  });
+                  const updates: any = { request_type: t.value };
+                  if (t.value === "remblai" || t.value === "depot") updates.visible_to_entrepreneur = true;
+                  else if (t.value === "vrac") updates.visible_to_entrepreneur = false;
+                  onUpdate(updates);
                 }}
                   className={`px-2.5 py-1 rounded text-[11px] font-display font-bold border transition-all ${sub.request_type === t.value ? t.color : "bg-card text-muted-foreground border-border hover:border-foreground/30"}`}>
                   {t.label}
