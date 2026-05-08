@@ -7,7 +7,6 @@ import { Truck, Loader2 } from "lucide-react";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [stayLoggedIn, setStayLoggedIn] = useState(true);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -90,8 +89,8 @@ const Login = () => {
           <label className="flex items-center gap-2 text-sm text-muted-foreground font-body cursor-pointer select-none pt-1">
             <input
               type="checkbox"
-              checked={stayLoggedIn}
-              onChange={(e) => setStayLoggedIn(e.target.checked)}
+              checked
+              readOnly
               className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
             />
             Rester connecté sur cet appareil
