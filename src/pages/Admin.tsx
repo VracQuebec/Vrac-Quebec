@@ -85,6 +85,8 @@ const Admin = () => {
   const [showSheetImport, setShowSheetImport] = useState(false);
   const [showExcelImport, setShowExcelImport] = useState(false);
   const [geocoding, setGeocoding] = useState<{ done: number; total: number } | null>(null);
+  const [showStatusManager, setShowStatusManager] = useState(false);
+  const { statuses: leadStatuses } = useLeadStatuses();
   const navigate = useNavigate();
   const { isAdmin, loading: roleLoading } = useUserRoles();
 
@@ -432,6 +434,9 @@ const Admin = () => {
               <DatabaseIcon className="w-4 h-4" /> Données importées
             </Link>
             <button onClick={fetchSubmissions} className="text-sm text-primary hover:underline font-body">Actualiser</button>
+            <button onClick={() => setShowStatusManager(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
+              <Settings className="w-4 h-4" /> Statuts
+            </button>
           </div>
         </div>
 
@@ -458,7 +463,7 @@ const Admin = () => {
           </div>
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
             <option value="all">Tous statuts</option>
-            {LEAD_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            {leadStatuses.map((s) => <option key={s.id} value={s.value}>{s.label}</option>)}
           </select>
           <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
             <option value="all">Tous types</option>
@@ -506,6 +511,7 @@ const Admin = () => {
                 onDelete={() => handleDelete(sub.id)}
                 onArchive={() => archive(sub.id)}
                 userEmail={user.email || ""}
+                leadStatuses={leadStatuses}
               />
             ))}
           </div>
@@ -516,13 +522,21 @@ const Admin = () => {
       {showImport && <CsvImportModal onClose={() => setShowImport(false)} onImported={fetchSubmissions} />}
       {showSheetImport && <GoogleSheetImportModal onClose={() => setShowSheetImport(false)} onImported={fetchSubmissions} />}
       {showExcelImport && <ExcelImportModal onClose={() => setShowExcelImport(false)} onImported={fetchSubmissions} />}
+      {showStatusManager && <StatusManagerModal onClose={() => setShowStatusManager(false)} />}
     </div>
   );
 };
 
-const statusBadge = (status: string) => {
-  const s = LEAD_STATUSES.find((x) => x.value === status) || LEAD_STATUSES[0];
-  return <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-display font-bold uppercase ${s.color}`}>{s.label}</span>;
+const statusBadge = (status: string, statuses: LeadStatus[]) => {
+  const s = findStatus(statuses, status);
+  return (
+    <span
+      className="inline-block px-2 py-0.5 rounded text-[10px] font-display font-bold uppercase"
+      style={{ backgroundColor: s.color, color: s.text_color }}
+    >
+      {s.label}
+    </span>
+  );
 };
 
 const typeBadge = (type: string) => {
@@ -539,9 +553,10 @@ interface CardProps {
   onDelete: () => void;
   onArchive: () => void;
   userEmail: string;
+  leadStatuses: LeadStatus[];
 }
 
-const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete, onArchive, userEmail }: CardProps) => {
+const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete, onArchive, userEmail, leadStatuses }: CardProps) => {
   const [notes, setNotes] = useState<LeadNote[]>([]);
   const [newNote, setNewNote] = useState("");
   const [savingNote, setSavingNote] = useState(false);
