@@ -568,7 +568,8 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
   useEffect(() => {
     if (!expanded) return;
     supabase.rpc("list_users_with_roles").then(({ data }) => {
-      const list = ((data as any) || []).filter((u: any) => (u.roles || []).includes("entrepreneur"))
+      const list = ((data as any) || [])
+        .filter((u: any) => (u.roles || []).includes("entrepreneur") && u.approved)
         .map((u: any) => ({ user_id: u.user_id, email: u.email }));
       setEntrepreneurs(list);
     });
