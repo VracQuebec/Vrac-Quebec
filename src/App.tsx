@@ -13,6 +13,7 @@ import EntrepreneurSignup from "./pages/EntrepreneurSignup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import SessionKeeper from "./components/SessionKeeper";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
+        <SessionKeeper />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
