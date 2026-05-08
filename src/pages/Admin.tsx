@@ -87,9 +87,11 @@ const Admin = () => {
   const { isAdmin, loading: roleLoading } = useUserRoles();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+    // Only react to explicit sign-out events to avoid redirecting during
+    // the brief window where Supabase is still restoring the session from storage.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
-      if (!session?.user) navigate("/login", { replace: true });
+      if (event === "SIGNED_OUT") navigate("/login", { replace: true });
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user) navigate("/login", { replace: true });
