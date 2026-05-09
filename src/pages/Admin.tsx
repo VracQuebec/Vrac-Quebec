@@ -89,7 +89,12 @@ const Admin = () => {
   const [showStatusManager, setShowStatusManager] = useState(false);
   const { statuses: leadStatuses } = useLeadStatuses();
   const navigate = useNavigate();
-  const { isAdmin, loading: roleLoading } = useUserRoles();
+  const { isAdmin, isEntrepreneur, loading: roleLoading } = useUserRoles();
+
+  useEffect(() => {
+    if (roleLoading) return;
+    if (!isAdmin && isEntrepreneur) navigate("/entrepreneur", { replace: true });
+  }, [isAdmin, isEntrepreneur, roleLoading, navigate]);
 
   useEffect(() => {
     // Only react to explicit sign-out events to avoid redirecting during
