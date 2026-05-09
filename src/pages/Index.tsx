@@ -103,9 +103,12 @@ const Index = () => {
       <footer className="py-8 pb-20 md:pb-8 border-t border-border">
         <div className="container mx-auto px-6 flex items-center justify-between text-sm text-muted-foreground font-body">
           <span>© 2026 VracQuébec. Tous droits réservés.</span>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <a href="/login" className="hover:text-foreground transition-colors">
+              Connexion entrepreneur
+            </a>
             <a href="/entrepreneur/inscription" className="hover:text-foreground transition-colors">
-              Entrepreneurs
+              Devenir entrepreneur
             </a>
             <a href="/login" className="hover:text-foreground transition-colors">
               Administration
