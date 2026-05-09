@@ -475,6 +475,17 @@ const Admin = () => {
                 ? `Géocodage ${geocoding.done}/${geocoding.total}…`
                 : "Géocoder adresses"}
             </button>
+            <button
+              onClick={recheckAllAddresses}
+              disabled={!!rechecking || !!geocoding}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 text-white text-sm font-display font-semibold hover:opacity-90 disabled:opacity-60"
+              title="Re-vérifie toutes les adresses et corrige celles mal positionnées (>250 m d'écart)"
+            >
+              <MapPin className="w-4 h-4" />
+              {rechecking
+                ? `Vérification ${rechecking.done}/${rechecking.total}…`
+                : "Re-vérifier adresses"}
+            </button>
             <button onClick={exportCSVAdmin} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground text-background text-sm font-display font-semibold hover:opacity-90">
               <Download className="w-4 h-4" /> CSV admin
             </button>
