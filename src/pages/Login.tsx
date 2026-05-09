@@ -62,8 +62,10 @@ const Login = () => {
               Vrac<span className="text-primary">Québec</span>
             </span>
           </div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Administration</h1>
-          <p className="text-muted-foreground text-sm mt-1">Connectez-vous pour accéder aux demandes</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">Connexion</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Entrepreneurs et administrateurs — accédez à votre portail
+          </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4 bg-card p-6 rounded-2xl" style={{ boxShadow: "var(--shadow-lg)" }}>
