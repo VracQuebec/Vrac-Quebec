@@ -26,13 +26,21 @@ const Login = () => {
       } catch {
         // ignore storage errors
       }
-      // Route based on role
+      // Route based on role (retry once if RLS hasn't propagated yet)
       if (data.user) {
-        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
-        const roleList = (roles || []).map((r: any) => r.role);
+        let roleList: string[] = [];
+        for (let i = 0; i < 3; i++) {
+          const { data: roles } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", data.user.id);
+          roleList = (roles || []).map((r: any) => r.role);
+          if (roleList.length > 0) break;
+          await new Promise((r) => setTimeout(r, 200));
+        }
         if (roleList.includes("admin")) navigate("/admin", { replace: true });
         else if (roleList.includes("entrepreneur")) navigate("/entrepreneur", { replace: true });
-        else navigate("/admin", { replace: true });
+        else navigate("/entrepreneur", { replace: true });
       }
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Connexion échouée", variant: "destructive" });
