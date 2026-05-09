@@ -85,6 +85,7 @@ const Admin = () => {
   const [showSheetImport, setShowSheetImport] = useState(false);
   const [showExcelImport, setShowExcelImport] = useState(false);
   const [geocoding, setGeocoding] = useState<{ done: number; total: number } | null>(null);
+  const [rechecking, setRechecking] = useState<{ done: number; total: number } | null>(null);
   const [showStatusManager, setShowStatusManager] = useState(false);
   const { statuses: leadStatuses } = useLeadStatuses();
   const navigate = useNavigate();
