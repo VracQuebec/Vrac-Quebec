@@ -282,6 +282,65 @@ const Admin = () => {
     toast({ title: "Géocodage terminé", description: `${ok}/${missing.length} adresses localisées.` });
   };
 
+  // Re-vérifie TOUTES les adresses : recroisement Nominatim + geocoder.ca,
+  // met à jour seulement si la nouvelle position diffère de plus de ~250 m.
+  const recheckAllAddresses = async () => {
+    const targets = submissions.filter((s) => s.address && s.address.trim().length > 3);
+    if (targets.length === 0) {
+      toast({ title: "Aucune adresse à vérifier." });
+      return;
+    }
+    if (!confirm(
+      `Re-vérifier ${targets.length} adresse(s) avec Nominatim + geocoder.ca ?\n\nLes coordonnées seront corrigées seulement si l'écart est supérieur à ~250 m. (~1 sec/adresse)`
+    )) return;
+
+    const distMeters = (a: { lat: number; lon: number }, b: { lat: number; lon: number }) => {
+      const R = 6371000;
+      const toRad = (x: number) => (x * Math.PI) / 180;
+      const dLat = toRad(b.lat - a.lat);
+      const dLon = toRad(b.lon - a.lon);
+      const s1 = Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
+      return 2 * R * Math.asin(Math.min(1, Math.sqrt(s1)));
+    };
+
+    setRechecking({ done: 0, total: targets.length });
+    let updated = 0; let unchanged = 0; let notFound = 0;
+    for (let i = 0; i < targets.length; i++) {
+      const s = targets[i];
+      const found = await geocodeOne(s.address, s.postal_code);
+      if (!found) {
+        notFound++;
+      } else {
+        const current = (s.latitude && s.longitude)
+          ? { lat: s.latitude as number, lon: s.longitude as number }
+          : null;
+        const drift = current ? distMeters(current, found) : Infinity;
+        if (!current || drift > 250) {
+          const { error } = await supabase
+            .from("submissions")
+            .update({ latitude: found.lat, longitude: found.lon })
+            .eq("id", s.id);
+          if (!error) {
+            updated++;
+            setSubmissions((prev) =>
+              prev.map((x) => (x.id === s.id ? { ...x, latitude: found.lat, longitude: found.lon } : x))
+            );
+          }
+        } else {
+          unchanged++;
+        }
+      }
+      setRechecking({ done: i + 1, total: targets.length });
+      await new Promise((r) => setTimeout(r, 1100));
+    }
+    setRechecking(null);
+    toast({
+      title: "Vérification terminée",
+      description: `${updated} corrigée(s) · ${unchanged} déjà OK · ${notFound} introuvable(s).`,
+    });
+  };
+
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/login"); };
 
   const downloadCSV = (filename: string, cols: string[], rowsData: any[]) => {
