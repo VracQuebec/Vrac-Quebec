@@ -107,14 +107,47 @@ const AdminMap = ({ submissions, onMove }: Props) => {
     geoSubs.forEach((sub) => {
       const marker = L.marker([sub.latitude!, sub.longitude!], {
         icon: createNumberIcon(sub.submission_number || 0),
-        draggable: !!onMove,
+        draggable: false,
       })
         .bindPopup(buildPopup(sub), { maxWidth: 320, minWidth: 260 })
         .addTo(map);
       if (onMove) {
+        let pressTimer: ReturnType<typeof setTimeout> | null = null;
+        let armed = false;
+
+        const arm = () => {
+          armed = true;
+          marker.dragging?.enable();
+          const el = marker.getElement();
+          if (el) {
+            el.style.transform += " scale(1.25)";
+            el.style.filter = "drop-shadow(0 0 8px hsl(30, 90%, 50%))";
+            el.style.transition = "filter 0.2s";
+          }
+        };
+        const disarm = () => {
+          if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+          if (armed) {
+            armed = false;
+            marker.dragging?.disable();
+            const el = marker.getElement();
+            if (el) el.style.filter = "";
+          }
+        };
+        const start = () => {
+          if (pressTimer) clearTimeout(pressTimer);
+          pressTimer = setTimeout(arm, 2000);
+        };
+
+        marker.on("mousedown", start);
+        marker.on("touchstart", start);
+        marker.on("mouseup", () => { if (!armed) disarm(); });
+        marker.on("touchend", () => { if (!armed) disarm(); });
+        marker.on("mouseout", () => { if (!armed) disarm(); });
         marker.on("dragend", () => {
           const { lat, lng } = marker.getLatLng();
           onMove(sub.id, lat, lng);
+          disarm();
         });
       }
       markers.push(marker);
