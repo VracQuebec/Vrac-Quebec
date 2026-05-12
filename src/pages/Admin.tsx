@@ -645,7 +645,7 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
     if (!expanded) return;
     supabase.rpc("list_users_with_roles").then(({ data }) => {
       const list = ((data as any) || [])
-        .filter((u: any) => (u.roles || []).includes("entrepreneur") && u.approved)
+        .filter((u: any) => (u.roles || []).includes("entrepreneur"))
         .map((u: any) => ({ user_id: u.user_id, email: u.email }));
       setEntrepreneurs(list);
     });
@@ -904,19 +904,6 @@ const UsersModal = ({ onClose }: { onClose: () => void }) => {
     load();
   };
 
-  const toggleApproval = async (uid: string, currentlyApproved: boolean) => {
-    const { error } = await supabase
-      .from("user_roles")
-      .update({ approved: !currentlyApproved })
-      .eq("user_id", uid)
-      .eq("role", "entrepreneur");
-    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    else {
-      toast({ title: currentlyApproved ? "Accès suspendu" : "Compte approuvé" });
-      load();
-    }
-  };
-
   const createEntrepreneur = async () => {
     if (!newEmail || !newPass) return;
     setCreating(true);
@@ -967,19 +954,9 @@ const UsersModal = ({ onClose }: { onClose: () => void }) => {
                         <p className="text-sm font-body truncate">{u.email}</p>
                         <p className="text-[10px] text-muted-foreground">
                           {u.roles.join(", ") || "aucun rôle"}
-                          {hasEnt && (u.approved
-                            ? <span className="ml-2 text-emerald-600 font-semibold">approuvé</span>
-                            : <span className="ml-2 text-amber-600 font-semibold">en attente</span>
-                          )}
                         </p>
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                        {hasEnt && !isAdm && (
-                          <button onClick={() => toggleApproval(u.user_id, u.approved)}
-                            className={`px-3 py-1.5 rounded text-xs font-display font-semibold ${u.approved ? "bg-amber-600 text-white" : "bg-emerald-600 text-white"}`}>
-                            {u.approved ? "Suspendre" : "Approuver"}
-                          </button>
-                        )}
                         {!isAdm && (
                           <button onClick={() => toggleRole(u.user_id, hasEnt)}
                             className={`px-3 py-1.5 rounded text-xs font-display font-semibold ${hasEnt ? "bg-rose-600 text-white" : "bg-slate-600 text-white"}`}>
