@@ -603,21 +603,90 @@ const Admin = () => {
   );
 };
 
-const statusBadge = (status: string, statuses: LeadStatus[]) => {
+const StatusBadgePicker = ({
+  status, statuses, onChange,
+}: { status: string; statuses: LeadStatus[]; onChange: (v: string) => void }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
   const s = findStatus(statuses, status);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
   return (
-    <span
-      className="inline-block px-2 py-0.5 rounded text-[10px] font-display font-bold uppercase"
-      style={{ backgroundColor: s.color, color: s.text_color }}
-    >
-      {s.label}
-    </span>
+    <div ref={ref} className="relative inline-block" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-display font-bold uppercase cursor-pointer hover:opacity-90"
+        style={{ backgroundColor: s.color, color: s.text_color }}
+        title="Changer le statut"
+      >
+        {s.label} <ChevronDown className="w-3 h-3" />
+      </button>
+      {open && (
+        <div className="absolute z-30 left-0 mt-1 bg-card border border-border rounded-lg shadow-lg p-1 min-w-[180px] max-h-72 overflow-auto">
+          {statuses.filter((x) => x.enabled || x.value === status).map((x) => (
+            <button
+              key={x.id}
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setOpen(false); onChange(x.value); }}
+              className={`w-full text-left px-2 py-1.5 rounded text-[11px] font-display font-bold uppercase mb-0.5 ${x.value === status ? "" : "hover:bg-secondary"}`}
+              style={x.value === status ? { backgroundColor: x.color, color: x.text_color } : undefined}
+            >
+              {x.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
-const typeBadge = (type: string) => {
+const TypeBadgePicker = ({
+  type, onChange,
+}: { type: string; onChange: (v: string) => void }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
   const t = REQUEST_TYPES.find((x) => x.value === type) || REQUEST_TYPES[0];
-  return <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-display font-bold border ${t.color}`}>{t.label}</span>;
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+  return (
+    <div ref={ref} className="relative inline-block" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-display font-bold border cursor-pointer hover:opacity-90 ${t.color}`}
+        title="Changer le type"
+      >
+        {t.label} <ChevronDown className="w-3 h-3" />
+      </button>
+      {open && (
+        <div className="absolute z-30 left-0 mt-1 bg-card border border-border rounded-lg shadow-lg p-1 min-w-[180px]">
+          {REQUEST_TYPES.map((x) => (
+            <button
+              key={x.value}
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setOpen(false); onChange(x.value); }}
+              className={`w-full text-left px-2 py-1.5 rounded text-[11px] font-display font-bold border mb-0.5 ${x.value === type ? x.color : "bg-card text-muted-foreground border-border hover:border-foreground/30"}`}
+            >
+              {x.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 interface CardProps {
