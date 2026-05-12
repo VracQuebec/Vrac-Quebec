@@ -84,7 +84,7 @@ const Questionnaire = () => {
       if (!data.propertyType) missing.push("Type de projet");
       if (!data.quantity) missing.push("Taille du projet");
       if (!data.deliveryDeadline) missing.push("Date de livraison");
-      if (!data.budgetMax || !data.budgetMax.trim())
+      if (isRemblai && (!data.budgetMax || !data.budgetMax.trim()))
         missing.push("Budget par voyage");
     }
     if (step === 2) {
