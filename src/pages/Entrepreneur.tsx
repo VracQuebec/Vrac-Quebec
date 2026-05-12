@@ -47,7 +47,6 @@ const Entrepreneur = () => {
   const markersRef = useRef<Record<string, L.Marker>>({});
   const navigate = useNavigate();
   const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles();
-  const [approved, setApproved] = useState<boolean | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
@@ -65,24 +64,6 @@ const Entrepreneur = () => {
     if (!authReady || roleLoading) return;
     if (!isEntrepreneur && !isAdmin) return;
     fetchLeads();
-  }, [authReady, roleLoading, isEntrepreneur, isAdmin]);
-
-  // Check approval status (admins always count as approved)
-  useEffect(() => {
-    if (!authReady || roleLoading) return;
-    if (isAdmin) { setApproved(true); return; }
-    if (!isEntrepreneur) { setApproved(false); return; }
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) { setApproved(false); return; }
-      const { data } = await supabase
-        .from("user_roles")
-        .select("approved")
-        .eq("user_id", session.user.id)
-        .eq("role", "entrepreneur")
-        .maybeSingle();
-      setApproved(Boolean(data?.approved));
-    })();
   }, [authReady, roleLoading, isEntrepreneur, isAdmin]);
 
   // Realtime: refresh leads when admin changes visibility/status
@@ -160,19 +141,6 @@ const Entrepreneur = () => {
       <div className="min-h-screen flex items-center justify-center p-6 text-center">
         <div>
           <p className="text-muted-foreground mb-4">Accès réservé aux entrepreneurs autorisés.</p>
-          <button onClick={handleLogout} className="text-primary underline">Se déconnecter</button>
-        </div>
-      </div>
-    );
-  }
-  if (approved === false) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-center">
-        <div className="max-w-md">
-          <h2 className="font-display font-bold text-xl mb-2">Compte en attente d'approbation</h2>
-          <p className="text-muted-foreground font-body mb-4">
-            Votre compte entrepreneur a bien été créé, mais un administrateur doit l'approuver avant que vous puissiez voir les dompes disponibles.
-          </p>
           <button onClick={handleLogout} className="text-primary underline">Se déconnecter</button>
         </div>
       </div>
