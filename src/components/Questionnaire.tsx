@@ -72,8 +72,7 @@ const Questionnaire = () => {
         data.propertyType &&
         data.quantity &&
         data.deliveryDeadline &&
-        data.budgetMax &&
-        data.budgetMax.trim() !== ""
+        (!isRemblai || (data.budgetMax && data.budgetMax.trim() !== ""))
       );
     if (step === 2) return data.name && data.phone && data.email && data.address && data.postalCode;
     return false;
