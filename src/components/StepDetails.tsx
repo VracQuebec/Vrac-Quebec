@@ -195,45 +195,47 @@ const StepDetails = ({ data, onChange }: Props) => {
         </div>
       </div>
 
-      <div>
-        <label className={labelClass}>
-          Combien êtes-vous prêt à payer par voyage ?{" "}
-          <span className="text-destructive">*</span>
-        </label>
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-          <div className="flex min-w-0 overflow-hidden rounded-lg border border-border bg-card focus-within:ring-2 focus-within:ring-ring transition-shadow">
-            <span className="flex items-center px-3 text-muted-foreground font-body border-r border-border bg-muted/40 select-none">
-              $
-            </span>
-            <input
-              id="budget-max"
-              name="budgetMax"
-              type="tel"
-              inputMode="numeric"
-              autoComplete="off"
-              value={data.budgetMax}
-              onInput={(e) => handleBudgetChange(e.currentTarget.value)}
-              onChange={(e) => handleBudgetChange(e.target.value)}
-              className="w-full min-w-0 px-4 py-3 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none font-body text-base"
-              placeholder="Ex : 250"
-              required
-            />
+      {isRemblai && (
+        <div>
+          <label className={labelClass}>
+            Combien êtes-vous prêt à payer par voyage ?{" "}
+            <span className="text-destructive">*</span>
+          </label>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+            <div className="flex min-w-0 overflow-hidden rounded-lg border border-border bg-card focus-within:ring-2 focus-within:ring-ring transition-shadow">
+              <span className="flex items-center px-3 text-muted-foreground font-body border-r border-border bg-muted/40 select-none">
+                $
+              </span>
+              <input
+                id="budget-max"
+                name="budgetMax"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="off"
+                value={data.budgetMax}
+                onInput={(e) => handleBudgetChange(e.currentTarget.value)}
+                onChange={(e) => handleBudgetChange(e.target.value)}
+                className="w-full min-w-0 px-4 py-3 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none font-body text-base"
+                placeholder="Ex : 250"
+                required
+              />
+            </div>
+            <select
+              value={data.budgetUnit}
+              onChange={(e) => onChange({ budgetUnit: e.target.value })}
+              className={`${inputClass} w-auto`}
+            >
+              <option value="">/ unité</option>
+              <option value="/ voyage">/ voyage</option>
+              <option value="/ tonne">/ tonne</option>
+              <option value="total">total</option>
+            </select>
           </div>
-          <select
-            value={data.budgetUnit}
-            onChange={(e) => onChange({ budgetUnit: e.target.value })}
-            className={`${inputClass} w-auto`}
-          >
-            <option value="">/ unité</option>
-            <option value="/ voyage">/ voyage</option>
-            <option value="/ tonne">/ tonne</option>
-            <option value="total">total</option>
-          </select>
+          <p className="text-xs text-muted-foreground mt-2">
+            Indiquez votre budget approximatif par voyage de camion.
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          Indiquez votre budget approximatif par voyage de camion.
-        </p>
-      </div>
+      )}
 
       <div>
         <label className={labelClass}>Quel camion peut accéder à votre terrain ?</label>
