@@ -753,8 +753,13 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               <span className="text-xs font-display font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">{sub.dompe_number}</span>
             ) : null}
             <span className="font-display font-bold text-foreground">{sub.name}</span>
-            {statusBadge(sub.status, leadStatuses)}
-            {typeBadge(sub.request_type)}
+            <StatusBadgePicker status={sub.status} statuses={leadStatuses} onChange={(v) => onStatusChange(v)} />
+            <TypeBadgePicker type={sub.request_type} onChange={(v) => {
+              const updates: any = { request_type: v };
+              if (v === "remblai" || v === "depot") updates.visible_to_entrepreneur = true;
+              else if (v === "vrac") updates.visible_to_entrepreneur = false;
+              onUpdate(updates);
+            }} />
           </div>
           <p className="text-xs text-muted-foreground font-body truncate">
             {formatDate(sub.created_at)} • {getMaterialLabels(sub.materials)} • {sub.address}
