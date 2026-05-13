@@ -204,9 +204,7 @@ export const InlineField = (props: InlineFieldProps) => {
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => commit(draft)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && props.type !== "textarea") {
-            (e.target as HTMLInputElement).blur();
-          }
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         }}
         className={inputCls}
       />
