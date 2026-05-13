@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES } from "@/lib/questionnaire-data";
+import { CONTAMINATION_OPTIONS, DELIVER_OR_REMOVE_OPTIONS, PROJECT_TYPES, TRUCK_ACCESS_OPTIONS } from "@/lib/questionnaire-data";
+import InlineField from "@/components/InlineField";
 import { useLeadStatuses, findStatus, type LeadStatus } from "@/hooks/useLeadStatuses";
 import StatusManagerModal from "@/components/StatusManagerModal";
 import {
@@ -866,34 +868,142 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
             </div>
           </div>
 
-          {/* Details grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm font-body">
-            <D label="Matériaux" v={getMaterialLabels(sub.materials)} />
-            {sub.other_material && <D label="Autre" v={sub.other_material} />}
-            <D label="Type projet" v={sub.property_type} />
-            <D label="Voyages" v={sub.quantity} />
-            <D label="Tonnage" v={sub.tonnage} />
-            {sub.deliver_or_remove && <D label="Livrer/Sortir" v={sub.deliver_or_remove} />}
-            {sub.contamination && <D label="Contamination" v={sub.contamination} />}
-            {sub.budget_unit && <D label="Budget" v={`${sub.budget_max || ""} ${sub.budget_unit}`} />}
-            {sub.delivery_deadline && (
-              <D
-                label="Date limite réception"
-                v={new Date(sub.delivery_deadline + "T00:00:00").toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric" })}
+          {/* Editable details grid */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <h3 className="text-sm font-display font-bold uppercase tracking-wide text-foreground">Fiche client modifiable</h3>
+              <span className="text-[10px] text-muted-foreground italic">— sauvegarde automatique à chaque modification</span>
+            </div>
+
+            {/* Contact */}
+            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
+              <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Contact</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <InlineField label="Nom du client" type="text" value={sub.name || ""} onSave={(v) => onUpdate({ name: v })} />
+                <InlineField label="Téléphone" type="tel" value={sub.phone || ""} onSave={(v) => onUpdate({ phone: v })} />
+                <InlineField label="Courriel" type="email" value={sub.email || ""} onSave={(v) => onUpdate({ email: v })} />
+                <InlineField label="Adresse" type="text" value={sub.address || ""} onSave={(v) => onUpdate({ address: v })} />
+                <InlineField label="Code postal" type="text" value={sub.postal_code || ""} onSave={(v) => onUpdate({ postal_code: v })} />
+              </div>
+            </div>
+
+            {/* Matériaux & projet */}
+            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
+              <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Matériaux et projet</div>
+              <div className="grid grid-cols-1 gap-3">
+                <InlineField
+                  label="Matériaux"
+                  type="multiselect"
+                  value={sub.materials || []}
+                  options={MATERIAL_TYPES.map((m) => ({ value: m.id, label: m.label }))}
+                  onSave={(v) => onUpdate({ materials: v })}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <InlineField label="Autre matériau" type="text" value={sub.other_material || ""} onSave={(v) => onUpdate({ other_material: v })} />
+                  <InlineField
+                    label="Type de projet"
+                    type="select"
+                    value={sub.property_type || ""}
+                    allowEmpty
+                    options={PROJECT_TYPES.map((p) => ({ value: p.value, label: p.value }))}
+                    onSave={(v) => onUpdate({ property_type: v })}
+                  />
+                  <InlineField label="Voyages" type="text" value={sub.quantity || ""} onSave={(v) => onUpdate({ quantity: v })} />
+                  <InlineField label="Tonnage" type="text" value={sub.tonnage || ""} onSave={(v) => onUpdate({ tonnage: v })} />
+                  <InlineField
+                    label="Livrer / Sortir"
+                    type="select"
+                    value={sub.deliver_or_remove || ""}
+                    allowEmpty
+                    options={DELIVER_OR_REMOVE_OPTIONS.map((o) => ({ value: o, label: o }))}
+                    onSave={(v) => onUpdate({ deliver_or_remove: v || null })}
+                  />
+                  <InlineField
+                    label="Contamination"
+                    type="select"
+                    value={sub.contamination || ""}
+                    allowEmpty
+                    options={CONTAMINATION_OPTIONS.map((o) => ({ value: o, label: o }))}
+                    onSave={(v) => onUpdate({ contamination: v || null })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Dimensions & livraison */}
+            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
+              <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Dimensions et livraison</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <InlineField label="Longueur (pi)" type="text" value={sub.length_ft || ""} onSave={(v) => onUpdate({ length_ft: v || null })} />
+                <InlineField label="Largeur (pi)" type="text" value={sub.width_ft || ""} onSave={(v) => onUpdate({ width_ft: v || null })} />
+                <InlineField label="Profondeur (po)" type="text" value={sub.depth_in || ""} onSave={(v) => onUpdate({ depth_in: v || null })} />
+                <InlineField label="Date limite" type="date" value={sub.delivery_deadline || ""} onSave={(v) => onUpdate({ delivery_deadline: v || null })} />
+                <InlineField label="Délai souhaité" type="text" value={sub.delivery_timeframe || ""} onSave={(v) => onUpdate({ delivery_timeframe: v || null })} />
+              </div>
+              <div className="mt-3">
+                <InlineField
+                  label="Accessibilité camion"
+                  type="multiselect"
+                  value={sub.accessibility || []}
+                  options={TRUCK_ACCESS_OPTIONS.map((o) => ({ value: o.value, label: o.value }))}
+                  onSave={(v) => onUpdate({ accessibility: v })}
+                />
+              </div>
+            </div>
+
+            {/* Budget & machinerie */}
+            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
+              <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Budget et machinerie</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <InlineField label="Budget max" type="text" value={sub.budget_max || ""} onSave={(v) => onUpdate({ budget_max: v || null })} />
+                <InlineField
+                  label="Unité budget"
+                  type="select"
+                  value={sub.budget_unit || ""}
+                  allowEmpty
+                  options={[
+                    { value: "$ / voyage", label: "$ / voyage" },
+                    { value: "$ / tonne", label: "$ / tonne" },
+                    { value: "$ total", label: "$ total" },
+                  ]}
+                  onSave={(v) => onUpdate({ budget_unit: v || null })}
+                />
+                <InlineField
+                  label="Machinerie sur place"
+                  type="boolean"
+                  value={!!sub.machinery_available}
+                  onSave={(v) => onUpdate({ machinery_available: v })}
+                />
+              </div>
+              <div className="mt-3">
+                <InlineField
+                  label="Description machinerie"
+                  type="textarea"
+                  rows={2}
+                  value={sub.machinery_description || ""}
+                  onSave={(v) => onUpdate({ machinery_description: v || null })}
+                />
+              </div>
+            </div>
+
+            {/* Notes client */}
+            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
+              <InlineField
+                label="Notes du client (description)"
+                type="textarea"
+                rows={3}
+                value={sub.description || ""}
+                onSave={(v) => onUpdate({ description: v || null })}
               />
-            )}
-            {sub.delivery_timeframe && <D label="Délai souhaité" v={sub.delivery_timeframe} />}
-            <D label="Camion accessible" v={(sub.accessibility || []).join(", ") || "—"} />
-            <D label="Machinerie" v={sub.machinery_available ? `Oui — ${sub.machinery_description || ""}` : "Non"} />
-            {(sub.length_ft || sub.width_ft || sub.depth_in) && (
-              <D label="Dimensions" v={`${sub.length_ft || "?"}pi × ${sub.width_ft || "?"}pi × ${sub.depth_in || "?"}po`} />
-            )}
-            <D label="Adresse" v={`${sub.address}${sub.postal_code ? `, ${sub.postal_code}` : ""}`} />
-            <D label="Code postal" v={sub.postal_code || "—"} />
-            <D label="GPS" v={sub.latitude && sub.longitude ? `${sub.latitude.toFixed(4)}, ${sub.longitude.toFixed(4)}` : "—"} />
-            <D label="Courriel" v={sub.email} />
-            <D label="Téléphone" v={sub.phone || "—"} />
-            {sub.description && <D label="Notes client" v={sub.description} />}
+            </div>
+
+            {/* Lecture seule */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground font-body bg-muted/30 rounded-lg p-3">
+              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Numéro :</span> #{sub.submission_number}</div>
+              {sub.dompe_number && <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Dompe :</span> {sub.dompe_number}</div>}
+              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Créé le :</span> {formatDate(sub.created_at)}</div>
+              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">GPS :</span> {sub.latitude && sub.longitude ? `${sub.latitude.toFixed(4)}, ${sub.longitude.toFixed(4)}` : "—"}</div>
+            </div>
           </div>
 
           {sub.photos && sub.photos.length > 0 && (
