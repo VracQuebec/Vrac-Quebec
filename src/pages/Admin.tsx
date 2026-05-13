@@ -1002,47 +1002,12 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               />
             </div>
 
-            {/* Identifiants & GPS — modifiables */}
-            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
-              <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Identifiants et coordonnées (admin)</div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <InlineField
-                  label="Numéro"
-                  type="number"
-                  value={sub.submission_number != null ? String(sub.submission_number) : ""}
-                  onSave={(v) => onUpdate({ submission_number: v === "" ? null : Number(v) } as any)}
-                />
-                <InlineField
-                  label="Numéro Dompe"
-                  type="text"
-                  value={sub.dompe_number || ""}
-                  onSave={(v) => onUpdate({ dompe_number: v || null } as any)}
-                />
-                <InlineField
-                  label="Date de création"
-                  type="text"
-                  value={sub.created_at ? sub.created_at.slice(0, 16).replace("T", " ") : ""}
-                  onSave={(v) => {
-                    if (!v) return;
-                    const iso = new Date(v.replace(" ", "T")).toISOString();
-                    onUpdate({ created_at: iso } as any);
-                  }}
-                />
-                <div />
-                <InlineField
-                  label="Latitude"
-                  type="text"
-                  value={sub.latitude != null ? String(sub.latitude) : ""}
-                  onSave={(v) => onUpdate({ latitude: v === "" ? null : Number(v) } as any)}
-                />
-                <InlineField
-                  label="Longitude"
-                  type="text"
-                  value={sub.longitude != null ? String(sub.longitude) : ""}
-                  onSave={(v) => onUpdate({ longitude: v === "" ? null : Number(v) } as any)}
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground italic mt-2">Format date : AAAA-MM-JJ HH:MM. Modifie le GPS uniquement si tu sais ce que tu fais.</p>
+            {/* Lecture seule */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground font-body bg-muted/30 rounded-lg p-3">
+              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Numéro :</span> #{sub.submission_number}</div>
+              {sub.dompe_number && <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Dompe :</span> {sub.dompe_number}</div>}
+              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Créé le :</span> {formatDate(sub.created_at)}</div>
+              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">GPS :</span> {sub.latitude && sub.longitude ? `${sub.latitude.toFixed(4)}, ${sub.longitude.toFixed(4)}` : "—"}</div>
             </div>
           </div>
 
