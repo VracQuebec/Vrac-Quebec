@@ -517,6 +517,9 @@ const Admin = () => {
             <button onClick={() => setShowStatusManager(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
               <Settings className="w-4 h-4" /> Statuts
             </button>
+            <Link to="/admin/champs" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
+              <Plus className="w-4 h-4" /> Champs personnalisés
+            </Link>
           </div>
         </div>
 
