@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      custom_fields: {
+        Row: {
+          created_at: string
+          field_type: string
+          id: string
+          key: string
+          label: string
+          options: Json
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          field_type: string
+          id?: string
+          key: string
+          label: string
+          options?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          field_type?: string
+          id?: string
+          key?: string
+          label?: string
+          options?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -331,6 +364,89 @@ export type Database = {
         }
         Relationships: []
       }
+      submission_audit_log: {
+        Row: {
+          changed_at: string
+          field_key: string
+          field_label: string | null
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          submission_id: string
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          changed_at?: string
+          field_key: string
+          field_label?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          submission_id: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          changed_at?: string
+          field_key?: string
+          field_label?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          submission_id?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_audit_log_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_custom_values: {
+        Row: {
+          field_id: string
+          id: string
+          submission_id: string
+          updated_at: string
+          value: Json | null
+        }
+        Insert: {
+          field_id: string
+          id?: string
+          submission_id: string
+          updated_at?: string
+          value?: Json | null
+        }
+        Update: {
+          field_id?: string
+          id?: string
+          submission_id?: string
+          updated_at?: string
+          value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_custom_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "custom_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_custom_values_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submissions: {
         Row: {
           accessibility: string[] | null
@@ -498,6 +614,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_user_email: { Args: never; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
