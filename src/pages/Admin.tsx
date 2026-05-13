@@ -5,6 +5,8 @@ import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES } from "@/lib/questionnaire-data";
 import { CONTAMINATION_OPTIONS, DELIVER_OR_REMOVE_OPTIONS, PROJECT_TYPES, TRUCK_ACCESS_OPTIONS } from "@/lib/questionnaire-data";
 import InlineField from "@/components/InlineField";
+import SubmissionCustomFields from "@/components/SubmissionCustomFields";
+import SubmissionHistory from "@/components/SubmissionHistory";
 import { useLeadStatuses, findStatus, type LeadStatus } from "@/hooks/useLeadStatuses";
 import StatusManagerModal from "@/components/StatusManagerModal";
 import {
@@ -1005,6 +1007,12 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">GPS :</span> {sub.latitude && sub.longitude ? `${sub.latitude.toFixed(4)}, ${sub.longitude.toFixed(4)}` : "—"}</div>
             </div>
           </div>
+
+          {/* Champs personnalisés */}
+          <SubmissionCustomFields submissionId={sub.id} />
+
+          {/* Historique */}
+          <SubmissionHistory submissionId={sub.id} />
 
           {sub.photos && sub.photos.length > 0 && (
             <div>
