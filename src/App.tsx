@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import AdminData from "./pages/AdminData";
+import AdminCustomFields from "./pages/AdminCustomFields";
 import Entrepreneur from "./pages/Entrepreneur";
 import EntrepreneurSignup from "./pages/EntrepreneurSignup";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/donnees" element={<AdminData />} />
+          <Route path="/admin/champs" element={<AdminCustomFields />} />
           <Route path="/entrepreneur" element={<Entrepreneur />} />
           <Route path="/entrepreneur/inscription" element={<EntrepreneurSignup />} />
           <Route path="*" element={<NotFound />} />
