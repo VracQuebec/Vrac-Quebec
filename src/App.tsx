@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import AdminData from "./pages/AdminData";
+import AdminCustomFields from "./pages/AdminCustomFields";
 import Entrepreneur from "./pages/Entrepreneur";
 import EntrepreneurSignup from "./pages/EntrepreneurSignup";
 import ForgotPassword from "./pages/ForgotPassword";
