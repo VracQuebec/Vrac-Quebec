@@ -146,11 +146,17 @@ export const InlineField = (props: InlineFieldProps) => {
       setDraft(next);
       commit(next);
     };
+    // Merge extra (legacy) values not present in the options so they are visible/editable
+    const extras = selected.filter((v) => !props.options.some((o) => o.value === v));
+    const allOptions = [
+      ...props.options,
+      ...extras.map((v) => ({ value: v, label: v })),
+    ];
     return (
       <div className={className}>
         {labelRow}
         <div className="flex flex-wrap gap-1">
-          {props.options.map((o) => {
+          {allOptions.map((o) => {
             const active = selected.includes(o.value);
             return (
               <button
