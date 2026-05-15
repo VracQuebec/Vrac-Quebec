@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Truck, Loader2 } from "lucide-react";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useUserRoles } from "@/hooks/useUserRole";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -13,6 +15,14 @@ const Login = () => {
     try { return localStorage.getItem("vq_stay_logged_in") !== "0"; } catch { return true; }
   });
   const navigate = useNavigate();
+  const { user, isReady: authReady } = useAuthReady();
+  const { isAdmin, isEntrepreneur, loading: roleLoading } = useUserRoles(user, authReady);
+
+  useEffect(() => {
+    if (!authReady || !user || roleLoading) return;
+    if (isAdmin) navigate("/admin", { replace: true });
+    else if (isEntrepreneur) navigate("/entrepreneur", { replace: true });
+  }, [authReady, user, roleLoading, isAdmin, isEntrepreneur, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
