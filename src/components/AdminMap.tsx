@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
+import { colorForMaterials } from "@/lib/material-colors";
 
 interface Submission {
   id: string;
@@ -30,17 +31,6 @@ interface Submission {
   status?: string | null;
   show_on_admin_map?: boolean | null;
 }
-
-const colorForMaterials = (mats: string[] | null | undefined, requestType?: string | null) => {
-  const s = (mats || []).join("|").toLowerCase();
-  const rt = (requestType || "").toLowerCase();
-  if (rt.includes("remblai") || rt.includes("depot") || rt.includes("dépôt") || s.includes("remplissage")) return "#16a34a"; // remblai gratuit = vert
-  if (s.includes("béton") || s.includes("beton")) return "#2563eb"; // bleu
-  if (s.includes("asphalte")) return "#0a0a0a"; // noir
-  if (s.includes("gravier") || s.includes("roche") || s.includes("pierre") || s.includes("concass")) return "#6b7280"; // gris
-  if (s.includes("terre") || s.includes("sable")) return "#8B4513"; // brun
-  return "#f97316"; // défaut orange
-};
 
 const createNumberIcon = (num: number, color: string) =>
   L.divIcon({
