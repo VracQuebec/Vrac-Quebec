@@ -554,11 +554,12 @@ const Admin = () => {
           <>
             <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground font-body">
               <span>💡 Glissez une pin pour corriger sa position.</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#8B4513" }} /> Terre / Sable</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#6b7280" }} /> Gravier / Pierre</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#8B4513" }} /> Terre</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#eab308" }} /> Sable</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#6b7280" }} /> Gravier</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#2563eb" }} /> Béton</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#0a0a0a" }} /> Asphalte</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#16a34a" }} /> Remblai gratuit</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#16a34a" }} /> Remblai</span>
             </div>
             <AdminMap
               submissions={filtered as any}
