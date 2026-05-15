@@ -84,17 +84,24 @@ const buildPopup = (sub: Submission) => {
   return html;
 };
 
+const HIDDEN_STATUSES = ["archivé", "perdu", "terminé"];
+
 interface Props {
   submissions: Submission[];
   onMove?: (id: string, lat: number, lon: number) => void;
+  showInactive?: boolean;
 }
 
-const AdminMap = ({ submissions, onMove }: Props) => {
+const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const geoSubs = submissions.filter(
-    (s) => s.latitude && s.longitude && s.show_on_admin_map !== false
+    (s) =>
+      s.latitude &&
+      s.longitude &&
+      s.show_on_admin_map !== false &&
+      (showInactive || !HIDDEN_STATUSES.includes((s.status || "").toLowerCase()))
   );
 
   useEffect(() => {
