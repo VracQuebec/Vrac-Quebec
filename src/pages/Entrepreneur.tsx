@@ -122,7 +122,7 @@ const Entrepreneur = () => {
         iconSize: [30, 30], iconAnchor: [15, 15],
       });
       const m = L.marker([l.latitude!, l.longitude!], { icon })
-        .bindPopup(buildPopupHtml(l, color), {
+        .bindPopup(buildPopupHtml(l), {
           maxWidth: 320,
           minWidth: 220,
           autoPan: true,
@@ -276,32 +276,29 @@ const escapeHtml = (s: string) =>
 const matLabelsHtml = (ids: string[]) =>
   escapeHtml(ids.map((i) => MATERIAL_TYPES.find((m) => m.id === i)?.label || i).join(", "));
 
-const buildPopupHtml = (l: EntLead, color: string) => {
+const buildPopupHtml = (l: EntLead) => {
   const statusLabel = l.is_assigned ? "Attribué" : l.status;
   const acc = l.accessibility && l.accessibility.length > 0 ? escapeHtml(l.accessibility.join(", ")) : "—";
   const mach = l.machinery_available
     ? `Oui${l.machinery_description ? ` — ${escapeHtml(l.machinery_description)}` : ""}`
     : "Non";
   const voyages = escapeHtml(l.tonnage || l.quantity || "—");
+  const matKeys = Array.from(new Set((l.materials || []).map(materialKeyForId)));
+  const matBadges = matKeys
+    .map((k) => `<span class="ent-pop-mat" style="background:${MATERIAL_COLORS[k].color}">${escapeHtml(MATERIAL_COLORS[k].label)}</span>`)
+    .join("");
   return `
     <div class="ent-pop-title">
       <span>Dompe #${l.submission_number}</span>
-      <span class="ent-pop-badge" style="background:${color}">${escapeHtml(statusLabel)}</span>
+      <span class="ent-pop-badge" style="background:${MARKER_COLOR}">${escapeHtml(statusLabel)}</span>
     </div>
+    <div class="ent-pop-row"><b>Matériaux :</b><div class="ent-pop-mats">${matBadges || "—"}</div></div>
     <div class="ent-pop-row"><b>Type :</b> ${escapeHtml(l.request_type || "—")}</div>
-    <div class="ent-pop-row"><b>Matériaux :</b> ${matLabelsHtml(l.materials)}</div>
     <div class="ent-pop-row"><b>Nombre de voyages :</b> ${voyages}</div>
     <div class="ent-pop-row"><b>Accessibilité :</b> ${acc}</div>
     <div class="ent-pop-row"><b>Machinerie sur place :</b> ${mach}</div>
     <div class="ent-pop-row"><b>Secteur :</b> ${escapeHtml(l.postal_prefix || "—")}</div>
   `;
 };
-
-const Legend = ({ color, label }: { color: string; label: string }) => (
-  <div className="flex items-center gap-1">
-    <span className="w-3 h-3 rounded-full" style={{ background: color }} />
-    <span>{label}</span>
-  </div>
-);
 
 export default Entrepreneur;
