@@ -92,7 +92,7 @@ interface Props {
   showInactive?: boolean;
 }
 
-const AdminMap = ({ submissions, onMove }: Props) => {
+const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
