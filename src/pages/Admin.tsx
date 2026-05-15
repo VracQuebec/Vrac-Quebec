@@ -6,6 +6,7 @@ import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES } from "@/lib/questionna
 import { CONTAMINATION_OPTIONS, DELIVER_OR_REMOVE_OPTIONS, PROJECT_TYPES, TRUCK_ACCESS_OPTIONS } from "@/lib/questionnaire-data";
 import InlineField from "@/components/InlineField";
 import { useLeadStatuses, findStatus, type LeadStatus } from "@/hooks/useLeadStatuses";
+import { Switch } from "@/components/ui/switch";
 import StatusManagerModal from "@/components/StatusManagerModal";
 import FullPageState from "@/components/FullPageState";
 import {
