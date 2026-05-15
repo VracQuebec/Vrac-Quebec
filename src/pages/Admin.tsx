@@ -859,10 +859,17 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               </select>
             </div>
             <div>
-              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Visible entrepreneur</label>
+              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Afficher sur carte entrepreneurs</label>
               <button onClick={() => onUpdate({ visible_to_entrepreneur: !sub.visible_to_entrepreneur })}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-bold uppercase border ${sub.visible_to_entrepreneur ? "bg-emerald-600 text-white border-transparent" : "bg-card text-muted-foreground border-border"}`}>
                 {sub.visible_to_entrepreneur ? <><Eye className="w-3.5 h-3.5" /> Oui</> : <><EyeOff className="w-3.5 h-3.5" /> Non</>}
+              </button>
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Afficher sur carte administration</label>
+              <button onClick={() => onUpdate({ show_on_admin_map: !(sub.show_on_admin_map !== false) })}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-bold uppercase border ${sub.show_on_admin_map !== false ? "bg-emerald-600 text-white border-transparent" : "bg-card text-muted-foreground border-border"}`}>
+                {sub.show_on_admin_map !== false ? <><Eye className="w-3.5 h-3.5" /> Oui</> : <><EyeOff className="w-3.5 h-3.5" /> Non</>}
               </button>
             </div>
           </div>
