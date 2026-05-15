@@ -480,6 +480,7 @@ export type Database = {
           property_type: string
           quantity: string
           request_type: string
+          show_on_admin_map: boolean
           status: string
           submission_number: number
           tonnage: string
@@ -518,6 +519,7 @@ export type Database = {
           property_type: string
           quantity: string
           request_type?: string
+          show_on_admin_map?: boolean
           status?: string
           submission_number?: number
           tonnage: string
@@ -556,6 +558,7 @@ export type Database = {
           property_type?: string
           quantity?: string
           request_type?: string
+          show_on_admin_map?: boolean
           status?: string
           submission_number?: number
           tonnage?: string

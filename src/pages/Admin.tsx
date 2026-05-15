@@ -59,6 +59,7 @@ interface Submission {
   visible_to_entrepreneur: boolean;
   internal_notes: string;
   assigned_entrepreneur: string | null;
+  show_on_admin_map?: boolean;
 }
 
 interface LeadNote {
@@ -551,8 +552,13 @@ const Admin = () => {
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
         ) : view === "map" ? (
           <>
-            <div className="mb-2 text-xs text-muted-foreground font-body">
-              💡 Glissez une pin sur la carte pour corriger sa position.
+            <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground font-body">
+              <span>💡 Glissez une pin pour corriger sa position.</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#8B4513" }} /> Terre / Sable</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#6b7280" }} /> Gravier / Pierre</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#2563eb" }} /> Béton</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#0a0a0a" }} /> Asphalte</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#16a34a" }} /> Remblai gratuit</span>
             </div>
             <AdminMap
               submissions={filtered as any}
@@ -858,10 +864,17 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               </select>
             </div>
             <div>
-              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Visible entrepreneur</label>
+              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Afficher sur carte entrepreneurs</label>
               <button onClick={() => onUpdate({ visible_to_entrepreneur: !sub.visible_to_entrepreneur })}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-bold uppercase border ${sub.visible_to_entrepreneur ? "bg-emerald-600 text-white border-transparent" : "bg-card text-muted-foreground border-border"}`}>
                 {sub.visible_to_entrepreneur ? <><Eye className="w-3.5 h-3.5" /> Oui</> : <><EyeOff className="w-3.5 h-3.5" /> Non</>}
+              </button>
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Afficher sur carte administration</label>
+              <button onClick={() => onUpdate({ show_on_admin_map: !(sub.show_on_admin_map !== false) })}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-bold uppercase border ${sub.show_on_admin_map !== false ? "bg-emerald-600 text-white border-transparent" : "bg-card text-muted-foreground border-border"}`}>
+                {sub.show_on_admin_map !== false ? <><Eye className="w-3.5 h-3.5" /> Oui</> : <><EyeOff className="w-3.5 h-3.5" /> Non</>}
               </button>
             </div>
           </div>
