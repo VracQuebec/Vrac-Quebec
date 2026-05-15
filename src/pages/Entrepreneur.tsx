@@ -49,13 +49,18 @@ const Entrepreneur = () => {
   const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      if (!session?.user) navigate("/login");
-      setAuthReady(true);
+    // Only redirect on explicit sign-out. Transient null sessions during
+    // token refresh / tab wake-up should NOT bounce the user to /login.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") navigate("/login");
+      if (session?.user) setAuthReady(true);
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) navigate("/login");
-      setAuthReady(true);
+      if (!session?.user) {
+        navigate("/login");
+      } else {
+        setAuthReady(true);
+      }
     });
     return () => subscription.unsubscribe();
   }, [navigate]);
@@ -135,7 +140,13 @@ const Entrepreneur = () => {
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/login"); };
 
-  if (!authReady || roleLoading) return null;
+  if (!authReady || roleLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   if (!isEntrepreneur && !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 text-center">
