@@ -554,7 +554,7 @@ const Admin = () => {
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
         ) : view === "map" ? (
           <>
-            <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground font-body">
+            <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground font-body">
               <span>💡 Glissez une pin pour corriger sa position.</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#8B4513" }} /> Terre</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#eab308" }} /> Sable</span>
@@ -562,9 +562,17 @@ const Admin = () => {
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#2563eb" }} /> Béton</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#0a0a0a" }} /> Asphalte</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: "#16a34a" }} /> Remblai</span>
+              <label className="inline-flex items-center gap-2 ml-auto cursor-pointer select-none">
+                <Switch
+                  checked={showArchivedOnMap}
+                  onCheckedChange={setShowArchivedOnMap}
+                />
+                <span className="text-xs font-medium text-foreground">Afficher les leads archivés sur la map</span>
+              </label>
             </div>
             <AdminMap
               submissions={filtered as any}
+              showInactive={showArchivedOnMap}
               onMove={async (id, lat, lon) => {
                 const { error } = await supabase
                   .from("submissions")
