@@ -9,6 +9,11 @@ import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import FullPageState from "@/components/FullPageState";
+import {
+  colorForMaterials,
+  MATERIAL_COLORS,
+  MATERIAL_LEGEND,
+} from "@/lib/material-colors";
 
 interface EntLead {
   id: string;
@@ -32,13 +37,6 @@ interface EntLead {
   created_at: string;
   is_assigned: boolean;
 }
-
-const colorForStatus = (status: string, isAssigned: boolean) => {
-  if (status === "archivé") return "#94a3b8"; // gray
-  if (isAssigned || status === "gagné") return "#16a34a"; // green
-  if (status === "en attente" || status === "soumission envoyée") return "#2563eb"; // blue
-  return "#f97316"; // orange = nouveau
-};
 
 const Entrepreneur = () => {
   const [leads, setLeads] = useState<EntLead[]>([]);
@@ -94,7 +92,7 @@ const Entrepreneur = () => {
 
     const markers: L.Marker[] = [];
     geo.forEach((l) => {
-      const color = colorForStatus(l.status, l.is_assigned);
+      const color = colorForMaterials(l.materials, l.request_type);
       const icon = L.divIcon({
         className: "",
         html: `<div style="background:${color};color:#fff;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);">${l.submission_number}</div>`,
@@ -162,13 +160,19 @@ const Entrepreneur = () => {
       </nav>
 
       <main className="flex-1 container mx-auto px-4 sm:px-6 py-6">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <h1 className="text-2xl font-display font-bold">Dompes disponibles ({leads.length})</h1>
-          <div className="flex items-center gap-3 text-xs font-body">
-            <Legend color="#f97316" label="Nouveau" />
-            <Legend color="#2563eb" label="En attente" />
-            <Legend color="#16a34a" label="Attribué" />
-            <Legend color="#94a3b8" label="Archivé" />
+        <div className="mb-4 space-y-3">
+          <h1 className="text-xl sm:text-2xl font-display font-bold">
+            Dompes disponibles ({leads.length})
+          </h1>
+          <div className="bg-card border border-border rounded-lg px-3 py-2 overflow-x-auto">
+            <div className="flex items-center gap-x-4 gap-y-1.5 text-xs font-body whitespace-nowrap min-w-max">
+              <span className="text-muted-foreground font-display font-semibold uppercase tracking-wide text-[10px]">
+                Matériaux
+              </span>
+              {MATERIAL_LEGEND.map((k) => (
+                <Legend key={k} color={MATERIAL_COLORS[k].color} label={MATERIAL_COLORS[k].label} />
+              ))}
+            </div>
           </div>
         </div>
 
@@ -184,10 +188,14 @@ const Entrepreneur = () => {
               {leads.map((l) => (
                 <button key={l.id} onClick={() => focusLead(l)}
                   className="w-full text-left p-3 bg-card rounded-lg border border-border hover:border-primary/50 transition-colors">
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center justify-between mb-1 gap-2">
                     <span className="font-display font-bold text-sm">#{l.submission_number}</span>
-                    <span className="text-[10px] uppercase font-display font-bold px-2 py-0.5 rounded text-white"
-                      style={{ background: colorForStatus(l.status, l.is_assigned) }}>{l.is_assigned ? "Attribué" : l.status}</span>
+                    <span
+                      className="text-[10px] uppercase font-display font-bold px-2 py-0.5 rounded text-white truncate"
+                      style={{ background: colorForMaterials(l.materials, l.request_type) }}
+                    >
+                      {matLabels(l.materials) || "—"}
+                    </span>
                   </div>
                   <p className="text-xs text-muted-foreground">{matLabels(l.materials)} • {l.quantity}</p>
                   <p className="text-xs text-muted-foreground">Secteur: {l.postal_prefix || "—"}</p>
