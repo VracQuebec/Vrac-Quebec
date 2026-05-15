@@ -1,9 +1,23 @@
 import Questionnaire from "@/components/Questionnaire";
 import heroBanner from "@/assets/hero-banner.png";
+import { HardHat } from "lucide-react";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
+      {/* Top bar — always-visible entrepreneur access */}
+      <div className="w-full bg-foreground text-background">
+        <div className="container mx-auto px-4 sm:px-6 py-2 flex items-center justify-end">
+          <a
+            href="/login"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground font-display font-bold text-sm sm:text-base shadow-md hover:scale-[1.03] transition-transform"
+          >
+            <HardHat className="w-4 h-4 sm:w-5 sm:h-5" />
+            Espace entrepreneur — Connexion
+          </a>
+        </div>
+      </div>
+
       {/* Hero — mobile: image banner; desktop: full hero with centered content */}
       <header className="relative w-full overflow-hidden">
         {/* Mobile image (kept as-is) */}
@@ -101,16 +115,25 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="py-8 pb-20 md:pb-8 border-t border-border">
-        <div className="container mx-auto px-6 flex items-center justify-between text-sm text-muted-foreground font-body">
-          <span>© 2026 VracQuébec. Tous droits réservés.</span>
-          <div className="flex items-center gap-4 flex-wrap">
-            <a href="/login" className="hover:text-foreground transition-colors">
+        <div className="container mx-auto px-6 flex flex-col items-center gap-5 text-sm text-muted-foreground font-body">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <a
+              href="/login"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base shadow-lg hover:opacity-90 transition-opacity"
+            >
+              <HardHat className="w-5 h-5" />
               Connexion entrepreneur
             </a>
-            <a href="/entrepreneur/inscription" className="hover:text-foreground transition-colors">
+            <a
+              href="/entrepreneur/inscription"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-lg border-2 border-primary text-primary font-display font-bold text-base hover:bg-primary/10 transition-colors"
+            >
               Devenir entrepreneur
             </a>
-            <a href="/login" className="hover:text-foreground transition-colors">
+          </div>
+          <div className="flex items-center justify-between w-full flex-wrap gap-2">
+            <span>© 2026 VracQuébec. Tous droits réservés.</span>
+            <a href="/login" className="hover:text-foreground transition-colors text-xs">
               Administration
             </a>
           </div>
