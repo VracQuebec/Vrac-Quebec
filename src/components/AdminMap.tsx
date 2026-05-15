@@ -97,7 +97,11 @@ const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const geoSubs = submissions.filter(
-    (s) => s.latitude && s.longitude && s.show_on_admin_map !== false
+    (s) =>
+      s.latitude &&
+      s.longitude &&
+      s.show_on_admin_map !== false &&
+      (showInactive || !HIDDEN_STATUSES.includes((s.status || "").toLowerCase()))
   );
 
   useEffect(() => {
