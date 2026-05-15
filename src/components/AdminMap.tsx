@@ -7,6 +7,7 @@ import { colorForMaterials } from "@/lib/material-colors";
 interface Submission {
   id: string;
   submission_number: number | null;
+  dompe_number?: string | null;
   latitude: number | null;
   longitude: number | null;
   materials: string[];
@@ -32,26 +33,34 @@ interface Submission {
   show_on_admin_map?: boolean | null;
 }
 
-const createNumberIcon = (num: number, color: string) =>
-  L.divIcon({
+const createNumberIcon = (label: string, color: string) => {
+  const len = label.length;
+  const fontSize = len <= 3 ? 14 : len <= 5 ? 11 : 9;
+  return L.divIcon({
     className: "",
     html: `<div style="
       background: ${color};
       color: white;
-      width: 32px;
+      min-width: 32px;
       height: 32px;
+      padding: 0 6px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 800;
-      font-size: 14px;
+      font-size: ${fontSize}px;
       border: 3px solid white;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    ">${num}</div>`,
+      white-space: nowrap;
+    ">${label}</div>`,
     iconSize: [32, 32],
     iconAnchor: [16, 16],
   });
+};
+
+const displayNumber = (sub: { dompe_number?: string | null; submission_number: number | null }) =>
+  (sub.dompe_number && sub.dompe_number.trim()) || String(sub.submission_number ?? "?");
 
 const getMaterialLabels = (ids: string[]) =>
   ids.map((id) => MATERIAL_TYPES.find((m) => m.id === id)?.label || id).join(", ");
@@ -62,7 +71,7 @@ const formatDate = (d: string) =>
 const buildPopup = (sub: Submission) => {
   let html = `<div style="font-size:13px;line-height:1.6">
     <div style="font-weight:800;font-size:16px;margin-bottom:6px;color:#1a1a1a">
-      #${sub.submission_number} — ${sub.name}
+      #${displayNumber(sub)} — ${sub.name}
     </div>
     <div><b>Type de demande:</b> ${sub.request_type || "—"}</div>
     <div><b>Matériaux:</b> ${getMaterialLabels(sub.materials)}</div>`;
@@ -124,7 +133,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
     geoSubs.forEach((sub) => {
       const color = colorForMaterials(sub.materials, sub.request_type);
       const marker = L.marker([sub.latitude!, sub.longitude!], {
-        icon: createNumberIcon(sub.submission_number || 0, color),
+        icon: createNumberIcon(displayNumber(sub), color),
         draggable: false,
       })
         .bindPopup(buildPopup(sub), { maxWidth: 320, minWidth: 260 })
