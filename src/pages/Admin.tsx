@@ -59,6 +59,7 @@ interface Submission {
   visible_to_entrepreneur: boolean;
   internal_notes: string;
   assigned_entrepreneur: string | null;
+  show_on_admin_map?: boolean;
 }
 
 interface LeadNote {
