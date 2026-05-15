@@ -160,6 +160,22 @@
 }
 .leaflet-popup-content .ent-pop-row { margin: 2px 0; }
 .leaflet-popup-content .ent-pop-row b { font-weight: 600; color: hsl(220 20% 25%); }
+.leaflet-popup-content .ent-pop-mats {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.leaflet-popup-content .ent-pop-mat {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
 .leaflet-popup-close-button {
   font-size: 22px !important;
   padding: 6px 10px !important;
