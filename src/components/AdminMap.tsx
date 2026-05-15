@@ -141,7 +141,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
     geoSubs.forEach((sub) => {
       const color = colorForMaterials(sub.materials, sub.request_type);
       const marker = L.marker([sub.latitude!, sub.longitude!], {
-        icon: createNumberIcon(displayNumber(sub), color),
+        icon: createNumberIcon(markerLabel(sub), color),
         draggable: false,
       })
         .bindPopup(buildPopup(sub), { maxWidth: 320, minWidth: 260 })
