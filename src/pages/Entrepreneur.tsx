@@ -5,7 +5,6 @@ import { toast } from "@/hooks/use-toast";
 import { Truck, LogOut, Loader2 } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import FullPageState from "@/components/FullPageState";
