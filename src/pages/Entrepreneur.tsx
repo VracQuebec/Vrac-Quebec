@@ -7,6 +7,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
 import { useUserRoles } from "@/hooks/useUserRole";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import FullPageState from "@/components/FullPageState";
 
 interface EntLead {
   id: string;
@@ -41,29 +43,17 @@ const colorForStatus = (status: string, isAssigned: boolean) => {
 const Entrepreneur = () => {
   const [leads, setLeads] = useState<EntLead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [authReady, setAuthReady] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Record<string, L.Marker>>({});
   const navigate = useNavigate();
-  const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles();
+  const { user, isReady: authReady } = useAuthReady();
+  const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
 
   useEffect(() => {
-    // Only redirect on explicit sign-out. Transient null sessions during
-    // token refresh / tab wake-up should NOT bounce the user to /login.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") navigate("/login");
-      if (session?.user) setAuthReady(true);
-    });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) {
-        navigate("/login");
-      } else {
-        setAuthReady(true);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    if (!authReady) return;
+    if (!user) navigate("/login", { replace: true });
+  }, [authReady, user, navigate]);
 
   useEffect(() => {
     if (!authReady || roleLoading) return;
@@ -140,12 +130,8 @@ const Entrepreneur = () => {
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/login"); };
 
-  if (!authReady || roleLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+  if (!authReady || !user || roleLoading) {
+    return <FullPageState title="Connexion en cours" message="Votre espace entrepreneur se charge automatiquement." />;
   }
   if (!isEntrepreneur && !isAdmin) {
     return (
