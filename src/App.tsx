@@ -14,6 +14,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import SessionKeeper from "./components/SessionKeeper";
+import AppErrorBoundary from "./components/AppErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -26,27 +27,29 @@ const ScrollToTop = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <ScrollToTop />
-        <SessionKeeper />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/admin/donnees" element={<AdminData />} />
-          <Route path="/entrepreneur" element={<Entrepreneur />} />
-          <Route path="/entrepreneur/inscription" element={<EntrepreneurSignup />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <AppErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <ScrollToTop />
+          <SessionKeeper />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/donnees" element={<AdminData />} />
+            <Route path="/entrepreneur" element={<Entrepreneur />} />
+            <Route path="/entrepreneur/inscription" element={<EntrepreneurSignup />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </AppErrorBoundary>
 );
 
 export default App;

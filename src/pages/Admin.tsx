@@ -7,13 +7,14 @@ import { CONTAMINATION_OPTIONS, DELIVER_OR_REMOVE_OPTIONS, PROJECT_TYPES, TRUCK_
 import InlineField from "@/components/InlineField";
 import { useLeadStatuses, findStatus, type LeadStatus } from "@/hooks/useLeadStatuses";
 import StatusManagerModal from "@/components/StatusManagerModal";
+import FullPageState from "@/components/FullPageState";
 import {
   Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List,
   Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings,
 } from "lucide-react";
-import type { User } from "@supabase/supabase-js";
 import AdminMap from "@/components/AdminMap";
 import { useUserRoles } from "@/hooks/useUserRole";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import CsvImportModal from "@/components/CsvImportModal";
 import GoogleSheetImportModal from "@/components/GoogleSheetImportModal";
 import ExcelImportModal from "@/components/ExcelImportModal";
@@ -74,7 +75,6 @@ const getMaterialLabels = (ids: string[]) =>
   ids.map((id) => MATERIAL_TYPES.find((m) => m.id === id)?.label || id).join(", ");
 
 const Admin = () => {
-  const [user, setUser] = useState<User | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -91,26 +91,22 @@ const Admin = () => {
   const [showStatusManager, setShowStatusManager] = useState(false);
   const { statuses: leadStatuses } = useLeadStatuses();
   const navigate = useNavigate();
-  const { isAdmin, isEntrepreneur, loading: roleLoading } = useUserRoles();
+  const { user, isReady: authReady } = useAuthReady();
+  const { isAdmin, isEntrepreneur, loading: roleLoading } = useUserRoles(user, authReady);
 
   useEffect(() => {
-    if (roleLoading) return;
+    if (!authReady || roleLoading) return;
     if (!isAdmin && isEntrepreneur) navigate("/entrepreneur", { replace: true });
-  }, [isAdmin, isEntrepreneur, roleLoading, navigate]);
+  }, [authReady, isAdmin, isEntrepreneur, roleLoading, navigate]);
 
   useEffect(() => {
-    // Only react to explicit sign-out events to avoid redirecting during
-    // the brief window where Supabase is still restoring the session from storage.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (event === "SIGNED_OUT") navigate("/login", { replace: true });
-    });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) navigate("/login", { replace: true });
-      else { setUser(session.user); fetchSubmissions(); }
-    });
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    if (!authReady) return;
+    if (!user) {
+      navigate("/login", { replace: true });
+      return;
+    }
+    fetchSubmissions();
+  }, [authReady, user, navigate]);
 
   // Empêcher le bouton "précédent" du navigateur/téléphone de quitter le site
   // depuis la page admin. On pousse un état factice puis on le re-pousse à
@@ -424,7 +420,9 @@ const Admin = () => {
     });
   }, [submissions, filterStatus, filterType, searchQuery]);
 
-  if (!user || roleLoading) return null;
+  if (!authReady || !user || roleLoading) {
+    return <FullPageState title="Connexion en cours" message="Votre session est en vérification, la page va s’ouvrir automatiquement." />;
+  }
   if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRole";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import FullPageState from "@/components/FullPageState";
 import { ArrowLeft, Loader2, Search } from "lucide-react";
 
 type Tab = "entrepreneurs" | "payments" | "expenses";
@@ -12,13 +14,17 @@ export default function AdminData() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const navigate = useNavigate();
-  const { isAdmin, loading: roleLoading } = useUserRoles();
+  const { user, isReady: authReady } = useAuthReady();
+  const { isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
 
   useEffect(() => {
-    if (!roleLoading && !isAdmin) navigate("/login");
-  }, [isAdmin, roleLoading, navigate]);
+    if (!authReady || roleLoading) return;
+    if (!user) navigate("/login", { replace: true });
+    else if (!isAdmin) navigate("/login", { replace: true });
+  }, [authReady, user, isAdmin, roleLoading, navigate]);
 
   useEffect(() => {
+    if (!authReady || roleLoading || !isAdmin) return;
     const load = async () => {
       setLoading(true);
       const { data } = await supabase.from(tab).select("*").order("created_at", { ascending: false }).limit(2000);
@@ -26,7 +32,11 @@ export default function AdminData() {
       setLoading(false);
     };
     load();
-  }, [tab]);
+  }, [tab, authReady, roleLoading, isAdmin]);
+
+  if (!authReady || !user || roleLoading) {
+    return <FullPageState title="Connexion en cours" message="Les données administratives se chargent automatiquement." />;
+  }
 
   const filtered = rows.filter((r) => {
     if (!q) return true;
