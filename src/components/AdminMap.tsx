@@ -84,9 +84,12 @@ const buildPopup = (sub: Submission) => {
   return html;
 };
 
+const HIDDEN_STATUSES = ["archivé", "perdu", "terminé"];
+
 interface Props {
   submissions: Submission[];
   onMove?: (id: string, lat: number, lon: number) => void;
+  showInactive?: boolean;
 }
 
 const AdminMap = ({ submissions, onMove }: Props) => {
