@@ -10,10 +10,13 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import FullPageState from "@/components/FullPageState";
 import {
-  colorForMaterials,
   MATERIAL_COLORS,
   MATERIAL_LEGEND,
+  materialKeyForId,
+  type MaterialColorKey,
 } from "@/lib/material-colors";
+
+const MARKER_COLOR = MATERIAL_COLORS.remblai.color; // green markers for all dump points
 
 interface EntLead {
   id: string;
@@ -47,6 +50,26 @@ const Entrepreneur = () => {
   const navigate = useNavigate();
   const { user, isReady: authReady } = useAuthReady();
   const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
+  const [activeFilters, setActiveFilters] = useState<Set<MaterialColorKey>>(new Set());
+
+  const toggleFilter = (k: MaterialColorKey) => {
+    setActiveFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k); else next.add(k);
+      return next;
+    });
+  };
+
+  const leadMaterialKeys = (l: EntLead): MaterialColorKey[] => {
+    const keys = new Set<MaterialColorKey>((l.materials || []).map(materialKeyForId));
+    const rt = (l.request_type || "").toLowerCase();
+    if (rt.includes("remblai") || rt.includes("depot") || rt.includes("dépôt")) keys.add("remblai");
+    return Array.from(keys);
+  };
+
+  const filteredLeads = activeFilters.size === 0
+    ? leads
+    : leads.filter((l) => leadMaterialKeys(l).some((k) => activeFilters.has(k)));
 
   useEffect(() => {
     if (!authReady) return;
@@ -80,7 +103,7 @@ const Entrepreneur = () => {
   useEffect(() => {
     if (!containerRef.current) return;
     if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
-    const geo = leads.filter((l) => l.latitude && l.longitude);
+    const geo = filteredLeads.filter((l) => l.latitude && l.longitude);
     const map = L.map(containerRef.current, {
       scrollWheelZoom: false,
     }).setView([46.8, -71.2], 8);
@@ -92,7 +115,7 @@ const Entrepreneur = () => {
 
     const markers: L.Marker[] = [];
     geo.forEach((l) => {
-      const color = colorForMaterials(l.materials, l.request_type);
+      const color = MARKER_COLOR;
       const icon = L.divIcon({
         className: "",
         html: `<div style="background:${color};color:#fff;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);">${l.submission_number}</div>`,
@@ -114,7 +137,7 @@ const Entrepreneur = () => {
       map.fitBounds(L.latLngBounds(markers.map((m) => m.getLatLng())), { padding: [40, 40], maxZoom: 11 });
     }
     return () => { map.remove(); mapRef.current = null; };
-  }, [leads]);
+  }, [filteredLeads]);
 
   const focusLead = (l: EntLead) => {
     const m = markersRef.current[l.id];
@@ -162,16 +185,45 @@ const Entrepreneur = () => {
       <main className="flex-1 container mx-auto px-4 sm:px-6 py-6">
         <div className="mb-4 space-y-3">
           <h1 className="text-xl sm:text-2xl font-display font-bold">
-            Dompes disponibles ({leads.length})
+            Dompes disponibles ({filteredLeads.length}{activeFilters.size > 0 ? ` / ${leads.length}` : ""})
           </h1>
-          <div className="bg-card border border-border rounded-lg px-3 py-2 overflow-x-auto">
-            <div className="flex items-center gap-x-4 gap-y-1.5 text-xs font-body whitespace-nowrap min-w-max">
+          <div className="bg-card border border-border rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 mb-2">
               <span className="text-muted-foreground font-display font-semibold uppercase tracking-wide text-[10px]">
-                Matériaux
+                Filtrer par matériau
               </span>
-              {MATERIAL_LEGEND.map((k) => (
-                <Legend key={k} color={MATERIAL_COLORS[k].color} label={MATERIAL_COLORS[k].label} />
-              ))}
+              {activeFilters.size > 0 && (
+                <button
+                  onClick={() => setActiveFilters(new Set())}
+                  className="text-[10px] text-primary hover:underline font-display"
+                >
+                  Réinitialiser
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {MATERIAL_LEGEND.map((k) => {
+                const active = activeFilters.has(k);
+                const c = MATERIAL_COLORS[k];
+                return (
+                  <button
+                    key={k}
+                    onClick={() => toggleFilter(k)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-body border transition-all ${
+                      active
+                        ? "text-white border-transparent shadow-sm"
+                        : "bg-background text-foreground border-border hover:border-primary/40"
+                    }`}
+                    style={active ? { background: c.color } : undefined}
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ background: active ? "rgba(255,255,255,0.85)" : c.color }}
+                    />
+                    {c.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -184,20 +236,29 @@ const Entrepreneur = () => {
               <div ref={containerRef} style={{ height: "60vh", minHeight: 400, width: "100%" }} />
             </div>
             <div className="space-y-2 lg:max-h-[60vh] lg:overflow-auto">
-              {leads.length === 0 && <p className="text-sm text-muted-foreground">Aucune dompe pour le moment.</p>}
-              {leads.map((l) => (
+              {filteredLeads.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {leads.length === 0 ? "Aucune dompe pour le moment." : "Aucune dompe ne correspond aux filtres."}
+                </p>
+              )}
+              {filteredLeads.map((l) => (
                 <button key={l.id} onClick={() => focusLead(l)}
                   className="w-full text-left p-3 bg-card rounded-lg border border-border hover:border-primary/50 transition-colors">
-                  <div className="flex items-center justify-between mb-1 gap-2">
+                  <div className="flex items-center justify-between mb-1.5 gap-2">
                     <span className="font-display font-bold text-sm">#{l.submission_number}</span>
-                    <span
-                      className="text-[10px] uppercase font-display font-bold px-2 py-0.5 rounded text-white truncate"
-                      style={{ background: colorForMaterials(l.materials, l.request_type) }}
-                    >
-                      {matLabels(l.materials) || "—"}
-                    </span>
+                    <span className="text-[10px] text-muted-foreground font-body">{l.quantity}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">{matLabels(l.materials)} • {l.quantity}</p>
+                  <div className="flex flex-wrap gap-1 mb-1.5">
+                    {leadMaterialKeys(l).map((k) => (
+                      <span
+                        key={k}
+                        className="text-[10px] uppercase font-display font-bold px-1.5 py-0.5 rounded text-white"
+                        style={{ background: MATERIAL_COLORS[k].color }}
+                      >
+                        {MATERIAL_COLORS[k].label}
+                      </span>
+                    ))}
+                  </div>
                   <p className="text-xs text-muted-foreground">Secteur: {l.postal_prefix || "—"}</p>
                 </button>
               ))}
