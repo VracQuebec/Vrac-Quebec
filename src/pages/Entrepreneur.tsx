@@ -271,9 +271,6 @@ const Entrepreneur = () => {
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-const matLabelsHtml = (ids: string[]) =>
-  escapeHtml(ids.map((i) => MATERIAL_TYPES.find((m) => m.id === i)?.label || i).join(", "));
-
 const buildPopupHtml = (l: EntLead) => {
   const statusLabel = l.is_assigned ? "Attribué" : l.status;
   const acc = l.accessibility && l.accessibility.length > 0 ? escapeHtml(l.accessibility.join(", ")) : "—";
