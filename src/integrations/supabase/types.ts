@@ -633,6 +633,7 @@ export type Database = {
           contamination: string
           created_at: string
           deliver_or_remove: string
+          dompe_number: string
           id: string
           is_assigned: boolean
           latitude: number
