@@ -110,11 +110,18 @@
   }
 }
 
-/* Leaflet — keep map panes below sticky nav (nav uses z-[1000]) */
-.leaflet-pane,
+/* Leaflet — keep map panes BELOW Radix dialogs/popovers/toasts (which use z-50)
+   and below the sticky nav. Radix overlays sit at z-50 so we cap leaflet at z-10. */
+.leaflet-container { z-index: 0 !important; }
+.leaflet-pane { z-index: 1 !important; }
+.leaflet-tile-pane { z-index: 1 !important; }
+.leaflet-overlay-pane { z-index: 2 !important; }
+.leaflet-shadow-pane { z-index: 3 !important; }
+.leaflet-marker-pane { z-index: 4 !important; }
+.leaflet-tooltip-pane { z-index: 5 !important; }
+.leaflet-popup-pane { z-index: 6 !important; }
 .leaflet-top,
-.leaflet-bottom { z-index: 400 !important; }
-.leaflet-popup-pane { z-index: 600 !important; }
+.leaflet-bottom { z-index: 10 !important; }
 
 /* Custom popup styling — works mobile + desktop */
 .leaflet-popup-content-wrapper {
