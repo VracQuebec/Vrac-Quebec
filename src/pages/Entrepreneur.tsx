@@ -20,6 +20,7 @@ const MARKER_COLOR = MATERIAL_COLORS.remblai.color; // green markers for all dum
 interface EntLead {
   id: string;
   submission_number: number;
+  dompe_number?: string | null;
   materials: string[];
   other_material: string | null;
   request_type: string;
@@ -115,9 +116,11 @@ const Entrepreneur = () => {
     const markers: L.Marker[] = [];
     geo.forEach((l) => {
       const color = MARKER_COLOR;
+      const label = (l.dompe_number && l.dompe_number.trim()) || String(l.submission_number);
+      const fontSize = label.length <= 3 ? 12 : label.length <= 5 ? 10 : 9;
       const icon = L.divIcon({
         className: "",
-        html: `<div style="background:${color};color:#fff;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);">${l.submission_number}</div>`,
+        html: `<div style="background:${color};color:#fff;min-width:30px;height:30px;padding:0 6px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:${fontSize}px;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);white-space:nowrap;">${label}</div>`,
         iconSize: [30, 30], iconAnchor: [15, 15],
       });
       const m = L.marker([l.latitude!, l.longitude!], { icon })
@@ -242,7 +245,7 @@ const Entrepreneur = () => {
                 <button key={l.id} onClick={() => focusLead(l)}
                   className="w-full text-left p-3 bg-card rounded-lg border border-border hover:border-primary/50 transition-colors">
                   <div className="flex items-center justify-between mb-1.5 gap-2">
-                    <span className="font-display font-bold text-sm">#{l.submission_number}</span>
+                    <span className="font-display font-bold text-sm">#{(l.dompe_number && l.dompe_number.trim()) || l.submission_number}</span>
                     <span className="text-[10px] text-muted-foreground font-body">{l.quantity}</span>
                   </div>
                   <div className="flex flex-wrap gap-1 mb-1.5">
@@ -283,7 +286,7 @@ const buildPopupHtml = (l: EntLead) => {
     .join("");
   return `
     <div class="ent-pop-title">
-      <span>Dompe #${l.submission_number}</span>
+      <span>Dompe #${escapeHtml((l.dompe_number && l.dompe_number.trim()) || String(l.submission_number))}</span>
       <span class="ent-pop-badge" style="background:${MARKER_COLOR}">${escapeHtml(statusLabel)}</span>
     </div>
     <div class="ent-pop-row"><b>Matériaux :</b><div class="ent-pop-mats">${matBadges || "—"}</div></div>
