@@ -33,18 +33,8 @@ const SessionKeeper = () => {
     const onOnline = () => refresh();
 
     const onPageHide = () => {
-      // If the user explicitly opted OUT of "Rester connecté", clear the
-      // local session when the tab is closed. Default behavior keeps it.
-      try {
-        const stay = localStorage.getItem("vq_stay_logged_in");
-        if (stay === "0") {
-          // Local-only sign-out: removes tokens from storage without
-          // revoking the refresh token server-side.
-          supabase.auth.signOut({ scope: "local" });
-        }
-      } catch {
-        /* ignore */
-      }
+      // Always keep the session — the user wants to stay logged in across
+      // tab closures, browser restarts, and navigations of any kind.
     };
 
     // Kick things off once on mount.
