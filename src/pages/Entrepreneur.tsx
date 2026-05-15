@@ -116,7 +116,13 @@ const Entrepreneur = () => {
     const markers: L.Marker[] = [];
     geo.forEach((l) => {
       const color = MARKER_COLOR;
-      const label = (l.dompe_number && l.dompe_number.trim()) || String(l.submission_number);
+      const label = (() => {
+        if (l.dompe_number) {
+          const cleaned = l.dompe_number.replace(/^dompe\s*/i, "").trim();
+          if (cleaned) return cleaned;
+        }
+        return String(l.submission_number);
+      })();
       const fontSize = label.length <= 3 ? 12 : label.length <= 5 ? 10 : 9;
       const icon = L.divIcon({
         className: "",
