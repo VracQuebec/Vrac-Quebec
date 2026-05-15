@@ -62,6 +62,14 @@ const createNumberIcon = (label: string, color: string) => {
 const displayNumber = (sub: { dompe_number?: string | null; submission_number: number | null }) =>
   (sub.dompe_number && sub.dompe_number.trim()) || String(sub.submission_number ?? "?");
 
+const markerLabel = (sub: { dompe_number?: string | null; submission_number: number | null }) => {
+  if (sub.dompe_number) {
+    const cleaned = sub.dompe_number.replace(/^dompe\s*/i, "").trim();
+    if (cleaned) return cleaned;
+  }
+  return String(sub.submission_number ?? "?");
+};
+
 const getMaterialLabels = (ids: string[]) =>
   ids.map((id) => MATERIAL_TYPES.find((m) => m.id === id)?.label || id).join(", ");
 
