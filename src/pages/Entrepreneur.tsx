@@ -165,8 +165,6 @@ const Entrepreneur = () => {
     );
   }
 
-  const matLabels = (ids: string[]) => ids.map((i) => MATERIAL_TYPES.find((m) => m.id === i)?.label || i).join(", ");
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <nav className="sticky top-0 z-[1000] bg-card/80 backdrop-blur-md border-b border-border">
