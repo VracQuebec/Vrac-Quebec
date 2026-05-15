@@ -25,13 +25,28 @@ interface Submission {
   phone: string | null;
   description: string | null;
   created_at: string;
+  request_type?: string | null;
+  internal_notes?: string | null;
+  status?: string | null;
+  show_on_admin_map?: boolean | null;
 }
 
-const createNumberIcon = (num: number) =>
+const colorForMaterials = (mats: string[] | null | undefined, requestType?: string | null) => {
+  const s = (mats || []).join("|").toLowerCase();
+  const rt = (requestType || "").toLowerCase();
+  if (rt.includes("remblai") || rt.includes("depot") || rt.includes("dépôt") || s.includes("remplissage")) return "#16a34a"; // remblai gratuit = vert
+  if (s.includes("béton") || s.includes("beton")) return "#2563eb"; // bleu
+  if (s.includes("asphalte")) return "#0a0a0a"; // noir
+  if (s.includes("gravier") || s.includes("roche") || s.includes("pierre") || s.includes("concass")) return "#6b7280"; // gris
+  if (s.includes("terre") || s.includes("sable")) return "#8B4513"; // brun
+  return "#f97316"; // défaut orange
+};
+
+const createNumberIcon = (num: number, color: string) =>
   L.divIcon({
     className: "",
     html: `<div style="
-      background: hsl(30, 90%, 50%);
+      background: ${color};
       color: white;
       width: 32px;
       height: 32px;
@@ -59,8 +74,10 @@ const buildPopup = (sub: Submission) => {
     <div style="font-weight:800;font-size:16px;margin-bottom:6px;color:#1a1a1a">
       #${sub.submission_number} — ${sub.name}
     </div>
+    <div><b>Type de demande:</b> ${sub.request_type || "—"}</div>
     <div><b>Matériaux:</b> ${getMaterialLabels(sub.materials)}</div>`;
   if (sub.other_material) html += `<div><b>Autre:</b> ${sub.other_material}</div>`;
+  if (sub.status) html += `<div><b>Statut:</b> ${sub.status}</div>`;
   html += `<div><b>Type:</b> ${sub.property_type}</div>
     <div><b>Voyages:</b> ${sub.quantity}</div>
     <div><b>Tonnage:</b> ${sub.tonnage}</div>`;
@@ -72,6 +89,7 @@ const buildPopup = (sub: Submission) => {
     <div><b>Courriel:</b> ${sub.email}</div>`;
   if (sub.phone) html += `<div><b>Téléphone:</b> ${sub.phone}</div>`;
   if (sub.description) html += `<div><b>Notes:</b> ${sub.description}</div>`;
+  if (sub.internal_notes) html += `<div style="margin-top:4px;padding:4px 6px;background:#fff7ed;border-left:3px solid #f97316;border-radius:3px"><b>Notes internes:</b> ${sub.internal_notes}</div>`;
   html += `<div style="margin-top:6px;color:#888;font-size:11px">${formatDate(sub.created_at)}</div></div>`;
   return html;
 };
@@ -85,7 +103,9 @@ const AdminMap = ({ submissions, onMove }: Props) => {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const geoSubs = submissions.filter((s) => s.latitude && s.longitude);
+  const geoSubs = submissions.filter(
+    (s) => s.latitude && s.longitude && s.show_on_admin_map !== false
+  );
 
   useEffect(() => {
     if (!containerRef.current || geoSubs.length === 0) return;
@@ -105,8 +125,9 @@ const AdminMap = ({ submissions, onMove }: Props) => {
 
     const markers: L.Marker[] = [];
     geoSubs.forEach((sub) => {
+      const color = colorForMaterials(sub.materials, sub.request_type);
       const marker = L.marker([sub.latitude!, sub.longitude!], {
-        icon: createNumberIcon(sub.submission_number || 0),
+        icon: createNumberIcon(sub.submission_number || 0, color),
         draggable: false,
       })
         .bindPopup(buildPopup(sub), { maxWidth: 320, minWidth: 260 })
@@ -121,7 +142,7 @@ const AdminMap = ({ submissions, onMove }: Props) => {
           const el = marker.getElement();
           if (el) {
             el.style.transform += " scale(1.25)";
-            el.style.filter = "drop-shadow(0 0 8px hsl(30, 90%, 50%))";
+            el.style.filter = `drop-shadow(0 0 8px ${color})`;
             el.style.transition = "filter 0.2s";
           }
         };
