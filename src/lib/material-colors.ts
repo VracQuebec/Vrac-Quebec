@@ -45,3 +45,15 @@ export const colorForMaterials = (
   if (s.includes("terre")) return MATERIAL_COLORS.terre.color;
   return MATERIAL_COLORS.autre.color;
 };
+
+// Map a single material id (from MATERIAL_TYPES or free text) to a color key.
+export const materialKeyForId = (id: string): MaterialColorKey => {
+  const v = (id || "").toLowerCase();
+  if (v.includes("remplissage") || v.includes("remblai")) return "remblai";
+  if (v.includes("béton") || v.includes("beton")) return "beton";
+  if (v.includes("asphalte")) return "asphalte";
+  if (v.includes("roche") || v.includes("gravier") || v.includes("pierre") || v.includes("concass")) return "gravier";
+  if (v.includes("sable")) return "sable";
+  if (v.includes("terre")) return "terre";
+  return "autre";
+};
