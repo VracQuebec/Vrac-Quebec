@@ -9,6 +9,11 @@ import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import FullPageState from "@/components/FullPageState";
+import {
+  colorForMaterials,
+  MATERIAL_COLORS,
+  MATERIAL_LEGEND,
+} from "@/lib/material-colors";
 
 interface EntLead {
   id: string;
@@ -32,13 +37,6 @@ interface EntLead {
   created_at: string;
   is_assigned: boolean;
 }
-
-const colorForStatus = (status: string, isAssigned: boolean) => {
-  if (status === "archivé") return "#94a3b8"; // gray
-  if (isAssigned || status === "gagné") return "#16a34a"; // green
-  if (status === "en attente" || status === "soumission envoyée") return "#2563eb"; // blue
-  return "#f97316"; // orange = nouveau
-};
 
 const Entrepreneur = () => {
   const [leads, setLeads] = useState<EntLead[]>([]);
@@ -94,7 +92,7 @@ const Entrepreneur = () => {
 
     const markers: L.Marker[] = [];
     geo.forEach((l) => {
-      const color = colorForStatus(l.status, l.is_assigned);
+      const color = colorForMaterials(l.materials, l.request_type);
       const icon = L.divIcon({
         className: "",
         html: `<div style="background:${color};color:#fff;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);">${l.submission_number}</div>`,
