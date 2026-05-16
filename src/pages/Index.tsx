@@ -133,9 +133,14 @@ const Index = () => {
           </div>
           <div className="flex items-center justify-between w-full flex-wrap gap-2">
             <span>© 2026 VracQuébec. Tous droits réservés.</span>
-            <a href="/login" className="hover:text-foreground transition-colors text-xs">
-              Administration
-            </a>
+            <div className="flex items-center gap-4">
+              <a href="/blog" className="hover:text-foreground transition-colors text-xs">
+                Blogue
+              </a>
+              <a href="/login" className="hover:text-foreground transition-colors text-xs">
+                Administration
+              </a>
+            </div>
           </div>
         </div>
       </footer>
