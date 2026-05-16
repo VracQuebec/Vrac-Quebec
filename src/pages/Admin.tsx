@@ -486,6 +486,24 @@ const Admin = () => {
       </nav>
 
       <main className="container mx-auto px-4 sm:px-6 py-8">
+        <div className="flex flex-wrap gap-2 mb-5">
+          <button onClick={() => setTab("leads")}
+            className={`px-4 py-2 rounded-lg text-sm font-display font-semibold ${tab === "leads" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
+            Demandes (CRM)
+          </button>
+          <button onClick={() => setTab("billing")}
+            className={`px-4 py-2 rounded-lg text-sm font-display font-semibold ${tab === "billing" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
+            Facturation
+          </button>
+        </div>
+
+        {tab === "billing" ? (
+          <>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-5">Facturation et paiements</h1>
+            <BillingOverview onOpenLead={(id) => { setTab("leads"); setExpanded(id); }} />
+          </>
+        ) : (
+        <>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
             Demandes ({filtered.length})
@@ -634,6 +652,8 @@ const Admin = () => {
               />
             ))}
           </div>
+        )}
+        </>
         )}
       </main>
 
