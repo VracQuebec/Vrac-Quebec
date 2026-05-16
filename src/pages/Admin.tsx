@@ -1087,6 +1087,9 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
             </div>
           )}
 
+          {/* Facturation */}
+          <BillingSection submissionId={sub.id} />
+
           {/* Internal notes timeline */}
           <div>
             <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Notes internes (privées)</label>
