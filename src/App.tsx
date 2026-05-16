@@ -13,6 +13,7 @@ import EntrepreneurSignup from "./pages/EntrepreneurSignup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import Blog from "./pages/Blog";
 import SessionKeeper from "./components/SessionKeeper";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/admin/donnees" element={<AdminData />} />
             <Route path="/entrepreneur" element={<Entrepreneur />} />
             <Route path="/entrepreneur/inscription" element={<EntrepreneurSignup />} />
+            <Route path="/blog" element={<Blog />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

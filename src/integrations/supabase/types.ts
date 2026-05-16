@@ -295,6 +295,78 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_trips: {
+        Row: {
+          created_at: string
+          delivery_date: string | null
+          entrepreneur_id: string | null
+          id: string
+          invoice_number: string
+          material: string
+          notes: string
+          payment_date: string | null
+          payment_method: string
+          payment_status: string
+          price_per_trip: number
+          submission_id: string
+          total_price: number
+          trip_type: string
+          trips_count: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_date?: string | null
+          entrepreneur_id?: string | null
+          id?: string
+          invoice_number?: string
+          material?: string
+          notes?: string
+          payment_date?: string | null
+          payment_method?: string
+          payment_status?: string
+          price_per_trip?: number
+          submission_id: string
+          total_price?: number
+          trip_type?: string
+          trips_count?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_date?: string | null
+          entrepreneur_id?: string | null
+          id?: string
+          invoice_number?: string
+          material?: string
+          notes?: string
+          payment_date?: string | null
+          payment_method?: string
+          payment_status?: string
+          price_per_trip?: number
+          submission_id?: string
+          total_price?: number
+          trip_type?: string
+          trips_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_trips_entrepreneur_id_fkey"
+            columns: ["entrepreneur_id"]
+            isOneToOne: false
+            referencedRelation: "entrepreneurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_trips_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           charged_to_entrepreneur: number | null

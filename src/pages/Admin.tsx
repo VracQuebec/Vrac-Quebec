@@ -14,6 +14,9 @@ import {
   Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings,
 } from "lucide-react";
 import AdminMap from "@/components/AdminMap";
+import BillingSection from "@/components/BillingSection";
+import BillingOverview from "@/components/BillingOverview";
+import { overdueBucket as tripOverdueBucket } from "@/lib/billing";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import CsvImportModal from "@/components/CsvImportModal";
@@ -92,6 +95,8 @@ const Admin = () => {
   const [rechecking, setRechecking] = useState<{ done: number; total: number } | null>(null);
   const [showStatusManager, setShowStatusManager] = useState(false);
   const [showArchivedOnMap, setShowArchivedOnMap] = useState(false);
+  const [tab, setTab] = useState<"leads" | "billing">("leads");
+  const overdueNotifiedRef = useRef(false);
   const { statuses: leadStatuses } = useLeadStatuses();
   const navigate = useNavigate();
   const { user, isReady: authReady } = useAuthReady();
@@ -110,6 +115,27 @@ const Admin = () => {
     }
     fetchSubmissions();
   }, [authReady, user, navigate]);
+
+  // Check overdue invoices on admin load and notify
+  useEffect(() => {
+    if (!isAdmin || overdueNotifiedRef.current) return;
+    overdueNotifiedRef.current = true;
+    (async () => {
+      const { data } = await supabase.from("lead_trips" as any).select("*").limit(2000);
+      const trips = (data as any) || [];
+      const overdue = trips.filter((t: any) => tripOverdueBucket(t));
+      if (overdue.length > 0) {
+        const b7 = overdue.filter((t: any) => tripOverdueBucket(t)?.bucket === 7).length;
+        const b14 = overdue.filter((t: any) => tripOverdueBucket(t)?.bucket === 14).length;
+        const b28 = overdue.filter((t: any) => tripOverdueBucket(t)?.bucket === 28).length;
+        toast({
+          title: `${overdue.length} paiement(s) en retard`,
+          description: `≥7j : ${b7} · ≥14j : ${b14} · ≥28j : ${b28}`,
+          variant: "destructive",
+        });
+      }
+    })();
+  }, [isAdmin]);
 
   // Empêcher le bouton "précédent" du navigateur/téléphone de quitter le site
   // depuis la page admin. On pousse un état factice puis on le re-pousse à
@@ -460,6 +486,24 @@ const Admin = () => {
       </nav>
 
       <main className="container mx-auto px-4 sm:px-6 py-8">
+        <div className="flex flex-wrap gap-2 mb-5">
+          <button onClick={() => setTab("leads")}
+            className={`px-4 py-2 rounded-lg text-sm font-display font-semibold ${tab === "leads" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
+            Demandes (CRM)
+          </button>
+          <button onClick={() => setTab("billing")}
+            className={`px-4 py-2 rounded-lg text-sm font-display font-semibold ${tab === "billing" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
+            Facturation
+          </button>
+        </div>
+
+        {tab === "billing" ? (
+          <>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-5">Facturation et paiements</h1>
+            <BillingOverview onOpenLead={(id) => { setTab("leads"); setExpanded(id); }} />
+          </>
+        ) : (
+        <>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
             Demandes ({filtered.length})
@@ -608,6 +652,8 @@ const Admin = () => {
               />
             ))}
           </div>
+        )}
+        </>
         )}
       </main>
 
@@ -1040,6 +1086,9 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               </div>
             </div>
           )}
+
+          {/* Facturation */}
+          <BillingSection submissionId={sub.id} />
 
           {/* Internal notes timeline */}
           <div>
