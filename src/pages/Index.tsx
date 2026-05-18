@@ -1,5 +1,5 @@
 import Questionnaire from "@/components/Questionnaire";
-import heroBanner from "@/assets/hero-banner.png";
+import heroBanner from "@/assets/hero-banner.webp";
 import { HardHat } from "lucide-react";
 
 const Index = () => {
@@ -25,6 +25,10 @@ const Index = () => {
           src={heroBanner}
           alt="Vrac Québec — Sites de dépôt, terre, sable, gravier, remblai"
           className="md:hidden w-full h-[280px] sm:h-[360px] object-cover"
+          fetchPriority="high"
+          decoding="async"
+          width={1200}
+          height={360}
         />
         <div className="md:hidden absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
 
