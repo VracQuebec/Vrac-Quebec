@@ -42,6 +42,8 @@ const StepMaterials = ({ selected, otherMaterial, onSelect, onOtherChange }: Pro
                 <img
                   src={mat.image}
                   alt={mat.label}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
               </div>
