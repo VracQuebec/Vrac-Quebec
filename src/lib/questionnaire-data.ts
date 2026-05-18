@@ -1,14 +1,14 @@
-import terreImg from "@/assets/terre.jpg";
+import terreImg from "@/assets/terre.webp";
 import sableImg from "@/assets/sable.jpg";
 import rocheImg from "@/assets/roche.jpg";
 import rocheConcasseeImg from "@/assets/roche-concassee.jpg";
-import remplissageImg from "@/assets/remplissage.jpg";
-import truck10 from "@/assets/truck-10-wheels.png";
-import truck12 from "@/assets/truck-12-wheels.png";
-import truckSemi from "@/assets/truck-semi.png";
+import remplissageImg from "@/assets/remplissage.webp";
+import truck10 from "@/assets/truck-10-wheels.webp";
+import truck12 from "@/assets/truck-12-wheels.webp";
+import truckSemi from "@/assets/truck-semi.webp";
 import projectEntree from "@/assets/project-entree.jpg";
-import projectFondation from "@/assets/project-fondation.jpg";
-import projectAmenagement from "@/assets/project-amenagement.jpg";
+import projectFondation from "@/assets/project-fondation.webp";
+import projectAmenagement from "@/assets/project-amenagement.webp";
 import projectRemplissage from "@/assets/project-remplissage.jpg";
 
 export const MATERIAL_TYPES = [
