@@ -3,19 +3,20 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Admin from "./pages/Admin";
-import AdminData from "./pages/AdminData";
-import Entrepreneur from "./pages/Entrepreneur";
-import EntrepreneurSignup from "./pages/EntrepreneurSignup";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import NotFound from "./pages/NotFound";
-import Blog from "./pages/Blog";
 import SessionKeeper from "./components/SessionKeeper";
 import AppErrorBoundary from "./components/AppErrorBoundary";
+
+const Login = lazy(() => import("./pages/Login"));
+const Admin = lazy(() => import("./pages/Admin"));
+const AdminData = lazy(() => import("./pages/AdminData"));
+const Entrepreneur = lazy(() => import("./pages/Entrepreneur"));
+const EntrepreneurSignup = lazy(() => import("./pages/EntrepreneurSignup"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Blog = lazy(() => import("./pages/Blog"));
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
         <BrowserRouter>
           <ScrollToTop />
           <SessionKeeper />
+          <Suspense fallback={null}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
@@ -48,6 +50,7 @@ const App = () => (
             <Route path="/blog" element={<Blog />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
