@@ -1118,6 +1118,21 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               {sub.dompe_number && <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Dompe :</span> {sub.dompe_number}</div>}
               <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Créé le :</span> {formatDate(sub.created_at)}</div>
               <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">GPS :</span> {sub.latitude && sub.longitude ? `${sub.latitude.toFixed(4)}, ${sub.longitude.toFixed(4)}` : "—"}</div>
+              <div className="sm:col-span-2">
+                <span className="uppercase tracking-wide text-[10px] font-display font-bold">Validation géo :</span>{" "}
+                {(() => {
+                  const st = sub.geocoding_status || "pending";
+                  const map: Record<string, { label: string; cls: string }> = {
+                    validated_address: { label: "Adresse validée", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
+                    validated_postal:  { label: "Centre code postal", cls: "bg-blue-100 text-blue-800 border-blue-300" },
+                    approximate:       { label: "Position approximative", cls: "bg-amber-100 text-amber-800 border-amber-300" },
+                    error:             { label: "Erreur géocodage", cls: "bg-rose-100 text-rose-800 border-rose-300" },
+                    pending:           { label: "Non vérifiée", cls: "bg-slate-100 text-slate-700 border-slate-300" },
+                  };
+                  const v = map[st] || map.pending;
+                  return <span className={`inline-block px-2 py-0.5 rounded border text-[11px] font-display font-semibold ${v.cls}`}>{v.label}</span>;
+                })()}
+              </div>
             </div>
           </div>
 
