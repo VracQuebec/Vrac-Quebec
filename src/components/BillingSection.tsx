@@ -21,26 +21,39 @@ interface Props {
 const fmtMoney = (n: number) =>
   new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" }).format(n || 0);
 
-const emptyDraft = (): Partial<LeadTrip> => ({
+type TripDraft = {
+  material: string;
+  trip_type: string;
+  trips_count: string;
+  price_per_trip: string;
+  delivery_date: string;
+  invoice_number: string;
+  payment_status: string;
+  payment_date: string;
+  payment_method: string;
+  notes: string;
+  entrepreneur_id: string;
+};
+
+const emptyDraft = (): TripDraft => ({
   material: "",
-  trip_type: "vrac",
-  trips_count: 1,
-  price_per_trip: 0,
-  total_price: 0,
-  delivery_date: null,
+  trip_type: "",
+  trips_count: "",
+  price_per_trip: "",
+  delivery_date: "",
   invoice_number: "",
-  payment_status: "non_facture",
-  payment_date: null,
+  payment_status: "",
+  payment_date: "",
   payment_method: "",
   notes: "",
-  entrepreneur_id: null,
+  entrepreneur_id: "",
 });
 
 export default function BillingSection({ submissionId }: Props) {
   const [trips, setTrips] = useState<LeadTrip[]>([]);
   const [loading, setLoading] = useState(true);
   const [entrepreneurs, setEntrepreneurs] = useState<EntrepreneurRow[]>([]);
-  const [draft, setDraft] = useState<Partial<LeadTrip>>(emptyDraft());
+  const [draft, setDraft] = useState<TripDraft>(emptyDraft());
   const [adding, setAdding] = useState(false);
 
   const load = async () => {
@@ -62,15 +75,6 @@ export default function BillingSection({ submissionId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId]);
 
-  // Auto-compute total
-  useEffect(() => {
-    const t = Number(draft.trips_count || 0) * Number(draft.price_per_trip || 0);
-    if (Number(draft.total_price || 0) !== t) {
-      setDraft((d) => ({ ...d, total_price: t }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft.trips_count, draft.price_per_trip]);
-
   const summary = useMemo(() => {
     let billed = 0, paid = 0, overdue = 0, count = trips.length;
     for (const t of trips) {
@@ -86,13 +90,15 @@ export default function BillingSection({ submissionId }: Props) {
   const addTrip = async () => {
     if (!draft.material) { toast({ title: "Matériau requis", variant: "destructive" }); return; }
     setAdding(true);
+    const tripsCount = draft.trips_count === "" ? 0 : Number(draft.trips_count);
+    const pricePerTrip = draft.price_per_trip === "" ? 0 : Number(draft.price_per_trip);
     const payload = {
       submission_id: submissionId,
       material: draft.material || "",
       trip_type: draft.trip_type || "vrac",
-      trips_count: Number(draft.trips_count || 1),
-      price_per_trip: Number(draft.price_per_trip || 0),
-      total_price: Number(draft.total_price || 0),
+      trips_count: tripsCount,
+      price_per_trip: pricePerTrip,
+      total_price: tripsCount * pricePerTrip,
       delivery_date: draft.delivery_date || null,
       invoice_number: draft.invoice_number || "",
       payment_status: draft.payment_status || "non_facture",
@@ -233,44 +239,48 @@ export default function BillingSection({ submissionId }: Props) {
             </select>
           </Field>
           <Field label="Type">
-            <select value={draft.trip_type || "vrac"} onChange={(e) => setDraft({ ...draft, trip_type: e.target.value })} className={inputCls}>
+            <select value={draft.trip_type} onChange={(e) => setDraft({ ...draft, trip_type: e.target.value })} className={inputCls}>
+              <option value=""></option>
               {REQUEST_TYPES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </Field>
-          <Field label="Voyages"><input type="number" min={0} step="0.5" value={draft.trips_count ?? 1}
-            onChange={(e) => setDraft({ ...draft, trips_count: Number(e.target.value) })} className={inputCls} /></Field>
-          <Field label="Prix / voyage"><input type="number" min={0} step="0.01" value={draft.price_per_trip ?? 0}
-            onChange={(e) => setDraft({ ...draft, price_per_trip: Number(e.target.value) })} className={inputCls} /></Field>
-          <Field label="Date livraison"><input type="date" value={draft.delivery_date || ""}
-            onChange={(e) => setDraft({ ...draft, delivery_date: e.target.value || null })} className={inputCls} /></Field>
-          <Field label="Facture #"><input type="text" value={draft.invoice_number || ""}
+          <Field label="Voyages"><input type="number" value={draft.trips_count}
+            onChange={(e) => setDraft({ ...draft, trips_count: e.target.value })} className={inputCls} /></Field>
+          <Field label="Prix / voyage"><input type="number" value={draft.price_per_trip}
+            onChange={(e) => setDraft({ ...draft, price_per_trip: e.target.value })} className={inputCls} /></Field>
+          <Field label="Date livraison"><input type="date" value={draft.delivery_date}
+            onChange={(e) => setDraft({ ...draft, delivery_date: e.target.value })} className={inputCls} /></Field>
+          <Field label="Facture #"><input type="text" value={draft.invoice_number}
             onChange={(e) => setDraft({ ...draft, invoice_number: e.target.value })} className={inputCls} /></Field>
           <Field label="Statut">
-            <select value={draft.payment_status || "non_facture"} onChange={(e) => setDraft({ ...draft, payment_status: e.target.value })} className={inputCls}>
+            <select value={draft.payment_status} onChange={(e) => setDraft({ ...draft, payment_status: e.target.value })} className={inputCls}>
+              <option value=""></option>
               {PAYMENT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </Field>
           <Field label="Mode paiement">
-            <select value={draft.payment_method || ""} onChange={(e) => setDraft({ ...draft, payment_method: e.target.value })} className={inputCls}>
-              <option value="">—</option>
+            <select value={draft.payment_method} onChange={(e) => setDraft({ ...draft, payment_method: e.target.value })} className={inputCls}>
+              <option value=""></option>
               {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </Field>
-          <Field label="Date paiement"><input type="date" value={draft.payment_date || ""}
-            onChange={(e) => setDraft({ ...draft, payment_date: e.target.value || null })} className={inputCls} /></Field>
+          <Field label="Date paiement"><input type="date" value={draft.payment_date}
+            onChange={(e) => setDraft({ ...draft, payment_date: e.target.value })} className={inputCls} /></Field>
           <Field label="Entrepreneur livreur">
-            <select value={draft.entrepreneur_id || ""} onChange={(e) => setDraft({ ...draft, entrepreneur_id: e.target.value || null })} className={inputCls}>
-              <option value="">—</option>
+            <select value={draft.entrepreneur_id} onChange={(e) => setDraft({ ...draft, entrepreneur_id: e.target.value })} className={inputCls}>
+              <option value=""></option>
               {entrepreneurs.map((en) => <option key={en.id} value={en.id}>{en.name}{en.company ? ` (${en.company})` : ""}</option>)}
             </select>
           </Field>
           <Field label="Total calculé">
-            <div className="px-2 py-1.5 rounded border border-border bg-card font-display font-bold text-foreground">
-              {fmtMoney(Number(draft.total_price || 0))}
+            <div className="px-2 py-1.5 rounded border border-border bg-card font-display font-bold text-foreground min-h-[34px]">
+              {draft.trips_count !== "" && draft.price_per_trip !== ""
+                ? fmtMoney(Number(draft.trips_count) * Number(draft.price_per_trip))
+                : ""}
             </div>
           </Field>
           <Field label="Notes" full>
-            <input type="text" value={draft.notes || ""} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} className={inputCls} />
+            <input type="text" value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} className={inputCls} />
           </Field>
         </div>
         <div className="mt-3 flex justify-end">
