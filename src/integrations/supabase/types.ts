@@ -134,6 +134,69 @@ export type Database = {
         }
         Relationships: []
       }
+      entrepreneur_profiles: {
+        Row: {
+          average_volume: string
+          created_at: string
+          distance_surcharge: number | null
+          equipment: string[]
+          id: string
+          internal_notes: string
+          materials_transported: string[]
+          partner_status: string
+          price_10w: number | null
+          price_12w: number | null
+          price_6w: number | null
+          price_semi: number | null
+          price_trailer_2: number | null
+          price_trailer_3: number | null
+          price_trailer_4: number | null
+          updated_at: string
+          user_id: string
+          wait_time_price: number | null
+        }
+        Insert: {
+          average_volume?: string
+          created_at?: string
+          distance_surcharge?: number | null
+          equipment?: string[]
+          id?: string
+          internal_notes?: string
+          materials_transported?: string[]
+          partner_status?: string
+          price_10w?: number | null
+          price_12w?: number | null
+          price_6w?: number | null
+          price_semi?: number | null
+          price_trailer_2?: number | null
+          price_trailer_3?: number | null
+          price_trailer_4?: number | null
+          updated_at?: string
+          user_id: string
+          wait_time_price?: number | null
+        }
+        Update: {
+          average_volume?: string
+          created_at?: string
+          distance_surcharge?: number | null
+          equipment?: string[]
+          id?: string
+          internal_notes?: string
+          materials_transported?: string[]
+          partner_status?: string
+          price_10w?: number | null
+          price_12w?: number | null
+          price_6w?: number | null
+          price_semi?: number | null
+          price_trailer_2?: number | null
+          price_trailer_3?: number | null
+          price_trailer_4?: number | null
+          updated_at?: string
+          user_id?: string
+          wait_time_price?: number | null
+        }
+        Relationships: []
+      }
       entrepreneurs: {
         Row: {
           address: string | null

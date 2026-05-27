@@ -16,6 +16,7 @@ import {
 import AdminMap from "@/components/AdminMap";
 import BillingSection from "@/components/BillingSection";
 import BillingOverview from "@/components/BillingOverview";
+import EntrepreneursAdmin from "@/components/EntrepreneursAdmin";
 import { overdueBucket as tripOverdueBucket } from "@/lib/billing";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -95,7 +96,7 @@ const Admin = () => {
   const [rechecking, setRechecking] = useState<{ done: number; total: number } | null>(null);
   const [showStatusManager, setShowStatusManager] = useState(false);
   const [showArchivedOnMap, setShowArchivedOnMap] = useState(false);
-  const [tab, setTab] = useState<"leads" | "billing">("leads");
+  const [tab, setTab] = useState<"leads" | "billing" | "entrepreneurs">("leads");
   const overdueNotifiedRef = useRef(false);
   const { statuses: leadStatuses } = useLeadStatuses();
   const navigate = useNavigate();
@@ -495,9 +496,15 @@ const Admin = () => {
             className={`px-4 py-2 rounded-lg text-sm font-display font-semibold ${tab === "billing" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
             Facturation
           </button>
+          <button onClick={() => setTab("entrepreneurs")}
+            className={`px-4 py-2 rounded-lg text-sm font-display font-semibold ${tab === "entrepreneurs" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
+            Entrepreneurs
+          </button>
         </div>
 
-        {tab === "billing" ? (
+        {tab === "entrepreneurs" ? (
+          <EntrepreneursAdmin />
+        ) : tab === "billing" ? (
           <>
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-5">Facturation et paiements</h1>
             <BillingOverview onOpenLead={(id) => { setTab("leads"); setExpanded(id); }} />
