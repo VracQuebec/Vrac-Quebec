@@ -33,6 +33,9 @@ interface Submission {
   dompe_number?: string | null;
   latitude: number | null;
   longitude: number | null;
+  postal_latitude?: number | null;
+  postal_longitude?: number | null;
+  geocoding_status?: string | null;
   materials: string[];
   other_material: string | null;
   property_type: string;
@@ -219,13 +222,26 @@ const Admin = () => {
 
   const archive = (id: string) => updateStatus(id, "archivé");
 
-  // Géocode adresses via plusieurs sources (Nominatim structuré + geocoder.ca en fallback)
-  // Pour précision maximale on combine numéro+rue, ville, province, code postal.
+  // Statuts de géolocalisation :
+  //  - validated_address : adresse civique validée par Nominatim
+  //  - validated_postal  : centre du code postal seulement
+  //  - approximate       : ville/rue sans numéro, requête libre
+  //  - error             : aucun résultat
+  type GeoStatus = "validated_address" | "validated_postal" | "approximate" | "error";
+  type GeoResult = {
+    lat: number | null;
+    lon: number | null;
+    postalLat: number | null;
+    postalLon: number | null;
+    status: GeoStatus;
+  };
+
+  // Nominatim seul (geocoder.ca trottlé/HS). On retourne aussi le centre du code postal
+  // pour la carte des entrepreneurs (anonymisation côté DB).
   const geocodeOne = async (
     address: string,
     postal: string | null
-  ): Promise<{ lat: number; lon: number } | null> => {
-    // Parse "15 rue Griffin, Shannon" -> number, street, city
+  ): Promise<GeoResult> => {
     const cleaned = (address || "").trim();
     const parts = cleaned.split(",").map((p) => p.trim()).filter(Boolean);
     const streetPart = parts[0] || "";
@@ -233,53 +249,73 @@ const Admin = () => {
     const m = streetPart.match(/^(\d+[A-Za-z]?)\s+(.+)$/);
     const number = m?.[1];
     const street = m?.[2] || streetPart;
+    const cleanPostal = (postal || "").trim().toUpperCase().replace(/\s+/g, " ");
 
-    // 1) Nominatim structuré (le plus précis quand on a numéro + rue + ville)
+    let exact: { lat: number; lon: number } | null = null;
+    let approx: { lat: number; lon: number } | null = null;
+    let postalCentroid: { lat: number; lon: number } | null = null;
+
+    // 1) Nominatim structuré (numéro + rue + ville + code postal)
     try {
       const params = new URLSearchParams({
-        format: "json",
-        limit: "1",
-        countrycodes: "ca",
-        state: "Quebec",
+        format: "json", limit: "1", countrycodes: "ca", state: "Quebec",
       });
       if (number) params.set("street", `${number} ${street}`);
       else if (street) params.set("street", street);
       if (cityPart) params.set("city", cityPart);
-      if (postal) params.set("postalcode", postal);
+      if (cleanPostal) params.set("postalcode", cleanPostal);
       const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
       const data = await res.json();
       if (data?.[0]) {
-        // On accepte uniquement si c'est une adresse précise (house/building) ou rue avec numéro
         const t = data[0].addresstype || data[0].type;
-        if (number || ["house", "building", "place"].includes(t)) {
-          return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+        const point = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+        if (number && ["house", "building", "place"].includes(t)) {
+          exact = point;
+        } else {
+          approx = point;
         }
       }
     } catch { /* ignore */ }
 
-    // 2) Fallback geocoder.ca (souvent meilleur pour adresses civiques au Québec)
-    try {
-      const q = [cleaned, postal, "QC"].filter(Boolean).join(", ");
-      const res = await fetch(
-        `https://geocoder.ca/?locate=${encodeURIComponent(q)}&json=1`
-      );
-      const data = await res.json();
-      if (data?.latt && data?.longt) {
-        return { lat: parseFloat(data.latt), lon: parseFloat(data.longt) };
-      }
-    } catch { /* ignore */ }
+    // 2) Centre du code postal (pour anonymisation de la carte entrepreneur)
+    if (cleanPostal) {
+      try {
+        const params = new URLSearchParams({
+          format: "json", limit: "1", countrycodes: "ca", postalcode: cleanPostal,
+        });
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
+        const data = await res.json();
+        if (data?.[0]) {
+          postalCentroid = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+        }
+      } catch { /* ignore */ }
+    }
 
-    // 3) Dernier recours: requête libre Nominatim
-    try {
-      const q = [cleaned, postal, "Québec, Canada"].filter(Boolean).join(", ");
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=ca`
-      );
-      const data = await res.json();
-      if (data?.[0]) return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-    } catch { /* ignore */ }
+    // 3) Si toujours rien, requête libre Nominatim
+    if (!exact && !approx) {
+      try {
+        const q = [cleaned, cleanPostal, "Québec, Canada"].filter(Boolean).join(", ");
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=ca`
+        );
+        const data = await res.json();
+        if (data?.[0]) approx = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+      } catch { /* ignore */ }
+    }
 
-    return null;
+    const best = exact || approx || postalCentroid;
+    let status: GeoStatus = "error";
+    if (exact) status = "validated_address";
+    else if (postalCentroid && !approx) status = "validated_postal";
+    else if (approx || postalCentroid) status = "approximate";
+
+    return {
+      lat: best?.lat ?? null,
+      lon: best?.lon ?? null,
+      postalLat: postalCentroid?.lat ?? best?.lat ?? null,
+      postalLon: postalCentroid?.lon ?? best?.lon ?? null,
+      status,
+    };
   };
 
   const geocodeMissing = async () => {
@@ -296,17 +332,17 @@ const Admin = () => {
     for (let i = 0; i < missing.length; i++) {
       const s = missing[i];
       const found = await geocodeOne(s.address, s.postal_code);
-      if (found) {
-        const { error } = await supabase
-          .from("submissions")
-          .update({ latitude: found.lat, longitude: found.lon })
-          .eq("id", s.id);
-        if (!error) {
-          ok++;
-          setSubmissions((prev) =>
-            prev.map((x) => (x.id === s.id ? { ...x, latitude: found.lat, longitude: found.lon } : x))
-          );
-        }
+      const patch: any = { geocoding_status: found.status };
+      if (found.lat != null && found.lon != null) {
+        patch.latitude = found.lat; patch.longitude = found.lon;
+      }
+      if (found.postalLat != null && found.postalLon != null) {
+        patch.postal_latitude = found.postalLat; patch.postal_longitude = found.postalLon;
+      }
+      const { error } = await supabase.from("submissions").update(patch).eq("id", s.id);
+      if (!error) {
+        if (found.status !== "error") ok++;
+        setSubmissions((prev) => prev.map((x) => (x.id === s.id ? { ...x, ...patch } : x)));
       }
       setGeocoding({ done: i + 1, total: missing.length });
       await new Promise((r) => setTimeout(r, 1100));
@@ -342,25 +378,29 @@ const Admin = () => {
     for (let i = 0; i < targets.length; i++) {
       const s = targets[i];
       const found = await geocodeOne(s.address, s.postal_code);
-      if (!found) {
+      if (found.lat == null || found.lon == null) {
         notFound++;
+        await supabase.from("submissions").update({ geocoding_status: "error" } as any).eq("id", s.id);
+        setSubmissions((prev) => prev.map((x) => (x.id === s.id ? { ...x, geocoding_status: "error" } : x)));
       } else {
         const current = (s.latitude && s.longitude)
           ? { lat: s.latitude as number, lon: s.longitude as number }
           : null;
-        const drift = current ? distMeters(current, found) : Infinity;
+        const drift = current ? distMeters(current, { lat: found.lat, lon: found.lon }) : Infinity;
+        const patch: any = { geocoding_status: found.status };
+        if (found.postalLat != null && found.postalLon != null) {
+          patch.postal_latitude = found.postalLat; patch.postal_longitude = found.postalLon;
+        }
         if (!current || drift > 250) {
-          const { error } = await supabase
-            .from("submissions")
-            .update({ latitude: found.lat, longitude: found.lon })
-            .eq("id", s.id);
+          patch.latitude = found.lat; patch.longitude = found.lon;
+          const { error } = await supabase.from("submissions").update(patch).eq("id", s.id);
           if (!error) {
             updated++;
-            setSubmissions((prev) =>
-              prev.map((x) => (x.id === s.id ? { ...x, latitude: found.lat, longitude: found.lon } : x))
-            );
+            setSubmissions((prev) => prev.map((x) => (x.id === s.id ? { ...x, ...patch } : x)));
           }
         } else {
+          await supabase.from("submissions").update(patch).eq("id", s.id);
+          setSubmissions((prev) => prev.map((x) => (x.id === s.id ? { ...x, ...patch } : x)));
           unchanged++;
         }
       }
@@ -1078,6 +1118,21 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               {sub.dompe_number && <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Dompe :</span> {sub.dompe_number}</div>}
               <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Créé le :</span> {formatDate(sub.created_at)}</div>
               <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">GPS :</span> {sub.latitude && sub.longitude ? `${sub.latitude.toFixed(4)}, ${sub.longitude.toFixed(4)}` : "—"}</div>
+              <div className="sm:col-span-2">
+                <span className="uppercase tracking-wide text-[10px] font-display font-bold">Validation géo :</span>{" "}
+                {(() => {
+                  const st = sub.geocoding_status || "pending";
+                  const map: Record<string, { label: string; cls: string }> = {
+                    validated_address: { label: "Adresse validée", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
+                    validated_postal:  { label: "Centre code postal", cls: "bg-blue-100 text-blue-800 border-blue-300" },
+                    approximate:       { label: "Position approximative", cls: "bg-amber-100 text-amber-800 border-amber-300" },
+                    error:             { label: "Erreur géocodage", cls: "bg-rose-100 text-rose-800 border-rose-300" },
+                    pending:           { label: "Non vérifiée", cls: "bg-slate-100 text-slate-700 border-slate-300" },
+                  };
+                  const v = map[st] || map.pending;
+                  return <span className={`inline-block px-2 py-0.5 rounded border text-[11px] font-display font-semibold ${v.cls}`}>{v.label}</span>;
+                })()}
+              </div>
             </div>
           </div>
 
