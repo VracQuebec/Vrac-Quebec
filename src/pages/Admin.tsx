@@ -33,6 +33,9 @@ interface Submission {
   dompe_number?: string | null;
   latitude: number | null;
   longitude: number | null;
+  postal_latitude?: number | null;
+  postal_longitude?: number | null;
+  geocoding_status?: string | null;
   materials: string[];
   other_material: string | null;
   property_type: string;
