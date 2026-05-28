@@ -1,4 +1,5 @@
 import { type QuestionnaireData } from "@/lib/questionnaire-data";
+import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 
 interface Props {
   data: QuestionnaireData;
@@ -54,9 +55,14 @@ const StepContact = ({ data, onChange }: Props) => {
 
         <div>
           <label className={labelClass}>Adresse ou secteur de livraison *</label>
-          <input
+          <GooglePlaceAutocomplete
             value={data.address}
-            onChange={(e) => onChange({ address: e.target.value })}
+            onChange={(val) => onChange({ address: val })}
+            onSelect={(p) => {
+              const updates: Partial<QuestionnaireData> = { address: p.formattedAddress };
+              if (p.postalCode && !data.postalCode) updates.postalCode = p.postalCode;
+              onChange(updates);
+            }}
             className={inputClass}
             placeholder="123 Rue Principale, Québec, QC"
           />
