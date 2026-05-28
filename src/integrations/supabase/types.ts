@@ -735,6 +735,63 @@ export type Database = {
         }
         Relationships: []
       }
+      submissions_geo_backup: {
+        Row: {
+          address: string | null
+          backed_up_at: string
+          backup_label: string
+          formatted_address: string | null
+          geocoding_provider: string | null
+          geocoding_status: string | null
+          id: string
+          latitude: number | null
+          location_type: string | null
+          longitude: number | null
+          place_id: string | null
+          postal_code: string | null
+          postal_latitude: number | null
+          postal_longitude: number | null
+          submission_id: string
+          submission_number: number | null
+        }
+        Insert: {
+          address?: string | null
+          backed_up_at?: string
+          backup_label?: string
+          formatted_address?: string | null
+          geocoding_provider?: string | null
+          geocoding_status?: string | null
+          id?: string
+          latitude?: number | null
+          location_type?: string | null
+          longitude?: number | null
+          place_id?: string | null
+          postal_code?: string | null
+          postal_latitude?: number | null
+          postal_longitude?: number | null
+          submission_id: string
+          submission_number?: number | null
+        }
+        Update: {
+          address?: string | null
+          backed_up_at?: string
+          backup_label?: string
+          formatted_address?: string | null
+          geocoding_provider?: string | null
+          geocoding_status?: string | null
+          id?: string
+          latitude?: number | null
+          location_type?: string | null
+          longitude?: number | null
+          place_id?: string | null
+          postal_code?: string | null
+          postal_latitude?: number | null
+          postal_longitude?: number | null
+          submission_id?: string
+          submission_number?: number | null
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
