@@ -30,14 +30,30 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
+// Auth note: verify_jwt is set to false in config.toml so the public
+// questionnaire (anon key) can invoke this function. We enforce a basic
+// in-function auth check by requiring a Supabase JWT (anon or signed-in)
+// via the Authorization header, and we restrict which templates anon
+// callers may use.
+const PUBLIC_TEMPLATES = new Set(['client-confirmation', 'new-lead-notification'])
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
+  }
+
+  // Require an Authorization header (anon or user JWT). This blocks
+  // completely unauthenticated external callers from abusing the endpoint.
+  const authHeader = req.headers.get('Authorization') || ''
+  if (!authHeader.toLowerCase().startsWith('bearer ')) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
@@ -95,14 +111,28 @@ Deno.serve(async (req) => {
   if (!template) {
     console.error('Template not found in registry', { templateName })
     return new Response(
-      JSON.stringify({
-        error: `Template '${templateName}' not found. Available: ${Object.keys(TEMPLATES).join(', ')}`,
-      }),
+      JSON.stringify({ error: 'Template not found' }),
       {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
+  }
+
+  // Restrict which templates can be invoked with just the anon key.
+  // Privileged templates require a real user session.
+  if (!PUBLIC_TEMPLATES.has(templateName)) {
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
+    const callerToken = authHeader.slice(7).trim()
+    if (callerToken === anonKey) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
   }
 
   // Resolve effective recipient: template-level `to` takes precedence over
