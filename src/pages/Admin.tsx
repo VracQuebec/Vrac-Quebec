@@ -223,7 +223,7 @@ const Admin = () => {
   const archive = (id: string) => updateStatus(id, "archivé");
 
   // Statuts de géolocalisation :
-  //  - validated_address : adresse civique validée par Nominatim
+  //  - validated_address : adresse civique validée par Google (ROOFTOP/RANGE_INTERPOLATED)
   //  - validated_postal  : centre du code postal seulement
   //  - approximate       : ville/rue sans numéro, requête libre
   //  - error             : aucun résultat
@@ -234,88 +234,38 @@ const Admin = () => {
     postalLat: number | null;
     postalLon: number | null;
     status: GeoStatus;
+    formattedAddress?: string | null;
+    placeId?: string | null;
+    locationType?: string | null;
   };
 
-  // Nominatim seul (geocoder.ca trottlé/HS). On retourne aussi le centre du code postal
-  // pour la carte des entrepreneurs (anonymisation côté DB).
+  // Géocodage via Google Geocoding API (edge function `google-geocode`).
+  // On retourne aussi le centre du code postal pour la carte des entrepreneurs
+  // (anonymisation côté DB).
   const geocodeOne = async (
     address: string,
     postal: string | null
   ): Promise<GeoResult> => {
-    const cleaned = (address || "").trim();
-    const parts = cleaned.split(",").map((p) => p.trim()).filter(Boolean);
-    const streetPart = parts[0] || "";
-    const cityPart = parts[1] || "";
-    const m = streetPart.match(/^(\d+[A-Za-z]?)\s+(.+)$/);
-    const number = m?.[1];
-    const street = m?.[2] || streetPart;
-    const cleanPostal = (postal || "").trim().toUpperCase().replace(/\s+/g, " ");
-
-    let exact: { lat: number; lon: number } | null = null;
-    let approx: { lat: number; lon: number } | null = null;
-    let postalCentroid: { lat: number; lon: number } | null = null;
-
-    // 1) Nominatim structuré (numéro + rue + ville + code postal)
     try {
-      const params = new URLSearchParams({
-        format: "json", limit: "1", countrycodes: "ca", state: "Quebec",
+      const { data, error } = await supabase.functions.invoke("google-geocode", {
+        body: { address, postalCode: postal },
       });
-      if (number) params.set("street", `${number} ${street}`);
-      else if (street) params.set("street", street);
-      if (cityPart) params.set("city", cityPart);
-      if (cleanPostal) params.set("postalcode", cleanPostal);
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
-      const data = await res.json();
-      if (data?.[0]) {
-        const t = data[0].addresstype || data[0].type;
-        const point = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-        if (number && ["house", "building", "place"].includes(t)) {
-          exact = point;
-        } else {
-          approx = point;
-        }
+      if (error || !data) {
+        return { lat: null, lon: null, postalLat: null, postalLon: null, status: "error" };
       }
-    } catch { /* ignore */ }
-
-    // 2) Centre du code postal (pour anonymisation de la carte entrepreneur)
-    if (cleanPostal) {
-      try {
-        const params = new URLSearchParams({
-          format: "json", limit: "1", countrycodes: "ca", postalcode: cleanPostal,
-        });
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
-        const data = await res.json();
-        if (data?.[0]) {
-          postalCentroid = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-        }
-      } catch { /* ignore */ }
+      return {
+        lat: data.lat ?? null,
+        lon: data.lng ?? null,
+        postalLat: data.postalLat ?? null,
+        postalLon: data.postalLng ?? null,
+        status: (data.status as GeoStatus) || "error",
+        formattedAddress: data.formattedAddress ?? null,
+        placeId: data.placeId ?? null,
+        locationType: data.locationType ?? null,
+      };
+    } catch {
+      return { lat: null, lon: null, postalLat: null, postalLon: null, status: "error" };
     }
-
-    // 3) Si toujours rien, requête libre Nominatim
-    if (!exact && !approx) {
-      try {
-        const q = [cleaned, cleanPostal, "Québec, Canada"].filter(Boolean).join(", ");
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=ca`
-        );
-        const data = await res.json();
-        if (data?.[0]) approx = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-      } catch { /* ignore */ }
-    }
-
-    const best = exact || approx || postalCentroid;
-    let status: GeoStatus = "error";
-    if (exact) status = "validated_address";
-    else if (postalCentroid && !approx) status = "validated_postal";
-    else if (approx || postalCentroid) status = "approximate";
-
-    return {
-      lat: best?.lat ?? null,
-      lon: best?.lon ?? null,
-      postalLat: postalCentroid?.lat ?? best?.lat ?? null,
-      postalLon: postalCentroid?.lon ?? best?.lon ?? null,
-      status,
-    };
   };
 
   const geocodeMissing = async () => {
@@ -326,26 +276,29 @@ const Admin = () => {
       toast({ title: "Tout est déjà géolocalisé." });
       return;
     }
-    if (!confirm(`Géocoder ${missing.length} adresse(s) ? (~1 seconde par adresse)`)) return;
+    if (!confirm(`Géocoder ${missing.length} adresse(s) avec Google ? (~0.3s/adresse)`)) return;
     setGeocoding({ done: 0, total: missing.length });
     let ok = 0;
     for (let i = 0; i < missing.length; i++) {
       const s = missing[i];
       const found = await geocodeOne(s.address, s.postal_code);
-      const patch: any = { geocoding_status: found.status };
+      const patch: any = { geocoding_status: found.status, geocoding_provider: "google" };
       if (found.lat != null && found.lon != null) {
         patch.latitude = found.lat; patch.longitude = found.lon;
       }
       if (found.postalLat != null && found.postalLon != null) {
         patch.postal_latitude = found.postalLat; patch.postal_longitude = found.postalLon;
       }
+      if (found.formattedAddress) patch.formatted_address = found.formattedAddress;
+      if (found.placeId) patch.place_id = found.placeId;
+      if (found.locationType) patch.location_type = found.locationType;
       const { error } = await supabase.from("submissions").update(patch).eq("id", s.id);
       if (!error) {
         if (found.status !== "error") ok++;
         setSubmissions((prev) => prev.map((x) => (x.id === s.id ? { ...x, ...patch } : x)));
       }
       setGeocoding({ done: i + 1, total: missing.length });
-      await new Promise((r) => setTimeout(r, 1100));
+      await new Promise((r) => setTimeout(r, 250));
     }
     setGeocoding(null);
     toast({ title: "Géocodage terminé", description: `${ok}/${missing.length} adresses localisées.` });
@@ -360,7 +313,7 @@ const Admin = () => {
       return;
     }
     if (!confirm(
-      `Re-vérifier ${targets.length} adresse(s) avec Nominatim + geocoder.ca ?\n\nLes coordonnées seront corrigées seulement si l'écart est supérieur à ~250 m. (~1 sec/adresse)`
+      `Re-géocoder ${targets.length} adresse(s) avec Google Maps ?\n\nLes coordonnées seront remplacées par les coordonnées Google précises. (~0.3 sec/adresse)`
     )) return;
 
     const distMeters = (a: { lat: number; lon: number }, b: { lat: number; lon: number }) => {
@@ -387,11 +340,16 @@ const Admin = () => {
           ? { lat: s.latitude as number, lon: s.longitude as number }
           : null;
         const drift = current ? distMeters(current, { lat: found.lat, lon: found.lon }) : Infinity;
-        const patch: any = { geocoding_status: found.status };
+        const patch: any = { geocoding_status: found.status, geocoding_provider: "google" };
         if (found.postalLat != null && found.postalLon != null) {
           patch.postal_latitude = found.postalLat; patch.postal_longitude = found.postalLon;
         }
-        if (!current || drift > 250) {
+        if (found.formattedAddress) patch.formatted_address = found.formattedAddress;
+        if (found.placeId) patch.place_id = found.placeId;
+        if (found.locationType) patch.location_type = found.locationType;
+        // Google = source de vérité : on remplace toujours les anciennes coords
+        // Nominatim, qui étaient souvent imprécises.
+        if (!current || drift > 50) {
           patch.latitude = found.lat; patch.longitude = found.lon;
           const { error } = await supabase.from("submissions").update(patch).eq("id", s.id);
           if (!error) {
@@ -405,7 +363,7 @@ const Admin = () => {
         }
       }
       setRechecking({ done: i + 1, total: targets.length });
-      await new Promise((r) => setTimeout(r, 1100));
+      await new Promise((r) => setTimeout(r, 250));
     }
     setRechecking(null);
     toast({

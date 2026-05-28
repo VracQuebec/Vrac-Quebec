@@ -598,12 +598,17 @@ export type Database = {
           description: string | null
           dompe_number: string | null
           email: string
+          formatted_address: string | null
+          geocoding_provider: string | null
           geocoding_status: string
           id: string
           internal_notes: string
           latitude: number | null
+          latitude_old: number | null
           length_ft: string | null
+          location_type: string | null
           longitude: number | null
+          longitude_old: number | null
           machinery_available: boolean | null
           machinery_description: string | null
           materials: string[]
@@ -611,9 +616,12 @@ export type Database = {
           other_material: string | null
           phone: string | null
           photos: string[] | null
+          place_id: string | null
           postal_code: string | null
           postal_latitude: number | null
+          postal_latitude_old: number | null
           postal_longitude: number | null
+          postal_longitude_old: number | null
           priority: string
           property_type: string
           quantity: string
@@ -640,12 +648,17 @@ export type Database = {
           description?: string | null
           dompe_number?: string | null
           email: string
+          formatted_address?: string | null
+          geocoding_provider?: string | null
           geocoding_status?: string
           id?: string
           internal_notes?: string
           latitude?: number | null
+          latitude_old?: number | null
           length_ft?: string | null
+          location_type?: string | null
           longitude?: number | null
+          longitude_old?: number | null
           machinery_available?: boolean | null
           machinery_description?: string | null
           materials: string[]
@@ -653,9 +666,12 @@ export type Database = {
           other_material?: string | null
           phone?: string | null
           photos?: string[] | null
+          place_id?: string | null
           postal_code?: string | null
           postal_latitude?: number | null
+          postal_latitude_old?: number | null
           postal_longitude?: number | null
+          postal_longitude_old?: number | null
           priority?: string
           property_type: string
           quantity: string
@@ -682,12 +698,17 @@ export type Database = {
           description?: string | null
           dompe_number?: string | null
           email?: string
+          formatted_address?: string | null
+          geocoding_provider?: string | null
           geocoding_status?: string
           id?: string
           internal_notes?: string
           latitude?: number | null
+          latitude_old?: number | null
           length_ft?: string | null
+          location_type?: string | null
           longitude?: number | null
+          longitude_old?: number | null
           machinery_available?: boolean | null
           machinery_description?: string | null
           materials?: string[]
@@ -695,9 +716,12 @@ export type Database = {
           other_material?: string | null
           phone?: string | null
           photos?: string[] | null
+          place_id?: string | null
           postal_code?: string | null
           postal_latitude?: number | null
+          postal_latitude_old?: number | null
           postal_longitude?: number | null
+          postal_longitude_old?: number | null
           priority?: string
           property_type?: string
           quantity?: string

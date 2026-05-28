@@ -3,11 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { Truck, LogOut, Loader2 } from "lucide-react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import FullPageState from "@/components/FullPageState";
+import { loadGoogleMaps } from "@/lib/google-maps-loader";
 import {
   MATERIAL_COLORS,
   MATERIAL_LEGEND,
@@ -44,9 +43,10 @@ interface EntLead {
 const Entrepreneur = () => {
   const [leads, setLeads] = useState<EntLead[]>([]);
   const [loading, setLoading] = useState(true);
-  const mapRef = useRef<L.Map | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const markersRef = useRef<Record<string, L.Marker>>({});
+  const markersRef = useRef<Record<string, google.maps.Marker>>({});
+  const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const navigate = useNavigate();
   const { user, isReady: authReady } = useAuthReady();
   const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
@@ -102,57 +102,75 @@ const Entrepreneur = () => {
 
   useEffect(() => {
     if (!containerRef.current) return;
-    if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
+    let cancelled = false;
     const geo = filteredLeads.filter((l) => l.latitude && l.longitude);
-    const map = L.map(containerRef.current, {
-      scrollWheelZoom: false,
-    }).setView([46.8, -71.2], 8);
-    mapRef.current = map;
-    markersRef.current = {};
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; OpenStreetMap',
-    }).addTo(map);
 
-    const markers: L.Marker[] = [];
-    geo.forEach((l) => {
-      const color = MARKER_COLOR;
-      const label = (() => {
-        if (l.dompe_number) {
-          const cleaned = l.dompe_number.replace(/^dompe\s*/i, "").trim();
-          if (cleaned) return cleaned;
-        }
-        return String(l.submission_number);
-      })();
-      const fontSize = label.length <= 3 ? 12 : label.length <= 5 ? 10 : 9;
-      const icon = L.divIcon({
-        className: "",
-        html: `<div style="background:${color};color:#fff;min-width:30px;height:30px;padding:0 6px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:${fontSize}px;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);white-space:nowrap;">${label}</div>`,
-        iconSize: [30, 30], iconAnchor: [15, 15],
+    loadGoogleMaps().then((g) => {
+      if (cancelled || !containerRef.current) return;
+      if (!mapRef.current) {
+        mapRef.current = new g.maps.Map(containerRef.current, {
+          center: { lat: 46.8, lng: -71.2 },
+          zoom: 8,
+          mapTypeControl: false,
+          streetViewControl: false,
+          scrollwheel: false,
+        });
+        infoRef.current = new g.maps.InfoWindow();
+      }
+      Object.values(markersRef.current).forEach((m) => m.setMap(null));
+      markersRef.current = {};
+
+      const bounds = new g.maps.LatLngBounds();
+      geo.forEach((l) => {
+        const color = MARKER_COLOR;
+        const label = (() => {
+          if (l.dompe_number) {
+            const cleaned = l.dompe_number.replace(/^dompe\s*/i, "").trim();
+            if (cleaned) return cleaned;
+          }
+          return String(l.submission_number);
+        })();
+        const fontSize = label.length <= 3 ? 12 : label.length <= 5 ? 10 : 9;
+        const width = Math.max(30, 12 + label.length * 7);
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="30" viewBox="0 0 ${width} 30"><rect x="1" y="1" width="${width - 2}" height="28" rx="14" fill="${color}" stroke="white" stroke-width="3"/><text x="${width / 2}" y="15" dominant-baseline="central" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="800" font-size="${fontSize}" fill="white">${label.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text></svg>`;
+        const url = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+        const pos = { lat: l.latitude!, lng: l.longitude! };
+        const m = new g.maps.Marker({
+          map: mapRef.current!,
+          position: pos,
+          icon: {
+            url,
+            scaledSize: new g.maps.Size(width, 30),
+            anchor: new g.maps.Point(width / 2, 15),
+          },
+        });
+        m.addListener("click", () => {
+          infoRef.current?.setContent(buildPopupHtml(l));
+          infoRef.current?.open({ anchor: m, map: mapRef.current! });
+        });
+        markersRef.current[l.id] = m;
+        bounds.extend(pos);
       });
-      const m = L.marker([l.latitude!, l.longitude!], { icon })
-        .bindPopup(buildPopupHtml(l), {
-          maxWidth: 320,
-          minWidth: 220,
-          autoPan: true,
-          autoPanPadding: [20, 20],
-          closeButton: true,
-        })
-        .addTo(map);
-      markersRef.current[l.id] = m;
-      markers.push(m);
+      if (Object.keys(markersRef.current).length > 0) {
+        mapRef.current!.fitBounds(bounds, 40);
+      }
+    }).catch((e) => {
+      console.error("Google Maps load error:", e);
     });
-    if (markers.length > 0) {
-      map.fitBounds(L.latLngBounds(markers.map((m) => m.getLatLng())), { padding: [40, 40], maxZoom: 11 });
-    }
-    return () => { map.remove(); mapRef.current = null; };
+
+    return () => { cancelled = true; };
   }, [filteredLeads]);
 
   const focusLead = (l: EntLead) => {
     const m = markersRef.current[l.id];
     if (m && mapRef.current) {
-      mapRef.current.setView(m.getLatLng(), Math.max(mapRef.current.getZoom(), 11), { animate: true });
-      m.openPopup();
-      // Scroll map into view on mobile
+      const pos = m.getPosition();
+      if (pos) {
+        mapRef.current.panTo(pos);
+        if ((mapRef.current.getZoom() ?? 8) < 11) mapRef.current.setZoom(11);
+      }
+      infoRef.current?.setContent(buildPopupHtml(l));
+      infoRef.current?.open({ anchor: m, map: mapRef.current });
       containerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };

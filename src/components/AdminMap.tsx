@@ -1,8 +1,7 @@
-import { useEffect, useRef } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { useEffect, useRef, useState } from "react";
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
 import { colorForMaterials } from "@/lib/material-colors";
+import { loadGoogleMaps } from "@/lib/google-maps-loader";
 
 interface Submission {
   id: string;
@@ -33,30 +32,15 @@ interface Submission {
   show_on_admin_map?: boolean | null;
 }
 
-const createNumberIcon = (label: string, color: string) => {
+const createNumberIconSvg = (label: string, color: string) => {
   const len = label.length;
   const fontSize = len <= 3 ? 14 : len <= 5 ? 11 : 9;
-  return L.divIcon({
-    className: "",
-    html: `<div style="
-      background: ${color};
-      color: white;
-      min-width: 32px;
-      height: 32px;
-      padding: 0 6px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: ${fontSize}px;
-      border: 3px solid white;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      white-space: nowrap;
-    ">${label}</div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  });
+  const width = Math.max(32, 14 + len * 7);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="32" viewBox="0 0 ${width} 32">
+    <rect x="1" y="1" width="${width - 2}" height="30" rx="15" fill="${color}" stroke="white" stroke-width="3"/>
+    <text x="${width / 2}" y="16" dominant-baseline="central" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-weight="800" font-size="${fontSize}" fill="white">${label.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text>
+  </svg>`;
+  return { url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`, width, height: 32 };
 };
 
 const displayNumber = (sub: { dompe_number?: string | null; submission_number: number | null }) =>
@@ -110,8 +94,11 @@ interface Props {
 }
 
 const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
-  const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
+  const infoRef = useRef<google.maps.InfoWindow | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const geoSubs = submissions.filter(
     (s) =>
@@ -123,81 +110,85 @@ const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
 
   useEffect(() => {
     if (!containerRef.current || geoSubs.length === 0) return;
+    let cancelled = false;
 
-    // Clean up previous map
-    if (mapRef.current) {
-      mapRef.current.remove();
-      mapRef.current = null;
-    }
+    loadGoogleMaps()
+      .then((g) => {
+        if (cancelled || !containerRef.current) return;
+        if (!mapRef.current) {
+          mapRef.current = new g.maps.Map(containerRef.current, {
+            center: { lat: 46.8, lng: -71.2 },
+            zoom: 7,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: true,
+          });
+          infoRef.current = new g.maps.InfoWindow();
+        }
+        // Clear existing markers
+        markersRef.current.forEach((m) => m.setMap(null));
+        markersRef.current = [];
 
-    const map = L.map(containerRef.current).setView([46.8, -71.2], 7);
-    mapRef.current = map;
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
-
-    const markers: L.Marker[] = [];
-    geoSubs.forEach((sub) => {
-      const color = colorForMaterials(sub.materials, sub.request_type);
-      const marker = L.marker([sub.latitude!, sub.longitude!], {
-        icon: createNumberIcon(markerLabel(sub), color),
-        draggable: false,
-      })
-        .bindPopup(buildPopup(sub), { maxWidth: 320, minWidth: 260 })
-        .addTo(map);
-      if (onMove) {
-        let pressTimer: ReturnType<typeof setTimeout> | null = null;
-        let armed = false;
-
-        const arm = () => {
-          armed = true;
-          marker.dragging?.enable();
-          const el = marker.getElement();
-          if (el) {
-            el.style.transform += " scale(1.25)";
-            el.style.filter = `drop-shadow(0 0 8px ${color})`;
-            el.style.transition = "filter 0.2s";
+        const bounds = new g.maps.LatLngBounds();
+        geoSubs.forEach((sub) => {
+          const color = colorForMaterials(sub.materials, sub.request_type);
+          const iconCfg = createNumberIconSvg(markerLabel(sub), color);
+          const pos = { lat: sub.latitude!, lng: sub.longitude! };
+          const marker = new g.maps.Marker({
+            map: mapRef.current!,
+            position: pos,
+            icon: {
+              url: iconCfg.url,
+              scaledSize: new g.maps.Size(iconCfg.width, iconCfg.height),
+              anchor: new g.maps.Point(iconCfg.width / 2, iconCfg.height / 2),
+            },
+            draggable: false,
+          });
+          marker.addListener("click", () => {
+            infoRef.current?.setContent(buildPopup(sub));
+            infoRef.current?.open({ anchor: marker, map: mapRef.current! });
+          });
+          if (onMove) {
+            // Long-press to enable dragging
+            let pressTimer: ReturnType<typeof setTimeout> | null = null;
+            marker.addListener("mousedown", () => {
+              if (pressTimer) clearTimeout(pressTimer);
+              pressTimer = setTimeout(() => marker.setDraggable(true), 1500);
+            });
+            marker.addListener("mouseup", () => {
+              if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+            });
+            marker.addListener("dragend", () => {
+              const p = marker.getPosition();
+              if (p) onMove(sub.id, p.lat(), p.lng());
+              marker.setDraggable(false);
+            });
           }
-        };
-        const disarm = () => {
-          if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-          if (armed) {
-            armed = false;
-            marker.dragging?.disable();
-            const el = marker.getElement();
-            if (el) el.style.filter = "";
-          }
-        };
-        const start = () => {
-          if (pressTimer) clearTimeout(pressTimer);
-          pressTimer = setTimeout(arm, 2000);
-        };
-
-        marker.on("mousedown", start);
-        marker.on("touchstart", start);
-        marker.on("mouseup", () => { if (!armed) disarm(); });
-        marker.on("touchend", () => { if (!armed) disarm(); });
-        marker.on("mouseout", () => { if (!armed) disarm(); });
-        marker.on("dragend", () => {
-          const { lat, lng } = marker.getLatLng();
-          onMove(sub.id, lat, lng);
-          disarm();
+          markersRef.current.push(marker);
+          bounds.extend(pos);
         });
-      }
-      markers.push(marker);
-    });
 
-    if (markers.length > 0) {
-      const bounds = L.latLngBounds(markers.map((m) => m.getLatLng()));
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
-    }
+        if (markersRef.current.length > 0) {
+          mapRef.current!.fitBounds(bounds, 50);
+          if (markersRef.current.length === 1) {
+            mapRef.current!.setZoom(13);
+          }
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      });
 
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
-  }, [geoSubs.map((s) => s.id).join(",")]);
+    return () => { cancelled = true; };
+  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}`).join(",")]);
+
+  if (error) {
+    return (
+      <div className="bg-card rounded-xl border border-border p-8 text-center">
+        <p className="text-destructive font-body">Carte indisponible: {error}</p>
+      </div>
+    );
+  }
 
   if (geoSubs.length === 0) {
     return (
