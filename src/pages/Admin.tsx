@@ -276,26 +276,29 @@ const Admin = () => {
       toast({ title: "Tout est déjà géolocalisé." });
       return;
     }
-    if (!confirm(`Géocoder ${missing.length} adresse(s) ? (~1 seconde par adresse)`)) return;
+    if (!confirm(`Géocoder ${missing.length} adresse(s) avec Google ? (~0.3s/adresse)`)) return;
     setGeocoding({ done: 0, total: missing.length });
     let ok = 0;
     for (let i = 0; i < missing.length; i++) {
       const s = missing[i];
       const found = await geocodeOne(s.address, s.postal_code);
-      const patch: any = { geocoding_status: found.status };
+      const patch: any = { geocoding_status: found.status, geocoding_provider: "google" };
       if (found.lat != null && found.lon != null) {
         patch.latitude = found.lat; patch.longitude = found.lon;
       }
       if (found.postalLat != null && found.postalLon != null) {
         patch.postal_latitude = found.postalLat; patch.postal_longitude = found.postalLon;
       }
+      if (found.formattedAddress) patch.formatted_address = found.formattedAddress;
+      if (found.placeId) patch.place_id = found.placeId;
+      if (found.locationType) patch.location_type = found.locationType;
       const { error } = await supabase.from("submissions").update(patch).eq("id", s.id);
       if (!error) {
         if (found.status !== "error") ok++;
         setSubmissions((prev) => prev.map((x) => (x.id === s.id ? { ...x, ...patch } : x)));
       }
       setGeocoding({ done: i + 1, total: missing.length });
-      await new Promise((r) => setTimeout(r, 1100));
+      await new Promise((r) => setTimeout(r, 250));
     }
     setGeocoding(null);
     toast({ title: "Géocodage terminé", description: `${ok}/${missing.length} adresses localisées.` });
@@ -310,7 +313,7 @@ const Admin = () => {
       return;
     }
     if (!confirm(
-      `Re-vérifier ${targets.length} adresse(s) avec Nominatim + geocoder.ca ?\n\nLes coordonnées seront corrigées seulement si l'écart est supérieur à ~250 m. (~1 sec/adresse)`
+      `Re-géocoder ${targets.length} adresse(s) avec Google Maps ?\n\nLes coordonnées seront remplacées par les coordonnées Google précises. (~0.3 sec/adresse)`
     )) return;
 
     const distMeters = (a: { lat: number; lon: number }, b: { lat: number; lon: number }) => {
@@ -337,11 +340,16 @@ const Admin = () => {
           ? { lat: s.latitude as number, lon: s.longitude as number }
           : null;
         const drift = current ? distMeters(current, { lat: found.lat, lon: found.lon }) : Infinity;
-        const patch: any = { geocoding_status: found.status };
+        const patch: any = { geocoding_status: found.status, geocoding_provider: "google" };
         if (found.postalLat != null && found.postalLon != null) {
           patch.postal_latitude = found.postalLat; patch.postal_longitude = found.postalLon;
         }
-        if (!current || drift > 250) {
+        if (found.formattedAddress) patch.formatted_address = found.formattedAddress;
+        if (found.placeId) patch.place_id = found.placeId;
+        if (found.locationType) patch.location_type = found.locationType;
+        // Google = source de vérité : on remplace toujours les anciennes coords
+        // Nominatim, qui étaient souvent imprécises.
+        if (!current || drift > 50) {
           patch.latitude = found.lat; patch.longitude = found.lon;
           const { error } = await supabase.from("submissions").update(patch).eq("id", s.id);
           if (!error) {
@@ -355,7 +363,7 @@ const Admin = () => {
         }
       }
       setRechecking({ done: i + 1, total: targets.length });
-      await new Promise((r) => setTimeout(r, 1100));
+      await new Promise((r) => setTimeout(r, 250));
     }
     setRechecking(null);
     toast({
