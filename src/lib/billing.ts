@@ -35,7 +35,49 @@ export interface LeadTrip {
   notes: string;
   created_at: string;
   updated_at: string;
+  taxable?: boolean;
+  tps_rate?: number;
+  tvq_rate?: number;
+  tps_amount?: number;
+  tvq_amount?: number;
+  total_with_tax?: number;
 }
+
+// Quebec sales tax rates
+export const TPS_RATE = 0.05;
+export const TVQ_RATE = 0.09975;
+
+// Materials that are non-taxable (remblai / remplissage)
+const NON_TAXABLE_KEYWORDS = ["remblai", "remplissage"];
+
+export const isMaterialTaxableByDefault = (material: string | null | undefined): boolean => {
+  const m = (material || "").toLowerCase().trim();
+  if (!m) return false;
+  return !NON_TAXABLE_KEYWORDS.some((kw) => m.includes(kw));
+};
+
+export const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+export interface TaxBreakdown {
+  subtotal: number;
+  tps: number;
+  tvq: number;
+  total: number;
+  taxable: boolean;
+}
+
+export const computeTaxes = (
+  subtotal: number,
+  taxable: boolean,
+  tpsRate: number = TPS_RATE,
+  tvqRate: number = TVQ_RATE,
+): TaxBreakdown => {
+  const sub = round2(subtotal || 0);
+  if (!taxable) return { subtotal: sub, tps: 0, tvq: 0, total: sub, taxable: false };
+  const tps = round2(sub * tpsRate);
+  const tvq = round2(sub * tvqRate);
+  return { subtotal: sub, tps, tvq, total: round2(sub + tps + tvq), taxable: true };
+};
 
 export const findPaymentStatus = (v: string) =>
   PAYMENT_STATUSES.find((s) => s.value === v) || PAYMENT_STATUSES[0];
