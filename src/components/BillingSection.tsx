@@ -187,6 +187,8 @@ export default function BillingSection({ submissionId }: Props) {
           <p className="text-xs text-muted-foreground italic">Aucun voyage facturé pour ce lead.</p>
         ) : trips.map((t) => {
           const ps = findPaymentStatus(t.payment_status);
+          const subtotal = Number(t.total_price || 0);
+          const tx = computeTaxes(subtotal, !!t.taxable, Number(t.tps_rate ?? TPS_RATE), Number(t.tvq_rate ?? TVQ_RATE));
           return (
             <div key={t.id} className="bg-card border border-border rounded-lg p-3">
               <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -199,7 +201,12 @@ export default function BillingSection({ submissionId }: Props) {
                 >
                   {PAYMENT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
-                <span className="ml-auto text-sm font-display font-bold text-foreground">{fmtMoney(Number(t.total_price))}</span>
+                <div className="ml-auto text-right">
+                  <div className="text-sm font-display font-bold text-foreground leading-tight">{fmtMoney(tx.total)}</div>
+                  {tx.taxable
+                    ? <div className="text-[10px] text-muted-foreground font-body">HT {fmtMoney(tx.subtotal)} + taxes</div>
+                    : <div className="text-[10px] text-muted-foreground font-body italic">Non taxable</div>}
+                </div>
                 <button onClick={() => removeTrip(t.id)} className="text-rose-600 hover:bg-rose-50 p-1 rounded" title="Supprimer">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -227,10 +234,31 @@ export default function BillingSection({ submissionId }: Props) {
                     {entrepreneurs.map((e) => <option key={e.id} value={e.id}>{e.name}{e.company ? ` (${e.company})` : ""}</option>)}
                   </select>
                 </Field>
+                <Field label="Taxes TPS/TVQ">
+                  <label className="flex items-center gap-2 h-[34px] px-2 rounded border border-border bg-background cursor-pointer">
+                    <input type="checkbox" checked={!!t.taxable}
+                      onChange={(e) => patchTrip(t.id, { taxable: e.target.checked } as any)} />
+                    <span className="text-[11px] font-body">
+                      {t.taxable ? "Appliquées (5 % + 9,975 %)" : "Non taxable"}
+                    </span>
+                  </label>
+                </Field>
                 <Field label="Notes" full>
                   <input type="text" value={t.notes} onChange={(e) => patchTrip(t.id, { notes: e.target.value })} className={inputCls} />
                 </Field>
               </div>
+              {tx.taxable ? (
+                <div className="mt-2 text-[11px] font-body bg-secondary/40 border border-border rounded px-2 py-1.5 grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-0.5">
+                  <span>Sous-total : <strong>{fmtMoney(tx.subtotal)}</strong></span>
+                  <span>TPS (5 %) : <strong>{fmtMoney(tx.tps)}</strong></span>
+                  <span>TVQ (9,975 %) : <strong>{fmtMoney(tx.tvq)}</strong></span>
+                  <span>Total : <strong>{fmtMoney(tx.total)}</strong></span>
+                </div>
+              ) : (
+                <div className="mt-2 text-[11px] font-body italic text-muted-foreground">
+                  Matériau de remblai / remplissage non taxable.
+                </div>
+              )}
             </div>
           );
         })}
