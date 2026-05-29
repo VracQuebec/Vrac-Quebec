@@ -269,7 +269,11 @@ export default function BillingSection({ submissionId }: Props) {
         <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Ajouter un voyage</div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
           <Field label="Matériau">
-            <select value={draft.material || ""} onChange={(e) => setDraft({ ...draft, material: e.target.value })} className={inputCls}>
+            <select value={draft.material || ""}
+              onChange={(e) => {
+                const material = e.target.value;
+                setDraft({ ...draft, material, taxable: isMaterialTaxableByDefault(material) });
+              }} className={inputCls}>
               <option value="">— Choisir —</option>
               {REMBLAI_MATERIAL_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
@@ -308,11 +312,24 @@ export default function BillingSection({ submissionId }: Props) {
               {entrepreneurs.map((en) => <option key={en.id} value={en.id}>{en.name}{en.company ? ` (${en.company})` : ""}</option>)}
             </select>
           </Field>
+          <Field label="Taxes TPS/TVQ">
+            <label className="flex items-center gap-2 h-[34px] px-2 rounded border border-border bg-background cursor-pointer">
+              <input type="checkbox" checked={draft.taxable}
+                onChange={(e) => setDraft({ ...draft, taxable: e.target.checked })} />
+              <span className="text-[11px] font-body">
+                {draft.taxable ? "Appliquées (5 % + 9,975 %)" : "Non taxable"}
+              </span>
+            </label>
+          </Field>
           <Field label="Total calculé">
             <div className="px-2 py-1.5 rounded border border-border bg-card font-display font-bold text-foreground min-h-[34px]">
-              {draft.trips_count !== "" && draft.price_per_trip !== ""
-                ? fmtMoney(Number(draft.trips_count) * Number(draft.price_per_trip))
-                : ""}
+              {draft.trips_count !== "" && draft.price_per_trip !== "" ? (() => {
+                const sub = Number(draft.trips_count) * Number(draft.price_per_trip);
+                const tx = computeTaxes(sub, draft.taxable);
+                return tx.taxable
+                  ? `${fmtMoney(tx.total)} (HT ${fmtMoney(tx.subtotal)})`
+                  : fmtMoney(tx.total);
+              })() : ""}
             </div>
           </Field>
           <Field label="Notes" full>
