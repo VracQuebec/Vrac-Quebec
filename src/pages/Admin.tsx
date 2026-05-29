@@ -430,6 +430,7 @@ const Admin = () => {
     const list = submissions.filter((s) => {
       if (filterStatus !== "all" && s.status !== filterStatus) return false;
       if (filterType !== "all" && s.request_type !== filterType) return false;
+      if (filterSource !== "all" && (s.lead_source || "") !== filterSource) return false;
       if (!q) return true;
       const haystack = [s.dompe_number, s.name, s.address, s.postal_code, s.email]
         .map(norm)
@@ -453,7 +454,7 @@ const Admin = () => {
       if (bHas) return 1;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [submissions, filterStatus, filterType, searchQuery]);
+  }, [submissions, filterStatus, filterType, filterSource, searchQuery]);
 
   if (!authReady || !user || roleLoading) {
     return <FullPageState title="Connexion en cours" message="Votre session est en vérification, la page va s’ouvrir automatiquement." />;
