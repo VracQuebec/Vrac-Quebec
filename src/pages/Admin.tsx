@@ -103,6 +103,8 @@ const Admin = () => {
   const [geocoding, setGeocoding] = useState<{ done: number; total: number } | null>(null);
   const [rechecking, setRechecking] = useState<{ done: number; total: number } | null>(null);
   const [showStatusManager, setShowStatusManager] = useState(false);
+  const [showNewLead, setShowNewLead] = useState(false);
+  const [filterSource, setFilterSource] = useState<string>("all");
   const [showArchivedOnMap, setShowArchivedOnMap] = useState(false);
   const [tab, setTab] = useState<"leads" | "billing" | "entrepreneurs">("leads");
   const overdueNotifiedRef = useRef(false);
