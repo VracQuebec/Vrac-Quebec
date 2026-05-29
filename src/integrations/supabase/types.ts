@@ -372,9 +372,15 @@ export type Database = {
           payment_status: string
           price_per_trip: number
           submission_id: string
+          taxable: boolean
           total_price: number
+          total_with_tax: number
+          tps_amount: number
+          tps_rate: number
           trip_type: string
           trips_count: number
+          tvq_amount: number
+          tvq_rate: number
           updated_at: string
         }
         Insert: {
@@ -390,9 +396,15 @@ export type Database = {
           payment_status?: string
           price_per_trip?: number
           submission_id: string
+          taxable?: boolean
           total_price?: number
+          total_with_tax?: number
+          tps_amount?: number
+          tps_rate?: number
           trip_type?: string
           trips_count?: number
+          tvq_amount?: number
+          tvq_rate?: number
           updated_at?: string
         }
         Update: {
@@ -408,9 +420,15 @@ export type Database = {
           payment_status?: string
           price_per_trip?: number
           submission_id?: string
+          taxable?: boolean
           total_price?: number
+          total_with_tax?: number
+          tps_amount?: number
+          tps_rate?: number
           trip_type?: string
           trips_count?: number
+          tvq_amount?: number
+          tvq_rate?: number
           updated_at?: string
         }
         Relationships: [

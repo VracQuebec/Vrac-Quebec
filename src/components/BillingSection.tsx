@@ -4,6 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, Plus, Trash2, AlertTriangle, Receipt } from "lucide-react";
 import {
   PAYMENT_STATUSES, PAYMENT_METHODS, findPaymentStatus, overdueBucket, type LeadTrip,
+  computeTaxes, isMaterialTaxableByDefault, TPS_RATE, TVQ_RATE,
 } from "@/lib/billing";
 import { REMBLAI_MATERIAL_OPTIONS, REQUEST_TYPES } from "@/lib/questionnaire-data";
 
@@ -33,6 +34,7 @@ type TripDraft = {
   payment_method: string;
   notes: string;
   entrepreneur_id: string;
+  taxable: boolean;
 };
 
 const emptyDraft = (): TripDraft => ({
@@ -47,6 +49,7 @@ const emptyDraft = (): TripDraft => ({
   payment_method: "",
   notes: "",
   entrepreneur_id: "",
+  taxable: false,
 });
 
 export default function BillingSection({ submissionId }: Props) {
@@ -77,14 +80,18 @@ export default function BillingSection({ submissionId }: Props) {
 
   const summary = useMemo(() => {
     let billed = 0, paid = 0, overdue = 0, count = trips.length;
+    let totalTps = 0, totalTvq = 0;
     for (const t of trips) {
-      const total = Number(t.total_price || 0);
+      const subtotal = Number(t.total_price || 0);
+      const tx = computeTaxes(subtotal, !!t.taxable, Number(t.tps_rate ?? TPS_RATE), Number(t.tvq_rate ?? TVQ_RATE));
+      const total = tx.total;
       if (t.payment_status === "annule") continue;
       if (["facture", "paye_partiel", "en_retard"].includes(t.payment_status)) billed += total;
       if (t.payment_status === "paye") { billed += total; paid += total; }
       if (overdueBucket(t)) overdue += total;
+      if (!["annule"].includes(t.payment_status)) { totalTps += tx.tps; totalTvq += tx.tvq; }
     }
-    return { billed, paid, overdue, count, balance: billed - paid };
+    return { billed, paid, overdue, count, balance: billed - paid, totalTps, totalTvq };
   }, [trips]);
 
   const addTrip = async () => {
@@ -106,6 +113,7 @@ export default function BillingSection({ submissionId }: Props) {
       payment_method: draft.payment_method || "",
       notes: draft.notes || "",
       entrepreneur_id: draft.entrepreneur_id || null,
+      taxable: draft.taxable,
     };
     const { data, error } = await supabase.from("lead_trips" as any).insert(payload).select().single();
     setAdding(false);
@@ -179,6 +187,8 @@ export default function BillingSection({ submissionId }: Props) {
           <p className="text-xs text-muted-foreground italic">Aucun voyage facturé pour ce lead.</p>
         ) : trips.map((t) => {
           const ps = findPaymentStatus(t.payment_status);
+          const subtotal = Number(t.total_price || 0);
+          const tx = computeTaxes(subtotal, !!t.taxable, Number(t.tps_rate ?? TPS_RATE), Number(t.tvq_rate ?? TVQ_RATE));
           return (
             <div key={t.id} className="bg-card border border-border rounded-lg p-3">
               <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -191,7 +201,12 @@ export default function BillingSection({ submissionId }: Props) {
                 >
                   {PAYMENT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
-                <span className="ml-auto text-sm font-display font-bold text-foreground">{fmtMoney(Number(t.total_price))}</span>
+                <div className="ml-auto text-right">
+                  <div className="text-sm font-display font-bold text-foreground leading-tight">{fmtMoney(tx.total)}</div>
+                  {tx.taxable
+                    ? <div className="text-[10px] text-muted-foreground font-body">HT {fmtMoney(tx.subtotal)} + taxes</div>
+                    : <div className="text-[10px] text-muted-foreground font-body italic">Non taxable</div>}
+                </div>
                 <button onClick={() => removeTrip(t.id)} className="text-rose-600 hover:bg-rose-50 p-1 rounded" title="Supprimer">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -219,10 +234,31 @@ export default function BillingSection({ submissionId }: Props) {
                     {entrepreneurs.map((e) => <option key={e.id} value={e.id}>{e.name}{e.company ? ` (${e.company})` : ""}</option>)}
                   </select>
                 </Field>
+                <Field label="Taxes TPS/TVQ">
+                  <label className="flex items-center gap-2 h-[34px] px-2 rounded border border-border bg-background cursor-pointer">
+                    <input type="checkbox" checked={!!t.taxable}
+                      onChange={(e) => patchTrip(t.id, { taxable: e.target.checked } as any)} />
+                    <span className="text-[11px] font-body">
+                      {t.taxable ? "Appliquées (5 % + 9,975 %)" : "Non taxable"}
+                    </span>
+                  </label>
+                </Field>
                 <Field label="Notes" full>
                   <input type="text" value={t.notes} onChange={(e) => patchTrip(t.id, { notes: e.target.value })} className={inputCls} />
                 </Field>
               </div>
+              {tx.taxable ? (
+                <div className="mt-2 text-[11px] font-body bg-secondary/40 border border-border rounded px-2 py-1.5 grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-0.5">
+                  <span>Sous-total : <strong>{fmtMoney(tx.subtotal)}</strong></span>
+                  <span>TPS (5 %) : <strong>{fmtMoney(tx.tps)}</strong></span>
+                  <span>TVQ (9,975 %) : <strong>{fmtMoney(tx.tvq)}</strong></span>
+                  <span>Total : <strong>{fmtMoney(tx.total)}</strong></span>
+                </div>
+              ) : (
+                <div className="mt-2 text-[11px] font-body italic text-muted-foreground">
+                  Matériau de remblai / remplissage non taxable.
+                </div>
+              )}
             </div>
           );
         })}
@@ -233,7 +269,11 @@ export default function BillingSection({ submissionId }: Props) {
         <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Ajouter un voyage</div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
           <Field label="Matériau">
-            <select value={draft.material || ""} onChange={(e) => setDraft({ ...draft, material: e.target.value })} className={inputCls}>
+            <select value={draft.material || ""}
+              onChange={(e) => {
+                const material = e.target.value;
+                setDraft({ ...draft, material, taxable: isMaterialTaxableByDefault(material) });
+              }} className={inputCls}>
               <option value="">— Choisir —</option>
               {REMBLAI_MATERIAL_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
@@ -272,11 +312,24 @@ export default function BillingSection({ submissionId }: Props) {
               {entrepreneurs.map((en) => <option key={en.id} value={en.id}>{en.name}{en.company ? ` (${en.company})` : ""}</option>)}
             </select>
           </Field>
+          <Field label="Taxes TPS/TVQ">
+            <label className="flex items-center gap-2 h-[34px] px-2 rounded border border-border bg-background cursor-pointer">
+              <input type="checkbox" checked={draft.taxable}
+                onChange={(e) => setDraft({ ...draft, taxable: e.target.checked })} />
+              <span className="text-[11px] font-body">
+                {draft.taxable ? "Appliquées (5 % + 9,975 %)" : "Non taxable"}
+              </span>
+            </label>
+          </Field>
           <Field label="Total calculé">
             <div className="px-2 py-1.5 rounded border border-border bg-card font-display font-bold text-foreground min-h-[34px]">
-              {draft.trips_count !== "" && draft.price_per_trip !== ""
-                ? fmtMoney(Number(draft.trips_count) * Number(draft.price_per_trip))
-                : ""}
+              {draft.trips_count !== "" && draft.price_per_trip !== "" ? (() => {
+                const sub = Number(draft.trips_count) * Number(draft.price_per_trip);
+                const tx = computeTaxes(sub, draft.taxable);
+                return tx.taxable
+                  ? `${fmtMoney(tx.total)} (HT ${fmtMoney(tx.subtotal)})`
+                  : fmtMoney(tx.total);
+              })() : ""}
             </div>
           </Field>
           <Field label="Notes" full>

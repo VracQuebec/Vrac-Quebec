@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, AlertTriangle, Search } from "lucide-react";
 import {
   PAYMENT_STATUSES, findPaymentStatus, overdueBucket, type LeadTrip,
+  computeTaxes, TPS_RATE, TVQ_RATE,
 } from "@/lib/billing";
 
 interface TripRow extends LeadTrip {
@@ -61,25 +62,32 @@ export default function BillingOverview({ onOpenLead }: Props) {
   }, [rows, status, q, onlyOverdue]);
 
   const totals = useMemo(() => {
-    let billed = 0, paid = 0, overdue = 0;
+    let billed = 0, paid = 0, overdue = 0, tps = 0, tvq = 0;
     for (const t of filtered) {
-      const v = Number(t.total_price || 0);
       if (t.payment_status === "annule") continue;
+      const tx = computeTaxes(Number(t.total_price || 0), !!t.taxable,
+        Number(t.tps_rate ?? TPS_RATE), Number(t.tvq_rate ?? TVQ_RATE));
+      const v = tx.total;
       if (["facture", "paye_partiel", "en_retard"].includes(t.payment_status)) billed += v;
       if (t.payment_status === "paye") { billed += v; paid += v; }
       if (overdueBucket(t)) overdue += v;
+      tps += tx.tps; tvq += tx.tvq;
     }
-    return { billed, paid, overdue, balance: billed - paid, count: filtered.length };
+    return { billed, paid, overdue, balance: billed - paid, count: filtered.length, tps, tvq };
   }, [filtered]);
 
   return (
     <div>
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
         <Kpi label="Voyages" value={String(totals.count)} />
-        <Kpi label="Facturé" value={fmtMoney(totals.billed)} />
+        <Kpi label="Facturé (TTC)" value={fmtMoney(totals.billed)} />
         <Kpi label="Payé" value={fmtMoney(totals.paid)} tone="emerald" />
         <Kpi label="Solde dû" value={fmtMoney(totals.balance)} tone="amber" />
         <Kpi label="En retard" value={fmtMoney(totals.overdue)} tone="rose" />
+      </div>
+      <div className="text-xs font-body text-muted-foreground mb-4 flex flex-wrap gap-4">
+        <span>TPS perçue : <span className="font-display font-semibold text-foreground">{fmtMoney(totals.tps)}</span></span>
+        <span>TVQ perçue : <span className="font-display font-semibold text-foreground">{fmtMoney(totals.tvq)}</span></span>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
@@ -128,7 +136,19 @@ export default function BillingOverview({ onOpenLead }: Props) {
                     </td>
                     <td className="px-3 py-2 font-body">{r.material || "—"}</td>
                     <td className="px-3 py-2 font-body">{r.trips_count}</td>
-                    <td className="px-3 py-2 font-body font-display font-bold">{fmtMoney(Number(r.total_price))}</td>
+                    <td className="px-3 py-2 font-body font-display font-bold">
+                      {(() => {
+                        const tx = computeTaxes(Number(r.total_price || 0), !!r.taxable,
+                          Number(r.tps_rate ?? TPS_RATE), Number(r.tvq_rate ?? TVQ_RATE));
+                        return (
+                          <>
+                            <div>{fmtMoney(tx.total)}</div>
+                            {tx.taxable && <div className="text-[10px] font-body font-normal text-muted-foreground">HT {fmtMoney(tx.subtotal)}</div>}
+                            {!tx.taxable && <div className="text-[10px] font-body font-normal italic text-muted-foreground">Non taxable</div>}
+                          </>
+                        );
+                      })()}
+                    </td>
                     <td className="px-3 py-2 font-body">{r.invoice_number || "—"}</td>
                     <td className="px-3 py-2 font-body">{fmtDate(r.delivery_date)}</td>
                     <td className="px-3 py-2 font-body">{fmtDate(r.payment_date)}</td>
