@@ -611,6 +611,10 @@ const Admin = () => {
             <option value="all">Tous types</option>
             {REQUEST_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
+          <select value={filterSource} onChange={(e) => setFilterSource(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+            <option value="all">Toutes sources</option>
+            {LEAD_SOURCES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
         </div>
 
         {loading ? (
