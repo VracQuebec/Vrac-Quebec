@@ -531,6 +531,12 @@ const Admin = () => {
               </button>
             </div>
             <button
+              onClick={() => setShowNewLead(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90"
+            >
+              <Plus className="w-4 h-4" /> Ajouter un Lead
+            </button>
+            <button
               onClick={geocodeMissing}
               disabled={!!geocoding}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-sm font-display font-semibold hover:opacity-90 disabled:opacity-60"
