@@ -4,6 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { Loader2, Plus, Trash2, AlertTriangle, Receipt } from "lucide-react";
 import {
   PAYMENT_STATUSES, PAYMENT_METHODS, findPaymentStatus, overdueBucket, type LeadTrip,
+  computeTaxes, isMaterialTaxableByDefault, TPS_RATE, TVQ_RATE,
 } from "@/lib/billing";
 import { REMBLAI_MATERIAL_OPTIONS, REQUEST_TYPES } from "@/lib/questionnaire-data";
 
@@ -33,6 +34,7 @@ type TripDraft = {
   payment_method: string;
   notes: string;
   entrepreneur_id: string;
+  taxable: boolean;
 };
 
 const emptyDraft = (): TripDraft => ({
@@ -47,6 +49,7 @@ const emptyDraft = (): TripDraft => ({
   payment_method: "",
   notes: "",
   entrepreneur_id: "",
+  taxable: false,
 });
 
 export default function BillingSection({ submissionId }: Props) {
@@ -77,14 +80,18 @@ export default function BillingSection({ submissionId }: Props) {
 
   const summary = useMemo(() => {
     let billed = 0, paid = 0, overdue = 0, count = trips.length;
+    let totalTps = 0, totalTvq = 0;
     for (const t of trips) {
-      const total = Number(t.total_price || 0);
+      const subtotal = Number(t.total_price || 0);
+      const tx = computeTaxes(subtotal, !!t.taxable, Number(t.tps_rate ?? TPS_RATE), Number(t.tvq_rate ?? TVQ_RATE));
+      const total = tx.total;
       if (t.payment_status === "annule") continue;
       if (["facture", "paye_partiel", "en_retard"].includes(t.payment_status)) billed += total;
       if (t.payment_status === "paye") { billed += total; paid += total; }
       if (overdueBucket(t)) overdue += total;
+      if (!["annule"].includes(t.payment_status)) { totalTps += tx.tps; totalTvq += tx.tvq; }
     }
-    return { billed, paid, overdue, count, balance: billed - paid };
+    return { billed, paid, overdue, count, balance: billed - paid, totalTps, totalTvq };
   }, [trips]);
 
   const addTrip = async () => {
@@ -106,6 +113,7 @@ export default function BillingSection({ submissionId }: Props) {
       payment_method: draft.payment_method || "",
       notes: draft.notes || "",
       entrepreneur_id: draft.entrepreneur_id || null,
+      taxable: draft.taxable,
     };
     const { data, error } = await supabase.from("lead_trips" as any).insert(payload).select().single();
     setAdding(false);
