@@ -23,6 +23,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import CsvImportModal from "@/components/CsvImportModal";
 import GoogleSheetImportModal from "@/components/GoogleSheetImportModal";
 import ExcelImportModal from "@/components/ExcelImportModal";
+import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
 import { Search } from "lucide-react";
@@ -68,6 +69,10 @@ interface Submission {
   internal_notes: string;
   assigned_entrepreneur: string | null;
   show_on_admin_map?: boolean;
+  lead_source?: string | null;
+  lead_category?: string | null;
+  creation_origin?: string | null;
+  company?: string | null;
 }
 
 interface LeadNote {
