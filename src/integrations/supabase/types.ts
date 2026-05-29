@@ -589,13 +589,18 @@ export type Database = {
           assigned_entrepreneur: string | null
           budget_max: string | null
           budget_unit: string | null
+          city: string | null
+          company: string | null
           contamination: string | null
           created_at: string
+          created_by: string | null
+          creation_origin: string
           deliver_or_remove: string | null
           delivery_deadline: string | null
           delivery_timeframe: string | null
           depth_in: string | null
           description: string | null
+          desired_date: string | null
           dompe_number: string | null
           email: string
           formatted_address: string | null
@@ -605,6 +610,8 @@ export type Database = {
           internal_notes: string
           latitude: number | null
           latitude_old: number | null
+          lead_category: string | null
+          lead_source: string | null
           length_ft: string | null
           location_type: string | null
           longitude: number | null
@@ -624,6 +631,7 @@ export type Database = {
           postal_longitude_old: number | null
           priority: string
           property_type: string
+          province: string | null
           quantity: string
           request_type: string
           show_on_admin_map: boolean
@@ -639,13 +647,18 @@ export type Database = {
           assigned_entrepreneur?: string | null
           budget_max?: string | null
           budget_unit?: string | null
+          city?: string | null
+          company?: string | null
           contamination?: string | null
           created_at?: string
+          created_by?: string | null
+          creation_origin?: string
           deliver_or_remove?: string | null
           delivery_deadline?: string | null
           delivery_timeframe?: string | null
           depth_in?: string | null
           description?: string | null
+          desired_date?: string | null
           dompe_number?: string | null
           email: string
           formatted_address?: string | null
@@ -655,6 +668,8 @@ export type Database = {
           internal_notes?: string
           latitude?: number | null
           latitude_old?: number | null
+          lead_category?: string | null
+          lead_source?: string | null
           length_ft?: string | null
           location_type?: string | null
           longitude?: number | null
@@ -674,6 +689,7 @@ export type Database = {
           postal_longitude_old?: number | null
           priority?: string
           property_type: string
+          province?: string | null
           quantity: string
           request_type?: string
           show_on_admin_map?: boolean
@@ -689,13 +705,18 @@ export type Database = {
           assigned_entrepreneur?: string | null
           budget_max?: string | null
           budget_unit?: string | null
+          city?: string | null
+          company?: string | null
           contamination?: string | null
           created_at?: string
+          created_by?: string | null
+          creation_origin?: string
           deliver_or_remove?: string | null
           delivery_deadline?: string | null
           delivery_timeframe?: string | null
           depth_in?: string | null
           description?: string | null
+          desired_date?: string | null
           dompe_number?: string | null
           email?: string
           formatted_address?: string | null
@@ -705,6 +726,8 @@ export type Database = {
           internal_notes?: string
           latitude?: number | null
           latitude_old?: number | null
+          lead_category?: string | null
+          lead_source?: string | null
           length_ft?: string | null
           location_type?: string | null
           longitude?: number | null
@@ -724,6 +747,7 @@ export type Database = {
           postal_longitude_old?: number | null
           priority?: string
           property_type?: string
+          province?: string | null
           quantity?: string
           request_type?: string
           show_on_admin_map?: boolean
