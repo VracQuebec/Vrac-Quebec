@@ -685,6 +685,21 @@ const Admin = () => {
       {showSheetImport && <GoogleSheetImportModal onClose={() => setShowSheetImport(false)} onImported={fetchSubmissions} />}
       {showExcelImport && <ExcelImportModal onClose={() => setShowExcelImport(false)} onImported={fetchSubmissions} />}
       {showStatusManager && <StatusManagerModal onClose={() => setShowStatusManager(false)} />}
+      <NewLeadModal
+        open={showNewLead}
+        onClose={() => setShowNewLead(false)}
+        onCreated={() => { fetchSubmissions(); }}
+      />
+
+      {/* Mobile FAB */}
+      <button
+        type="button"
+        aria-label="Ajouter un Lead"
+        onClick={() => setShowNewLead(true)}
+        className="md:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
     </div>
   );
 };
