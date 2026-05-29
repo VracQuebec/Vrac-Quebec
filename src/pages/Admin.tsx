@@ -23,6 +23,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import CsvImportModal from "@/components/CsvImportModal";
 import GoogleSheetImportModal from "@/components/GoogleSheetImportModal";
 import ExcelImportModal from "@/components/ExcelImportModal";
+import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
 import { Search } from "lucide-react";
@@ -68,6 +69,10 @@ interface Submission {
   internal_notes: string;
   assigned_entrepreneur: string | null;
   show_on_admin_map?: boolean;
+  lead_source?: string | null;
+  lead_category?: string | null;
+  creation_origin?: string | null;
+  company?: string | null;
 }
 
 interface LeadNote {
@@ -98,6 +103,8 @@ const Admin = () => {
   const [geocoding, setGeocoding] = useState<{ done: number; total: number } | null>(null);
   const [rechecking, setRechecking] = useState<{ done: number; total: number } | null>(null);
   const [showStatusManager, setShowStatusManager] = useState(false);
+  const [showNewLead, setShowNewLead] = useState(false);
+  const [filterSource, setFilterSource] = useState<string>("all");
   const [showArchivedOnMap, setShowArchivedOnMap] = useState(false);
   const [tab, setTab] = useState<"leads" | "billing" | "entrepreneurs">("leads");
   const overdueNotifiedRef = useRef(false);
@@ -423,6 +430,7 @@ const Admin = () => {
     const list = submissions.filter((s) => {
       if (filterStatus !== "all" && s.status !== filterStatus) return false;
       if (filterType !== "all" && s.request_type !== filterType) return false;
+      if (filterSource !== "all" && (s.lead_source || "") !== filterSource) return false;
       if (!q) return true;
       const haystack = [s.dompe_number, s.name, s.address, s.postal_code, s.email]
         .map(norm)
@@ -446,7 +454,7 @@ const Admin = () => {
       if (bHas) return 1;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [submissions, filterStatus, filterType, searchQuery]);
+  }, [submissions, filterStatus, filterType, filterSource, searchQuery]);
 
   if (!authReady || !user || roleLoading) {
     return <FullPageState title="Connexion en cours" message="Votre session est en vérification, la page va s’ouvrir automatiquement." />;
@@ -523,6 +531,12 @@ const Admin = () => {
               </button>
             </div>
             <button
+              onClick={() => setShowNewLead(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90"
+            >
+              <Plus className="w-4 h-4" /> Ajouter un Lead
+            </button>
+            <button
               onClick={geocodeMissing}
               disabled={!!geocoding}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-sm font-display font-semibold hover:opacity-90 disabled:opacity-60"
@@ -597,6 +611,10 @@ const Admin = () => {
             <option value="all">Tous types</option>
             {REQUEST_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
+          <select value={filterSource} onChange={(e) => setFilterSource(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+            <option value="all">Toutes sources</option>
+            {LEAD_SOURCES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
         </div>
 
         {loading ? (
@@ -667,6 +685,21 @@ const Admin = () => {
       {showSheetImport && <GoogleSheetImportModal onClose={() => setShowSheetImport(false)} onImported={fetchSubmissions} />}
       {showExcelImport && <ExcelImportModal onClose={() => setShowExcelImport(false)} onImported={fetchSubmissions} />}
       {showStatusManager && <StatusManagerModal onClose={() => setShowStatusManager(false)} />}
+      <NewLeadModal
+        open={showNewLead}
+        onClose={() => setShowNewLead(false)}
+        onCreated={() => { fetchSubmissions(); }}
+      />
+
+      {/* Mobile FAB */}
+      <button
+        type="button"
+        aria-label="Ajouter un Lead"
+        onClick={() => setShowNewLead(true)}
+        className="md:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
     </div>
   );
 };
