@@ -85,6 +85,17 @@ interface LeadNote {
 const formatDate = (d: string) =>
   new Date(d).toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
+const parseEstimatedTrips = (quantity: string | null): number | null => {
+  if (!quantity) return null;
+  const match = quantity.match(/(\d+)(?:\s*(?:-|à|a|to)\s*(\d+))?/i);
+  if (!match) return null;
+  const first = parseInt(match[1], 10);
+  if (isNaN(first)) return null;
+  // "X et plus", "X+", "X et +" → use X
+  if (/et\s+(plus|\+|plusieurs)|\+/.test(quantity)) return first;
+  return first;
+};
+
 const getMaterialLabels = (ids: string[]) =>
   ids.map((id) => MATERIAL_TYPES.find((m) => m.id === id)?.label || id).join(", ");
 
@@ -107,6 +118,8 @@ const Admin = () => {
   const [filterSource, setFilterSource] = useState<string>("all");
   const [showArchivedOnMap, setShowArchivedOnMap] = useState(false);
   const [tab, setTab] = useState<"leads" | "billing" | "entrepreneurs">("leads");
+  const [filterTrips, setFilterTrips] = useState<string>("all");
+  const [sortTrips, setSortTrips] = useState<string>("default");
   const overdueNotifiedRef = useRef(false);
   const { statuses: leadStatuses } = useLeadStatuses();
   const navigate = useNavigate();
@@ -431,6 +444,18 @@ const Admin = () => {
       if (filterStatus !== "all" && s.status !== filterStatus) return false;
       if (filterType !== "all" && s.request_type !== filterType) return false;
       if (filterSource !== "all" && (s.lead_source || "") !== filterSource) return false;
+      if (filterTrips !== "all") {
+        const trips = parseEstimatedTrips(s.quantity);
+        if (trips == null) return false;
+        switch (filterTrips) {
+          case "1-5":   if (trips < 1 || trips > 5) return false; break;
+          case "5-10":  if (trips < 5 || trips > 10) return false; break;
+          case "10-25": if (trips < 10 || trips > 25) return false; break;
+          case "25-50": if (trips < 25 || trips > 50) return false; break;
+          case "50-100": if (trips < 50 || trips > 100) return false; break;
+          case "100+":  if (trips < 100) return false; break;
+        }
+      }
       if (!q) return true;
       const haystack = [s.dompe_number, s.name, s.address, s.postal_code, s.email]
         .map(norm)
@@ -444,7 +469,7 @@ const Admin = () => {
       const m = (s.dompe_number || "").match(/\d+/);
       return m ? parseInt(m[0], 10) : NaN;
     };
-    return [...list].sort((a, b) => {
+    const sorted = [...list].sort((a, b) => {
       const na = dompeNum(a);
       const nb = dompeNum(b);
       const aHas = !isNaN(na);
@@ -454,7 +479,21 @@ const Admin = () => {
       if (bHas) return 1;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [submissions, filterStatus, filterType, filterSource, searchQuery]);
+    if (sortTrips === "trips-desc") {
+      sorted.sort((a, b) => {
+        const ta = parseEstimatedTrips(a.quantity) ?? -1;
+        const tb = parseEstimatedTrips(b.quantity) ?? -1;
+        return tb - ta;
+      });
+    } else if (sortTrips === "trips-asc") {
+      sorted.sort((a, b) => {
+        const ta = parseEstimatedTrips(a.quantity) ?? Number.MAX_SAFE_INTEGER;
+        const tb = parseEstimatedTrips(b.quantity) ?? Number.MAX_SAFE_INTEGER;
+        return ta - tb;
+      });
+    }
+    return sorted;
+  }, [submissions, filterStatus, filterType, filterSource, searchQuery, filterTrips, sortTrips]);
 
   if (!authReady || !user || roleLoading) {
     return <FullPageState title="Connexion en cours" message="Votre session est en vérification, la page va s’ouvrir automatiquement." />;
@@ -614,6 +653,20 @@ const Admin = () => {
           <select value={filterSource} onChange={(e) => setFilterSource(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
             <option value="all">Toutes sources</option>
             {LEAD_SOURCES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+          <select value={filterTrips} onChange={(e) => setFilterTrips(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+            <option value="all">Tous voyages</option>
+            <option value="1-5">1 à 5 voyages</option>
+            <option value="5-10">5 à 10 voyages</option>
+            <option value="10-25">10 à 25 voyages</option>
+            <option value="25-50">25 à 50 voyages</option>
+            <option value="50-100">50 à 100 voyages</option>
+            <option value="100+">100+ voyages</option>
+          </select>
+          <select value={sortTrips} onChange={(e) => setSortTrips(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+            <option value="default">Trier par…</option>
+            <option value="trips-desc">Plus grand nombre de voyages</option>
+            <option value="trips-asc">Plus petit nombre de voyages</option>
           </select>
         </div>
 
@@ -871,6 +924,14 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               else if (v === "vrac") updates.visible_to_entrepreneur = false;
               onUpdate(updates);
             }} />
+            {(() => {
+              const trips = parseEstimatedTrips(sub.quantity);
+              return trips != null ? (
+                <span className="text-[10px] font-display font-bold px-2 py-0.5 rounded bg-emerald-600/10 text-emerald-700 border border-emerald-600/20">
+                  {trips} voyage{trips > 1 ? "s" : ""}
+                </span>
+              ) : null;
+            })()}
           </div>
           <p className="text-xs text-muted-foreground font-body truncate">
             {formatDate(sub.created_at)} • {getMaterialLabels(sub.materials)} • {sub.address}
