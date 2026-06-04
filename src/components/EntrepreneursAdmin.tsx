@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, X, Save, User as UserIcon, Building2, Mail, Phone, Calendar, Briefcase, Truck } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import EntrepreneurBillingTab from "@/components/EntrepreneurBillingTab";
 
 type RoleRow = { user_id: string; email: string; roles: string[]; approved: boolean; created_at: string };
 type EntrepreneurRow = { id: string; user_id: string | null; name: string | null; company: string | null; phone: string | null; email: string | null };
