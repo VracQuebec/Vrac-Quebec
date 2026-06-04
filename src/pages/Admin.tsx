@@ -85,6 +85,17 @@ interface LeadNote {
 const formatDate = (d: string) =>
   new Date(d).toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
+const parseEstimatedTrips = (quantity: string | null): number | null => {
+  if (!quantity) return null;
+  const match = quantity.match(/(\d+)(?:\s*(?:-|à|a|to)\s*(\d+))?/i);
+  if (!match) return null;
+  const first = parseInt(match[1], 10);
+  if (isNaN(first)) return null;
+  // "X et plus", "X+", "X et +" → use X
+  if (/et\s+(plus|\+|plusieurs)|\+/.test(quantity)) return first;
+  return first;
+};
+
 const getMaterialLabels = (ids: string[]) =>
   ids.map((id) => MATERIAL_TYPES.find((m) => m.id === id)?.label || id).join(", ");
 
