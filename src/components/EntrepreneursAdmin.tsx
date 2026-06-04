@@ -674,7 +674,7 @@ function InvoiceFormModal({
   const [form, setForm] = useState<InvoiceForm>(() => {
     if (invoice) {
       return {
-        submission_id: invoice.submission_id,
+        submission_id: invoice.submission_id || "",
         trip_type: invoice.trip_type || "10 roues",
         trips_count: Number(invoice.trips_count) || 1,
         price_per_trip: Number(invoice.price_per_trip) || 0,
@@ -687,6 +687,7 @@ function InvoiceFormModal({
         taxable: !!invoice.taxable,
         notes: invoice.notes || "",
         material: invoice.material || "",
+        description: (invoice as any).description || "",
       };
     }
     return emptyInvoice();
