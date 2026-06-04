@@ -240,7 +240,7 @@ function EntrepreneurDetailModal({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [materialInput, setMaterialInput] = useState("");
-  const [tab, setTab] = useState<"profil" | "facturation">("profil");
+  const [tab, setTab] = useState<"informations" | "tarification" | "facturation">("informations");
 
   useEffect(() => {
     (async () => {
