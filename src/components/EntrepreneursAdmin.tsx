@@ -634,7 +634,7 @@ function BillingTab({ entrepreneurId, entrepreneurLabel }: { entrepreneurId: str
                       <td className="px-3 py-2 font-semibold">{inv.invoice_number || "—"}</td>
                       <td className="px-3 py-2">{inv.delivery_date || "—"}</td>
                       <td className="px-3 py-2">{inv.due_date || "—"}</td>
-                      <td className="px-3 py-2">{d?.dompe_number || "—"}</td>
+                      <td className="px-3 py-2">{inv.submission_id ? (d?.dompe_number || "—") : <span className="text-muted-foreground italic">Aucune dompe associée</span>}</td>
                       <td className="px-3 py-2">{inv.trip_type || "—"}</td>
                       <td className="px-3 py-2 text-right font-mono">{Number(inv.trips_count || 0)}</td>
                       <td className="px-3 py-2 text-right font-mono">{Number(inv.price_per_trip || 0).toFixed(2)} $</td>
