@@ -94,7 +94,7 @@ export const findPaymentStatus = (v: string) =>
  */
 export const overdueBucket = (trip: LeadTrip): { days: number; bucket: 7 | 14 | 28 } | null => {
   if (["paye", "annule"].includes(trip.payment_status)) return null;
-  if (trip.payment_status === "non_facture") return null;
+  if (["non_facture", "brouillon"].includes(trip.payment_status)) return null;
   // Prefer due_date when available, otherwise fall back to delivery_date / created_at
   const ref = trip.due_date || trip.delivery_date || trip.created_at;
   if (!ref) return null;
