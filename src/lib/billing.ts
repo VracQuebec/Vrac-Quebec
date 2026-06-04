@@ -41,6 +41,8 @@ export interface LeadTrip {
   tps_amount?: number;
   tvq_amount?: number;
   total_with_tax?: number;
+  due_date?: string | null;
+  due_days?: number;
 }
 
 // Quebec sales tax rates
@@ -89,7 +91,8 @@ export const findPaymentStatus = (v: string) =>
 export const overdueBucket = (trip: LeadTrip): { days: number; bucket: 7 | 14 | 28 } | null => {
   if (["paye", "annule"].includes(trip.payment_status)) return null;
   if (trip.payment_status === "non_facture") return null;
-  const ref = trip.delivery_date || trip.created_at;
+  // Prefer due_date when available, otherwise fall back to delivery_date / created_at
+  const ref = trip.due_date || trip.delivery_date || trip.created_at;
   if (!ref) return null;
   const diffMs = Date.now() - new Date(ref).getTime();
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
