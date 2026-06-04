@@ -679,7 +679,7 @@ function InvoiceFormModal({
         delivery_date: invoice.delivery_date || "",
         due_date: invoice.due_date || "",
         payment_date: invoice.payment_date || "",
-        payment_status: invoice.payment_status || "facture",
+        payment_status: invoice.payment_status || "brouillon",
         payment_method: invoice.payment_method || "",
         amount_paid: Number(invoice.amount_paid) || 0,
         taxable: !!invoice.taxable,
