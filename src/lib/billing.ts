@@ -1,5 +1,8 @@
 export const PAYMENT_STATUSES = [
   { value: "non_facture", label: "Non facturé", color: "bg-slate-200 text-slate-800 border-slate-300" },
+  { value: "brouillon", label: "Brouillon", color: "bg-slate-200 text-slate-800 border-slate-300" },
+  { value: "envoyee", label: "Envoyée", color: "bg-indigo-500/15 text-indigo-700 border-indigo-500/30" },
+  { value: "en_attente", label: "En attente de paiement", color: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
   { value: "facture", label: "Facturé", color: "bg-sky-500/15 text-sky-700 border-sky-500/30" },
   { value: "paye_partiel", label: "Payé partiellement", color: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
   { value: "paye", label: "Payé", color: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30" },
