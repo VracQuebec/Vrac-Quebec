@@ -444,6 +444,18 @@ const Admin = () => {
       if (filterStatus !== "all" && s.status !== filterStatus) return false;
       if (filterType !== "all" && s.request_type !== filterType) return false;
       if (filterSource !== "all" && (s.lead_source || "") !== filterSource) return false;
+      if (filterTrips !== "all") {
+        const trips = parseEstimatedTrips(s.quantity);
+        if (trips == null) return false;
+        switch (filterTrips) {
+          case "1-5":   if (trips < 1 || trips > 5) return false; break;
+          case "5-10":  if (trips < 5 || trips > 10) return false; break;
+          case "10-25": if (trips < 10 || trips > 25) return false; break;
+          case "25-50": if (trips < 25 || trips > 50) return false; break;
+          case "50-100": if (trips < 50 || trips > 100) return false; break;
+          case "100+":  if (trips < 100) return false; break;
+        }
+      }
       if (!q) return true;
       const haystack = [s.dompe_number, s.name, s.address, s.postal_code, s.email]
         .map(norm)
@@ -457,7 +469,7 @@ const Admin = () => {
       const m = (s.dompe_number || "").match(/\d+/);
       return m ? parseInt(m[0], 10) : NaN;
     };
-    return [...list].sort((a, b) => {
+    const sorted = [...list].sort((a, b) => {
       const na = dompeNum(a);
       const nb = dompeNum(b);
       const aHas = !isNaN(na);
@@ -467,7 +479,21 @@ const Admin = () => {
       if (bHas) return 1;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [submissions, filterStatus, filterType, filterSource, searchQuery]);
+    if (sortTrips === "trips-desc") {
+      sorted.sort((a, b) => {
+        const ta = parseEstimatedTrips(a.quantity) ?? -1;
+        const tb = parseEstimatedTrips(b.quantity) ?? -1;
+        return tb - ta;
+      });
+    } else if (sortTrips === "trips-asc") {
+      sorted.sort((a, b) => {
+        const ta = parseEstimatedTrips(a.quantity) ?? Number.MAX_SAFE_INTEGER;
+        const tb = parseEstimatedTrips(b.quantity) ?? Number.MAX_SAFE_INTEGER;
+        return ta - tb;
+      });
+    }
+    return sorted;
+  }, [submissions, filterStatus, filterType, filterSource, searchQuery, filterTrips, sortTrips]);
 
   if (!authReady || !user || roleLoading) {
     return <FullPageState title="Connexion en cours" message="Votre session est en vérification, la page va s’ouvrir automatiquement." />;
