@@ -504,6 +504,7 @@ type InvoiceForm = {
   taxable: boolean;
   notes: string;
   material: string;
+  description: string;
 };
 
 const TRIP_TYPES = ["6 roues", "10 roues", "12 roues", "Semi-remorque", "Autre"];
@@ -522,6 +523,7 @@ const emptyInvoice = (): InvoiceForm => ({
   taxable: false,
   notes: "",
   material: "",
+  description: "",
 });
 
 function BillingTab({ entrepreneurId, entrepreneurLabel }: { entrepreneurId: string | null; entrepreneurLabel: string }) {
@@ -542,7 +544,7 @@ function BillingTab({ entrepreneurId, entrepreneurLabel }: { entrepreneurId: str
     const list = ((trips as any) || []) as LeadTrip[];
     setInvoices(list);
 
-    const subIds = [...new Set(list.map((t) => t.submission_id))];
+    const subIds = [...new Set(list.map((t) => t.submission_id).filter(Boolean))];
     if (subIds.length) {
       const { data: subs } = await supabase
         .from("submissions")
@@ -551,6 +553,8 @@ function BillingTab({ entrepreneurId, entrepreneurLabel }: { entrepreneurId: str
       const map: Record<string, DompeRow> = {};
       ((subs as any) || []).forEach((s: any) => { map[s.id] = s; });
       setDompes(map);
+    } else {
+      setDompes({});
     }
     setLoading(false);
   };
@@ -630,7 +634,7 @@ function BillingTab({ entrepreneurId, entrepreneurLabel }: { entrepreneurId: str
                       <td className="px-3 py-2 font-semibold">{inv.invoice_number || "—"}</td>
                       <td className="px-3 py-2">{inv.delivery_date || "—"}</td>
                       <td className="px-3 py-2">{inv.due_date || "—"}</td>
-                      <td className="px-3 py-2">{d?.dompe_number || "—"}</td>
+                      <td className="px-3 py-2">{inv.submission_id ? (d?.dompe_number || "—") : <span className="text-muted-foreground italic">Aucune dompe associée</span>}</td>
                       <td className="px-3 py-2">{inv.trip_type || "—"}</td>
                       <td className="px-3 py-2 text-right font-mono">{Number(inv.trips_count || 0)}</td>
                       <td className="px-3 py-2 text-right font-mono">{Number(inv.price_per_trip || 0).toFixed(2)} $</td>
@@ -672,7 +676,7 @@ function InvoiceFormModal({
   const [form, setForm] = useState<InvoiceForm>(() => {
     if (invoice) {
       return {
-        submission_id: invoice.submission_id,
+        submission_id: invoice.submission_id || "",
         trip_type: invoice.trip_type || "10 roues",
         trips_count: Number(invoice.trips_count) || 1,
         price_per_trip: Number(invoice.price_per_trip) || 0,
@@ -685,6 +689,7 @@ function InvoiceFormModal({
         taxable: !!invoice.taxable,
         notes: invoice.notes || "",
         material: invoice.material || "",
+        description: (invoice as any).description || "",
       };
     }
     return emptyInvoice();
@@ -721,10 +726,9 @@ function InvoiceFormModal({
   const balance = taxes.total - (Number(form.amount_paid) || 0);
 
   const save = async () => {
-    if (!form.submission_id) { toast({ title: "Sélectionnez une dompe", variant: "destructive" }); return; }
     setSaving(true);
     const payload: any = {
-      submission_id: form.submission_id,
+      submission_id: form.submission_id || null,
       entrepreneur_id: entrepreneurId,
       material: form.material || "",
       trip_type: form.trip_type,
@@ -739,6 +743,7 @@ function InvoiceFormModal({
       amount_paid: form.amount_paid,
       taxable: form.taxable,
       notes: form.notes,
+      description: form.description,
     };
     let error;
     if (invoice) {
@@ -779,19 +784,30 @@ function InvoiceFormModal({
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="block text-sm sm:col-span-2">
-              <span className="text-muted-foreground text-xs">Dompe desservie *</span>
+              <span className="text-muted-foreground text-xs">Dompe desservie <span className="text-muted-foreground/60">(optionnel)</span></span>
               <select
                 value={form.submission_id}
                 onChange={(e) => setForm((f) => ({ ...f, submission_id: e.target.value }))}
                 className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1"
               >
-                <option value="">— Sélectionner une dompe —</option>
+                <option value="">— Aucune dompe —</option>
                 {dompeOptions.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.dompe_number} {d.name ? `— ${d.name}` : ""} {d.address ? `(${d.address})` : ""}
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label className="block text-sm sm:col-span-2">
+              <span className="text-muted-foreground text-xs">Description des travaux</span>
+              <textarea
+                rows={2}
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1"
+                placeholder="ex. 10 voyages 10 roues, Transport de terre, Livraison gravier, Dompe 240, Remblai chantier Beauport"
+              />
             </label>
 
             <label className="block text-sm">

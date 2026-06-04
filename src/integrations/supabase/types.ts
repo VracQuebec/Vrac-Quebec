@@ -363,6 +363,7 @@ export type Database = {
           amount_paid: number
           created_at: string
           delivery_date: string | null
+          description: string
           due_date: string | null
           due_days: number
           entrepreneur_id: string | null
@@ -374,7 +375,7 @@ export type Database = {
           payment_method: string
           payment_status: string
           price_per_trip: number
-          submission_id: string
+          submission_id: string | null
           taxable: boolean
           total_price: number
           total_with_tax: number
@@ -390,6 +391,7 @@ export type Database = {
           amount_paid?: number
           created_at?: string
           delivery_date?: string | null
+          description?: string
           due_date?: string | null
           due_days?: number
           entrepreneur_id?: string | null
@@ -401,7 +403,7 @@ export type Database = {
           payment_method?: string
           payment_status?: string
           price_per_trip?: number
-          submission_id: string
+          submission_id?: string | null
           taxable?: boolean
           total_price?: number
           total_with_tax?: number
@@ -417,6 +419,7 @@ export type Database = {
           amount_paid?: number
           created_at?: string
           delivery_date?: string | null
+          description?: string
           due_date?: string | null
           due_days?: number
           entrepreneur_id?: string | null
@@ -428,7 +431,7 @@ export type Database = {
           payment_method?: string
           payment_status?: string
           price_per_trip?: number
-          submission_id?: string
+          submission_id?: string | null
           taxable?: boolean
           total_price?: number
           total_with_tax?: number
