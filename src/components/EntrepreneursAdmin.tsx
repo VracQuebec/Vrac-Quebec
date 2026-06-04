@@ -782,19 +782,30 @@ function InvoiceFormModal({
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="block text-sm sm:col-span-2">
-              <span className="text-muted-foreground text-xs">Dompe desservie *</span>
+              <span className="text-muted-foreground text-xs">Dompe desservie <span className="text-muted-foreground/60">(optionnel)</span></span>
               <select
                 value={form.submission_id}
                 onChange={(e) => setForm((f) => ({ ...f, submission_id: e.target.value }))}
                 className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1"
               >
-                <option value="">— Sélectionner une dompe —</option>
+                <option value="">— Aucune dompe —</option>
                 {dompeOptions.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.dompe_number} {d.name ? `— ${d.name}` : ""} {d.address ? `(${d.address})` : ""}
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label className="block text-sm sm:col-span-2">
+              <span className="text-muted-foreground text-xs">Description des travaux</span>
+              <textarea
+                rows={2}
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1"
+                placeholder="ex. 10 voyages 10 roues, Transport de terre, Livraison gravier, Dompe 240, Remblai chantier Beauport"
+              />
             </label>
 
             <label className="block text-sm">
