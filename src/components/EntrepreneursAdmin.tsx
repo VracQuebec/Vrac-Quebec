@@ -523,6 +523,7 @@ const emptyInvoice = (): InvoiceForm => ({
   taxable: false,
   notes: "",
   material: "",
+  description: "",
 });
 
 function BillingTab({ entrepreneurId, entrepreneurLabel }: { entrepreneurId: string | null; entrepreneurLabel: string }) {
