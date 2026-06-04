@@ -726,7 +726,7 @@ function InvoiceFormModal({
   const save = async () => {
     setSaving(true);
     const payload: any = {
-      submission_id: form.submission_id,
+      submission_id: form.submission_id || null,
       entrepreneur_id: entrepreneurId,
       material: form.material || "",
       trip_type: form.trip_type,
@@ -741,6 +741,7 @@ function InvoiceFormModal({
       amount_paid: form.amount_paid,
       taxable: form.taxable,
       notes: form.notes,
+      description: form.description,
     };
     let error;
     if (invoice) {
