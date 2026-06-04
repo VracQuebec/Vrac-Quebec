@@ -516,7 +516,7 @@ const emptyInvoice = (): InvoiceForm => ({
   delivery_date: new Date().toISOString().slice(0, 10),
   due_date: "",
   payment_date: "",
-  payment_status: "facture",
+  payment_status: "brouillon",
   payment_method: "",
   amount_paid: 0,
   taxable: false,
