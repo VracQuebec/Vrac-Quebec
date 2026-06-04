@@ -218,6 +218,8 @@ export default function BillingSection({ submissionId }: Props) {
                   onChange={(e) => patchTrip(t.id, { price_per_trip: Number(e.target.value) })} className={inputCls} /></Field>
                 <Field label="Date livraison"><input type="date" value={t.delivery_date || ""}
                   onChange={(e) => patchTrip(t.id, { delivery_date: e.target.value || null })} className={inputCls} /></Field>
+                <Field label="Échéance"><input type="date" value={(t.due_date as any) || ""}
+                  onChange={(e) => patchTrip(t.id, { due_date: e.target.value || null } as any)} className={inputCls} /></Field>
                 <Field label="Date paiement"><input type="date" value={t.payment_date || ""}
                   onChange={(e) => patchTrip(t.id, { payment_date: e.target.value || null })} className={inputCls} /></Field>
                 <Field label="Facture #"><input type="text" value={t.invoice_number}
