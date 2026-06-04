@@ -924,6 +924,14 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               else if (v === "vrac") updates.visible_to_entrepreneur = false;
               onUpdate(updates);
             }} />
+            {(() => {
+              const trips = parseEstimatedTrips(sub.quantity);
+              return trips != null ? (
+                <span className="text-[10px] font-display font-bold px-2 py-0.5 rounded bg-emerald-600/10 text-emerald-700 border border-emerald-600/20">
+                  {trips} voyage{trips > 1 ? "s" : ""}
+                </span>
+              ) : null;
+            })()}
           </div>
           <p className="text-xs text-muted-foreground font-body truncate">
             {formatDate(sub.created_at)} • {getMaterialLabels(sub.materials)} • {sub.address}
