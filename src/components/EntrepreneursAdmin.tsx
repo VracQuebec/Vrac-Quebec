@@ -294,7 +294,8 @@ function EntrepreneurDetailModal({
           <>
           <div className="px-5 pt-4 border-b border-border flex gap-1">
             {[
-              { k: "profil", label: "Profil", icon: <UserIcon className="w-4 h-4" /> },
+              { k: "informations", label: "Informations", icon: <UserIcon className="w-4 h-4" /> },
+              { k: "tarification", label: "Tarification", icon: <Briefcase className="w-4 h-4" /> },
               { k: "facturation", label: "Facturation", icon: <Receipt className="w-4 h-4" /> },
             ].map((t) => (
               <button
@@ -311,6 +312,7 @@ function EntrepreneurDetailModal({
             <BillingTab entrepreneurId={entrepreneur?.id || null} entrepreneurLabel={entrepreneur?.company || email} />
           ) : (
           <div className="p-5 space-y-6">
+            {tab === "informations" && (<>
             {/* Identité */}
             <section>
               <h3 className="font-display font-semibold text-sm uppercase text-muted-foreground mb-3">Identité</h3>
@@ -334,8 +336,9 @@ function EntrepreneurDetailModal({
                 <Stat label="Dernière activité" value={fmtDate(stats?.last_activity ?? null)} icon={<Calendar className="w-4 h-4" />} />
               </div>
             </section>
+            </>)}
 
-            {/* Configuration Admin */}
+            {tab === "tarification" && (
             <section className="border border-primary/30 rounded-xl p-4 bg-primary/5">
               <h3 className="font-display font-bold text-base mb-4 flex items-center gap-2">⚙️ Configuration Admin</h3>
 
@@ -450,6 +453,7 @@ function EntrepreneurDetailModal({
                 </button>
               </div>
             </section>
+            )}
           </div>
           )}
           </>
