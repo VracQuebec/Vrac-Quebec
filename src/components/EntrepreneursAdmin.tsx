@@ -240,6 +240,7 @@ function EntrepreneurDetailModal({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [materialInput, setMaterialInput] = useState("");
+  const [tab, setTab] = useState<"profil" | "facturation">("profil");
 
   useEffect(() => {
     (async () => {
@@ -290,6 +291,25 @@ function EntrepreneurDetailModal({
         {loading ? (
           <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin" /></div>
         ) : (
+          <>
+          <div className="px-5 pt-4 border-b border-border flex gap-1">
+            {[
+              { k: "profil", label: "Profil", icon: <UserIcon className="w-4 h-4" /> },
+              { k: "facturation", label: "Facturation", icon: <Receipt className="w-4 h-4" /> },
+            ].map((t) => (
+              <button
+                key={t.k}
+                onClick={() => setTab(t.k as any)}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition ${tab === t.k ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              >
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
+
+          {tab === "facturation" ? (
+            <BillingTab entrepreneurId={entrepreneur?.id || null} entrepreneurLabel={entrepreneur?.company || email} />
+          ) : (
           <div className="p-5 space-y-6">
             {/* Identité */}
             <section>
@@ -431,6 +451,8 @@ function EntrepreneurDetailModal({
               </div>
             </section>
           </div>
+          )}
+          </>
         )}
       </div>
     </div>
