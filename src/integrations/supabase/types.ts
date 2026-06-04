@@ -360,6 +360,7 @@ export type Database = {
       }
       lead_trips: {
         Row: {
+          amount_paid: number
           created_at: string
           delivery_date: string | null
           due_date: string | null
@@ -386,6 +387,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          amount_paid?: number
           created_at?: string
           delivery_date?: string | null
           due_date?: string | null
@@ -412,6 +414,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          amount_paid?: number
           created_at?: string
           delivery_date?: string | null
           due_date?: string | null
