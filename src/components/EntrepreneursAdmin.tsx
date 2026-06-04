@@ -544,7 +544,7 @@ function BillingTab({ entrepreneurId, entrepreneurLabel }: { entrepreneurId: str
     const list = ((trips as any) || []) as LeadTrip[];
     setInvoices(list);
 
-    const subIds = [...new Set(list.map((t) => t.submission_id))];
+    const subIds = [...new Set(list.map((t) => t.submission_id).filter(Boolean))];
     if (subIds.length) {
       const { data: subs } = await supabase
         .from("submissions")
@@ -553,6 +553,8 @@ function BillingTab({ entrepreneurId, entrepreneurLabel }: { entrepreneurId: str
       const map: Record<string, DompeRow> = {};
       ((subs as any) || []).forEach((s: any) => { map[s.id] = s; });
       setDompes(map);
+    } else {
+      setDompes({});
     }
     setLoading(false);
   };
