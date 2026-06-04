@@ -362,6 +362,8 @@ export type Database = {
         Row: {
           created_at: string
           delivery_date: string | null
+          due_date: string | null
+          due_days: number
           entrepreneur_id: string | null
           id: string
           invoice_number: string
@@ -386,6 +388,8 @@ export type Database = {
         Insert: {
           created_at?: string
           delivery_date?: string | null
+          due_date?: string | null
+          due_days?: number
           entrepreneur_id?: string | null
           id?: string
           invoice_number?: string
@@ -410,6 +414,8 @@ export type Database = {
         Update: {
           created_at?: string
           delivery_date?: string | null
+          due_date?: string | null
+          due_days?: number
           entrepreneur_id?: string | null
           id?: string
           invoice_number?: string
