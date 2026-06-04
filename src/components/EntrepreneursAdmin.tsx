@@ -724,7 +724,6 @@ function InvoiceFormModal({
   const balance = taxes.total - (Number(form.amount_paid) || 0);
 
   const save = async () => {
-    if (!form.submission_id) { toast({ title: "Sélectionnez une dompe", variant: "destructive" }); return; }
     setSaving(true);
     const payload: any = {
       submission_id: form.submission_id,
