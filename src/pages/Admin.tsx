@@ -118,6 +118,8 @@ const Admin = () => {
   const [filterSource, setFilterSource] = useState<string>("all");
   const [showArchivedOnMap, setShowArchivedOnMap] = useState(false);
   const [tab, setTab] = useState<"leads" | "billing" | "entrepreneurs">("leads");
+  const [filterTrips, setFilterTrips] = useState<string>("all");
+  const [sortTrips, setSortTrips] = useState<string>("default");
   const overdueNotifiedRef = useRef(false);
   const { statuses: leadStatuses } = useLeadStatuses();
   const navigate = useNavigate();
