@@ -43,6 +43,7 @@ export interface LeadTrip {
   total_with_tax?: number;
   due_date?: string | null;
   due_days?: number;
+  amount_paid?: number;
 }
 
 // Quebec sales tax rates

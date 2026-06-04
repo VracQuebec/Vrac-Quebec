@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, X, Save, User as UserIcon, Building2, Mail, Phone, Calendar, Briefcase, Truck } from "lucide-react";
+import { Loader2, X, Save, User as UserIcon, Building2, Mail, Phone, Calendar, Briefcase, Truck, Plus, FileText, Receipt, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { PAYMENT_STATUSES, PAYMENT_METHODS, findPaymentStatus, computeTaxes, isMaterialTaxableByDefault, type LeadTrip } from "@/lib/billing";
 
 type RoleRow = { user_id: string; email: string; roles: string[]; approved: boolean; created_at: string };
 type EntrepreneurRow = { id: string; user_id: string | null; name: string | null; company: string | null; phone: string | null; email: string | null };
@@ -239,6 +240,7 @@ function EntrepreneurDetailModal({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [materialInput, setMaterialInput] = useState("");
+  const [tab, setTab] = useState<"profil" | "facturation">("profil");
 
   useEffect(() => {
     (async () => {
@@ -289,6 +291,25 @@ function EntrepreneurDetailModal({
         {loading ? (
           <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin" /></div>
         ) : (
+          <>
+          <div className="px-5 pt-4 border-b border-border flex gap-1">
+            {[
+              { k: "profil", label: "Profil", icon: <UserIcon className="w-4 h-4" /> },
+              { k: "facturation", label: "Facturation", icon: <Receipt className="w-4 h-4" /> },
+            ].map((t) => (
+              <button
+                key={t.k}
+                onClick={() => setTab(t.k as any)}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition ${tab === t.k ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              >
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
+
+          {tab === "facturation" ? (
+            <BillingTab entrepreneurId={entrepreneur?.id || null} entrepreneurLabel={entrepreneur?.company || email} />
+          ) : (
           <div className="p-5 space-y-6">
             {/* Identité */}
             <section>
@@ -430,6 +451,8 @@ function EntrepreneurDetailModal({
               </div>
             </section>
           </div>
+          )}
+          </>
         )}
       </div>
     </div>
@@ -453,6 +476,442 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
     <div className="bg-card border border-border rounded-lg p-3">
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">{icon}{label}</div>
       <div className="text-lg font-display font-bold">{value}</div>
+    </div>
+  );
+}
+
+// ============================================================
+// Onglet Facturation — fiche entrepreneur
+// ============================================================
+
+type DompeRow = { id: string; dompe_number: string | null; address: string | null; name: string | null };
+
+type InvoiceForm = {
+  submission_id: string;
+  trip_type: string;
+  trips_count: number;
+  price_per_trip: number;
+  delivery_date: string;
+  due_date: string;
+  payment_date: string;
+  payment_status: string;
+  payment_method: string;
+  amount_paid: number;
+  taxable: boolean;
+  notes: string;
+  material: string;
+};
+
+const TRIP_TYPES = ["6 roues", "10 roues", "12 roues", "Semi-remorque", "Autre"];
+
+const emptyInvoice = (): InvoiceForm => ({
+  submission_id: "",
+  trip_type: "10 roues",
+  trips_count: 1,
+  price_per_trip: 0,
+  delivery_date: new Date().toISOString().slice(0, 10),
+  due_date: "",
+  payment_date: "",
+  payment_status: "facture",
+  payment_method: "",
+  amount_paid: 0,
+  taxable: false,
+  notes: "",
+  material: "",
+});
+
+function BillingTab({ entrepreneurId, entrepreneurLabel }: { entrepreneurId: string | null; entrepreneurLabel: string }) {
+  const [loading, setLoading] = useState(true);
+  const [invoices, setInvoices] = useState<LeadTrip[]>([]);
+  const [dompes, setDompes] = useState<Record<string, DompeRow>>({});
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const load = async () => {
+    if (!entrepreneurId) { setLoading(false); return; }
+    setLoading(true);
+    const { data: trips } = await supabase
+      .from("lead_trips" as any)
+      .select("*")
+      .eq("entrepreneur_id", entrepreneurId)
+      .order("created_at", { ascending: false });
+    const list = ((trips as any) || []) as LeadTrip[];
+    setInvoices(list);
+
+    const subIds = [...new Set(list.map((t) => t.submission_id))];
+    if (subIds.length) {
+      const { data: subs } = await supabase
+        .from("submissions")
+        .select("id,dompe_number,address,name")
+        .in("id", subIds);
+      const map: Record<string, DompeRow> = {};
+      ((subs as any) || []).forEach((s: any) => { map[s.id] = s; });
+      setDompes(map);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [entrepreneurId]);
+
+  const totals = useMemo(() => {
+    let billed = 0, paid = 0, trips = 0;
+    invoices.forEach((i) => {
+      if (i.payment_status === "annule") return;
+      billed += Number(i.total_with_tax || i.total_price || 0);
+      paid += Number(i.amount_paid || 0);
+      trips += Number(i.trips_count || 0);
+    });
+    return { billed, paid, balance: billed - paid, trips, count: invoices.length };
+  }, [invoices]);
+
+  if (!entrepreneurId) {
+    return (
+      <div className="p-8 text-center text-muted-foreground text-sm">
+        Cet utilisateur n'a pas encore de fiche entrepreneur reliée. Créez d'abord la fiche pour gérer la facturation.
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-5 space-y-5">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <Stat icon={<FileText className="w-4 h-4" />} label="Factures" value={String(totals.count)} />
+        <Stat icon={<Truck className="w-4 h-4" />} label="Voyages" value={String(totals.trips)} />
+        <Stat icon={<Receipt className="w-4 h-4" />} label="Total facturé" value={totals.billed.toLocaleString("fr-CA", { style: "currency", currency: "CAD" })} />
+        <Stat icon={<Receipt className="w-4 h-4" />} label="Total payé" value={totals.paid.toLocaleString("fr-CA", { style: "currency", currency: "CAD" })} />
+        <Stat icon={<Receipt className="w-4 h-4" />} label="Solde à recevoir" value={totals.balance.toLocaleString("fr-CA", { style: "currency", currency: "CAD" })} />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <h3 className="font-display font-bold text-base">Historique des factures</h3>
+        <button
+          onClick={() => { setEditingId(null); setShowForm(true); }}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold"
+        >
+          <Plus className="w-4 h-4" /> Créer une facture
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin" /></div>
+      ) : invoices.length === 0 ? (
+        <div className="text-center py-10 text-muted-foreground text-sm">Aucune facture pour cet entrepreneur.</div>
+      ) : (
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/50 text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2">Facture</th>
+                  <th className="text-left px-3 py-2">Livraison</th>
+                  <th className="text-left px-3 py-2">Échéance</th>
+                  <th className="text-left px-3 py-2">Dompe</th>
+                  <th className="text-left px-3 py-2">Type</th>
+                  <th className="text-right px-3 py-2">Voyages</th>
+                  <th className="text-right px-3 py-2">Prix/V.</th>
+                  <th className="text-right px-3 py-2">Total</th>
+                  <th className="text-right px-3 py-2">Payé</th>
+                  <th className="text-left px-3 py-2">Statut</th>
+                  <th className="px-2 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((inv) => {
+                  const d = dompes[inv.submission_id];
+                  const st = findPaymentStatus(inv.payment_status);
+                  const total = Number(inv.total_with_tax || inv.total_price || 0);
+                  return (
+                    <tr key={inv.id} className="border-t border-border hover:bg-muted/30 cursor-pointer" onClick={() => { setEditingId(inv.id); setShowForm(true); }}>
+                      <td className="px-3 py-2 font-semibold">{inv.invoice_number || "—"}</td>
+                      <td className="px-3 py-2">{inv.delivery_date || "—"}</td>
+                      <td className="px-3 py-2">{inv.due_date || "—"}</td>
+                      <td className="px-3 py-2">{d?.dompe_number || "—"}</td>
+                      <td className="px-3 py-2">{inv.trip_type || "—"}</td>
+                      <td className="px-3 py-2 text-right font-mono">{Number(inv.trips_count || 0)}</td>
+                      <td className="px-3 py-2 text-right font-mono">{Number(inv.price_per_trip || 0).toFixed(2)} $</td>
+                      <td className="px-3 py-2 text-right font-mono">{total.toFixed(2)} $</td>
+                      <td className="px-3 py-2 text-right font-mono">{Number(inv.amount_paid || 0).toFixed(2)} $</td>
+                      <td className="px-3 py-2"><span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${st.color}`}>{st.label}</span></td>
+                      <td className="px-2 py-2 text-right"><button onClick={(e) => { e.stopPropagation(); setEditingId(inv.id); setShowForm(true); }} className="text-xs text-primary hover:underline">Modifier</button></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {showForm && (
+        <InvoiceFormModal
+          entrepreneurId={entrepreneurId}
+          entrepreneurLabel={entrepreneurLabel}
+          invoice={editingId ? invoices.find((i) => i.id === editingId) || null : null}
+          onClose={() => setShowForm(false)}
+          onSaved={() => { setShowForm(false); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function InvoiceFormModal({
+  entrepreneurId, entrepreneurLabel, invoice, onClose, onSaved,
+}: {
+  entrepreneurId: string;
+  entrepreneurLabel: string;
+  invoice: LeadTrip | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [form, setForm] = useState<InvoiceForm>(() => {
+    if (invoice) {
+      return {
+        submission_id: invoice.submission_id,
+        trip_type: invoice.trip_type || "10 roues",
+        trips_count: Number(invoice.trips_count) || 1,
+        price_per_trip: Number(invoice.price_per_trip) || 0,
+        delivery_date: invoice.delivery_date || "",
+        due_date: invoice.due_date || "",
+        payment_date: invoice.payment_date || "",
+        payment_status: invoice.payment_status || "facture",
+        payment_method: invoice.payment_method || "",
+        amount_paid: Number(invoice.amount_paid) || 0,
+        taxable: !!invoice.taxable,
+        notes: invoice.notes || "",
+        material: invoice.material || "",
+      };
+    }
+    return emptyInvoice();
+  });
+  const [dompeOptions, setDompeOptions] = useState<DompeRow[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      // Load dompes assigned to this entrepreneur first, plus any dompes with a number
+      const { data: assigned } = await supabase
+        .from("submissions")
+        .select("id,dompe_number,address,name")
+        .eq("assigned_entrepreneur", entrepreneurId)
+        .order("created_at", { ascending: false });
+      const list: DompeRow[] = ((assigned as any) || []).filter((s: any) => s.dompe_number);
+
+      // If editing and current submission isn't in the list, fetch it
+      if (invoice && !list.find((d) => d.id === invoice.submission_id)) {
+        const { data: cur } = await supabase
+          .from("submissions")
+          .select("id,dompe_number,address,name")
+          .eq("id", invoice.submission_id)
+          .maybeSingle();
+        if (cur) list.unshift(cur as any);
+      }
+      setDompeOptions(list);
+    })();
+  }, [entrepreneurId, invoice]);
+
+  const subtotal = (Number(form.trips_count) || 0) * (Number(form.price_per_trip) || 0);
+  const taxes = computeTaxes(subtotal, form.taxable);
+  const balance = taxes.total - (Number(form.amount_paid) || 0);
+
+  const save = async () => {
+    if (!form.submission_id) { toast({ title: "Sélectionnez une dompe", variant: "destructive" }); return; }
+    setSaving(true);
+    const payload: any = {
+      submission_id: form.submission_id,
+      entrepreneur_id: entrepreneurId,
+      material: form.material || "",
+      trip_type: form.trip_type,
+      trips_count: form.trips_count,
+      price_per_trip: form.price_per_trip,
+      total_price: subtotal,
+      delivery_date: form.delivery_date || null,
+      due_date: form.due_date || null,
+      payment_date: form.payment_date || null,
+      payment_status: form.payment_status,
+      payment_method: form.payment_method,
+      amount_paid: form.amount_paid,
+      taxable: form.taxable,
+      notes: form.notes,
+    };
+    let error;
+    if (invoice) {
+      ({ error } = await supabase.from("lead_trips" as any).update(payload).eq("id", invoice.id));
+    } else {
+      ({ error } = await supabase.from("lead_trips" as any).insert(payload));
+    }
+    setSaving(false);
+    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
+    toast({ title: invoice ? "Facture mise à jour" : "Facture créée" });
+    onSaved();
+  };
+
+  const del = async () => {
+    if (!invoice) return;
+    if (!confirm("Supprimer cette facture ?")) return;
+    setDeleting(true);
+    const { error } = await supabase.from("lead_trips" as any).delete().eq("id", invoice.id);
+    setDeleting(false);
+    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Facture supprimée" });
+    onSaved();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/60 flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+      <div className="bg-background w-full max-w-2xl rounded-none sm:rounded-xl border border-border shadow-xl my-0 sm:my-8">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-background z-10">
+          <div>
+            <h2 className="text-lg font-display font-bold flex items-center gap-2">
+              <Receipt className="w-5 h-5" /> {invoice ? `Facture ${invoice.invoice_number}` : "Nouvelle facture"}
+            </h2>
+            <p className="text-xs text-muted-foreground">{entrepreneurLabel}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="block text-sm sm:col-span-2">
+              <span className="text-muted-foreground text-xs">Dompe desservie *</span>
+              <select
+                value={form.submission_id}
+                onChange={(e) => setForm((f) => ({ ...f, submission_id: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1"
+              >
+                <option value="">— Sélectionner une dompe —</option>
+                {dompeOptions.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.dompe_number} {d.name ? `— ${d.name}` : ""} {d.address ? `(${d.address})` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block text-sm">
+              <span className="text-muted-foreground text-xs">Type de voyage</span>
+              <select
+                value={form.trip_type}
+                onChange={(e) => setForm((f) => ({ ...f, trip_type: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1"
+              >
+                {TRIP_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </label>
+
+            <label className="block text-sm">
+              <span className="text-muted-foreground text-xs">Matériau</span>
+              <input
+                value={form.material}
+                onChange={(e) => setForm((f) => ({ ...f, material: e.target.value, taxable: isMaterialTaxableByDefault(e.target.value) }))}
+                className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1"
+                placeholder="ex. terre, sable…"
+              />
+            </label>
+
+            <label className="block text-sm">
+              <span className="text-muted-foreground text-xs">Nombre de voyages</span>
+              <input
+                type="number" min={0} step={1}
+                value={form.trips_count}
+                onChange={(e) => setForm((f) => ({ ...f, trips_count: Number(e.target.value) || 0 }))}
+                className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1"
+              />
+            </label>
+
+            <label className="block text-sm">
+              <span className="text-muted-foreground text-xs">Prix par voyage ($)</span>
+              <input
+                type="number" min={0} step="0.01"
+                value={form.price_per_trip}
+                onChange={(e) => setForm((f) => ({ ...f, price_per_trip: Number(e.target.value) || 0 }))}
+                className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1"
+              />
+            </label>
+
+            <label className="block text-sm">
+              <span className="text-muted-foreground text-xs">Date de livraison</span>
+              <input type="date" value={form.delivery_date} onChange={(e) => setForm((f) => ({ ...f, delivery_date: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1" />
+            </label>
+            <label className="block text-sm">
+              <span className="text-muted-foreground text-xs">Date d'échéance</span>
+              <input type="date" value={form.due_date} onChange={(e) => setForm((f) => ({ ...f, due_date: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1" />
+            </label>
+            <label className="block text-sm">
+              <span className="text-muted-foreground text-xs">Date de paiement</span>
+              <input type="date" value={form.payment_date} onChange={(e) => setForm((f) => ({ ...f, payment_date: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1" />
+            </label>
+
+            <label className="block text-sm">
+              <span className="text-muted-foreground text-xs">Statut</span>
+              <select value={form.payment_status} onChange={(e) => setForm((f) => ({ ...f, payment_status: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1">
+                {PAYMENT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+            </label>
+
+            <label className="block text-sm">
+              <span className="text-muted-foreground text-xs">Mode de paiement</span>
+              <select value={form.payment_method} onChange={(e) => setForm((f) => ({ ...f, payment_method: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1">
+                <option value="">—</option>
+                {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </label>
+
+            <label className="block text-sm">
+              <span className="text-muted-foreground text-xs">Montant payé ($)</span>
+              <input
+                type="number" min={0} step="0.01"
+                value={form.amount_paid}
+                onChange={(e) => setForm((f) => ({ ...f, amount_paid: Number(e.target.value) || 0 }))}
+                className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1"
+              />
+            </label>
+
+            <label className="inline-flex items-center gap-2 text-sm mt-2">
+              <Switch checked={form.taxable} onCheckedChange={(v) => setForm((f) => ({ ...f, taxable: v }))} />
+              <span>Taxable (TPS + TVQ)</span>
+            </label>
+          </div>
+
+          <div className="rounded-lg bg-secondary/40 border border-border p-3 text-sm space-y-1">
+            <div className="flex justify-between"><span>Sous-total</span><span className="font-mono">{taxes.subtotal.toFixed(2)} $</span></div>
+            {form.taxable && (
+              <>
+                <div className="flex justify-between text-muted-foreground"><span>TPS (5%)</span><span className="font-mono">{taxes.tps.toFixed(2)} $</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>TVQ (9,975%)</span><span className="font-mono">{taxes.tvq.toFixed(2)} $</span></div>
+              </>
+            )}
+            <div className="flex justify-between font-bold border-t border-border pt-1"><span>Total</span><span className="font-mono">{taxes.total.toFixed(2)} $</span></div>
+            <div className="flex justify-between"><span>Solde restant</span><span className="font-mono">{balance.toFixed(2)} $</span></div>
+          </div>
+
+          <label className="block text-sm">
+            <span className="text-muted-foreground text-xs">Notes</span>
+            <textarea
+              rows={3}
+              value={form.notes}
+              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              className="w-full px-3 py-2 rounded-lg border border-input bg-background mt-1"
+            />
+          </label>
+
+          <div className="flex items-center justify-between gap-2 pt-2">
+            {invoice ? (
+              <button onClick={del} disabled={deleting} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-destructive/40 text-destructive text-sm hover:bg-destructive/10">
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Supprimer
+              </button>
+            ) : <span />}
+            <div className="flex gap-2">
+              <button onClick={onClose} className="px-3 py-2 rounded-lg border border-border text-sm">Annuler</button>
+              <button onClick={save} disabled={saving} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-semibold disabled:opacity-60">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
