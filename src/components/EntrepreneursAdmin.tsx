@@ -504,6 +504,7 @@ type InvoiceForm = {
   taxable: boolean;
   notes: string;
   material: string;
+  description: string;
 };
 
 const TRIP_TYPES = ["6 roues", "10 roues", "12 roues", "Semi-remorque", "Autre"];
