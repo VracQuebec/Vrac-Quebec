@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, X, Save, User as UserIcon, Building2, Mail, Phone, Calendar, Briefcase, Truck } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import EntrepreneurBillingTab from "@/components/EntrepreneurBillingTab";
 
 type RoleRow = { user_id: string; email: string; roles: string[]; approved: boolean; created_at: string };
 type EntrepreneurRow = { id: string; user_id: string | null; name: string | null; company: string | null; phone: string | null; email: string | null };
@@ -239,6 +240,8 @@ function EntrepreneurDetailModal({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [materialInput, setMaterialInput] = useState("");
+  const [tab, setTab] = useState<"infos" | "historique" | "facturation">("infos");
+  const entrepreneurId = entrepreneur?.id || "";
 
   useEffect(() => {
     (async () => {
@@ -290,6 +293,47 @@ function EntrepreneurDetailModal({
           <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin" /></div>
         ) : (
           <div className="p-5 space-y-6">
+            {/* Tabs */}
+            <div className="flex gap-1 border-b border-border -mt-2 -mx-1 px-1">
+              {[
+                { id: "infos", label: "Informations générales" },
+                { id: "historique", label: "Historique" },
+                { id: "facturation", label: "Facturation" },
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id as any)}
+                  className={`px-3 py-2 text-sm font-display font-semibold border-b-2 -mb-px transition ${
+                    tab === t.id
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {tab === "facturation" ? (
+              entrepreneurId ? (
+                <EntrepreneurBillingTab entrepreneurId={entrepreneurId} />
+              ) : (
+                <div className="text-center py-10 text-sm text-muted-foreground">
+                  Aucune fiche entrepreneur liée à ce compte.
+                </div>
+              )
+            ) : tab === "historique" ? (
+              <section>
+                <h3 className="font-display font-semibold text-sm uppercase text-muted-foreground mb-3">Historique automatique</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <Stat label="Jobs réalisées" value={String(stats?.jobs ?? 0)} icon={<Briefcase className="w-4 h-4" />} />
+                  <Stat label="Nombre de voyages" value={String(stats?.trips ?? 0)} icon={<Truck className="w-4 h-4" />} />
+                  <Stat label="Total facturé" value={fmtMoney(stats?.invoiced ?? 0)} icon={<Briefcase className="w-4 h-4" />} />
+                  <Stat label="Dernière activité" value={fmtDate(stats?.last_activity ?? null)} icon={<Calendar className="w-4 h-4" />} />
+                </div>
+              </section>
+            ) : (
+            <>
             {/* Identité */}
             <section>
               <h3 className="font-display font-semibold text-sm uppercase text-muted-foreground mb-3">Identité</h3>
@@ -300,17 +344,6 @@ function EntrepreneurDetailModal({
                 <Info icon={<Phone className="w-4 h-4" />} label="Téléphone" value={entrepreneur?.phone || "—"} />
                 <Info icon={<Calendar className="w-4 h-4" />} label="Inscription" value={fmtDate(createdAt)} />
                 <Info icon={<UserIcon className="w-4 h-4" />} label="Statut compte" value={approved ? "Approuvé" : "En attente"} />
-              </div>
-            </section>
-
-            {/* Historique */}
-            <section>
-              <h3 className="font-display font-semibold text-sm uppercase text-muted-foreground mb-3">Historique automatique</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Stat label="Jobs réalisées" value={String(stats?.jobs ?? 0)} icon={<Briefcase className="w-4 h-4" />} />
-                <Stat label="Nombre de voyages" value={String(stats?.trips ?? 0)} icon={<Truck className="w-4 h-4" />} />
-                <Stat label="Total facturé" value={fmtMoney(stats?.invoiced ?? 0)} icon={<Briefcase className="w-4 h-4" />} />
-                <Stat label="Dernière activité" value={fmtDate(stats?.last_activity ?? null)} icon={<Calendar className="w-4 h-4" />} />
               </div>
             </section>
 
@@ -429,6 +462,8 @@ function EntrepreneurDetailModal({
                 </button>
               </div>
             </section>
+            </>
+            )}
           </div>
         )}
       </div>
