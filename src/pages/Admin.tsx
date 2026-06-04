@@ -654,6 +654,20 @@ const Admin = () => {
             <option value="all">Toutes sources</option>
             {LEAD_SOURCES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
+          <select value={filterTrips} onChange={(e) => setFilterTrips(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+            <option value="all">Tous voyages</option>
+            <option value="1-5">1 à 5 voyages</option>
+            <option value="5-10">5 à 10 voyages</option>
+            <option value="10-25">10 à 25 voyages</option>
+            <option value="25-50">25 à 50 voyages</option>
+            <option value="50-100">50 à 100 voyages</option>
+            <option value="100+">100+ voyages</option>
+          </select>
+          <select value={sortTrips} onChange={(e) => setSortTrips(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+            <option value="default">Trier par…</option>
+            <option value="trips-desc">Plus grand nombre de voyages</option>
+            <option value="trips-asc">Plus petit nombre de voyages</option>
+          </select>
         </div>
 
         {loading ? (
