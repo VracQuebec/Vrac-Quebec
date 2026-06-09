@@ -27,6 +27,7 @@ import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
 import { Search } from "lucide-react";
+import TransportBanner from "@/components/TransportBanner";
 
 interface Submission {
   id: string;
@@ -530,6 +531,8 @@ const Admin = () => {
           </div>
         </div>
       </nav>
+
+      <TransportBanner />
 
       <main className="container mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-wrap gap-2 mb-5">

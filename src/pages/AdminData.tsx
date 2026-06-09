@@ -5,6 +5,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import FullPageState from "@/components/FullPageState";
 import { ArrowLeft, Loader2, Search } from "lucide-react";
+import TransportBanner from "@/components/TransportBanner";
 
 type Tab = "entrepreneurs" | "payments" | "expenses";
 
@@ -76,6 +77,8 @@ export default function AdminData() {
           <h1 className="font-display font-bold">Données importées</h1>
         </div>
       </nav>
+
+      <TransportBanner />
 
       <main className="container mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-wrap items-center gap-2 mb-5">

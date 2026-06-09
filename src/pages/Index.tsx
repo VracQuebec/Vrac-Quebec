@@ -1,5 +1,6 @@
 import Questionnaire from "@/components/Questionnaire";
 import heroBanner from "@/assets/hero-banner.webp";
+import TransportBanner from "@/components/TransportBanner";
 import { HardHat } from "lucide-react";
 
 const Index = () => {
@@ -17,6 +18,8 @@ const Index = () => {
           </a>
         </div>
       </div>
+
+      <TransportBanner />
 
       {/* Hero — mobile: image banner; desktop: full hero with centered content */}
       <header className="relative w-full overflow-hidden">

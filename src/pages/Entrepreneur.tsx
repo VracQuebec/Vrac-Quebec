@@ -5,6 +5,7 @@ import { toast } from "@/hooks/use-toast";
 import { Truck, LogOut, Loader2, Phone, AlertTriangle, MapPin } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import TransportBanner from "@/components/TransportBanner";
 import FullPageState from "@/components/FullPageState";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
 import {
@@ -205,6 +206,8 @@ const Entrepreneur = () => {
           </button>
         </div>
       </nav>
+
+      <TransportBanner />
 
       <main className="flex-1 container mx-auto px-4 sm:px-6 py-6">
         <section className="mb-6 bg-card border border-border rounded-xl p-4 sm:p-5" style={{ boxShadow: "var(--shadow-sm)" }}>
