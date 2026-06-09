@@ -207,6 +207,8 @@ const Entrepreneur = () => {
         </div>
       </nav>
 
+      <TransportBanner />
+
       <main className="flex-1 container mx-auto px-4 sm:px-6 py-6">
         <section className="mb-6 bg-card border border-border rounded-xl p-4 sm:p-5" style={{ boxShadow: "var(--shadow-sm)" }}>
           <h2 className="font-display font-bold text-lg sm:text-xl mb-3 flex items-center gap-2">
