@@ -29,6 +29,9 @@ export default function Blog() {
           </Link>
         </div>
       </nav>
+
+      <TransportBanner />
+
       <main className="container mx-auto px-4 sm:px-6 py-10">
         <header className="mb-8 max-w-3xl">
           <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-3">Blogue Vrac Québec</h1>
