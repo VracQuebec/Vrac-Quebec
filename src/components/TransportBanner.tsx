@@ -1,10 +1,12 @@
-const TransportBanner = () => (
-  <div className="w-full bg-[#1F2937] border-b-2 border-primary py-2.5 flex flex-col items-center justify-center px-4 gap-0.5 animate-in fade-in slide-in-from-top-1 duration-700">
-    <p className="text-white text-xs sm:text-sm font-body text-center leading-tight">
-      <span className="text-primary mr-1">🚛</span>
+const FB_URL = "https://www.facebook.com/share/1ArYFDkkUX/?mibextid=wwXIfr";
+
+const TickerContent = () => (
+  <span className="inline-flex items-center gap-2 px-8 text-white text-xs sm:text-sm font-body whitespace-nowrap">
+    <span className="text-primary">🚛</span>
+    <span>
       Livraison rapide assurée par{" "}
       <a
-        href="https://www.facebook.com/share/1ArYFDkkUX/?mibextid=wwXIfr"
+        href={FB_URL}
         target="_blank"
         rel="noopener noreferrer"
         className="text-primary font-semibold hover:underline hover:text-primary/80 transition-colors cursor-pointer"
@@ -12,20 +14,40 @@ const TransportBanner = () => (
         Transport JSC
       </a>{" "}
       partout dans la ville de Québec et les alentours.
-    </p>
-    <p className="text-white/90 text-xs sm:text-sm font-body text-center leading-tight">
+    </span>
+    <span className="mx-2 text-primary/60">•</span>
+    <span>
       <span className="mr-1">👉</span>
       Visitez notre{" "}
       <a
-        href="https://www.facebook.com/share/1ArYFDkkUX/?mibextid=wwXIfr"
+        href={FB_URL}
         target="_blank"
         rel="noopener noreferrer"
         className="text-primary font-semibold hover:underline hover:text-primary/80 transition-colors cursor-pointer"
       >
         page Facebook
       </a>{" "}
-      pour voir nos réalisations, nos livraisons et nos projets récents.
-    </p>
+      pour découvrir nos réalisations, nos livraisons, nos équipements et nos projets récents.
+    </span>
+    <span className="mx-2 text-primary/60">•</span>
+  </span>
+);
+
+const TransportBanner = () => (
+  <div className="w-full bg-[#1F2937] border-b-2 border-primary py-2.5 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-700">
+    <div className="group relative flex overflow-hidden">
+      <div className="flex shrink-0 animate-marquee group-hover:[animation-play-state:paused] motion-reduce:animate-none">
+        <TickerContent />
+        <TickerContent />
+      </div>
+      <div
+        aria-hidden="true"
+        className="flex shrink-0 animate-marquee group-hover:[animation-play-state:paused] motion-reduce:hidden"
+      >
+        <TickerContent />
+        <TickerContent />
+      </div>
+    </div>
   </div>
 );
 
