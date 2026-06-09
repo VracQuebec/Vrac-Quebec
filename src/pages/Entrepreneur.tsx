@@ -5,6 +5,7 @@ import { toast } from "@/hooks/use-toast";
 import { Truck, LogOut, Loader2, Phone, AlertTriangle, MapPin } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import TransportBanner from "@/components/TransportBanner";
 import FullPageState from "@/components/FullPageState";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
 import {
