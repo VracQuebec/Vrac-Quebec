@@ -5,6 +5,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import FullPageState from "@/components/FullPageState";
 import { ArrowLeft, Loader2, Search } from "lucide-react";
+import TransportBanner from "@/components/TransportBanner";
 
 type Tab = "entrepreneurs" | "payments" | "expenses";
 
