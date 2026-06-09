@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Truck, ArrowLeft } from "lucide-react";
+import TransportBanner from "@/components/TransportBanner";
 
 export default function Blog() {
   useEffect(() => {
