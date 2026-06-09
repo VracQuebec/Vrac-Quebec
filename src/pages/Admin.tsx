@@ -27,6 +27,7 @@ import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
 import { Search } from "lucide-react";
+import TransportBanner from "@/components/TransportBanner";
 
 interface Submission {
   id: string;
