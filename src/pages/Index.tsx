@@ -19,6 +19,8 @@ const Index = () => {
         </div>
       </div>
 
+      <TransportBanner />
+
       {/* Hero — mobile: image banner; desktop: full hero with centered content */}
       <header className="relative w-full overflow-hidden">
         {/* Mobile image (kept as-is) */}
