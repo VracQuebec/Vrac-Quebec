@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import TransportBanner from "@/components/TransportBanner";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
@@ -45,21 +46,24 @@ const Unsubscribe = () => {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-background p-6">
-      <div className="max-w-md w-full text-center space-y-4 bg-card p-8 rounded-xl border">
-        <h1 className="text-2xl font-bold">Désabonnement</h1>
-        {state === "loading" && <p className="text-muted-foreground">Vérification du lien…</p>}
-        {state === "valid" && (
-          <>
-            <p>Confirmez-vous votre désabonnement de nos courriels?</p>
-            <Button onClick={confirm}>Confirmer le désabonnement</Button>
-          </>
-        )}
-        {state === "submitting" && <p>Traitement en cours…</p>}
-        {state === "done" && <p>Vous avez été désabonné avec succès.</p>}
-        {state === "already" && <p>Cette adresse est déjà désabonnée.</p>}
-        {state === "invalid" && <p>Lien invalide ou expiré.</p>}
-        {state === "error" && <p className="text-destructive">Une erreur est survenue. Réessayez plus tard.</p>}
+    <main className="min-h-screen flex flex-col bg-background">
+      <TransportBanner />
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="max-w-md w-full text-center space-y-4 bg-card p-8 rounded-xl border">
+          <h1 className="text-2xl font-bold">Désabonnement</h1>
+          {state === "loading" && <p className="text-muted-foreground">Vérification du lien…</p>}
+          {state === "valid" && (
+            <>
+              <p>Confirmez-vous votre désabonnement de nos courriels?</p>
+              <Button onClick={confirm}>Confirmer le désabonnement</Button>
+            </>
+          )}
+          {state === "submitting" && <p>Traitement en cours…</p>}
+          {state === "done" && <p>Vous avez été désabonné avec succès.</p>}
+          {state === "already" && <p>Cette adresse est déjà désabonnée.</p>}
+          {state === "invalid" && <p>Lien invalide ou expiré.</p>}
+          {state === "error" && <p className="text-destructive">Une erreur est survenue. Réessayez plus tard.</p>}
+        </div>
       </div>
     </main>
   );
