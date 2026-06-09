@@ -78,6 +78,8 @@ export default function AdminData() {
         </div>
       </nav>
 
+      <TransportBanner />
+
       <main className="container mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-wrap items-center gap-2 mb-5">
           {(["entrepreneurs", "payments", "expenses"] as Tab[]).map((t) => (
