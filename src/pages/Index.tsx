@@ -6,20 +6,21 @@ import { HardHat } from "lucide-react";
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar — always-visible entrepreneur access */}
-      <div className="w-full bg-foreground text-background">
-        <div className="container mx-auto px-4 sm:px-6 py-2 flex items-center justify-end">
+      {/* 1. Transport JSC banner — top of the page */}
+      <TransportBanner />
+
+      {/* 2. Navigation bar with compact entrepreneur access on the right */}
+      <nav className="w-full bg-foreground text-background border-b border-foreground/20">
+        <div className="container mx-auto px-4 sm:px-6 py-1.5 flex items-center justify-end">
           <a
             href="/login"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground font-display font-bold text-sm sm:text-base shadow-md hover:scale-[1.03] transition-transform"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground font-display font-semibold text-xs sm:text-sm shadow-sm hover:bg-primary/90 transition-colors"
           >
-            <HardHat className="w-4 h-4 sm:w-5 sm:h-5" />
-            Espace entrepreneur — Connexion
+            <HardHat className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            Connexion entrepreneur
           </a>
         </div>
-      </div>
-
-      <TransportBanner />
+      </nav>
 
       {/* Hero — mobile: image banner; desktop: full hero with centered content */}
       <header className="relative w-full overflow-hidden">
