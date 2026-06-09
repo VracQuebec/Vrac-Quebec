@@ -1,5 +1,6 @@
 import Questionnaire from "@/components/Questionnaire";
 import heroBanner from "@/assets/hero-banner.webp";
+import TransportBanner from "@/components/TransportBanner";
 import { HardHat } from "lucide-react";
 
 const Index = () => {
