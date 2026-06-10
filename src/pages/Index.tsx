@@ -59,7 +59,7 @@ const Index = () => {
             </p>
             <a
               href="#questionnaire"
-              className="inline-block mt-12 px-9 py-3.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base lg:text-lg shadow-[0_10px_30px_-8px_hsl(25_95%_53%/0.7)] hover:scale-[1.03] hover:shadow-[0_14px_40px_-8px_hsl(25_95%_53%/0.85)] transition-all"
+              className="inline-block mt-12 px-9 py-3.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base lg:text-lg shadow-[0_10px_30px_-8px_hsl(89_74%_48%/0.7)] hover:scale-[1.03] hover:shadow-[0_14px_40px_-8px_hsl(89_74%_48%/0.85)] transition-all"
             >
               Obtenir mon prix →
             </a>
