@@ -169,7 +169,7 @@ export const detectRequestType = (materials: string[], projectType?: string): st
   isRemblaiRequest(materials, projectType) ? "remblai" : "vrac";
 
 export const LEAD_STATUSES = [
-  { value: "nouveau", label: "Nouveau", color: "bg-orange-500 text-white" },
+  { value: "nouveau", label: "Nouveau", color: "bg-primary text-primary-foreground" },
   { value: "à rappeler", label: "À rappeler", color: "bg-amber-500 text-white" },
   { value: "message texte envoyé", label: "Message texte envoyé", color: "bg-sky-500 text-white" },
   { value: "soumission envoyée", label: "Soumission envoyée", color: "bg-indigo-500 text-white" },
