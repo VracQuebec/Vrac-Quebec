@@ -13,7 +13,7 @@ export interface LeadStatus {
 
 /** Fallback used while the DB hasn't loaded yet, so badges still render. */
 const FALLBACK: LeadStatus[] = [
-  { id: "_fb_nouveau", value: "nouveau", label: "Nouveau", color: "#f97316", text_color: "#ffffff", sort_order: 10, enabled: true },
+  { id: "_fb_nouveau", value: "nouveau", label: "Nouveau", color: "#7ED321", text_color: "#111111", sort_order: 10, enabled: true },
 ];
 
 export const useLeadStatuses = () => {
