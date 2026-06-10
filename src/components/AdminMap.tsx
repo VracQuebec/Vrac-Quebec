@@ -80,7 +80,7 @@ const buildPopup = (sub: Submission) => {
     <div><b>Courriel:</b> ${sub.email}</div>`;
   if (sub.phone) html += `<div><b>Téléphone:</b> ${sub.phone}</div>`;
   if (sub.description) html += `<div><b>Notes:</b> ${sub.description}</div>`;
-  if (sub.internal_notes) html += `<div style="margin-top:4px;padding:4px 6px;background:#fff7ed;border-left:3px solid #f97316;border-radius:3px"><b>Notes internes:</b> ${sub.internal_notes}</div>`;
+  if (sub.internal_notes) html += `<div style="margin-top:4px;padding:4px 6px;background:#f3faea;border-left:3px solid #7ED321;border-radius:3px"><b>Notes internes:</b> ${sub.internal_notes}</div>`;
   html += `<div style="margin-top:6px;color:#888;font-size:11px">${formatDate(sub.created_at)}</div></div>`;
   return html;
 };
