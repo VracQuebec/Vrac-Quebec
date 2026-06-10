@@ -17,7 +17,7 @@ export const MATERIAL_COLORS: Record<MaterialColorKey, { color: string; label: s
   beton:    { color: "#2563eb", label: "Béton" },     // bleu
   asphalte: { color: "#0a0a0a", label: "Asphalte" },  // noir
   remblai:  { color: "#16a34a", label: "Remblai" },   // vert
-  autre:    { color: "#f97316", label: "Autre" },     // orange (fallback)
+  autre:    { color: "#6b7280", label: "Autre" },     // neutral grey (fallback)
 };
 
 export const MATERIAL_LEGEND: MaterialColorKey[] = [
