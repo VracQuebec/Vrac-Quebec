@@ -1,5 +1,5 @@
 import Questionnaire from "@/components/Questionnaire";
-import heroTruck from "@/assets/hero-truck.jpg";
+import heroBanner from "@/assets/hero-banner.webp";
 import TransportBanner from "@/components/TransportBanner";
 import { HardHat } from "lucide-react";
 
@@ -22,62 +22,72 @@ const Index = () => {
         </div>
       </nav>
 
-      {/* Hero — corporate banner style: left text, right photoreal truck */}
-      <header className="relative w-full overflow-hidden bg-white">
-        {/* Subtle green diagonal accent */}
-        <div
-          className="pointer-events-none absolute inset-y-0 right-0 w-2/3 opacity-[0.06]"
-          style={{
-            backgroundImage:
-              "linear-gradient(115deg, transparent 0%, transparent 40%, hsl(89 74% 48%) 40%, hsl(89 74% 48%) 42%, transparent 42%, transparent 60%, hsl(89 74% 48%) 60%, hsl(89 74% 48%) 61%, transparent 61%)",
-          }}
+      {/* Hero — mobile: image banner; desktop: full hero with centered content */}
+      <header className="relative w-full overflow-hidden">
+        {/* Mobile image (kept as-is) */}
+        <img
+          src={heroBanner}
+          alt="Vrac Québec — Sites de dépôt, terre, sable, gravier, remblai"
+          className="md:hidden w-full h-[280px] sm:h-[360px] object-cover"
+          fetchPriority="high"
+          decoding="async"
+          width={1200}
+          height={360}
         />
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary" />
+        <div className="md:hidden absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
 
-        <div className="relative container mx-auto px-6 py-10 md:py-14 lg:py-16 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-center">
-          {/* Left: text */}
-          <div className="order-2 md:order-1 text-center md:text-left animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="inline-flex items-center gap-2 mb-4 px-3 py-1 rounded-full bg-primary/10 text-primary font-display font-semibold text-xs uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-              Livraison Québec & alentours
-            </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-display font-extrabold text-foreground leading-[1.05] tracking-tight">
-              Commande de matériaux{" "}
-              <span className="text-primary">en vrac</span>
+        {/* Desktop hero — image branding (VRAC QUÉBEC) stays visible up top, text content sits lower over a dark gradient with breathing room */}
+        <div
+          className="hidden md:flex relative w-full min-h-[600px] lg:min-h-[680px] xl:min-h-[740px] items-end bg-no-repeat"
+          style={{
+            backgroundImage: `url(${heroBanner})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center 5%",
+          }}
+        >
+          {/* Gradient: transparent on top to keep logo/camion visible, dark at bottom for text legibility */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/75" />
+          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent to-background" />
+
+          <div className="relative z-10 container mx-auto px-6 pb-10 lg:pb-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <h1 className="text-3xl md:text-4xl lg:text-[2.75rem] font-display font-extrabold text-white leading-[1.2] max-w-[44rem] mx-auto drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
+              Commandez votre vrac{" "}
+              <span className="text-primary">rapidement au Québec</span>
             </h1>
-            <p className="mt-5 text-base lg:text-lg text-muted-foreground font-body max-w-xl mx-auto md:mx-0">
-              Terre <span className="text-primary font-bold">•</span> Sable{" "}
-              <span className="text-primary font-bold">•</span> Gravier{" "}
-              <span className="text-primary font-bold">•</span> Pierre concassée{" "}
-              <span className="text-primary font-bold">•</span> Remblai
+            <p className="text-white/85 mt-10 max-w-lg mx-auto font-body text-base lg:text-lg leading-relaxed">
+              Terre, sable, pierre concassée, remblai — livraison rapide partout dans la région de Québec et Lévis.
             </p>
             <a
               href="#questionnaire"
-              className="inline-block mt-7 px-8 py-3.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base lg:text-lg shadow-[0_10px_30px_-8px_hsl(89_74%_48%/0.7)] hover:scale-[1.03] hover:shadow-[0_14px_40px_-8px_hsl(89_74%_48%/0.85)] transition-all"
+              className="inline-block mt-12 px-9 py-3.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base lg:text-lg shadow-[0_10px_30px_-8px_hsl(89_74%_48%/0.7)] hover:scale-[1.03] hover:shadow-[0_14px_40px_-8px_hsl(89_74%_48%/0.85)] transition-all"
             >
               Obtenir mon prix →
             </a>
-          </div>
-
-          {/* Right: photoreal truck */}
-          <div className="order-1 md:order-2 relative">
-            <img
-              src={heroTruck}
-              alt="Camion 12 roues moderne — Vrac Québec, livraison de matériaux en vrac"
-              className="w-full h-auto object-contain drop-shadow-[0_25px_25px_rgba(0,0,0,0.15)]"
-              fetchPriority="high"
-              decoding="async"
-              width={1536}
-              height={1024}
-            />
           </div>
         </div>
       </header>
 
       {/* Questionnaire */}
       {/* Extra bottom padding on mobile so the floating contact bar never overlaps interactive content (tiles / Suivant button). */}
-      <main className="relative z-10 pb-32 md:pb-20 pt-8 md:pt-12">
+      <main className="-mt-16 md:mt-0 relative z-10 pb-32 md:pb-20 md:pt-12">
         <div className="container mx-auto px-6">
+          {/* Mobile-only intro (desktop has hero text above) */}
+          <div className="md:hidden text-center mb-10">
+            <h1 className="text-2xl font-display font-extrabold text-foreground leading-tight">
+              Commandez votre vrac{" "}
+              <span className="text-primary">rapidement au Québec</span>
+            </h1>
+            <p className="text-muted-foreground mt-3 max-w-md mx-auto font-body text-sm">
+              Terre, sable, pierre concassée, remblai — livraison rapide
+            </p>
+            <a
+              href="#questionnaire"
+              className="inline-block mt-5 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 transition-opacity"
+            >
+              Obtenir mon prix →
+            </a>
+          </div>
+
           <div id="questionnaire">
             <Questionnaire />
           </div>
