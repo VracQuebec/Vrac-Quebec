@@ -7,6 +7,7 @@ import { useEffect, lazy, Suspense } from "react";
 import Index from "./pages/Index";
 import SessionKeeper from "./components/SessionKeeper";
 import AppErrorBoundary from "./components/AppErrorBoundary";
+import SiteFooter from "./components/SiteFooter";
 
 const Login = lazy(() => import("./pages/Login"));
 const Admin = lazy(() => import("./pages/Admin"));
