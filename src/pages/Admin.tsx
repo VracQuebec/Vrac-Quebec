@@ -591,7 +591,7 @@ const Admin = () => {
             <button
               onClick={recheckAllAddresses}
               disabled={!!rechecking || !!geocoding}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-600 text-white text-sm font-display font-semibold hover:opacity-90 disabled:opacity-60"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90 disabled:opacity-60"
               title="Re-vérifie toutes les adresses et corrige celles mal positionnées (>250 m d'écart)"
             >
               <MapPin className="w-4 h-4" />
