@@ -34,7 +34,10 @@ export default function AdminCalendar() {
   const { isAdmin, loading: roleLoading } = useUserRoles(user, isReady);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [view, setView] = useState<CalendarView>("week");
+  const [view, setView] = useState<CalendarView>(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 640) return "day";
+    return "week";
+  });
   const [cursor, setCursor] = useState<Date>(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
