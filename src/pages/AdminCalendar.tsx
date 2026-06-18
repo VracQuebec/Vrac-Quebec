@@ -49,6 +49,12 @@ export default function AdminCalendar() {
     entrepreneur: "", driver: "", truck: "", dompe: "", status: "", material: "",
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
 
   useEffect(() => {
     if (!isReady || roleLoading) return;
