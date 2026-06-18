@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
 
     const { error: roleErr } = await admin
       .from("user_roles")
-      .insert({ user_id: userId, role: "entrepreneur", approved: true });
+      .insert({ user_id: userId, role: "entrepreneur", approved: false });
 
     if (roleErr) {
       if (createdNewUser) await admin.auth.admin.deleteUser(userId);
@@ -136,8 +136,8 @@ Deno.serve(async (req) => {
       ok: true,
       user_id: userId,
       email,
-      approved: true,
-      message: "Compte entrepreneur créé avec succès",
+      approved: false,
+      message: "Compte entrepreneur créé. En attente d'approbation par un administrateur.",
     });
   } catch (e) {
     return json(500, { error: (e as Error).message || "Erreur serveur" });
