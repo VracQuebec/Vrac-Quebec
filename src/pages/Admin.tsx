@@ -123,6 +123,7 @@ const Admin = () => {
   const [filterTrips, setFilterTrips] = useState<string>("all");
   const [sortTrips, setSortTrips] = useState<string>("default");
   const overdueNotifiedRef = useRef(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { statuses: leadStatuses } = useLeadStatuses();
   const navigate = useNavigate();
   const { user, isReady: authReady } = useAuthReady();
