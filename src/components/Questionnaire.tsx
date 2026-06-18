@@ -234,42 +234,11 @@ const Questionnaire = () => {
 
       // Send internal email notification to admin (via Lovable Emails)
       try {
-        const materialsLabel = data.materials
-          .map((id) => MATERIAL_TYPES.find((m) => m.id === id)?.label || id)
-          .join(", ") + (data.otherMaterial ? ` (Autre: ${data.otherMaterial})` : "");
-        const budgetStr = data.budgetMax
-          ? `${data.budgetMax}${data.budgetUnit ? ` ${data.budgetUnit}` : ""}`
-          : "";
         await supabase.functions.invoke("send-transactional-email", {
           body: {
             templateName: "new-lead-notification",
-            recipientEmail: "TransportJSC@hotmail.com",
             idempotencyKey: `new-lead-${submissionId}`,
-            templateData: {
-              name: data.name,
-              phone: data.phone,
-              email: data.email,
-              address: data.address,
-              postalCode: data.postalCode,
-              materials: materialsLabel,
-              quantity: data.quantity,
-              budget: budgetStr,
-              notes: data.description,
-              deliveryDeadline: data.deliveryDeadline
-                ? new Date(data.deliveryDeadline + "T00:00:00").toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric" })
-                : "",
-              deliveryTimeframe: data.deliveryTimeframe || "",
-              accessibility: (data.accessibility || []).join(", "),
-              machinery: isRemblai
-                ? data.machineryList.join(", ") + (data.machineryDescription ? ` (Autre: ${data.machineryDescription})` : "")
-                : (data.machineryAvailable ? `Oui — ${data.machineryDescription || ""}` : "Non"),
-              photosCount: (data.photos || []).length,
-              requestType: isRemblai ? "Remblai / dépôt" : "Livraison",
-              dompeNumber: "",
-              submissionNumber: "",
-              submittedAt: new Date().toLocaleString("fr-CA", { timeZone: "America/Toronto" }),
-              crmLink: `https://vracquebec.ca/admin?lead=${submissionId}`,
-            },
+            submissionId,
           },
         });
       } catch {
@@ -282,9 +251,8 @@ const Questionnaire = () => {
           await supabase.functions.invoke("send-transactional-email", {
             body: {
               templateName: "client-confirmation",
-              recipientEmail: data.email,
               idempotencyKey: `client-confirm-${submissionId}`,
-              templateData: { name: data.name || "" },
+              submissionId,
             },
           });
         } catch {
