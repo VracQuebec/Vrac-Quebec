@@ -11,6 +11,7 @@ import AppErrorBoundary from "./components/AppErrorBoundary";
 const Login = lazy(() => import("./pages/Login"));
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminData = lazy(() => import("./pages/AdminData"));
+const AdminCalendar = lazy(() => import("./pages/AdminCalendar"));
 const Entrepreneur = lazy(() => import("./pages/Entrepreneur"));
 const EntrepreneurSignup = lazy(() => import("./pages/EntrepreneurSignup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/donnees" element={<AdminData />} />
+            <Route path="/admin/calendrier" element={<AdminCalendar />} />
             <Route path="/entrepreneur" element={<Entrepreneur />} />
             <Route path="/entrepreneur/inscription" element={<EntrepreneurSignup />} />
             <Route path="/blog" element={<Blog />} />

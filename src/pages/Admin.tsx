@@ -26,7 +26,7 @@ import ExcelImportModal from "@/components/ExcelImportModal";
 import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
-import { Search } from "lucide-react";
+import { Search, CalendarDays } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 
 interface Submission {
@@ -522,6 +522,9 @@ const Admin = () => {
             <span className="ml-2 px-2 py-0.5 rounded text-xs bg-primary/10 text-primary font-display font-semibold">Admin CRM</span>
           </div>
           <div className="flex items-center gap-3">
+            <Link to="/admin/calendrier" className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
+              <CalendarDays className="w-4 h-4" /> Calendrier
+            </Link>
             <button onClick={() => setShowUsers(true)} className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <Users className="w-4 h-4" /> Entrepreneurs
             </button>
@@ -956,6 +959,9 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
             )}
             <a href={`mailto:${sub.email}`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-display font-semibold"><Mail className="w-3.5 h-3.5" /> Courriel</a>
             <a href={mapsUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-display font-semibold"><MapPin className="w-3.5 h-3.5" /> Carte</a>
+            <Link to={`/admin/calendrier?from_submission=${sub.id}`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold">
+              <CalendarDays className="w-3.5 h-3.5" /> Planifier au calendrier
+            </Link>
             <button onClick={onArchive} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary text-foreground text-xs font-display font-semibold"><Archive className="w-3.5 h-3.5" /> Archiver</button>
           </div>
 

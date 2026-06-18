@@ -14,6 +14,128 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_events: {
+        Row: {
+          admin_notes: string | null
+          client_name: string | null
+          client_signature_url: string | null
+          created_at: string
+          created_by: string | null
+          delivery_address: string | null
+          dompe_address: string | null
+          dompe_number: string | null
+          driver_id: string | null
+          end_at: string | null
+          entrepreneur_id: string | null
+          google_event_id: string | null
+          id: string
+          last_known_lat: number | null
+          last_known_lng: number | null
+          loading_address: string | null
+          material_type: string | null
+          quantity_estimated: string | null
+          sms_sent_at: string | null
+          special_instructions: string | null
+          start_at: string
+          status: Database["public"]["Enums"]["calendar_event_status"]
+          submission_id: string | null
+          title: string
+          tonnage_estimated: number | null
+          trips_planned: number | null
+          truck_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          client_name?: string | null
+          client_signature_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_address?: string | null
+          dompe_address?: string | null
+          dompe_number?: string | null
+          driver_id?: string | null
+          end_at?: string | null
+          entrepreneur_id?: string | null
+          google_event_id?: string | null
+          id?: string
+          last_known_lat?: number | null
+          last_known_lng?: number | null
+          loading_address?: string | null
+          material_type?: string | null
+          quantity_estimated?: string | null
+          sms_sent_at?: string | null
+          special_instructions?: string | null
+          start_at: string
+          status?: Database["public"]["Enums"]["calendar_event_status"]
+          submission_id?: string | null
+          title: string
+          tonnage_estimated?: number | null
+          trips_planned?: number | null
+          truck_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          client_name?: string | null
+          client_signature_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_address?: string | null
+          dompe_address?: string | null
+          dompe_number?: string | null
+          driver_id?: string | null
+          end_at?: string | null
+          entrepreneur_id?: string | null
+          google_event_id?: string | null
+          id?: string
+          last_known_lat?: number | null
+          last_known_lng?: number | null
+          loading_address?: string | null
+          material_type?: string | null
+          quantity_estimated?: string | null
+          sms_sent_at?: string | null
+          special_instructions?: string | null
+          start_at?: string
+          status?: Database["public"]["Enums"]["calendar_event_status"]
+          submission_id?: string | null
+          title?: string
+          tonnage_estimated?: number | null
+          trips_planned?: number | null
+          truck_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_entrepreneur_id_fkey"
+            columns: ["entrepreneur_id"]
+            isOneToOne: false
+            referencedRelation: "entrepreneurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_fields: {
         Row: {
           created_at: string
@@ -43,6 +165,39 @@ export type Database = {
           label?: string
           options?: Json
           sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      drivers: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          status: Database["public"]["Enums"]["driver_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["driver_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["driver_status"]
           updated_at?: string
         }
         Relationships: []
@@ -870,6 +1025,39 @@ export type Database = {
         }
         Relationships: []
       }
+      trucks: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          plate: string | null
+          type: Database["public"]["Enums"]["truck_type"]
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          plate?: string | null
+          type?: Database["public"]["Enums"]["truck_type"]
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          plate?: string | null
+          type?: Database["public"]["Enums"]["truck_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           approved: boolean
@@ -969,6 +1157,21 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user" | "entrepreneur"
+      calendar_event_status:
+        | "a_planifier"
+        | "planifie"
+        | "en_cours"
+        | "termine"
+        | "reporte"
+        | "annule"
+      driver_status: "disponible" | "occupe" | "inactif"
+      truck_type:
+        | "6_roues"
+        | "10_roues"
+        | "12_roues"
+        | "semi_remorque"
+        | "fardier"
+        | "autre"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1097,6 +1300,23 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user", "entrepreneur"],
+      calendar_event_status: [
+        "a_planifier",
+        "planifie",
+        "en_cours",
+        "termine",
+        "reporte",
+        "annule",
+      ],
+      driver_status: ["disponible", "occupe", "inactif"],
+      truck_type: [
+        "6_roues",
+        "10_roues",
+        "12_roues",
+        "semi_remorque",
+        "fardier",
+        "autre",
+      ],
     },
   },
 } as const
