@@ -237,16 +237,16 @@ export default function AdminCalendar() {
               ))}
             </div>
             <Button variant="outline" size="sm" onClick={() => setShowFilters((s) => !s)}>
-              <FilterIcon className="w-4 h-4 mr-1" /> Filtres
+              <FilterIcon className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Filtres</span>
             </Button>
             <Button variant="outline" size="sm" onClick={() => setFleetOpen("trucks")}>
-              <TruckIcon className="w-4 h-4 mr-1" /> Camions
+              <TruckIcon className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Camions</span>
             </Button>
             <Button variant="outline" size="sm" onClick={() => setFleetOpen("drivers")}>
-              <Users className="w-4 h-4 mr-1" /> Chauffeurs
+              <Users className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Chauffeurs</span>
             </Button>
             <Button size="sm" onClick={() => { setEditing(null); setModalOpen(true); }}>
-              <Plus className="w-4 h-4 mr-1" /> Planifier une livraison
+              <Plus className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Planifier une livraison</span><span className="sm:hidden">Planifier</span>
             </Button>
           </div>
         </div>
