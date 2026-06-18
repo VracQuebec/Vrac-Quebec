@@ -226,14 +226,7 @@ const Questionnaire = () => {
       // Backup to Google Sheet (best-effort, never blocks the user)
       try {
         await supabase.functions.invoke("backup-to-sheet", {
-          body: {
-            submission: {
-              ...submissionPayload,
-              materials: data.materials.map(
-                (id: string) => MATERIAL_TYPES.find((m) => m.id === id)?.label || id
-              ),
-            },
-          },
+          body: { submission_id: submissionId },
         });
       } catch (e) {
         console.warn("Backup to sheet failed:", e);
