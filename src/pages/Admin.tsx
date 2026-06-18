@@ -26,7 +26,8 @@ import ExcelImportModal from "@/components/ExcelImportModal";
 import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
-import { Search, CalendarDays } from "lucide-react";
+import { Search, CalendarDays, Menu } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import TransportBanner from "@/components/TransportBanner";
 
 interface Submission {
@@ -122,6 +123,7 @@ const Admin = () => {
   const [filterTrips, setFilterTrips] = useState<string>("all");
   const [sortTrips, setSortTrips] = useState<string>("default");
   const overdueNotifiedRef = useRef(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { statuses: leadStatuses } = useLeadStatuses();
   const navigate = useNavigate();
   const { user, isReady: authReady } = useAuthReady();
@@ -513,25 +515,64 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background">
       <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Truck className="w-6 h-6 text-primary" />
-            <span className="font-display font-bold text-xl text-foreground">
+        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <Truck className="w-5 h-5 sm:w-6 sm:h-6 text-primary shrink-0" />
+            <span className="font-display font-bold text-base sm:text-xl text-foreground">
               Vrac<span className="text-primary">Québec</span>
             </span>
-            <span className="ml-2 px-2 py-0.5 rounded text-xs bg-primary/10 text-primary font-display font-semibold">Admin CRM</span>
+            <span className="ml-2 px-2 py-0.5 rounded text-[10px] sm:text-xs bg-primary/10 text-primary font-display font-semibold hidden sm:inline">Admin CRM</span>
           </div>
-          <div className="flex items-center gap-3">
-            <Link to="/admin/calendrier" className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-foreground font-body">
+
+          {/* Desktop nav */}
+          <div className="hidden sm:flex items-center gap-3">
+            <Link to="/admin/calendrier" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <CalendarDays className="w-4 h-4" /> Calendrier
             </Link>
-            <button onClick={() => setShowUsers(true)} className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
+            <button onClick={() => setShowUsers(true)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <Users className="w-4 h-4" /> Entrepreneurs
             </button>
             <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <LogOut className="w-4 h-4" /> Déconnexion
             </button>
           </div>
+
+          {/* Mobile hamburger */}
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <button className="sm:hidden p-2 rounded-md hover:bg-secondary/80 -mr-2" aria-label="Menu">
+                <Menu className="w-5 h-5 text-foreground" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[280px] sm:w-72">
+              <SheetTitle className="sr-only">Menu de navigation</SheetTitle>
+              <div className="flex flex-col gap-1 mt-6">
+                <div className="px-3 py-2 text-xs font-display font-bold uppercase text-muted-foreground tracking-wide">Navigation</div>
+                <button onClick={() => { setTab("leads"); setMobileOpen(false); }} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body ${tab === "leads" ? "bg-primary text-primary-foreground font-semibold" : "text-foreground hover:bg-secondary"}`}>
+                  <List className="w-4 h-4" /> Demandes (CRM)
+                </button>
+                <button onClick={() => { setTab("billing"); setMobileOpen(false); }} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body ${tab === "billing" ? "bg-primary text-primary-foreground font-semibold" : "text-foreground hover:bg-secondary"}`}>
+                  <DatabaseIcon className="w-4 h-4" /> Facturation
+                </button>
+                <button onClick={() => { setTab("entrepreneurs"); setMobileOpen(false); }} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body ${tab === "entrepreneurs" ? "bg-primary text-primary-foreground font-semibold" : "text-foreground hover:bg-secondary"}`}>
+                  <Users className="w-4 h-4" /> Entrepreneurs
+                </button>
+                <button onClick={() => { setShowUsers(true); setMobileOpen(false); }} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
+                  <Settings className="w-4 h-4" /> Gestion entrepreneurs
+                </button>
+                <Link to="/admin/calendrier" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
+                  <CalendarDays className="w-4 h-4" /> Calendrier
+                </Link>
+                <Link to="/admin/donnees" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
+                  <DatabaseIcon className="w-4 h-4" /> Données
+                </Link>
+                <div className="border-t border-border my-2" />
+                <button onClick={() => { setMobileOpen(false); handleLogout(); }} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-muted-foreground hover:text-foreground hover:bg-secondary">
+                  <LogOut className="w-4 h-4" /> Déconnexion
+                </button>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </nav>
 

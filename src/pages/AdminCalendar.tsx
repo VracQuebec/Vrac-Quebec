@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft, Plus, ChevronLeft, ChevronRight, CalendarDays, Truck as TruckIcon,
-  Users, Settings, Filter as FilterIcon, X,
+  Users, Settings, Filter as FilterIcon, X, Menu, LogOut, Database as DatabaseIcon,
 } from "lucide-react";
 import {
   startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addWeeks, addMonths,
@@ -24,6 +24,7 @@ import {
 import EventModal, { EventDraft } from "@/components/calendar/EventModal";
 import EventBlock from "@/components/calendar/EventBlock";
 import FleetManager from "@/components/calendar/FleetManager";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 type EntrepreneurLite = { id: string; name: string; company: string | null };
 
@@ -33,7 +34,10 @@ export default function AdminCalendar() {
   const { isAdmin, loading: roleLoading } = useUserRoles(user, isReady);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [view, setView] = useState<CalendarView>("week");
+  const [view, setView] = useState<CalendarView>(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 640) return "day";
+    return "week";
+  });
   const [cursor, setCursor] = useState<Date>(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
@@ -48,6 +52,12 @@ export default function AdminCalendar() {
     entrepreneur: "", driver: "", truck: "", dompe: "", status: "", material: "",
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
 
   useEffect(() => {
     if (!isReady || roleLoading) return;
@@ -163,11 +173,47 @@ export default function AdminCalendar() {
   return (
     <div className="min-h-screen bg-background">
       <nav className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/admin" className="flex items-center gap-2 text-sm font-display font-semibold text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-4 h-4" /> Retour à l'admin
+        <div className="container mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
+          <Link to="/admin" className="flex items-center gap-2 text-sm font-display font-semibold text-muted-foreground hover:text-foreground min-w-0">
+            <ArrowLeft className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline">Retour à l'admin</span>
           </Link>
-          <h1 className="font-display font-bold flex items-center gap-2"><CalendarDays className="w-5 h-5 text-primary" /> Calendrier</h1>
+          <h1 className="font-display font-bold flex items-center gap-2 text-sm sm:text-base"><CalendarDays className="w-5 h-5 text-primary" /> Calendrier</h1>
+
+          {/* Mobile hamburger */}
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <button className="sm:hidden p-2 rounded-md hover:bg-secondary/80 -mr-2" aria-label="Menu">
+                <Menu className="w-5 h-5 text-foreground" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[280px] sm:w-72">
+              <SheetTitle className="sr-only">Menu de navigation</SheetTitle>
+              <div className="flex flex-col gap-1 mt-6">
+                <div className="px-3 py-2 text-xs font-display font-bold uppercase text-muted-foreground tracking-wide">Navigation</div>
+                <Link to="/admin" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
+                  <ArrowLeft className="w-4 h-4" /> Demandes (CRM)
+                </Link>
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body bg-primary text-primary-foreground font-semibold">
+                  <CalendarDays className="w-4 h-4" /> Calendrier
+                </div>
+                <Link to="/admin/donnees" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
+                  <DatabaseIcon className="w-4 h-4" /> Données
+                </Link>
+                <div className="border-t border-border my-2" />
+                <button onClick={() => { setMobileOpen(false); handleLogout(); }} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-muted-foreground hover:text-foreground hover:bg-secondary">
+                  <LogOut className="w-4 h-4" /> Déconnexion
+                </button>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Desktop quick links */}
+          <div className="hidden sm:flex items-center gap-3">
+            <Link to="/admin/donnees" className="text-sm text-muted-foreground hover:text-foreground font-body">Données</Link>
+            <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
+              <LogOut className="w-4 h-4" /> Déconnexion
+            </button>
+          </div>
         </div>
       </nav>
       <TransportBanner />
@@ -194,16 +240,16 @@ export default function AdminCalendar() {
               ))}
             </div>
             <Button variant="outline" size="sm" onClick={() => setShowFilters((s) => !s)}>
-              <FilterIcon className="w-4 h-4 mr-1" /> Filtres
+              <FilterIcon className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Filtres</span>
             </Button>
             <Button variant="outline" size="sm" onClick={() => setFleetOpen("trucks")}>
-              <TruckIcon className="w-4 h-4 mr-1" /> Camions
+              <TruckIcon className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Camions</span>
             </Button>
             <Button variant="outline" size="sm" onClick={() => setFleetOpen("drivers")}>
-              <Users className="w-4 h-4 mr-1" /> Chauffeurs
+              <Users className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Chauffeurs</span>
             </Button>
             <Button size="sm" onClick={() => { setEditing(null); setModalOpen(true); }}>
-              <Plus className="w-4 h-4 mr-1" /> Planifier une livraison
+              <Plus className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Planifier une livraison</span><span className="sm:hidden">Planifier</span>
             </Button>
           </div>
         </div>
