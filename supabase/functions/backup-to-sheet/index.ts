@@ -1,4 +1,5 @@
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SPREADSHEET_ID = "17qJgVMdmVQj5MYeNDP2qQnmz6cBIa4Xc7NrZzo9eMlo";
 const SHEET_NAME = "Backup_Leads";
@@ -97,6 +98,15 @@ async function ensureSheetAndHeader(lovableKey: string, sheetsKey: string) {
   }
 }
 
+// Sanitize values written to Google Sheets to prevent formula injection.
+// Even with valueInputOption=RAW we defensively prefix risky leading chars.
+function sanitizeCell(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  const s = typeof v === "string" ? v : String(v);
+  if (/^[=+\-@\t\r]/.test(s)) return "'" + s;
+  return s;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -106,11 +116,37 @@ Deno.serve(async (req) => {
     const GOOGLE_SHEETS_API_KEY = Deno.env.get("GOOGLE_SHEETS_API_KEY");
     if (!GOOGLE_SHEETS_API_KEY) throw new Error("GOOGLE_SHEETS_API_KEY is not configured");
 
-    const payload = await req.json();
-    const s = payload?.submission ?? payload;
-    if (!s || typeof s !== "object") {
-      return new Response(JSON.stringify({ error: "Missing submission payload" }), {
+    // SECURITY: never trust the caller-supplied row data. Accept only a
+    // submission_id and look up the canonical row in the database with the
+    // service role. This prevents anonymous callers from writing arbitrary
+    // (or formula-injecting) data into the backup sheet.
+    const body = await req.json().catch(() => ({}));
+    const submissionId: string | undefined =
+      body?.submission_id ?? body?.submissionId ?? body?.submission?.id;
+
+    if (!submissionId || typeof submissionId !== "string" ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(submissionId)) {
+      return new Response(JSON.stringify({ error: "Missing or invalid submission_id" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("Supabase service credentials are not configured");
+    }
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { data: s, error: lookupError } = await supabase
+      .from("submissions")
+      .select("*")
+      .eq("id", submissionId)
+      .maybeSingle();
+    if (lookupError) throw new Error(`Submission lookup failed: ${lookupError.message}`);
+    if (!s) {
+      return new Response(JSON.stringify({ error: "Submission not found" }), {
+        status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -151,11 +187,11 @@ Deno.serve(async (req) => {
       s.priority ?? "",
       s.delivery_deadline ?? "",
       s.delivery_timeframe ?? "",
-    ];
+    ].map(sanitizeCell);
 
     const appendRange = `${SHEET_NAME}!A:AG`;
     const appendRes = await fetch(
-      `${GATEWAY_URL}/spreadsheets/${SPREADSHEET_ID}/values/${appendRange}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+      `${GATEWAY_URL}/spreadsheets/${SPREADSHEET_ID}/values/${appendRange}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
       {
         method: "POST",
         headers: {
