@@ -24,6 +24,7 @@ import {
 import EventModal, { EventDraft } from "@/components/calendar/EventModal";
 import EventBlock from "@/components/calendar/EventBlock";
 import FleetManager from "@/components/calendar/FleetManager";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 type EntrepreneurLite = { id: string; name: string; company: string | null };
 
