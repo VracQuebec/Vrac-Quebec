@@ -522,8 +522,8 @@ const Admin = () => {
             <span className="ml-2 px-2 py-0.5 rounded text-xs bg-primary/10 text-primary font-display font-semibold">Admin CRM</span>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/admin/calendrier" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <CalendarDays className="w-4 h-4" /> <span className="hidden xs:inline sm:inline">Calendrier</span>
+            <Link to="/admin/calendrier" className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-foreground font-body">
+              <CalendarDays className="w-4 h-4" /> Calendrier
             </Link>
             <button onClick={() => setShowUsers(true)} className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <Users className="w-4 h-4" /> Entrepreneurs
