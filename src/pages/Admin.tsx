@@ -26,7 +26,8 @@ import ExcelImportModal from "@/components/ExcelImportModal";
 import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
-import { Search, CalendarDays } from "lucide-react";
+import { Search, CalendarDays, Menu } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import TransportBanner from "@/components/TransportBanner";
 
 interface Submission {
