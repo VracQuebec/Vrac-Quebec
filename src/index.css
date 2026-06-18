@@ -49,6 +49,14 @@
     --shadow-glow: 0 0 30px -5px hsl(89 74% 48% / 0.2);
 
     --sidebar-background: 0 0% 98%;
+
+    /* Calendar event statuses */
+    --status-planifie: 217 91% 60%;
+    --status-en-cours: 25 95% 53%;
+    --status-termine: 89 74% 48%;
+    --status-reporte: 48 96% 53%;
+    --status-annule: 0 84% 60%;
+    --status-a-planifier: 220 10% 55%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
     --sidebar-primary-foreground: 0 0% 98%;
