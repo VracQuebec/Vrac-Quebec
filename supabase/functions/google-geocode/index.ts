@@ -1,4 +1,5 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
 
@@ -40,6 +41,38 @@ async function googleGeocode(query: string, components?: string) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
+    // SECURITY: only authenticated admins may invoke geocoding to prevent
+    // anonymous abuse of the Google Maps API quota.
+    const authHeader = req.headers.get('Authorization') || '';
+    if (!authHeader.toLowerCase().startsWith('bearer ')) {
+      return new Response(JSON.stringify({ status: 'error', error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const token = authHeader.slice(7).trim();
+    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+    const userId = claimsData?.claims?.sub as string | undefined;
+    if (claimsErr || !userId) {
+      return new Response(JSON.stringify({ status: 'error', error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const adminClient = createClient(SUPABASE_URL, SERVICE_KEY);
+    const { data: isAdmin } = await adminClient.rpc('has_role', {
+      _user_id: userId, _role: 'admin',
+    });
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ status: 'error', error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { address, postalCode } = await req.json();
     const cleanAddress = String(address || '').trim();
     const cleanPostal = String(postalCode || '').trim().toUpperCase().replace(/\s+/g, ' ');
