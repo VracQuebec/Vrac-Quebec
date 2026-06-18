@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft, Plus, ChevronLeft, ChevronRight, CalendarDays, Truck as TruckIcon,
-  Users, Settings, Filter as FilterIcon, X,
+  Users, Settings, Filter as FilterIcon, X, Menu, LogOut, Database as DatabaseIcon,
 } from "lucide-react";
 import {
   startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addWeeks, addMonths,
