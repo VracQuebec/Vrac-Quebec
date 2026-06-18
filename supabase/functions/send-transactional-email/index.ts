@@ -37,6 +37,14 @@ function generateToken(): string {
 // callers may use.
 const PUBLIC_TEMPLATES = new Set(['client-confirmation', 'new-lead-notification'])
 
+// Fixed admin recipient for internal lead notifications. Hardcoding here
+// (instead of trusting the caller-supplied recipientEmail) prevents anonymous
+// callers from redirecting these notifications to arbitrary addresses.
+const ADMIN_NOTIFICATION_EMAIL = 'TransportJSC@hotmail.com'
+
+// UUID v4-ish validation for submission IDs accepted from public callers.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -76,6 +84,7 @@ Deno.serve(async (req) => {
   let idempotencyKey: string
   let messageId: string
   let templateData: Record<string, any> = {}
+  let submissionId: string | undefined
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -85,6 +94,7 @@ Deno.serve(async (req) => {
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
     }
+    submissionId = body.submissionId || body.submission_id
   } catch {
     return new Response(
       JSON.stringify({ error: 'Invalid JSON in request body' }),
@@ -135,10 +145,78 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Resolve effective recipient: template-level `to` takes precedence over
-  // the caller-provided recipientEmail. This allows notification templates
-  // to always send to a fixed address (e.g., site owner from env var).
-  const effectiveRecipient = template.to || recipientEmail
+  // Create Supabase client with service role (bypasses RLS) — needed below
+  // for suppression checks AND for the secure server-side resolution of the
+  // recipient/templateData for public templates.
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+  // SECURITY: for public templates, never trust caller-supplied recipient or
+  // templateData. Require a submission_id, look up the canonical submission
+  // with the service role, and derive both the recipient and the email
+  // payload from the database row. This prevents anyone holding the public
+  // anon key from sending arbitrary emails to arbitrary addresses.
+  let effectiveRecipient: string | undefined = template.to || recipientEmail
+
+  if (PUBLIC_TEMPLATES.has(templateName)) {
+    if (!submissionId || !UUID_RE.test(submissionId)) {
+      return new Response(
+        JSON.stringify({ error: 'submission_id is required for this template' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { data: sub, error: subErr } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('id', submissionId)
+      .maybeSingle()
+
+    if (subErr || !sub) {
+      return new Response(
+        JSON.stringify({ error: 'Submission not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (templateName === 'new-lead-notification') {
+      effectiveRecipient = ADMIN_NOTIFICATION_EMAIL
+      const materialsLabel = Array.isArray(sub.materials)
+        ? sub.materials.join(', ')
+        : (sub.materials ?? '')
+      templateData = {
+        name: sub.name ?? '',
+        phone: sub.phone ?? '',
+        email: sub.email ?? '',
+        address: sub.address ?? '',
+        postalCode: sub.postal_code ?? '',
+        materials: materialsLabel + (sub.other_material ? ` (Autre: ${sub.other_material})` : ''),
+        quantity: sub.quantity ?? '',
+        budget: sub.budget_max ? `${sub.budget_max}${sub.budget_unit ? ` ${sub.budget_unit}` : ''}` : '',
+        notes: sub.description ?? '',
+        deliveryDeadline: sub.delivery_deadline ?? '',
+        deliveryTimeframe: sub.delivery_timeframe ?? '',
+        accessibility: Array.isArray(sub.accessibility) ? sub.accessibility.join(', ') : '',
+        machinery: sub.machinery_available
+          ? `Oui — ${sub.machinery_description ?? ''}`
+          : 'Non',
+        photosCount: Array.isArray(sub.photos) ? sub.photos.length : 0,
+        requestType: sub.request_type ?? '',
+        dompeNumber: sub.dompe_number ?? '',
+        submissionNumber: sub.submission_number ?? '',
+        submittedAt: sub.created_at ?? '',
+        crmLink: `https://vracquebec.ca/admin?lead=${sub.id}`,
+      }
+    } else if (templateName === 'client-confirmation') {
+      if (!sub.email) {
+        return new Response(
+          JSON.stringify({ success: false, reason: 'no_client_email' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      effectiveRecipient = sub.email
+      templateData = { name: sub.name ?? '' }
+    }
+  }
 
   if (!effectiveRecipient) {
     return new Response(
@@ -151,9 +229,6 @@ Deno.serve(async (req) => {
       }
     )
   }
-
-  // Create Supabase client with service role (bypasses RLS)
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
   // 2. Check suppression list (fail-closed: if we can't verify, don't send)
   const { data: suppressed, error: suppressionError } = await supabase
