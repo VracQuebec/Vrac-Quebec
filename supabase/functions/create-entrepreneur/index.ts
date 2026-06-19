@@ -50,8 +50,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: createErr?.message || "Création échouée" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Assign entrepreneur role
-    const { error: roleErr } = await admin.from("user_roles").insert({ user_id: created.user.id, role: "entrepreneur" });
+    // Assign entrepreneur role with immediate access
+    const { error: roleErr } = await admin.from("user_roles").insert({ user_id: created.user.id, role: "entrepreneur", approved: true });
     if (roleErr) {
       return new Response(JSON.stringify({ error: `Compte créé mais rôle non assigné : ${roleErr.message}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
