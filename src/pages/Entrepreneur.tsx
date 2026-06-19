@@ -216,7 +216,7 @@ const Entrepreneur = () => {
           <ol className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             {[
               { n: 1, t: "Choisissez une dompe", d: "Sélectionnez la dompe qui vous intéresse parmi les sites disponibles." },
-              { n: 2, t: "Appelez Transport JSC", d: "📞 581-994-7717 — indiquez le n° de dompe, le matériel, la quantité, la date et votre entreprise." },
+              { n: 2, t: "Appelez Transport JSC", d: "📞 581-994-7717 ou 819-592-3495 — indiquez le n° de dompe, le matériel, la quantité, la date et votre entreprise." },
               { n: 3, t: "Attendez la validation", d: "Transport JSC confirme avec le propriétaire la disponibilité, les matériaux et les quantités." },
               { n: 4, t: "Recevez votre confirmation", d: "Une fois approuvé, vous recevrez l'accès et les consignes du site." },
             ].map((s) => (
@@ -240,12 +240,20 @@ const Entrepreneur = () => {
               <li>Toute demande doit obligatoirement passer par Transport JSC.</li>
             </ul>
           </div>
-          <a
-            href="tel:5819947717"
-            className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground font-display font-bold text-base sm:text-lg py-4 rounded-xl hover:opacity-90 transition-opacity"
-          >
-            <Phone className="w-5 h-5" /> Appeler Transport JSC — 581-994-7717
-          </a>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <a
+              href="tel:5819947717"
+              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground font-display font-bold text-base sm:text-lg py-4 rounded-xl hover:opacity-90 transition-opacity"
+            >
+              <Phone className="w-5 h-5" /> 581-994-7717
+            </a>
+            <a
+              href="tel:8195923495"
+              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground font-display font-bold text-base sm:text-lg py-4 rounded-xl hover:opacity-90 transition-opacity"
+            >
+              <Phone className="w-5 h-5" /> 819-592-3495
+            </a>
+          </div>
         </section>
 
         <div className="mb-4 space-y-3">
@@ -326,14 +334,24 @@ const Entrepreneur = () => {
                     </div>
                     <p className="text-xs text-muted-foreground mb-2">Secteur: {l.postal_prefix || "—"}</p>
                   </button>
-                  <a
-                    href={`tel:5819947717`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-full flex items-center justify-center gap-1.5 bg-primary text-primary-foreground font-display font-bold text-xs py-2.5 rounded-lg hover:opacity-90 transition-opacity"
-                    aria-label={`Demander l'accès à la dompe ${(l.dompe_number && l.dompe_number.trim()) || l.submission_number}`}
-                  >
-                    <Phone className="w-3.5 h-3.5" /> Demander l'accès — 581-994-7717
-                  </a>
+                  <div className="grid grid-cols-1 gap-1.5">
+                    <a
+                      href={`tel:5819947717`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full flex items-center justify-center gap-1.5 bg-primary text-primary-foreground font-display font-bold text-xs py-2.5 rounded-lg hover:opacity-90 transition-opacity"
+                      aria-label={`Demander l'accès à la dompe ${(l.dompe_number && l.dompe_number.trim()) || l.submission_number} — 581-994-7717`}
+                    >
+                      <Phone className="w-3.5 h-3.5" /> 581-994-7717
+                    </a>
+                    <a
+                      href={`tel:8195923495`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full flex items-center justify-center gap-1.5 bg-primary text-primary-foreground font-display font-bold text-xs py-2.5 rounded-lg hover:opacity-90 transition-opacity"
+                      aria-label={`Demander l'accès à la dompe ${(l.dompe_number && l.dompe_number.trim()) || l.submission_number} — 819-592-3495`}
+                    >
+                      <Phone className="w-3.5 h-3.5" /> 819-592-3495
+                    </a>
+                  </div>
                 </div>
               ))}
             </div>
