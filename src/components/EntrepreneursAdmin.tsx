@@ -194,26 +194,9 @@ export default function EntrepreneursAdmin() {
                     <td className="px-4 py-3">{r.phone || <span className="text-muted-foreground">—</span>}</td>
                     <td className="px-4 py-3">{fmtDate(r.created_at)}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${r.approved ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                        {r.approved ? "Approuvé" : "En attente"}
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+                        Actif
                       </span>
-                      {!r.approved && (
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            const { error } = await supabase
-                              .from("user_roles")
-                              .update({ approved: true })
-                              .eq("user_id", r.user_id)
-                              .eq("role", "entrepreneur");
-                            if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
-                            else { toast({ title: "Entrepreneur approuvé ✓" }); load(); }
-                          }}
-                          className="ml-2 px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90"
-                        >
-                          Approuver
-                        </button>
-                      )}
                     </td>
                     <td className="px-4 py-3 text-right font-mono">{r.jobs}</td>
                     <td className="px-4 py-3 text-right font-mono">{r.trips}</td>
@@ -232,7 +215,6 @@ export default function EntrepreneursAdmin() {
           entrepreneur={entrepreneurs.find((e) => e.user_id === openUserId)}
           stats={stats[openUserId]}
           createdAt={users.find((u) => u.user_id === openUserId)?.created_at || ""}
-          approved={users.find((u) => u.user_id === openUserId)?.approved || false}
           onClose={() => setOpenUserId(null)}
           onSaved={load}
         />
@@ -242,14 +224,13 @@ export default function EntrepreneursAdmin() {
 }
 
 function EntrepreneurDetailModal({
-  userId, email, entrepreneur, stats, createdAt, approved, onClose, onSaved,
+  userId, email, entrepreneur, stats, createdAt, onClose, onSaved,
 }: {
   userId: string;
   email: string;
   entrepreneur?: EntrepreneurRow;
   stats?: StatsRow;
   createdAt: string;
-  approved: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -339,7 +320,7 @@ function EntrepreneurDetailModal({
                 <Info icon={<Mail className="w-4 h-4" />} label="Courriel" value={email} />
                 <Info icon={<Phone className="w-4 h-4" />} label="Téléphone" value={entrepreneur?.phone || "—"} />
                 <Info icon={<Calendar className="w-4 h-4" />} label="Inscription" value={fmtDate(createdAt)} />
-                <Info icon={<UserIcon className="w-4 h-4" />} label="Statut compte" value={approved ? "Approuvé" : "En attente"} />
+                <Info icon={<UserIcon className="w-4 h-4" />} label="Statut compte" value="Actif" />
               </div>
             </section>
 

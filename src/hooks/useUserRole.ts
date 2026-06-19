@@ -6,26 +6,21 @@ export type AppRole = "admin" | "entrepreneur" | "user";
 
 export const useUserRoles = (authUser?: User | null, authReady?: boolean) => {
   const [roles, setRoles] = useState<AppRole[]>([]);
-  const [approvedEntrepreneur, setApprovedEntrepreneur] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (user: User | null) => {
     if (!user) {
       setRoles([]);
-      setApprovedEntrepreneur(false);
       setLoading(false);
       return;
     }
     setLoading(true);
     const { data } = await supabase
       .from("user_roles")
-      .select("role, approved")
+      .select("role")
       .eq("user_id", user.id);
     const rows = data || [];
     setRoles(rows.map((r) => r.role as AppRole));
-    setApprovedEntrepreneur(
-      rows.some((r: any) => r.role === "entrepreneur" && r.approved === true)
-    );
     setLoading(false);
   }, []);
 
@@ -60,6 +55,5 @@ export const useUserRoles = (authUser?: User | null, authReady?: boolean) => {
     loading,
     isAdmin: roles.includes("admin"),
     isEntrepreneur: roles.includes("entrepreneur"),
-    approvedEntrepreneur,
   };
 };

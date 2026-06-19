@@ -50,7 +50,7 @@ const Entrepreneur = () => {
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const navigate = useNavigate();
   const { user, isReady: authReady } = useAuthReady();
-  const { isEntrepreneur, isAdmin, approvedEntrepreneur, loading: roleLoading } = useUserRoles(user, authReady);
+  const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
   const [activeFilters, setActiveFilters] = useState<Set<MaterialColorKey>>(new Set());
 
   const toggleFilter = (k: MaterialColorKey) => {
@@ -191,28 +191,6 @@ const Entrepreneur = () => {
       </div>
     );
   }
-  if (isEntrepreneur && !isAdmin && !approvedEntrepreneur) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-center bg-background">
-        <div className="max-w-md bg-card border border-border rounded-xl p-6" style={{ boxShadow: "var(--shadow-sm)" }}>
-          <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-          <h1 className="font-display font-bold text-xl mb-2">Compte en attente d'approbation</h1>
-          <p className="text-sm text-muted-foreground mb-4">
-            Votre inscription a bien été reçue. Un administrateur de Transport JSC doit valider votre compte
-            avant que vous puissiez voir les dompes disponibles. Vous serez avisé par courriel dès l'approbation.
-          </p>
-          <a
-            href="tel:5819947717"
-            className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-display font-bold py-3 rounded-lg hover:opacity-90 transition-opacity mb-3"
-          >
-            <Phone className="w-4 h-4" /> Appeler Transport JSC — 581-994-7717
-          </a>
-          <button onClick={handleLogout} className="text-sm text-muted-foreground underline">Se déconnecter</button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <nav className="sticky top-0 z-[1000] bg-card/80 backdrop-blur-md border-b border-border">

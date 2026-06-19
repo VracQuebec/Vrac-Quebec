@@ -50,7 +50,7 @@ const EntrepreneurSignup = () => {
       if (loginError) throw loginError;
 
       try { localStorage.setItem("vq_stay_logged_in", "1"); } catch { /* ignore storage errors */ }
-      toast({ title: "Compte créé", description: "Votre compte entrepreneur est créé et en attente d’approbation." });
+      toast({ title: "Compte créé", description: "Votre accès entrepreneur est actif immédiatement." });
       navigate("/entrepreneur", { replace: true });
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Inscription échouée", variant: "destructive" });
