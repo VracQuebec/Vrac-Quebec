@@ -197,6 +197,23 @@ export default function EntrepreneursAdmin() {
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${r.approved ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                         {r.approved ? "Approuvé" : "En attente"}
                       </span>
+                      {!r.approved && (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const { error } = await supabase
+                              .from("user_roles")
+                              .update({ approved: true })
+                              .eq("user_id", r.user_id)
+                              .eq("role", "entrepreneur");
+                            if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+                            else { toast({ title: "Entrepreneur approuvé ✓" }); load(); }
+                          }}
+                          className="ml-2 px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90"
+                        >
+                          Approuver
+                        </button>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right font-mono">{r.jobs}</td>
                     <td className="px-4 py-3 text-right font-mono">{r.trips}</td>
