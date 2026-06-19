@@ -215,7 +215,6 @@ export default function EntrepreneursAdmin() {
           entrepreneur={entrepreneurs.find((e) => e.user_id === openUserId)}
           stats={stats[openUserId]}
           createdAt={users.find((u) => u.user_id === openUserId)?.created_at || ""}
-          approved={users.find((u) => u.user_id === openUserId)?.approved || false}
           onClose={() => setOpenUserId(null)}
           onSaved={load}
         />
@@ -225,14 +224,13 @@ export default function EntrepreneursAdmin() {
 }
 
 function EntrepreneurDetailModal({
-  userId, email, entrepreneur, stats, createdAt, approved, onClose, onSaved,
+  userId, email, entrepreneur, stats, createdAt, onClose, onSaved,
 }: {
   userId: string;
   email: string;
   entrepreneur?: EntrepreneurRow;
   stats?: StatsRow;
   createdAt: string;
-  approved: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
