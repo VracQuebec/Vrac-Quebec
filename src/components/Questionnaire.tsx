@@ -299,7 +299,13 @@ const Questionnaire = () => {
               href="tel:5819947717"
               className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 transition-opacity"
             >
-              📞 Appeler maintenant
+              📞 Appeler — 581-994-7717
+            </a>
+            <a
+              href="tel:8195923495"
+              className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 transition-opacity"
+            >
+              📞 Appeler — 819-592-3495
             </a>
             <a
               href="sms:15819947717?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."

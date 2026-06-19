@@ -31,7 +31,7 @@ const ClientConfirmationEmail = ({ name }: ClientConfirmationProps) => (
           <Text style={text}>Merci d'avoir choisi Vrac Québec.</Text>
           <Hr style={hr} />
           <Text style={footer}>
-            Pour toute question urgente : 581-994-7717<br />
+            Pour toute question urgente : 581-994-7717 ou 819-592-3495<br />
             Vrac Québec — vracquebec.ca
           </Text>
         </Section>
