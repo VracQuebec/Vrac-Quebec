@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { Truck, LogOut, Loader2, AlertTriangle, MapPin } from "lucide-react";
+import { Truck, LogOut, Loader2, Phone, AlertTriangle, MapPin } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import TransportBanner from "@/components/TransportBanner";
