@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
 import { colorForMaterials } from "@/lib/material-colors";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
+import { Crosshair, X, Search } from "lucide-react";
 
 interface Submission {
   id: string;
@@ -87,6 +88,19 @@ const buildPopup = (sub: Submission) => {
 
 const HIDDEN_STATUSES = ["archivé", "perdu", "terminé"];
 
+const RADIUS_OPTIONS_KM = [1, 2, 5, 10, 15, 20, 25, 50, 100];
+
+const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  return 2 * R * Math.asin(Math.sqrt(h));
+};
+
 interface Props {
   submissions: Submission[];
   onMove?: (id: string, lat: number, lon: number) => void;
@@ -96,9 +110,19 @@ interface Props {
 const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<google.maps.Marker[]>([]);
+  const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
+  const circleRef = useRef<google.maps.Circle | null>(null);
+  const centerMarkerRef = useRef<google.maps.Marker | null>(null);
+  const mapClickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
+  const suggestionsBoxRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [radiusMode, setRadiusMode] = useState(false);
+  const [pickMode, setPickMode] = useState(false);
+  const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [radiusKm, setRadiusKm] = useState<number>(10);
+  const [searchValue, setSearchValue] = useState("");
 
   const geoSubs = submissions.filter(
     (s) =>
@@ -127,7 +151,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
         }
         // Clear existing markers
         markersRef.current.forEach((m) => m.setMap(null));
-        markersRef.current = [];
+        markersRef.current.clear();
 
         const bounds = new g.maps.LatLngBounds();
         geoSubs.forEach((sub) => {
@@ -164,13 +188,13 @@ const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
               marker.setDraggable(false);
             });
           }
-          markersRef.current.push(marker);
+          markersRef.current.set(sub.id, marker);
           bounds.extend(pos);
         });
 
-        if (markersRef.current.length > 0) {
+        if (markersRef.current.size > 0 && !center) {
           mapRef.current!.fitBounds(bounds, 50);
-          if (markersRef.current.length === 1) {
+          if (markersRef.current.size === 1) {
             mapRef.current!.setZoom(13);
           }
         }
@@ -181,6 +205,178 @@ const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
 
     return () => { cancelled = true; };
   }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}`).join(",")]);
+
+  // Distances + in-radius set
+  const results = useMemo(() => {
+    if (!center) return [] as Array<{ sub: Submission; distance: number }>;
+    return geoSubs
+      .map((sub) => ({
+        sub,
+        distance: haversineKm(center, { lat: sub.latitude!, lng: sub.longitude! }),
+      }))
+      .filter((r) => r.distance <= radiusKm)
+      .sort((a, b) => a.distance - b.distance);
+  }, [center, radiusKm, geoSubs]);
+
+  const inRadiusIds = useMemo(() => new Set(results.map((r) => r.sub.id)), [results]);
+
+  // Update marker opacity based on radius selection
+  useEffect(() => {
+    if (!mapRef.current) return;
+    markersRef.current.forEach((m, id) => {
+      if (!center) {
+        m.setOpacity(1);
+      } else {
+        m.setOpacity(inRadiusIds.has(id) ? 1 : 0.25);
+      }
+    });
+  }, [center, inRadiusIds]);
+
+  // Manage circle + center marker
+  useEffect(() => {
+    const g = (window as any).google;
+    if (!g?.maps || !mapRef.current) return;
+
+    if (!center) {
+      circleRef.current?.setMap(null); circleRef.current = null;
+      centerMarkerRef.current?.setMap(null); centerMarkerRef.current = null;
+      return;
+    }
+
+    if (!circleRef.current) {
+      circleRef.current = new g.maps.Circle({
+        map: mapRef.current,
+        center,
+        radius: radiusKm * 1000,
+        editable: true,
+        draggable: true,
+        fillColor: "#3b82f6",
+        fillOpacity: 0.12,
+        strokeColor: "#2563eb",
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        clickable: false,
+      });
+      circleRef.current.addListener("radius_changed", () => {
+        const r = circleRef.current?.getRadius();
+        if (r) {
+          const km = Math.max(0.1, Math.round((r / 1000) * 10) / 10);
+          setRadiusKm(km);
+        }
+      });
+      circleRef.current.addListener("center_changed", () => {
+        const c = circleRef.current?.getCenter();
+        if (c) setCenter({ lat: c.lat(), lng: c.lng() });
+      });
+    } else {
+      circleRef.current.setCenter(center);
+      circleRef.current.setRadius(radiusKm * 1000);
+    }
+
+    if (!centerMarkerRef.current) {
+      centerMarkerRef.current = new g.maps.Marker({
+        map: mapRef.current,
+        position: center,
+        icon: {
+          path: g.maps.SymbolPath.CIRCLE,
+          scale: 7,
+          fillColor: "#2563eb",
+          fillOpacity: 1,
+          strokeColor: "#fff",
+          strokeWeight: 2,
+        },
+        zIndex: 9999,
+      });
+    } else {
+      centerMarkerRef.current.setPosition(center);
+    }
+  }, [center, radiusKm]);
+
+  // Map click to pick center
+  useEffect(() => {
+    if (!mapRef.current) return;
+    mapClickListenerRef.current?.remove();
+    mapClickListenerRef.current = null;
+    if (!pickMode) {
+      if (containerRef.current) containerRef.current.style.cursor = "";
+      return;
+    }
+    if (containerRef.current) containerRef.current.style.cursor = "crosshair";
+    mapClickListenerRef.current = mapRef.current.addListener("click", (ev: google.maps.MapMouseEvent) => {
+      if (!ev.latLng) return;
+      setCenter({ lat: ev.latLng.lat(), lng: ev.latLng.lng() });
+      setPickMode(false);
+    });
+    return () => {
+      mapClickListenerRef.current?.remove();
+      mapClickListenerRef.current = null;
+      if (containerRef.current) containerRef.current.style.cursor = "";
+    };
+  }, [pickMode]);
+
+  // Places autocomplete
+  const fetchSuggestions = async (input: string) => {
+    if (!suggestionsBoxRef.current) return;
+    if (!input || input.length < 3) {
+      suggestionsBoxRef.current.innerHTML = "";
+      return;
+    }
+    try {
+      const g = (window as any).google;
+      if (!g?.maps?.importLibrary) return;
+      const places = (await g.maps.importLibrary("places")) as google.maps.PlacesLibrary;
+      if (!sessionTokenRef.current) sessionTokenRef.current = new places.AutocompleteSessionToken();
+      const { suggestions } = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        input,
+        sessionToken: sessionTokenRef.current,
+        includedRegionCodes: ["ca"],
+        language: "fr",
+      });
+      const box = suggestionsBoxRef.current;
+      box.innerHTML = "";
+      suggestions.slice(0, 5).forEach((s) => {
+        const pp = s.placePrediction;
+        if (!pp) return;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className =
+          "w-full text-left px-3 py-2 text-sm hover:bg-muted focus:bg-muted focus:outline-none border-b border-border last:border-b-0";
+        btn.textContent = pp.text?.toString() || "";
+        btn.onclick = async (e) => {
+          e.preventDefault();
+          const place = pp.toPlace();
+          await place.fetchFields({ fields: ["formattedAddress", "location"] });
+          const loc = place.location;
+          if (loc) {
+            setCenter({ lat: loc.lat(), lng: loc.lng() });
+            setSearchValue(place.formattedAddress || pp.text?.toString() || "");
+            mapRef.current?.panTo({ lat: loc.lat(), lng: loc.lng() });
+          }
+          box.innerHTML = "";
+          sessionTokenRef.current = new places.AutocompleteSessionToken();
+        };
+        box.appendChild(btn);
+      });
+    } catch { /* ignore */ }
+  };
+
+  const focusResult = (sub: Submission) => {
+    if (!mapRef.current) return;
+    mapRef.current.panTo({ lat: sub.latitude!, lng: sub.longitude! });
+    mapRef.current.setZoom(Math.max(mapRef.current.getZoom() ?? 12, 13));
+    const marker = markersRef.current.get(sub.id);
+    if (marker && infoRef.current) {
+      infoRef.current.setContent(buildPopup(sub));
+      infoRef.current.open({ anchor: marker, map: mapRef.current });
+    }
+  };
+
+  const clearRadius = () => {
+    setCenter(null);
+    setPickMode(false);
+    setSearchValue("");
+    if (suggestionsBoxRef.current) suggestionsBoxRef.current.innerHTML = "";
+  };
 
   if (error) {
     return (
@@ -199,8 +395,126 @@ const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
   }
 
   return (
-    <div className="bg-card rounded-xl border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
-      <div ref={containerRef} style={{ height: "500px", width: "100%" }} />
+    <div className="space-y-3">
+      <div className="bg-card rounded-xl border border-border p-3 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            if (radiusMode) { clearRadius(); setRadiusMode(false); }
+            else { setRadiusMode(true); setPickMode(true); }
+          }}
+          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+            radiusMode
+              ? "bg-primary text-primary-foreground border-primary"
+              : "bg-card border-border hover:bg-muted"
+          }`}
+        >
+          <Crosshair className="w-4 h-4" />
+          {radiusMode ? "Désactiver la recherche par rayon" : "Recherche par rayon"}
+        </button>
+
+        {radiusMode && (
+          <>
+            <button
+              type="button"
+              onClick={() => setPickMode((v) => !v)}
+              className={`px-3 py-2 rounded-lg text-sm border ${
+                pickMode ? "bg-blue-600 text-white border-blue-600" : "bg-card border-border hover:bg-muted"
+              }`}
+              title="Cliquer sur la carte pour choisir le point"
+            >
+              {pickMode ? "Cliquez sur la carte…" : "Choisir un point sur la carte"}
+            </button>
+
+            <div className="relative flex-1 min-w-[220px]">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchValue}
+                  onChange={(e) => { setSearchValue(e.target.value); fetchSuggestions(e.target.value); }}
+                  placeholder="Adresse, ville ou code postal"
+                  className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-background"
+                  autoComplete="off"
+                />
+              </div>
+              <div
+                ref={suggestionsBoxRef}
+                className="absolute z-50 left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden empty:hidden"
+              />
+            </div>
+
+            <label className="inline-flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Rayon:</span>
+              <select
+                value={RADIUS_OPTIONS_KM.includes(radiusKm) ? radiusKm : ""}
+                onChange={(e) => setRadiusKm(Number(e.target.value))}
+                className="px-2 py-2 rounded-lg border border-border bg-card text-sm"
+              >
+                {!RADIUS_OPTIONS_KM.includes(radiusKm) && (
+                  <option value="">{radiusKm} km</option>
+                )}
+                {RADIUS_OPTIONS_KM.map((r) => (
+                  <option key={r} value={r}>{r} km</option>
+                ))}
+              </select>
+            </label>
+
+            {center && (
+              <span className="text-xs text-muted-foreground">
+                {results.length} dompe(s) dans le rayon
+              </span>
+            )}
+
+            {center && (
+              <button
+                type="button"
+                onClick={clearRadius}
+                className="inline-flex items-center gap-1 px-2 py-2 rounded-lg text-sm border border-border hover:bg-muted"
+                title="Effacer"
+              >
+                <X className="w-4 h-4" /> Effacer
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="bg-card rounded-xl border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
+        <div ref={containerRef} style={{ height: "500px", width: "100%" }} />
+      </div>
+
+      {radiusMode && center && (
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="px-4 py-2 border-b border-border bg-muted/40 text-sm font-medium">
+            Résultats — triés par distance
+          </div>
+          {results.length === 0 ? (
+            <div className="p-4 text-sm text-muted-foreground">Aucune dompe dans ce rayon.</div>
+          ) : (
+            <div className="max-h-80 overflow-auto divide-y divide-border">
+              {results.map(({ sub, distance }) => (
+                <button
+                  key={sub.id}
+                  type="button"
+                  onClick={() => focusResult(sub)}
+                  className="w-full text-left px-4 py-2 hover:bg-muted transition-colors text-sm grid grid-cols-12 gap-2 items-center"
+                >
+                  <span className="col-span-2 font-semibold">#{displayNumber(sub)}</span>
+                  <span className="col-span-2 text-primary font-medium">{distance.toFixed(1)} km</span>
+                  <span className="col-span-3 truncate">{getMaterialLabels(sub.materials) || "—"}</span>
+                  <span className="col-span-1 text-muted-foreground">{sub.quantity || "—"}</span>
+                  <span className="col-span-2 truncate text-muted-foreground">
+                    {(sub.accessibility && sub.accessibility.join(", ")) || "—"}
+                  </span>
+                  <span className="col-span-1 truncate text-muted-foreground">{sub.postal_code?.slice(0, 3) || "—"}</span>
+                  <span className="col-span-1 truncate text-xs">{sub.status || "—"}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
