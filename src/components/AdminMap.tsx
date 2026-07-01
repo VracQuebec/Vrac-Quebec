@@ -3,6 +3,7 @@ import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
 import { colorForMaterials } from "@/lib/material-colors";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
 import { Crosshair, X, Search } from "lucide-react";
+import type { LeadStatus } from "@/hooks/useLeadStatuses";
 
 interface Submission {
   id: string;
@@ -61,7 +62,7 @@ const getMaterialLabels = (ids: string[]) =>
 const formatDate = (d: string) =>
   new Date(d).toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
-const buildPopup = (sub: Submission) => {
+const buildPopup = (sub: Submission, leadStatuses?: LeadStatus[]) => {
   let html = `<div style="font-size:13px;line-height:1.6">
     <div style="font-weight:800;font-size:16px;margin-bottom:6px;color:#1a1a1a">
       #${displayNumber(sub)} — ${sub.name}
@@ -69,7 +70,20 @@ const buildPopup = (sub: Submission) => {
     <div><b>Type de demande:</b> ${sub.request_type || "—"}</div>
     <div><b>Matériaux:</b> ${getMaterialLabels(sub.materials)}</div>`;
   if (sub.other_material) html += `<div><b>Autre:</b> ${sub.other_material}</div>`;
-  if (sub.status) html += `<div><b>Statut:</b> ${sub.status}</div>`;
+  if (leadStatuses && leadStatuses.length > 0) {
+    const opts = leadStatuses
+      .filter((s) => s.enabled || s.value === sub.status)
+      .map(
+        (s) =>
+          `<option value="${s.value}" ${s.value === (sub.status || "") ? "selected" : ""}>${s.label}</option>`
+      )
+      .join("");
+    html += `<div style="margin:4px 0"><b>Statut:</b>
+      <select data-lead-status-select="${sub.id}" style="margin-left:6px;padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-size:12px">${opts}</select>
+    </div>`;
+  } else if (sub.status) {
+    html += `<div><b>Statut:</b> ${sub.status}</div>`;
+  }
   html += `<div><b>Type:</b> ${sub.property_type}</div>
     <div><b>Voyages:</b> ${sub.quantity}</div>
     <div><b>Tonnage:</b> ${sub.tonnage}</div>`;
@@ -105,12 +119,11 @@ interface Props {
   submissions: Submission[];
   onMove?: (id: string, lat: number, lon: number) => void;
   showInactive?: boolean;
-  onSelect?: (sub: Submission) => void;
-  selectedId?: string | null;
-  statusColor?: (statusValue: string | null | undefined) => string | null;
+  leadStatuses?: LeadStatus[];
+  onStatusChange?: (id: string, status: string) => void | Promise<void>;
 }
 
-const AdminMap = ({ submissions, onMove, showInactive = false, onSelect, selectedId, statusColor }: Props) => {
+const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onStatusChange }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
@@ -158,8 +171,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false, onSelect, selecte
 
         const bounds = new g.maps.LatLngBounds();
         geoSubs.forEach((sub) => {
-          const statusHex = statusColor ? statusColor(sub.status) : null;
-          const color = statusHex || colorForMaterials(sub.materials, sub.request_type);
+          const color = colorForMaterials(sub.materials, sub.request_type);
           const iconCfg = createNumberIconSvg(markerLabel(sub), color);
           const pos = { lat: sub.latitude!, lng: sub.longitude! };
           const marker = new g.maps.Marker({
@@ -173,11 +185,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false, onSelect, selecte
             draggable: false,
           });
           marker.addListener("click", () => {
-            if (onSelect) {
-              onSelect(sub);
-              return;
-            }
-            infoRef.current?.setContent(buildPopup(sub));
+            infoRef.current?.setContent(buildPopup(sub, leadStatuses));
             infoRef.current?.open({ anchor: marker, map: mapRef.current! });
           });
           if (onMove) {
@@ -206,25 +214,26 @@ const AdminMap = ({ submissions, onMove, showInactive = false, onSelect, selecte
             mapRef.current!.setZoom(13);
           }
         }
+
+        // Attach status-change handler each time the InfoWindow renders.
+        if (infoRef.current && !(infoRef.current as any).__statusListenerAttached) {
+          infoRef.current.addListener("domready", () => {
+            const el = document.querySelector<HTMLSelectElement>("select[data-lead-status-select]");
+            if (!el) return;
+            el.onchange = () => {
+              const id = el.getAttribute("data-lead-status-select");
+              if (id && onStatusChange) onStatusChange(id, el.value);
+            };
+          });
+          (infoRef.current as any).__statusListenerAttached = true;
+        }
       })
       .catch((e) => {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       });
 
     return () => { cancelled = true; };
-  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}`).join(",")]);
-
-  // Highlight the currently selected marker
-  useEffect(() => {
-    if (!mapRef.current || !selectedId) return;
-    const m = markersRef.current.get(selectedId);
-    if (!m) return;
-    const pos = m.getPosition();
-    if (pos) mapRef.current.panTo(pos);
-    markersRef.current.forEach((mk, id) => {
-      mk.setZIndex(id === selectedId ? 9999 : 1);
-    });
-  }, [selectedId]);
+  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}`).join(","), leadStatuses?.map((s) => s.value).join(",")]);
 
   // Distances + in-radius set
   const results = useMemo(() => {
@@ -386,7 +395,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false, onSelect, selecte
     mapRef.current.setZoom(Math.max(mapRef.current.getZoom() ?? 12, 13));
     const marker = markersRef.current.get(sub.id);
     if (marker && infoRef.current) {
-      infoRef.current.setContent(buildPopup(sub));
+      infoRef.current.setContent(buildPopup(sub, leadStatuses));
       infoRef.current.open({ anchor: marker, map: mapRef.current });
     }
   };
