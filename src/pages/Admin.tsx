@@ -768,6 +768,27 @@ const Admin = () => {
             <option value="trips-desc">Plus grand nombre de voyages</option>
             <option value="trips-asc">Plus petit nombre de voyages</option>
           </select>
+          <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+            <option value="all">Toutes priorités</option>
+            {LEAD_PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+          </select>
+          <select value={filterMaterial} onChange={(e) => setFilterMaterial(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+            <option value="all">Tous matériaux</option>
+            {MATERIAL_TYPES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+          </select>
+          <select value={filterAssigned} onChange={(e) => setFilterAssigned(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+            <option value="all">Tous entrepreneurs</option>
+            <option value="none">— Non assigné —</option>
+            {entrepreneursList.map((e) => <option key={e.user_id} value={e.user_id}>{e.email}</option>)}
+          </select>
+          <label className="flex items-center gap-1 text-xs text-muted-foreground">
+            Du
+            <input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="px-2 py-1 text-xs rounded-lg border border-border bg-card font-body" />
+          </label>
+          <label className="flex items-center gap-1 text-xs text-muted-foreground">
+            Au
+            <input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="px-2 py-1 text-xs rounded-lg border border-border bg-card font-body" />
+          </label>
         </div>
 
         {loading ? (
@@ -793,6 +814,12 @@ const Admin = () => {
             <AdminMap
               submissions={filtered as any}
               showInactive={showArchivedOnMap}
+              onSelect={(s) => setSelectedMapId(s.id)}
+              selectedId={selectedMapId}
+              statusColor={(v) => {
+                const s = leadStatuses.find((x) => x.value === (v || ""));
+                return s?.color || null;
+              }}
               onMove={async (id, lat, lon) => {
                 const { error } = await supabase
                   .from("submissions")
