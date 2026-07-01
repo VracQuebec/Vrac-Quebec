@@ -14,7 +14,6 @@ import {
   Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings,
 } from "lucide-react";
 import AdminMap from "@/components/AdminMap";
-import DispatchPanel from "@/components/DispatchPanel";
 import BillingSection from "@/components/BillingSection";
 import BillingOverview from "@/components/BillingOverview";
 import EntrepreneursAdmin from "@/components/EntrepreneursAdmin";
