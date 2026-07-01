@@ -813,12 +813,8 @@ const Admin = () => {
             <AdminMap
               submissions={filtered as any}
               showInactive={showArchivedOnMap}
-              onSelect={(s) => setSelectedMapId(s.id)}
-              selectedId={selectedMapId}
-              statusColor={(v) => {
-                const s = leadStatuses.find((x) => x.value === (v || ""));
-                return s?.color || null;
-              }}
+              leadStatuses={leadStatuses}
+              onStatusChange={(id, s) => updateStatus(id, s)}
               onMove={async (id, lat, lon) => {
                 const { error } = await supabase
                   .from("submissions")
@@ -869,24 +865,6 @@ const Admin = () => {
         onClose={() => setShowNewLead(false)}
         onCreated={() => { fetchSubmissions(); }}
       />
-
-      {/* Dispatch panel — appears when a marker is clicked on the admin map */}
-      {view === "map" && selectedMapId && (() => {
-        const sub = submissions.find((s) => s.id === selectedMapId);
-        if (!sub) return null;
-        return (
-          <DispatchPanel
-            sub={sub as any}
-            list={filtered as any}
-            entrepreneurs={entrepreneursList}
-            leadStatuses={leadStatuses}
-            onClose={() => setSelectedMapId(null)}
-            onSelect={(id) => setSelectedMapId(id)}
-            onUpdate={(patch) => updateField(sub.id, patch as any)}
-            onOpenFullEdit={(id) => { setView("list"); setExpanded(id); setSelectedMapId(null); }}
-          />
-        );
-      })()}
 
       {/* Mobile FAB */}
       <button
