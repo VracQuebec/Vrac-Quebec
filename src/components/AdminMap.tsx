@@ -105,9 +105,12 @@ interface Props {
   submissions: Submission[];
   onMove?: (id: string, lat: number, lon: number) => void;
   showInactive?: boolean;
+  onSelect?: (sub: Submission) => void;
+  selectedId?: string | null;
+  statusColor?: (statusValue: string | null | undefined) => string | null;
 }
 
-const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
+const AdminMap = ({ submissions, onMove, showInactive = false, onSelect, selectedId, statusColor }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
@@ -155,7 +158,8 @@ const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
 
         const bounds = new g.maps.LatLngBounds();
         geoSubs.forEach((sub) => {
-          const color = colorForMaterials(sub.materials, sub.request_type);
+          const statusHex = statusColor ? statusColor(sub.status) : null;
+          const color = statusHex || colorForMaterials(sub.materials, sub.request_type);
           const iconCfg = createNumberIconSvg(markerLabel(sub), color);
           const pos = { lat: sub.latitude!, lng: sub.longitude! };
           const marker = new g.maps.Marker({
@@ -169,6 +173,10 @@ const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
             draggable: false,
           });
           marker.addListener("click", () => {
+            if (onSelect) {
+              onSelect(sub);
+              return;
+            }
             infoRef.current?.setContent(buildPopup(sub));
             infoRef.current?.open({ anchor: marker, map: mapRef.current! });
           });
@@ -204,7 +212,19 @@ const AdminMap = ({ submissions, onMove, showInactive = false }: Props) => {
       });
 
     return () => { cancelled = true; };
-  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}`).join(",")]);
+  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}`).join(",")]);
+
+  // Highlight the currently selected marker
+  useEffect(() => {
+    if (!mapRef.current || !selectedId) return;
+    const m = markersRef.current.get(selectedId);
+    if (!m) return;
+    const pos = m.getPosition();
+    if (pos) mapRef.current.panTo(pos);
+    markersRef.current.forEach((mk, id) => {
+      mk.setZIndex(id === selectedId ? 9999 : 1);
+    });
+  }, [selectedId]);
 
   // Distances + in-radius set
   const results = useMemo(() => {

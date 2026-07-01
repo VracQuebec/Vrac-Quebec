@@ -14,6 +14,7 @@ import {
   Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings,
 } from "lucide-react";
 import AdminMap from "@/components/AdminMap";
+import DispatchPanel from "@/components/DispatchPanel";
 import BillingSection from "@/components/BillingSection";
 import BillingOverview from "@/components/BillingOverview";
 import EntrepreneursAdmin from "@/components/EntrepreneursAdmin";
@@ -122,6 +123,13 @@ const Admin = () => {
   const [tab, setTab] = useState<"leads" | "billing" | "entrepreneurs">("leads");
   const [filterTrips, setFilterTrips] = useState<string>("all");
   const [sortTrips, setSortTrips] = useState<string>("default");
+  const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [filterAssigned, setFilterAssigned] = useState<string>("all");
+  const [filterMaterial, setFilterMaterial] = useState<string>("all");
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
+  const [entrepreneursList, setEntrepreneursList] = useState<{ user_id: string; email: string }[]>([]);
+  const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
   const overdueNotifiedRef = useRef(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { statuses: leadStatuses } = useLeadStatuses();
@@ -142,6 +150,39 @@ const Admin = () => {
     }
     fetchSubmissions();
   }, [authReady, user, navigate]);
+
+  // Load entrepreneur list once for filters + dispatch panel
+  useEffect(() => {
+    if (!isAdmin) return;
+    supabase.rpc("list_users_with_roles").then(({ data }) => {
+      const list = ((data as any) || [])
+        .filter((u: any) => (u.roles || []).includes("entrepreneur"))
+        .map((u: any) => ({ user_id: u.user_id, email: u.email }));
+      setEntrepreneursList(list);
+    });
+  }, [isAdmin]);
+
+  // Realtime: reflect submission changes made by other admins immediately
+  useEffect(() => {
+    if (!isAdmin) return;
+    const channel = supabase
+      .channel("admin-submissions-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "submissions" },
+        (payload: any) => {
+          if (payload.eventType === "INSERT" && payload.new) {
+            setSubmissions((prev) => (prev.find((s) => s.id === payload.new.id) ? prev : [payload.new as any, ...prev]));
+          } else if (payload.eventType === "UPDATE" && payload.new) {
+            setSubmissions((prev) => prev.map((s) => (s.id === payload.new.id ? { ...s, ...payload.new } : s)));
+          } else if (payload.eventType === "DELETE" && payload.old) {
+            setSubmissions((prev) => prev.filter((s) => s.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [isAdmin]);
 
   // Check overdue invoices on admin load and notify
   useEffect(() => {
@@ -447,6 +488,18 @@ const Admin = () => {
       if (filterStatus !== "all" && s.status !== filterStatus) return false;
       if (filterType !== "all" && s.request_type !== filterType) return false;
       if (filterSource !== "all" && (s.lead_source || "") !== filterSource) return false;
+      if (filterPriority !== "all" && (s.priority || "normal") !== filterPriority) return false;
+      if (filterAssigned !== "all") {
+        if (filterAssigned === "none") { if (s.assigned_entrepreneur) return false; }
+        else if (s.assigned_entrepreneur !== filterAssigned) return false;
+      }
+      if (filterMaterial !== "all" && !(s.materials || []).includes(filterMaterial)) return false;
+      if (filterDateFrom) {
+        if (new Date(s.created_at) < new Date(filterDateFrom + "T00:00:00")) return false;
+      }
+      if (filterDateTo) {
+        if (new Date(s.created_at) > new Date(filterDateTo + "T23:59:59")) return false;
+      }
       if (filterTrips !== "all") {
         const trips = parseEstimatedTrips(s.quantity);
         if (trips == null) return false;
@@ -496,7 +549,7 @@ const Admin = () => {
       });
     }
     return sorted;
-  }, [submissions, filterStatus, filterType, filterSource, searchQuery, filterTrips, sortTrips]);
+  }, [submissions, filterStatus, filterType, filterSource, searchQuery, filterTrips, sortTrips, filterPriority, filterAssigned, filterMaterial, filterDateFrom, filterDateTo]);
 
   if (!authReady || !user || roleLoading) {
     return <FullPageState title="Connexion en cours" message="Votre session est en vérification, la page va s’ouvrir automatiquement." />;
@@ -715,6 +768,27 @@ const Admin = () => {
             <option value="trips-desc">Plus grand nombre de voyages</option>
             <option value="trips-asc">Plus petit nombre de voyages</option>
           </select>
+          <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+            <option value="all">Toutes priorités</option>
+            {LEAD_PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+          </select>
+          <select value={filterMaterial} onChange={(e) => setFilterMaterial(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+            <option value="all">Tous matériaux</option>
+            {MATERIAL_TYPES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+          </select>
+          <select value={filterAssigned} onChange={(e) => setFilterAssigned(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+            <option value="all">Tous entrepreneurs</option>
+            <option value="none">— Non assigné —</option>
+            {entrepreneursList.map((e) => <option key={e.user_id} value={e.user_id}>{e.email}</option>)}
+          </select>
+          <label className="flex items-center gap-1 text-xs text-muted-foreground">
+            Du
+            <input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="px-2 py-1 text-xs rounded-lg border border-border bg-card font-body" />
+          </label>
+          <label className="flex items-center gap-1 text-xs text-muted-foreground">
+            Au
+            <input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="px-2 py-1 text-xs rounded-lg border border-border bg-card font-body" />
+          </label>
         </div>
 
         {loading ? (
@@ -740,6 +814,12 @@ const Admin = () => {
             <AdminMap
               submissions={filtered as any}
               showInactive={showArchivedOnMap}
+              onSelect={(s) => setSelectedMapId(s.id)}
+              selectedId={selectedMapId}
+              statusColor={(v) => {
+                const s = leadStatuses.find((x) => x.value === (v || ""));
+                return s?.color || null;
+              }}
               onMove={async (id, lat, lon) => {
                 const { error } = await supabase
                   .from("submissions")
@@ -790,6 +870,24 @@ const Admin = () => {
         onClose={() => setShowNewLead(false)}
         onCreated={() => { fetchSubmissions(); }}
       />
+
+      {/* Dispatch panel — appears when a marker is clicked on the admin map */}
+      {view === "map" && selectedMapId && (() => {
+        const sub = submissions.find((s) => s.id === selectedMapId);
+        if (!sub) return null;
+        return (
+          <DispatchPanel
+            sub={sub as any}
+            list={filtered as any}
+            entrepreneurs={entrepreneursList}
+            leadStatuses={leadStatuses}
+            onClose={() => setSelectedMapId(null)}
+            onSelect={(id) => setSelectedMapId(id)}
+            onUpdate={(patch) => updateField(sub.id, patch as any)}
+            onOpenFullEdit={(id) => { setView("list"); setExpanded(id); setSelectedMapId(null); }}
+          />
+        );
+      })()}
 
       {/* Mobile FAB */}
       <button
