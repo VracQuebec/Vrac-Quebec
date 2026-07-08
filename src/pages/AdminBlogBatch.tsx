@@ -197,6 +197,8 @@ export default function AdminBlogBatch() {
           continue;
         }
 
+        // Refresh session before each call — batches run 1-2h and JWTs expire mid-run
+        await supabase.auth.getSession();
         const { data, error } = await supabase.functions.invoke("blog-ai-generate", {
           body: { keyword: kw, category: cat?.name || "", existing_posts: linkCandidates },
         });

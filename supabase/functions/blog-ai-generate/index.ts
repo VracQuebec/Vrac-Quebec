@@ -95,7 +95,7 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
         "Lovable-API-Key": apiKey,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: system },
           { role: "user", content: user },
