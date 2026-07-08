@@ -112,12 +112,20 @@ export default function AdminBlog() {
             </Link>
             <h1 className="font-display font-extrabold text-lg text-foreground">Blogue — CMS</h1>
           </div>
-          <Link
-            to="/admin/blogue/editer/nouveau"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm shadow hover:opacity-90"
-          >
-            <Plus className="w-4 h-4" /> Nouvel article
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              to="/admin/blogue/idees"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary text-secondary-foreground font-display font-bold text-sm shadow hover:opacity-90"
+            >
+              Plan éditorial
+            </Link>
+            <Link
+              to="/admin/blogue/editer/nouveau"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm shadow hover:opacity-90"
+            >
+              <Plus className="w-4 h-4" /> Nouvel article
+            </Link>
+          </div>
         </div>
       </header>
 
