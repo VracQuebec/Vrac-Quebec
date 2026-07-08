@@ -120,6 +120,12 @@ export default function AdminBlog() {
               Plan éditorial
             </Link>
             <Link
+              to="/admin/blogue/generer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-foreground text-background font-display font-bold text-sm shadow hover:opacity-90"
+            >
+              Génération IA
+            </Link>
+            <Link
               to="/admin/blogue/editer/nouveau"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm shadow hover:opacity-90"
             >
