@@ -108,7 +108,7 @@ export default function AdminBlogIdeas() {
       .maybeSingle();
     const { data, error } = await supabase
       .from("blog_posts")
-      .insert({
+      .insert([{
         title: idea.title,
         excerpt: idea.description,
         content: `<p>${idea.description}</p>`,
@@ -116,7 +116,7 @@ export default function AdminBlogIdeas() {
         category_id: cat?.id ?? null,
         meta_title: idea.title,
         meta_description: idea.description.slice(0, 155),
-      })
+      }])
       .select("id")
       .single();
     if (error) return toast.error(error.message);
