@@ -352,6 +352,14 @@ export default function AdminBlogEditor() {
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Enregistrer
             </button>
+            <button
+              onClick={publishNow}
+              disabled={saving || publishing}
+              title="Enregistrer et publier immédiatement"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-600 text-white font-display font-bold text-sm shadow hover:bg-green-700 disabled:opacity-50"
+            >
+              {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />} Publier
+            </button>
           </div>
         </div>
         <div className="container mx-auto px-4 sm:px-6 pb-2 flex gap-1 overflow-x-auto">
@@ -486,6 +494,28 @@ export default function AdminBlogEditor() {
                 placeholder="Texte alternatif (accessibilité + SEO)"
                 className="mt-2 w-full px-3 py-2 rounded-lg border border-border bg-card font-body text-sm"
               />
+              <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Wand2 className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-[11px] uppercase tracking-wider font-display font-bold text-foreground">Générer avec l'IA</span>
+                </div>
+                <textarea
+                  value={coverPrompt}
+                  onChange={(e) => setCoverPrompt(e.target.value)}
+                  rows={2}
+                  placeholder="Description de l'image (auto-remplie après génération IA de l'article)…"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-card font-body text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={generateCoverImage}
+                  disabled={coverGenLoading}
+                  className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-xs shadow hover:opacity-90 disabled:opacity-50"
+                >
+                  {coverGenLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                  Générer l'image
+                </button>
+              </div>
             </Field>
 
             <Field label={`Contenu (HTML) — ${readingMinutes} min de lecture`}>
