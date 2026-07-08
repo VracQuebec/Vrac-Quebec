@@ -8,8 +8,10 @@ import BlogFooterCTA from "@/components/blog/BlogFooterCTA";
 import Breadcrumbs from "@/components/blog/Breadcrumbs";
 import ShareButtons from "@/components/blog/ShareButtons";
 import PostCard from "@/components/blog/PostCard";
+import TableOfContents from "@/components/blog/TableOfContents";
 import { fetchPostBySlug, fetchRelatedPosts } from "@/lib/blog/queries";
-import { formatDateFr, sanitizeHtml, SITE_URL, absoluteUrl } from "@/lib/blog/utils";
+import { formatDateFr, sanitizeHtml, SITE_URL, absoluteUrl, processContentWithToc } from "@/lib/blog/utils";
+import { PackagePlus, Truck, Send } from "lucide-react";
 
 export default function BlogPost() {
   const { slug = "" } = useParams();
@@ -72,6 +74,7 @@ export default function BlogPost() {
   };
 
   const cleanContent = sanitizeHtml(post.content || "");
+  const { html: contentWithIds, toc } = processContentWithToc(cleanContent);
 
   return (
     <div className="min-h-screen bg-background">
@@ -159,35 +162,34 @@ export default function BlogPost() {
           />
         )}
 
+        <TableOfContents items={toc} />
+
         <div
           className="prose prose-lg max-w-none mt-8 font-body prose-headings:font-display prose-headings:text-foreground prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl"
-          dangerouslySetInnerHTML={{ __html: cleanContent }}
+          dangerouslySetInnerHTML={{ __html: contentWithIds }}
         />
 
         <div className="mt-10 pt-6 border-t border-border">
           <ShareButtons url={url} title={post.title} />
         </div>
 
-        {/* Sticky CTA inside article */}
-        <div className="mt-10 rounded-2xl bg-primary/10 border border-primary/30 p-6 text-center">
-          <h3 className="text-xl font-display font-extrabold text-foreground">
+        {/* Automatic end-of-article CTAs */}
+        <div className="mt-10 rounded-2xl bg-primary/10 border border-primary/30 p-6">
+          <h3 className="text-xl font-display font-extrabold text-foreground text-center">
             Un projet en tête?
           </h3>
-          <p className="mt-1 text-sm text-muted-foreground font-body">
-            Obtenez un prix rapide pour vos matériaux ou déposez votre remblai.
-          </p>
-          <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              to="/#questionnaire"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-bold shadow hover:opacity-90 transition"
-            >
-              Faire une demande de remblai
+          <div className="mt-5 grid sm:grid-cols-3 gap-3">
+            <Link to="/#questionnaire" className="flex flex-col items-center text-center gap-2 px-4 py-4 rounded-xl bg-primary text-primary-foreground font-display font-bold shadow hover:opacity-90 transition">
+              <PackagePlus className="w-5 h-5" />
+              <span className="text-sm">Faire une demande de remblai</span>
             </Link>
-            <Link
-              to="/#questionnaire"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg border-2 border-primary text-primary font-display font-bold hover:bg-primary/10 transition"
-            >
-              Déposer des matériaux
+            <Link to="/#questionnaire" className="flex flex-col items-center text-center gap-2 px-4 py-4 rounded-xl border-2 border-primary text-primary font-display font-bold hover:bg-primary/10 transition">
+              <Truck className="w-5 h-5" />
+              <span className="text-sm">Déposer des matériaux</span>
+            </Link>
+            <Link to="/#questionnaire" className="flex flex-col items-center text-center gap-2 px-4 py-4 rounded-xl border-2 border-border text-foreground font-display font-bold hover:bg-muted transition">
+              <Send className="w-5 h-5" />
+              <span className="text-sm">Demander une soumission de transport</span>
             </Link>
           </div>
         </div>
@@ -195,7 +197,7 @@ export default function BlogPost() {
 
       {related.length > 0 && (
         <section className="container mx-auto px-4 sm:px-6 py-10">
-          <h2 className="text-2xl font-display font-extrabold text-foreground mb-6">Articles reliés</h2>
+          <h2 className="text-2xl font-display font-extrabold text-foreground mb-6">Articles similaires</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {related.map((p) => (
               <PostCard key={p.id} post={p} />

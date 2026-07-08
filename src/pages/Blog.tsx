@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Calculator, BookOpen, HelpCircle, Sparkles, Flame, Clock as ClockIcon } from "lucide-react";
+import { Calculator, BookOpen, HelpCircle, Sparkles, Flame, Clock as ClockIcon, Star } from "lucide-react";
 import blogHero from "@/assets/blog-hero.jpg";
 import BlogNav from "@/components/blog/BlogNav";
 import BlogFooterCTA from "@/components/blog/BlogFooterCTA";
@@ -24,6 +24,10 @@ export default function Blog() {
   const { data: recent = [] } = useQuery({
     queryKey: ["blog-recent"],
     queryFn: () => fetchPublishedPosts({ limit: 9 }),
+  });
+  const { data: recommended = [] } = useQuery({
+    queryKey: ["blog-recommended"],
+    queryFn: () => fetchPublishedPosts({ featured: true, limit: 6 }),
   });
 
   const websiteLd = {
@@ -156,27 +160,40 @@ export default function Blog() {
         {/* Section entries: Calculators / Guides / FAQ shortcuts */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <ShortcutCard
-            to="/blog/categorie/calculs"
+            to="/blog/outils"
             icon={<Calculator className="w-5 h-5" />}
-            title="Calculateurs"
-            desc="Tonnage, verges cubes, voyages de camion. Estimez rapidement vos besoins."
+            title="Outils gratuits"
+            desc="Calculateurs : tonnage, verges cubes, volume, voyages de camion, coût de transport."
             color="#8B5CF6"
           />
           <ShortcutCard
-            to="/blog/categorie/guides"
+            to="/blog/guides"
             icon={<BookOpen className="w-5 h-5" />}
             title="Guides pratiques"
             desc="Étape par étape : préparer votre terrain, choisir le bon matériau, commander en vrac."
             color="#10B981"
           />
           <ShortcutCard
-            to="/blog/categorie/faq"
+            to="/blog/faq"
             icon={<HelpCircle className="w-5 h-5" />}
             title="Questions fréquentes"
             desc="Toutes vos réponses sur le remblai, la livraison et le transport en vrac au Québec."
             color="#EC4899"
           />
         </section>
+
+        {/* Recommandés */}
+        {recommended.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-5">
+              <Star className="w-5 h-5 text-primary" />
+              <h2 className="text-xl md:text-2xl font-display font-extrabold text-foreground">Articles recommandés</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recommended.map((p) => <PostCard key={p.id} post={p} />)}
+            </div>
+          </section>
+        )}
 
         <BlogFooterCTA />
       </main>

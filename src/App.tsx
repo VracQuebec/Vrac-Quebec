@@ -23,6 +23,10 @@ const BlogPost = lazy(() => import("./pages/BlogPost"));
 const BlogSearch = lazy(() => import("./pages/BlogSearch"));
 const AdminBlog = lazy(() => import("./pages/AdminBlog"));
 const AdminBlogEditor = lazy(() => import("./pages/AdminBlogEditor"));
+const BlogTools = lazy(() => import("./pages/BlogTools"));
+const BlogCalculator = lazy(() => import("./pages/BlogCalculator"));
+const BlogGuides = lazy(() => import("./pages/BlogGuides"));
+const BlogFaq = lazy(() => import("./pages/BlogFaq"));
 
 const queryClient = new QueryClient();
 
@@ -56,6 +60,10 @@ const App = () => (
             <Route path="/entrepreneur/inscription" element={<EntrepreneurSignup />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/recherche" element={<BlogSearch />} />
+            <Route path="/blog/outils" element={<BlogTools />} />
+            <Route path="/blog/outils/:tool" element={<BlogCalculator />} />
+            <Route path="/blog/guides" element={<BlogGuides />} />
+            <Route path="/blog/faq" element={<BlogFaq />} />
             <Route path="/blog/categorie/:slug" element={<BlogCategory />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/admin/blogue" element={<AdminBlog />} />
