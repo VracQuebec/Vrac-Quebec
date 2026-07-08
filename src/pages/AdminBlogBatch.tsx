@@ -8,109 +8,111 @@ import { ArrowLeft, Loader2, Play, Square, CheckCircle2, XCircle, Clock, Externa
 import type { BlogCategory } from "@/lib/blog/types";
 import { slugify } from "@/lib/blog/utils";
 
-// 100 sujets priorisés SEO Vrac Québec — ordre : intention commerciale → informationnelle → géographique / long-tail.
-const TOP_100_KEYWORDS = `Terre de remplissage gratuite Québec
-Remblai gratuit Québec
-Recevoir de la terre gratuitement Québec
-Déposer de la terre gratuitement Québec
-Où trouver du remblai au Québec
-Terre d'excavation Québec
-Dépôt de terre Québec
-Dépôt de sable Québec
-Dépôt de gravier Québec
-Matériel de remplissage gratuit Québec
-Transport de terre Québec
-Transport de sable Québec
-Transport de gravier Québec
-Transport en vrac Québec
-Livraison de remblai Montréal
-Livraison de terre Laval
-Livraison de sable Rive-Sud
-Livraison de gravier Rive-Nord
-Livraison de pierre concassée Québec
-Prix du remblai au Québec
-Prix d'une verge cube de terre au Québec
-Prix d'une tonne de gravier au Québec
-Coût du transport en vrac au Québec
-Devis transport en vrac Québec
-Camion 10 roues capacité
-Camion 12 roues capacité
-Camion benne 10 roues
-Camion benne 12 roues
-Combien de tonnes dans un 10 roues
-Combien de tonnes dans un 12 roues
-Combien de verges cubes dans un camion 10 roues
-Combien de tonnes dans une verge cube
-Poids d'une verge cube de terre
-Poids d'une verge cube de sable
-Poids d'une verge cube de gravier
-Poids d'une verge cube de pierre
-Calculateur de tonnage remblai
-Calculateur de verges cubes
-Calculateur de voyages de camion
-Comment calculer un remblai
-Comment remblayer un terrain
-Comment remblayer une fondation
-Comment remblayer une piscine
-Comment combler un fossé avec du remblai
-Comment niveler un terrain avec de la terre
-Comment choisir son remblai
-Densité de la terre de remplissage
-Différence entre terre végétale et terre de remplissage
-Différence entre terre noire et terre végétale
-Terre noire Québec
-Terre végétale Québec
-Terre à pelouse Québec
-Terre à jardin Québec
-Sable à compaction utilisation
-Sable à béton utilisation
-Sable tamisé Québec
-Pierre 0-3/4 utilisation
-Pierre nette 1/2 pouce utilisation
-Pierre concassée Québec
-Gravier concassé 0-3/4
-Gravier de rue MG-20
-Béton recyclé Québec
-Asphalte recyclé Québec
-Remblai pour piscine hors terre
-Terre pour piscine creusée
-Aménagement paysager terre végétale
-Paysagement au Québec
-Excavation résidentielle Québec
-Excavation pour fondation
-Excavation pour piscine
-Excavation pour drain français
-Terrassement Québec
-Contamination terre excavation
-Terre contaminée que faire
-Test de terre d'excavation
-Réglementation transport en vrac Québec
-Permis camionneur en vrac Québec
-Choisir un transporteur en vrac au Québec
-Camionneur en vrac Québec
-Devenir camionneur en vrac au Québec
-Assurance camion 10 roues Québec
-Remblai Montréal
-Remblai Laval
-Remblai Longueuil
-Remblai Rive-Sud Montréal
-Remblai Rive-Nord Montréal
-Remblai Terrebonne
-Remblai Boucherville
-Remblai Blainville
-Remblai Saint-Jérôme
-Remblai Repentigny
-Remblai Ville de Québec
-Remblai Lévis
-Remblai Sherbrooke
-Remblai Gatineau
-Remblai Trois-Rivières
-Dépôt terre excavation Laval
-Dépôt terre excavation Rive-Sud
-Dépôt gratuit terre excavation Québec
-Guide construction terrassement Québec
-Erreurs à éviter avec le remblai
-Vrac Québec entreprise de transport`;
+// 100 sujets locaux priorisés — région de Québec (Ville de Québec, Lévis, Portneuf, Lotbinière, Côte-de-Beaupré, Jacques-Cartier, Île d'Orléans).
+// Chaque ligne cible une requête locale distincte (topic × ville) pour éviter la cannibalisation SEO.
+const TOP_100_KEYWORDS = `Terre de remplissage gratuite Ville de Québec
+Remblai gratuit Lévis
+Dépôt de terre Beauport
+Dépôt de sable Charlesbourg
+Dépôt de gravier Sainte-Foy
+Transport en vrac L'Ancienne-Lorette
+Excavation résidentielle Saint-Augustin-de-Desmaures
+Calcul de tonnage remblai Wendake
+Calcul de verges cubes Val-Bélair
+Guide propriétaire remblai Lac-Beauport
+Terre de remplissage gratuite Boischatel
+Remblai gratuit L'Ange-Gardien
+Dépôt de terre Château-Richer
+Dépôt de sable Île d'Orléans
+Dépôt de gravier Stoneham-et-Tewkesbury
+Transport en vrac Shannon
+Excavation Pont-Rouge
+Calcul de tonnage remblai Donnacona
+Calcul de verges cubes Portneuf
+Guide propriétaire terrassement Saint-Apollinaire
+Terre de remplissage gratuite Laurier-Station
+Remblai gratuit Sainte-Croix
+Dépôt de terre Lotbinière
+Prix du remblai Ville de Québec
+Livraison de remblai Lévis
+Livraison de terre Beauport
+Livraison de sable Charlesbourg
+Livraison de gravier Sainte-Foy
+Livraison de pierre concassée L'Ancienne-Lorette
+Prix d'une verge cube de terre Lévis
+Prix d'une tonne de gravier Beauport
+Coût transport en vrac Charlesbourg
+Devis transport en vrac Sainte-Foy
+Camion 10 roues Ville de Québec
+Camion 12 roues Lévis
+Combien de tonnes dans un 10 roues à Québec
+Combien de verges cubes dans un 12 roues à Lévis
+Poids d'une verge cube de terre région de Québec
+Poids d'une verge cube de sable Beauport
+Poids d'une verge cube de gravier Charlesbourg
+Poids d'une verge cube de pierre Sainte-Foy
+Calculateur de tonnage remblai Ville de Québec
+Calculateur de verges cubes Lévis
+Calculateur de voyages de camion région de Québec
+Comment calculer un remblai à Beauport
+Comment remblayer un terrain à Charlesbourg
+Comment remblayer une fondation à Sainte-Foy
+Comment remblayer une piscine à L'Ancienne-Lorette
+Comment combler un fossé à Saint-Augustin-de-Desmaures
+Comment niveler un terrain à Wendake
+Comment choisir son remblai à Val-Bélair
+Terre noire Lac-Beauport
+Terre végétale Boischatel
+Terre à pelouse L'Ange-Gardien
+Terre à jardin Château-Richer
+Sable à compaction Île d'Orléans
+Sable à béton Stoneham-et-Tewkesbury
+Sable tamisé Shannon
+Pierre 0-3/4 Pont-Rouge
+Pierre nette 1/2 pouce Donnacona
+Pierre concassée Portneuf
+Gravier concassé 0-3/4 Saint-Apollinaire
+Gravier MG-20 Laurier-Station
+Béton recyclé Sainte-Croix
+Asphalte recyclé Lotbinière
+Remblai pour piscine hors terre Ville de Québec
+Terre pour piscine creusée Lévis
+Aménagement paysager Beauport
+Paysagement Charlesbourg
+Excavation pour fondation Sainte-Foy
+Excavation pour piscine L'Ancienne-Lorette
+Excavation pour drain français Saint-Augustin-de-Desmaures
+Terrassement Wendake
+Terre d'excavation Val-Bélair
+Test de terre d'excavation Lac-Beauport
+Terre contaminée que faire Ville de Québec
+Transporteur en vrac Ville de Québec
+Transporteur en vrac Lévis
+Camionneur en vrac Beauport
+Camionneur en vrac Charlesbourg
+Choisir un transporteur en vrac région de Québec
+Guide propriétaire — recevoir du remblai gratuit Ville de Québec
+Guide propriétaire — déposer de la terre gratuitement Lévis
+Guide propriétaire — calcul verges cubes région de Québec
+Guide propriétaire — remblai piscine Beauport
+Guide propriétaire — nivellement de terrain Charlesbourg
+Guide entrepreneur — dépôt terre d'excavation Sainte-Foy
+Guide entrepreneur — transport en vrac L'Ancienne-Lorette
+Guide municipal — dépôt matériaux Saint-Augustin-de-Desmaures
+Où déposer de la terre à Ville de Québec
+Où déposer du sable à Lévis
+Où déposer du gravier à Beauport
+Où trouver du remblai à Charlesbourg
+Où trouver de la terre gratuite à Sainte-Foy
+Où trouver du sable de remplissage à Wendake
+FAQ remblai Portneuf
+FAQ excavation Île d'Orléans
+Erreurs à éviter avec le remblai à Stoneham-et-Tewkesbury
+Dépôt de sable Pont-Rouge
+Dépôt de gravier Donnacona
+Transport en vrac Saint-Apollinaire
+Excavation Laurier-Station
+Vrac Québec — transport en vrac région de Québec`;
 
 // Ancien seed conservé pour rétro-compat (les 25 premiers)
 const SEED_KEYWORDS = TOP_100_KEYWORDS.split("\n").slice(0, 25).join("\n");
@@ -290,7 +292,7 @@ export default function AdminBlogBatch() {
         <div className="rounded-2xl border border-primary/40 bg-primary/5 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <ListChecks className="w-5 h-5 text-primary shrink-0 mt-0.5" />
           <div className="flex-1 text-sm font-body text-foreground">
-            <strong>Preset : 100 sujets prioritaires Vrac Québec</strong> — triés par intention SEO (commercial → informationnel → géographique), couvrant remblai, terre, sable, gravier, pierre, camions 10/12 roues, excavation, paysagement.
+            <strong>Preset : 100 sujets locaux région de Québec</strong> — chaque article cible une combinaison unique (sujet × ville) pour éviter la cannibalisation SEO. Couvre Québec, Lévis, Beauport, Charlesbourg, Sainte-Foy, Portneuf, Lotbinière, Île d'Orléans, Côte-de-Beaupré, Jacques-Cartier.
             <div className="text-xs text-muted-foreground mt-1">
               Durée estimée : 1 à 2 h. Publication auto activée. Laissez cet onglet ouvert pendant la génération — les articles sont publiés au fur et à mesure.
             </div>
