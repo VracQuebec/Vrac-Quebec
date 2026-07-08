@@ -13,7 +13,7 @@ import { formatDateFr } from "@/lib/blog/utils";
 type Status = "all" | "draft" | "published" | "scheduled" | "archived";
 
 export default function AdminBlog() {
-  const { authReady, user } = useAuthReady();
+  const { isReady: authReady, user } = useAuthReady();
   const { isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
   const navigate = useNavigate();
   const [posts, setPosts] = useState<BlogPostWithRelations[]>([]);
@@ -56,20 +56,22 @@ export default function AdminBlog() {
   }, [posts, q]);
 
   const duplicate = async (p: BlogPostWithRelations) => {
+    const payload = {
+      title: `${p.title} (copie)`,
+      slug: `${p.slug}-copie-${Math.random().toString(36).slice(2, 7)}`,
+      excerpt: p.excerpt,
+      content: p.content,
+      cover_image_url: p.cover_image_url,
+      cover_image_alt: p.cover_image_alt,
+      category_id: p.category_id,
+      author_id: p.author_id,
+      status: "draft" as const,
+      meta_title: p.meta_title,
+      meta_description: p.meta_description,
+    };
     const { data, error } = await supabase
       .from("blog_posts")
-      .insert({
-        title: `${p.title} (copie)`,
-        excerpt: p.excerpt,
-        content: p.content,
-        cover_image_url: p.cover_image_url,
-        cover_image_alt: p.cover_image_alt,
-        category_id: p.category_id,
-        author_id: p.author_id,
-        status: "draft",
-        meta_title: p.meta_title,
-        meta_description: p.meta_description,
-      })
+      .insert(payload)
       .select("id")
       .single();
     if (error) return toast.error(error.message);
