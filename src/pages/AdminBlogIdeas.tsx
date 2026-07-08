@@ -109,6 +109,7 @@ export default function AdminBlogIdeas() {
     const { data, error } = await supabase
       .from("blog_posts")
       .insert([{
+        slug: (idea.primary_keyword || idea.title).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"").slice(0,80) + "-" + Math.random().toString(36).slice(2,7),
         title: idea.title,
         excerpt: idea.description,
         content: `<p>${idea.description}</p>`,
