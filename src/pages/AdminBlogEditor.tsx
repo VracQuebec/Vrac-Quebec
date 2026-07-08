@@ -6,6 +6,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { toast } from "sonner";
 import {
   ArrowLeft, Save, Eye, Trash2, Image as ImageIcon, Loader2, ExternalLink, Copy as CopyIcon,
+  Sparkles,
 } from "lucide-react";
 import type { BlogAuthor, BlogCategory, BlogPost, BlogTag } from "@/lib/blog/types";
 import { estimateReadingTime, sanitizeHtml, slugify, SITE_URL } from "@/lib/blog/utils";
@@ -50,6 +51,8 @@ export default function AdminBlogEditor() {
   const [tags, setTags] = useState<string[]>([]); // tag ids
   const [newTag, setNewTag] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [aiKeyword, setAiKeyword] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     if (authReady && !user) navigate("/login");
@@ -107,6 +110,51 @@ export default function AdminBlogEditor() {
   }, [title, slugTouched]);
 
   const readingMinutes = useMemo(() => estimateReadingTime(content), [content]);
+
+  const generateWithAI = async () => {
+    const kw = aiKeyword.trim();
+    if (!kw) { toast.error("Entrez un mot-clé"); return; }
+    setAiLoading(true);
+    try {
+      const cat = categories.find((c) => c.id === categoryId);
+      const { data, error } = await supabase.functions.invoke("blog-ai-generate", {
+        body: { keyword: kw, category: cat?.name || "" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.title) { setTitle(data.title); }
+      if (data?.slug) { setSlug(data.slug); setSlugTouched(true); }
+      if (data?.excerpt) setExcerpt(data.excerpt);
+      if (data?.meta_title) setMetaTitle(data.meta_title);
+      if (data?.meta_description) setMetaDescription(data.meta_description);
+      if (data?.content_html) setContent(data.content_html);
+      // Create/attach suggested tags
+      const suggested: string[] = Array.isArray(data?.suggested_tags) ? data.suggested_tags : [];
+      if (suggested.length) {
+        const newTagIds: string[] = [];
+        for (const name of suggested) {
+          const clean = name.trim();
+          if (!clean) continue;
+          const existing = allTags.find((t) => t.name.toLowerCase() === clean.toLowerCase());
+          if (existing) {
+            if (!tags.includes(existing.id)) newTagIds.push(existing.id);
+          } else {
+            const { data: inserted } = await supabase.from("blog_tags").insert({ name: clean, slug: slugify(clean) }).select("*").single();
+            if (inserted) {
+              setAllTags((prev) => [...prev, inserted]);
+              newTagIds.push(inserted.id);
+            }
+          }
+        }
+        if (newTagIds.length) setTags((prev) => Array.from(new Set([...prev, ...newTagIds])));
+      }
+      toast.success("Brouillon généré par IA");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur IA");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const buildPayload = () => ({
     title: title.trim() || "Sans titre",
@@ -276,6 +324,35 @@ export default function AdminBlogEditor() {
       <div className="container mx-auto px-4 sm:px-6 py-6 max-w-5xl">
         {tab === "content" && (
           <div className="space-y-5">
+            {/* AI generator */}
+            <div className="rounded-2xl border border-primary/40 bg-primary/5 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-display font-extrabold uppercase tracking-wider text-foreground">Générer avec l'IA</h2>
+              </div>
+              <p className="text-xs text-muted-foreground font-body mb-3">
+                Entrez un mot-clé (ex : « livraison de remblai à Laval »). L'IA rédige un brouillon SEO complet — titre, extrait, contenu HTML, meta et étiquettes.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  value={aiKeyword}
+                  onChange={(e) => setAiKeyword(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !aiLoading) { e.preventDefault(); generateWithAI(); } }}
+                  placeholder="Mot-clé principal…"
+                  className="flex-1 px-3 py-2 rounded-lg border border-border bg-card font-body text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={generateWithAI}
+                  disabled={aiLoading}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm shadow hover:opacity-90 disabled:opacity-50"
+                >
+                  {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  Générer le brouillon
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-2">Le contenu généré remplace les champs actuels — sauvegardez avant si nécessaire.</p>
+            </div>
             <Field label="Titre">
               <input
                 value={title}
