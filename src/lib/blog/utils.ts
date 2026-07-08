@@ -66,6 +66,29 @@ export function processContentWithToc(html: string): { html: string; toc: TocEnt
   return { html: doc.body.innerHTML, toc };
 }
 
+/** Extract FAQ pairs (H3 question + following paragraphs) inside an H2 whose title matches FAQ/questions. */
+export function extractFaqFromHtml(html: string): Array<{ question: string; answer: string }> {
+  if (typeof window === "undefined" || !html) return [];
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const h2s = Array.from(doc.body.querySelectorAll("h2"));
+  const faqH2 = h2s.find((h) => /faq|questions? fr[ée]quentes?/i.test(h.textContent || ""));
+  if (!faqH2) return [];
+  const out: Array<{ question: string; answer: string }> = [];
+  let node: Element | null = faqH2.nextElementSibling;
+  let current: { question: string; answer: string } | null = null;
+  while (node && node.tagName !== "H2") {
+    if (node.tagName === "H3") {
+      if (current) out.push(current);
+      current = { question: (node.textContent || "").trim(), answer: "" };
+    } else if (current) {
+      current.answer += " " + (node.textContent || "").trim();
+    }
+    node = node.nextElementSibling;
+  }
+  if (current) out.push(current);
+  return out.map((f) => ({ question: f.question, answer: f.answer.trim() })).filter((f) => f.question && f.answer);
+}
+
 export const SITE_URL = "https://vracquebec.ca";
 
 export function absoluteUrl(path: string): string {
