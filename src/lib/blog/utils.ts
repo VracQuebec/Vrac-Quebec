@@ -63,6 +63,13 @@ export function processContentWithToc(html: string): { html: string; toc: TocEnt
     h.setAttribute("id", id);
     toc.push({ id, text, level: h.tagName === "H2" ? 2 : 3 });
   });
+  // Optimise les images inline du contenu : lazy loading + decoding async + title fallback
+  doc.body.querySelectorAll("img").forEach((img) => {
+    if (!img.getAttribute("loading")) img.setAttribute("loading", "lazy");
+    if (!img.getAttribute("decoding")) img.setAttribute("decoding", "async");
+    const alt = img.getAttribute("alt") || "";
+    if (alt && !img.getAttribute("title")) img.setAttribute("title", alt);
+  });
   return { html: doc.body.innerHTML, toc };
 }
 
