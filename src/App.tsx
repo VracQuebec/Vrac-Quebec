@@ -18,6 +18,11 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Blog = lazy(() => import("./pages/Blog"));
+const BlogCategory = lazy(() => import("./pages/BlogCategory"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
+const BlogSearch = lazy(() => import("./pages/BlogSearch"));
+const AdminBlog = lazy(() => import("./pages/AdminBlog"));
+const AdminBlogEditor = lazy(() => import("./pages/AdminBlogEditor"));
 
 const queryClient = new QueryClient();
 
@@ -50,6 +55,11 @@ const App = () => (
             <Route path="/entrepreneur" element={<Entrepreneur />} />
             <Route path="/entrepreneur/inscription" element={<EntrepreneurSignup />} />
             <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/recherche" element={<BlogSearch />} />
+            <Route path="/blog/categorie/:slug" element={<BlogCategory />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/admin/blogue" element={<AdminBlog />} />
+            <Route path="/admin/blogue/editer/:id" element={<AdminBlogEditor />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
