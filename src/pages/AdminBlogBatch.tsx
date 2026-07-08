@@ -292,7 +292,7 @@ export default function AdminBlogBatch() {
         <div className="rounded-2xl border border-primary/40 bg-primary/5 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <ListChecks className="w-5 h-5 text-primary shrink-0 mt-0.5" />
           <div className="flex-1 text-sm font-body text-foreground">
-            <strong>Preset : 100 sujets prioritaires Vrac Québec</strong> — triés par intention SEO (commercial → informationnel → géographique), couvrant remblai, terre, sable, gravier, pierre, camions 10/12 roues, excavation, paysagement.
+            <strong>Preset : 100 sujets locaux région de Québec</strong> — chaque article cible une combinaison unique (sujet × ville) pour éviter la cannibalisation SEO. Couvre Québec, Lévis, Beauport, Charlesbourg, Sainte-Foy, Portneuf, Lotbinière, Île d'Orléans, Côte-de-Beaupré, Jacques-Cartier.
             <div className="text-xs text-muted-foreground mt-1">
               Durée estimée : 1 à 2 h. Publication auto activée. Laissez cet onglet ouvert pendant la génération — les articles sont publiés au fur et à mesure.
             </div>
