@@ -30,6 +30,14 @@ async function build(): Promise<Entry[]> {
   const entries: Entry[] = [
     { path: "/", changefreq: "weekly", priority: "1.0" },
     { path: "/blog", changefreq: "daily", priority: "0.9" },
+    { path: "/blog/outils", changefreq: "monthly", priority: "0.8" },
+    { path: "/blog/outils/tonnage", changefreq: "monthly", priority: "0.7" },
+    { path: "/blog/outils/verges-cubes", changefreq: "monthly", priority: "0.7" },
+    { path: "/blog/outils/volume", changefreq: "monthly", priority: "0.7" },
+    { path: "/blog/outils/voyages-camion", changefreq: "monthly", priority: "0.7" },
+    { path: "/blog/outils/cout-transport", changefreq: "monthly", priority: "0.7" },
+    { path: "/blog/guides", changefreq: "weekly", priority: "0.8" },
+    { path: "/blog/faq", changefreq: "weekly", priority: "0.8" },
   ];
 
   try {
