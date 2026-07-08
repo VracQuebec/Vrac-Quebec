@@ -10,7 +10,7 @@ import ShareButtons from "@/components/blog/ShareButtons";
 import PostCard from "@/components/blog/PostCard";
 import TableOfContents from "@/components/blog/TableOfContents";
 import { fetchPostBySlug, fetchRelatedPosts } from "@/lib/blog/queries";
-import { formatDateFr, sanitizeHtml, SITE_URL, absoluteUrl, processContentWithToc } from "@/lib/blog/utils";
+import { formatDateFr, sanitizeHtml, SITE_URL, absoluteUrl, processContentWithToc, extractFaqFromHtml } from "@/lib/blog/utils";
 import { PackagePlus, Truck, Send } from "lucide-react";
 
 export default function BlogPost() {
@@ -75,6 +75,18 @@ export default function BlogPost() {
 
   const cleanContent = sanitizeHtml(post.content || "");
   const { html: contentWithIds, toc } = processContentWithToc(cleanContent);
+  const faqItems = extractFaqFromHtml(cleanContent);
+  const faqLd = faqItems.length
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faqItems.map((f) => ({
+          "@type": "Question",
+          name: f.question,
+          acceptedAnswer: { "@type": "Answer", text: f.answer },
+        })),
+      }
+    : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -92,6 +104,7 @@ export default function BlogPost() {
         {post.updated_at && <meta property="article:modified_time" content={post.updated_at} />}
         {cat && <meta property="article:section" content={cat.name} />}
         <script type="application/ld+json">{JSON.stringify(articleLd)}</script>
+        {faqLd && <script type="application/ld+json">{JSON.stringify(faqLd)}</script>}
       </Helmet>
       <BlogNav />
 
