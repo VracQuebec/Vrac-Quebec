@@ -43,6 +43,29 @@ export function estimateReadingTime(text: string): number {
   return Math.max(1, Math.round(words / 200));
 }
 
+export type TocEntry = { id: string; text: string; level: 2 | 3 };
+
+/** Injects id attributes on h2/h3 in the HTML and returns the TOC entries. */
+export function processContentWithToc(html: string): { html: string; toc: TocEntry[] } {
+  if (typeof window === "undefined" || !html) return { html, toc: [] };
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const headings = doc.body.querySelectorAll("h2, h3");
+  const toc: TocEntry[] = [];
+  const used = new Set<string>();
+  headings.forEach((h) => {
+    const text = (h.textContent || "").trim();
+    if (!text) return;
+    let base = slugify(text) || "section";
+    let id = base;
+    let i = 2;
+    while (used.has(id)) { id = `${base}-${i++}`; }
+    used.add(id);
+    h.setAttribute("id", id);
+    toc.push({ id, text, level: h.tagName === "H2" ? 2 : 3 });
+  });
+  return { html: doc.body.innerHTML, toc };
+}
+
 export const SITE_URL = "https://vracquebec.ca";
 
 export function absoluteUrl(path: string): string {

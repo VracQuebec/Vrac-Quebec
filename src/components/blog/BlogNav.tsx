@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Truck, HardHat } from "lucide-react";
+import { Truck, HardHat, Calculator, BookOpen, HelpCircle } from "lucide-react";
 
 export default function BlogNav() {
   return (
@@ -14,6 +14,12 @@ export default function BlogNav() {
             Centre de connaissances
           </span>
         </Link>
+        <div className="hidden lg:flex items-center gap-1 text-xs">
+          <Link to="/blog" className="px-3 py-1.5 rounded-full text-background/80 hover:text-background hover:bg-background/10 font-display font-semibold">Accueil</Link>
+          <Link to="/blog/outils" className="px-3 py-1.5 rounded-full text-background/80 hover:text-background hover:bg-background/10 font-display font-semibold inline-flex items-center gap-1"><Calculator className="w-3 h-3" /> Outils</Link>
+          <Link to="/blog/guides" className="px-3 py-1.5 rounded-full text-background/80 hover:text-background hover:bg-background/10 font-display font-semibold inline-flex items-center gap-1"><BookOpen className="w-3 h-3" /> Guides</Link>
+          <Link to="/blog/faq" className="px-3 py-1.5 rounded-full text-background/80 hover:text-background hover:bg-background/10 font-display font-semibold inline-flex items-center gap-1"><HelpCircle className="w-3 h-3" /> FAQ</Link>
+        </div>
         <div className="flex items-center gap-2">
           <Link
             to="/#questionnaire"
