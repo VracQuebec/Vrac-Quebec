@@ -11,6 +11,46 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://vracquebec.ca/blog/outils</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/blog/outils/tonnage</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/blog/outils/verges-cubes</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/blog/outils/volume</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/blog/outils/voyages-camion</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/blog/outils/cout-transport</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/blog/guides</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/blog/faq</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://vracquebec.ca/blog/categorie/remblai</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>

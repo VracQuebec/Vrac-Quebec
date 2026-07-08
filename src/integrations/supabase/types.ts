@@ -106,6 +106,71 @@ export type Database = {
           },
         ]
       }
+      blog_post_ideas: {
+        Row: {
+          category: string
+          created_at: string
+          created_post_id: string | null
+          description: string
+          id: string
+          monthly_searches: number | null
+          notes: string | null
+          planned_publish_date: string | null
+          primary_keyword: string
+          priority: number
+          search_intent: string
+          secondary_keywords: string[]
+          seo_difficulty: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_post_id?: string | null
+          description: string
+          id?: string
+          monthly_searches?: number | null
+          notes?: string | null
+          planned_publish_date?: string | null
+          primary_keyword: string
+          priority?: number
+          search_intent: string
+          secondary_keywords?: string[]
+          seo_difficulty: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_post_id?: string | null
+          description?: string
+          id?: string
+          monthly_searches?: number | null
+          notes?: string | null
+          planned_publish_date?: string | null
+          primary_keyword?: string
+          priority?: number
+          search_intent?: string
+          secondary_keywords?: string[]
+          seo_difficulty?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_post_ideas_created_post_id_fkey"
+            columns: ["created_post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_post_related: {
         Row: {
           post_id: string
