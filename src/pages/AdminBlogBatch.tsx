@@ -4,35 +4,116 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Play, Square, CheckCircle2, XCircle, Clock, ExternalLink, Rocket } from "lucide-react";
+import { ArrowLeft, Loader2, Play, Square, CheckCircle2, XCircle, Clock, ExternalLink, Rocket, ListChecks } from "lucide-react";
 import type { BlogCategory } from "@/lib/blog/types";
 import { slugify } from "@/lib/blog/utils";
 
-const SEED_KEYWORDS = `Terre de remplissage Québec
+// 100 sujets priorisés SEO Vrac Québec — ordre : intention commerciale → informationnelle → géographique / long-tail.
+const TOP_100_KEYWORDS = `Terre de remplissage gratuite Québec
 Remblai gratuit Québec
-Où trouver du remblai
-Déposer de la terre
-Recevoir de la terre gratuitement
-Comment remblayer un terrain
-Combien de tonnes dans une verge cube
-Calculateur de tonnage
-Calculateur de verges cubes
-Transport de terre
-Transport de sable
-Transport de gravier
+Recevoir de la terre gratuitement Québec
+Déposer de la terre gratuitement Québec
+Où trouver du remblai au Québec
+Terre d'excavation Québec
+Dépôt de terre Québec
+Dépôt de sable Québec
+Dépôt de gravier Québec
+Matériel de remplissage gratuit Québec
+Transport de terre Québec
+Transport de sable Québec
+Transport de gravier Québec
+Transport en vrac Québec
+Livraison de remblai Montréal
+Livraison de terre Laval
+Livraison de sable Rive-Sud
+Livraison de gravier Rive-Nord
+Livraison de pierre concassée Québec
+Prix du remblai au Québec
+Prix d'une verge cube de terre au Québec
+Prix d'une tonne de gravier au Québec
+Coût du transport en vrac au Québec
+Devis transport en vrac Québec
 Camion 10 roues capacité
 Camion 12 roues capacité
-Terre noire
-Terre végétale
-Terre d'excavation
-Sable à compaction
-Pierre 0-3/4
-Pierre nette
-Gravier
-Béton recyclé
-Asphalte recyclé
+Camion benne 10 roues
+Camion benne 12 roues
+Combien de tonnes dans un 10 roues
+Combien de tonnes dans un 12 roues
+Combien de verges cubes dans un camion 10 roues
+Combien de tonnes dans une verge cube
+Poids d'une verge cube de terre
+Poids d'une verge cube de sable
+Poids d'une verge cube de gravier
+Poids d'une verge cube de pierre
+Calculateur de tonnage remblai
+Calculateur de verges cubes
+Calculateur de voyages de camion
 Comment calculer un remblai
-Différence entre terre végétale et terre de remplissage`;
+Comment remblayer un terrain
+Comment remblayer une fondation
+Comment remblayer une piscine
+Comment combler un fossé avec du remblai
+Comment niveler un terrain avec de la terre
+Comment choisir son remblai
+Densité de la terre de remplissage
+Différence entre terre végétale et terre de remplissage
+Différence entre terre noire et terre végétale
+Terre noire Québec
+Terre végétale Québec
+Terre à pelouse Québec
+Terre à jardin Québec
+Sable à compaction utilisation
+Sable à béton utilisation
+Sable tamisé Québec
+Pierre 0-3/4 utilisation
+Pierre nette 1/2 pouce utilisation
+Pierre concassée Québec
+Gravier concassé 0-3/4
+Gravier de rue MG-20
+Béton recyclé Québec
+Asphalte recyclé Québec
+Remblai pour piscine hors terre
+Terre pour piscine creusée
+Aménagement paysager terre végétale
+Paysagement au Québec
+Excavation résidentielle Québec
+Excavation pour fondation
+Excavation pour piscine
+Excavation pour drain français
+Terrassement Québec
+Contamination terre excavation
+Terre contaminée que faire
+Test de terre d'excavation
+Réglementation transport en vrac Québec
+Permis camionneur en vrac Québec
+Choisir un transporteur en vrac au Québec
+Camionneur en vrac Québec
+Devenir camionneur en vrac au Québec
+Assurance camion 10 roues Québec
+Remblai Montréal
+Remblai Laval
+Remblai Longueuil
+Remblai Rive-Sud Montréal
+Remblai Rive-Nord Montréal
+Remblai Terrebonne
+Remblai Boucherville
+Remblai Blainville
+Remblai Saint-Jérôme
+Remblai Repentigny
+Remblai Ville de Québec
+Remblai Lévis
+Remblai Sherbrooke
+Remblai Gatineau
+Remblai Trois-Rivières
+Dépôt terre excavation Laval
+Dépôt terre excavation Rive-Sud
+Dépôt gratuit terre excavation Québec
+Guide construction terrassement Québec
+Erreurs à éviter avec le remblai
+Vrac Québec entreprise de transport`;
+
+// Ancien seed conservé pour rétro-compat (les 25 premiers)
+const SEED_KEYWORDS = TOP_100_KEYWORDS.split("\n").slice(0, 25).join("\n");
 
 type JobStatus = "pending" | "running" | "done" | "error" | "skipped";
 type Job = {
@@ -51,7 +132,7 @@ export default function AdminBlogBatch() {
   const [raw, setRaw] = useState(SEED_KEYWORDS);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [categoryId, setCategoryId] = useState<string>("");
-  const [autoPublish, setAutoPublish] = useState(false);
+  const [autoPublish, setAutoPublish] = useState(true);
   const [delayMs, setDelayMs] = useState(1500);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [running, setRunning] = useState(false);
