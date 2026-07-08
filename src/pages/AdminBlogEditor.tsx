@@ -6,7 +6,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { toast } from "sonner";
 import {
   ArrowLeft, Save, Eye, Trash2, Image as ImageIcon, Loader2, ExternalLink, Copy as CopyIcon,
-  Sparkles,
+  Sparkles, Rocket, Wand2,
 } from "lucide-react";
 import type { BlogAuthor, BlogCategory, BlogPost, BlogTag } from "@/lib/blog/types";
 import { estimateReadingTime, sanitizeHtml, slugify, SITE_URL } from "@/lib/blog/utils";
@@ -53,6 +53,9 @@ export default function AdminBlogEditor() {
   const [uploading, setUploading] = useState(false);
   const [aiKeyword, setAiKeyword] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [coverPrompt, setCoverPrompt] = useState("");
+  const [coverGenLoading, setCoverGenLoading] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     if (authReady && !user) navigate("/login");
@@ -117,8 +120,19 @@ export default function AdminBlogEditor() {
     setAiLoading(true);
     try {
       const cat = categories.find((c) => c.id === categoryId);
+      // Fetch a small set of published/existing posts to feed as internal-link candidates
+      const { data: existing } = await supabase
+        .from("blog_posts")
+        .select("title, slug, blog_categories:category_id (name)")
+        .in("status", ["published", "scheduled", "draft"])
+        .limit(40);
+      const existing_posts = (existing ?? []).map((p: { title: string; slug: string; blog_categories: { name: string } | null }) => ({
+        title: p.title,
+        slug: p.slug,
+        category: p.blog_categories?.name,
+      }));
       const { data, error } = await supabase.functions.invoke("blog-ai-generate", {
-        body: { keyword: kw, category: cat?.name || "" },
+        body: { keyword: kw, category: cat?.name || "", existing_posts },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -128,6 +142,7 @@ export default function AdminBlogEditor() {
       if (data?.meta_title) setMetaTitle(data.meta_title);
       if (data?.meta_description) setMetaDescription(data.meta_description);
       if (data?.content_html) setContent(data.content_html);
+      if (data?.cover_image_prompt) setCoverPrompt(data.cover_image_prompt);
       // Create/attach suggested tags
       const suggested: string[] = Array.isArray(data?.suggested_tags) ? data.suggested_tags : [];
       if (suggested.length) {
@@ -154,6 +169,39 @@ export default function AdminBlogEditor() {
     } finally {
       setAiLoading(false);
     }
+  };
+
+  const generateCoverImage = async () => {
+    const p = coverPrompt.trim();
+    if (!p) { toast.error("Aucune suggestion d'image — générez d'abord un article ou saisissez une description."); return; }
+    setCoverGenLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("blog-ai-cover", { body: { prompt: p } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.url) {
+        setCoverUrl(data.url);
+        if (!coverAlt && title) setCoverAlt(title);
+        toast.success("Image de couverture générée");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur image IA");
+    } finally {
+      setCoverGenLoading(false);
+    }
+  };
+
+  const publishNow = async () => {
+    if (!title.trim()) { toast.error("Le titre est requis"); return; }
+    if (!content.trim()) { toast.error("Contenu vide — générez ou rédigez l'article d'abord."); return; }
+    setPublishing(true);
+    setStatus("published");
+    // Give React a tick to apply status before save reads it — save uses buildPayload which reads state
+    setTimeout(async () => {
+      await save();
+      setPublishing(false);
+      toast.success("Article publié 🎉");
+    }, 50);
   };
 
   const buildPayload = () => ({
@@ -304,6 +352,14 @@ export default function AdminBlogEditor() {
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Enregistrer
             </button>
+            <button
+              onClick={publishNow}
+              disabled={saving || publishing}
+              title="Enregistrer et publier immédiatement"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-600 text-white font-display font-bold text-sm shadow hover:bg-green-700 disabled:opacity-50"
+            >
+              {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />} Publier
+            </button>
           </div>
         </div>
         <div className="container mx-auto px-4 sm:px-6 pb-2 flex gap-1 overflow-x-auto">
@@ -351,7 +407,7 @@ export default function AdminBlogEditor() {
                   Générer le brouillon
                 </button>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-2">Le contenu généré remplace les champs actuels — sauvegardez avant si nécessaire.</p>
+              <p className="text-[11px] text-muted-foreground mt-2">Génère titre SEO, méta, URL, article 1500-2500 mots, FAQ, liens internes, CTA et suggestion d'image. Remplace les champs actuels.</p>
             </div>
             <Field label="Titre">
               <input
@@ -438,6 +494,28 @@ export default function AdminBlogEditor() {
                 placeholder="Texte alternatif (accessibilité + SEO)"
                 className="mt-2 w-full px-3 py-2 rounded-lg border border-border bg-card font-body text-sm"
               />
+              <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Wand2 className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-[11px] uppercase tracking-wider font-display font-bold text-foreground">Générer avec l'IA</span>
+                </div>
+                <textarea
+                  value={coverPrompt}
+                  onChange={(e) => setCoverPrompt(e.target.value)}
+                  rows={2}
+                  placeholder="Description de l'image (auto-remplie après génération IA de l'article)…"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-card font-body text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={generateCoverImage}
+                  disabled={coverGenLoading}
+                  className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-xs shadow hover:opacity-90 disabled:opacity-50"
+                >
+                  {coverGenLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                  Générer l'image
+                </button>
+              </div>
             </Field>
 
             <Field label={`Contenu (HTML) — ${readingMinutes} min de lecture`}>
