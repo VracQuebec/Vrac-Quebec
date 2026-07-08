@@ -287,6 +287,24 @@ export default function AdminBlogBatch() {
       </header>
 
       <div className="container mx-auto px-4 sm:px-6 py-6 max-w-5xl space-y-6">
+        <div className="rounded-2xl border border-primary/40 bg-primary/5 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <ListChecks className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+          <div className="flex-1 text-sm font-body text-foreground">
+            <strong>Preset : 100 sujets prioritaires Vrac Québec</strong> — triés par intention SEO (commercial → informationnel → géographique), couvrant remblai, terre, sable, gravier, pierre, camions 10/12 roues, excavation, paysagement.
+            <div className="text-xs text-muted-foreground mt-1">
+              Durée estimée : 1 à 2 h. Publication auto activée. Laissez cet onglet ouvert pendant la génération — les articles sont publiés au fur et à mesure.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setRaw(TOP_100_KEYWORDS); setAutoPublish(true); toast.success("100 sujets chargés"); }}
+            disabled={running}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm shadow hover:opacity-90 disabled:opacity-50"
+          >
+            <ListChecks className="w-4 h-4" /> Charger les 100 sujets
+          </button>
+        </div>
+
         <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
           <div>
             <label className="block text-xs uppercase tracking-wider font-display font-bold text-muted-foreground mb-2">
