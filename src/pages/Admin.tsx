@@ -26,7 +26,7 @@ import ExcelImportModal from "@/components/ExcelImportModal";
 import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
-import { Search, CalendarDays, Menu } from "lucide-react";
+import { Search, CalendarDays, Menu, BookOpen as BookOpenIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import TransportBanner from "@/components/TransportBanner";
 
@@ -581,6 +581,9 @@ const Admin = () => {
             <Link to="/admin/calendrier" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <CalendarDays className="w-4 h-4" /> Calendrier
             </Link>
+            <Link to="/admin/blogue" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
+              <BookOpenIcon className="w-4 h-4" /> Blogue
+            </Link>
             <button onClick={() => setShowUsers(true)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <Users className="w-4 h-4" /> Entrepreneurs
             </button>
@@ -614,6 +617,9 @@ const Admin = () => {
                 </button>
                 <Link to="/admin/calendrier" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
                   <CalendarDays className="w-4 h-4" /> Calendrier
+                </Link>
+                <Link to="/admin/blogue" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
+                  <BookOpenIcon className="w-4 h-4" /> Blogue
                 </Link>
                 <Link to="/admin/donnees" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
                   <DatabaseIcon className="w-4 h-4" /> Données

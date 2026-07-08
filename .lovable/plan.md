@@ -1,100 +1,115 @@
-## Calendrier Opérationnel Avancé — Plan d'implémentation
 
-Un nouveau module CRM complet pour devenir le centre de répartition de Vrac Québec / Transport JSC.
+# Centre de connaissances Vrac Québec — Blogue CMS professionnel
 
----
+Transformer `/blog` (actuellement un embed Soro) en un vrai CMS maison hébergé sur Lovable Cloud, prêt à accueillir 1 000+ articles, entièrement optimisé SEO.
 
-### 1. Base de données (3 nouvelles tables)
+## 1. Base de données (Lovable Cloud)
 
-**`trucks`** — Flotte de véhicules
-- `name` (ex. "10 roues #1"), `type` (enum: 6_roues, 10_roues, 12_roues, semi_remorque, fardier, autre), `plate`, `active`
+Nouvelles tables `public.*` avec RLS + GRANT :
 
-**`drivers`** — Registre des chauffeurs
-- `name`, `phone`, `email`, `status` (disponible/occupé/inactif), `notes`
+- **`blog_categories`** — id, slug (unique), name, description, sort_order, parent_id (sous-catégories), icon, color. Pré-remplie avec les 14 catégories : Remblai, Terre, Sable, Gravier, Pierre, Excavation, Transport en vrac, Entrepreneurs, Propriétaires, Guides, Calculs, FAQ, Actualités, Réglementation.
+- **`blog_authors`** — id, user_id (FK auth), name, slug, bio, avatar_url, title.
+- **`blog_posts`** — id, slug (unique), title, excerpt, content (HTML/markdown), cover_image_url, gallery (jsonb array), category_id, author_id, status (`draft` | `published` | `scheduled` | `archived`), published_at, scheduled_at, meta_title, meta_description, og_image_url, canonical_url, reading_time_minutes, view_count, is_featured, is_popular, created_at, updated_at.
+- **`blog_post_tags`** + **`blog_tags`** — étiquettes many-to-many.
+- **`blog_post_related`** — table de jointure pour articles reliés manuels (fallback : reliés automatiques par catégorie/tags).
+- **`blog_post_views`** — log léger pour compter les vues (agrégé dans `view_count`).
 
-**`calendar_events`** — Événements planifiés
-- `title`, `start_at`, `end_at`, `status` (a_planifier/planifie/en_cours/termine/reporte/annule)
-- Chantier : `dompe_number`, `dompe_address`, `loading_address`, `delivery_address`, `material_type`
-- Transport : `trips_planned`, `tonnage_estimated`, `quantity_estimated`
-- Liens : `entrepreneur_id` → entrepreneurs, `driver_id` → drivers, `truck_id` → trucks, `submission_id` → submissions (nullable, pour l'import depuis CRM)
-- Notes : `admin_notes`, `special_instructions`
+Policies : lecture publique (`anon` + `authenticated`) uniquement sur `status='published' AND published_at <= now()`. Écriture réservée aux admins via `has_role(auth.uid(), 'admin')`.
 
-RLS : lecture/écriture admin uniquement (via `has_role('admin')`). GRANTs appropriés.
+Nouveau bucket Storage `blog-media` (public) pour couvertures et galeries, avec optimisation via URL params.
 
----
+## 2. Frontend public
 
-### 2. Nouvelle page `/admin/calendar`
+### `/blog` — page d'accueil du Centre de connaissances
+- Grande bannière hero « Centre de connaissances Vrac Québec » avec CTA vert « Faire une demande de remblai » et CTA secondaire « Déposer des matériaux ».
+- **Barre de recherche** proéminente (recherche full-text sur title/excerpt/content via `to_tsvector` PostgreSQL, index GIN).
+- **Boutons catégories** horizontaux scrollables (14 catégories).
+- Section **Articles vedettes** (grille hero-grid, `is_featured=true`).
+- Section **Articles populaires** (triés par `view_count`).
+- Section **Articles récents** (chronologique).
+- Section **Calculateurs** (cartes : tonnage, verges cubes, voyages de camion) — pointent vers `/blog/calculateurs/*`.
+- Section **Guides pratiques** (filtre catégorie=Guides).
+- Section **FAQ** (aperçu, filtre catégorie=FAQ).
+- Pagination infinie / « Charger plus ».
 
-Onglet ajouté dans la navigation Admin existante.
+### `/blog/categorie/:slug` — page catégorie
+- En-tête catégorie, description, fil d'Ariane, grille d'articles paginée, filtres tags.
 
-**Composants :**
+### `/blog/:slug` — page article
+- Fil d'Ariane (Accueil › Blogue › Catégorie › Article).
+- Titre H1, meta (auteur, date, temps de lecture, catégorie, vues).
+- Image de couverture optimisée (lazy, srcset).
+- Contenu riche rendu depuis HTML sanitizé.
+- **Bouton partage Facebook** + Twitter/X + LinkedIn + copier lien.
+- CTA sticky : « Faire une demande de remblai » (vert) et « Déposer des matériaux ».
+- Section **Articles reliés** (3-4 articles auto-sélectionnés par catégorie/tags, override manuel possible).
+- Incrémente `view_count` via edge function (débounce IP).
 
-- `CalendarPage.tsx` — Layout principal avec sélecteur de vue (Jour / Semaine / Mois / Agenda / **Répartition**), filtres latéraux, bouton "+ Planifier une livraison".
-- `CalendarGrid.tsx` — Grille jour/semaine/mois (implémentation maison, sans librairie lourde, basée sur `date-fns` déjà compatible).
-- `AgendaView.tsx` — Liste chronologique.
-- `DispatchView.tsx` — Tableau Répartition : Date | Heure | Camion | Chauffeur | Dompe | Adresse | Voyages | Statut.
-- `EventCard.tsx` — Bloc événement avec couleur de statut, type camion, entrepreneur, voyages.
-- `EventModal.tsx` — Création/édition (tous les champs spec).
-- `DailyDashboard.tsx` — En-tête : Aujourd'hui (livraisons, voyages, dompes actives, camions, chauffeurs) + Cette semaine.
-- `CalendarFilters.tsx` — Entrepreneur, chauffeur, camion, dompe, statut, date, matériel.
+### `/blog/recherche?q=...`
+- Résultats de recherche full-text avec surlignage.
 
-**Vue par défaut :** Semaine.
+## 3. SEO — l'atout central
 
-**Palette statuts :**
-- Planifié : bleu (`hsl(217 91% 60%)`)
-- En cours : orange (`hsl(25 95% 53%)`)
-- Terminé : primary green (`hsl(89 74% 48%)`)
-- Reporté : jaune (`hsl(48 96% 53%)`)
-- Annulé : rouge (`hsl(0 84% 60%)`)
+- **`react-helmet-async`** installé, `HelmetProvider` monté dans `main.tsx`.
+- Chaque route blog gère son propre `<title>`, `meta description`, `canonical`, `og:*`, `twitter:*`.
+- **JSON-LD Schema.org** par page :
+  - Blog root : `WebSite` + `SearchAction`.
+  - Article : `Article` (headline, author, datePublished, dateModified, image, publisher).
+  - Catégorie : `CollectionPage` + `BreadcrumbList`.
+  - FAQ : `FAQPage` sur les articles de la catégorie FAQ.
+- **Fil d'Ariane** JSON-LD `BreadcrumbList` sur toutes les pages internes.
+- **Sitemap dynamique** : nouveau `scripts/generate-sitemap.ts` (predev/prebuild) qui lit les articles publiés depuis Supabase et génère `public/sitemap.xml` avec toutes les URLs (`/blog`, catégories, articles). `BASE_URL = https://vracquebec.ca`.
+- **robots.txt** : ajout `Sitemap: https://vracquebec.ca/sitemap.xml`.
+- Images : `loading="lazy"`, `decoding="async"`, `width`/`height`, alt obligatoire à la saisie.
+- URLs propres, slugs kebab-case, redirections 301 si slug change (colonne `previous_slugs`).
+- Preconnect Supabase déjà en place.
 
-Tokens définis dans `index.css` (`--status-planifie`, etc.) pour rester cohérent avec le design system.
+## 4. Admin CMS (`/admin/blogue`)
 
----
+Restreint aux admins. Interface pro :
 
-### 3. Gestion flotte & chauffeurs
+- **Liste** des articles avec filtres (statut, catégorie, auteur, recherche), tri, actions bulk.
+- **Éditeur** (drawer plein écran) :
+  - Titre, slug auto-généré éditable, extrait, contenu riche (TipTap ou react-quill).
+  - Upload image de couverture + galerie (Storage `blog-media`, redimensionnement côté client avant upload via canvas).
+  - Sélecteur catégorie + sous-catégorie + tags (création à la volée).
+  - Auteur, date de publication, planification (`scheduled_at`).
+  - **Onglet SEO** : meta_title, meta_description, canonical, og_image, aperçu Google/Facebook.
+  - **Onglet Articles reliés** : recherche + sélection manuelle (sinon auto).
+  - Temps de lecture calculé automatiquement (mots/200).
+  - **Sauvegarde automatique** (debounce 3 s, indicateur « Enregistré »).
+  - Statut : Brouillon / Publié / Planifié / Archivé.
+  - Bouton **Dupliquer**.
+  - Aperçu en direct dans nouvel onglet.
+- **Gestion catégories** — CRUD, réordonnancement.
+- **Gestion tags** — fusion, renommage.
+- **Statistiques** — vues par article, articles top.
+- Ajout entrée sidebar `Admin` → « Blogue ».
 
-Deux pages secondaires accessibles depuis le calendrier :
-- `/admin/trucks` — CRUD camions
-- `/admin/drivers` — CRUD chauffeurs
+Edge function `cron-publish-scheduled-posts` (pg_cron toutes les 5 min) qui bascule `scheduled` → `published` quand `scheduled_at <= now()`.
 
-Modales rapides "+ Nouveau camion" / "+ Nouveau chauffeur" directement depuis l'EventModal.
+## 5. Design
 
----
+Direction retenue : **Hero + grille**, adapté à l'identité Vrac Québec (vert `#7ED321` sur noir `#111111`, DM Sans / Plus Jakarta Sans déjà en place). Style construction/transport : accents diagonaux, badges catégories colorés, cartes avec ombres douces, coins arrondis 12-16px, images en ratio 16:9. Boutons CTA verts pleins pour « Faire une demande de remblai », noirs outline pour « Déposer des matériaux ». Responsive mobile-first.
 
-### 4. Intégration CRM ↔ Calendrier
+## 6. Migrations & routes
 
-Dans `Admin.tsx` (liste demandes), ajout d'un bouton **"Planifier au calendrier"** sur chaque demande. Au clic → ouvre `EventModal` pré-rempli avec : numéro de dompe, adresses, matériel, voyages, nom client, `submission_id`. L'admin n'a qu'à choisir date/heure/chauffeur/camion.
+- Retirer l'embed Soro de `Blog.tsx`.
+- Nouvelles routes lazy dans `App.tsx` : `/blog`, `/blog/categorie/:slug`, `/blog/:slug`, `/blog/recherche`, `/admin/blogue`, `/admin/blogue/editer/:id?`.
+- Lien « Blogue » ajouté au footer et à l'admin sidebar.
 
----
+## Détails techniques
 
-### 5. Responsive
+- Full-text search : `tsvector` généré (French config) sur title+excerpt+content, index GIN, requête `websearch_to_tsquery`.
+- Compteur de vues : edge function `blog-track-view` (rate-limit 1 vue / IP / article / 6h) plutôt qu'UPDATE direct pour éviter écritures côté client.
+- Sanitization HTML : `dompurify` côté client au rendu, whitelist sur upload.
+- Optimisation images : redimensionnement côté client à 1920px max avant upload, WebP quand supporté.
+- Aucune écriture au schéma `auth`, uniquement `public`.
 
-- Desktop : grille complète avec sidebar filtres.
-- Tablette : filtres en drawer.
-- Mobile : vue Agenda + Jour privilégiées, switcher compact.
+## Ce qui n'est PAS inclus dans ce plan
+- Génération de contenu d'articles (à faire séparément une fois la structure en place).
+- Newsletter / abonnement email.
+- Commentaires.
+- Version multilingue (FR uniquement pour l'instant).
 
----
-
-### 6. Vision future (préparée mais pas implémentée)
-
-Structure DB compatible : champs nullables pour `sms_sent_at`, `client_signature_url`, `google_event_id`, `last_known_lat/lng` ajoutés dès maintenant pour éviter une future migration.
-
----
-
-### Détails techniques
-
-- Pas de nouvelle dépendance lourde (react-big-calendar exclu) — composant calendrier custom + `date-fns` (déjà installé).
-- Réutilisation des composants shadcn existants (Dialog, Select, Table, Card, Badge, Popover, Calendar pour datepickers).
-- Types Supabase régénérés après migration.
-- Realtime activé sur `calendar_events` pour mise à jour live entre admins.
-
-### Étapes d'exécution
-
-1. Migration DB (3 tables + RLS + GRANTs + realtime publication).
-2. Pages flotte/chauffeurs (CRUD simple).
-3. Page Calendrier + composants de vues.
-4. EventModal + intégration depuis Admin.tsx.
-5. Dashboard quotidien + filtres.
-6. Tests responsive.
-
-Estimation : ~15-20 fichiers créés/modifiés, livré en plusieurs vagues d'édits.
+Une fois la structure livrée, on pourra générer les premiers articles par lots via un flux dédié.
