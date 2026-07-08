@@ -1,0 +1,51 @@
+import DOMPurify from "dompurify";
+
+export function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-+|-+$)/g, "");
+}
+
+export function sanitizeHtml(html: string): string {
+  if (typeof window === "undefined") return html;
+  return DOMPurify.sanitize(html, {
+    ADD_ATTR: ["target", "rel", "loading", "decoding"],
+    FORBID_TAGS: ["script", "style", "iframe", "form", "input", "button"],
+    FORBID_ATTR: ["onerror", "onload", "onclick"],
+  });
+}
+
+export function formatDateFr(iso: string | null | undefined): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("fr-CA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+export function shareUrls(url: string, title: string) {
+  const u = encodeURIComponent(url);
+  const t = encodeURIComponent(title);
+  return {
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${u}`,
+    twitter: `https://twitter.com/intent/tweet?url=${u}&text=${t}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${u}`,
+    email: `mailto:?subject=${t}&body=${u}`,
+  };
+}
+
+export function estimateReadingTime(text: string): number {
+  const words = text.replace(/<[^>]+>/g, " ").trim().split(/\s+/).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
+export const SITE_URL = "https://vracquebec.ca";
+
+export function absoluteUrl(path: string): string {
+  if (path.startsWith("http")) return path;
+  return `${SITE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+}
