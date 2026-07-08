@@ -22,6 +22,7 @@ const BlogCategory = lazy(() => import("./pages/BlogCategory"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const BlogSearch = lazy(() => import("./pages/BlogSearch"));
 const AdminBlog = lazy(() => import("./pages/AdminBlog"));
+const AdminBlogIdeas = lazy(() => import("./pages/AdminBlogIdeas"));
 const AdminBlogEditor = lazy(() => import("./pages/AdminBlogEditor"));
 const BlogTools = lazy(() => import("./pages/BlogTools"));
 const BlogCalculator = lazy(() => import("./pages/BlogCalculator"));
@@ -67,6 +68,7 @@ const App = () => (
             <Route path="/blog/categorie/:slug" element={<BlogCategory />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/admin/blogue" element={<AdminBlog />} />
+            <Route path="/admin/blogue/idees" element={<AdminBlogIdeas />} />
             <Route path="/admin/blogue/editer/:id" element={<AdminBlogEditor />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
