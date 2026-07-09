@@ -27,6 +27,7 @@ import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
 import { Search, CalendarDays, Menu, BookOpen as BookOpenIcon } from "lucide-react";
+import { Ban } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import TransportBanner from "@/components/TransportBanner";
 
@@ -584,6 +585,9 @@ const Admin = () => {
             <Link to="/admin/blogue" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <BookOpenIcon className="w-4 h-4" /> Blogue
             </Link>
+            <Link to="/admin/liste-noire" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
+              <Ban className="w-4 h-4" /> Liste noire
+            </Link>
             <button onClick={() => setShowUsers(true)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <Users className="w-4 h-4" /> Entrepreneurs
             </button>
@@ -620,6 +624,9 @@ const Admin = () => {
                 </Link>
                 <Link to="/admin/blogue" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
                   <BookOpenIcon className="w-4 h-4" /> Blogue
+                </Link>
+                <Link to="/admin/liste-noire" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
+                  <Ban className="w-4 h-4" /> Liste noire
                 </Link>
                 <Link to="/admin/donnees" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
                   <DatabaseIcon className="w-4 h-4" /> Données

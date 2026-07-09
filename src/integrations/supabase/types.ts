@@ -14,6 +14,113 @@ export type Database = {
   }
   public: {
     Tables: {
+      blacklist_entries: {
+        Row: {
+          active: boolean
+          blocked_at: string
+          blocked_by: string | null
+          blocked_by_email: string | null
+          created_at: string
+          entity_id: string
+          entity_label: string | null
+          entity_type: string
+          id: string
+          note: string | null
+          reasons: string[]
+          unblock_note: string | null
+          unblocked_at: string | null
+          unblocked_by: string | null
+          unblocked_by_email: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          blocked_at?: string
+          blocked_by?: string | null
+          blocked_by_email?: string | null
+          created_at?: string
+          entity_id: string
+          entity_label?: string | null
+          entity_type: string
+          id?: string
+          note?: string | null
+          reasons?: string[]
+          unblock_note?: string | null
+          unblocked_at?: string | null
+          unblocked_by?: string | null
+          unblocked_by_email?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          blocked_at?: string
+          blocked_by?: string | null
+          blocked_by_email?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_label?: string | null
+          entity_type?: string
+          id?: string
+          note?: string | null
+          reasons?: string[]
+          unblock_note?: string | null
+          unblocked_at?: string | null
+          unblocked_by?: string | null
+          unblocked_by_email?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      blacklist_history: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          entity_id: string
+          entity_label: string | null
+          entity_type: string
+          entry_id: string | null
+          id: string
+          note: string | null
+          reasons: string[] | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          entity_id: string
+          entity_label?: string | null
+          entity_type: string
+          entry_id?: string | null
+          id?: string
+          note?: string | null
+          reasons?: string[] | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_label?: string | null
+          entity_type?: string
+          entry_id?: string | null
+          id?: string
+          note?: string | null
+          reasons?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blacklist_history_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "blacklist_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_authors: {
         Row: {
           avatar_url: string | null
@@ -1528,6 +1635,10 @@ export type Database = {
         Returns: boolean
       }
       is_approved_entrepreneur: { Args: { _uid: string }; Returns: boolean }
+      is_blacklisted: {
+        Args: { _entity_id: string; _entity_type: string }
+        Returns: boolean
+      }
       list_users_with_roles: {
         Args: never
         Returns: {

@@ -29,6 +29,7 @@ const BlogTools = lazy(() => import("./pages/BlogTools"));
 const BlogCalculator = lazy(() => import("./pages/BlogCalculator"));
 const BlogGuides = lazy(() => import("./pages/BlogGuides"));
 const BlogFaq = lazy(() => import("./pages/BlogFaq"));
+const AdminBlacklist = lazy(() => import("./pages/AdminBlacklist"));
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/admin/blogue/idees" element={<AdminBlogIdeas />} />
             <Route path="/admin/blogue/generer" element={<AdminBlogBatch />} />
             <Route path="/admin/blogue/editer/:id" element={<AdminBlogEditor />} />
+            <Route path="/admin/liste-noire" element={<AdminBlacklist />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
