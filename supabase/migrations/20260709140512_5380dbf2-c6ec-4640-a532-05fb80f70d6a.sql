@@ -1,0 +1,34 @@
+CREATE OR REPLACE FUNCTION public.get_entrepreneur_leads()
+ RETURNS TABLE(id uuid, submission_number integer, dompe_number text, materials text[], other_material text, request_type text, property_type text, quantity text, tonnage text, deliver_or_remove text, contamination text, status text, priority text, postal_prefix text, latitude double precision, longitude double precision, machinery_available boolean, machinery_description text, accessibility text[], created_at timestamp with time zone, is_assigned boolean)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT
+    s.id,
+    s.submission_number,
+    s.dompe_number,
+    s.materials,
+    s.other_material,
+    s.request_type,
+    s.property_type,
+    s.quantity,
+    s.tonnage,
+    s.deliver_or_remove,
+    s.contamination,
+    s.status,
+    s.priority,
+    LEFT(COALESCE(s.postal_code, ''), 3) AS postal_prefix,
+    COALESCE(s.postal_latitude, s.latitude) AS latitude,
+    COALESCE(s.postal_longitude, s.longitude) AS longitude,
+    s.machinery_available,
+    s.machinery_description,
+    s.accessibility,
+    s.created_at,
+    (s.assigned_entrepreneur IS NOT NULL) AS is_assigned
+  FROM public.submissions s
+  WHERE
+    public.is_approved_entrepreneur(auth.uid())
+    AND lower(trim(coalesce(s.request_type, ''))) = 'remblai'
+    AND lower(trim(coalesce(s.status, ''))) = 'en attente de livraison'
+$function$;
