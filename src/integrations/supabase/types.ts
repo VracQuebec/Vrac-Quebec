@@ -121,12 +121,40 @@ export type Database = {
           },
         ]
       }
+      blog_author_emails: {
+        Row: {
+          author_id: string
+          created_at: string
+          email: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          email?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          email?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_author_emails_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: true
+            referencedRelation: "blog_authors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_authors: {
         Row: {
           avatar_url: string | null
           bio: string | null
           created_at: string
-          email: string | null
           id: string
           name: string
           slug: string
@@ -138,7 +166,6 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
-          email?: string | null
           id?: string
           name: string
           slug: string
@@ -150,7 +177,6 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
-          email?: string | null
           id?: string
           name?: string
           slug?: string
