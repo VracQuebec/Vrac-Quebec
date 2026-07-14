@@ -33,6 +33,7 @@ const AdminBlacklist = lazy(() => import("./pages/AdminBlacklist"));
 const LocalIndex = lazy(() => import("./pages/LocalIndex"));
 const LocalCityIndex = lazy(() => import("./pages/LocalCityIndex"));
 const LocalLanding = lazy(() => import("./pages/LocalLanding"));
+const AdminSeo = lazy(() => import("./pages/AdminSeo"));
 
 const queryClient = new QueryClient();
 
@@ -77,6 +78,7 @@ const App = () => (
             <Route path="/admin/blogue/generer" element={<AdminBlogBatch />} />
             <Route path="/admin/blogue/editer/:id" element={<AdminBlogEditor />} />
             <Route path="/admin/liste-noire" element={<AdminBlacklist />} />
+            <Route path="/admin/seo" element={<AdminSeo />} />
             <Route path="/livraison" element={<LocalIndex />} />
             <Route path="/livraison/:citySlug" element={<LocalCityIndex />} />
             {/* Local SEO landing: MUST stay just before the catch-all route */}
