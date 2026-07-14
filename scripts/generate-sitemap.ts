@@ -3,8 +3,8 @@
 
 import { writeFileSync } from "fs";
 import { resolve } from "path";
-import { CITIES } from "../src/lib/seo/cities";
-import { MATERIALS } from "../src/lib/seo/materials";
+import { CITIES as STATIC_CITIES } from "../src/lib/seo/cities";
+import { MATERIALS as STATIC_MATERIALS } from "../src/lib/seo/materials";
 
 const BASE_URL = "https://vracquebec.ca";
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://kenduhxscnynugpvktin.supabase.co";
@@ -43,16 +43,39 @@ async function build(): Promise<Entry[]> {
     { path: "/livraison", changefreq: "weekly", priority: "0.8" },
   ];
 
-  // Local SEO hub pages (one per city).
-  for (const c of CITIES) {
-    entries.push({ path: `/livraison/${c.slug}`, changefreq: "monthly", priority: "0.7" });
+  // Load active cities & materials from DB, with static fallback.
+  let cities: { slug: string }[] = STATIC_CITIES;
+  let materials: { slug: string }[] = STATIC_MATERIALS;
+  try {
+    const [dbCities, dbMaterials] = await Promise.all([
+      fetchJson(`${SUPABASE_URL}/rest/v1/seo_cities?select=slug&active=eq.true&order=sort_order`),
+      fetchJson(`${SUPABASE_URL}/rest/v1/seo_materials?select=slug&active=eq.true&order=sort_order`),
+    ]);
+    if (Array.isArray(dbCities) && dbCities.length) cities = dbCities;
+    if (Array.isArray(dbMaterials) && dbMaterials.length) materials = dbMaterials;
+  } catch (e) {
+    console.warn("sitemap: could not fetch SEO cities/materials from DB, using static fallback:", e);
   }
 
-  // Local SEO landing pages (material × city).
-  for (const m of MATERIALS) {
-    for (const c of CITIES) {
+  for (const c of cities) {
+    entries.push({ path: `/livraison/${c.slug}`, changefreq: "monthly", priority: "0.7" });
+  }
+  for (const m of materials) {
+    for (const c of cities) {
       entries.push({ path: `/${m.slug}-${c.slug}`, changefreq: "monthly", priority: "0.7" });
     }
+  }
+
+  // Material-usage pages
+  try {
+    const uses = (await fetchJson(
+      `${SUPABASE_URL}/rest/v1/seo_material_uses?select=slug&active=eq.true&order=sort_order`
+    )) as { slug: string }[];
+    for (const u of uses) {
+      entries.push({ path: `/${u.slug}`, changefreq: "monthly", priority: "0.7" });
+    }
+  } catch (e) {
+    console.warn("sitemap: could not fetch material uses:", e);
   }
 
   try {
