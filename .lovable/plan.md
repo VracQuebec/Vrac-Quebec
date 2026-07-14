@@ -1,104 +1,135 @@
-# Plateforme SEO intelligente VracQuebec.ca
 
-Objectif : rendre le moteur SEO local **entièrement administrable depuis le CRM** (fini les modifications dans `cities.ts` / `materials.ts`), et étendre la couverture à toutes les pages exigées (ville×matériau, usages, entrepreneurs, points de dépôt, demandes publiques, blog), avec maillage interne automatique, sitemap dynamique et SEO technique complet.
+# Moteur SEO local automatisé — VracQuebec.ca
 
-Le projet est très large. Je propose de le livrer en **6 phases**, chacune produisant une valeur immédiate et déployable. Vous validez phase par phase.
+Objectif : transformer VracQuebec.ca en plateforme SEO locale automatisée qui génère, met à jour et relie automatiquement des milliers de pages pertinentes (villes × matériaux × usages, entrepreneurs, points de dépôt, demandes publiques, blog), gérée à 100 % depuis le CRM, sans jamais inventer de prix.
 
----
+## Règle absolue : aucun prix
 
-## Phase 1 — Fondation : Territoires & Matériaux gérés depuis le CRM
+- Suppression complète de la notion de "prix indicatif" partout dans le moteur SEO (colonne DB, champs admin, sections publiques, FAQ, JSON-LD).
+- Un prix ne pourra un jour apparaître que s’il provient d’un fournisseur/entrepreneur via un champ explicite qu’on ajoutera plus tard.
+- Le CTA reste "Faire une demande" / "Je peux fournir ce matériau" — jamais un prix.
 
-**But :** remplacer les fichiers `src/lib/seo/cities.ts` et `materials.ts` par des tables Supabase, avec CRUD dans `/admin/seo`.
-
-### Base de données
-- `seo_cities` : `slug`, `name`, `region`, `lat`, `lng`, `population`, `intro`, `neighbors` (uuid[]), `active` (bool), `sort_order`.
-- `seo_materials` : `slug`, `name`, `short_name`, `keywords` (text[]), `use_cases` (jsonb), `pricing_hint`, `delivery_unit`, `related_materials` (uuid[]), `description`, `active`.
-- `seo_material_uses` : matériau × usage (`terre-pour-gazon`, `gravier-pour-entree`…) pour les pages "par utilisation".
-- Toutes protégées par RLS : lecture publique (`active = true`), écriture admin uniquement, avec `GRANT` explicites.
-- Seed automatique : la migration copie le contenu actuel des fichiers TS dans les tables (aucune donnée perdue).
-
-### Front CRM
-- Nouvelle page `/admin/seo` avec 3 onglets : **Villes**, **Matériaux**, **Usages**.
-- Tableaux avec recherche, activer/désactiver (soft delete), édition inline, réordonnancement.
-- Formulaire d'ajout de ville avec **géocodage automatique** (Google Places déjà connecté) → remplit `lat`/`lng`.
-- Sélecteur de villes voisines multi-select depuis la liste existante.
-
-### Front public
-- `src/lib/seo/cities.ts` et `materials.ts` deviennent de **simples wrappers** qui chargent depuis Supabase via un hook `useSeoData()` (cache React Query + fallback statique pour SSR/build).
-- Les composants `LocalLanding`, `LocalIndex`, `LocalCityIndex` fonctionnent sans changement, mais lisent la source dynamique.
-- Le résolveur `matchLocalSlug` devient async côté serveur / synchrone côté client (via cache).
-
-### Sitemap
-- `scripts/generate-sitemap.ts` lit **directement depuis Supabase** au moment du `prebuild` (via `SUPABASE_URL` + anon key). Toute ville/matériau actif est inclus automatiquement.
-
-**Livrable Phase 1 :** vous ajoutez une ville depuis le CRM → toutes les pages SEO, le sitemap et les liens internes se mettent à jour au prochain déploiement, sans toucher au code.
+**Fait dans cette phase :** migration qui `DROP COLUMN pricing_hint` sur `seo_materials` + suppression de toutes les références front (`LocalLanding`, hook, admin, sitemap, JSON-LD). Le champ tombe partout d’un coup.
 
 ---
 
-## Phase 2 — Pages "par usage" + Calculateur intelligent
+## Phase 1 — Fondation admin (déjà en place, à finir proprement)
+
+Ce qui existe : tables `seo_cities`, `seo_materials`, `seo_material_uses`, page `/admin/seo`, hook `useSeoData`, sitemap dynamique.
+
+Ce que je termine dans cette phase :
+- Retrait total du "prix indicatif".
+- Onglet **Usages** enrichi dans `/admin/seo` : liste globale, activation, réordonnancement, choix des matériaux compatibles (many-to-many via `seo_material_uses`), champ "sort_order" par usage.
+- Sitemap dynamique déjà branché sur la BD — je vérifie qu’il inclut les usages et les combinaisons usage×ville quand elles sont actives.
+- CRUD ville : géocodage automatique (Google Places déjà connecté) pour remplir `lat/lng` sans copier-coller.
+
+**Livrable :** vous ajoutez une ville, un matériau ou un usage depuis le CRM → toutes les URLs SEO correspondantes existent au prochain déploiement, sans code.
+
+---
+
+## Phase 2 — Pages "usage" + Calculateur intelligent
 
 ### Pages usages
-- Nouveau template `/[usage-slug]` (ex : `/terre-pour-gazon`, `/gravier-pour-entree`).
-- Contenu structuré : intro, matériau recommandé, calcul type, FAQ, CTA formulaire.
-- Généré depuis la table `seo_material_uses` + croisement villes (variante `/terre-pour-gazon-quebec` en option).
+- Nouvelle route publique `/[usage-slug]` (ex. `/entree-de-cour`, `/piscine`, `/drain-francais`).
+- Croisements automatiques :
+  - **usage × matériau** → `/gravier-entree-de-cour`
+  - **usage × ville** → `/entree-de-cour-quebec`
+  - **usage × matériau × ville** → `/gravier-entree-de-cour-quebec`
+- Chaque page : H1, meta, texte unique généré (voir Phase 2b), FAQ contextuelle, Schema.org, breadcrumb, Google Map de la ville, liens vers matériaux compatibles, villes voisines, entrepreneurs qui desservent, demandes ouvertes, points de dépôt, articles de blog liés.
+- Deux CTA : **Faire une demande** (préremplit le questionnaire) et **Je peux fournir ce matériau** (formulaire fournisseur).
 
-### Calculateur (page dédiée + widget réutilisable)
-- Formulaire Longueur × Largeur × Épaisseur → m³, tonnes, nombre de voyages (avec réglages par matériau : densité, capacité camion).
-- Résultat + CTA "Faire une demande sur VracQuebec.ca" qui pré-remplit le questionnaire.
-- Embarqué dans chaque page ville×matériau et chaque page usage.
+### Calculateur intelligent
+- Composant réutilisable `<MaterialCalculator />` : longueur × largeur × épaisseur → m³, tonnes (densité par matériau), nombre de voyages (par capacité de camion configurable).
+- Embarqué sur chaque page ville×matériau, usage, et usage×matériau×ville.
+- Page dédiée `/calculateur` avec sélecteur de matériau et lien vers le formulaire.
+
+### Phase 2b — Génération automatique de contenu + FAQ (Lovable AI)
+- Edge function `seo-generate-page-content` (Gemini 2.5 Flash via Lovable AI Gateway) : à la création d’une ville/matériau/usage, génère et stocke un texte 300–500 mots **unique** par combinaison, dans une table `seo_page_content` (`slug`, `content_html`, `faq_json`, `generated_at`).
+- Régénération à la demande depuis le CRM (bouton "Régénérer" par page).
+- FAQ dynamique : 4–6 questions générées selon ville/matériau/usage, injectées dans le HTML et le JSON-LD `FAQPage`.
 
 ---
 
-## Phase 3 — Pages Entrepreneurs publiques
+## Phase 3 — Pages entrepreneurs publiques
 
-- Route `/entrepreneur/:slug` (ex : `/entrepreneur/transport-jsc`).
-- Colonnes ajoutées à `entrepreneur_profiles` : `public_slug`, `bio`, `service_areas` (villes desservies), `materials_offered`, `photos[]`, `is_public`.
-- Onglet "Page publique" dans la fiche entrepreneur du CRM pour éditer.
-- SEO complet : H1, meta, JSON-LD `LocalBusiness`, formulaire de contact direct.
+- Colonnes ajoutées à `entrepreneur_profiles` : `public_slug`, `is_public`, `bio`, `service_area_city_ids`, `material_ids`, `photos[]`, `services[]`.
+- Onglet **Page publique** dans la fiche entrepreneur du CRM.
+- Route `/entrepreneur/:slug` (ex. `/entrepreneur/transport-jsc`) avec présentation, services, territoires desservis (chips vers pages ville), matériaux offerts (chips vers pages matériau), photos, contact, JSON-LD `LocalBusiness`.
+- Section "avis" : structure prête, source à décider (interne ou Google via connector) — je marque le placeholder plutôt que d’inventer des avis.
 
 ---
 
 ## Phase 4 — Points de dépôt publics + Demandes publiques
 
 ### Points de dépôt
-- Nouvelle table `deposit_sites` (nom, adresse, matériaux acceptés, photos, conditions, municipalité, entrepreneur lié).
-- CRUD dans le CRM, route publique `/depot/:slug`.
+- Nouvelle table `deposit_sites` (nom, slug, adresse, `city_id`, matériaux acceptés, conditions, photos, entrepreneur lié, `active`, `is_public`).
+- CRUD dans `/admin/seo/depots`.
+- Route publique `/depot/:slug` : carte, photos, matériaux acceptés, entrepreneurs liés, demandes récentes de la zone.
 
 ### Demandes publiques
-- Nouveau champ `submissions.is_public` (opt-in client dans le formulaire remblai).
-- Route `/demande/:slug` (ex : `/demande/gravier-0-3-4-levis-25-tonnes`) avec carte, détails anonymisés, bouton "Je peux répondre".
-- Ajout au sitemap uniquement si `is_public = true` et statut actif.
+- Champ `submissions.is_public` (opt-in dans le formulaire remblai/dépôt).
+- Route `/demande/:slug` (ex. `/demande/terre-remplissage-quebec-40-tonnes`) : ville, matériau, quantité, description anonymisée, carte, date, bouton **Je peux répondre à cette demande** (crée une soumission fournisseur reliée).
+- Sitemap inclut uniquement `is_public = true` et statut actif.
 
 ---
 
-## Phase 5 — Maillage interne intelligent + SEO technique
+## Phase 5 — Maillage interne intelligent + SEO technique complet
 
-- Composant `<InternalLinks context={...} />` centralisé : injecte automatiquement villes voisines, matériaux similaires, demandes récentes, entrepreneurs liés, articles de blog liés — selon le contexte de la page.
-- Génération auto des breadcrumbs à partir de la route.
-- JSON-LD partout : `LocalBusiness`, `FAQPage`, `BreadcrumbList`, `Article`, `Product`, `Offer`.
-- Audit et fix : `<link rel="canonical">` self-référent partout, `og:url` cohérent, `robots` par route, images `loading="lazy"` + `decoding="async"` déjà en place, WebP via `vite-imagetools` pour les assets locaux.
-
----
-
-## Phase 6 — Blog SEO renforcé (déjà en place, ajustements)
-
-Le blog CMS existe déjà. Ajustements :
-- Lien automatique blog ↔ pages ville×matériau via tags (article "gravier à Québec" apparaît sur `/gravier-0-3-4-quebec`).
-- Suggestions d'articles depuis chaque page SEO.
-- Rien à reconstruire.
+- Composant central `<InternalLinks context={...} />` qui, selon la page (ville / matériau / usage / entrepreneur / demande / dépôt / article), injecte automatiquement :
+  - villes voisines, matériaux reliés, usages compatibles, entrepreneurs desservant la zone, demandes ouvertes, points de dépôt proches, articles de blog liés, calculateur.
+- Breadcrumbs auto depuis la route.
+- JSON-LD systématique : `LocalBusiness`, `Service`, `FAQPage`, `BreadcrumbList`, `Article`, `Place`.
+- Canonical self-référent, `og:url` cohérent, meta robots par route, images `loading="lazy" decoding="async"` (déjà en place), conversion WebP via `vite-imagetools` pour les assets locaux, alt automatique basé sur (matériau, ville, usage).
+- `robots.txt` propre + `sitemap.xml` dynamique déjà géré, étendu aux nouvelles routes.
 
 ---
 
-## Aspects techniques
+## Phase 6 — Blog SEO renforcé (existe déjà, ajustements)
 
-- **Stack** : Supabase (nouvelles tables + RLS + GRANT), React Query pour le cache, react-helmet-async déjà présent, sitemap généré au build.
-- **Performance** : les pages restent générées à la volée côté client (SPA), mais le sitemap contient toutes les URLs → Googlebot les découvre. Pas de génération de milliers de fichiers HTML.
-- **Sécurité** : toutes les nouvelles tables suivent le pattern grant → RLS → policies. Lecture publique uniquement des champs non sensibles.
-- **Rétrocompatibilité** : les URLs actuelles (`/terre-remplissage-quebec`, etc.) restent identiques.
+- Le CMS blog + IA + plan éditorial 250 idées existent.
+- Ajustements :
+  - Tags automatiques `city:*` et `material:*` sur chaque article.
+  - Injection auto d’articles pertinents dans les pages SEO (ville, matériau, usage) via `<InternalLinks />`.
+  - Injection auto de blocs "Voir aussi" (pages ville/matériau) dans les articles selon leurs tags.
+
+---
+
+## Architecture technique
+
+```text
+CRM (/admin/seo)
+   │  villes / matériaux / usages / entrepreneurs / dépôts / demandes / articles
+   ▼
+Tables Supabase (source unique de vérité)
+   │  seo_cities, seo_materials, seo_material_uses,
+   │  entrepreneur_profiles(+public), deposit_sites, submissions(is_public),
+   │  seo_page_content (contenu IA + FAQ mis en cache)
+   ▼
+Hook client useSeoData() + resolveLocalSlug() (cache + fallback)
+   │
+   ▼
+Templates React (SPA)         Sitemap generator (prebuild)
+   LocalLanding                  ├── ville
+   LocalCityIndex                ├── matériau × ville
+   LocalIndex                    ├── usage
+   UsageLanding                  ├── usage × matériau
+   UsageCityLanding              ├── usage × ville
+   UsageMaterialCityLanding      ├── entrepreneur
+   EntrepreneurPage              ├── dépôt
+   DepositPage                   ├── demande publique
+   PublicRequestPage             └── blog
+   Blog*
+```
+
+- **Génération** : pages rendues à la volée côté client (SPA). Le sitemap contient toutes les URLs → Googlebot les découvre. Pas de milliers de fichiers HTML à builder.
+- **Contenu unique** : mis en cache dans `seo_page_content`, généré une fois par combinaison via Lovable AI (Gemini 2.5 Flash), régénérable.
+- **Performance** : cache React Query côté client, lazy loading des routes, `vite-imagetools` pour WebP, préchargement du hero.
+- **Sécurité** : chaque nouvelle table publique suit `CREATE TABLE → GRANT → ENABLE RLS → POLICY`. Écriture admin uniquement, lecture publique restreinte aux champs non sensibles (jamais d’emails, jamais de tokens).
+- **Rétrocompatibilité** : les URLs actuelles restent identiques (`/terre-remplissage-quebec`, etc.).
 
 ---
 
 ## Deux décisions à confirmer avant de démarrer
 
-1. **Par où commencer ?** Je recommande la **Phase 1** en premier (fondation admin des villes/matériaux) — elle débloque tout le reste. Confirmez-vous cet ordre, ou souhaitez-vous prioriser autre chose (ex : calculateur, pages entrepreneurs) ?
-2. **Livraison** : je livre phase par phase avec validation entre chaque, ou vous voulez que j'enchaîne les 6 phases sans pause ?
+1. **Ordre de livraison.** Je propose : Phase 1 (finir : retrait prix + usages CRM + géocodage) → Phase 2 (usages + calculateur + IA de contenu) → Phase 3 (entrepreneurs) → Phase 4 (dépôts + demandes publiques) → Phase 5 (maillage + SEO technique) → Phase 6 (blog). Confirmez-vous cet ordre ?
+2. **Rythme.** Je livre phase par phase avec validation entre chaque (recommandé, chaque phase est déployable seule), ou vous voulez que j’enchaîne tout d’un trait ?
