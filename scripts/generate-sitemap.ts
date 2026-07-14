@@ -3,6 +3,8 @@
 
 import { writeFileSync } from "fs";
 import { resolve } from "path";
+import { CITIES } from "../src/lib/seo/cities";
+import { MATERIALS } from "../src/lib/seo/materials";
 
 const BASE_URL = "https://vracquebec.ca";
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://kenduhxscnynugpvktin.supabase.co";
@@ -38,7 +40,20 @@ async function build(): Promise<Entry[]> {
     { path: "/blog/outils/cout-transport", changefreq: "monthly", priority: "0.7" },
     { path: "/blog/guides", changefreq: "weekly", priority: "0.8" },
     { path: "/blog/faq", changefreq: "weekly", priority: "0.8" },
+    { path: "/livraison", changefreq: "weekly", priority: "0.8" },
   ];
+
+  // Local SEO hub pages (one per city).
+  for (const c of CITIES) {
+    entries.push({ path: `/livraison/${c.slug}`, changefreq: "monthly", priority: "0.7" });
+  }
+
+  // Local SEO landing pages (material × city).
+  for (const m of MATERIALS) {
+    for (const c of CITIES) {
+      entries.push({ path: `/${m.slug}-${c.slug}`, changefreq: "monthly", priority: "0.7" });
+    }
+  }
 
   try {
     const cats = (await fetchJson(
