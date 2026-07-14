@@ -1,6 +1,6 @@
 import { useParams, Link, Navigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ChevronRight, Home, MapPin, Truck, PhoneCall, CheckCircle2 } from "lucide-react";
+import { ChevronRight, Home, MapPin, Truck, CheckCircle2 } from "lucide-react";
 import Questionnaire from "@/components/Questionnaire";
 import TransportBanner from "@/components/TransportBanner";
 import { useSeoData } from "@/hooks/useSeoData";
