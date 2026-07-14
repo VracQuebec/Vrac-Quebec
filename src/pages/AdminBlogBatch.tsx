@@ -126,6 +126,16 @@ type Job = {
   postId?: string;
   slug?: string;
 };
+type BlogAIGenerateResult = {
+  error?: string;
+  title?: string;
+  slug?: string;
+  excerpt?: string;
+  meta_title?: string;
+  meta_description?: string;
+  content_html?: string;
+  suggested_tags?: string[];
+};
 
 export default function AdminBlogBatch() {
   const { isReady, user } = useAuthReady();
@@ -198,7 +208,10 @@ export default function AdminBlogBatch() {
           continue;
         }
 
-        const { data, error } = await invokeWithFreshSession("blog-ai-generate", { keyword: kw, category: cat?.name || "", existing_posts: linkCandidates });
+        const { data, error } = await invokeWithFreshSession<Record<string, unknown>, BlogAIGenerateResult>(
+          "blog-ai-generate",
+          { keyword: kw, category: cat?.name || "", existing_posts: linkCandidates },
+        );
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
         if (!data?.title || !data?.content_html) throw new Error("Réponse IA incomplète");

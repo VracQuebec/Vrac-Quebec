@@ -13,6 +13,17 @@ import type { BlogAuthor, BlogCategory, BlogPost, BlogTag } from "@/lib/blog/typ
 import { estimateReadingTime, sanitizeHtml, slugify, SITE_URL } from "@/lib/blog/utils";
 
 type Tab = "content" | "seo" | "related" | "settings";
+type BlogAIGenerateResult = {
+  error?: string;
+  title?: string;
+  slug?: string;
+  excerpt?: string;
+  meta_title?: string;
+  meta_description?: string;
+  content_html?: string;
+  cover_image_prompt?: string;
+  suggested_tags?: string[];
+};
 
 export default function AdminBlogEditor() {
   const { id = "nouveau" } = useParams();
@@ -132,7 +143,10 @@ export default function AdminBlogEditor() {
         slug: p.slug,
         category: p.blog_categories?.name,
       }));
-      const { data, error } = await invokeWithFreshSession("blog-ai-generate", { keyword: kw, category: cat?.name || "", existing_posts });
+      const { data, error } = await invokeWithFreshSession<Record<string, unknown>, BlogAIGenerateResult>(
+        "blog-ai-generate",
+        { keyword: kw, category: cat?.name || "", existing_posts },
+      );
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (data?.title) { setTitle(data.title); }
