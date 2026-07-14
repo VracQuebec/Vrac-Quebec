@@ -360,7 +360,7 @@ function MaterialsTab() {
         <button
           onClick={() => setEditing({
             slug: "", name: "", short_name: "", keywords: [], use_cases: [],
-            pricing_hint: "", delivery_unit: "tonne", related_materials: [],
+            delivery_unit: "tonne", related_materials: [],
             description: "", active: true, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10,
           })}
           className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold"
@@ -378,7 +378,6 @@ function MaterialsTab() {
               <tr className="text-left">
                 <th className="px-3 py-2 font-display">Nom</th>
                 <th className="px-3 py-2 font-display">Slug</th>
-                <th className="px-3 py-2 font-display">Prix indicatif</th>
                 <th className="px-3 py-2 font-display">Unité</th>
                 <th className="px-3 py-2 font-display">Statut</th>
                 <th className="px-3 py-2"></th>
@@ -389,7 +388,6 @@ function MaterialsTab() {
                 <tr key={r.id} className="border-t border-border hover:bg-muted/20">
                   <td className="px-3 py-2 font-body">{r.name}</td>
                   <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{r.slug}</td>
-                  <td className="px-3 py-2 text-xs">{r.pricing_hint}</td>
                   <td className="px-3 py-2 text-xs">{r.delivery_unit}</td>
                   <td className="px-3 py-2">
                     <button onClick={() => toggleActive(r)} className={`px-2 py-0.5 rounded text-xs font-semibold ${r.active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
@@ -465,9 +463,6 @@ function MaterialEditor({ initial, allMaterials, onClose, onSaved }: {
               </select>
             </Field>
           </div>
-          <Field label="Prix indicatif">
-            <input value={form.pricing_hint} onChange={(e) => setForm({ ...form, pricing_hint: e.target.value })} placeholder="ex : à partir de 30 $ / tonne livrée" className={input} />
-          </Field>
           <Field label="Description (1–2 phrases)">
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className={input} />
           </Field>
