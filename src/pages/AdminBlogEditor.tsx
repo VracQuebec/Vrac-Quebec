@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { toast } from "sonner";
+import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import {
   ArrowLeft, Save, Eye, Trash2, Image as ImageIcon, Loader2, ExternalLink, Copy as CopyIcon,
   Sparkles, Rocket, Wand2,
@@ -131,9 +132,7 @@ export default function AdminBlogEditor() {
         slug: p.slug,
         category: p.blog_categories?.name,
       }));
-      const { data, error } = await supabase.functions.invoke("blog-ai-generate", {
-        body: { keyword: kw, category: cat?.name || "", existing_posts },
-      });
+      const { data, error } = await invokeWithFreshSession("blog-ai-generate", { keyword: kw, category: cat?.name || "", existing_posts });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (data?.title) { setTitle(data.title); }
