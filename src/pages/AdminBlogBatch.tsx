@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
+import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Play, Square, CheckCircle2, XCircle, Clock, ExternalLink, Rocket, ListChecks } from "lucide-react";
 import type { BlogCategory } from "@/lib/blog/types";
@@ -125,6 +126,16 @@ type Job = {
   postId?: string;
   slug?: string;
 };
+type BlogAIGenerateResult = {
+  error?: string;
+  title?: string;
+  slug?: string;
+  excerpt?: string;
+  meta_title?: string;
+  meta_description?: string;
+  content_html?: string;
+  suggested_tags?: string[];
+};
 
 export default function AdminBlogBatch() {
   const { isReady, user } = useAuthReady();
@@ -197,20 +208,10 @@ export default function AdminBlogBatch() {
           continue;
         }
 
-        // Force-refresh the session before each call — batches run 1-2h and JWTs expire mid-run.
-        // getSession() only reads storage; refreshSession() actually rotates the access_token.
-        let { data: sess } = await supabase.auth.getSession();
-        const expiresAt = sess.session?.expires_at ?? 0;
-        if (!sess.session || expiresAt * 1000 - Date.now() < 2 * 60 * 1000) {
-          const { data: refreshed } = await supabase.auth.refreshSession();
-          sess = { session: refreshed.session } as typeof sess;
-        }
-        const token = sess.session?.access_token;
-        if (!token) throw new Error("Session expirée — reconnectez-vous.");
-        const { data, error } = await supabase.functions.invoke("blog-ai-generate", {
-          body: { keyword: kw, category: cat?.name || "", existing_posts: linkCandidates },
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const { data, error } = await invokeWithFreshSession<Record<string, unknown>, BlogAIGenerateResult>(
+          "blog-ai-generate",
+          { keyword: kw, category: cat?.name || "", existing_posts: linkCandidates },
+        );
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
         if (!data?.title || !data?.content_html) throw new Error("Réponse IA incomplète");
