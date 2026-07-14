@@ -1201,6 +1201,141 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_cities: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          intro: string | null
+          latitude: number | null
+          longitude: number | null
+          name: string
+          neighbors: string[]
+          population: number | null
+          region: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          intro?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          neighbors?: string[]
+          population?: number | null
+          region?: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          intro?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          neighbors?: string[]
+          population?: number | null
+          region?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seo_material_uses: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string
+          id: string
+          material_slug: string
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string
+          id?: string
+          material_slug: string
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string
+          id?: string
+          material_slug?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seo_materials: {
+        Row: {
+          active: boolean
+          created_at: string
+          delivery_unit: string
+          description: string
+          id: string
+          keywords: string[]
+          name: string
+          pricing_hint: string
+          related_materials: string[]
+          short_name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+          use_cases: string[]
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          delivery_unit?: string
+          description?: string
+          id?: string
+          keywords?: string[]
+          name: string
+          pricing_hint?: string
+          related_materials?: string[]
+          short_name?: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+          use_cases?: string[]
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          delivery_unit?: string
+          description?: string
+          id?: string
+          keywords?: string[]
+          name?: string
+          pricing_hint?: string
+          related_materials?: string[]
+          short_name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+          use_cases?: string[]
+        }
+        Relationships: []
+      }
       submission_audit_log: {
         Row: {
           changed_at: string
