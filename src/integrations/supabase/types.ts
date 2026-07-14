@@ -1294,7 +1294,6 @@ export type Database = {
           id: string
           keywords: string[]
           name: string
-          pricing_hint: string
           related_materials: string[]
           short_name: string
           slug: string
@@ -1310,7 +1309,6 @@ export type Database = {
           id?: string
           keywords?: string[]
           name: string
-          pricing_hint?: string
           related_materials?: string[]
           short_name?: string
           slug: string
@@ -1326,7 +1324,6 @@ export type Database = {
           id?: string
           keywords?: string[]
           name?: string
-          pricing_hint?: string
           related_materials?: string[]
           short_name?: string
           slug?: string

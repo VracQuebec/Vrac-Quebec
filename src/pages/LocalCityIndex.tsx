@@ -60,7 +60,7 @@ export default function LocalCityIndex() {
               <li key={m.slug}>
                 <Link to={`/${m.slug}-${city.slug}`} className="block rounded-xl border border-border bg-card p-4 hover:border-primary transition-colors">
                   <div className="font-display font-bold text-foreground">{m.shortName} à {city.name}</div>
-                  <div className="text-sm text-muted-foreground font-body mt-1">{m.pricingHint}</div>
+                  <div className="text-sm text-muted-foreground font-body mt-1">{m.description}</div>
                 </Link>
               </li>
             ))}

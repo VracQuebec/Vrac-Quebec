@@ -7,7 +7,6 @@ export interface Material {
   shortName: string; // short label for badges / links
   keywords: string[];
   useCases: string[];
-  pricingHint: string;   // ex. "à partir de 25 $/verge cube"
   deliveryUnit: "verge cube" | "tonne";
   relatedMaterials: string[];
   description: string;   // 1–2 sentences reusable in the intro
@@ -25,7 +24,6 @@ export const MATERIALS: Material[] = [
       "Créer une pente pour drainer un terrain",
       "Combler une excavation résidentielle ou commerciale",
     ],
-    pricingHint: "à partir de 15 $ / verge cube livrée",
     deliveryUnit: "verge cube",
     relatedMaterials: ["remblai", "terre-tamisee", "sable"],
     description:
@@ -41,7 +39,6 @@ export const MATERIALS: Material[] = [
       "Préparer un potager ou une plate-bande",
       "Rehausser un terrain avant le gazon",
     ],
-    pricingHint: "à partir de 35 $ / verge cube livrée",
     deliveryUnit: "verge cube",
     relatedMaterials: ["terre-remplissage", "sable"],
     description:
@@ -57,7 +54,6 @@ export const MATERIALS: Material[] = [
       "Remplissage de tranchée d'aqueduc ou d'égout",
       "Base compactée pour un abri, un cabanon ou un patio",
     ],
-    pricingHint: "à partir de 30 $ / tonne livrée",
     deliveryUnit: "tonne",
     relatedMaterials: ["gravier-0-3-4", "poussiere-de-pierre", "mg-20"],
     description:
@@ -73,7 +69,6 @@ export const MATERIALS: Material[] = [
       "Base compactée sous une dalle de béton",
       "Chemin d'accès temporaire de chantier",
     ],
-    pricingHint: "à partir de 32 $ / tonne livrée",
     deliveryUnit: "tonne",
     relatedMaterials: ["mg-20", "mg-56", "pierre-concassee"],
     description:
@@ -89,7 +84,6 @@ export const MATERIALS: Material[] = [
       "Assise sous un pavé-uni de grande surface",
       "Fondation approuvée pour un ouvrage municipal",
     ],
-    pricingHint: "à partir de 34 $ / tonne livrée",
     deliveryUnit: "tonne",
     relatedMaterials: ["gravier-0-3-4", "mg-56", "pierre-concassee"],
     description:
@@ -105,7 +99,6 @@ export const MATERIALS: Material[] = [
       "Chemin d'accès de chantier avec charges lourdes",
       "Élévation avant la couche de MG-20",
     ],
-    pricingHint: "à partir de 30 $ / tonne livrée",
     deliveryUnit: "tonne",
     relatedMaterials: ["mg-20", "gravier-0-3-4"],
     description:
@@ -121,7 +114,6 @@ export const MATERIALS: Material[] = [
       "Puits de captage ou drain français",
       "Contour de piscine ou de patio",
     ],
-    pricingHint: "à partir de 40 $ / tonne livrée",
     deliveryUnit: "tonne",
     relatedMaterials: ["pierre-nette", "gravier-0-3-4", "poussiere-de-pierre"],
     description:
@@ -137,7 +129,6 @@ export const MATERIALS: Material[] = [
       "Lit filtrant sous une installation septique",
       "Contour de piscine creusée",
     ],
-    pricingHint: "à partir de 45 $ / tonne livrée",
     deliveryUnit: "tonne",
     relatedMaterials: ["pierre-concassee", "gravier-0-3-4"],
     description:
@@ -153,7 +144,6 @@ export const MATERIALS: Material[] = [
       "Nivellement de surface pour patio",
       "Finition de sentier ou d'allée",
     ],
-    pricingHint: "à partir de 32 $ / tonne livrée",
     deliveryUnit: "tonne",
     relatedMaterials: ["sable", "gravier-0-3-4"],
     description:
@@ -169,7 +159,6 @@ export const MATERIALS: Material[] = [
       "Remplir une fosse septique désaffectée",
       "Relever le niveau d'un terrain avant construction",
     ],
-    pricingHint: "livraison à partir de 15 $ / verge cube",
     deliveryUnit: "verge cube",
     relatedMaterials: ["terre-remplissage", "sable", "gravier-0-3-4"],
     description:

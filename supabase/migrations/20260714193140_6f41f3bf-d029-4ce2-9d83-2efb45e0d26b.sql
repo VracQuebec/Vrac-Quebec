@@ -1,0 +1,1 @@
+ALTER TABLE public.seo_materials DROP COLUMN IF EXISTS pricing_hint;

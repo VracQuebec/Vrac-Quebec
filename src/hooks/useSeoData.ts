@@ -48,7 +48,6 @@ function mapMaterialRow(r: any): Material {
     shortName: r.short_name || r.name,
     keywords: r.keywords ?? [],
     useCases: r.use_cases ?? [],
-    pricingHint: r.pricing_hint ?? "",
     deliveryUnit: (r.delivery_unit as "verge cube" | "tonne") ?? "verge cube",
     relatedMaterials: r.related_materials ?? [],
     description: r.description ?? "",
