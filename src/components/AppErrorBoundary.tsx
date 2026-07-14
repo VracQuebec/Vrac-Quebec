@@ -9,6 +9,21 @@ interface State {
   hasError: boolean;
 }
 
+const RELOAD_KEY = "__chunk_reload_attempted__";
+
+function isChunkLoadError(error: unknown): boolean {
+  if (!error) return false;
+  const msg = (error as Error)?.message ?? String(error);
+  const name = (error as Error)?.name ?? "";
+  return (
+    name === "ChunkLoadError" ||
+    /Importing a module script failed/i.test(msg) ||
+    /Failed to fetch dynamically imported module/i.test(msg) ||
+    /Loading chunk [\d]+ failed/i.test(msg) ||
+    /error loading dynamically imported module/i.test(msg)
+  );
+}
+
 class AppErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false };
 
@@ -18,6 +33,20 @@ class AppErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("Erreur d’affichage interceptée", error, info);
+    if (isChunkLoadError(error)) {
+      try {
+        const already = sessionStorage.getItem(RELOAD_KEY);
+        if (!already) {
+          sessionStorage.setItem(RELOAD_KEY, "1");
+          window.location.reload();
+          return;
+        }
+      } catch {
+        window.location.reload();
+      }
+    } else {
+      try { sessionStorage.removeItem(RELOAD_KEY); } catch { /* noop */ }
+    }
   }
 
   render() {
