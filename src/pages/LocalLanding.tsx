@@ -3,17 +3,18 @@ import { Helmet } from "react-helmet-async";
 import { ChevronRight, Home, MapPin, Truck, PhoneCall, CheckCircle2 } from "lucide-react";
 import Questionnaire from "@/components/Questionnaire";
 import TransportBanner from "@/components/TransportBanner";
-import { matchLocalSlug } from "@/lib/seo/matchSlug";
-import { CITY_MAP } from "@/lib/seo/cities";
-import { MATERIAL_MAP, MATERIALS } from "@/lib/seo/materials";
+import { useSeoData } from "@/hooks/useSeoData";
 
 const SITE = "https://vracquebec.ca";
 
 export default function LocalLanding() {
   const { localSlug } = useParams();
-  const match = matchLocalSlug(localSlug || "");
-
-  if (!match) return <Navigate to="/404" replace />;
+  const { resolveLocalSlug, materials, cityMap, ready } = useSeoData();
+  const match = resolveLocalSlug(localSlug || "");
+  if (!match) {
+    if (!ready) return <div className="min-h-screen" />;
+    return <Navigate to="/404" replace />;
+  }
   const { material, city } = match;
 
   const url = `${SITE}/${material.slug}-${city.slug}`;
@@ -25,9 +26,9 @@ export default function LocalLanding() {
 
   const faqs = buildFaq(material.name, city.name, material.pricingHint, material.deliveryUnit);
 
-  const otherMaterials = MATERIALS.filter((m) => m.slug !== material.slug).slice(0, 8);
+  const otherMaterials = materials.filter((m) => m.slug !== material.slug).slice(0, 8);
   const neighborCities = city.neighbors
-    .map((s) => CITY_MAP[s])
+    .map((s) => cityMap[s])
     .filter(Boolean);
 
   const jsonLdLocalBusiness = {
