@@ -20,11 +20,11 @@ export default function LocalLanding() {
   const url = `${SITE}/${material.slug}-${city.slug}`;
   const title = `${material.name} à ${city.name} — Livraison en vrac | Vrac Québec`;
   const description =
-    `${material.name} livré à ${city.name} : ${material.pricingHint}. Soumission gratuite, camions adaptés, livraison rapide dans la région de Québec et Lévis.`
+    `${material.name} livré à ${city.name} : demande de soumission gratuite auprès des fournisseurs et entrepreneurs partenaires de Vrac Québec. Camions adaptés, réponse rapide dans la région de Québec et Lévis.`
       .slice(0, 158);
   const h1 = `${material.name} livré à ${city.name}`;
 
-  const faqs = buildFaq(material.name, city.name, material.pricingHint, material.deliveryUnit);
+  const faqs = buildFaq(material.name, city.name, material.deliveryUnit);
 
   const otherMaterials = materials.filter((m) => m.slug !== material.slug).slice(0, 8);
   const neighborCities = city.neighbors
@@ -104,15 +104,15 @@ export default function LocalLanding() {
           {h1}
         </h1>
         <p className="mt-4 text-base md:text-lg text-muted-foreground font-body max-w-2xl">
-          {material.description} À {city.name}, Vrac Québec assure la livraison rapide directement sur votre chantier ou votre résidence — {material.pricingHint}.
+          {material.description} À {city.name}, Vrac Québec vous met en relation avec des fournisseurs et entrepreneurs locaux pour livrer directement sur votre chantier ou votre résidence.
           {city.intro ? ` ${city.intro}` : ""}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <a href="#soumission" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold shadow-lg hover:opacity-90 transition-opacity">
             <Truck className="w-4 h-4" /> Obtenir une soumission gratuite
           </a>
-          <a href="tel:+15819947717" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border-2 border-foreground text-foreground font-display font-bold hover:bg-foreground hover:text-background transition-colors">
-            <PhoneCall className="w-4 h-4" /> 581-994-7717
+          <a href="#fournir" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border-2 border-foreground text-foreground font-display font-bold hover:bg-foreground hover:text-background transition-colors">
+            <Truck className="w-4 h-4" /> Je peux fournir ce matériau
           </a>
         </div>
       </header>
@@ -126,7 +126,7 @@ export default function LocalLanding() {
           {[
             { t: "Livraison locale rapide", d: `Nos camions couvrent ${city.name} et les municipalités voisines chaque jour ouvrable.` },
             { t: "Camions adaptés", d: `Du 6 roues au 12 roues, on choisit le bon camion selon l'accès à votre terrain à ${city.name}.` },
-            { t: "Prix transparent", d: `${material.pricingHint} — soumission ferme sans surprise, matériel pesé à la source.` },
+            { t: "Mise en relation locale", d: `Vrac Québec est une plateforme de mise en relation : fournisseurs et entrepreneurs locaux vous soumettent leurs prix directement.` },
           ].map((b) => (
             <div key={b.t} className="rounded-xl border-l-4 border-primary bg-card p-5 shadow-sm">
               <div className="flex items-start gap-3">
@@ -154,18 +154,6 @@ export default function LocalLanding() {
             </li>
           ))}
         </ul>
-      </section>
-
-      {/* Pricing hint */}
-      <section className="container mx-auto px-4 sm:px-6 pb-10">
-        <div className="rounded-2xl bg-foreground text-background p-6 md:p-8">
-          <h2 className="text-2xl md:text-3xl font-display font-bold mb-2">
-            Prix indicatif — {material.name} à {city.name}
-          </h2>
-          <p className="font-body text-background/85">
-            {material.pricingHint}. Le prix final dépend de la quantité, de l'accès au terrain et de la distance de livraison à partir de {city.name}. Demandez votre soumission gratuite ci-dessous — réponse en quelques heures.
-          </p>
-        </div>
       </section>
 
       {/* Form anchor */}
