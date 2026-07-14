@@ -2,21 +2,24 @@ import { Helmet } from "react-helmet-async";
 import { Link, useParams, Navigate } from "react-router-dom";
 import { ChevronRight, Home, MapPin, Truck } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
-import { CITY_MAP } from "@/lib/seo/cities";
-import { MATERIALS } from "@/lib/seo/materials";
+import { useSeoData } from "@/hooks/useSeoData";
 
 const SITE = "https://vracquebec.ca";
 
 export default function LocalCityIndex() {
   const { citySlug } = useParams();
-  const city = citySlug ? CITY_MAP[citySlug] : undefined;
-  if (!city) return <Navigate to="/404" replace />;
+  const { cityMap, materials, ready } = useSeoData();
+  const city = citySlug ? cityMap[citySlug] : undefined;
+  if (!city) {
+    if (!ready) return <div className="min-h-screen" />; // wait for data
+    return <Navigate to="/404" replace />;
+  }
 
   const title = `Livraison de vrac à ${city.name} — Terre, sable, gravier, remblai | Vrac Québec`;
   const description = `Vrac Québec livre terre, sable, gravier, pierre concassée et remblai directement à ${city.name}. Soumission gratuite, camions adaptés, livraison rapide.`.slice(0, 158);
   const url = `${SITE}/livraison/${city.slug}`;
 
-  const neighbors = city.neighbors.map((s) => CITY_MAP[s]).filter(Boolean);
+  const neighbors = city.neighbors.map((s) => cityMap[s]).filter(Boolean);
 
   return (
     <div className="min-h-screen bg-background">
@@ -53,7 +56,7 @@ export default function LocalCityIndex() {
             <Truck className="w-5 h-5 text-primary" /> Matériaux disponibles à {city.name}
           </h2>
           <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {MATERIALS.map((m) => (
+            {materials.map((m) => (
               <li key={m.slug}>
                 <Link to={`/${m.slug}-${city.slug}`} className="block rounded-xl border border-border bg-card p-4 hover:border-primary transition-colors">
                   <div className="font-display font-bold text-foreground">{m.shortName} à {city.name}</div>
