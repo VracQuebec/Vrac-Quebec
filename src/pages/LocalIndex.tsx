@@ -2,11 +2,18 @@ import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { MapPin, ChevronRight, Home } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
-import { CITIES_BY_REGION } from "@/lib/seo/cities";
+import { useSeoData } from "@/hooks/useSeoData";
+import { useMemo } from "react";
 
 const SITE = "https://vracquebec.ca";
 
 export default function LocalIndex() {
+  const { cities } = useSeoData();
+  const byRegion = useMemo(() => {
+    const acc: Record<string, typeof cities> = {};
+    for (const c of cities) (acc[c.region || "Autres"] ||= []).push(c);
+    return acc;
+  }, [cities]);
   const title = "Zones desservies — Livraison de vrac à Québec, Lévis et environs | Vrac Québec";
   const description =
     "Vrac Québec livre terre, sable, gravier, pierre concassée et remblai à Québec, Lévis, Beauport, Charlesbourg, Sainte-Foy et 30+ villes environnantes. Trouvez votre municipalité.";
@@ -37,13 +44,13 @@ export default function LocalIndex() {
         </p>
       </header>
       <main className="container mx-auto px-4 sm:px-6 pb-12 space-y-8">
-        {Object.entries(CITIES_BY_REGION).map(([region, cities]) => (
+        {Object.entries(byRegion).map(([region, cs]) => (
           <section key={region}>
             <h2 className="text-xl font-display font-bold text-foreground mb-3 flex items-center gap-2">
               <MapPin className="w-5 h-5 text-primary" /> {region}
             </h2>
             <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {cities.map((c) => (
+              {cs.map((c) => (
                 <li key={c.slug}>
                   <Link to={`/livraison/${c.slug}`} className="block rounded-lg border border-border bg-card p-3 hover:border-primary font-body text-foreground">
                     {c.name}
