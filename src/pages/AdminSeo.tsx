@@ -30,7 +30,6 @@ type MaterialRow = {
   short_name: string;
   keywords: string[];
   use_cases: string[];
-  pricing_hint: string;
   delivery_unit: string;
   related_materials: string[];
   description: string;
