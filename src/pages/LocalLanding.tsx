@@ -227,11 +227,11 @@ export default function LocalLanding() {
   );
 }
 
-function buildFaq(material: string, city: string, price: string, unit: string) {
+function buildFaq(material: string, city: string, unit: string) {
   return [
     {
-      q: `Quel est le prix du ${material.toLowerCase()} livré à ${city} ?`,
-      a: `Le prix commence ${price}. Le montant final varie selon la quantité, la distance depuis nos sites et l'accès au terrain à ${city}. Demandez une soumission gratuite pour obtenir un prix ferme.`,
+      q: `Comment obtenir un prix pour du ${material.toLowerCase()} à ${city} ?`,
+      a: `Vrac Québec est une plateforme de mise en relation : remplissez le formulaire de demande ci-dessus et des fournisseurs ou entrepreneurs locaux de la région de ${city} vous transmettront leur prix directement, selon la quantité, l'accès au terrain et la distance.`,
     },
     {
       q: `Livrez-vous du ${material.toLowerCase()} directement à ${city} ?`,
