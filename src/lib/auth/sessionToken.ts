@@ -31,8 +31,9 @@ export async function invokeWithFreshSession<TBody extends Record<string, unknow
     headers: { Authorization: `Bearer ${token}` },
   });
 
+  const status = (response.error as { context?: { status?: number } } | null)?.context?.status;
   const message = response.error?.message ?? (response.data as { error?: string } | null)?.error ?? "";
-  if (/401|session invalide|jwt|expired|unauthorized|non autoris/i.test(message)) {
+  if (status === 401 || /401|session invalide|jwt|expired|unauthorized|non autoris/i.test(message)) {
     const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
     if (refreshError || !refreshed.session?.access_token) throw new Error("Session expirée — reconnectez-vous.");
     token = refreshed.session.access_token;
