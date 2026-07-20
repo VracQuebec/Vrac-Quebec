@@ -68,6 +68,13 @@ export default function AdminBlogEditor() {
   const [coverPrompt, setCoverPrompt] = useState("");
   const [coverGenLoading, setCoverGenLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  // SEO Manager attachments — links a post to cities/materials/services
+  const [relCitySlugs, setRelCitySlugs] = useState<string[]>([]);
+  const [relMaterialSlugs, setRelMaterialSlugs] = useState<string[]>([]);
+  const [relServiceSlugs, setRelServiceSlugs] = useState<string[]>([]);
+  const [seoCities, setSeoCities] = useState<Array<{ slug: string; name: string }>>([]);
+  const [seoMaterials, setSeoMaterials] = useState<Array<{ slug: string; name: string }>>([]);
+  const [seoServices, setSeoServices] = useState<Array<{ slug: string; name: string }>>([]);
 
   useEffect(() => {
     if (authReady && !user) navigate("/login");
@@ -76,14 +83,20 @@ export default function AdminBlogEditor() {
 
   useEffect(() => {
     (async () => {
-      const [cats, auths, tgs] = await Promise.all([
+      const [cats, auths, tgs, sc, sm, ss] = await Promise.all([
         supabase.from("blog_categories").select("*").order("sort_order"),
         supabase.from("blog_authors").select("*").order("name"),
         supabase.from("blog_tags").select("*").order("name"),
+        supabase.from("seo_cities").select("slug,name").eq("active", true).order("sort_order"),
+        supabase.from("seo_materials").select("slug,name").eq("active", true).order("sort_order"),
+        supabase.from("seo_services").select("slug,name").eq("active", true).order("sort_order"),
       ]);
       setCategories(cats.data ?? []);
       setAuthors(auths.data ?? []);
       setAllTags(tgs.data ?? []);
+      setSeoCities((sc.data ?? []) as Array<{ slug: string; name: string }>);
+      setSeoMaterials((sm.data ?? []) as Array<{ slug: string; name: string }>);
+      setSeoServices((ss.data ?? []) as Array<{ slug: string; name: string }>);
     })();
   }, []);
 
@@ -113,6 +126,10 @@ export default function AdminBlogEditor() {
       setIsFeatured(data.is_featured);
       setIsPopular(data.is_popular);
       setNoindex(data.noindex);
+      const dataAny = data as unknown as Record<string, unknown>;
+      setRelCitySlugs(Array.isArray(dataAny.related_city_slugs) ? dataAny.related_city_slugs as string[] : []);
+      setRelMaterialSlugs(Array.isArray(dataAny.related_material_slugs) ? dataAny.related_material_slugs as string[] : []);
+      setRelServiceSlugs(Array.isArray(dataAny.related_service_slugs) ? dataAny.related_service_slugs as string[] : []);
       const { data: tagRows } = await supabase.from("blog_post_tags").select("tag_id").eq("post_id", data.id);
       setTags((tagRows ?? []).map((t) => t.tag_id));
       setLoading(false);
@@ -235,6 +252,9 @@ export default function AdminBlogEditor() {
     is_featured: isFeatured,
     is_popular: isPopular,
     noindex,
+    related_city_slugs: relCitySlugs,
+    related_material_slugs: relMaterialSlugs,
+    related_service_slugs: relServiceSlugs,
   });
 
   const persistTags = async (pid: string) => {
@@ -251,9 +271,9 @@ export default function AdminBlogEditor() {
     }
     setSaving(true);
     try {
-      const payload = buildPayload();
+      const payload = buildPayload() as unknown as Record<string, unknown>;
       if (!postId) {
-        const { data, error } = await supabase.from("blog_posts").insert(payload).select("id, slug").single();
+        const { data, error } = await supabase.from("blog_posts").insert(payload as never).select("id, slug").single();
         if (error) throw error;
         setPostId(data.id);
         await persistTags(data.id);
@@ -261,7 +281,7 @@ export default function AdminBlogEditor() {
         if (!opts.silent) toast.success("Article créé");
         navigate(`/admin/blogue/editer/${data.id}`, { replace: true });
       } else {
-        const { error } = await supabase.from("blog_posts").update(payload).eq("id", postId);
+        const { error } = await supabase.from("blog_posts").update(payload as never).eq("id", postId);
         if (error) throw error;
         await persistTags(postId);
         setSavedAt(new Date());
@@ -274,7 +294,7 @@ export default function AdminBlogEditor() {
       setSaving(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, slug, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, postId, tags]);
+  }, [title, slug, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, postId, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs]);
 
   // Auto-save (debounced) — only for existing posts to avoid firing on empty new post
   const timerRef = useRef<number | null>(null);
@@ -287,7 +307,7 @@ export default function AdminBlogEditor() {
     }, 3000);
     return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, slug, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, tags]);
+  }, [title, slug, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs]);
 
   const uploadCover = async (file: File) => {
     setUploading(true);
@@ -621,7 +641,20 @@ export default function AdminBlogEditor() {
         )}
 
         {tab === "related" && (
-          <RelatedManager postId={postId} />
+          <div className="space-y-8">
+            <SeoAttachments
+              cities={seoCities}
+              materials={seoMaterials}
+              services={seoServices}
+              selCities={relCitySlugs}
+              selMaterials={relMaterialSlugs}
+              selServices={relServiceSlugs}
+              onCities={setRelCitySlugs}
+              onMaterials={setRelMaterialSlugs}
+              onServices={setRelServiceSlugs}
+            />
+            <RelatedManager postId={postId} />
+          </div>
         )}
 
         {tab === "settings" && (
