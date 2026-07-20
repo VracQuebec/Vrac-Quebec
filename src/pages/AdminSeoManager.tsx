@@ -670,3 +670,135 @@ function LabeledTextarea({ label, value, onChange }: { label: string; value: str
     </label>
   );
 }
+
+/* =========================================================================
+ * ANALYTICS TAB — SEO score, structure, refresh queue
+ * ========================================================================= */
+function AnalyticsTab() {
+  const [rows, setRows] = useState<Page[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "needs_refresh" | "low_score">("all");
+  const [regenerating, setRegenerating] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    let q = supabase.from("seo_pages").select("id, slug, city_slug, material_slug, service_slug, title, status, last_generated_at, created_at, view_count, seo_score, word_count, internal_link_count, needs_refresh").order("seo_score", { ascending: true, nullsFirst: true }).limit(500);
+    if (filter === "needs_refresh") q = q.eq("needs_refresh", true);
+    if (filter === "low_score") q = q.lt("seo_score", 70);
+    const { data } = await q;
+    setRows((data ?? []) as unknown as Page[]);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, [filter]);
+
+  const stats = useMemo(() => {
+    const scored = rows.filter((r) => typeof r.seo_score === "number");
+    const avg = scored.length ? Math.round(scored.reduce((s, r) => s + (r.seo_score ?? 0), 0) / scored.length) : 0;
+    const excellent = rows.filter((r) => (r.seo_score ?? 0) >= 85).length;
+    const good = rows.filter((r) => (r.seo_score ?? 0) >= 65 && (r.seo_score ?? 0) < 85).length;
+    const weak = rows.filter((r) => typeof r.seo_score === "number" && r.seo_score < 65).length;
+    const refresh = rows.filter((r) => r.needs_refresh).length;
+    return { avg, excellent, good, weak, refresh };
+  }, [rows]);
+
+  const regenerate = async (page: Page) => {
+    setRegenerating(page.id);
+    try {
+      const { data: city } = await supabase.from("seo_cities").select("slug, name, region").eq("slug", page.city_slug).maybeSingle();
+      const { data: material } = page.material_slug ? await supabase.from("seo_materials").select("slug, name, short_name, description").eq("slug", page.material_slug).maybeSingle() : { data: null };
+      const { data: service } = page.service_slug ? await supabase.from("seo_services").select("slug, name, description").eq("slug", page.service_slug).maybeSingle() : { data: null };
+      const res = await invokeWithFreshSession("seo-generate-page", { body: { city, material, service, force: true } });
+      if ((res as any)?.error) throw new Error((res as any).error?.message || "Erreur");
+      toast.success("Page régénérée");
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur de régénération");
+    } finally {
+      setRegenerating(null);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <StatCard label="Score moyen" value={stats.avg} />
+        <StatCard label="Excellent (85+)" value={stats.excellent} />
+        <StatCard label="Bon (65-84)" value={stats.good} />
+        <StatCard label="À améliorer" value={stats.weak} />
+        <StatCard label="À rafraîchir" value={stats.refresh} />
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {(["all", "needs_refresh", "low_score"] as const).map((f) => (
+          <button key={f} onClick={() => setFilter(f)}
+            className={`px-3 py-1.5 rounded-md text-sm font-display font-semibold ${
+              filter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            }`}>
+            {f === "all" ? "Toutes" : f === "needs_refresh" ? "À rafraîchir" : "Score faible"}
+          </button>
+        ))}
+      </div>
+
+      {loading ? <Spinner /> : rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Aucune page.</p>
+      ) : (
+        <div className="rounded-lg border border-border bg-card overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-xs text-muted-foreground">
+              <tr>
+                <th className="text-left p-3">Page</th>
+                <th className="text-center p-3">Score</th>
+                <th className="text-center p-3">Mots</th>
+                <th className="text-center p-3">Liens int.</th>
+                <th className="text-center p-3">Statut</th>
+                <th className="p-3"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.map((r) => (
+                <tr key={r.id} className="hover:bg-muted/30">
+                  <td className="p-3 min-w-0">
+                    <div className="font-body text-foreground truncate max-w-[420px]">{r.title}</div>
+                    <div className="text-xs text-muted-foreground font-mono truncate">/{r.slug}</div>
+                  </td>
+                  <td className="p-3 text-center">
+                    <ScoreBadge score={r.seo_score} />
+                  </td>
+                  <td className="p-3 text-center text-foreground">{r.word_count ?? "—"}</td>
+                  <td className="p-3 text-center text-foreground">{r.internal_link_count ?? "—"}</td>
+                  <td className="p-3 text-center">
+                    {r.needs_refresh ? (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 font-display font-semibold">
+                        <RefreshCw className="w-3 h-3" /> À rafraîchir
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">À jour</span>
+                    )}
+                  </td>
+                  <td className="p-3 text-right">
+                    <div className="flex justify-end items-center gap-2">
+                      <Link to={`/${r.slug}`} target="_blank" className="text-primary hover:underline text-xs inline-flex items-center gap-1">
+                        <ExternalLink className="w-3 h-3" /> Voir
+                      </Link>
+                      <button onClick={() => regenerate(r)} disabled={regenerating === r.id}
+                        className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-primary text-primary-foreground font-display font-semibold hover:opacity-90 disabled:opacity-50">
+                        {regenerating === r.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+                        Régénérer
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ScoreBadge({ score }: { score?: number | null }) {
+  if (score == null) return <span className="text-xs text-muted-foreground">—</span>;
+  const color = score >= 85 ? "bg-primary/20 text-primary" : score >= 65 ? "bg-amber-500/15 text-amber-600" : "bg-destructive/15 text-destructive";
+  return <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-display font-bold ${color}`}>{score}/100</span>;
+}
