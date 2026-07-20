@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ChevronRight, Home, MapPin, Truck, Loader2 } from "lucide-react";
+import { ChevronRight, Home, MapPin, Truck, Loader2, MapPinned } from "lucide-react";
 import Questionnaire from "@/components/Questionnaire";
 import TransportBanner from "@/components/TransportBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSeoData } from "@/hooks/useSeoData";
 import LocalLanding from "./LocalLanding";
+import InternalLinksBlock, { type InternalLink } from "@/components/seo/InternalLinksBlock";
 
 const SITE = "https://vracquebec.ca";
 
@@ -24,6 +25,8 @@ type SeoPage = {
   content_html: string;
   faq: Array<{ question: string; answer: string }>;
   cover_image_url: string | null;
+  cover_image_alt?: string | null;
+  internal_links?: InternalLink[];
   status: string;
 };
 
@@ -31,6 +34,7 @@ export default function SeoLandingPage() {
   const { localSlug } = useParams();
   const slug = (localSlug || "").toLowerCase();
   const [page, setPage] = useState<SeoPage | null>(null);
+  const [dumpCount, setDumpCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const { cityMap, materialMap, resolveLocalSlug, ready } = useSeoData();
 
@@ -45,7 +49,12 @@ export default function SeoLandingPage() {
         .eq("status", "published")
         .maybeSingle();
       if (cancelled) return;
-      setPage((data ?? null) as unknown as SeoPage | null);
+      const p = (data ?? null) as unknown as SeoPage | null;
+      setPage(p);
+      if (p?.city_slug) {
+        const { data: cnt } = await supabase.rpc("count_active_dumps_by_city", { _city_slug: p.city_slug });
+        if (!cancelled) setDumpCount(typeof cnt === "number" ? cnt : 0);
+      }
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -110,6 +119,7 @@ export default function SeoLandingPage() {
     : null;
 
   const neighborCities = city?.neighbors.map((s) => cityMap[s]).filter(Boolean) ?? [];
+  const internalLinks: InternalLink[] = Array.isArray(page.internal_links) ? page.internal_links : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,9 +132,13 @@ export default function SeoLandingPage() {
         <meta property="og:type" content="website" />
         <meta property="og:url" content={url} />
         {page.cover_image_url && <meta property="og:image" content={page.cover_image_url} />}
+        {page.cover_image_url && page.cover_image_alt && (
+          <meta property="og:image:alt" content={page.cover_image_alt} />
+        )}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
+        {page.cover_image_url && <meta name="twitter:image" content={page.cover_image_url} />}
         <script type="application/ld+json">{JSON.stringify(jsonLdLocalBusiness)}</script>
         <script type="application/ld+json">{JSON.stringify(jsonLdBreadcrumb)}</script>
         {jsonLdFaq && <script type="application/ld+json">{JSON.stringify(jsonLdFaq)}</script>}
@@ -167,6 +181,24 @@ export default function SeoLandingPage() {
         <div dangerouslySetInnerHTML={{ __html: page.content_html }} />
       </article>
 
+      {city && dumpCount !== null && dumpCount > 0 && (
+        <section className="container mx-auto px-4 sm:px-6 pb-8">
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 flex items-start gap-4">
+            <div className="shrink-0 rounded-lg bg-primary/15 p-2">
+              <MapPinned className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-display font-bold text-foreground text-lg">
+                {dumpCount} {dumpCount > 1 ? "points de dépôt actifs" : "point de dépôt actif"} à {city.name}
+              </p>
+              <p className="text-sm text-muted-foreground font-body mt-1">
+                Vrac Québec connecte les clients aux dompes disponibles dans le secteur — soumettez votre demande pour être mis en relation.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section id="soumission" className="bg-muted/30 py-10 border-y border-border">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-6">
@@ -194,6 +226,8 @@ export default function SeoLandingPage() {
           </div>
         </section>
       )}
+
+      <InternalLinksBlock links={internalLinks} />
 
       {(neighborCities.length > 0 || material) && (
         <section className="container mx-auto px-4 sm:px-6 pb-12 grid grid-cols-1 md:grid-cols-2 gap-8">
