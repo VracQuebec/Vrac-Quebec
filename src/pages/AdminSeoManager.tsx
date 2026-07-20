@@ -738,6 +738,15 @@ function GeneratorTab() {
 
   return (
     <div className="space-y-6">
+      <QuickPackButton
+        cities={cities}
+        materials={materials}
+        onApply={(cityIds, materialIds) => {
+          setSelCities(new Set(cityIds));
+          setSelMaterials(new Set(materialIds));
+          setSelServices(new Set());
+        }}
+      />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <PickerColumn title="Villes" items={cities} selected={selCities} onChange={setSelCities} onToggleAll={() => toggleAll(cities, selCities, setSelCities)} />
         <PickerColumn title="Matériaux" items={materials} selected={selMaterials} onChange={setSelMaterials} onToggleAll={() => toggleAll(materials, selMaterials, setSelMaterials)} />
