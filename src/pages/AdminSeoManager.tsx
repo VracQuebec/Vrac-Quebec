@@ -1471,7 +1471,7 @@ function GscTab() {
     setLoading(true);
     const { data } = await supabase
       .from("seo_gsc_metrics")
-      .select("page_id, period, clicks, impressions, ctr, position, top_queries, seo_pages:page_id (slug, title)")
+      .select("page_id, period, clicks, impressions, ctr, position, top_queries, fetched_at, seo_pages:page_id (slug, title)")
       .eq("period", period)
       .order("impressions", { ascending: false })
       .limit(500);
