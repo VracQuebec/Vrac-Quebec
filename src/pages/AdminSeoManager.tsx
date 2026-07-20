@@ -10,10 +10,22 @@ import {
   Loader2, Plus, Trash2, Play, Pause, RotateCcw, Save, ExternalLink, Gauge, RefreshCw,
 } from "lucide-react";
 
-type Tab = "dashboard" | "cities" | "materials" | "services" | "generator" | "suggestions" | "analytics";
+type Tab = "dashboard" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics";
 
-type City = { id: string; slug: string; name: string; region: string; active: boolean; sort_order: number };
-type Material = { id: string; slug: string; name: string; short_name: string; description: string; active: boolean; sort_order: number };
+type City = {
+  id: string; slug: string; name: string; region: string;
+  latitude: number | null; longitude: number | null; population: number | null;
+  intro: string | null; neighbors: string[]; active: boolean; sort_order: number;
+};
+type Material = {
+  id: string; slug: string; name: string; short_name: string; description: string;
+  keywords: string[]; use_cases: string[]; delivery_unit: string; related_materials: string[];
+  active: boolean; sort_order: number;
+};
+type Use = {
+  id: string; slug: string; material_slug: string; name: string; description: string;
+  active: boolean; sort_order: number;
+};
 type Service = { id: string; slug: string; name: string; short_name: string | null; description: string; keywords: string[]; active: boolean; sort_order: number };
 type Page = { id: string; slug: string; city_slug: string; material_slug: string | null; service_slug: string | null; title: string; status: string; last_generated_at: string | null; created_at: string; view_count: number; seo_score?: number | null; word_count?: number | null; internal_link_count?: number | null; needs_refresh?: boolean };
 
@@ -37,6 +49,7 @@ export default function AdminSeoManager() {
     { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { id: "cities", label: "Villes", icon: MapPin },
     { id: "materials", label: "Matériaux", icon: Package },
+    { id: "uses", label: "Usages", icon: Wrench },
     { id: "services", label: "Services", icon: Wrench },
     { id: "generator", label: "Générateur", icon: Sparkles },
     { id: "analytics", label: "Analyse SEO", icon: Gauge },
@@ -50,7 +63,7 @@ export default function AdminSeoManager() {
           <Link to="/admin" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-4 h-4" /> CRM
           </Link>
-          <h1 className="text-lg font-display font-bold text-foreground">SEO Manager</h1>
+          <h1 className="text-lg font-display font-bold text-foreground">SEO</h1>
         </div>
       </header>
       <div className="container mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6">
@@ -68,6 +81,7 @@ export default function AdminSeoManager() {
           {tab === "dashboard" && <Dashboard />}
           {tab === "cities" && <CitiesTab />}
           {tab === "materials" && <MaterialsTab />}
+          {tab === "uses" && <UsesTab />}
           {tab === "services" && <ServicesTab />}
           {tab === "generator" && <GeneratorTab />}
           {tab === "analytics" && <AnalyticsTab />}
