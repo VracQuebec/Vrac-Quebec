@@ -589,10 +589,7 @@ const Admin = () => {
               <Ban className="w-4 h-4" /> Liste noire
             </Link>
             <Link to="/admin/seo" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <MapPin className="w-4 h-4" /> SEO Local
-            </Link>
-            <Link to="/admin/seo-manager" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <MapPin className="w-4 h-4" /> SEO Manager
+              <MapPin className="w-4 h-4" /> SEO
             </Link>
             <button onClick={() => setShowUsers(true)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <Users className="w-4 h-4" /> Entrepreneurs
@@ -635,10 +632,7 @@ const Admin = () => {
                   <Ban className="w-4 h-4" /> Liste noire
                 </Link>
                 <Link to="/admin/seo" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
-                  <MapPin className="w-4 h-4" /> SEO Local
-                </Link>
-                <Link to="/admin/seo-manager" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
-                  <MapPin className="w-4 h-4" /> SEO Manager
+                  <MapPin className="w-4 h-4" /> SEO
                 </Link>
                 <Link to="/admin/donnees" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
                   <DatabaseIcon className="w-4 h-4" /> Données

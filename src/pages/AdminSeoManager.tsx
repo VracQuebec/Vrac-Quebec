@@ -10,10 +10,22 @@ import {
   Loader2, Plus, Trash2, Play, Pause, RotateCcw, Save, ExternalLink, Gauge, RefreshCw,
 } from "lucide-react";
 
-type Tab = "dashboard" | "cities" | "materials" | "services" | "generator" | "suggestions" | "analytics";
+type Tab = "dashboard" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics";
 
-type City = { id: string; slug: string; name: string; region: string; active: boolean; sort_order: number };
-type Material = { id: string; slug: string; name: string; short_name: string; description: string; active: boolean; sort_order: number };
+type City = {
+  id: string; slug: string; name: string; region: string;
+  latitude: number | null; longitude: number | null; population: number | null;
+  intro: string | null; neighbors: string[]; active: boolean; sort_order: number;
+};
+type Material = {
+  id: string; slug: string; name: string; short_name: string; description: string;
+  keywords: string[]; use_cases: string[]; delivery_unit: string; related_materials: string[];
+  active: boolean; sort_order: number;
+};
+type Use = {
+  id: string; slug: string; material_slug: string; name: string; description: string;
+  active: boolean; sort_order: number;
+};
 type Service = { id: string; slug: string; name: string; short_name: string | null; description: string; keywords: string[]; active: boolean; sort_order: number };
 type Page = { id: string; slug: string; city_slug: string; material_slug: string | null; service_slug: string | null; title: string; status: string; last_generated_at: string | null; created_at: string; view_count: number; seo_score?: number | null; word_count?: number | null; internal_link_count?: number | null; needs_refresh?: boolean };
 
@@ -37,6 +49,7 @@ export default function AdminSeoManager() {
     { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { id: "cities", label: "Villes", icon: MapPin },
     { id: "materials", label: "Matériaux", icon: Package },
+    { id: "uses", label: "Usages", icon: Wrench },
     { id: "services", label: "Services", icon: Wrench },
     { id: "generator", label: "Générateur", icon: Sparkles },
     { id: "analytics", label: "Analyse SEO", icon: Gauge },
@@ -50,7 +63,7 @@ export default function AdminSeoManager() {
           <Link to="/admin" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-4 h-4" /> CRM
           </Link>
-          <h1 className="text-lg font-display font-bold text-foreground">SEO Manager</h1>
+          <h1 className="text-lg font-display font-bold text-foreground">SEO</h1>
         </div>
       </header>
       <div className="container mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6">
@@ -68,6 +81,7 @@ export default function AdminSeoManager() {
           {tab === "dashboard" && <Dashboard />}
           {tab === "cities" && <CitiesTab />}
           {tab === "materials" && <MaterialsTab />}
+          {tab === "uses" && <UsesTab />}
           {tab === "services" && <ServicesTab />}
           {tab === "generator" && <GeneratorTab />}
           {tab === "analytics" && <AnalyticsTab />}
@@ -162,64 +176,327 @@ function PageList({ title, rows, emptyText }: { title: string; rows: Page[]; emp
 function CitiesTab() {
   const [rows, setRows] = useState<City[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<City | null>(null);
+  const [q, setQ] = useState("");
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("seo_cities").select("id,slug,name,region,active,sort_order").order("sort_order");
+    const { data } = await supabase.from("seo_cities").select("*").order("sort_order");
     setRows((data ?? []) as City[]);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+  const filtered = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    if (!t) return rows;
+    return rows.filter((r) => r.name.toLowerCase().includes(t) || r.slug.toLowerCase().includes(t) || (r.region || "").toLowerCase().includes(t));
+  }, [rows, q]);
+  const save = async (form: City) => {
+    if (!form.name.trim()) return toast.error("Nom requis");
+    const slug = (form.slug.trim() || slugify(form.name));
+    const { id: _id, ...rest } = form;
+    void _id;
+    const payload = { ...rest, slug };
+    const { error } = form.id
+      ? await supabase.from("seo_cities").update(payload).eq("id", form.id)
+      : await supabase.from("seo_cities").insert(payload);
+    if (error) return toast.error(error.message);
+    toast.success(form.id ? "Ville mise à jour" : "Ville créée");
+    setEditing(null); load();
+  };
   return (
-    <SimpleAdminList
-      title="Villes"
-      rows={rows.map((r) => ({ id: r.id, name: r.name, sub: `${r.region} · /${r.slug}`, active: r.active }))}
-      loading={loading}
-      onToggle={async (id) => {
-        const row = rows.find((r) => r.id === id)!;
-        await supabase.from("seo_cities").update({ active: !row.active }).eq("id", id);
-        load();
-      }}
-      onDelete={async (id) => {
-        if (!confirm("Supprimer cette ville ?")) return;
-        await supabase.from("seo_cities").delete().eq("id", id);
-        load();
-      }}
-      extra={
-        <Link to="/admin/seo" className="text-sm text-primary hover:underline">
-          Éditeur complet (villes / matériaux / usages) →
-        </Link>
-      }
-    />
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher..." className="flex-1 max-w-md px-3 py-2 rounded-md border border-border bg-card text-sm" />
+        <button
+          onClick={() => setEditing({ id: "", slug: "", name: "", region: "", latitude: null, longitude: null, population: null, intro: "", neighbors: [], active: true, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 })}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold">
+          <Plus className="w-4 h-4" /> Ajouter
+        </button>
+      </div>
+      {loading ? <Spinner /> : (
+        <ul className="rounded-lg border border-border bg-card divide-y divide-border">
+          {filtered.map((r) => (
+            <li key={r.id} className="p-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-body text-foreground truncate">{r.name}</div>
+                <div className="text-xs text-muted-foreground font-mono truncate">{r.region} · /{r.slug} · {r.neighbors?.length ?? 0} voisines</div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={async () => { await supabase.from("seo_cities").update({ active: !r.active }).eq("id", r.id); load(); }}
+                  className={`px-2 py-0.5 rounded text-xs font-semibold ${r.active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  {r.active ? "Active" : "Inactive"}
+                </button>
+                <button onClick={() => setEditing(r)} className="text-xs text-primary hover:underline">Modifier</button>
+                <button onClick={async () => { if (confirm(`Supprimer ${r.name} ?`)) { await supabase.from("seo_cities").delete().eq("id", r.id); load(); } }}
+                  className="text-destructive hover:opacity-80"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </li>
+          ))}
+          {filtered.length === 0 && <li className="p-6 text-center text-muted-foreground text-sm">Aucune ville.</li>}
+        </ul>
+      )}
+      {editing && <CityEditor initial={editing} allCities={rows} onClose={() => setEditing(null)} onSave={save} />}
+    </div>
+  );
+}
+
+function CityEditor({ initial, allCities, onClose, onSave }: {
+  initial: City; allCities: City[]; onClose: () => void; onSave: (c: City) => void;
+}) {
+  const [form, setForm] = useState<City>(initial);
+  return (
+    <Modal title={initial.id ? `Modifier ${initial.name}` : "Nouvelle ville"} onClose={onClose}>
+      <div className="space-y-3 text-sm">
+        <div className="grid grid-cols-2 gap-3">
+          <LabeledInput label="Nom" value={form.name} onChange={(v) => setForm({ ...form, name: v, slug: form.slug || slugify(v) })} />
+          <LabeledInput label="Slug" mono value={form.slug} onChange={(v) => setForm({ ...form, slug: slugify(v) })} />
+          <LabeledInput label="Région" value={form.region} onChange={(v) => setForm({ ...form, region: v })} />
+          <LabeledInput label="Population" type="number" value={form.population?.toString() ?? ""} onChange={(v) => setForm({ ...form, population: v ? Number(v) : null })} />
+          <LabeledInput label="Latitude" type="number" value={form.latitude?.toString() ?? ""} onChange={(v) => setForm({ ...form, latitude: v ? Number(v) : null })} />
+          <LabeledInput label="Longitude" type="number" value={form.longitude?.toString() ?? ""} onChange={(v) => setForm({ ...form, longitude: v ? Number(v) : null })} />
+        </div>
+        <LabeledTextarea label="Introduction" value={form.intro ?? ""} onChange={(v) => setForm({ ...form, intro: v })} />
+        <div>
+          <div className="text-xs font-display font-semibold text-muted-foreground mb-1">Villes voisines</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-40 overflow-y-auto p-2 rounded border border-border">
+            {allCities.filter((c) => c.slug !== form.slug).map((c) => (
+              <label key={c.slug} className="flex items-center gap-1.5 text-xs font-body">
+                <input type="checkbox" checked={form.neighbors.includes(c.slug)}
+                  onChange={(e) => setForm({ ...form, neighbors: e.target.checked ? [...form.neighbors, c.slug] : form.neighbors.filter((s) => s !== c.slug) })} />
+                {c.name}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <LabeledInput label="Ordre" type="number" value={String(form.sort_order)} onChange={(v) => setForm({ ...form, sort_order: Number(v) || 0 })} />
+          <label className="flex items-center gap-2 mt-6">
+            <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
+            <span>Active</span>
+          </label>
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-md border border-border text-sm">Annuler</button>
+          <button onClick={() => onSave(form)} className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold">
+            <Save className="w-4 h-4" /> Enregistrer
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
 function MaterialsTab() {
   const [rows, setRows] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Material | null>(null);
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("seo_materials").select("id,slug,name,short_name,description,active,sort_order").order("sort_order");
+    const { data } = await supabase.from("seo_materials").select("*").order("sort_order");
     setRows((data ?? []) as Material[]);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+  const save = async (form: Material) => {
+    if (!form.name.trim()) return toast.error("Nom requis");
+    const slug = form.slug.trim() || slugify(form.name);
+    const { id: _id, ...rest } = form;
+    void _id;
+    const payload = { ...rest, slug, short_name: form.short_name || form.name };
+    const { error } = form.id
+      ? await supabase.from("seo_materials").update(payload).eq("id", form.id)
+      : await supabase.from("seo_materials").insert(payload);
+    if (error) return toast.error(error.message);
+    toast.success(form.id ? "Matériau mis à jour" : "Matériau créé");
+    setEditing(null); load();
+  };
   return (
-    <SimpleAdminList
-      title="Matériaux"
-      rows={rows.map((r) => ({ id: r.id, name: r.name, sub: `/${r.slug}`, active: r.active }))}
-      loading={loading}
-      onToggle={async (id) => {
-        const row = rows.find((r) => r.id === id)!;
-        await supabase.from("seo_materials").update({ active: !row.active }).eq("id", id);
-        load();
-      }}
-      onDelete={async (id) => {
-        if (!confirm("Supprimer ce matériau ?")) return;
-        await supabase.from("seo_materials").delete().eq("id", id);
-        load();
-      }}
-      extra={<Link to="/admin/seo" className="text-sm text-primary hover:underline">Éditeur complet →</Link>}
-    />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display font-bold text-lg">Matériaux</h2>
+        <button
+          onClick={() => setEditing({ id: "", slug: "", name: "", short_name: "", keywords: [], use_cases: [], delivery_unit: "tonne", related_materials: [], description: "", active: true, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 })}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold">
+          <Plus className="w-4 h-4" /> Ajouter
+        </button>
+      </div>
+      {loading ? <Spinner /> : (
+        <ul className="rounded-lg border border-border bg-card divide-y divide-border">
+          {rows.map((r) => (
+            <li key={r.id} className="p-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-body text-foreground truncate">{r.name}</div>
+                <div className="text-xs text-muted-foreground font-mono truncate">/{r.slug} · {r.delivery_unit}</div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={async () => { await supabase.from("seo_materials").update({ active: !r.active }).eq("id", r.id); load(); }}
+                  className={`px-2 py-0.5 rounded text-xs font-semibold ${r.active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  {r.active ? "Actif" : "Inactif"}
+                </button>
+                <button onClick={() => setEditing(r)} className="text-xs text-primary hover:underline">Modifier</button>
+                <button onClick={async () => { if (confirm(`Supprimer ${r.name} ?`)) { await supabase.from("seo_materials").delete().eq("id", r.id); load(); } }}
+                  className="text-destructive hover:opacity-80"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {editing && <MaterialEditor initial={editing} allMaterials={rows} onClose={() => setEditing(null)} onSave={save} />}
+    </div>
+  );
+}
+
+function MaterialEditor({ initial, allMaterials, onClose, onSave }: {
+  initial: Material; allMaterials: Material[]; onClose: () => void; onSave: (m: Material) => void;
+}) {
+  const [form, setForm] = useState<Material>(initial);
+  return (
+    <Modal title={initial.id ? `Modifier ${initial.name}` : "Nouveau matériau"} onClose={onClose}>
+      <div className="space-y-3 text-sm">
+        <div className="grid grid-cols-2 gap-3">
+          <LabeledInput label="Nom complet" value={form.name} onChange={(v) => setForm({ ...form, name: v, slug: form.slug || slugify(v) })} />
+          <LabeledInput label="Nom court" value={form.short_name} onChange={(v) => setForm({ ...form, short_name: v })} />
+          <LabeledInput label="Slug" mono value={form.slug} onChange={(v) => setForm({ ...form, slug: slugify(v) })} />
+          <label className="block">
+            <span className="text-xs font-display font-semibold text-muted-foreground">Unité de livraison</span>
+            <select value={form.delivery_unit} onChange={(e) => setForm({ ...form, delivery_unit: e.target.value })}
+              className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-background text-sm">
+              <option value="tonne">tonne</option>
+              <option value="verge cube">verge cube</option>
+            </select>
+          </label>
+        </div>
+        <LabeledTextarea label="Description" value={form.description} onChange={(v) => setForm({ ...form, description: v })} />
+        <LabeledTextarea label="Mots-clés (un par ligne)" value={form.keywords.join("\n")} onChange={(v) => setForm({ ...form, keywords: v.split("\n").map((s) => s.trim()).filter(Boolean) })} />
+        <LabeledTextarea label="Utilisations courantes (une par ligne)" value={form.use_cases.join("\n")} onChange={(v) => setForm({ ...form, use_cases: v.split("\n").map((s) => s.trim()).filter(Boolean) })} />
+        <div>
+          <div className="text-xs font-display font-semibold text-muted-foreground mb-1">Matériaux similaires</div>
+          <div className="grid grid-cols-2 gap-1 max-h-40 overflow-y-auto p-2 rounded border border-border">
+            {allMaterials.filter((m) => m.slug !== form.slug).map((m) => (
+              <label key={m.slug} className="flex items-center gap-1.5 text-xs font-body">
+                <input type="checkbox" checked={form.related_materials.includes(m.slug)}
+                  onChange={(e) => setForm({ ...form, related_materials: e.target.checked ? [...form.related_materials, m.slug] : form.related_materials.filter((s) => s !== m.slug) })} />
+                {m.name}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <LabeledInput label="Ordre" type="number" value={String(form.sort_order)} onChange={(v) => setForm({ ...form, sort_order: Number(v) || 0 })} />
+          <label className="flex items-center gap-2 mt-6">
+            <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
+            <span>Actif</span>
+          </label>
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-md border border-border text-sm">Annuler</button>
+          <button onClick={() => onSave(form)} className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold">
+            <Save className="w-4 h-4" /> Enregistrer
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* =========================================================================
+ * USAGES — pages "par utilisation" (ex: terre-pour-gazon)
+ * ========================================================================= */
+function UsesTab() {
+  const [rows, setRows] = useState<Use[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Use | null>(null);
+  const load = async () => {
+    setLoading(true);
+    const [u, m] = await Promise.all([
+      supabase.from("seo_material_uses").select("*").order("sort_order"),
+      supabase.from("seo_materials").select("*").order("sort_order"),
+    ]);
+    setRows((u.data ?? []) as Use[]);
+    setMaterials((m.data ?? []) as Material[]);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+  const save = async (row: Use) => {
+    if (!row.name.trim()) return toast.error("Nom requis");
+    if (!row.material_slug) return toast.error("Matériau requis");
+    const slug = row.slug.trim() || slugify(row.name);
+    const { id: _id, ...rest } = row;
+    void _id;
+    const payload = { ...rest, slug };
+    const { error } = row.id
+      ? await supabase.from("seo_material_uses").update(payload).eq("id", row.id)
+      : await supabase.from("seo_material_uses").insert(payload);
+    if (error) return toast.error(error.message);
+    toast.success("Enregistré");
+    setEditing(null); load();
+  };
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-display font-bold text-lg">Usages</h2>
+          <p className="text-xs text-muted-foreground font-body">Pages ciblées comme <code>terre-pour-gazon</code>, <code>gravier-pour-entree</code>, etc.</p>
+        </div>
+        <button
+          onClick={() => setEditing({ id: "", slug: "", material_slug: materials[0]?.slug ?? "", name: "", description: "", active: true, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 })}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold">
+          <Plus className="w-4 h-4" /> Ajouter
+        </button>
+      </div>
+      {loading ? <Spinner /> : (
+        <ul className="rounded-lg border border-border bg-card divide-y divide-border">
+          {rows.map((r) => (
+            <li key={r.id} className="p-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-body text-foreground truncate">{r.name}</div>
+                <div className="text-xs text-muted-foreground font-mono truncate">/{r.slug} · {r.material_slug}</div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={async () => { await supabase.from("seo_material_uses").update({ active: !r.active }).eq("id", r.id); load(); }}
+                  className={`px-2 py-0.5 rounded text-xs font-semibold ${r.active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  {r.active ? "Actif" : "Inactif"}
+                </button>
+                <button onClick={() => setEditing(r)} className="text-xs text-primary hover:underline">Modifier</button>
+                <button onClick={async () => { if (confirm("Supprimer ?")) { await supabase.from("seo_material_uses").delete().eq("id", r.id); load(); } }}
+                  className="text-destructive hover:opacity-80"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </li>
+          ))}
+          {rows.length === 0 && <li className="p-6 text-center text-muted-foreground text-sm">Aucun usage. Créez-en pour ouvrir des pages par utilisation (ex: terre-pour-gazon).</li>}
+        </ul>
+      )}
+      {editing && (
+        <Modal title={editing.id ? "Modifier l'usage" : "Nouvel usage"} onClose={() => setEditing(null)}>
+          <div className="space-y-3 text-sm">
+            <LabeledInput label="Nom (ex : Terre pour gazon)" value={editing.name} onChange={(v) => setEditing({ ...editing, name: v, slug: editing.slug || slugify(v) })} />
+            <LabeledInput label="Slug" mono value={editing.slug} onChange={(v) => setEditing({ ...editing, slug: slugify(v) })} />
+            <label className="block">
+              <span className="text-xs font-display font-semibold text-muted-foreground">Matériau associé</span>
+              <select value={editing.material_slug} onChange={(e) => setEditing({ ...editing, material_slug: e.target.value })}
+                className="mt-1 w-full px-3 py-2 rounded-md border border-border bg-background text-sm">
+                {materials.map((m) => <option key={m.slug} value={m.slug}>{m.name}</option>)}
+              </select>
+            </label>
+            <LabeledTextarea label="Description SEO courte" value={editing.description} onChange={(v) => setEditing({ ...editing, description: v })} />
+            <div className="grid grid-cols-2 gap-3">
+              <LabeledInput label="Ordre" type="number" value={String(editing.sort_order)} onChange={(v) => setEditing({ ...editing, sort_order: Number(v) || 0 })} />
+              <label className="flex items-center gap-2 mt-6">
+                <input type="checkbox" checked={editing.active} onChange={(e) => setEditing({ ...editing, active: e.target.checked })} />
+                <span>Actif</span>
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setEditing(null)} className="px-4 py-2 rounded-md border border-border text-sm">Annuler</button>
+              <button onClick={() => save(editing)} className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold">
+                <Save className="w-4 h-4" /> Enregistrer
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
   );
 }
 

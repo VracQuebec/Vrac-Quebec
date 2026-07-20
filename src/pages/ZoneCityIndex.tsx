@@ -1,25 +1,61 @@
+import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams, Navigate } from "react-router-dom";
-import { ChevronRight, Home, MapPin, Truck } from "lucide-react";
+import { ChevronRight, Home, MapPin, Truck, Loader2 } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
-import { useSeoData } from "@/hooks/useSeoData";
+import { supabase } from "@/integrations/supabase/client";
+import type { SeoCity, SeoMaterial } from "@/lib/seo/manager";
 
 const SITE = "https://vracquebec.ca";
 
-export default function LocalCityIndex() {
+export default function ZoneCityIndex() {
   const { citySlug } = useParams();
-  const { cityMap, materials, ready } = useSeoData();
-  const city = citySlug ? cityMap[citySlug] : undefined;
-  if (!city) {
-    if (!ready) return <div className="min-h-screen" />; // wait for data
-    return <Navigate to="/404" replace />;
+  const [city, setCity] = useState<SeoCity | null>(null);
+  const [materials, setMaterials] = useState<SeoMaterial[]>([]);
+  const [neighbors, setNeighbors] = useState<SeoCity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    if (!citySlug) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data: c } = await supabase
+        .from("seo_cities")
+        .select("*")
+        .eq("slug", citySlug)
+        .eq("active", true)
+        .maybeSingle();
+      if (cancelled) return;
+      if (!c) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+      setCity(c as SeoCity);
+      const [{ data: m }, { data: nb }] = await Promise.all([
+        supabase.from("seo_materials").select("*").eq("active", true).order("sort_order"),
+        (c as SeoCity).neighbors?.length
+          ? supabase.from("seo_cities").select("*").in("slug", (c as SeoCity).neighbors).eq("active", true)
+          : Promise.resolve({ data: [] as SeoCity[] } as { data: SeoCity[] }),
+      ]);
+      if (cancelled) return;
+      setMaterials((m ?? []) as SeoMaterial[]);
+      setNeighbors((nb ?? []) as SeoCity[]);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [citySlug]);
+
+  if (notFound) return <Navigate to="/404" replace />;
+  if (loading || !city) {
+    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
   }
 
   const title = `Livraison de vrac à ${city.name} — Terre, sable, gravier, remblai | Vrac Québec`;
   const description = `Vrac Québec livre terre, sable, gravier, pierre concassée et remblai directement à ${city.name}. Soumission gratuite, camions adaptés, livraison rapide.`.slice(0, 158);
   const url = `${SITE}/livraison/${city.slug}`;
-
-  const neighbors = city.neighbors.map((s) => cityMap[s]).filter(Boolean);
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,7 +95,7 @@ export default function LocalCityIndex() {
             {materials.map((m) => (
               <li key={m.slug}>
                 <Link to={`/${m.slug}-${city.slug}`} className="block rounded-xl border border-border bg-card p-4 hover:border-primary transition-colors">
-                  <div className="font-display font-bold text-foreground">{m.shortName} à {city.name}</div>
+                  <div className="font-display font-bold text-foreground">{m.short_name || m.name} à {city.name}</div>
                   <div className="text-sm text-muted-foreground font-body mt-1">{m.description}</div>
                 </Link>
               </li>
