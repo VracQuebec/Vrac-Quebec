@@ -7,15 +7,15 @@ import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { toast } from "sonner";
 import {
   ArrowLeft, LayoutDashboard, MapPin, Package, Wrench, Sparkles, Lightbulb,
-  Loader2, Plus, Trash2, Play, Pause, RotateCcw, Save, ExternalLink,
+  Loader2, Plus, Trash2, Play, Pause, RotateCcw, Save, ExternalLink, Gauge, RefreshCw,
 } from "lucide-react";
 
-type Tab = "dashboard" | "cities" | "materials" | "services" | "generator" | "suggestions";
+type Tab = "dashboard" | "cities" | "materials" | "services" | "generator" | "suggestions" | "analytics";
 
 type City = { id: string; slug: string; name: string; region: string; active: boolean; sort_order: number };
 type Material = { id: string; slug: string; name: string; short_name: string; description: string; active: boolean; sort_order: number };
 type Service = { id: string; slug: string; name: string; short_name: string | null; description: string; keywords: string[]; active: boolean; sort_order: number };
-type Page = { id: string; slug: string; city_slug: string; material_slug: string | null; service_slug: string | null; title: string; status: string; last_generated_at: string | null; created_at: string; view_count: number };
+type Page = { id: string; slug: string; city_slug: string; material_slug: string | null; service_slug: string | null; title: string; status: string; last_generated_at: string | null; created_at: string; view_count: number; seo_score?: number | null; word_count?: number | null; internal_link_count?: number | null; needs_refresh?: boolean };
 
 function slugify(s: string) {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-+|-+$)/g, "");
@@ -39,6 +39,7 @@ export default function AdminSeoManager() {
     { id: "materials", label: "Matériaux", icon: Package },
     { id: "services", label: "Services", icon: Wrench },
     { id: "generator", label: "Générateur", icon: Sparkles },
+    { id: "analytics", label: "Analyse SEO", icon: Gauge },
     { id: "suggestions", label: "Suggestions", icon: Lightbulb },
   ];
 
@@ -69,6 +70,7 @@ export default function AdminSeoManager() {
           {tab === "materials" && <MaterialsTab />}
           {tab === "services" && <ServicesTab />}
           {tab === "generator" && <GeneratorTab />}
+          {tab === "analytics" && <AnalyticsTab />}
           {tab === "suggestions" && <SuggestionsTab />}
         </main>
       </div>
