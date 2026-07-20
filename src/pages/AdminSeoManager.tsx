@@ -607,7 +607,7 @@ function SimpleAdminList({ title, rows, loading, onToggle, onDelete, extra }: {
   loading: boolean;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-  extra?: React.ReactNode;
+  extra?: ReactNode;
 }) {
   return (
     <div className="space-y-4">
@@ -962,7 +962,7 @@ function Spinner() {
   return <div className="text-center py-10 text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin inline" /></div>;
 }
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div className="bg-card rounded-lg border border-border max-w-lg w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
@@ -1615,7 +1615,7 @@ function GscTab() {
   );
 }
 
-function PanelList({ title, emptyText, children }: { title: string; emptyText: string; children: React.ReactNode }) {
+function PanelList({ title, emptyText, children }: { title: string; emptyText: string; children: ReactNode }) {
   const arr = Array.isArray(children) ? children : [children];
   const empty = !arr || arr.length === 0 || arr.every((c) => !c);
   return (
