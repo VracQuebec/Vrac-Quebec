@@ -425,6 +425,9 @@ export type Database = {
           previous_slugs: string[]
           published_at: string | null
           reading_time_minutes: number
+          related_city_slugs: string[]
+          related_material_slugs: string[]
+          related_service_slugs: string[]
           scheduled_at: string | null
           search_tsv: unknown
           slug: string
@@ -455,6 +458,9 @@ export type Database = {
           previous_slugs?: string[]
           published_at?: string | null
           reading_time_minutes?: number
+          related_city_slugs?: string[]
+          related_material_slugs?: string[]
+          related_service_slugs?: string[]
           scheduled_at?: string | null
           search_tsv?: unknown
           slug: string
@@ -485,6 +491,9 @@ export type Database = {
           previous_slugs?: string[]
           published_at?: string | null
           reading_time_minutes?: number
+          related_city_slugs?: string[]
+          related_material_slugs?: string[]
+          related_service_slugs?: string[]
           scheduled_at?: string | null
           search_tsv?: unknown
           slug?: string

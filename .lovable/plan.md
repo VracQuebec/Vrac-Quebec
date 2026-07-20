@@ -1,92 +1,68 @@
-# Plan : Moteur SEO Complet pour Vrac Québec
+# Plan — Plateforme SEO unifiée
 
-Ce chantier étend le SEO Manager existant en 6 modules. Vu l'ampleur, je propose de le livrer en **3 phases** validées séparément — la phase 1 pose les fondations dont dépendent les phases 2 et 3.
+## 1. État actuel (analyse)
 
----
+**SEO Local** : déjà supprimé lors du chantier précédent. Aucune référence restante dans `src/` ni `scripts/` (vérifié via `rg`). Les routes `/livraison`, `/livraison/:citySlug` et `/:material-city` pointent toutes vers les composants DB-driven du SEO Manager. **Rien à migrer, rien à supprimer côté SEO Local.**
 
-## Phase 1 — Fondations & Génération Enrichie
+**SEO Manager** (`/admin/seo`) : 8 onglets — Dashboard, Villes, Matériaux, Usages, Services, Générateur, Analyse, Suggestions. Gère cities/materials/uses/services/pages via 5 tables (`seo_cities`, `seo_materials`, `seo_material_uses`, `seo_services`, `seo_pages`). C'est déjà le cerveau SEO.
 
-**Contenu enrichi (edge function `seo-generate-page` v2)**
-- Contenu 800-1500 mots (vs 600-1200)
-- FAQ ville+service spécifique (6-8 questions au lieu de 4)
-- Génération auto : balises ALT contextuelles pour images, Open Graph + Twitter Cards, meta-description optimisée
-- Schema.org enrichi : LocalBusiness + Service + FAQPage + BreadcrumbList + Article
-- Section CTA adaptée (Devis / Appel / Formulaire) selon le service
-- Extraction automatique de metrics à l'insertion : word_count, h1/h2/h3 count, keyword density
+**Blogue** (`/admin/blogue`) : CMS autonome — posts, catégories, auteurs, idées, batch, éditeur IA. Aujourd'hui **déconnecté** du SEO Manager : les idées d'articles vivent dans `blog_post_ideas` sans lien vers `seo_cities` / `seo_materials` / `seo_services`, et les articles n'apparaissent pas dans le maillage interne des pages SEO.
 
-**Maillage interne intelligent**
-- Nouveau champ `internal_links` (jsonb) sur `seo_pages`
-- Algorithme : chaque page reçoit 5-8 liens vers (a) même ville / autres services, (b) même service / villes voisines, (c) matériau lié
-- Composant `<InternalLinksBlock>` rendu en bas des pages publiques
-- Breadcrumb component réutilisable avec Schema.org
+**Doublons réels restants** : aucun onglet dupliqué. Le vrai gap est **l'isolation du blogue** vis-à-vis du SEO Manager.
 
-**Sync automatique Dompes ↔ SEO**
-- Trigger DB : à l'INSERT/UPDATE d'une `submission` de type dompe, marquer la page SEO de la ville comme `needs_refresh = true`
-- Section "Points de dépôt actifs" injectée dynamiquement sur les pages ville (compte + zones desservies, sans exposer d'adresses privées)
-- Bouton "Régénérer les pages impactées" dans le SEO Manager
+## 2. Ce que je vais faire
 
----
+### A. Connecter le blogue au SEO Manager
+- Ajouter au blog admin un accès direct au SEO Manager (et vice-versa) : nouvel onglet **Blogue** dans `AdminSeoManager` qui liste les articles + statut, lien vers l'éditeur existant. Pas de duplication de code — juste des lectures et raccourcis.
+- Ajouter sur `blog_posts` des colonnes de rattachement : `related_city_slugs text[]`, `related_material_slugs text[]`, `related_service_slugs text[]` (nullable, tableaux vides par défaut).
+- Éditeur blog : trois multi-sélecteurs pour rattacher un article aux villes/matériaux/services du SEO Manager.
+- Maillage bidirectionnel :
+  - `SeoLandingPage.tsx` charge et affiche jusqu'à 3 articles de blog reliés (via `related_*_slugs`) dans un bloc "Guides & conseils".
+  - Pages d'article (`BlogPost.tsx`) : bloc "Zones desservies / Matériaux liés" avec liens vers les pages SEO correspondantes.
 
-## Phase 2 — Analyse SEO & Suggestions IA
+### B. Suggestions d'articles pilotées par le SEO Manager
+- Étendre l'onglet **Suggestions** existant : ajouter une section "Idées d'articles" qui, à partir des mots-clés déjà stockés sur `seo_materials.keywords` / `seo_services.keywords` et des combinaisons ville×matériau sans page publiée, propose des titres d'articles.
+- Bouton **"Créer brouillon"** → insère dans `blog_posts` (status `draft`) avec les rattachements pré-remplis, puis ouvre l'éditeur.
+- Bouton **"Générer avec IA"** → réutilise `blog-ai-generate` déjà en place.
 
-**Module "Analyse SEO" par page**
-- Nouvelle table `seo_page_analytics` (score, word_count, internal/external links, h1/h2/h3, keyword_density, meta_description_length, errors[], suggestions[])
-- Edge function `seo-analyze-page` : parse le contenu, calcule un score /100 pondéré (contenu 30, structure 20, meta 15, liens 15, keywords 20)
-- Onglet "Analyse" dans le SEO Manager avec tableau triable + drill-down par page
-- Badges visuels : Excellent (85+) / Bon (65-84) / À améliorer (<65)
+### C. Générateur "Québec + Lévis + arrondissements + voisines" en un clic
+- Nouveau bouton dans l'onglet **Générateur** : **"Générer pack Québec/Lévis"**.
+- Sélectionne automatiquement les villes marquées `region IN ('Québec','Lévis')` + leurs voisines (`neighbors`) actives, croise avec tous les matériaux actifs, et lance la file de génération existante.
+- Garde-fou anti-doublon : la table `seo_pages` a déjà `slug` unique — j'ajoute un `UNIQUE(city_slug, material_slug, service_slug)` explicite et le générateur skip les combinaisons existantes (déjà partiellement en place, à durcir).
 
-**Module "Suggestions IA"**
-- Edge function `seo-suggestions` (Gemini 2.5) qui analyse : combinaisons manquantes prioritaires, villes/services absents avec fort volume, mots-clés longue-traîne détectés, sujets de blogue liés
-- Nouvel onglet "Suggestions" avec cartes par catégorie et bouton "Créer" one-click
-- Rafraîchissement hebdomadaire automatique via cron
+### D. Nettoyage final
+- Vérifier une dernière fois qu'aucune référence orpheline ne traîne (grep `local`, `SeoLocal`, `useSeoData`, etc.) — déjà propre, je re-confirme après les changements.
+- Aucune table ni route à supprimer : le nettoyage majeur est déjà fait.
 
----
+## 3. Détails techniques
 
-## Phase 3 — Calendrier & Google Search Console
-
-**Calendrier de publication naturelle**
-- Nouvelle table `seo_publication_schedule` (page_id, scheduled_at, status)
-- UI : choix du rythme (5/10/20/50 pages / semaine), répartition automatique lun-mer-ven aux heures ouvrables
-- Cron `seo-publish-scheduled` qui passe les pages `draft → published` selon le calendrier
-- Vue calendrier mensuelle avec drag & drop
-
-**Intégration Google Search Console**
-- Connecteur GSC déjà disponible côté Lovable (documenté)
-- Nouvelle page/onglet "Search Console" : impressions, clics, CTR, position moyenne (7j / 28j / 3 mois)
-- Top pages, top requêtes, pages à optimiser (position 8-20 = quick wins)
-- Nécessite que l'utilisateur autorise la connexion GSC + valide le domaine vracquebec.ca
-
----
-
-## Détails techniques
-
-**Nouvelles tables**
-```
-seo_page_analytics    (page_id, score, metrics jsonb, errors[], suggestions[], analyzed_at)
-seo_publication_schedule  (page_id, scheduled_at, published_at, status)
-seo_ai_suggestions    (type, payload jsonb, priority, dismissed, created_at)
+**Migration DB** (une seule) :
+```sql
+ALTER TABLE public.blog_posts
+  ADD COLUMN related_city_slugs text[] NOT NULL DEFAULT '{}',
+  ADD COLUMN related_material_slugs text[] NOT NULL DEFAULT '{}',
+  ADD COLUMN related_service_slugs text[] NOT NULL DEFAULT '{}';
+CREATE INDEX blog_posts_related_cities_idx ON public.blog_posts USING gin (related_city_slugs);
+CREATE INDEX blog_posts_related_materials_idx ON public.blog_posts USING gin (related_material_slugs);
+ALTER TABLE public.seo_pages
+  ADD CONSTRAINT seo_pages_combo_unique UNIQUE (city_slug, material_slug, service_slug);
 ```
 
-**Nouvelles colonnes `seo_pages`**
-- `internal_links jsonb`, `word_count int`, `needs_refresh bool`, `last_analyzed_at timestamptz`
+**Fichiers touchés**
+- `src/pages/AdminSeoManager.tsx` — nouvel onglet Blogue + section "Idées d'articles" dans Suggestions + bouton "Pack Québec/Lévis" dans Générateur.
+- `src/pages/AdminBlogEditor.tsx` — 3 multi-sélecteurs de rattachement.
+- `src/pages/SeoLandingPage.tsx` — bloc "Guides & conseils" (articles reliés).
+- `src/pages/BlogPost.tsx` — bloc "Pages SEO liées".
+- `src/lib/blog/types.ts` — types mis à jour après migration.
 
-**Edge functions**
-- `seo-generate-page` v2 (enrichie)
-- `seo-analyze-page` (nouveau)
-- `seo-suggestions` (nouveau)
-- `seo-refresh-dumps` (nouveau, appelée par trigger DB)
+**URLs existantes** : aucune URL publique ne change. Blogue reste sous `/blogue/*`, pages SEO sous `/:slug`, index sous `/livraison/*`.
 
-**Fichiers front principaux**
-- `src/pages/AdminSeoManager.tsx` — ajout onglets Analyse / Suggestions / Calendrier / Search Console
-- `src/pages/SeoLandingPage.tsx` — rendu Breadcrumb + InternalLinks + Dumps actifs
-- `src/components/seo/` — nouveaux composants réutilisables
+## 4. Ce que je NE fais pas
+- Pas de fusion visuelle blogue↔SEO (le CMS blog garde son UI dédiée) — trop invasif pour un gain nul.
+- Pas de refonte du générateur IA existant (contenu, FAQ, Schema.org, breadcrumb, CTA sont déjà en place depuis la Phase 1).
+- Pas de Google Search Console (Phase 3 du plan précédent, hors scope ici).
 
----
+## 5. Questions
 
-## Question de séquencement
-
-Je recommande de commencer par la **Phase 1** (fondations qui améliorent immédiatement toutes les pages) puis d'enchaîner. Confirme-moi :
-
-1. Est-ce que je démarre par la Phase 1 complète (~1 gros commit) ?
-2. Pour Google Search Console : est-ce que tu veux que je te guide pour connecter le connecteur GSC dès maintenant, ou on le fait au moment de la Phase 3 ?
-3. Pour les "dompes" sur les pages publiques : afficher un compteur agrégé par ville (ex. "12 points de dépôt actifs") sans jamais exposer d'adresse — OK ?
+1. **Rattachement blog↔SEO** : je propose que ce soit **manuel via l'éditeur** (l'admin coche ville/matériau/service). OK ou tu veux que l'IA propose automatiquement les rattachements à la génération ?
+2. **Pack Québec/Lévis** : je génère **une page par matériau × ville** (~10 matériaux × ~15 villes = ~150 pages). Sans service, sauf si tu veux aussi croiser avec les services (×10 → ~1500 pages).

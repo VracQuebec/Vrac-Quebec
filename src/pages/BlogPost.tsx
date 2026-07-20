@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Navigate, Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
@@ -12,6 +12,7 @@ import TableOfContents from "@/components/blog/TableOfContents";
 import { fetchPostBySlug, fetchRelatedPosts } from "@/lib/blog/queries";
 import { formatDateFr, sanitizeHtml, SITE_URL, absoluteUrl, processContentWithToc, extractFaqFromHtml } from "@/lib/blog/utils";
 import { PackagePlus, Truck, Send } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function BlogPost() {
   const { slug = "" } = useParams();
@@ -27,6 +28,24 @@ export default function BlogPost() {
     queryFn: () => fetchRelatedPosts(post!, 3),
     enabled: !!post,
   });
+
+  const [seoPages, setSeoPages] = useState<Array<{ slug: string; title: string; city_slug: string }>>([]);
+  useEffect(() => {
+    if (!post) return;
+    const p = post as unknown as Record<string, unknown>;
+    const cities = (p.related_city_slugs as string[] | undefined) ?? [];
+    const materials = (p.related_material_slugs as string[] | undefined) ?? [];
+    const services = (p.related_service_slugs as string[] | undefined) ?? [];
+    if (!cities.length && !materials.length && !services.length) { setSeoPages([]); return; }
+    (async () => {
+      let q = supabase.from("seo_pages").select("slug, title, city_slug").eq("status", "published").limit(6);
+      if (cities.length) q = q.in("city_slug", cities);
+      else if (materials.length) q = q.in("material_slug", materials);
+      else if (services.length) q = q.in("service_slug", services);
+      const { data } = await q;
+      setSeoPages((data ?? []) as typeof seoPages);
+    })();
+  }, [post]);
 
   // Redirect legacy slug to canonical slug
   useEffect(() => {
@@ -214,6 +233,19 @@ export default function BlogPost() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {related.map((p) => (
               <PostCard key={p.id} post={p} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {seoPages.length > 0 && (
+        <section className="container mx-auto px-4 sm:px-6 py-10 border-t border-border">
+          <h2 className="text-2xl font-display font-extrabold text-foreground mb-6">Pages de service reliées</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {seoPages.map((p) => (
+              <Link key={p.slug} to={`/${p.slug}`} className="block rounded-xl border border-border bg-card p-4 hover:border-primary transition-colors">
+                <div className="font-display font-bold text-foreground line-clamp-2">{p.title}</div>
+              </Link>
             ))}
           </div>
         </section>

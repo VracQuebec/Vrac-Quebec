@@ -42,6 +42,7 @@ export default function SeoLandingPage() {
   const [loading, setLoading] = useState(true);
   const [cities, setCities] = useState<SeoCity[]>([]);
   const [materials, setMaterials] = useState<SeoMaterial[]>([]);
+  const [relatedPosts, setRelatedPosts] = useState<Array<{ slug: string; title: string; excerpt: string | null; cover_image_url: string | null }>>([]);
 
   const cityMap = useMemo(
     () => Object.fromEntries(cities.map((c) => [c.slug, c])) as Record<string, SeoCity>,
@@ -74,6 +75,22 @@ export default function SeoLandingPage() {
       if (citySlugForCount) {
         const { data: cnt } = await supabase.rpc("count_active_dumps_by_city", { _city_slug: citySlugForCount });
         if (!cancelled) setDumpCount(typeof cnt === "number" ? cnt : 0);
+      }
+      // Load related blog posts (posts tagged with this city/material/service in SEO Manager)
+      if (p) {
+        const filters: string[] = [];
+        if (p.city_slug) filters.push(`related_city_slugs.cs.{${p.city_slug}}`);
+        if (p.material_slug) filters.push(`related_material_slugs.cs.{${p.material_slug}}`);
+        if (p.service_slug) filters.push(`related_service_slugs.cs.{${p.service_slug}}`);
+        if (filters.length) {
+          const { data: postsData } = await supabase
+            .from("blog_posts")
+            .select("slug, title, excerpt, cover_image_url")
+            .eq("status", "published")
+            .or(filters.join(","))
+            .limit(3);
+          if (!cancelled) setRelatedPosts((postsData ?? []) as typeof relatedPosts);
+        }
       }
       setLoading(false);
     })();
@@ -255,6 +272,25 @@ export default function SeoLandingPage() {
       )}
 
       <InternalLinksBlock links={internalLinks} />
+
+      {relatedPosts.length > 0 && (
+        <section className="container mx-auto px-4 sm:px-6 pb-10 border-t border-border pt-8">
+          <h2 className="text-xl md:text-2xl font-display font-bold text-foreground mb-4">Guides & conseils</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {relatedPosts.map((p) => (
+              <Link key={p.slug} to={`/blog/${p.slug}`} className="block rounded-xl border border-border bg-card overflow-hidden hover:border-primary transition-colors">
+                {p.cover_image_url && (
+                  <img src={p.cover_image_url} alt="" loading="lazy" className="w-full aspect-video object-cover" />
+                )}
+                <div className="p-4">
+                  <h3 className="font-display font-bold text-foreground line-clamp-2">{p.title}</h3>
+                  {p.excerpt && <p className="text-sm text-muted-foreground font-body mt-2 line-clamp-2">{p.excerpt}</p>}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {(neighborCities.length > 0 || material) && (
         <section className="container mx-auto px-4 sm:px-6 pb-12 grid grid-cols-1 md:grid-cols-2 gap-8">

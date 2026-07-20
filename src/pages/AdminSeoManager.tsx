@@ -8,9 +8,10 @@ import { toast } from "sonner";
 import {
   ArrowLeft, LayoutDashboard, MapPin, Package, Wrench, Sparkles, Lightbulb,
   Loader2, Plus, Trash2, Play, Pause, RotateCcw, Save, ExternalLink, Gauge, RefreshCw,
+  FileText, Zap,
 } from "lucide-react";
 
-type Tab = "dashboard" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics";
+type Tab = "dashboard" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "blog";
 
 type City = {
   id: string; slug: string; name: string; region: string;
@@ -54,6 +55,7 @@ export default function AdminSeoManager() {
     { id: "generator", label: "Générateur", icon: Sparkles },
     { id: "analytics", label: "Analyse SEO", icon: Gauge },
     { id: "suggestions", label: "Suggestions", icon: Lightbulb },
+    { id: "blog", label: "Blogue", icon: FileText },
   ];
 
   return (
@@ -86,6 +88,7 @@ export default function AdminSeoManager() {
           {tab === "generator" && <GeneratorTab />}
           {tab === "analytics" && <AnalyticsTab />}
           {tab === "suggestions" && <SuggestionsTab />}
+          {tab === "blog" && <BlogTab />}
         </main>
       </div>
     </div>
@@ -735,6 +738,15 @@ function GeneratorTab() {
 
   return (
     <div className="space-y-6">
+      <QuickPackButton
+        cities={cities}
+        materials={materials}
+        onApply={(cityIds, materialIds) => {
+          setSelCities(new Set(cityIds));
+          setSelMaterials(new Set(materialIds));
+          setSelServices(new Set());
+        }}
+      />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <PickerColumn title="Villes" items={cities} selected={selCities} onChange={setSelCities} onToggleAll={() => toggleAll(cities, selCities, setSelCities)} />
         <PickerColumn title="Matériaux" items={materials} selected={selMaterials} onChange={setSelMaterials} onToggleAll={() => toggleAll(materials, selMaterials, setSelMaterials)} />
@@ -783,6 +795,38 @@ function Metric({ label, value }: { label: string; value: number | string }) {
     <div>
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="text-lg font-display font-bold text-foreground">{value}</div>
+    </div>
+  );
+}
+
+function QuickPackButton({
+  cities, materials, onApply,
+}: {
+  cities: City[]; materials: Material[]; onApply: (cityIds: string[], materialIds: string[]) => void;
+}) {
+  // Selects Québec, Lévis, their neighbours + all active materials in one click.
+  const trigger = () => {
+    const anchors = cities.filter((c) => ["Québec", "Lévis"].includes(c.region) || ["quebec", "levis"].includes(c.slug));
+    const neighborSlugs = new Set<string>();
+    anchors.forEach((a) => (a.neighbors ?? []).forEach((s) => neighborSlugs.add(s)));
+    const pack = cities.filter((c) => anchors.some((a) => a.id === c.id) || neighborSlugs.has(c.slug));
+    if (pack.length === 0) { toast.error("Aucune ville trouvée pour Québec/Lévis. Ajoute-les dans l'onglet Villes."); return; }
+    onApply(pack.map((c) => c.id), materials.map((m) => m.id));
+    toast.success(`Pack Québec/Lévis : ${pack.length} ville(s) × ${materials.length} matériau(x)`);
+  };
+  return (
+    <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h3 className="font-display font-bold text-foreground flex items-center gap-2">
+          <Zap className="w-4 h-4 text-primary" /> Pack Québec / Lévis
+        </h3>
+        <p className="text-xs text-muted-foreground font-body mt-1">
+          Sélectionne automatiquement Québec, Lévis, leurs arrondissements et municipalités voisines × tous les matériaux actifs. Les combinaisons déjà générées seront ignorées.
+        </p>
+      </div>
+      <button onClick={trigger} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold shadow hover:opacity-90">
+        <Zap className="w-4 h-4" /> Charger le pack
+      </button>
     </div>
   );
 }
@@ -1078,4 +1122,94 @@ function ScoreBadge({ score }: { score?: number | null }) {
   if (score == null) return <span className="text-xs text-muted-foreground">—</span>;
   const color = score >= 85 ? "bg-primary/20 text-primary" : score >= 65 ? "bg-amber-500/15 text-amber-600" : "bg-destructive/15 text-destructive";
   return <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-display font-bold ${color}`}>{score}/100</span>;
+}
+
+/* =========================================================================
+ * BLOG TAB — articles connected to SEO Manager entities
+ * ========================================================================= */
+type BlogRow = {
+  id: string; slug: string; title: string; status: string; published_at: string | null;
+  related_city_slugs: string[]; related_material_slugs: string[]; related_service_slugs: string[];
+};
+function BlogTab() {
+  const [rows, setRows] = useState<BlogRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "linked" | "unlinked">("all");
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("blog_posts")
+      .select("id, slug, title, status, published_at, related_city_slugs, related_material_slugs, related_service_slugs")
+      .order("updated_at", { ascending: false })
+      .limit(200);
+    setRows(((data ?? []) as unknown) as BlogRow[]);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const filtered = useMemo(() => {
+    if (filter === "all") return rows;
+    const isLinked = (r: BlogRow) =>
+      (r.related_city_slugs?.length ?? 0) + (r.related_material_slugs?.length ?? 0) + (r.related_service_slugs?.length ?? 0) > 0;
+    return rows.filter((r) => (filter === "linked" ? isLinked(r) : !isLinked(r)));
+  }, [rows, filter]);
+
+  const stats = useMemo(() => {
+    const linked = rows.filter((r) => (r.related_city_slugs?.length ?? 0) + (r.related_material_slugs?.length ?? 0) + (r.related_service_slugs?.length ?? 0) > 0).length;
+    return { total: rows.length, linked, unlinked: rows.length - linked };
+  }, [rows]);
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard label="Articles" value={stats.total} />
+        <StatCard label="Reliés au SEO" value={stats.linked} />
+        <StatCard label="Non reliés" value={stats.unlinked} />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex gap-1">
+          {(["all", "linked", "unlinked"] as const).map((f) => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={`px-3 py-1.5 rounded-md text-sm font-display font-semibold ${
+                filter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              }`}>
+              {f === "all" ? "Tous" : f === "linked" ? "Reliés" : "Non reliés"}
+            </button>
+          ))}
+        </div>
+        <Link to="/admin/blogue" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-foreground text-background text-xs font-display font-semibold">
+          <ExternalLink className="w-3.5 h-3.5" /> Ouvrir le CMS blogue
+        </Link>
+      </div>
+      {loading ? <Spinner /> : filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Aucun article.</p>
+      ) : (
+        <ul className="rounded-lg border border-border bg-card divide-y divide-border">
+          {filtered.map((r) => {
+            const totalLinks = (r.related_city_slugs?.length ?? 0) + (r.related_material_slugs?.length ?? 0) + (r.related_service_slugs?.length ?? 0);
+            return (
+              <li key={r.id} className="p-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-body text-foreground truncate">{r.title}</div>
+                  <div className="text-xs text-muted-foreground font-mono truncate">
+                    /blog/{r.slug} · {r.status}
+                    {totalLinks > 0 && (
+                      <> · <span className="text-primary">{r.related_city_slugs?.length ?? 0}v {r.related_material_slugs?.length ?? 0}m {r.related_service_slugs?.length ?? 0}s</span></>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Link to={`/admin/blogue/editer/${r.id}`} className="text-xs text-primary hover:underline">Rattacher</Link>
+                  <Link to={`/blog/${r.slug}`} target="_blank" className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+                    <ExternalLink className="w-3 h-3" /> Voir
+                  </Link>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
 }
