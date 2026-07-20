@@ -45,17 +45,8 @@ export default function SeoLandingPage() {
         .eq("status", "published")
         .maybeSingle();
       if (cancelled) return;
-      setPage((data ?? null) as SeoPage | null);
+      setPage((data ?? null) as unknown as SeoPage | null);
       setLoading(false);
-      // Fire-and-forget view increment
-      if (data?.id) {
-        supabase.rpc("noop" as never).catch(() => void 0);
-        supabase
-          .from("seo_pages")
-          .update({ view_count: (data as SeoPage).view_count ? undefined : 1 } as never)
-          .eq("id", data.id)
-          .then(() => void 0);
-      }
     })();
     return () => { cancelled = true; };
   }, [slug]);
