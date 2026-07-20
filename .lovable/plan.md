@@ -1,107 +1,132 @@
-# Évolution du SEO Manager — 4 modules
+# SEO Manager → Assistant SEO intelligent
 
-Livraison en un seul chantier cohérent, en 4 modules.
+Chantier unique livré en 7 modules cohérents, sans ajouter de pages inutiles. Tout vit dans `/admin/seo-manager` sous de nouveaux onglets, et repose sur l'infra déjà en place (`seo_pages`, `blog_posts`, `seo_gsc_metrics`, `seo_cities/materials/services`, Gemini via Lovable AI).
 
 ---
 
-## Module 1 — Tableau de bord SEO enrichi
+## Module 1 — Assistant SEO IA (recommandations)
 
-Nouvel onglet **Pages** dans `/admin/seo` avec un tableau triable/filtrable listant toutes les pages générées. Colonnes :
+Nouvel onglet **Assistant**. Un moteur qui scanne l'ensemble du site et pond des recommandations concrètes, priorisées, actionnables en un clic.
 
-- Titre + slug (lien vers la page publique)
-- Score SEO (badge coloré : vert 85+, ambre 65-84, rouge <65)
-- Mots (word_count)
-- Statut Google (Indexée / En cours / Non indexée / Inconnu — via GSC ou mention "non connecté")
-- Créée le
-- Mise à jour le
-- Liens internes (nombre)
-- Articles reliés (nombre d'articles de blogue rattachés à la même ville/matériau/service)
-- Priorité (étoiles, cf. module 3)
-- Actions : Voir · Améliorer · Éditer
+- Edge function `seo-assistant-scan` (Gemini 3 Flash) — orchestrateur qui lit :
+  - `seo_pages` (score, mots, liens internes, priorité, statut Google)
+  - `blog_posts` (fraîcheur, mots, articles reliés)
+  - `seo_gsc_metrics` (impressions, position, CTR)
+  - `seo_cities`, `seo_materials`, `seo_services` (couverture)
+- Génère des `recommendations` typées : `thin_content`, `quick_win_gsc` (pos 8-20), `missing_internal_links`, `stale_blog`, `missing_city_page`, `missing_service_content`, `add_faq`, `low_ctr`, `orphan_page`.
+- Chaque reco a : `page_id?`, `entity_type` (page/blog/city/material/service), `priority` (1-5), `impact_estimate`, `effort_estimate`, `title`, `rationale`, `action_type` (improve / regenerate / create / attach_links / update_meta), `payload jsonb`, `status` (open/dismissed/applied).
+- UI : liste triée par priorité, filtres par type/entité, boutons **Appliquer** (déclenche `seo-improve-page` ou `seo-generate-page` selon `action_type`), **Ignorer**, **Voir la page**.
 
-Filtres : score, statut, priorité, ville, matériau. Tri sur chaque colonne. Recherche plein texte.
+Table : `seo_recommendations`.
 
-## Module 2 — IA « Améliorer cette page »
+## Module 2 — Analyse concurrents
 
-Bouton **Améliorer cette page** sur chaque ligne et dans l'éditeur.
+Nouvel onglet **Concurrents**. L'admin ajoute 1-N domaines concurrents.
 
-Nouvelle edge function `seo-improve-page` (Gemini 3 Flash) qui :
+- Table `seo_competitors` (domain, label, active, added_at).
+- Table `seo_competitor_pages` (competitor_id, url, title, h1, meta_description, city_slug?, material_slug?, service_slug?, keywords text[], last_crawled_at).
+- Edge function `seo-competitor-crawl` : récupère `sitemap.xml` + fetch max 100 pages/domaine, extrait title/H1/meta/mots-clés dominants, essaie d'associer city/material via nos slugs.
+- Edge function `seo-competitor-gaps` : diff entre leurs combinaisons ville×matériau×service et les nôtres → génère des recos type `missing_city_page`, `missing_service_page`, `keyword_gap` (rangées dans `seo_recommendations`).
+- UI : liste concurrents, top pages, tableau des gaps triable, bouton **Créer la page manquante** (préremplit le générateur SEO Manager).
 
-- réécrit le contenu en gardant le sujet et la structure,
-- enrichit les FAQ (6-8 questions locales),
-- optimise `meta_title`, `meta_description`, `og:*`,
-- régénère `internal_links` à partir des villes/matériaux/services actuels,
-- recalcule `word_count`, `h1/h2/h3 count`, `keyword_density`, `seo_score`.
+## Module 3 — Idées automatiques hebdo
 
-Diff visuel (avant / après) avec bouton **Appliquer** ou **Annuler**. Aucun écrasement automatique.
+Cron hebdo `seo-weekly-ideas` (dimanche 22h) qui relance :
+1. `seo-assistant-scan` (module 1)
+2. `seo-competitor-gaps` (module 2)
+3. Détection blog : articles > 180 j sans update, catégories sans nouvel article > 60 j
+4. Injection dans `blog_post_ideas` (table existante) pour les nouveaux articles suggérés, et dans `seo_recommendations` pour tout le reste.
 
-## Module 3 — Priorité SEO (étoiles 1-5)
+Notification légère dans l'onglet Assistant : badge "X nouvelles recommandations cette semaine".
 
-Nouvelle colonne `priority` (1-5) sur `seo_pages`.
+## Module 4 — Tableau de bord santé SEO
 
-Calcul automatique à la création et lors de l'amélioration IA, basé sur :
+Refonte de l'onglet **Vue d'ensemble** existant en véritable **Santé SEO** :
 
-- volume estimé de la combinaison ville × matériau (population + centralité),
-- présence de « dompes » actives dans la ville (compte remblai/dépôt),
-- proximité de Québec/Lévis (0-30 km),
-- absence de concurrence indexée sur la longue traîne.
+- Score global (moyenne pondérée des `seo_score` + bonus indexation + bonus CTR GSC), affiché /100 avec jauge.
+- KPI : pages excellentes (≥85), à améliorer (65-84), faibles (<65), non indexées, orphelines (0 lien interne entrant), articles obsolètes.
+- État sitemap (via `HEAD /sitemap.xml`), dernière exploration Google (max `google_last_checked_at`).
+- Core Web Vitals + temps de chargement : appel PageSpeed Insights via edge function `seo-pagespeed` (clé publique Google, pas de secret utilisateur requis — sinon fallback "non configuré"). Stockage dans nouvelle table `seo_pagespeed_snapshots` (page_id, lcp, cls, inp, perf_score, fetched_at). Une mesure par jour sur la home + top 10 pages.
+- Liens brisés & 404 : job `seo-linkcheck` qui parcourt `sitemap.xml`, teste chaque URL, log dans `seo_broken_links` (url, status, source_page, checked_at).
 
-Rendu :  ⭐⭐⭐⭐⭐ Très prioritaire → ⭐ Très faible. L'admin peut forcer manuellement une note (verrou 🔒). Tri par priorité dans le tableau de bord.
+## Module 5 — Objectifs SEO
 
-## Module 4 — Google Search Console
+Nouvelle table `seo_goals` (label, metric_type enum: indexed_pages / organic_clicks_month / avg_ctr / keyword_rank / submissions_month, target_value, deadline, current_value, updated_at).
 
-Connecteur Lovable **Google Search Console** (déjà disponible côté plateforme).
+- UI onglet **Objectifs** : liste + progression (barre), création/édition.
+- Fonction `seo-goals-refresh` (cron quotidien) qui recalcule `current_value` selon le `metric_type` :
+  - `indexed_pages` → `count(seo_pages where google_index_status = 'indexed')`
+  - `organic_clicks_month` → sum clicks 28d dans `seo_gsc_metrics`
+  - `avg_ctr` → moyenne CTR 28d
+  - `keyword_rank` → position d'un mot-clé cible (top_queries)
+  - `submissions_month` → `count(submissions where created_at > now() - 30d)`
 
-Flow :
+## Module 6 — Priorisation intelligente
 
-1. Nouvelle sous-section « Search Console » dans le tableau de bord avec un CTA **Connecter Google Search Console** (dispatch `standard_connectors--connect`).
-2. Vérification de propriété via méta-tag (`googleSiteVerification` injecté dans `index.html` par l'admin en un clic ; jeton récupéré via l'API Site Verification).
-3. Edge function `seo-gsc-sync` (cron quotidien) qui appelle :
-   - `/webmasters/v3/sites/{siteUrl}/searchAnalytics/query` — impressions, clics, CTR, position (7j / 28j / 3 mois) par page et par requête,
-   - `/v1/urlInspection/index:inspect` — statut d'indexation par page.
-4. Stockage dans une nouvelle table `seo_gsc_metrics` (page_id, période, clicks, impressions, ctr, position, top_queries jsonb, index_status).
-5. Vue « Search Console » : top pages, top requêtes, pages en position 8-20 (quick wins), CTR anormalement bas.
-6. Le statut Google du tableau (module 1) et la priorité (module 3) intègrent ces données une fois connecté.
+Enrichissement du calcul de `priority` déjà en place :
+
+- Nouvelle fonction SQL `seo_priority_score(page_id)` intégrant :
+  - volume estimé (population ville × poids matériau)
+  - concurrence (nombre de concurrents ayant la même combo dans `seo_competitor_pages`)
+  - difficulté (GSC : position moyenne actuelle)
+  - potentiel trafic (impressions 28d si déjà indexée)
+  - potentiel client (matériau taxable + type de demande fréquent dans `submissions`)
+- Recalcul auto à chaque `seo-assistant-scan`.
+- Nouveau bloc **Top 10 actions les plus rentables** en tête de l'onglet Assistant (tri par `impact_estimate / effort_estimate`).
+
+## Module 7 — Performance & garde-fous
+
+- Toutes les fonctions IA/crawl s'exécutent côté edge (aucun poids client).
+- Onglet Assistant charge en lazy (`React.lazy`) et pagine les recos (25/page).
+- Les tables nouvelles ont des index sur `status`, `priority`, `page_id`.
+- Cache 24h côté DB pour PageSpeed et crawl concurrents (pas de re-fetch inutile).
+- Aucun ajout de dépendance npm côté front ; côté edge, uniquement `fetch` + `deno-dom` pour parser HTML concurrents.
 
 ---
 
 ## Détails techniques
 
 **Migrations DB**
-- `seo_pages` : `priority int` (1-5, default 3), `priority_locked bool`, `google_index_status text`, `google_last_checked_at timestamptz`.
-- Nouvelle table `seo_gsc_metrics` (page_id, period, clicks, impressions, ctr, position, top_queries jsonb, index_status, fetched_at).
-- Nouvelle table `seo_page_improvements` (page_id, before jsonb, after jsonb, applied bool, created_at) pour l'historique IA.
+- `seo_recommendations`, `seo_competitors`, `seo_competitor_pages`, `seo_goals`, `seo_pagespeed_snapshots`, `seo_broken_links`
+- Fonction SQL `seo_priority_score`
+- GRANT authenticated + service_role, RLS admin-only sur toutes
 
-**Edge functions**
-- `seo-improve-page` (nouveau) — Gemini 3 Flash, réécriture + méta + liens + score.
-- `seo-gsc-sync` (nouveau) — synchronisation quotidienne GSC via connecteur gateway.
-- `seo-gsc-verify` (nouveau) — génère le jeton `google-site-verification` et déclenche la vérification.
+**Edge functions (nouvelles)**
+- `seo-assistant-scan` — génère les recommandations
+- `seo-competitor-crawl` — sitemap + fetch pages concurrents
+- `seo-competitor-gaps` — diff → recos
+- `seo-weekly-ideas` — cron hebdo (orchestrateur)
+- `seo-pagespeed` — PageSpeed Insights
+- `seo-linkcheck` — vérif liens
+- `seo-goals-refresh` — recalcul objectifs
 
-**Front**
-- `src/pages/AdminSeoManager.tsx` — nouvel onglet **Pages** (tableau enrichi), sous-section **Search Console**, bouton **Améliorer** partout.
-- `src/components/seo/PagesTable.tsx` (nouveau) — tableau triable/filtrable.
-- `src/components/seo/ImproveDialog.tsx` (nouveau) — diff avant/après + Appliquer.
-- `src/components/seo/PriorityStars.tsx` (nouveau) — affichage + édition manuelle.
-- `src/components/seo/GscConnect.tsx` (nouveau) — CTA de connexion + vérification.
-- `index.html` — insertion conditionnelle du méta-tag `google-site-verification` (lu depuis un secret / une table de config).
+**Front (dans `AdminSeoManager.tsx`)**
+- Nouveaux onglets : **Assistant**, **Concurrents**, **Objectifs**
+- Refonte onglet **Vue d'ensemble** → **Santé SEO**
+- Composants : `src/components/seo/RecommendationCard.tsx`, `CompetitorTable.tsx`, `GoalCard.tsx`, `HealthScoreGauge.tsx`
 
-**Connecteur**
-- `google_search_console` via `standard_connectors--connect` (gateway Lovable, aucun secret manuel).
+**Cron**
+- `seo-weekly-ideas` : dimanche 22h
+- `seo-goals-refresh` + `seo-pagespeed` : quotidien 03h
+- `seo-linkcheck` : hebdo lundi 04h
 
 ---
 
-## Séquencement proposé
+## Séquencement
 
-1. Migration DB + colonnes priorité + tables métriques / historique
-2. Tableau de bord enrichi (module 1) + priorité (module 3) — visuel immédiat
-3. IA « Améliorer » (module 2) — edge function + dialog diff
-4. Connexion Google Search Console (module 4) — connecteur + sync + vue
+1. Migrations DB + fonction `seo_priority_score` (module 6 côté DB)
+2. Module 4 (Santé SEO) — refonte visuelle immédiate
+3. Module 1 (Assistant) — cœur du système
+4. Module 2 (Concurrents)
+5. Module 5 (Objectifs)
+6. Module 3 (Idées hebdo) — cron qui orchestre 1+2
+7. Module 7 (perfs) — audit final, lazy-load, index
 
-Je peux tout enchaîner sans validation intermédiaire, ou marquer une pause après le tableau/priorité si tu veux valider le rendu avant d'attaquer l'IA et GSC.
+Livraison en un seul chantier, sans validation intermédiaire.
 
-## Questions avant exécution
+## Questions
 
-1. **Sync GSC** : cadence journalière (00h) OK, ou tu veux hebdo pour économiser des appels ?
-2. **Amélioration IA** : par défaut je propose un **diff à valider** (jamais d'écrasement auto). Tu confirmes ce comportement, ou tu préfères un mode « appliquer directement » avec sauvegarde dans l'historique ?
-3. **Priorité** : le calcul auto se base sur population + dompes + distance. Tu veux ajouter d'autres critères (ex. saisonnalité, budget publicitaire) ?
-4. **Search Console** : je pars sur le connecteur Lovable natif (aucune clé à saisir, OAuth géré). OK ?
+1. **PageSpeed** : j'utilise l'API publique Google (quota gratuit 25k/j). OK sans clé, ou tu veux qu'on ajoute une clé dédiée plus tard ?
+2. **Concurrents** : je limite à **5 domaines max** et **100 pages/domaine** pour éviter les abus / lenteurs. OK ?
+3. **Cron hebdo** : dimanche 22h te convient, ou tu préfères un autre créneau ?
+4. **Objectifs par défaut** : je pré-crée les 5 objectifs de ton message (500 pages indexées, 1000 clics/mois, CTR 5 %, top 10 sur mots-clés cibles, 100 soumissions/mois) ?
