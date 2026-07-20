@@ -78,6 +78,23 @@ async function build(): Promise<Entry[]> {
     console.warn("sitemap: could not fetch material uses:", e);
   }
 
+  // Generated SEO pages (SEO Manager)
+  try {
+    const pages = (await fetchJson(
+      `${SUPABASE_URL}/rest/v1/seo_pages?select=slug,updated_at&status=eq.published&order=updated_at.desc&limit=5000`
+    )) as { slug: string; updated_at: string }[];
+    for (const p of pages) {
+      entries.push({
+        path: `/${p.slug}`,
+        lastmod: (p.updated_at || new Date().toISOString()).slice(0, 10),
+        changefreq: "monthly",
+        priority: "0.7",
+      });
+    }
+  } catch (e) {
+    console.warn("sitemap: could not fetch seo_pages:", e);
+  }
+
   try {
     const cats = (await fetchJson(
       `${SUPABASE_URL}/rest/v1/blog_categories?select=slug&order=sort_order`
