@@ -1634,3 +1634,369 @@ function PanelList({ title, emptyText, children }: { title: string; emptyText: s
     </div>
   );
 }
+
+/* =========================================================================
+ * ASSISTANT IA — recommandations priorisées
+ * ========================================================================= */
+function AssistantTab() {
+  const [recos, setRecos] = useState<Reco[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
+  const [filter, setFilter] = useState<string>("all");
+  const [pages, setPages] = useState<Record<string, { slug: string; title: string }>>({});
+  const [improveTarget, setImproveTarget] = useState<{ id: string; title: string; slug: string } | null>(null);
+
+  async function load() {
+    setLoading(true);
+    const [{ data }, { data: pageRows }] = await Promise.all([
+      supabase.from("seo_recommendations").select("*").eq("status", "open").order("priority", { ascending: false }).order("impact_estimate", { ascending: false }).limit(200),
+      supabase.from("seo_pages").select("id,slug,title"),
+    ]);
+    setRecos((data ?? []) as Reco[]);
+    const map: Record<string, { slug: string; title: string }> = {};
+    for (const p of pageRows ?? []) map[p.id] = { slug: p.slug, title: p.title };
+    setPages(map);
+    setLoading(false);
+  }
+  useEffect(() => { void load(); }, []);
+
+  async function scan() {
+    setScanning(true);
+    try {
+      const { error } = await invokeWithFreshSession<{ ok: boolean; count: number }>("seo-assistant-scan", {});
+      if (error) throw error;
+      toast.success("Analyse terminée");
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    } finally { setScanning(false); }
+  }
+
+  async function apply(reco: Reco) {
+    // Route selon action_type
+    if (reco.action_type === "improve" && reco.page_id) {
+      const p = pages[reco.page_id];
+      if (p) { setImproveTarget({ id: reco.page_id, slug: p.slug, title: p.title }); return; }
+    }
+    if (reco.action_type === "create" && reco.payload) {
+      toast.info("Ouvre l'onglet Générateur pour créer cette combinaison.");
+    }
+    if (reco.action_type === "update_meta" && reco.page_id) {
+      const p = pages[reco.page_id];
+      if (p) { setImproveTarget({ id: reco.page_id, slug: p.slug, title: p.title }); return; }
+    }
+    await supabase.from("seo_recommendations").update({ status: "applied", applied_at: new Date().toISOString() }).eq("id", reco.id);
+    toast.success("Marquée comme traitée");
+    await load();
+  }
+
+  async function dismiss(reco: Reco) {
+    await supabase.from("seo_recommendations").update({ status: "dismissed" }).eq("id", reco.id);
+    await load();
+  }
+
+  const filtered = filter === "all" ? recos : recos.filter((r) => r.reco_type === filter);
+  const top10 = [...recos].sort((a, b) => (b.impact_estimate / b.effort_estimate) - (a.impact_estimate / a.effort_estimate)).slice(0, 10);
+  const types = Array.from(new Set(recos.map((r) => r.reco_type)));
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-2xl font-display font-bold text-foreground">Assistant SEO IA</h2>
+          <p className="text-sm text-muted-foreground">Recommandations concrètes générées à partir de vos pages, du blogue et de Google Search Console.</p>
+        </div>
+        <button type="button" onClick={scan} disabled={scanning}
+          className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-display font-semibold text-sm flex items-center gap-2 disabled:opacity-60">
+          {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+          Analyser maintenant
+        </button>
+      </div>
+
+      {recos.length > 0 && (
+        <section>
+          <h3 className="text-sm font-display font-bold uppercase tracking-wide text-muted-foreground mb-3">Top 10 actions les plus rentables</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {top10.map((r) => (
+              <RecommendationCard key={r.id} reco={r} onApply={apply} onDismiss={dismiss}
+                onOpen={(rr) => rr.entity_slug && window.open(`/${rr.entity_slug}`, "_blank")} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <button onClick={() => setFilter("all")}
+          className={`text-xs px-2.5 py-1 rounded-full border ${filter === "all" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}>
+          Toutes ({recos.length})
+        </button>
+        {types.map((t) => (
+          <button key={t} onClick={() => setFilter(t)}
+            className={`text-xs px-2.5 py-1 rounded-full border ${filter === t ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}>
+            {t} ({recos.filter((r) => r.reco_type === t).length})
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</div>
+      ) : filtered.length === 0 ? (
+        <div className="border border-dashed border-border rounded-lg p-8 text-center text-sm text-muted-foreground">
+          Aucune recommandation. Cliquez sur « Analyser maintenant » pour lancer un scan.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {filtered.map((r) => (
+            <RecommendationCard key={r.id} reco={r} onApply={apply} onDismiss={dismiss}
+              onOpen={(rr) => rr.entity_slug && window.open(`/${rr.entity_slug}`, "_blank")} />
+          ))}
+        </div>
+      )}
+
+      {improveTarget && (
+        <ImproveDialog pageId={improveTarget.id} pageTitle={improveTarget.title}
+          onClose={() => setImproveTarget(null)}
+          onApplied={() => { setImproveTarget(null); void load(); }} />
+      )}
+    </div>
+  );
+}
+
+/* =========================================================================
+ * OBJECTIFS SEO
+ * ========================================================================= */
+function GoalsTab() {
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [editing, setEditing] = useState<Partial<Goal> | null>(null);
+
+  async function load() {
+    setLoading(true);
+    const { data } = await supabase.from("seo_goals").select("*").order("active", { ascending: false }).order("created_at", { ascending: true });
+    setGoals((data ?? []) as Goal[]);
+    setLoading(false);
+  }
+  useEffect(() => { void load(); }, []);
+
+  async function refresh() {
+    setRefreshing(true);
+    try {
+      const { error } = await invokeWithFreshSession<{ ok: boolean }>("seo-goals-refresh", {});
+      if (error) throw error;
+      toast.success("Objectifs recalculés");
+      await load();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
+    finally { setRefreshing(false); }
+  }
+
+  async function save() {
+    if (!editing || !editing.label || !editing.metric_type || editing.target_value == null) return;
+    const payload = {
+      label: editing.label, metric_type: editing.metric_type,
+      target_value: editing.target_value, keyword: editing.keyword ?? null,
+      deadline: editing.deadline ?? null, active: editing.active ?? true,
+    };
+    if (editing.id) await supabase.from("seo_goals").update(payload).eq("id", editing.id);
+    else await supabase.from("seo_goals").insert(payload);
+    setEditing(null);
+    await load();
+  }
+
+  async function del(id: string) {
+    if (!confirm("Supprimer cet objectif ?")) return;
+    await supabase.from("seo_goals").delete().eq("id", id);
+    await load();
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-2xl font-display font-bold text-foreground">Objectifs SEO</h2>
+          <p className="text-sm text-muted-foreground">Suivi automatique de vos indicateurs clés.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={refresh} disabled={refreshing}
+            className="border border-border px-3 py-2 rounded text-sm font-display flex items-center gap-2 disabled:opacity-60">
+            {refreshing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            Recalculer
+          </button>
+          <button type="button" onClick={() => setEditing({ label: "", metric_type: "indexed_pages", target_value: 100, active: true })}
+            className="bg-primary text-primary-foreground px-3 py-2 rounded text-sm font-display font-semibold flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Nouvel objectif
+          </button>
+        </div>
+      </div>
+
+      {loading ? <p className="text-sm text-muted-foreground">Chargement…</p> : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {goals.map((g) => (
+            <GoalCard key={g.id} goal={g}
+              onEdit={() => setEditing(g)}
+              onDelete={() => void del(g.id)} />
+          ))}
+        </div>
+      )}
+
+      {editing && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-lg p-6 max-w-md w-full space-y-3">
+            <h3 className="font-display font-bold text-lg">{editing.id ? "Éditer" : "Nouvel"} objectif</h3>
+            <input className="w-full border border-border rounded px-3 py-2 text-sm bg-background" placeholder="Nom (ex: 500 pages indexées)"
+              value={editing.label ?? ""} onChange={(e) => setEditing({ ...editing, label: e.target.value })} />
+            <select className="w-full border border-border rounded px-3 py-2 text-sm bg-background"
+              value={editing.metric_type ?? "indexed_pages"} onChange={(e) => setEditing({ ...editing, metric_type: e.target.value })}>
+              <option value="indexed_pages">Pages indexées</option>
+              <option value="total_pages">Pages publiées</option>
+              <option value="organic_clicks_month">Clics organiques / mois</option>
+              <option value="avg_ctr">CTR moyen (0.05 = 5%)</option>
+              <option value="avg_seo_score">Score SEO moyen</option>
+              <option value="submissions_month">Soumissions / mois</option>
+              <option value="keyword_rank">Position d'un mot-clé</option>
+            </select>
+            <input type="number" step="0.01" className="w-full border border-border rounded px-3 py-2 text-sm bg-background"
+              placeholder="Cible" value={editing.target_value ?? 0}
+              onChange={(e) => setEditing({ ...editing, target_value: Number(e.target.value) })} />
+            {editing.metric_type === "keyword_rank" && (
+              <input className="w-full border border-border rounded px-3 py-2 text-sm bg-background"
+                placeholder="Mot-clé cible" value={editing.keyword ?? ""}
+                onChange={(e) => setEditing({ ...editing, keyword: e.target.value })} />
+            )}
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button className="text-sm px-3 py-1.5 rounded border border-border" onClick={() => setEditing(null)}>Annuler</button>
+              <button className="text-sm px-3 py-1.5 rounded bg-primary text-primary-foreground font-display font-semibold" onClick={save}>Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* =========================================================================
+ * CONCURRENTS
+ * ========================================================================= */
+type Competitor = { id: string; domain: string; label: string | null; active: boolean; last_crawled_at: string | null; pages_count: number };
+function CompetitorsTab() {
+  const [comps, setComps] = useState<Competitor[]>([]);
+  const [gaps, setGaps] = useState<Array<{ city_slug: string; material_slug: string; count: number }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [newDomain, setNewDomain] = useState("");
+  const [crawling, setCrawling] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    const [{ data: c }, { data: cpRows }, { data: ourPages }] = await Promise.all([
+      supabase.from("seo_competitors").select("*").order("created_at", { ascending: true }),
+      supabase.from("seo_competitor_pages").select("city_slug,material_slug").not("city_slug", "is", null).not("material_slug", "is", null),
+      supabase.from("seo_pages").select("city_slug,material_slug"),
+    ]);
+    setComps((c ?? []) as Competitor[]);
+    const our = new Set((ourPages ?? []).map((p) => `${p.city_slug}|${p.material_slug ?? ""}`));
+    const gapMap = new Map<string, number>();
+    for (const r of cpRows ?? []) {
+      const key = `${r.city_slug}|${r.material_slug}`;
+      if (!our.has(key)) gapMap.set(key, (gapMap.get(key) ?? 0) + 1);
+    }
+    setGaps([...gapMap.entries()].map(([k, count]) => {
+      const [city_slug, material_slug] = k.split("|");
+      return { city_slug, material_slug, count };
+    }).sort((a, b) => b.count - a.count).slice(0, 30));
+    setLoading(false);
+  }
+  useEffect(() => { void load(); }, []);
+
+  async function addCompetitor() {
+    if (!newDomain.trim()) return;
+    if (comps.length >= 5) { toast.error("Maximum 5 concurrents."); return; }
+    const domain = newDomain.replace(/^https?:\/\//, "").replace(/\/.*$/, "").trim();
+    const { error } = await supabase.from("seo_competitors").insert({ domain, label: domain });
+    if (error) toast.error(error.message);
+    else { setNewDomain(""); await load(); }
+  }
+
+  async function crawl(id: string) {
+    setCrawling(id);
+    try {
+      const { error } = await invokeWithFreshSession<{ ok: boolean; pages: number }>("seo-competitor-crawl", { competitor_id: id });
+      if (error) throw error;
+      toast.success("Crawl terminé");
+      await load();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
+    finally { setCrawling(null); }
+  }
+
+  async function remove(id: string) {
+    if (!confirm("Supprimer ce concurrent et toutes ses pages ?")) return;
+    await supabase.from("seo_competitors").delete().eq("id", id);
+    await load();
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-display font-bold text-foreground">Analyse concurrents</h2>
+        <p className="text-sm text-muted-foreground">Ajoutez jusqu'à 5 domaines concurrents. L'IA analyse leurs pages et repère les combinaisons ville × matériau que vous n'avez pas.</p>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input className="flex-1 border border-border rounded px-3 py-2 text-sm bg-background"
+          placeholder="concurrent.com" value={newDomain} onChange={(e) => setNewDomain(e.target.value)} />
+        <button onClick={addCompetitor} disabled={comps.length >= 5}
+          className="bg-primary text-primary-foreground px-3 py-2 rounded text-sm font-display font-semibold flex items-center gap-1 disabled:opacity-50">
+          <Plus className="w-4 h-4" /> Ajouter
+        </button>
+      </div>
+
+      {loading ? <p className="text-sm text-muted-foreground">Chargement…</p> : (
+        <div className="border border-border rounded-lg overflow-hidden bg-card">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary text-xs uppercase text-muted-foreground">
+              <tr><th className="p-2 text-left">Domaine</th><th className="p-2 text-right">Pages</th><th className="p-2 text-left">Dernier crawl</th><th className="p-2"></th></tr>
+            </thead>
+            <tbody>
+              {comps.map((c) => (
+                <tr key={c.id} className="border-t border-border">
+                  <td className="p-2 font-mono text-xs">{c.domain}</td>
+                  <td className="p-2 text-right">{c.pages_count}</td>
+                  <td className="p-2 text-xs text-muted-foreground">{c.last_crawled_at ? new Date(c.last_crawled_at).toLocaleDateString("fr-CA") : "—"}</td>
+                  <td className="p-2 text-right whitespace-nowrap">
+                    <button onClick={() => crawl(c.id)} disabled={crawling === c.id}
+                      className="text-xs border border-border rounded px-2 py-1 mr-1 hover:bg-secondary">
+                      {crawling === c.id ? <Loader2 className="w-3 h-3 animate-spin inline" /> : "Crawler"}
+                    </button>
+                    <button onClick={() => remove(c.id)} className="text-xs text-red-500 hover:underline">Supprimer</button>
+                  </td>
+                </tr>
+              ))}
+              {comps.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-xs text-muted-foreground">Aucun concurrent ajouté.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {gaps.length > 0 && (
+        <section>
+          <h3 className="text-sm font-display font-bold uppercase tracking-wide text-muted-foreground mb-3">Écarts détectés — combinaisons chez les concurrents qui vous manquent</h3>
+          <div className="border border-border rounded-lg overflow-hidden bg-card">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary text-xs uppercase text-muted-foreground">
+                <tr><th className="p-2 text-left">Ville</th><th className="p-2 text-left">Matériau</th><th className="p-2 text-right">Concurrents</th></tr>
+              </thead>
+              <tbody>
+                {gaps.map((g) => (
+                  <tr key={`${g.city_slug}-${g.material_slug}`} className="border-t border-border">
+                    <td className="p-2">{g.city_slug}</td>
+                    <td className="p-2">{g.material_slug}</td>
+                    <td className="p-2 text-right font-display font-bold">{g.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
