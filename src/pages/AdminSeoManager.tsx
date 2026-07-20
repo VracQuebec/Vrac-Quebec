@@ -193,8 +193,9 @@ function CitiesTab() {
   const save = async (form: City) => {
     if (!form.name.trim()) return toast.error("Nom requis");
     const slug = (form.slug.trim() || slugify(form.name));
-    const payload = { ...form, slug } as Partial<City>;
-    delete (payload as { id?: string }).id;
+    const { id: _id, ...rest } = form;
+    void _id;
+    const payload = { ...rest, slug };
     const { error } = form.id
       ? await supabase.from("seo_cities").update(payload).eq("id", form.id)
       : await supabase.from("seo_cities").insert(payload);
@@ -299,8 +300,9 @@ function MaterialsTab() {
   const save = async (form: Material) => {
     if (!form.name.trim()) return toast.error("Nom requis");
     const slug = form.slug.trim() || slugify(form.name);
-    const payload = { ...form, slug, short_name: form.short_name || form.name } as Partial<Material>;
-    delete (payload as { id?: string }).id;
+    const { id: _id, ...rest } = form;
+    void _id;
+    const payload = { ...rest, slug, short_name: form.short_name || form.name };
     const { error } = form.id
       ? await supabase.from("seo_materials").update(payload).eq("id", form.id)
       : await supabase.from("seo_materials").insert(payload);
@@ -420,8 +422,9 @@ function UsesTab() {
     if (!row.name.trim()) return toast.error("Nom requis");
     if (!row.material_slug) return toast.error("Matériau requis");
     const slug = row.slug.trim() || slugify(row.name);
-    const payload = { ...row, slug } as Partial<Use>;
-    delete (payload as { id?: string }).id;
+    const { id: _id, ...rest } = row;
+    void _id;
+    const payload = { ...rest, slug };
     const { error } = row.id
       ? await supabase.from("seo_material_uses").update(payload).eq("id", row.id)
       : await supabase.from("seo_material_uses").insert(payload);
