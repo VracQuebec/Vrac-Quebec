@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Navigate, Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
@@ -12,7 +12,6 @@ import TableOfContents from "@/components/blog/TableOfContents";
 import { fetchPostBySlug, fetchRelatedPosts } from "@/lib/blog/queries";
 import { formatDateFr, sanitizeHtml, SITE_URL, absoluteUrl, processContentWithToc, extractFaqFromHtml } from "@/lib/blog/utils";
 import { PackagePlus, Truck, Send } from "lucide-react";
-import { useState, useEffect as useEffect2 } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function BlogPost() {
@@ -31,7 +30,7 @@ export default function BlogPost() {
   });
 
   const [seoPages, setSeoPages] = useState<Array<{ slug: string; title: string; city_slug: string }>>([]);
-  useEffect2(() => {
+  useEffect(() => {
     if (!post) return;
     const p = post as unknown as Record<string, unknown>;
     const cities = (p.related_city_slugs as string[] | undefined) ?? [];
