@@ -8,10 +8,12 @@ import { toast } from "sonner";
 import {
   ArrowLeft, LayoutDashboard, MapPin, Package, Wrench, Sparkles, Lightbulb,
   Loader2, Plus, Trash2, Play, Pause, RotateCcw, Save, ExternalLink, Gauge, RefreshCw,
-  FileText, Zap,
+  FileText, Zap, ListChecks, Search as SearchIcon, TrendingUp,
 } from "lucide-react";
+import PriorityStars, { priorityLabel } from "@/components/seo/PriorityStars";
+import ImproveDialog from "@/components/seo/ImproveDialog";
 
-type Tab = "dashboard" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "blog";
+type Tab = "dashboard" | "pages" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
 
 type City = {
   id: string; slug: string; name: string; region: string;
@@ -48,12 +50,14 @@ export default function AdminSeoManager() {
 
   const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
     { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+    { id: "pages", label: "Pages", icon: ListChecks },
     { id: "cities", label: "Villes", icon: MapPin },
     { id: "materials", label: "Matériaux", icon: Package },
     { id: "uses", label: "Usages", icon: Wrench },
     { id: "services", label: "Services", icon: Wrench },
     { id: "generator", label: "Générateur", icon: Sparkles },
     { id: "analytics", label: "Analyse SEO", icon: Gauge },
+    { id: "gsc", label: "Search Console", icon: TrendingUp },
     { id: "suggestions", label: "Suggestions", icon: Lightbulb },
     { id: "blog", label: "Blogue", icon: FileText },
   ];
@@ -81,12 +85,14 @@ export default function AdminSeoManager() {
         </nav>
         <main>
           {tab === "dashboard" && <Dashboard />}
+          {tab === "pages" && <PagesTab />}
           {tab === "cities" && <CitiesTab />}
           {tab === "materials" && <MaterialsTab />}
           {tab === "uses" && <UsesTab />}
           {tab === "services" && <ServicesTab />}
           {tab === "generator" && <GeneratorTab />}
           {tab === "analytics" && <AnalyticsTab />}
+          {tab === "gsc" && <GscTab />}
           {tab === "suggestions" && <SuggestionsTab />}
           {tab === "blog" && <BlogTab />}
         </main>
