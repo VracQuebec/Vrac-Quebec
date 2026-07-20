@@ -1663,7 +1663,7 @@ function AssistantTab() {
   async function scan() {
     setScanning(true);
     try {
-      const { error } = await invokeWithFreshSession<{ ok: boolean; count: number }>("seo-assistant-scan", {});
+      const { error } = await invokeWithFreshSession("seo-assistant-scan", {});
       if (error) throw error;
       toast.success("Analyse terminée");
       await load();
@@ -1782,7 +1782,7 @@ function GoalsTab() {
   async function refresh() {
     setRefreshing(true);
     try {
-      const { error } = await invokeWithFreshSession<{ ok: boolean }>("seo-goals-refresh", {});
+      const { error } = await invokeWithFreshSession("seo-goals-refresh", {});
       if (error) throw error;
       toast.success("Objectifs recalculés");
       await load();
@@ -1919,7 +1919,7 @@ function CompetitorsTab() {
   async function crawl(id: string) {
     setCrawling(id);
     try {
-      const { error } = await invokeWithFreshSession<{ ok: boolean; pages: number }>("seo-competitor-crawl", { competitor_id: id });
+      const { error } = await invokeWithFreshSession("seo-competitor-crawl", { competitor_id: id });
       if (error) throw error;
       toast.success("Crawl terminé");
       await load();
