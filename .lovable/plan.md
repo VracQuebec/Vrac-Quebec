@@ -1,135 +1,73 @@
+# SEO Manager — Générateur intelligent de pages SEO
 
-# Moteur SEO local automatisé — VracQuebec.ca
+Un module admin unique (`/admin/seo-manager`) qui pilote la création à la demande de pages ville × matériau × service, avec IA, suggestions, tableau de bord et SEO technique — sans jamais créer les pages en masse tant qu'on ne clique pas sur "Générer".
 
-Objectif : transformer VracQuebec.ca en plateforme SEO locale automatisée qui génère, met à jour et relie automatiquement des milliers de pages pertinentes (villes × matériaux × usages, entrepreneurs, points de dépôt, demandes publiques, blog), gérée à 100 % depuis le CRM, sans jamais inventer de prix.
+## Périmètre initial (chargé en base au démarrage)
 
-## Règle absolue : aucun prix
+- **26 villes / arrondissements / secteurs** listés (Québec, Lévis, arrondissements, secteurs, municipalités environnantes).
+- **12 matériaux** (terre propre, contaminée, végétale, remblai, gravier, sable, pierre, roche, béton, asphalte, brique, neige).
+- **10 services** (transport vrac, dompe, recherche de dépôt, livraisons, excavation, nivellement, courtage).
 
-- Suppression complète de la notion de "prix indicatif" partout dans le moteur SEO (colonne DB, champs admin, sections publiques, FAQ, JSON-LD).
-- Un prix ne pourra un jour apparaître que s’il provient d’un fournisseur/entrepreneur via un champ explicite qu’on ajoutera plus tard.
-- Le CTA reste "Faire une demande" / "Je peux fournir ce matériau" — jamais un prix.
+Tout le reste s'ajoute ensuite depuis l'admin, sans toucher au code.
 
-**Fait dans cette phase :** migration qui `DROP COLUMN pricing_hint` sur `seo_materials` + suppression de toutes les références front (`LocalLanding`, hook, admin, sitemap, JSON-LD). Le champ tombe partout d’un coup.
+## Architecture
 
----
+### Base de données (Lovable Cloud)
 
-## Phase 1 — Fondation admin (déjà en place, à finir proprement)
+Nouvelles tables (RLS : lecture publique sur `active=true`, écriture admin uniquement) :
 
-Ce qui existe : tables `seo_cities`, `seo_materials`, `seo_material_uses`, page `/admin/seo`, hook `useSeoData`, sitemap dynamique.
+- `seo_services` — nom, slug, description, mots-clés, actif, ordre.
+- `seo_pages` — la page générée : `city_id`, `material_id?`, `service_id?`, `slug` unique, `title`, `meta_description`, `h1`, `content` (HTML), `faq` (jsonb), `cover_image_url`, `status` (draft/published), `view_count`, `last_generated_at`, `ai_model`, `canonical`, `og_*`.
+- `seo_generation_jobs` — job de génération : `combinations` (jsonb), `progress`, `status` (queued/running/paused/done/failed), `total`, `done`, `errors`, `created_by`.
 
-Ce que je termine dans cette phase :
-- Retrait total du "prix indicatif".
-- Onglet **Usages** enrichi dans `/admin/seo` : liste globale, activation, réordonnancement, choix des matériaux compatibles (many-to-many via `seo_material_uses`), champ "sort_order" par usage.
-- Sitemap dynamique déjà branché sur la BD — je vérifie qu’il inclut les usages et les combinaisons usage×ville quand elles sont actives.
-- CRUD ville : géocodage automatique (Google Places déjà connecté) pour remplir `lat/lng` sans copier-coller.
+`seo_cities` et `seo_materials` existent déjà — on ajoute simplement les colonnes manquantes (image_url, mots-clés déjà présents).
 
-**Livrable :** vous ajoutez une ville, un matériau ou un usage depuis le CRM → toutes les URLs SEO correspondantes existent au prochain déploiement, sans code.
+### Génération de contenu
 
----
+Edge function `seo-generate-page` (Lovable AI, `google/gemini-3-flash-preview`) :
+- Reçoit `{ city, material?, service? }`.
+- Produit `title`, `meta_description`, `h1`, `h2/h3`, corps optimisé (unique, ~800-1200 mots), FAQ, ALT d'images, JSON-LD LocalBusiness + FAQPage + BreadcrumbList.
+- Renvoie le tout structuré ; le client l'écrit dans `seo_pages`.
+- Skip si `seo_pages` a déjà cette combinaison (garantie d'unicité par contrainte + vérif serveur).
 
-## Phase 2 — Pages "usage" + Calculateur intelligent
+### Rendu public
 
-### Pages usages
-- Nouvelle route publique `/[usage-slug]` (ex. `/entree-de-cour`, `/piscine`, `/drain-francais`).
-- Croisements automatiques :
-  - **usage × matériau** → `/gravier-entree-de-cour`
-  - **usage × ville** → `/entree-de-cour-quebec`
-  - **usage × matériau × ville** → `/gravier-entree-de-cour-quebec`
-- Chaque page : H1, meta, texte unique généré (voir Phase 2b), FAQ contextuelle, Schema.org, breadcrumb, Google Map de la ville, liens vers matériaux compatibles, villes voisines, entrepreneurs qui desservent, demandes ouvertes, points de dépôt, articles de blog liés.
-- Deux CTA : **Faire une demande** (préremplit le questionnaire) et **Je peux fournir ce matériau** (formulaire fournisseur).
+Nouvelle route `/:seoSlug` gérée par un composant `SeoLandingPage` :
+1. Résout d'abord via `seo_pages.slug` (nouvelles pages générées à la demande).
+2. Fallback sur le moteur `LocalLanding` existant (rétro-compatibilité des 340 pages actuelles).
+3. Rend le HTML stocké + Helmet (title, description, canonical, OG, Twitter, JSON-LD) + breadcrumb + formulaire de demande Vrac Québec + bloc "pages reliées" (villes voisines, autres matériaux, autres services).
 
-### Calculateur intelligent
-- Composant réutilisable `<MaterialCalculator />` : longueur × largeur × épaisseur → m³, tonnes (densité par matériau), nombre de voyages (par capacité de camion configurable).
-- Embarqué sur chaque page ville×matériau, usage, et usage×matériau×ville.
-- Page dédiée `/calculateur` avec sélecteur de matériau et lien vers le formulaire.
+### Sitemap & robots
 
-### Phase 2b — Génération automatique de contenu + FAQ (Lovable AI)
-- Edge function `seo-generate-page-content` (Gemini 2.5 Flash via Lovable AI Gateway) : à la création d’une ville/matériau/usage, génère et stocke un texte 300–500 mots **unique** par combinaison, dans une table `seo_page_content` (`slug`, `content_html`, `faq_json`, `generated_at`).
-- Régénération à la demande depuis le CRM (bouton "Régénérer" par page).
-- FAQ dynamique : 4–6 questions générées selon ville/matériau/usage, injectées dans le HTML et le JSON-LD `FAQPage`.
+`scripts/generate-sitemap.ts` élargi pour inclure toutes les `seo_pages` publiées, en plus des combinaisons historiques. `robots.txt` inchangé.
 
----
+## Interface `/admin/seo-manager`
 
-## Phase 3 — Pages entrepreneurs publiques
+Un seul écran avec onglets latéraux :
 
-- Colonnes ajoutées à `entrepreneur_profiles` : `public_slug`, `is_public`, `bio`, `service_area_city_ids`, `material_ids`, `photos[]`, `services[]`.
-- Onglet **Page publique** dans la fiche entrepreneur du CRM.
-- Route `/entrepreneur/:slug` (ex. `/entrepreneur/transport-jsc`) avec présentation, services, territoires desservis (chips vers pages ville), matériaux offerts (chips vers pages matériau), photos, contact, JSON-LD `LocalBusiness`.
-- Section "avis" : structure prête, source à décider (interne ou Google via connector) — je marque le placeholder plutôt que d’inventer des avis.
+1. **Tableau de bord** — total, publiées, brouillons, générées aujourd'hui, top vues, à optimiser (pages > 90j sans mise à jour).
+2. **Villes** — CRUD complet + import CSV/Excel + activation/désactivation.
+3. **Matériaux** — CRUD + activation.
+4. **Services** — CRUD + activation.
+5. **Générateur** — sélecteurs multi (villes / matériaux / services) → aperçu :
+   - Nombre à créer, déjà existantes, doublons ignorés, temps estimé.
+   - Boutons : Générer / Pause / Reprendre. Barre de progression persistée dans `seo_generation_jobs` (reprise possible après refresh).
+6. **Suggestions SEO** — liste automatique des combinaisons manquantes triées par potentiel (ville prioritaire × matériau prioritaire). Bouton "Créer" par ligne.
+7. **Blog SEO** — bouton qui pousse des idées d'articles dans `blog_post_ideas` existant (réutilise l'infra blog déjà en place), avec des templates du type "Où domper de la terre à {ville} ?".
 
----
+## Livraison en une passe
 
-## Phase 4 — Points de dépôt publics + Demandes publiques
+1. Migration : `seo_services`, `seo_pages`, `seo_generation_jobs` + GRANTs + RLS + trigger updated_at.
+2. Edge function `seo-generate-page`.
+3. Page `src/pages/AdminSeoManager.tsx` + sous-composants (Dashboard, Villes, Matériaux, Services, Générateur, Suggestions, Blog).
+4. Hook `useSeoServices` (miroir de `useSeoData`).
+5. Rendu public `src/pages/SeoLandingPage.tsx` + route dans `App.tsx` avant `LocalLanding`.
+6. Sitemap élargi.
+7. Lien "SEO Manager" dans la sidebar admin (remplace/complète l'actuel `/admin/seo`).
 
-### Points de dépôt
-- Nouvelle table `deposit_sites` (nom, slug, adresse, `city_id`, matériaux acceptés, conditions, photos, entrepreneur lié, `active`, `is_public`).
-- CRUD dans `/admin/seo/depots`.
-- Route publique `/depot/:slug` : carte, photos, matériaux acceptés, entrepreneurs liés, demandes récentes de la zone.
+## Notes techniques
 
-### Demandes publiques
-- Champ `submissions.is_public` (opt-in dans le formulaire remblai/dépôt).
-- Route `/demande/:slug` (ex. `/demande/terre-remplissage-quebec-40-tonnes`) : ville, matériau, quantité, description anonymisée, carte, date, bouton **Je peux répondre à cette demande** (crée une soumission fournisseur reliée).
-- Sitemap inclut uniquement `is_public = true` et statut actif.
-
----
-
-## Phase 5 — Maillage interne intelligent + SEO technique complet
-
-- Composant central `<InternalLinks context={...} />` qui, selon la page (ville / matériau / usage / entrepreneur / demande / dépôt / article), injecte automatiquement :
-  - villes voisines, matériaux reliés, usages compatibles, entrepreneurs desservant la zone, demandes ouvertes, points de dépôt proches, articles de blog liés, calculateur.
-- Breadcrumbs auto depuis la route.
-- JSON-LD systématique : `LocalBusiness`, `Service`, `FAQPage`, `BreadcrumbList`, `Article`, `Place`.
-- Canonical self-référent, `og:url` cohérent, meta robots par route, images `loading="lazy" decoding="async"` (déjà en place), conversion WebP via `vite-imagetools` pour les assets locaux, alt automatique basé sur (matériau, ville, usage).
-- `robots.txt` propre + `sitemap.xml` dynamique déjà géré, étendu aux nouvelles routes.
-
----
-
-## Phase 6 — Blog SEO renforcé (existe déjà, ajustements)
-
-- Le CMS blog + IA + plan éditorial 250 idées existent.
-- Ajustements :
-  - Tags automatiques `city:*` et `material:*` sur chaque article.
-  - Injection auto d’articles pertinents dans les pages SEO (ville, matériau, usage) via `<InternalLinks />`.
-  - Injection auto de blocs "Voir aussi" (pages ville/matériau) dans les articles selon leurs tags.
-
----
-
-## Architecture technique
-
-```text
-CRM (/admin/seo)
-   │  villes / matériaux / usages / entrepreneurs / dépôts / demandes / articles
-   ▼
-Tables Supabase (source unique de vérité)
-   │  seo_cities, seo_materials, seo_material_uses,
-   │  entrepreneur_profiles(+public), deposit_sites, submissions(is_public),
-   │  seo_page_content (contenu IA + FAQ mis en cache)
-   ▼
-Hook client useSeoData() + resolveLocalSlug() (cache + fallback)
-   │
-   ▼
-Templates React (SPA)         Sitemap generator (prebuild)
-   LocalLanding                  ├── ville
-   LocalCityIndex                ├── matériau × ville
-   LocalIndex                    ├── usage
-   UsageLanding                  ├── usage × matériau
-   UsageCityLanding              ├── usage × ville
-   UsageMaterialCityLanding      ├── entrepreneur
-   EntrepreneurPage              ├── dépôt
-   DepositPage                   ├── demande publique
-   PublicRequestPage             └── blog
-   Blog*
-```
-
-- **Génération** : pages rendues à la volée côté client (SPA). Le sitemap contient toutes les URLs → Googlebot les découvre. Pas de milliers de fichiers HTML à builder.
-- **Contenu unique** : mis en cache dans `seo_page_content`, généré une fois par combinaison via Lovable AI (Gemini 2.5 Flash), régénérable.
-- **Performance** : cache React Query côté client, lazy loading des routes, `vite-imagetools` pour WebP, préchargement du hero.
-- **Sécurité** : chaque nouvelle table publique suit `CREATE TABLE → GRANT → ENABLE RLS → POLICY`. Écriture admin uniquement, lecture publique restreinte aux champs non sensibles (jamais d’emails, jamais de tokens).
-- **Rétrocompatibilité** : les URLs actuelles restent identiques (`/terre-remplissage-quebec`, etc.).
-
----
-
-## Deux décisions à confirmer avant de démarrer
-
-1. **Ordre de livraison.** Je propose : Phase 1 (finir : retrait prix + usages CRM + géocodage) → Phase 2 (usages + calculateur + IA de contenu) → Phase 3 (entrepreneurs) → Phase 4 (dépôts + demandes publiques) → Phase 5 (maillage + SEO technique) → Phase 6 (blog). Confirmez-vous cet ordre ?
-2. **Rythme.** Je livre phase par phase avec validation entre chaque (recommandé, chaque phase est déployable seule), ou vous voulez que j’enchaîne tout d’un trait ?
+- Toute écriture dans `seo_pages` est idempotente (contrainte unique sur `slug`).
+- La génération tourne côté client en boucle séquentielle (1 appel edge function par combinaison, ~5s chacune), avec `invokeWithFreshSession` pour survivre à un batch long. L'état du job est persistant → pause/reprise sans perte.
+- Aucun prix inventé (règle déjà en place).
+- Zéro page créée avant que l'utilisateur clique explicitement sur "Générer" ou "Créer".

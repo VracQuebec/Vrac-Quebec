@@ -1249,6 +1249,42 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_generation_jobs: {
+        Row: {
+          combinations: Json
+          created_at: string
+          created_by: string | null
+          done: number
+          errors: Json
+          id: string
+          status: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          combinations?: Json
+          created_at?: string
+          created_by?: string | null
+          done?: number
+          errors?: Json
+          id?: string
+          status?: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          combinations?: Json
+          created_at?: string
+          created_by?: string | null
+          done?: number
+          errors?: Json
+          id?: string
+          status?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       seo_material_uses: {
         Row: {
           active: boolean
@@ -1330,6 +1366,117 @@ export type Database = {
           sort_order?: number
           updated_at?: string
           use_cases?: string[]
+        }
+        Relationships: []
+      }
+      seo_pages: {
+        Row: {
+          ai_model: string | null
+          city_slug: string
+          content_html: string
+          cover_image_prompt: string | null
+          cover_image_url: string | null
+          created_at: string
+          faq: Json
+          h1: string | null
+          id: string
+          intro: string | null
+          last_generated_at: string | null
+          material_slug: string | null
+          meta_description: string | null
+          meta_title: string | null
+          published_at: string | null
+          service_slug: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          ai_model?: string | null
+          city_slug: string
+          content_html?: string
+          cover_image_prompt?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          faq?: Json
+          h1?: string | null
+          id?: string
+          intro?: string | null
+          last_generated_at?: string | null
+          material_slug?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          published_at?: string | null
+          service_slug?: string | null
+          slug: string
+          status?: string
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          ai_model?: string | null
+          city_slug?: string
+          content_html?: string
+          cover_image_prompt?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          faq?: Json
+          h1?: string | null
+          id?: string
+          intro?: string | null
+          last_generated_at?: string | null
+          material_slug?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          published_at?: string | null
+          service_slug?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: []
+      }
+      seo_services: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          keywords: string[] | null
+          name: string
+          short_name: string | null
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          keywords?: string[] | null
+          name: string
+          short_name?: string | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          keywords?: string[] | null
+          name?: string
+          short_name?: string | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
