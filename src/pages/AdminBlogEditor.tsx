@@ -705,6 +705,52 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function SeoAttachments({
+  cities, materials, services,
+  selCities, selMaterials, selServices,
+  onCities, onMaterials, onServices,
+}: {
+  cities: Array<{ slug: string; name: string }>;
+  materials: Array<{ slug: string; name: string }>;
+  services: Array<{ slug: string; name: string }>;
+  selCities: string[]; selMaterials: string[]; selServices: string[];
+  onCities: (v: string[]) => void; onMaterials: (v: string[]) => void; onServices: (v: string[]) => void;
+}) {
+  const toggle = (arr: string[], val: string, setter: (v: string[]) => void) => {
+    setter(arr.includes(val) ? arr.filter((s) => s !== val) : [...arr, val]);
+  };
+  const Group = ({ title, items, sel, onChange }: { title: string; items: Array<{ slug: string; name: string }>; sel: string[]; onChange: (v: string[]) => void }) => (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-display font-extrabold uppercase tracking-wider text-foreground">{title}</h3>
+        <span className="text-[11px] text-muted-foreground">{sel.length}/{items.length}</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-56 overflow-y-auto p-2 rounded-lg border border-border bg-card">
+        {items.map((it) => (
+          <label key={it.slug} className="flex items-center gap-1.5 text-xs font-body hover:bg-muted rounded px-1.5 py-1 cursor-pointer">
+            <input type="checkbox" checked={sel.includes(it.slug)} onChange={() => toggle(sel, it.slug, onChange)} />
+            <span className="truncate">{it.name}</span>
+          </label>
+        ))}
+        {items.length === 0 && <p className="col-span-full text-xs text-muted-foreground p-2">Aucun élément actif.</p>}
+      </div>
+    </div>
+  );
+  return (
+    <div className="rounded-2xl border border-primary/40 bg-primary/5 p-5 space-y-5">
+      <div>
+        <h2 className="text-sm font-display font-extrabold uppercase tracking-wider text-foreground">Rattachements SEO Manager</h2>
+        <p className="text-xs text-muted-foreground font-body mt-1">
+          Reliez cet article aux villes, matériaux et services gérés dans le SEO Manager. Le maillage interne apparaîtra automatiquement sur les pages SEO correspondantes et en bas de l'article.
+        </p>
+      </div>
+      <Group title="Villes" items={cities} sel={selCities} onChange={onCities} />
+      <Group title="Matériaux" items={materials} sel={selMaterials} onChange={onMaterials} />
+      <Group title="Services" items={services} sel={selServices} onChange={onServices} />
+    </div>
+  );
+}
+
 function RelatedManager({ postId }: { postId: string | null }) {
   const [selected, setSelected] = useState<{ id: string; title: string }[]>([]);
   const [q, setQ] = useState("");
