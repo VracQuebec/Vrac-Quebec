@@ -1210,6 +1210,36 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_broken_links: {
+        Row: {
+          checked_at: string
+          error_message: string | null
+          http_status: number | null
+          id: string
+          resolved: boolean
+          source_page: string | null
+          url: string
+        }
+        Insert: {
+          checked_at?: string
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          resolved?: boolean
+          source_page?: string | null
+          url: string
+        }
+        Update: {
+          checked_at?: string
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          resolved?: boolean
+          source_page?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       seo_cities: {
         Row: {
           active: boolean
@@ -1258,6 +1288,95 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_competitor_pages: {
+        Row: {
+          city_slug: string | null
+          competitor_id: string
+          h1: string | null
+          id: string
+          keywords: string[]
+          last_crawled_at: string
+          material_slug: string | null
+          meta_description: string | null
+          service_slug: string | null
+          title: string | null
+          url: string
+          word_count: number | null
+        }
+        Insert: {
+          city_slug?: string | null
+          competitor_id: string
+          h1?: string | null
+          id?: string
+          keywords?: string[]
+          last_crawled_at?: string
+          material_slug?: string | null
+          meta_description?: string | null
+          service_slug?: string | null
+          title?: string | null
+          url: string
+          word_count?: number | null
+        }
+        Update: {
+          city_slug?: string | null
+          competitor_id?: string
+          h1?: string | null
+          id?: string
+          keywords?: string[]
+          last_crawled_at?: string
+          material_slug?: string | null
+          meta_description?: string | null
+          service_slug?: string | null
+          title?: string | null
+          url?: string
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_competitor_pages_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "seo_competitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_competitors: {
+        Row: {
+          active: boolean
+          created_at: string
+          domain: string
+          id: string
+          label: string | null
+          last_crawled_at: string | null
+          notes: string | null
+          pages_count: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          domain: string
+          id?: string
+          label?: string | null
+          last_crawled_at?: string | null
+          notes?: string | null
+          pages_count?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          domain?: string
+          id?: string
+          label?: string | null
+          last_crawled_at?: string | null
+          notes?: string | null
+          pages_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       seo_generation_jobs: {
         Row: {
           combinations: Json
@@ -1290,6 +1409,48 @@ export type Database = {
           id?: string
           status?: string
           total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seo_goals: {
+        Row: {
+          active: boolean
+          created_at: string
+          current_value: number
+          deadline: string | null
+          id: string
+          keyword: string | null
+          label: string
+          last_refreshed_at: string | null
+          metric_type: string
+          target_value: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          current_value?: number
+          deadline?: string | null
+          id?: string
+          keyword?: string | null
+          label: string
+          last_refreshed_at?: string | null
+          metric_type: string
+          target_value: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          current_value?: number
+          deadline?: string | null
+          id?: string
+          keyword?: string | null
+          label?: string
+          last_refreshed_at?: string | null
+          metric_type?: string
+          target_value?: number
           updated_at?: string
         }
         Relationships: []
@@ -1656,6 +1817,134 @@ export type Database = {
           word_count?: number
         }
         Relationships: []
+      }
+      seo_pagespeed_snapshots: {
+        Row: {
+          cls: number | null
+          fcp_ms: number | null
+          fetched_at: string
+          id: string
+          inp_ms: number | null
+          lcp_ms: number | null
+          page_id: string | null
+          performance_score: number | null
+          strategy: string
+          ttfb_ms: number | null
+          url: string
+        }
+        Insert: {
+          cls?: number | null
+          fcp_ms?: number | null
+          fetched_at?: string
+          id?: string
+          inp_ms?: number | null
+          lcp_ms?: number | null
+          page_id?: string | null
+          performance_score?: number | null
+          strategy?: string
+          ttfb_ms?: number | null
+          url: string
+        }
+        Update: {
+          cls?: number | null
+          fcp_ms?: number | null
+          fetched_at?: string
+          id?: string
+          inp_ms?: number | null
+          lcp_ms?: number | null
+          page_id?: string | null
+          performance_score?: number | null
+          strategy?: string
+          ttfb_ms?: number | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_pagespeed_snapshots_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_recommendations: {
+        Row: {
+          action_type: string
+          applied_at: string | null
+          blog_post_id: string | null
+          created_at: string
+          effort_estimate: number
+          entity_id: string | null
+          entity_slug: string | null
+          entity_type: string
+          id: string
+          impact_estimate: number
+          page_id: string | null
+          payload: Json
+          priority: number
+          rationale: string | null
+          reco_type: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          applied_at?: string | null
+          blog_post_id?: string | null
+          created_at?: string
+          effort_estimate?: number
+          entity_id?: string | null
+          entity_slug?: string | null
+          entity_type: string
+          id?: string
+          impact_estimate?: number
+          page_id?: string | null
+          payload?: Json
+          priority?: number
+          rationale?: string | null
+          reco_type: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          applied_at?: string | null
+          blog_post_id?: string | null
+          created_at?: string
+          effort_estimate?: number
+          entity_id?: string | null
+          entity_slug?: string | null
+          entity_type?: string
+          id?: string
+          impact_estimate?: number
+          page_id?: string | null
+          payload?: Json
+          priority?: number
+          rationale?: string | null
+          reco_type?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_recommendations_blog_post_id_fkey"
+            columns: ["blog_post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_recommendations_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_pages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       seo_services: {
         Row: {
@@ -2191,6 +2480,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      seo_priority_score: { Args: { _page_id: string }; Returns: number }
       unaccent_string: { Args: { input: string }; Returns: string }
     }
     Enums: {
