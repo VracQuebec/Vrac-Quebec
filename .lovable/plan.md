@@ -1,73 +1,92 @@
-# SEO Manager — Générateur intelligent de pages SEO
+# Plan : Moteur SEO Complet pour Vrac Québec
 
-Un module admin unique (`/admin/seo-manager`) qui pilote la création à la demande de pages ville × matériau × service, avec IA, suggestions, tableau de bord et SEO technique — sans jamais créer les pages en masse tant qu'on ne clique pas sur "Générer".
+Ce chantier étend le SEO Manager existant en 6 modules. Vu l'ampleur, je propose de le livrer en **3 phases** validées séparément — la phase 1 pose les fondations dont dépendent les phases 2 et 3.
 
-## Périmètre initial (chargé en base au démarrage)
+---
 
-- **26 villes / arrondissements / secteurs** listés (Québec, Lévis, arrondissements, secteurs, municipalités environnantes).
-- **12 matériaux** (terre propre, contaminée, végétale, remblai, gravier, sable, pierre, roche, béton, asphalte, brique, neige).
-- **10 services** (transport vrac, dompe, recherche de dépôt, livraisons, excavation, nivellement, courtage).
+## Phase 1 — Fondations & Génération Enrichie
 
-Tout le reste s'ajoute ensuite depuis l'admin, sans toucher au code.
+**Contenu enrichi (edge function `seo-generate-page` v2)**
+- Contenu 800-1500 mots (vs 600-1200)
+- FAQ ville+service spécifique (6-8 questions au lieu de 4)
+- Génération auto : balises ALT contextuelles pour images, Open Graph + Twitter Cards, meta-description optimisée
+- Schema.org enrichi : LocalBusiness + Service + FAQPage + BreadcrumbList + Article
+- Section CTA adaptée (Devis / Appel / Formulaire) selon le service
+- Extraction automatique de metrics à l'insertion : word_count, h1/h2/h3 count, keyword density
 
-## Architecture
+**Maillage interne intelligent**
+- Nouveau champ `internal_links` (jsonb) sur `seo_pages`
+- Algorithme : chaque page reçoit 5-8 liens vers (a) même ville / autres services, (b) même service / villes voisines, (c) matériau lié
+- Composant `<InternalLinksBlock>` rendu en bas des pages publiques
+- Breadcrumb component réutilisable avec Schema.org
 
-### Base de données (Lovable Cloud)
+**Sync automatique Dompes ↔ SEO**
+- Trigger DB : à l'INSERT/UPDATE d'une `submission` de type dompe, marquer la page SEO de la ville comme `needs_refresh = true`
+- Section "Points de dépôt actifs" injectée dynamiquement sur les pages ville (compte + zones desservies, sans exposer d'adresses privées)
+- Bouton "Régénérer les pages impactées" dans le SEO Manager
 
-Nouvelles tables (RLS : lecture publique sur `active=true`, écriture admin uniquement) :
+---
 
-- `seo_services` — nom, slug, description, mots-clés, actif, ordre.
-- `seo_pages` — la page générée : `city_id`, `material_id?`, `service_id?`, `slug` unique, `title`, `meta_description`, `h1`, `content` (HTML), `faq` (jsonb), `cover_image_url`, `status` (draft/published), `view_count`, `last_generated_at`, `ai_model`, `canonical`, `og_*`.
-- `seo_generation_jobs` — job de génération : `combinations` (jsonb), `progress`, `status` (queued/running/paused/done/failed), `total`, `done`, `errors`, `created_by`.
+## Phase 2 — Analyse SEO & Suggestions IA
 
-`seo_cities` et `seo_materials` existent déjà — on ajoute simplement les colonnes manquantes (image_url, mots-clés déjà présents).
+**Module "Analyse SEO" par page**
+- Nouvelle table `seo_page_analytics` (score, word_count, internal/external links, h1/h2/h3, keyword_density, meta_description_length, errors[], suggestions[])
+- Edge function `seo-analyze-page` : parse le contenu, calcule un score /100 pondéré (contenu 30, structure 20, meta 15, liens 15, keywords 20)
+- Onglet "Analyse" dans le SEO Manager avec tableau triable + drill-down par page
+- Badges visuels : Excellent (85+) / Bon (65-84) / À améliorer (<65)
 
-### Génération de contenu
+**Module "Suggestions IA"**
+- Edge function `seo-suggestions` (Gemini 2.5) qui analyse : combinaisons manquantes prioritaires, villes/services absents avec fort volume, mots-clés longue-traîne détectés, sujets de blogue liés
+- Nouvel onglet "Suggestions" avec cartes par catégorie et bouton "Créer" one-click
+- Rafraîchissement hebdomadaire automatique via cron
 
-Edge function `seo-generate-page` (Lovable AI, `google/gemini-3-flash-preview`) :
-- Reçoit `{ city, material?, service? }`.
-- Produit `title`, `meta_description`, `h1`, `h2/h3`, corps optimisé (unique, ~800-1200 mots), FAQ, ALT d'images, JSON-LD LocalBusiness + FAQPage + BreadcrumbList.
-- Renvoie le tout structuré ; le client l'écrit dans `seo_pages`.
-- Skip si `seo_pages` a déjà cette combinaison (garantie d'unicité par contrainte + vérif serveur).
+---
 
-### Rendu public
+## Phase 3 — Calendrier & Google Search Console
 
-Nouvelle route `/:seoSlug` gérée par un composant `SeoLandingPage` :
-1. Résout d'abord via `seo_pages.slug` (nouvelles pages générées à la demande).
-2. Fallback sur le moteur `LocalLanding` existant (rétro-compatibilité des 340 pages actuelles).
-3. Rend le HTML stocké + Helmet (title, description, canonical, OG, Twitter, JSON-LD) + breadcrumb + formulaire de demande Vrac Québec + bloc "pages reliées" (villes voisines, autres matériaux, autres services).
+**Calendrier de publication naturelle**
+- Nouvelle table `seo_publication_schedule` (page_id, scheduled_at, status)
+- UI : choix du rythme (5/10/20/50 pages / semaine), répartition automatique lun-mer-ven aux heures ouvrables
+- Cron `seo-publish-scheduled` qui passe les pages `draft → published` selon le calendrier
+- Vue calendrier mensuelle avec drag & drop
 
-### Sitemap & robots
+**Intégration Google Search Console**
+- Connecteur GSC déjà disponible côté Lovable (documenté)
+- Nouvelle page/onglet "Search Console" : impressions, clics, CTR, position moyenne (7j / 28j / 3 mois)
+- Top pages, top requêtes, pages à optimiser (position 8-20 = quick wins)
+- Nécessite que l'utilisateur autorise la connexion GSC + valide le domaine vracquebec.ca
 
-`scripts/generate-sitemap.ts` élargi pour inclure toutes les `seo_pages` publiées, en plus des combinaisons historiques. `robots.txt` inchangé.
+---
 
-## Interface `/admin/seo-manager`
+## Détails techniques
 
-Un seul écran avec onglets latéraux :
+**Nouvelles tables**
+```
+seo_page_analytics    (page_id, score, metrics jsonb, errors[], suggestions[], analyzed_at)
+seo_publication_schedule  (page_id, scheduled_at, published_at, status)
+seo_ai_suggestions    (type, payload jsonb, priority, dismissed, created_at)
+```
 
-1. **Tableau de bord** — total, publiées, brouillons, générées aujourd'hui, top vues, à optimiser (pages > 90j sans mise à jour).
-2. **Villes** — CRUD complet + import CSV/Excel + activation/désactivation.
-3. **Matériaux** — CRUD + activation.
-4. **Services** — CRUD + activation.
-5. **Générateur** — sélecteurs multi (villes / matériaux / services) → aperçu :
-   - Nombre à créer, déjà existantes, doublons ignorés, temps estimé.
-   - Boutons : Générer / Pause / Reprendre. Barre de progression persistée dans `seo_generation_jobs` (reprise possible après refresh).
-6. **Suggestions SEO** — liste automatique des combinaisons manquantes triées par potentiel (ville prioritaire × matériau prioritaire). Bouton "Créer" par ligne.
-7. **Blog SEO** — bouton qui pousse des idées d'articles dans `blog_post_ideas` existant (réutilise l'infra blog déjà en place), avec des templates du type "Où domper de la terre à {ville} ?".
+**Nouvelles colonnes `seo_pages`**
+- `internal_links jsonb`, `word_count int`, `needs_refresh bool`, `last_analyzed_at timestamptz`
 
-## Livraison en une passe
+**Edge functions**
+- `seo-generate-page` v2 (enrichie)
+- `seo-analyze-page` (nouveau)
+- `seo-suggestions` (nouveau)
+- `seo-refresh-dumps` (nouveau, appelée par trigger DB)
 
-1. Migration : `seo_services`, `seo_pages`, `seo_generation_jobs` + GRANTs + RLS + trigger updated_at.
-2. Edge function `seo-generate-page`.
-3. Page `src/pages/AdminSeoManager.tsx` + sous-composants (Dashboard, Villes, Matériaux, Services, Générateur, Suggestions, Blog).
-4. Hook `useSeoServices` (miroir de `useSeoData`).
-5. Rendu public `src/pages/SeoLandingPage.tsx` + route dans `App.tsx` avant `LocalLanding`.
-6. Sitemap élargi.
-7. Lien "SEO Manager" dans la sidebar admin (remplace/complète l'actuel `/admin/seo`).
+**Fichiers front principaux**
+- `src/pages/AdminSeoManager.tsx` — ajout onglets Analyse / Suggestions / Calendrier / Search Console
+- `src/pages/SeoLandingPage.tsx` — rendu Breadcrumb + InternalLinks + Dumps actifs
+- `src/components/seo/` — nouveaux composants réutilisables
 
-## Notes techniques
+---
 
-- Toute écriture dans `seo_pages` est idempotente (contrainte unique sur `slug`).
-- La génération tourne côté client en boucle séquentielle (1 appel edge function par combinaison, ~5s chacune), avec `invokeWithFreshSession` pour survivre à un batch long. L'état du job est persistant → pause/reprise sans perte.
-- Aucun prix inventé (règle déjà en place).
-- Zéro page créée avant que l'utilisateur clique explicitement sur "Générer" ou "Créer".
+## Question de séquencement
+
+Je recommande de commencer par la **Phase 1** (fondations qui améliorent immédiatement toutes les pages) puis d'enchaîner. Confirme-moi :
+
+1. Est-ce que je démarre par la Phase 1 complète (~1 gros commit) ?
+2. Pour Google Search Console : est-ce que tu veux que je te guide pour connecter le connecteur GSC dès maintenant, ou on le fait au moment de la Phase 3 ?
+3. Pour les "dompes" sur les pages publiques : afficher un compteur agrégé par ville (ex. "12 points de dépôt actifs") sans jamais exposer d'adresse — OK ?
