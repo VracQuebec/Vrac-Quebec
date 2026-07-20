@@ -1369,75 +1369,176 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_page_analytics: {
+        Row: {
+          analyzed_at: string
+          core_web_vitals_score: number | null
+          created_at: string
+          errors: Json
+          external_links: number
+          h1_count: number
+          h2_count: number
+          h3_count: number
+          id: string
+          internal_links: number
+          keyword_density: number
+          meta_description_length: number
+          meta_title_length: number
+          page_id: string
+          score: number
+          suggestions: Json
+          word_count: number
+        }
+        Insert: {
+          analyzed_at?: string
+          core_web_vitals_score?: number | null
+          created_at?: string
+          errors?: Json
+          external_links?: number
+          h1_count?: number
+          h2_count?: number
+          h3_count?: number
+          id?: string
+          internal_links?: number
+          keyword_density?: number
+          meta_description_length?: number
+          meta_title_length?: number
+          page_id: string
+          score?: number
+          suggestions?: Json
+          word_count?: number
+        }
+        Update: {
+          analyzed_at?: string
+          core_web_vitals_score?: number | null
+          created_at?: string
+          errors?: Json
+          external_links?: number
+          h1_count?: number
+          h2_count?: number
+          h3_count?: number
+          id?: string
+          internal_links?: number
+          keyword_density?: number
+          meta_description_length?: number
+          meta_title_length?: number
+          page_id?: string
+          score?: number
+          suggestions?: Json
+          word_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_page_analytics_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_pages: {
         Row: {
           ai_model: string | null
           city_slug: string
           content_html: string
+          cover_image_alt: string | null
           cover_image_prompt: string | null
           cover_image_url: string | null
           created_at: string
+          external_link_count: number
           faq: Json
           h1: string | null
+          h2_count: number
+          h3_count: number
           id: string
+          internal_link_count: number
+          internal_links: Json
           intro: string | null
+          last_analyzed_at: string | null
           last_generated_at: string | null
           material_slug: string | null
           meta_description: string | null
           meta_title: string | null
+          needs_refresh: boolean
           published_at: string | null
+          refresh_reason: string | null
+          seo_score: number | null
           service_slug: string | null
           slug: string
           status: string
           title: string
           updated_at: string
           view_count: number
+          word_count: number
         }
         Insert: {
           ai_model?: string | null
           city_slug: string
           content_html?: string
+          cover_image_alt?: string | null
           cover_image_prompt?: string | null
           cover_image_url?: string | null
           created_at?: string
+          external_link_count?: number
           faq?: Json
           h1?: string | null
+          h2_count?: number
+          h3_count?: number
           id?: string
+          internal_link_count?: number
+          internal_links?: Json
           intro?: string | null
+          last_analyzed_at?: string | null
           last_generated_at?: string | null
           material_slug?: string | null
           meta_description?: string | null
           meta_title?: string | null
+          needs_refresh?: boolean
           published_at?: string | null
+          refresh_reason?: string | null
+          seo_score?: number | null
           service_slug?: string | null
           slug: string
           status?: string
           title?: string
           updated_at?: string
           view_count?: number
+          word_count?: number
         }
         Update: {
           ai_model?: string | null
           city_slug?: string
           content_html?: string
+          cover_image_alt?: string | null
           cover_image_prompt?: string | null
           cover_image_url?: string | null
           created_at?: string
+          external_link_count?: number
           faq?: Json
           h1?: string | null
+          h2_count?: number
+          h3_count?: number
           id?: string
+          internal_link_count?: number
+          internal_links?: Json
           intro?: string | null
+          last_analyzed_at?: string | null
           last_generated_at?: string | null
           material_slug?: string | null
           meta_description?: string | null
           meta_title?: string | null
+          needs_refresh?: boolean
           published_at?: string | null
+          refresh_reason?: string | null
+          seo_score?: number | null
           service_slug?: string | null
           slug?: string
           status?: string
           title?: string
           updated_at?: string
           view_count?: number
+          word_count?: number
         }
         Relationships: []
       }
@@ -1896,6 +1997,10 @@ export type Database = {
         }[]
       }
       blog_slugify: { Args: { input: string }; Returns: string }
+      count_active_dumps_by_city: {
+        Args: { _city_slug: string }
+        Returns: number
+      }
       current_user_email: { Args: never; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
