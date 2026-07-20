@@ -8,9 +8,10 @@ import { toast } from "sonner";
 import {
   ArrowLeft, LayoutDashboard, MapPin, Package, Wrench, Sparkles, Lightbulb,
   Loader2, Plus, Trash2, Play, Pause, RotateCcw, Save, ExternalLink, Gauge, RefreshCw,
+  FileText, Zap,
 } from "lucide-react";
 
-type Tab = "dashboard" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics";
+type Tab = "dashboard" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "blog";
 
 type City = {
   id: string; slug: string; name: string; region: string;
@@ -54,6 +55,7 @@ export default function AdminSeoManager() {
     { id: "generator", label: "Générateur", icon: Sparkles },
     { id: "analytics", label: "Analyse SEO", icon: Gauge },
     { id: "suggestions", label: "Suggestions", icon: Lightbulb },
+    { id: "blog", label: "Blogue", icon: FileText },
   ];
 
   return (
@@ -86,6 +88,7 @@ export default function AdminSeoManager() {
           {tab === "generator" && <GeneratorTab />}
           {tab === "analytics" && <AnalyticsTab />}
           {tab === "suggestions" && <SuggestionsTab />}
+          {tab === "blog" && <BlogTab />}
         </main>
       </div>
     </div>
