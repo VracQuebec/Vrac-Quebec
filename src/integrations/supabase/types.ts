@@ -1294,6 +1294,53 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_gsc_metrics: {
+        Row: {
+          clicks: number
+          ctr: number
+          fetched_at: string
+          id: string
+          impressions: number
+          index_status: string | null
+          page_id: string
+          period: string
+          position: number
+          top_queries: Json
+        }
+        Insert: {
+          clicks?: number
+          ctr?: number
+          fetched_at?: string
+          id?: string
+          impressions?: number
+          index_status?: string | null
+          page_id: string
+          period: string
+          position?: number
+          top_queries?: Json
+        }
+        Update: {
+          clicks?: number
+          ctr?: number
+          fetched_at?: string
+          id?: string
+          impressions?: number
+          index_status?: string | null
+          page_id?: string
+          period?: string
+          position?: number
+          top_queries?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_gsc_metrics_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_material_uses: {
         Row: {
           active: boolean
@@ -1446,6 +1493,53 @@ export type Database = {
           },
         ]
       }
+      seo_page_improvements: {
+        Row: {
+          after_snapshot: Json
+          applied: boolean
+          applied_at: string | null
+          before_snapshot: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          model: string | null
+          notes: string | null
+          page_id: string
+        }
+        Insert: {
+          after_snapshot: Json
+          applied?: boolean
+          applied_at?: string | null
+          before_snapshot: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          model?: string | null
+          notes?: string | null
+          page_id: string
+        }
+        Update: {
+          after_snapshot?: Json
+          applied?: boolean
+          applied_at?: string | null
+          before_snapshot?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          model?: string | null
+          notes?: string | null
+          page_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_page_improvements_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_pages: {
         Row: {
           ai_model: string | null
@@ -1457,6 +1551,8 @@ export type Database = {
           created_at: string
           external_link_count: number
           faq: Json
+          google_index_status: string | null
+          google_last_checked_at: string | null
           h1: string | null
           h2_count: number
           h3_count: number
@@ -1470,6 +1566,8 @@ export type Database = {
           meta_description: string | null
           meta_title: string | null
           needs_refresh: boolean
+          priority: number
+          priority_locked: boolean
           published_at: string | null
           refresh_reason: string | null
           seo_score: number | null
@@ -1491,6 +1589,8 @@ export type Database = {
           created_at?: string
           external_link_count?: number
           faq?: Json
+          google_index_status?: string | null
+          google_last_checked_at?: string | null
           h1?: string | null
           h2_count?: number
           h3_count?: number
@@ -1504,6 +1604,8 @@ export type Database = {
           meta_description?: string | null
           meta_title?: string | null
           needs_refresh?: boolean
+          priority?: number
+          priority_locked?: boolean
           published_at?: string | null
           refresh_reason?: string | null
           seo_score?: number | null
@@ -1525,6 +1627,8 @@ export type Database = {
           created_at?: string
           external_link_count?: number
           faq?: Json
+          google_index_status?: string | null
+          google_last_checked_at?: string | null
           h1?: string | null
           h2_count?: number
           h3_count?: number
@@ -1538,6 +1642,8 @@ export type Database = {
           meta_description?: string | null
           meta_title?: string | null
           needs_refresh?: boolean
+          priority?: number
+          priority_locked?: boolean
           published_at?: string | null
           refresh_reason?: string | null
           seo_score?: number | null

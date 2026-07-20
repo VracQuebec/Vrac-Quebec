@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRole";
@@ -8,10 +8,12 @@ import { toast } from "sonner";
 import {
   ArrowLeft, LayoutDashboard, MapPin, Package, Wrench, Sparkles, Lightbulb,
   Loader2, Plus, Trash2, Play, Pause, RotateCcw, Save, ExternalLink, Gauge, RefreshCw,
-  FileText, Zap,
+  FileText, Zap, ListChecks, Search as SearchIcon, TrendingUp,
 } from "lucide-react";
+import PriorityStars, { priorityLabel } from "@/components/seo/PriorityStars";
+import ImproveDialog from "@/components/seo/ImproveDialog";
 
-type Tab = "dashboard" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "blog";
+type Tab = "dashboard" | "pages" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
 
 type City = {
   id: string; slug: string; name: string; region: string;
@@ -48,12 +50,14 @@ export default function AdminSeoManager() {
 
   const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
     { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+    { id: "pages", label: "Pages", icon: ListChecks },
     { id: "cities", label: "Villes", icon: MapPin },
     { id: "materials", label: "Matériaux", icon: Package },
     { id: "uses", label: "Usages", icon: Wrench },
     { id: "services", label: "Services", icon: Wrench },
     { id: "generator", label: "Générateur", icon: Sparkles },
     { id: "analytics", label: "Analyse SEO", icon: Gauge },
+    { id: "gsc", label: "Search Console", icon: TrendingUp },
     { id: "suggestions", label: "Suggestions", icon: Lightbulb },
     { id: "blog", label: "Blogue", icon: FileText },
   ];
@@ -81,12 +85,14 @@ export default function AdminSeoManager() {
         </nav>
         <main>
           {tab === "dashboard" && <Dashboard />}
+          {tab === "pages" && <PagesTab />}
           {tab === "cities" && <CitiesTab />}
           {tab === "materials" && <MaterialsTab />}
           {tab === "uses" && <UsesTab />}
           {tab === "services" && <ServicesTab />}
           {tab === "generator" && <GeneratorTab />}
           {tab === "analytics" && <AnalyticsTab />}
+          {tab === "gsc" && <GscTab />}
           {tab === "suggestions" && <SuggestionsTab />}
           {tab === "blog" && <BlogTab />}
         </main>
@@ -601,7 +607,7 @@ function SimpleAdminList({ title, rows, loading, onToggle, onDelete, extra }: {
   loading: boolean;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-  extra?: React.ReactNode;
+  extra?: ReactNode;
 }) {
   return (
     <div className="space-y-4">
@@ -956,7 +962,7 @@ function Spinner() {
   return <div className="text-center py-10 text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin inline" /></div>;
 }
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div className="bg-card rounded-lg border border-border max-w-lg w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
@@ -1210,6 +1216,412 @@ function BlogTab() {
           })}
         </ul>
       )}
+    </div>
+  );
+}
+/* =========================================================================
+ * PAGES TAB — dashboard-style table with score, priority, Google status, actions
+ * ========================================================================= */
+type PageRow = Page & {
+  meta_title?: string | null;
+  google_index_status?: string | null;
+  google_last_checked_at?: string | null;
+  priority: number;
+  priority_locked: boolean;
+  updated_at: string | null;
+  related_articles_count?: number;
+};
+
+function PagesTab() {
+  const [rows, setRows] = useState<PageRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [scoreFilter, setScoreFilter] = useState<"all" | "good" | "avg" | "low">("all");
+  const [priorityFilter, setPriorityFilter] = useState<number | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "indexed" | "unknown">("all");
+  const [sortKey, setSortKey] = useState<"priority" | "score" | "words" | "updated" | "internal" | "articles">("priority");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [improveTarget, setImproveTarget] = useState<{ id: string; title: string } | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("seo_pages")
+      .select("id, slug, city_slug, material_slug, service_slug, title, meta_title, status, last_generated_at, created_at, updated_at, view_count, seo_score, word_count, internal_link_count, needs_refresh, priority, priority_locked, google_index_status, google_last_checked_at")
+      .order("priority", { ascending: false })
+      .limit(1000);
+    if (error) toast.error(error.message);
+
+    const list = ((data ?? []) as unknown) as PageRow[];
+
+    // Count related blog posts for each combo (best-effort, small extra query)
+    if (list.length > 0) {
+      const citySlugs = Array.from(new Set(list.map((r) => r.city_slug).filter(Boolean)));
+      const matSlugs = Array.from(new Set(list.map((r) => r.material_slug).filter(Boolean) as string[]));
+      const { data: posts } = await supabase
+        .from("blog_posts")
+        .select("related_city_slugs, related_material_slugs, related_service_slugs")
+        .eq("status", "published")
+        .or(
+          [
+            citySlugs.length ? `related_city_slugs.ov.{${citySlugs.join(",")}}` : "",
+            matSlugs.length ? `related_material_slugs.ov.{${matSlugs.join(",")}}` : "",
+          ].filter(Boolean).join(",") || "id.eq.00000000-0000-0000-0000-000000000000"
+        );
+      for (const r of list) {
+        r.related_articles_count = (posts ?? []).filter((p) => {
+          const cities = (p.related_city_slugs ?? []) as string[];
+          const mats = (p.related_material_slugs ?? []) as string[];
+          const svcs = (p.related_service_slugs ?? []) as string[];
+          const cityMatch = r.city_slug && cities.includes(r.city_slug);
+          const matMatch = r.material_slug && mats.includes(r.material_slug);
+          const svcMatch = r.service_slug && svcs.includes(r.service_slug);
+          return cityMatch || matMatch || svcMatch;
+        }).length;
+      }
+    }
+
+    setRows(list);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const filtered = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    let list = rows;
+    if (t) list = list.filter((r) => r.title.toLowerCase().includes(t) || r.slug.toLowerCase().includes(t));
+    if (scoreFilter !== "all") {
+      list = list.filter((r) => {
+        const s = r.seo_score ?? 0;
+        return scoreFilter === "good" ? s >= 85 : scoreFilter === "avg" ? s >= 65 && s < 85 : s < 65;
+      });
+    }
+    if (priorityFilter !== "all") list = list.filter((r) => r.priority === priorityFilter);
+    if (statusFilter !== "all") {
+      list = list.filter((r) => (statusFilter === "indexed" ? r.google_index_status === "indexed" : (r.google_index_status ?? "unknown") !== "indexed"));
+    }
+    const dir = sortDir === "asc" ? 1 : -1;
+    const key = sortKey;
+    return [...list].sort((a, b) => {
+      const av =
+        key === "priority" ? a.priority :
+        key === "score" ? (a.seo_score ?? 0) :
+        key === "words" ? (a.word_count ?? 0) :
+        key === "internal" ? (a.internal_link_count ?? 0) :
+        key === "articles" ? (a.related_articles_count ?? 0) :
+        new Date(a.updated_at ?? a.created_at).getTime();
+      const bv =
+        key === "priority" ? b.priority :
+        key === "score" ? (b.seo_score ?? 0) :
+        key === "words" ? (b.word_count ?? 0) :
+        key === "internal" ? (b.internal_link_count ?? 0) :
+        key === "articles" ? (b.related_articles_count ?? 0) :
+        new Date(b.updated_at ?? b.created_at).getTime();
+      return (av - bv) * dir;
+    });
+  }, [rows, q, scoreFilter, priorityFilter, statusFilter, sortKey, sortDir]);
+
+  const setPriority = async (row: PageRow, value: number, locked: boolean) => {
+    const { error } = await supabase.from("seo_pages").update({ priority: value, priority_locked: locked }).eq("id", row.id);
+    if (error) return toast.error(error.message);
+    setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, priority: value, priority_locked: locked } : r)));
+  };
+
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("desc"); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px]">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher titre ou slug…" className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-card font-body text-sm" />
+        </div>
+        <select value={scoreFilter} onChange={(e) => setScoreFilter(e.target.value as typeof scoreFilter)} className="px-2 py-2 rounded-lg border border-border bg-card text-sm font-body">
+          <option value="all">Score : tous</option>
+          <option value="good">Excellent (85+)</option>
+          <option value="avg">Bon (65-84)</option>
+          <option value="low">À améliorer (&lt;65)</option>
+        </select>
+        <select value={priorityFilter === "all" ? "all" : String(priorityFilter)} onChange={(e) => setPriorityFilter(e.target.value === "all" ? "all" : Number(e.target.value))} className="px-2 py-2 rounded-lg border border-border bg-card text-sm font-body">
+          <option value="all">Priorité : toutes</option>
+          {[5,4,3,2,1].map((p) => <option key={p} value={p}>{"★".repeat(p)} {priorityLabel(p)}</option>)}
+        </select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="px-2 py-2 rounded-lg border border-border bg-card text-sm font-body">
+          <option value="all">Google : tous</option>
+          <option value="indexed">Indexées</option>
+          <option value="unknown">Non indexées</option>
+        </select>
+        <button onClick={load} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary text-secondary-foreground text-sm font-display font-semibold hover:opacity-90">
+          <RefreshCw className="w-3.5 h-3.5" /> Actualiser
+        </button>
+      </div>
+
+      {loading ? <Spinner /> : filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Aucune page.</p>
+      ) : (
+        <div className="rounded-lg border border-border bg-card overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted text-muted-foreground text-xs uppercase tracking-wider">
+              <tr>
+                <th className="text-left px-3 py-2 font-semibold">Page</th>
+                <SortableTh label="Priorité" active={sortKey === "priority"} dir={sortDir} onClick={() => toggleSort("priority")} />
+                <SortableTh label="Score" active={sortKey === "score"} dir={sortDir} onClick={() => toggleSort("score")} />
+                <SortableTh label="Mots" active={sortKey === "words"} dir={sortDir} onClick={() => toggleSort("words")} />
+                <th className="text-left px-3 py-2 font-semibold">Google</th>
+                <SortableTh label="Liens int." active={sortKey === "internal"} dir={sortDir} onClick={() => toggleSort("internal")} />
+                <SortableTh label="Articles" active={sortKey === "articles"} dir={sortDir} onClick={() => toggleSort("articles")} />
+                <th className="text-left px-3 py-2 font-semibold">Créée</th>
+                <SortableTh label="MAJ" active={sortKey === "updated"} dir={sortDir} onClick={() => toggleSort("updated")} />
+                <th className="text-right px-3 py-2 font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filtered.map((r) => (
+                <tr key={r.id} className="hover:bg-muted/30">
+                  <td className="px-3 py-2 max-w-[260px]">
+                    <Link to={`/${r.slug}`} target="_blank" className="font-body text-foreground hover:text-primary line-clamp-1">{r.title}</Link>
+                    <div className="text-xs text-muted-foreground font-mono truncate">/{r.slug}</div>
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <PriorityStars value={r.priority} locked={r.priority_locked} editable onChange={(v, l) => setPriority(r, v, l)} />
+                  </td>
+                  <td className="px-3 py-2"><ScoreBadge score={r.seo_score ?? null} /></td>
+                  <td className="px-3 py-2 text-muted-foreground">{r.word_count ?? "—"}</td>
+                  <td className="px-3 py-2"><GoogleStatusBadge status={r.google_index_status} /></td>
+                  <td className="px-3 py-2 text-muted-foreground">{r.internal_link_count ?? 0}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{r.related_articles_count ?? 0}</td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">{new Date(r.created_at).toLocaleDateString("fr-CA")}</td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">{r.updated_at ? new Date(r.updated_at).toLocaleDateString("fr-CA") : "—"}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1 justify-end">
+                      <button
+                        onClick={() => setImproveTarget({ id: r.id, title: r.title })}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-primary text-primary-foreground font-display font-semibold hover:opacity-90"
+                        title="Améliorer avec l'IA"
+                      >
+                        <Sparkles className="w-3 h-3" /> Améliorer
+                      </button>
+                      <Link to={`/${r.slug}`} target="_blank" className="p-1.5 rounded hover:bg-muted text-muted-foreground" title="Voir la page">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {improveTarget && (
+        <ImproveDialog
+          pageId={improveTarget.id}
+          pageTitle={improveTarget.title}
+          onClose={() => setImproveTarget(null)}
+          onApplied={load}
+        />
+      )}
+    </div>
+  );
+}
+
+function SortableTh({ label, active, dir, onClick }: { label: string; active: boolean; dir: "asc" | "desc"; onClick: () => void }) {
+  return (
+    <th className="text-left px-3 py-2 font-semibold">
+      <button onClick={onClick} className={`inline-flex items-center gap-1 ${active ? "text-foreground" : ""}`}>
+        {label}{active && <span className="text-[10px]">{dir === "asc" ? "▲" : "▼"}</span>}
+      </button>
+    </th>
+  );
+}
+
+function GoogleStatusBadge({ status }: { status?: string | null }) {
+  if (!status) return <span className="text-xs text-muted-foreground">Non connecté</span>;
+  const map: Record<string, { label: string; cls: string }> = {
+    indexed: { label: "Indexée", cls: "bg-green-500/15 text-green-700 dark:text-green-400" },
+    pending: { label: "En cours", cls: "bg-blue-500/15 text-blue-700 dark:text-blue-400" },
+    unknown: { label: "Inconnue", cls: "bg-muted text-muted-foreground" },
+    not_indexed: { label: "Non indexée", cls: "bg-destructive/15 text-destructive" },
+  };
+  const s = map[status] ?? map.unknown;
+  return <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-display font-semibold ${s.cls}`}>{s.label}</span>;
+}
+
+/* =========================================================================
+ * SEARCH CONSOLE TAB — connect, sync, top pages/queries, quick wins
+ * ========================================================================= */
+type GscRow = {
+  page_id: string; period: string;
+  clicks: number; impressions: number; ctr: number; position: number;
+  top_queries: Array<{ query: string; clicks: number; impressions: number; position: number }>;
+  seo_pages: { slug: string; title: string } | null;
+};
+
+function GscTab() {
+  const [rows, setRows] = useState<GscRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [period, setPeriod] = useState<"7d" | "28d" | "90d">("28d");
+  const [lastFetched, setLastFetched] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("seo_gsc_metrics")
+      .select("page_id, period, clicks, impressions, ctr, position, top_queries, fetched_at, seo_pages:page_id (slug, title)")
+      .eq("period", period)
+      .order("impressions", { ascending: false })
+      .limit(500);
+    setRows(((data ?? []) as unknown) as GscRow[]);
+    const first = data?.[0] as { fetched_at?: string } | undefined;
+    if (first?.fetched_at) setLastFetched(first.fetched_at);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, [period]);
+
+  const sync = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await invokeWithFreshSession("seo-gsc-sync", {});
+      if (error) throw new Error(error.message);
+      const d = data as { error?: string; ok?: boolean; upserts?: number };
+      if (d?.error) throw new Error(d.error);
+      toast.success(`Synchronisation terminée (${d.upserts ?? 0} mises à jour)`);
+      load();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erreur";
+      if (msg.includes("Domaine non vérifié")) {
+        toast.error("Domaine vracquebec.ca non vérifié dans Google Search Console. Vérifiez la propriété d'abord.");
+      } else if (msg.includes("Connecteur")) {
+        toast.error("Google Search Console non connecté. Connectez le connecteur dans Paramètres > Connecteurs.");
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const totals = useMemo(() => {
+    return rows.reduce(
+      (acc, r) => ({
+        clicks: acc.clicks + (r.clicks || 0),
+        impressions: acc.impressions + (r.impressions || 0),
+        positionSum: acc.positionSum + (r.position || 0) * (r.impressions || 0),
+      }),
+      { clicks: 0, impressions: 0, positionSum: 0 },
+    );
+  }, [rows]);
+  const avgPosition = totals.impressions > 0 ? totals.positionSum / totals.impressions : 0;
+  const avgCtr = totals.impressions > 0 ? totals.clicks / totals.impressions : 0;
+
+  const quickWins = useMemo(
+    () => rows.filter((r) => r.position >= 8 && r.position <= 20 && r.impressions >= 10).slice(0, 10),
+    [rows],
+  );
+  const topPages = useMemo(() => rows.filter((r) => r.clicks > 0).slice(0, 10), [rows]);
+  const topQueries = useMemo(() => {
+    const map = new Map<string, { clicks: number; impressions: number; position: number }>();
+    for (const r of rows) {
+      for (const q of r.top_queries ?? []) {
+        const cur = map.get(q.query) ?? { clicks: 0, impressions: 0, position: 0 };
+        map.set(q.query, { clicks: cur.clicks + (q.clicks || 0), impressions: cur.impressions + (q.impressions || 0), position: q.position });
+      }
+    }
+    return Array.from(map.entries()).map(([query, m]) => ({ query, ...m })).sort((a, b) => b.clicks - a.clicks).slice(0, 10);
+  }, [rows]);
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-lg border border-border bg-card p-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="font-display font-extrabold text-foreground flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-primary" /> Google Search Console
+          </h2>
+          <p className="text-xs text-muted-foreground font-body mt-1">
+            Synchronisez les clics, impressions, CTR et positions de toutes vos pages SEO. Nécessite que le connecteur <strong>Google Search Console</strong> soit relié et que le domaine <code className="text-primary">vracquebec.ca</code> soit vérifié.
+            {lastFetched && <> · Dernière synchro : {new Date(lastFetched).toLocaleString("fr-CA")}</>}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <select value={period} onChange={(e) => setPeriod(e.target.value as typeof period)} className="px-2 py-2 rounded-lg border border-border bg-card text-sm font-body">
+            <option value="7d">7 jours</option>
+            <option value="28d">28 jours</option>
+            <option value="90d">90 jours</option>
+          </select>
+          <button onClick={sync} disabled={syncing} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-bold shadow hover:opacity-90 disabled:opacity-60">
+            {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            {syncing ? "Synchronisation…" : "Synchroniser"}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard label="Clics" value={totals.clicks} />
+        <StatCard label="Impressions" value={totals.impressions} />
+        <StatCard label="CTR moyen" value={`${(avgCtr * 100).toFixed(2)} %` as unknown as number} />
+        <StatCard label="Position moy." value={avgPosition ? Number(avgPosition.toFixed(1)) : 0} />
+      </div>
+
+      {loading ? <Spinner /> : rows.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground text-sm font-body">
+          Aucune donnée pour cette période. Cliquez sur <strong>Synchroniser</strong> pour importer.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <PanelList title="Pages les plus performantes" emptyText="Aucun clic sur cette période.">
+            {topPages.map((r) => (
+              <li key={r.page_id} className="flex items-center justify-between gap-3 py-2 px-3 border-b border-border last:border-0">
+                <Link to={`/${r.seo_pages?.slug ?? ""}`} target="_blank" className="font-body text-foreground hover:text-primary truncate max-w-[260px]">{r.seo_pages?.title ?? r.page_id}</Link>
+                <div className="text-xs text-muted-foreground shrink-0 flex gap-3">
+                  <span><strong>{r.clicks}</strong> clics</span>
+                  <span>{r.impressions} imp.</span>
+                  <span>#{r.position.toFixed(1)}</span>
+                </div>
+              </li>
+            ))}
+          </PanelList>
+
+          <PanelList title="Quick wins (position 8-20)" emptyText="Aucune page à optimiser en priorité.">
+            {quickWins.map((r) => (
+              <li key={r.page_id} className="flex items-center justify-between gap-3 py-2 px-3 border-b border-border last:border-0">
+                <Link to={`/${r.seo_pages?.slug ?? ""}`} target="_blank" className="font-body text-foreground hover:text-primary truncate max-w-[260px]">{r.seo_pages?.title ?? r.page_id}</Link>
+                <div className="text-xs text-muted-foreground shrink-0 flex gap-3">
+                  <span>#{r.position.toFixed(1)}</span>
+                  <span>{r.impressions} imp.</span>
+                </div>
+              </li>
+            ))}
+          </PanelList>
+
+          <PanelList title="Top requêtes" emptyText="Aucune requête indexée pour l'instant.">
+            {topQueries.map((q, i) => (
+              <li key={i} className="flex items-center justify-between gap-3 py-2 px-3 border-b border-border last:border-0">
+                <span className="font-body text-foreground truncate max-w-[260px]">{q.query}</span>
+                <div className="text-xs text-muted-foreground shrink-0 flex gap-3">
+                  <span><strong>{q.clicks}</strong> clics</span>
+                  <span>{q.impressions} imp.</span>
+                  <span>#{q.position.toFixed(1)}</span>
+                </div>
+              </li>
+            ))}
+          </PanelList>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PanelList({ title, emptyText, children }: { title: string; emptyText: string; children: ReactNode }) {
+  const arr = Array.isArray(children) ? children : [children];
+  const empty = !arr || arr.length === 0 || arr.every((c) => !c);
+  return (
+    <div className="rounded-lg border border-border bg-card">
+      <div className="px-3 py-2 border-b border-border font-display font-bold text-sm text-foreground">{title}</div>
+      {empty ? <p className="p-4 text-xs text-muted-foreground">{emptyText}</p> : <ul>{children}</ul>}
     </div>
   );
 }
