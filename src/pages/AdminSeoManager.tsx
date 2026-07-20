@@ -799,6 +799,38 @@ function Metric({ label, value }: { label: string; value: number | string }) {
   );
 }
 
+function QuickPackButton({
+  cities, materials, onApply,
+}: {
+  cities: City[]; materials: Material[]; onApply: (cityIds: string[], materialIds: string[]) => void;
+}) {
+  // Selects Québec, Lévis, their neighbours + all active materials in one click.
+  const trigger = () => {
+    const anchors = cities.filter((c) => ["Québec", "Lévis"].includes(c.region) || ["quebec", "levis"].includes(c.slug));
+    const neighborSlugs = new Set<string>();
+    anchors.forEach((a) => (a.neighbors ?? []).forEach((s) => neighborSlugs.add(s)));
+    const pack = cities.filter((c) => anchors.some((a) => a.id === c.id) || neighborSlugs.has(c.slug));
+    if (pack.length === 0) { toast.error("Aucune ville trouvée pour Québec/Lévis. Ajoute-les dans l'onglet Villes."); return; }
+    onApply(pack.map((c) => c.id), materials.map((m) => m.id));
+    toast.success(`Pack Québec/Lévis : ${pack.length} ville(s) × ${materials.length} matériau(x)`);
+  };
+  return (
+    <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h3 className="font-display font-bold text-foreground flex items-center gap-2">
+          <Zap className="w-4 h-4 text-primary" /> Pack Québec / Lévis
+        </h3>
+        <p className="text-xs text-muted-foreground font-body mt-1">
+          Sélectionne automatiquement Québec, Lévis, leurs arrondissements et municipalités voisines × tous les matériaux actifs. Les combinaisons déjà générées seront ignorées.
+        </p>
+      </div>
+      <button onClick={trigger} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold shadow hover:opacity-90">
+        <Zap className="w-4 h-4" /> Charger le pack
+      </button>
+    </div>
+  );
+}
+
 function PickerColumn({ title, items, selected, onChange, onToggleAll }: {
   title: string;
   items: Array<{ id: string; name: string; slug: string }>;
