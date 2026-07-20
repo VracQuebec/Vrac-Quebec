@@ -3,8 +3,6 @@
 
 import { writeFileSync } from "fs";
 import { resolve } from "path";
-import { CITIES as STATIC_CITIES } from "../src/lib/seo/cities";
-import { MATERIALS as STATIC_MATERIALS } from "../src/lib/seo/materials";
 
 const BASE_URL = "https://vracquebec.ca";
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://kenduhxscnynugpvktin.supabase.co";
@@ -43,18 +41,18 @@ async function build(): Promise<Entry[]> {
     { path: "/livraison", changefreq: "weekly", priority: "0.8" },
   ];
 
-  // Load active cities & materials from DB, with static fallback.
-  let cities: { slug: string }[] = STATIC_CITIES;
-  let materials: { slug: string }[] = STATIC_MATERIALS;
+  // Load active cities & materials from DB (single source of truth).
+  let cities: { slug: string }[] = [];
+  let materials: { slug: string }[] = [];
   try {
     const [dbCities, dbMaterials] = await Promise.all([
       fetchJson(`${SUPABASE_URL}/rest/v1/seo_cities?select=slug&active=eq.true&order=sort_order`),
       fetchJson(`${SUPABASE_URL}/rest/v1/seo_materials?select=slug&active=eq.true&order=sort_order`),
     ]);
-    if (Array.isArray(dbCities) && dbCities.length) cities = dbCities;
-    if (Array.isArray(dbMaterials) && dbMaterials.length) materials = dbMaterials;
+    if (Array.isArray(dbCities)) cities = dbCities;
+    if (Array.isArray(dbMaterials)) materials = dbMaterials;
   } catch (e) {
-    console.warn("sitemap: could not fetch SEO cities/materials from DB, using static fallback:", e);
+    console.warn("sitemap: could not fetch SEO cities/materials from DB:", e);
   }
 
   for (const c of cities) {
