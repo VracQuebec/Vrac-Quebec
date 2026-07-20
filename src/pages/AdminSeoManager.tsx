@@ -12,8 +12,11 @@ import {
 } from "lucide-react";
 import PriorityStars, { priorityLabel } from "@/components/seo/PriorityStars";
 import ImproveDialog from "@/components/seo/ImproveDialog";
+import RecommendationCard, { type Reco } from "@/components/seo/RecommendationCard";
+import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
+import GoalCard, { type Goal } from "@/components/seo/GoalCard";
 
-type Tab = "dashboard" | "pages" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
+type Tab = "dashboard" | "assistant" | "goals" | "competitors" | "pages" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
 
 type City = {
   id: string; slug: string; name: string; region: string;
@@ -49,7 +52,10 @@ export default function AdminSeoManager() {
   if (!isAdmin) return null;
 
   const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
-    { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+    { id: "dashboard", label: "Santé SEO", icon: LayoutDashboard },
+    { id: "assistant", label: "Assistant IA", icon: Sparkles },
+    { id: "goals", label: "Objectifs", icon: TrendingUp },
+    { id: "competitors", label: "Concurrents", icon: SearchIcon },
     { id: "pages", label: "Pages", icon: ListChecks },
     { id: "cities", label: "Villes", icon: MapPin },
     { id: "materials", label: "Matériaux", icon: Package },
@@ -85,6 +91,9 @@ export default function AdminSeoManager() {
         </nav>
         <main>
           {tab === "dashboard" && <Dashboard />}
+          {tab === "assistant" && <AssistantTab />}
+          {tab === "goals" && <GoalsTab />}
+          {tab === "competitors" && <CompetitorsTab />}
           {tab === "pages" && <PagesTab />}
           {tab === "cities" && <CitiesTab />}
           {tab === "materials" && <MaterialsTab />}
