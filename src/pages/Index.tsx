@@ -2,7 +2,7 @@ import Questionnaire from "@/components/Questionnaire";
 import heroBanner from "@/assets/hero-banner.webp";
 import heroBannerMobile from "@/assets/hero-banner-mobile.webp";
 import TransportBanner from "@/components/TransportBanner";
-import { HardHat, Sparkles } from "lucide-react";
+import { HardHat, Sparkles, Brain, MapPin, Truck, Zap } from "lucide-react";
 
 const Index = () => {
   return (
