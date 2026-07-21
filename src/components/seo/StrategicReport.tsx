@@ -17,6 +17,7 @@ type Report = {
       qa_to_fix: number;
       blog_to_publish: number;
       stale_blog: number;
+      pages_generating?: number;
     };
     projections?: {
       impressions_gain_pct: number;
@@ -24,6 +25,19 @@ type Report = {
       impressions_gain_abs: number;
       clicks_gain_abs: number;
     };
+    in_progress?: {
+      job_id: string;
+      mode: string;
+      wave: string | null;
+      total: number;
+      done: number;
+      succeeded: number;
+      failed: number;
+      pages_per_minute: number | null;
+      eta_seconds: number | null;
+      current_step: string | null;
+      percent: number;
+    } | null;
   };
 };
 
@@ -43,7 +57,16 @@ export default function StrategicReport() {
     setReport((data as Report | null) ?? null);
     setLoading(false);
   }
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void load();
+    // Refresh when a job progresses so the report stays consistent with the pipeline.
+    const ch = supabase
+      .channel("strategic-report-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "seo_generation_jobs" }, () => void load())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "strategic_reports" }, () => void load())
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
+  }, []);
 
   async function runNow() {
     setRunning(true);
@@ -63,6 +86,7 @@ export default function StrategicReport() {
 
   const a = report?.payload?.actions;
   const proj = report?.payload?.projections;
+  const inProgress = report?.payload?.in_progress ?? null;
 
   return (
     <section className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 to-transparent p-5">
@@ -94,6 +118,21 @@ export default function StrategicReport() {
         </p>
       ) : (
         <>
+          {inProgress && (
+            <div className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary/30 flex items-center gap-3 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <div className="flex-1">
+                <div className="font-display font-bold">
+                  Génération en cours — {inProgress.mode} {inProgress.wave ?? "toutes vagues"}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {inProgress.done}/{inProgress.total} pages ({inProgress.percent}%)
+                  {inProgress.pages_per_minute ? ` · ${inProgress.pages_per_minute.toFixed(1)} p/min` : ""}
+                  {inProgress.eta_seconds ? ` · ~${Math.max(1, Math.round(inProgress.eta_seconds / 60))} min restantes` : ""}
+                </div>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
             <ActionBox icon={FileText} label="Nouvelles pages" value={a?.pages_to_create ?? 0} />
             <ActionBox icon={RefreshCw} label="Pages à rafraîchir" value={a?.pages_to_refresh ?? 0} />
