@@ -172,21 +172,6 @@ const Index = () => {
       {/* Footer */}
       <footer className="py-8 pb-20 md:pb-8 border-t border-border">
         <div className="container mx-auto px-6 flex flex-col items-center gap-5 text-sm text-muted-foreground font-body">
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-            <a
-              href="/login"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base shadow-lg hover:opacity-90 transition-opacity"
-            >
-              <HardHat className="w-5 h-5" />
-              Connexion entrepreneur
-            </a>
-            <a
-              href="/entrepreneur/inscription"
-              className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-lg border-2 border-primary text-primary font-display font-bold text-base hover:bg-primary/10 transition-colors"
-            >
-              Devenir entrepreneur
-            </a>
-          </div>
           <div className="flex items-center justify-between w-full flex-wrap gap-2">
             <span>© 2026 VracQuébec. Tous droits réservés.</span>
             <div className="flex items-center gap-4">
