@@ -262,6 +262,9 @@ const Questionnaire = ({ sourcePageSlug }: { sourcePageSlug?: string } = {}) => 
       }
 
       setSubmitted(true);
+      if (sourcePageSlug) {
+        logSeoEvent(sourcePageSlug, "submission");
+      }
       toast({ title: "Demande envoyée! ✅", description: "Nous vous contacterons rapidement." });
     } catch (err) {
       console.error(err);
