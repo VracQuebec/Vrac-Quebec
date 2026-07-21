@@ -2418,6 +2418,59 @@ export type Database = {
         }
         Relationships: []
       }
+      transport_request_errors: {
+        Row: {
+          attempt: number
+          created_at: string
+          duration_ms: number | null
+          error_code: string | null
+          error_message: string | null
+          id: string
+          idempotency_key: string | null
+          ip: string | null
+          payload: Json | null
+          request_id: string | null
+          stage: string
+          user_agent: string | null
+        }
+        Insert: {
+          attempt?: number
+          created_at?: string
+          duration_ms?: number | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string | null
+          ip?: string | null
+          payload?: Json | null
+          request_id?: string | null
+          stage: string
+          user_agent?: string | null
+        }
+        Update: {
+          attempt?: number
+          created_at?: string
+          duration_ms?: number | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string | null
+          ip?: string | null
+          payload?: Json | null
+          request_id?: string | null
+          stage?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_request_errors_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "transport_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transport_request_history: {
         Row: {
           created_at: string
@@ -2475,6 +2528,7 @@ export type Database = {
           dump_submission_id: string | null
           estimated_trips: number | null
           id: string
+          idempotency_key: string | null
           internal_notes: string | null
           material_other: string | null
           material_type: string
@@ -2508,6 +2562,7 @@ export type Database = {
           dump_submission_id?: string | null
           estimated_trips?: number | null
           id?: string
+          idempotency_key?: string | null
           internal_notes?: string | null
           material_other?: string | null
           material_type: string
@@ -2541,6 +2596,7 @@ export type Database = {
           dump_submission_id?: string | null
           estimated_trips?: number | null
           id?: string
+          idempotency_key?: string | null
           internal_notes?: string | null
           material_other?: string | null
           material_type?: string

@@ -6,6 +6,11 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import {
+  submitTransportRequest,
+  newIdempotencyKey,
+  bootSubmitQueue,
+} from "@/lib/transport/submitQueue";
+import {
   Truck, MapPin, Package, Ruler, Loader2, ChevronLeft, ChevronRight,
   CheckCircle2, LocateFixed, Sparkles, Phone, Clock, Download,
   MessageCircle, ShieldCheck, Zap, Network, Target, HelpCircle,
@@ -123,6 +128,10 @@ const TransportRequest = () => {
   const [desiredTime, setDesiredTime] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmedNumber, setConfirmedNumber] = useState<string | null>(null);
+  // "queued" = accepted locally, still finishing its send in the background.
+  // "confirmed" = server acknowledged with a request_number.
+  const [confirmationMode, setConfirmationMode] = useState<"confirmed" | "queued">("confirmed");
+  const idempotencyRef = useRef<string>("");
 
   // Navigation helpers: exit confirmation + resume-previous-session
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -226,6 +235,13 @@ const TransportRequest = () => {
     if (user?.email) setClientEmail(user.email);
   }, [user]);
 
+  // Boot the persistent submit queue once. Any pending submissions saved in
+  // a previous session (page reload, crash, connection loss) are retried
+  // automatically as soon as the app mounts.
+  useEffect(() => {
+    bootSubmitQueue();
+  }, []);
+
   const useMyPosition = () => {
     if (!navigator.geolocation) {
       toast({ title: "Géolocalisation indisponible", variant: "destructive" });
@@ -319,39 +335,40 @@ const TransportRequest = () => {
   const submitRequest = async () => {
     if (!selectedDump || !coords) return;
     setSubmitting(true);
-    const { data, error } = await supabase
-      .from("transport_requests")
-      .insert({
-        client_name: clientName.trim(),
-        client_company: clientCompany.trim() || null,
-        client_phone: clientPhone.trim(),
-        client_email: clientEmail.trim() || null,
-        user_id: user?.id ?? null,
-        site_address: address,
-        site_latitude: coords.lat,
-        site_longitude: coords.lng,
-        site_city: city || null,
-        material_type: material,
-        quantity: quantity ? Number(quantity) : null,
-        quantity_unit: unit,
-        dump_submission_id: selectedDump.id,
-        dump_name: selectedDump.dompe_number || `#${selectedDump.submission_number}`,
-        distance_km: selectedDump.distance_km ?? null,
-        travel_time_minutes: selectedDump.duration_minutes ?? null,
-        truck_type: truckType || null,
-        estimated_trips: trips ? Number(trips) : null,
-        desired_date: desiredDate || null,
-        desired_time: desiredTime || null,
-        source: user ? "wizard_authenticated" : "wizard_public",
-      })
-      .select("request_number")
-      .single();
+
+    // Stable idempotency key per submission. If the user double-clicks or the
+    // network hiccups mid-send, retries reuse the same key so we never create
+    // a duplicate row.
+    if (!idempotencyRef.current) idempotencyRef.current = newIdempotencyKey();
+
+    const result = await submitTransportRequest({
+      idempotency_key: idempotencyRef.current,
+      client_name: clientName.trim(),
+      client_company: clientCompany.trim() || null,
+      client_phone: clientPhone.trim(),
+      client_email: clientEmail.trim() || null,
+      user_id: user?.id ?? null,
+      site_address: address,
+      site_latitude: coords.lat,
+      site_longitude: coords.lng,
+      site_city: city || null,
+      material_type: material,
+      quantity: quantity ? Number(quantity) : null,
+      quantity_unit: unit,
+      dump_submission_id: selectedDump.id,
+      dump_name: selectedDump.dompe_number || `#${selectedDump.submission_number}`,
+      distance_km: selectedDump.distance_km ?? null,
+      travel_time_minutes: selectedDump.duration_minutes ?? null,
+      truck_type: truckType || null,
+      estimated_trips: trips ? Number(trips) : null,
+      desired_date: desiredDate || null,
+      desired_time: desiredTime || null,
+      source: user ? "wizard_authenticated" : "wizard_public",
+    });
+
     setSubmitting(false);
-    if (error) {
-      toast({ title: "Erreur d'envoi", description: error.message, variant: "destructive" });
-      return;
-    }
-    setConfirmedNumber((data as any)?.request_number || "envoyée");
+    setConfirmationMode(result.status);
+    setConfirmedNumber(result.request_number ?? null);
     setStep(6);
   };
 
@@ -903,6 +920,7 @@ const TransportRequest = () => {
         {step === 6 && (
           <ConfirmationView
             requestNumber={confirmedNumber}
+            pending={confirmationMode === "queued"}
             clientName={clientName}
             clientPhone={clientPhone}
             clientEmail={clientEmail}
@@ -972,10 +990,11 @@ const SummaryRow = ({ icon, label, value }: { icon: string; label: string; value
 );
 
 const ConfirmationView = ({
-  requestNumber, clientName, clientPhone, clientEmail,
+  requestNumber, pending, clientName, clientPhone, clientEmail,
   address, material, quantity, trips, truckType, desiredDate, desiredTime, dump, onHome,
 }: {
   requestNumber: string | null;
+  pending?: boolean;
   clientName: string; clientPhone: string; clientEmail: string;
   address: string; material: string; quantity: string; trips: string;
   truckType: string; desiredDate: string; desiredTime: string; dump: string;
@@ -1025,11 +1044,19 @@ const ConfirmationView = ({
     <section className="animate-in fade-in duration-300 py-4">
       <div className="text-center">
         <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
-          <CheckCircle2 className="w-12 h-12 text-primary" />
+          {pending ? (
+            <Loader2 className="w-12 h-12 text-primary animate-spin" />
+          ) : (
+            <CheckCircle2 className="w-12 h-12 text-primary" />
+          )}
         </div>
-        <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">🎉 Votre demande est bien reçue !</h1>
+        <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">
+          {pending ? "✅ Votre demande est enregistrée" : "🎉 Votre demande est bien reçue !"}
+        </h1>
         <p className="text-muted-foreground text-sm mb-6">
-          Merci {clientName ? clientName.split(" ")[0] : ""} — voici les prochaines étapes.
+          {pending
+            ? "Nous terminons son envoi automatiquement. Vous pouvez fermer cette page en toute tranquillité."
+            : `Merci ${clientName ? clientName.split(" ")[0] : ""} — voici les prochaines étapes.`}
         </p>
       </div>
 
@@ -1037,8 +1064,12 @@ const ConfirmationView = ({
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">✅</div>
           <div>
-            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">Numéro de demande</div>
-            <div className="font-display font-bold text-lg text-primary">{requestNumber}</div>
+            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">
+              {pending ? "État" : "Numéro de demande"}
+            </div>
+            <div className="font-display font-bold text-lg text-primary">
+              {pending ? "Envoi en cours…" : requestNumber}
+            </div>
           </div>
         </div>
         <div className="flex items-start gap-3">
