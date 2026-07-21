@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
 
     const { data: page, error: pErr } = await supabase
       .from("seo_pages")
-      .select("id, slug, title, meta_title, meta_description, content_html, intro, faq, internal_links, city_slug, material_slug, service_slug, status")
+      .select("id, slug, title, meta_title, meta_description, content_html, intro, faq, internal_links, city_slug, material_slug, service_slug, status, keywords")
       .eq("id", pageId)
       .maybeSingle();
     if (pErr || !page) return json({ error: pErr?.message || "Page introuvable" }, 404);
@@ -116,11 +116,16 @@ Deno.serve(async (req) => {
     const metaDesc = String(page.meta_description || "");
     const faq: Array<{ question: string; answer: string }> = Array.isArray(page.faq) ? page.faq : [];
     const links: Array<unknown> = Array.isArray(page.internal_links) ? page.internal_links : [];
+    const keywords: string[] = Array.isArray((page as { keywords?: unknown }).keywords)
+      ? ((page as { keywords: unknown[] }).keywords.filter((k): k is string => typeof k === "string"))
+      : [];
 
     const words = countWords(html);
     const h2 = countTags(html, "h2");
+    const h3 = countTags(html, "h3");
     const internal = countInternalLinks(html);
     const ctas = countCTAs(html);
+    const images = countImages(html);
     const plain = stripHtml(html);
     const avgSent = avgSentenceLength(plain);
 
@@ -153,51 +158,141 @@ Deno.serve(async (req) => {
     const { data: dupMeta } = await supabase.from("seo_pages").select("id").eq("meta_title", metaTitle).neq("id", pageId).limit(1);
     const metaTitleUnique = !(dupMeta && dupMeta.length > 0);
 
+    // Build a rich, actionable checklist.
+    const contentLenOk = words >= 800;
+    const contentLenWarn = words >= 500 && words < 800;
+    const headingsOk = h2 >= 4 && (h2 + h3) >= 6;
+    const headingsWarn = h2 >= 2;
+    const faqOk = faq.length >= 5 && faq.every((f) => (f.answer || "").split(/\s+/).length >= 40);
+    const faqWarn = faq.length >= 3 && !faqOk;
+    const internalOk = internal + links.length >= 5;
+    const internalWarn = internal + links.length >= 2 && !internalOk;
+    const metaTitleOk = metaTitle.length >= 40 && metaTitle.length <= 65 && metaTitleUnique;
+    const metaDescOk = metaDesc.length >= 140 && metaDesc.length <= 165;
+    const metaDescWarn = metaDesc.length >= 100 && !metaDescOk;
+    const imagesOk = images.total >= 2 && images.withAlt === images.total;
+    const imagesWarn = images.total >= 1 && !imagesOk;
+    const keywordsOk = keywords.length >= 5;
+    const keywordsWarn = keywords.length >= 2 && !keywordsOk;
+    const ctaOk = ctas >= 2;
+    const ctaWarn = ctas === 1;
+
+    const mkStatus = (okFlag: boolean, warnFlag: boolean): "ok" | "warn" | "fail" =>
+      okFlag ? "ok" : warnFlag ? "warn" : "fail";
+
     const checks: Check[] = [
       {
-        key: "uniqueness",
-        label: `Unicité (max similarité ${(maxSim * 100).toFixed(0)}%${worstSlug ? ` vs « ${worstSlug} »` : ""})`,
-        ok: maxSim < 0.7,
-        blocker: maxSim >= 0.7,
+        key: "content_length",
+        label: `Longueur du contenu (${words} mots)`,
+        ok: contentLenOk,
+        status: mkStatus(contentLenOk, contentLenWarn),
+        detail: contentLenOk ? undefined : `Objectif ≥ 800 mots (actuellement ${words}).`,
+        fixable: true,
+        fix_action: "expand_content",
       },
       {
-        key: "length_structure",
-        label: `Longueur & structure (${words} mots, ${h2} H2)`,
-        ok: words >= 800 && words <= 1800 && h2 >= 4 && avgSent < 30,
-        detail: avgSent >= 30 ? "Phrases trop longues." : undefined,
+        key: "headings",
+        label: `Balises H2/H3 (${h2} H2, ${h3} H3)`,
+        ok: headingsOk,
+        status: mkStatus(headingsOk, headingsWarn),
+        detail: headingsOk ? undefined : "Ajouter des sous-sections (≥ 4 H2, ≥ 6 titres au total).",
+        fixable: true,
+        fix_action: "rebuild_headings",
+      },
+      {
+        key: "faq",
+        label: `FAQ (${faq.length} Q/R)`,
+        ok: faqOk,
+        status: mkStatus(faqOk, faqWarn),
+        detail: faqOk ? undefined : "Objectif ≥ 5 questions, réponses ≥ 40 mots.",
+        fixable: true,
+        fix_action: "regenerate_faq",
       },
       {
         key: "internal_linking",
-        label: `Maillage interne (${internal} liens inline + ${links.length} liens connexes)`,
-        ok: internal + links.length >= 3,
+        label: `Maillage interne (${internal} inline + ${links.length} connexes)`,
+        ok: internalOk,
+        status: mkStatus(internalOk, internalWarn),
+        detail: internalOk ? undefined : "Ajouter ≥ 5 liens vers villes, matériaux ou articles connexes.",
+        fixable: true,
+        fix_action: "add_internal_links",
       },
       {
-        key: "title_meta",
-        label: `Title/Meta (${metaTitle.length} / ${metaDesc.length})`,
-        ok: metaTitle.length >= 40 && metaTitle.length <= 65 && metaDesc.length >= 140 && metaDesc.length <= 165 && metaTitleUnique,
-        blocker: !metaTitleUnique || metaTitle.length < 30 || metaDesc.length < 120,
-        detail: !metaTitleUnique ? "Meta title dupliqué." : undefined,
+        key: "meta_title",
+        label: `Meta title (${metaTitle.length} car.)`,
+        ok: metaTitleOk,
+        status: mkStatus(metaTitleOk, metaTitle.length >= 30 && metaTitleUnique),
+        blocker: !metaTitleUnique || metaTitle.length < 30,
+        detail: !metaTitleUnique ? "Duplicata avec une autre page." : "Longueur idéale 40–65 caractères.",
+        fixable: true,
+        fix_action: "rewrite_meta_title",
+      },
+      {
+        key: "meta_description",
+        label: `Meta description (${metaDesc.length} car.)`,
+        ok: metaDescOk,
+        status: mkStatus(metaDescOk, metaDescWarn),
+        blocker: metaDesc.length < 100,
+        detail: metaDescOk ? undefined : "Cible 140–165 caractères, orientée bénéfice + CTA.",
+        fixable: true,
+        fix_action: "rewrite_meta_description",
+      },
+      {
+        key: "images",
+        label: `Images (${images.total}, ${images.withAlt} avec alt)`,
+        ok: imagesOk,
+        status: mkStatus(imagesOk, imagesWarn),
+        detail: imagesOk ? undefined : images.total === 0
+          ? "Aucune image — ajouter au moins 2 visuels avec attribut alt."
+          : "Compléter les attributs alt (≥ 3 caractères).",
+        fixable: true,
+        fix_action: "fix_images_alt",
       },
       {
         key: "schema",
         label: "Schema.org FAQPage valide",
         ok: schemaOk,
+        status: schemaOk ? "ok" : "fail",
         blocker: !schemaOk,
+        detail: schemaOk ? undefined : "Générer 5+ Q/R pour activer FAQPage.",
+        fixable: true,
+        fix_action: "regenerate_faq",
       },
       {
-        key: "faq",
-        label: `FAQ (${faq.length} Q/R)`,
-        ok: faq.length >= 5 && faq.every((f) => (f.answer || "").split(/\s+/).length >= 40),
-      },
-      {
-        key: "related",
-        label: `Liens connexes (${links.length})`,
-        ok: links.length >= 3,
+        key: "keywords",
+        label: `Mots-clés secondaires (${keywords.length})`,
+        ok: keywordsOk,
+        status: mkStatus(keywordsOk, keywordsWarn),
+        detail: keywordsOk ? undefined : "Objectif ≥ 5 mots-clés secondaires ciblés.",
+        fixable: true,
+        fix_action: "generate_keywords",
       },
       {
         key: "cta",
         label: `CTA vers demande (${ctas})`,
-        ok: ctas >= 2,
+        ok: ctaOk,
+        status: mkStatus(ctaOk, ctaWarn),
+        detail: ctaOk ? undefined : "Insérer ≥ 2 CTA (téléphone, WhatsApp ou /transport-request).",
+        fixable: true,
+        fix_action: "insert_ctas",
+      },
+      {
+        key: "uniqueness",
+        label: `Unicité (max similarité ${(maxSim * 100).toFixed(0)}%${worstSlug ? ` vs « ${worstSlug} »` : ""})`,
+        ok: maxSim < 0.7,
+        status: maxSim < 0.55 ? "ok" : maxSim < 0.7 ? "warn" : "fail",
+        blocker: maxSim >= 0.7,
+        detail: maxSim >= 0.7 ? "Contenu trop proche d'une page existante — réécrire l'angle." : undefined,
+        fixable: false,
+      },
+      {
+        key: "readability",
+        label: `Lisibilité (phrase moy. ${avgSent.toFixed(1)} mots)`,
+        ok: avgSent > 0 && avgSent < 25,
+        status: avgSent > 0 && avgSent < 25 ? "ok" : avgSent < 30 ? "warn" : "fail",
+        detail: avgSent >= 25 ? "Raccourcir les phrases (< 25 mots en moyenne)." : undefined,
+        fixable: true,
+        fix_action: "improve_readability",
       },
     ];
 
