@@ -161,8 +161,8 @@ export default function WaveRunner() {
             <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
           </div>
           <div className="flex gap-4 text-xs text-muted-foreground">
-            <span className="text-green-600">✓ {activeJob.succeeded} réussis</span>
-            <span className="text-red-600">✗ {activeJob.failed} échoués</span>
+            <span className="text-primary">✓ {activeJob.succeeded} réussis</span>
+            <span className="text-destructive">✗ {activeJob.failed} échoués</span>
             <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3 text-primary" /> {activeJob.current_step ?? "watchdog"}</span>
             <span>Tentative {activeJob.current_attempt ?? 1}/3</span>
           </div>
@@ -212,9 +212,9 @@ export default function WaveRunner() {
             {history.slice(0, 5).map((h) => (
               <div key={h.id} className="flex items-center justify-between text-xs bg-background rounded-md px-3 py-2">
                 <div className="flex items-center gap-2">
-                  {h.status === "completed" ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                    : h.status === "completed_with_warnings" ? <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-                    : h.status === "failed" || h.status === "failed_with_retries" ? <AlertCircle className="w-3.5 h-3.5 text-red-600" />
+                  {h.status === "completed" ? <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                    : h.status === "completed_with_warnings" ? <AlertCircle className="w-3.5 h-3.5 text-primary" />
+                    : h.status === "failed" || h.status === "failed_with_retries" ? <AlertCircle className="w-3.5 h-3.5 text-destructive" />
                     : <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />}
                   <span className="font-display font-semibold">{statusLabel(h.status)} — {h.mode} — {h.wave ?? "toutes"}</span>
                 </div>
@@ -303,9 +303,9 @@ function LogsDialog({ job, compact = false }: { job: Job; compact?: boolean }) {
 
         <ScrollArea className="h-[420px] pr-4">
           <LogSection title="Watchdog" icon={<ShieldCheck className="w-4 h-4 text-primary" />} items={watchdog} empty="Aucun blocage détecté." />
-          <LogSection title="À régénérer" icon={<RotateCcw className="w-4 h-4 text-amber-600" />} items={blocked} empty="Aucune page à reprendre." />
-          <LogSection title="Tentatives automatiques" icon={<AlertCircle className="w-4 h-4 text-amber-600" />} items={warnings.slice(-30)} empty="Aucune relance nécessaire." />
-          <LogSection title="Exécution récente" icon={<CheckCircle2 className="w-4 h-4 text-green-600" />} items={logs.slice(-50).reverse()} empty="Aucun log disponible." />
+          <LogSection title="À régénérer" icon={<RotateCcw className="w-4 h-4 text-primary" />} items={blocked} empty="Aucune page à reprendre." />
+          <LogSection title="Tentatives automatiques" icon={<AlertCircle className="w-4 h-4 text-primary" />} items={warnings.slice(-30)} empty="Aucune relance nécessaire." />
+          <LogSection title="Exécution récente" icon={<CheckCircle2 className="w-4 h-4 text-primary" />} items={logs.slice(-50).reverse()} empty="Aucun log disponible." />
         </ScrollArea>
       </DialogContent>
     </Dialog>
