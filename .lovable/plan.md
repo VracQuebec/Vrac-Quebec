@@ -1,132 +1,86 @@
-# SEO Manager → Assistant SEO intelligent
+# Production SEO progressive — 4 vagues contrôlées
 
-Chantier unique livré en 7 modules cohérents, sans ajouter de pages inutiles. Tout vit dans `/admin/seo-manager` sous de nouveaux onglets, et repose sur l'infra déjà en place (`seo_pages`, `blog_posts`, `seo_gsc_metrics`, `seo_cities/materials/services`, Gemini via Lovable AI).
+Objectif : publier des pages **haute qualité** au rythme recommandé (20-30 → 30-50 → +blog → ajustements GSC), avec un contrôle qualité automatique **avant** publication. On réutilise le SEO Manager existant, on n'ajoute que le pipeline de QA et l'ordonnancement par priorité.
 
 ---
 
-## Module 1 — Assistant SEO IA (recommandations)
+## 1. Ordonnancement par priorité (dans le SEO Manager)
 
-Nouvel onglet **Assistant**. Un moteur qui scanne l'ensemble du site et pond des recommandations concrètes, priorisées, actionnables en un clic.
+Nouvel onglet **File de production** dans `/admin/seo` qui affiche 4 files ordonnées par `seo_priority_score` :
 
-- Edge function `seo-assistant-scan` (Gemini 3 Flash) — orchestrateur qui lit :
-  - `seo_pages` (score, mots, liens internes, priorité, statut Google)
-  - `blog_posts` (fraîcheur, mots, articles reliés)
-  - `seo_gsc_metrics` (impressions, position, CTR)
-  - `seo_cities`, `seo_materials`, `seo_services` (couverture)
-- Génère des `recommendations` typées : `thin_content`, `quick_win_gsc` (pos 8-20), `missing_internal_links`, `stale_blog`, `missing_city_page`, `missing_service_content`, `add_faq`, `low_ctr`, `orphan_page`.
-- Chaque reco a : `page_id?`, `entity_type` (page/blog/city/material/service), `priority` (1-5), `impact_estimate`, `effort_estimate`, `title`, `rationale`, `action_type` (improve / regenerate / create / attach_links / update_meta), `payload jsonb`, `status` (open/dismissed/applied).
-- UI : liste triée par priorité, filtres par type/entité, boutons **Appliquer** (déclenche `seo-improve-page` ou `seo-generate-page` selon `action_type`), **Ignorer**, **Voir la page**.
+- **P1 — Matériaux** : une page par matériau (`/materiaux/{slug}`), triée par popularité (impressions GSC + volume estimé).
+- **P2 — Services** : une page par service (`/services/{slug}`).
+- **P3 — Villes/secteurs** : une page par ville active (`/zones/{slug}`), triée par population × demande locale (`count_active_dumps_by_city`).
+- **P4 — Combinaisons** : matériau × ville × service, triées par `seo_priority_score`.
 
-Table : `seo_recommendations`.
+Chaque file affiche : score, statut (draft/published), dernier QA, bouton **Générer & vérifier**.
 
-## Module 2 — Analyse concurrents
+## 2. QA automatique avant publication
 
-Nouvel onglet **Concurrents**. L'admin ajoute 1-N domaines concurrents.
+Nouvelle edge function `seo-qa-check` (appelée automatiquement après `seo-generate-page` / `seo-improve-page`, avant passage en `published`). Vérifie 8 critères, retourne `{ score, checks[], blockers[] }` :
 
-- Table `seo_competitors` (domain, label, active, added_at).
-- Table `seo_competitor_pages` (competitor_id, url, title, h1, meta_description, city_slug?, material_slug?, service_slug?, keywords text[], last_crawled_at).
-- Edge function `seo-competitor-crawl` : récupère `sitemap.xml` + fetch max 100 pages/domaine, extrait title/H1/meta/mots-clés dominants, essaie d'associer city/material via nos slugs.
-- Edge function `seo-competitor-gaps` : diff entre leurs combinaisons ville×matériau×service et les nôtres → génère des recos type `missing_city_page`, `missing_service_page`, `keyword_gap` (rangées dans `seo_recommendations`).
-- UI : liste concurrents, top pages, tableau des gaps triable, bouton **Créer la page manquante** (préremplit le générateur SEO Manager).
+1. **Unicité** — similarité < 70 % (trigrammes/Jaccard) contre les autres `seo_pages` de la même famille.
+2. **Qualité SEO** — 800-1500 mots, ≥ 4 H2, densité mot-clé principal 1-2 %, lisibilité (phrases < 25 mots en moyenne).
+3. **Maillage interne** — ≥ 3 liens vers d'autres `seo_pages` ou `blog_posts` de la même ville/matériau.
+4. **Title & Meta** — Title 40-65 car, Meta 140-160 car, mot-clé présent, non dupliqués.
+5. **Schema.org** — JSON-LD `Service` ou `LocalBusiness` + `FAQPage` valides (parse test).
+6. **FAQ** — ≥ 5 Q/R, réponses ≥ 40 mots, pas de duplicata.
+7. **Liens connexes** — bloc "Guides & conseils" et "Autres villes / matériaux" non vides.
+8. **CTA** — ≥ 2 CTA vers `/transport-request` ou `/#questionnaire`.
 
-## Module 3 — Idées automatiques hebdo
+Blockers (score < 75, unicité échouée, meta hors bornes, Schema invalide) → page reste en `draft`, badge rouge et diff dans l'UI. Warnings (score 75-89) → publiable manuellement. ≥ 90 → auto-publiable.
 
-Cron hebdo `seo-weekly-ideas` (dimanche 22h) qui relance :
-1. `seo-assistant-scan` (module 1)
-2. `seo-competitor-gaps` (module 2)
-3. Détection blog : articles > 180 j sans update, catégories sans nouvel article > 60 j
-4. Injection dans `blog_post_ideas` (table existante) pour les nouveaux articles suggérés, et dans `seo_recommendations` pour tout le reste.
+Table `seo_qa_reports` (page_id, score, checks jsonb, blockers text[], warnings text[], checked_at).
 
-Notification légère dans l'onglet Assistant : badge "X nouvelles recommandations cette semaine".
+## 3. Runner par vagues
 
-## Module 4 — Tableau de bord santé SEO
+Composant `WaveRunner` dans `AdminSeoManager.tsx` (onglet File de production). Une vague = 3 paramètres :
+- taille max (25 / 40 / …),
+- priorité cible (P1 / P2 / P3 / P4 ou "toutes"),
+- seuil QA auto-publication (par défaut 90).
 
-Refonte de l'onglet **Vue d'ensemble** existant en véritable **Santé SEO** :
+Boucle séquentielle : `seo-generate-page` → `seo-qa-check` → si score ≥ seuil, publier ; sinon garder en `draft`. Pause/reprise, retry sur 429/402, journal en direct.
 
-- Score global (moyenne pondérée des `seo_score` + bonus indexation + bonus CTR GSC), affiché /100 avec jauge.
-- KPI : pages excellentes (≥85), à améliorer (65-84), faibles (<65), non indexées, orphelines (0 lien interne entrant), articles obsolètes.
-- État sitemap (via `HEAD /sitemap.xml`), dernière exploration Google (max `google_last_checked_at`).
-- Core Web Vitals + temps de chargement : appel PageSpeed Insights via edge function `seo-pagespeed` (clé publique Google, pas de secret utilisateur requis — sinon fallback "non configuré"). Stockage dans nouvelle table `seo_pagespeed_snapshots` (page_id, lcp, cls, inp, perf_score, fetched_at). Une mesure par jour sur la home + top 10 pages.
-- Liens brisés & 404 : job `seo-linkcheck` qui parcourt `sitemap.xml`, teste chaque URL, log dans `seo_broken_links` (url, status, source_page, checked_at).
+Vagues préconfigurées (boutons) :
 
-## Module 5 — Objectifs SEO
+| Vague | Contenu | Volume |
+|---|---|---|
+| S1 | P1 (10 matériaux) + P2 (10 services) + top 10 P3 | 25-30 pages |
+| S2 | P3 complet (villes restantes) + top 15 P4 | 30-45 pages |
+| S3 | +30 combinaisons P4 haute priorité + 6 articles blog liés | ~35 items |
+| S4 | Recos GSC (`quick_win_gsc`, `low_ctr`) + amélioration pages P1/P2 | variable |
 
-Nouvelle table `seo_goals` (label, metric_type enum: indexed_pages / organic_clicks_month / avg_ctr / keyword_rank / submissions_month, target_value, deadline, current_value, updated_at).
+## 4. Suivi hebdomadaire
 
-- UI onglet **Objectifs** : liste + progression (barre), création/édition.
-- Fonction `seo-goals-refresh` (cron quotidien) qui recalcule `current_value` selon le `metric_type` :
-  - `indexed_pages` → `count(seo_pages where google_index_status = 'indexed')`
-  - `organic_clicks_month` → sum clicks 28d dans `seo_gsc_metrics`
-  - `avg_ctr` → moyenne CTR 28d
-  - `keyword_rank` → position d'un mot-clé cible (top_queries)
-  - `submissions_month` → `count(submissions where created_at > now() - 30d)`
-
-## Module 6 — Priorisation intelligente
-
-Enrichissement du calcul de `priority` déjà en place :
-
-- Nouvelle fonction SQL `seo_priority_score(page_id)` intégrant :
-  - volume estimé (population ville × poids matériau)
-  - concurrence (nombre de concurrents ayant la même combo dans `seo_competitor_pages`)
-  - difficulté (GSC : position moyenne actuelle)
-  - potentiel trafic (impressions 28d si déjà indexée)
-  - potentiel client (matériau taxable + type de demande fréquent dans `submissions`)
-- Recalcul auto à chaque `seo-assistant-scan`.
-- Nouveau bloc **Top 10 actions les plus rentables** en tête de l'onglet Assistant (tri par `impact_estimate / effort_estimate`).
-
-## Module 7 — Performance & garde-fous
-
-- Toutes les fonctions IA/crawl s'exécutent côté edge (aucun poids client).
-- Onglet Assistant charge en lazy (`React.lazy`) et pagine les recos (25/page).
-- Les tables nouvelles ont des index sur `status`, `priority`, `page_id`.
-- Cache 24h côté DB pour PageSpeed et crawl concurrents (pas de re-fetch inutile).
-- Aucun ajout de dépendance npm côté front ; côté edge, uniquement `fetch` + `deno-dom` pour parser HTML concurrents.
+Widget **Progression** dans l'onglet Assistant IA : nb de pages publiées cette semaine, score QA moyen, top blockers récurrents. Bouton **Ouvrir GSC** pour la revue S4.
 
 ---
 
 ## Détails techniques
 
 **Migrations DB**
-- `seo_recommendations`, `seo_competitors`, `seo_competitor_pages`, `seo_goals`, `seo_pagespeed_snapshots`, `seo_broken_links`
-- Fonction SQL `seo_priority_score`
-- GRANT authenticated + service_role, RLS admin-only sur toutes
+- `seo_qa_reports` (page_id fk, score int, checks jsonb, blockers text[], warnings text[], checked_at timestamptz)
+- GRANT authenticated + service_role ; RLS admin-only.
+- Ajout colonne `seo_pages.qa_last_score int`, `qa_last_checked_at timestamptz`, `qa_blockers text[]`.
 
-**Edge functions (nouvelles)**
-- `seo-assistant-scan` — génère les recommandations
-- `seo-competitor-crawl` — sitemap + fetch pages concurrents
-- `seo-competitor-gaps` — diff → recos
-- `seo-weekly-ideas` — cron hebdo (orchestrateur)
-- `seo-pagespeed` — PageSpeed Insights
-- `seo-linkcheck` — vérif liens
-- `seo-goals-refresh` — recalcul objectifs
+**Edge functions**
+- `seo-qa-check` : lit la page + Schema + FAQ + liens, calcule scores, appelle Gemini 3 Flash uniquement pour la similarité sémantique et une passe de lisibilité, écrit `seo_qa_reports` et met à jour `seo_pages`.
+- `seo-generate-page` et `seo-improve-page` : ajout d'un flag `run_qa: true` qui enchaîne `seo-qa-check` et publie si score ≥ seuil passé en paramètre.
 
-**Front (dans `AdminSeoManager.tsx`)**
-- Nouveaux onglets : **Assistant**, **Concurrents**, **Objectifs**
-- Refonte onglet **Vue d'ensemble** → **Santé SEO**
-- Composants : `src/components/seo/RecommendationCard.tsx`, `CompetitorTable.tsx`, `GoalCard.tsx`, `HealthScoreGauge.tsx`
+**Front**
+- Nouvel onglet **File de production** dans `AdminSeoManager.tsx` avec 4 sous-listes + `WaveRunner`.
+- `src/components/seo/QaReportBadge.tsx` (score + blockers cliquables).
+- Réutilise `PriorityStars`, `RecommendationCard`.
 
-**Cron**
-- `seo-weekly-ideas` : dimanche 22h
-- `seo-goals-refresh` + `seo-pagespeed` : quotidien 03h
-- `seo-linkcheck` : hebdo lundi 04h
+**Aucun ajout côté public** (SeoLandingPage, routes, sitemap inchangés).
 
 ---
 
-## Séquencement
+## Séquencement de livraison
 
-1. Migrations DB + fonction `seo_priority_score` (module 6 côté DB)
-2. Module 4 (Santé SEO) — refonte visuelle immédiate
-3. Module 1 (Assistant) — cœur du système
-4. Module 2 (Concurrents)
-5. Module 5 (Objectifs)
-6. Module 3 (Idées hebdo) — cron qui orchestre 1+2
-7. Module 7 (perfs) — audit final, lazy-load, index
+1. Migration `seo_qa_reports` + colonnes `seo_pages`.
+2. Edge `seo-qa-check` + intégration dans `generate`/`improve`.
+3. Onglet File de production + `WaveRunner` + `QaReportBadge`.
+4. Boutons vagues préconfigurés + widget progression.
 
-Livraison en un seul chantier, sans validation intermédiaire.
-
-## Questions
-
-1. **PageSpeed** : j'utilise l'API publique Google (quota gratuit 25k/j). OK sans clé, ou tu veux qu'on ajoute une clé dédiée plus tard ?
-2. **Concurrents** : je limite à **5 domaines max** et **100 pages/domaine** pour éviter les abus / lenteurs. OK ?
-3. **Cron hebdo** : dimanche 22h te convient, ou tu préfères un autre créneau ?
-4. **Objectifs par défaut** : je pré-crée les 5 objectifs de ton message (500 pages indexées, 1000 clics/mois, CTR 5 %, top 10 sur mots-clés cibles, 100 soumissions/mois) ?
+Livraison en un chantier. Après ça tu lances toi-même vague S1 depuis l'UI quand tu veux.
