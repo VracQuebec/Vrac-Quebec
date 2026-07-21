@@ -34,6 +34,7 @@ interface Submission {
   internal_notes?: string | null;
   status?: string | null;
   show_on_admin_map?: boolean | null;
+  availability_status?: string | null;
 }
 
 const createNumberIconSvg = (label: string, color: string) => {
