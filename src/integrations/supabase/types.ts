@@ -1437,12 +1437,15 @@ export type Database = {
           current_target: Json | null
           done: number
           errors: Json
+          eta_seconds: number | null
           failed: number
           finished_at: string | null
           heartbeat_at: string | null
           id: string
           last_progress_at: string | null
           mode: string
+          pages_per_minute: number | null
+          progress_samples: Json
           report: Json
           retry_queue: Json
           started_at: string | null
@@ -1464,12 +1467,15 @@ export type Database = {
           current_target?: Json | null
           done?: number
           errors?: Json
+          eta_seconds?: number | null
           failed?: number
           finished_at?: string | null
           heartbeat_at?: string | null
           id?: string
           last_progress_at?: string | null
           mode?: string
+          pages_per_minute?: number | null
+          progress_samples?: Json
           report?: Json
           retry_queue?: Json
           started_at?: string | null
@@ -1491,12 +1497,15 @@ export type Database = {
           current_target?: Json | null
           done?: number
           errors?: Json
+          eta_seconds?: number | null
           failed?: number
           finished_at?: string | null
           heartbeat_at?: string | null
           id?: string
           last_progress_at?: string | null
           mode?: string
+          pages_per_minute?: number | null
+          progress_samples?: Json
           report?: Json
           retry_queue?: Json
           started_at?: string | null
@@ -2860,7 +2869,35 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      seo_recent_jobs_v: {
+        Row: {
+          blocked_items: Json | null
+          created_at: string | null
+          current_attempt: number | null
+          current_started_at: string | null
+          current_step: string | null
+          current_target: Json | null
+          done: number | null
+          errors: Json | null
+          eta_seconds: number | null
+          failed: number | null
+          finished_at: string | null
+          id: string | null
+          last_progress_at: string | null
+          mode: string | null
+          pages_per_minute: number | null
+          progress_samples: Json | null
+          report: Json | null
+          retry_queue: Json | null
+          started_at: string | null
+          status: string | null
+          succeeded: number | null
+          total: number | null
+          watchdog_events: Json | null
+          wave: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       blog_increment_view: { Args: { _post_id: string }; Returns: undefined }
@@ -2980,6 +3017,8 @@ export type Database = {
         }[]
       }
       seo_dashboard_stats: { Args: never; Returns: Json }
+      seo_pipeline_purge_stale: { Args: never; Returns: number }
+      seo_pipeline_state: { Args: never; Returns: Json }
       seo_priority_score: { Args: { _page_id: string }; Returns: number }
       unaccent_string: { Args: { input: string }; Returns: string }
     }
