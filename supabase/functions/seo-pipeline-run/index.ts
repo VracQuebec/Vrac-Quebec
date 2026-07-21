@@ -178,6 +178,72 @@ Deno.serve(async (req) => {
     if (!isAdmin) return json({ error: "Réservé aux administrateurs" }, 403);
 
     const body = await req.json().catch(() => ({}));
+
+    if (body?.action === "watchdog" && typeof body?.job_id === "string") {
+      const { data: watchedJob, error: watchedErr } = await supabase
+        .from("seo_generation_jobs")
+        .select("id,status,mode,wave,total,done,succeeded,failed,report,blocked_items,last_progress_at,current_target,current_step,current_attempt,current_started_at")
+        .eq("id", body.job_id)
+        .single();
+      if (watchedErr || !watchedJob) return json({ error: "Job introuvable" }, 404);
+      if (watchedJob.status !== "running") return json({ ok: true, already_final: true, status: watchedJob.status });
+
+      const lastProgress = watchedJob.last_progress_at ? new Date(watchedJob.last_progress_at).getTime() : Date.now();
+      const currentStarted = watchedJob.current_started_at ? new Date(watchedJob.current_started_at).getTime() : lastProgress;
+      const stalledFor = Date.now() - Math.max(lastProgress, currentStarted);
+      if (stalledFor < WATCHDOG_STALL_MS) {
+        return json({ ok: true, stalled: false, stalled_for_ms: stalledFor });
+      }
+
+      const blockedEvent = {
+        at: nowIso(),
+        type: "watchdog_recovery",
+        target: watchedJob.current_target,
+        step: watchedJob.current_step,
+        attempt: watchedJob.current_attempt,
+        stalled_for_ms: stalledFor,
+        reason: "Aucune progression détectée depuis plus de 60 secondes. Job clôturé avec avertissement et relance de récupération démarrée.",
+      };
+      const existingBlocked = Array.isArray(watchedJob.blocked_items) ? watchedJob.blocked_items : [];
+      const existingReport = (watchedJob.report && typeof watchedJob.report === "object") ? watchedJob.report as Record<string, unknown> : {};
+      await updateJob(supabase, watchedJob.id, {
+        status: "completed_with_warnings",
+        done: Math.min(Number(watchedJob.total ?? 0), Number(watchedJob.done ?? 0) + 1),
+        failed: Number(watchedJob.failed ?? 0) + 1,
+        current_step: "terminé",
+        current_target: null,
+        current_started_at: null,
+        finished_at: nowIso(),
+        blocked_items: [...existingBlocked, blockedEvent].slice(-100),
+        watchdog_events: [blockedEvent],
+        report: {
+          ...existingReport,
+          final_status: "completed_with_warnings",
+          watchdog_recovery: blockedEvent,
+        },
+      });
+
+      const recovery = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/seo-pipeline-run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: authHeader },
+        body: JSON.stringify({
+          mode: watchedJob.mode || "pipeline",
+          wave: watchedJob.wave,
+          auto_fix: true,
+          qa_threshold: Number.isFinite(body?.qa_threshold) ? Number(body.qa_threshold) : 80,
+          limit: Math.max(1, Number(watchedJob.total ?? 1) - Number(watchedJob.done ?? 0)),
+        }),
+      }).catch((e) => e instanceof Error ? e.message : String(e));
+
+      return json({
+        ok: true,
+        stalled: true,
+        recovered_job_id: watchedJob.id,
+        stalled_for_ms: stalledFor,
+        recovery_started: typeof recovery !== "string",
+      });
+    }
+
     const wave: string | null = typeof body?.wave === "string" ? body.wave : null;
     const mode: Mode = (["generate", "publish", "pipeline"] as Mode[]).includes(body?.mode) ? body.mode : "pipeline";
     const qaThreshold = Number.isFinite(body?.qa_threshold) ? Number(body.qa_threshold) : 80;
