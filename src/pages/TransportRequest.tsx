@@ -383,14 +383,108 @@ const TransportRequest = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <TransportBanner />
       <header className="border-b border-border bg-card/80 backdrop-blur sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <Truck className="w-6 h-6 text-primary" />
-            <span className="font-display font-bold text-lg">Vrac<span className="text-primary">Québec</span></span>
-          </Link>
-          <span className="text-xs text-muted-foreground font-body hidden sm:inline">Assistant de transport</span>
+        <div className="container mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
+          <button
+            onClick={requestExit}
+            className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity"
+            aria-label="Retour à l'accueil"
+          >
+            <Truck className="w-6 h-6 text-primary flex-shrink-0" />
+            <span className="font-display font-bold text-base sm:text-lg truncate">
+              Vrac<span className="text-primary">Québec</span>
+            </span>
+          </button>
+
+          <nav className="flex items-center gap-1 sm:gap-2">
+            {step > 1 && step < 6 && (
+              <button
+                onClick={back}
+                className="flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-lg border border-border bg-card hover:border-primary/40 text-xs sm:text-sm font-display font-semibold"
+                aria-label="Étape précédente"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Retour</span>
+              </button>
+            )}
+            <button
+              onClick={requestExit}
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-lg border border-border bg-card hover:border-primary/40 text-xs sm:text-sm font-display font-semibold"
+              aria-label="Accueil"
+            >
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">Accueil</span>
+            </button>
+            {step < 6 && (
+              <button
+                onClick={requestExit}
+                className="flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-lg text-destructive hover:bg-destructive/10 text-xs sm:text-sm font-display font-semibold"
+                aria-label="Quitter l'assistant"
+              >
+                <X className="w-4 h-4" />
+                <span className="hidden sm:inline">Quitter</span>
+              </button>
+            )}
+          </nav>
         </div>
       </header>
+
+      {/* Exit confirmation */}
+      {showExitConfirm && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in"
+          onClick={() => setShowExitConfirm(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-card rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-xl border border-border"
+          >
+            <h2 className="font-display font-bold text-lg sm:text-xl mb-2">Voulez-vous quitter l'assistant ?</h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              Votre progression sera sauvegardée automatiquement. Vous pourrez reprendre lors de votre prochaine visite.
+            </p>
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+              <button
+                onClick={confirmExit}
+                className="px-4 py-2.5 rounded-lg border border-border font-display font-semibold text-sm hover:bg-muted"
+              >
+                Quitter et revenir à l'accueil
+              </button>
+              <button
+                onClick={() => setShowExitConfirm(false)}
+                className="px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm"
+              >
+                Continuer le questionnaire
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resume previous session */}
+      {showResumePrompt && (
+        <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-card rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-xl border border-border">
+            <h2 className="font-display font-bold text-lg sm:text-xl mb-2">Reprendre votre demande précédente ?</h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              Une demande en cours a été sauvegardée sur cet appareil.
+            </p>
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+              <button
+                onClick={clearSavedAndStartNew}
+                className="px-4 py-2.5 rounded-lg border border-border font-display font-semibold text-sm hover:bg-muted"
+              >
+                Commencer une nouvelle demande
+              </button>
+              <button
+                onClick={resumeSaved}
+                className="px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm"
+              >
+                Reprendre
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Progress */}
       {step < 6 && (
