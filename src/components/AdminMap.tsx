@@ -238,11 +238,28 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
         if (infoRef.current && !(infoRef.current as any).__statusListenerAttached) {
           infoRef.current.addListener("domready", () => {
             const el = document.querySelector<HTMLSelectElement>("select[data-lead-status-select]");
-            if (!el) return;
-            el.onchange = () => {
-              const id = el.getAttribute("data-lead-status-select");
-              if (id && onStatusChange) onStatusChange(id, el.value);
-            };
+            if (el) {
+              el.onchange = () => {
+                const id = el.getAttribute("data-lead-status-select");
+                if (id && onStatusChange) onStatusChange(id, el.value);
+              };
+            }
+            const availEl = document.querySelector<HTMLSelectElement>("select[data-lead-avail-select]");
+            if (availEl) {
+              availEl.onchange = async () => {
+                const id = availEl.getAttribute("data-lead-avail-select");
+                if (!id) return;
+                const { error } = await supabase
+                  .from("submissions")
+                  .update({ availability_status: availEl.value })
+                  .eq("id", id);
+                if (error) {
+                  toast({ title: "Erreur", description: error.message, variant: "destructive" });
+                } else {
+                  toast({ title: "Disponibilité mise à jour", description: availabilityLabel(availEl.value) });
+                }
+              };
+            }
           });
           (infoRef.current as any).__statusListenerAttached = true;
         }
@@ -252,7 +269,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
       });
 
     return () => { cancelled = true; };
-  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}`).join(","), leadStatuses?.map((s) => s.value).join(",")]);
+  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}:${s.availability_status || ""}`).join(","), leadStatuses?.map((s) => s.value).join(",")]);
 
   // Distances + in-radius set
   const results = useMemo(() => {
