@@ -13,6 +13,7 @@ import {
 import PriorityStars, { priorityLabel } from "@/components/seo/PriorityStars";
 import CoverageMatrix from "@/components/seo/CoverageMatrix";
 import ConversionsTable from "@/components/seo/ConversionsTable";
+import CommandCenter from "@/components/seo/CommandCenter";
 import ImproveDialog from "@/components/seo/ImproveDialog";
 import RecommendationCard, { type Reco } from "@/components/seo/RecommendationCard";
 import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
@@ -55,7 +56,7 @@ export default function AdminSeoManager() {
   if (!isAdmin) return null;
 
   const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
-    { id: "dashboard", label: "Santé SEO", icon: LayoutDashboard },
+    { id: "dashboard", label: "Centre de pilotage", icon: LayoutDashboard },
     { id: "assistant", label: "Assistant IA", icon: Sparkles },
     { id: "production", label: "File de production", icon: Play },
     { id: "goals", label: "Objectifs", icon: TrendingUp },
@@ -96,7 +97,7 @@ export default function AdminSeoManager() {
           ))}
         </nav>
         <main>
-          {tab === "dashboard" && <Dashboard />}
+          {tab === "dashboard" && <CommandCenter />}
           {tab === "assistant" && <AssistantTab />}
           {tab === "production" && <ProductionTab />}
           {tab === "goals" && <GoalsTab />}
