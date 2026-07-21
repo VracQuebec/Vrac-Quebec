@@ -45,7 +45,6 @@ function computeProgressMetrics(startMs: number, done: number, total: number) {
   return {
     pages_per_minute: Number(ppm.toFixed(2)),
     eta_seconds: eta,
-    progress_samples: null as unknown as undefined, // placeholder — updated separately below
   };
 }
 
@@ -509,8 +508,6 @@ Deno.serve(async (req) => {
       };
 
       try {
-        const jobStartMs = Date.now();
-        void jobStartMs; // ensure captured below via closure fallback
         for (let i = 0; i < items.length; i += CONCURRENCY) {
           const batch = items.slice(i, i + CONCURRENCY);
           await Promise.all(batch.map(runOne));
