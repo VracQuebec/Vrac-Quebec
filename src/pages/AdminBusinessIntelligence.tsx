@@ -104,8 +104,8 @@ export default function AdminBusinessIntelligence() {
         supabase.from("transport_requests").select("id,status,created_at,site_city,material_type,estimated_trips,desired_date,dump_submission_id,dump_name").gte("created_at", start),
         supabase.from("transport_requests").select("id,status,created_at").gte("created_at", prevStart).lt("created_at", start),
         supabase.from("calendar_events").select("id,start_at,status,dompe_number,material_type,client_name,trips_planned").gte("start_at", daysAgo(1)).lte("start_at", daysAgo(-14)),
-        supabase.from("seo_page_events").select("id,event_type,page_id,created_at").gte("created_at", start),
-        supabase.from("seo_page_events").select("id,event_type,page_id,created_at").gte("created_at", prevStart).lt("created_at", start),
+        supabase.from("seo_page_events").select("id,event_type,page_slug,occurred_at").gte("occurred_at", start),
+        supabase.from("seo_page_events").select("id,event_type,page_slug,occurred_at").gte("occurred_at", prevStart).lt("occurred_at", start),
         supabase.from("seo_pages").select("id,slug,title,status,city_slug,material_slug,service_slug,view_count").eq("status", "published"),
         supabase.from("seo_gsc_metrics").select("page_id,clicks,impressions,ctr,position,period").eq("period", "28d"),
       ]);
@@ -128,11 +128,16 @@ export default function AdminBusinessIntelligence() {
       const byDompe = agg(trips, (t) => t.material || "Autre");
       const byRequestType = agg(subs, (s) => s.request_type || "Autre");
 
-      // SEO pages -> conversions
+      // SEO pages -> conversions (events keyed by slug)
+      const submissionsBySlug = new Map<string, number>();
+      seoEv.filter((e: any) => e.event_type === "submission").forEach((e: any) => {
+        if (!e.page_slug) return;
+        submissionsBySlug.set(e.page_slug, (submissionsBySlug.get(e.page_slug) ?? 0) + 1);
+      });
       const submissionsByPage = new Map<string, number>();
-      seoEv.filter((e) => e.event_type === "submission").forEach((e) => {
-        if (!e.page_id) return;
-        submissionsByPage.set(e.page_id, (submissionsByPage.get(e.page_id) ?? 0) + 1);
+      pages.forEach((p: any) => {
+        const c = submissionsBySlug.get(p.slug) ?? 0;
+        if (c > 0) submissionsByPage.set(p.id, c);
       });
       const topSeoPages = pages
         .map((p) => ({ ...p, conversions: submissionsByPage.get(p.id) ?? 0 }))
