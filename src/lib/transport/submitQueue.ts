@@ -43,6 +43,7 @@ export interface TransportSubmitPayload {
   desired_time?: string | null;
   source?: string | null;
   user_id?: string | null;
+  client_notes?: string | null;
 }
 
 interface QueueItem {
