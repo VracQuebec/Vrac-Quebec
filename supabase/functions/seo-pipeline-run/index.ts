@@ -297,6 +297,31 @@ Deno.serve(async (req) => {
     const total = items.length;
     if (total === 0) return json({ ok: true, empty: true, message: "Rien à traiter." });
 
+    // Auto-repair: purge any stale running jobs (>3min without progress)
+    try { await supabase.rpc("seo_pipeline_purge_stale"); } catch (_) { /* ignore */ }
+
+    // Deduplicate: if a job for (mode, wave) is already running, refuse to create a second one
+    const { data: existingRunning } = await supabase
+      .from("seo_generation_jobs")
+      .select("id,total,done")
+      .eq("status", "running")
+      .eq("mode", mode)
+      .is("wave", wave === null ? null : undefined)
+      .maybeSingle();
+    if (existingRunning && (wave === null || existingRunning)) {
+      // narrow check on wave equality
+      const { data: sameWave } = await supabase
+        .from("seo_generation_jobs")
+        .select("id,total,done,mode,wave")
+        .eq("status", "running")
+        .eq("mode", mode)
+        .limit(5);
+      const match = (sameWave ?? []).find((r) => (r.wave ?? null) === wave);
+      if (match) {
+        return json({ ok: true, already_running: true, job_id: match.id, message: `Un job ${mode} ${wave ?? "toutes"} tourne déjà (${match.done}/${match.total}).` });
+      }
+    }
+
     const { data: jobRow, error: jobErr } = await supabase.from("seo_generation_jobs").insert({
       status: "running",
       mode,
@@ -311,13 +336,20 @@ Deno.serve(async (req) => {
       watchdog_events: [],
       retry_queue: [],
       blocked_items: [],
+      progress_samples: [],
       created_by: uid,
       started_at: nowIso(),
       heartbeat_at: nowIso(),
       last_progress_at: nowIso(),
       current_step: "préparation",
     }).select("id").single();
-    if (jobErr || !jobRow) return json({ error: jobErr?.message || "Job non créé" }, 500);
+    if (jobErr || !jobRow) {
+      // Unique violation → another job just started for same (mode, wave)
+      if ((jobErr as { code?: string })?.code === "23505") {
+        return json({ ok: true, already_running: true, message: "Un job identique tourne déjà." });
+      }
+      return json({ error: jobErr?.message || "Job non créé" }, 500);
+    }
     const jobId = jobRow.id;
 
     const processing = (async () => {
