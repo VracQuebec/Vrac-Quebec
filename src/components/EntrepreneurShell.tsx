@@ -1,8 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Truck, LogOut, ArrowLeft } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useUserRoles } from "@/hooks/useUserRole";
+import FullPageState from "@/components/FullPageState";
 
 interface Props {
   title: string;
@@ -12,7 +15,29 @@ interface Props {
 
 const EntrepreneurShell = ({ title, description, children }: Props) => {
   const navigate = useNavigate();
+  const { user, isReady: authReady } = useAuthReady();
+  const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/login"); };
+
+  useEffect(() => {
+    if (!authReady) return;
+    if (!user) navigate("/login", { replace: true });
+  }, [authReady, user, navigate]);
+
+  if (!authReady || !user || roleLoading) {
+    return <FullPageState title="Chargement" message="Votre espace entrepreneur se prépare." />;
+  }
+  if (!isEntrepreneur && !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 text-center">
+        <div>
+          <p className="text-muted-foreground mb-4">Accès réservé aux entrepreneurs autorisés.</p>
+          <button onClick={handleLogout} className="text-primary underline">Se déconnecter</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <nav className="sticky top-0 z-[1000] bg-card/80 backdrop-blur-md border-b border-border">
