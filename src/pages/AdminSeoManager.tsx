@@ -17,8 +17,9 @@ import ImproveDialog from "@/components/seo/ImproveDialog";
 import RecommendationCard, { type Reco } from "@/components/seo/RecommendationCard";
 import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
 import GoalCard, { type Goal } from "@/components/seo/GoalCard";
+import QaReportBadge from "@/components/seo/QaReportBadge";
 
-type Tab = "dashboard" | "assistant" | "goals" | "competitors" | "pages" | "coverage" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
+type Tab = "dashboard" | "assistant" | "production" | "goals" | "competitors" | "pages" | "coverage" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
 
 type City = {
   id: string; slug: string; name: string; region: string;
@@ -56,6 +57,7 @@ export default function AdminSeoManager() {
   const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
     { id: "dashboard", label: "Santé SEO", icon: LayoutDashboard },
     { id: "assistant", label: "Assistant IA", icon: Sparkles },
+    { id: "production", label: "File de production", icon: Play },
     { id: "goals", label: "Objectifs", icon: TrendingUp },
     { id: "competitors", label: "Concurrents", icon: SearchIcon },
     { id: "pages", label: "Pages", icon: ListChecks },
@@ -96,6 +98,7 @@ export default function AdminSeoManager() {
         <main>
           {tab === "dashboard" && <Dashboard />}
           {tab === "assistant" && <AssistantTab />}
+          {tab === "production" && <ProductionTab />}
           {tab === "goals" && <GoalsTab />}
           {tab === "competitors" && <CompetitorsTab />}
           {tab === "pages" && <PagesTab />}
