@@ -66,6 +66,15 @@ Deno.serve(async (req) => {
     const blogs = blogRes.data ?? [];
     const broken = brokenRes.count ?? 0;
 
+    // Active job snapshot — feed live progress into the strategic report
+    const { data: activeJob } = await supabase
+      .from("seo_generation_jobs")
+      .select("id,mode,wave,total,done,succeeded,failed,pages_per_minute,eta_seconds,current_step,started_at")
+      .eq("status", "running")
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     const staleThreshold = Date.now() - 60 * 86400 * 1000;
     const pagesToRefresh = pages.filter((p) =>
       p.status === "published" && p.last_generated_at && new Date(p.last_generated_at).getTime() < staleThreshold
@@ -92,9 +101,22 @@ Deno.serve(async (req) => {
     const payload = {
       generated_at: new Date().toISOString(),
       scans: scanResults,
+      in_progress: activeJob ? {
+        job_id: activeJob.id,
+        mode: activeJob.mode,
+        wave: activeJob.wave,
+        total: activeJob.total,
+        done: activeJob.done,
+        succeeded: activeJob.succeeded,
+        failed: activeJob.failed,
+        pages_per_minute: activeJob.pages_per_minute,
+        eta_seconds: activeJob.eta_seconds,
+        current_step: activeJob.current_step,
+        percent: activeJob.total ? Math.round((activeJob.done / activeJob.total) * 100) : 0,
+      } : null,
       totals: {
         pages: pages.length,
-        published: pages.filter((p) => p.status === "published").length,
+        published: pages.filter((p) => p.status === "published").length + (activeJob?.succeeded ?? 0),
         drafts: pages.filter((p) => p.status === "draft").length,
         indexed: pages.filter((p) => p.google_index_status === "indexed").length,
         blog_posts: blogs.length,
@@ -103,12 +125,13 @@ Deno.serve(async (req) => {
         gsc_clicks_28d: totalClicks,
       },
       actions: {
-        pages_to_create: pagesToCreate,
+        pages_to_create: Math.max(0, pagesToCreate - (activeJob?.done ?? 0)),
         pages_to_refresh: pagesToRefresh.length,
         links_to_add: linksToAdd,
         qa_to_fix: qaToFix.length,
         blog_to_publish: Math.min(2, Math.max(0, Math.round((pagesToCreate + qaToFix.length) / 10))),
         stale_blog: staleBlog,
+        pages_generating: activeJob?.done ?? 0,
       },
       projections: {
         impressions_gain_pct: totalImpr > 0 ? Math.round((projImpressionsGain / totalImpr) * 100) : 0,
