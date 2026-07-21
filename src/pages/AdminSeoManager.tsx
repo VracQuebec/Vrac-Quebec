@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, LayoutDashboard, MapPin, Package, Wrench, Sparkles, Lightbulb,
   Loader2, Plus, Trash2, Play, Pause, RotateCcw, Save, ExternalLink, Gauge, RefreshCw,
-  FileText, Zap, ListChecks, Search as SearchIcon, TrendingUp,
+  FileText, Zap, ListChecks, Search as SearchIcon, TrendingUp, Download,
 } from "lucide-react";
 import PriorityStars, { priorityLabel } from "@/components/seo/PriorityStars";
 import CoverageMatrix from "@/components/seo/CoverageMatrix";
