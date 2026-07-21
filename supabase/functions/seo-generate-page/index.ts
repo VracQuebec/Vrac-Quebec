@@ -26,6 +26,20 @@ function slugify(s: string) {
     .slice(0, 120);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function cleanSlug(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const slug = value.trim();
+  return slug ? slug : null;
+}
+
+function cleanName(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
 function countWords(html: string): number {
   const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   return text ? text.split(" ").length : 0;
@@ -136,12 +150,65 @@ Deno.serve(async (req) => {
     if (!isAdmin) return json({ error: "Réservé aux administrateurs" }, 403);
 
     const body = await req.json().catch(() => ({}));
-    const city = body?.city as { slug: string; name: string; region?: string } | undefined;
-    const material = body?.material as { slug: string; name: string; short_name?: string; description?: string } | undefined;
-    const service = body?.service as { slug: string; name: string; description?: string } | undefined;
+
+    const bodyCity = isRecord(body?.city) ? body.city : null;
+    const bodyMaterial = isRecord(body?.material) ? body.material : null;
+    const bodyService = isRecord(body?.service) ? body.service : null;
+
+    const citySlug = cleanSlug(bodyCity?.slug) ?? cleanSlug(body?.city_slug);
+    const materialSlug = cleanSlug(bodyMaterial?.slug) ?? cleanSlug(body?.material_slug);
+    const serviceSlug = cleanSlug(bodyService?.slug) ?? cleanSlug(body?.service_slug);
+
+    let city: { slug: string; name: string; region?: string } | null = citySlug
+      ? {
+          slug: citySlug,
+          name: cleanName(bodyCity?.name, citySlug),
+          region: typeof bodyCity?.region === "string" ? bodyCity.region : undefined,
+        }
+      : null;
+    let material: { slug: string; name: string; short_name?: string; description?: string } | null = materialSlug
+      ? {
+          slug: materialSlug,
+          name: cleanName(bodyMaterial?.name, materialSlug),
+          short_name: typeof bodyMaterial?.short_name === "string" ? bodyMaterial.short_name : undefined,
+          description: typeof bodyMaterial?.description === "string" ? bodyMaterial.description : undefined,
+        }
+      : null;
+    let service: { slug: string; name: string; description?: string } | null = serviceSlug
+      ? {
+          slug: serviceSlug,
+          name: cleanName(bodyService?.name, serviceSlug),
+          description: typeof bodyService?.description === "string" ? bodyService.description : undefined,
+        }
+      : null;
+
+    if (citySlug && (!bodyCity?.name || !bodyCity?.region)) {
+      const { data: row } = await supabase
+        .from("seo_cities")
+        .select("slug, name, region")
+        .eq("slug", citySlug)
+        .maybeSingle();
+      if (row) city = row;
+    }
+    if (materialSlug && (!bodyMaterial?.name || !bodyMaterial?.description)) {
+      const { data: row } = await supabase
+        .from("seo_materials")
+        .select("slug, name, short_name, description")
+        .eq("slug", materialSlug)
+        .maybeSingle();
+      if (row) material = row;
+    }
+    if (serviceSlug && (!bodyService?.name || !bodyService?.description)) {
+      const { data: row } = await supabase
+        .from("seo_services")
+        .select("slug, name, description")
+        .eq("slug", serviceSlug)
+        .maybeSingle();
+      if (row) service = row;
+    }
+
     const forceRegenerate = Boolean(body?.force);
     if (!city?.slug) return json({ error: "Ville requise" }, 400);
-    if (!material && !service) return json({ error: "Matériau ou service requis" }, 400);
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) return json({ error: "LOVABLE_API_KEY manquante" }, 500);
@@ -160,7 +227,7 @@ Deno.serve(async (req) => {
       return json({ skipped: true, reason: "exists", slug: pageSlug });
     }
 
-    const label = [service?.name, material?.name].filter(Boolean).join(" — ");
+    const label = [service?.name, material?.name].filter(Boolean).join(" — ") || "Matériaux en vrac et dompes";
     const humanTitle = `${label} à ${city.name}`;
 
     const system = `Tu es rédacteur SEO senior pour Vrac Québec, plateforme québécoise de mise en relation pour matériaux en vrac et services de transport (remblai, terre, gravier, sable, pierre, béton/asphalte recyclés, dompe, excavation).
@@ -196,6 +263,7 @@ RÈGLES content_html :
 Ville : ${city.name} (${city.region ?? ""}).
 ${material ? `Matériau : ${material.name}${material.description ? ` — ${material.description}` : ""}.` : ""}
 ${service ? `Service : ${service.name}${service.description ? ` — ${service.description}` : ""}.` : ""}
+${!material && !service ? "Type de page : hub local général sur les matériaux en vrac, l'accès aux dompes et la coordination locale." : ""}
 Objectif : positionner cette page en tête de Google pour ce mot-clé local et convertir vers le formulaire de demande de Vrac Québec.
 Respecte STRICTEMENT le schéma JSON et les règles content_html du system prompt.`;
 
