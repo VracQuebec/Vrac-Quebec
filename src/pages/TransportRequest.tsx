@@ -1044,11 +1044,19 @@ const ConfirmationView = ({
     <section className="animate-in fade-in duration-300 py-4">
       <div className="text-center">
         <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
-          <CheckCircle2 className="w-12 h-12 text-primary" />
+          {pending ? (
+            <Loader2 className="w-12 h-12 text-primary animate-spin" />
+          ) : (
+            <CheckCircle2 className="w-12 h-12 text-primary" />
+          )}
         </div>
-        <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">🎉 Votre demande est bien reçue !</h1>
+        <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">
+          {pending ? "✅ Votre demande est enregistrée" : "🎉 Votre demande est bien reçue !"}
+        </h1>
         <p className="text-muted-foreground text-sm mb-6">
-          Merci {clientName ? clientName.split(" ")[0] : ""} — voici les prochaines étapes.
+          {pending
+            ? "Nous terminons son envoi automatiquement. Vous pouvez fermer cette page en toute tranquillité."
+            : `Merci ${clientName ? clientName.split(" ")[0] : ""} — voici les prochaines étapes.`}
         </p>
       </div>
 
@@ -1056,8 +1064,12 @@ const ConfirmationView = ({
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">✅</div>
           <div>
-            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">Numéro de demande</div>
-            <div className="font-display font-bold text-lg text-primary">{requestNumber}</div>
+            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">
+              {pending ? "État" : "Numéro de demande"}
+            </div>
+            <div className="font-display font-bold text-lg text-primary">
+              {pending ? "Envoi en cours…" : requestNumber}
+            </div>
           </div>
         </div>
         <div className="flex items-start gap-3">
