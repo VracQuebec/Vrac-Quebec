@@ -172,6 +172,15 @@ export default function WaveRunner() {
             <span className="flex items-center gap-1"><ShieldCheck className="w-3 h-3 text-primary" /> {activeJob.current_step ?? "watchdog"}</span>
             <span>Tentative {activeJob.current_attempt ?? 1}/3</span>
           </div>
+          <div className="flex gap-4 text-xs text-muted-foreground flex-wrap">
+            <span>{Math.max(0, activeJob.total - activeJob.done)} restantes</span>
+            {activeJob.pages_per_minute != null && (
+              <span>{activeJob.pages_per_minute.toFixed(1)} p/min</span>
+            )}
+            {activeJob.eta_seconds != null && (
+              <span>~{formatEta(activeJob.eta_seconds)} restants</span>
+            )}
+          </div>
           {activeJob.current_target && (
             <div className="text-xs text-muted-foreground bg-background rounded-md px-3 py-2">
               Page en cours : <span className="font-display font-semibold text-foreground">{formatTarget(activeJob.current_target)}</span>
