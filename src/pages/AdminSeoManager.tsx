@@ -2039,6 +2039,17 @@ function ProductionTab() {
   const pushLog = (msg: string, tone: "info" | "ok" | "warn" | "err" = "info") =>
     setLog((l) => [{ ts: Date.now(), msg, tone }, ...l].slice(0, 200));
 
+  type WaveEntry = {
+    label: string; priority: 1 | 2 | 3 | 4;
+    ok: boolean; score?: number;
+    blockers: string[]; warnings: string[]; keywords: string[];
+    slug?: string; error?: string;
+    status: "published" | "draft" | "rejected";
+  };
+  const [waveEntries, setWaveEntries] = useState<WaveEntry[]>([]);
+  const [avgSecPerItem, setAvgSecPerItem] = useState<number>(35);
+  const [showReport, setShowReport] = useState(false);
+
   async function load() {
     setLoading(true);
     const [{ data: mats }, { data: svcs }, { data: cts }, { data: pgs }] = await Promise.all([
