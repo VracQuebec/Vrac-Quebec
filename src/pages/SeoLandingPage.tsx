@@ -7,6 +7,7 @@ import TransportBanner from "@/components/TransportBanner";
 import { supabase } from "@/integrations/supabase/client";
 import InternalLinksBlock, { type InternalLink } from "@/components/seo/InternalLinksBlock";
 import { logSeoEvent, logSeoViewOnce } from "@/lib/seo/tracking";
+import { sanitizeHtml } from "@/lib/blog/utils";
 import {
   matchMaterialCitySlug,
   RESERVED_TOP_LEVEL_SLUGS,
@@ -243,7 +244,7 @@ export default function SeoLandingPage() {
       </header>
 
       <article className="container mx-auto px-4 sm:px-6 pb-10 prose prose-neutral dark:prose-invert max-w-3xl">
-        <div dangerouslySetInnerHTML={{ __html: page.content_html }} />
+        <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(page.content_html) }} />
       </article>
 
       {city && dumpCount !== null && dumpCount > 0 && (

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Loader2, Sparkles, X, ArrowRight, Check } from "lucide-react";
 import { toast } from "sonner";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
+import { sanitizeHtml } from "@/lib/blog/utils";
 
 type Snapshot = {
   title?: string; meta_title?: string; meta_description?: string;
@@ -113,11 +114,11 @@ export default function ImproveDialog({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border-t border-border">
                   <div>
                     <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Avant</p>
-                    <div className="prose prose-sm max-w-none max-h-96 overflow-y-auto p-3 rounded bg-muted/30" dangerouslySetInnerHTML={{ __html: before.content_html ?? "" }} />
+                    <div className="prose prose-sm max-w-none max-h-96 overflow-y-auto p-3 rounded bg-muted/30" dangerouslySetInnerHTML={{ __html: sanitizeHtml(before.content_html ?? "") }} />
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-wider text-primary mb-1">Après</p>
-                    <div className="prose prose-sm max-w-none max-h-96 overflow-y-auto p-3 rounded bg-primary/5" dangerouslySetInnerHTML={{ __html: after.content_html ?? "" }} />
+                    <div className="prose prose-sm max-w-none max-h-96 overflow-y-auto p-3 rounded bg-primary/5" dangerouslySetInnerHTML={{ __html: sanitizeHtml(after.content_html ?? "") }} />
                   </div>
                 </div>
               </details>
