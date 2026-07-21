@@ -1087,7 +1087,7 @@ const ConfirmationView = ({
 }) => {
   const downloadSummary = () => {
     const lines = [
-      "VRAC QUÉBEC — RÉSUMÉ DE LA DEMANDE DE TRANSPORT",
+      "VRAC QUÉBEC — RÉSUMÉ DE LA DEMANDE D'ACCÈS À LA DOMPE",
       "================================================",
       `Numéro de demande : ${requestNumber || "—"}`,
       `Date : ${new Date().toLocaleString("fr-CA")}`,
@@ -1136,12 +1136,12 @@ const ConfirmationView = ({
           )}
         </div>
         <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">
-          {pending ? "✅ Votre demande est enregistrée" : "🎉 Votre demande est bien reçue !"}
+          {pending ? "✅ Votre demande d'accès est enregistrée" : "🎉 Votre demande d'accès est bien reçue !"}
         </h1>
         <p className="text-muted-foreground text-sm mb-6">
           {pending
             ? "Nous terminons son envoi automatiquement. Vous pouvez fermer cette page en toute tranquillité."
-            : `Merci ${clientName ? clientName.split(" ")[0] : ""} — voici les prochaines étapes.`}
+            : `Merci ${clientName ? clientName.split(" ")[0] : ""} — Transport JSC valide la disponibilité de la dompe et vous recontacte rapidement.`}
         </p>
       </div>
 
