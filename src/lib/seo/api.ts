@@ -20,7 +20,7 @@ export async function invokeSeo<T = unknown>(
   let lastErr: unknown = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const { data, error } = await invokeWithFreshSession<T>(fnName, body);
+      const { data, error } = await invokeWithFreshSession<Record<string, unknown>, T>(fnName, body);
       if (error) {
         const status = (error as { status?: number }).status ?? 0;
         const msg = (error as Error)?.message ?? "Load failed";
