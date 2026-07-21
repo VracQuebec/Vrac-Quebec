@@ -2306,7 +2306,10 @@ function ProductionTab() {
           <div className="pt-2">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
               <span>{progress.current || (running ? "…" : "Terminé")}</span>
-              <span>{progress.done} / {progress.total}</span>
+              <span>
+                {progress.done} / {progress.total}
+                {etaSec > 0 && ` • ~${Math.floor(etaSec / 60)}m ${etaSec % 60}s restants`}
+              </span>
             </div>
             <div className="h-2 rounded-full bg-secondary overflow-hidden">
               <div className="h-full bg-primary transition-all" style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }} />
@@ -2314,6 +2317,79 @@ function ProductionTab() {
           </div>
         )}
       </section>
+
+      {waveEntries.length > 0 && (
+        <section className="border border-border rounded-lg p-4 bg-card space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="text-sm font-display font-bold">Tableau de bord de la vague</h3>
+            <div className="flex gap-2">
+              <button onClick={() => setShowReport((v) => !v)} className="text-xs rounded-md border border-border px-2 py-1 hover:bg-secondary inline-flex items-center gap-1">
+                <FileText className="w-3 h-3" /> {showReport ? "Masquer" : "Voir"} le rapport
+              </button>
+              <button onClick={downloadReport} className="text-xs rounded-md border border-border px-2 py-1 hover:bg-secondary inline-flex items-center gap-1">
+                <Download className="w-3 h-3" /> CSV
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <Metric label="Prévues" value={progress.total || waveStats.total} />
+            <Metric label="Publiées" value={waveStats.published} />
+            <Metric label="Brouillons" value={waveStats.draft} />
+            <Metric label="Rejetées" value={waveStats.rejected} />
+            <Metric label="Score moyen" value={waveStats.avgScore || "—"} />
+          </div>
+          {showReport && (
+            <div className="pt-2 border-t border-border">
+              <p className="text-xs text-muted-foreground mb-2">
+                Rapport de vague — à valider avant de lancer la vague suivante. Les pages en brouillon nécessitent une révision selon les bloqueurs listés.
+              </p>
+              <div className="max-h-[400px] overflow-y-auto space-y-2">
+                {waveEntries.map((e, i) => (
+                  <div key={i} className="text-xs border border-border rounded-md p-2 bg-background">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="font-semibold text-foreground">
+                        <span className="font-mono text-muted-foreground mr-2">P{e.priority}</span>
+                        {e.label}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={
+                          e.status === "published" ? "text-primary font-semibold" :
+                          e.status === "draft" ? "text-amber-600 font-semibold" :
+                          "text-red-500 font-semibold"
+                        }>
+                          {e.status === "published" ? "✅ publiée" : e.status === "draft" ? "⚠️ brouillon" : "❌ rejetée"}
+                          {typeof e.score === "number" && ` — ${e.score}/100`}
+                        </span>
+                        {e.slug && <Link to={`/${e.slug}`} target="_blank" className="text-muted-foreground hover:text-foreground"><ExternalLink className="w-3 h-3" /></Link>}
+                      </div>
+                    </div>
+                    {e.keywords.length > 0 && (
+                      <div className="mt-1 text-muted-foreground">
+                        <span className="font-semibold">Mots-clés :</span> {e.keywords.join(" · ")}
+                      </div>
+                    )}
+                    {e.blockers.length > 0 && (
+                      <div className="mt-1 text-red-600">
+                        <span className="font-semibold">À corriger :</span> {e.blockers.join(" ; ")}
+                      </div>
+                    )}
+                    {e.warnings.length > 0 && (
+                      <div className="mt-1 text-amber-600">
+                        <span className="font-semibold">Avertissements :</span> {e.warnings.join(" ; ")}
+                      </div>
+                    )}
+                    {e.error && (
+                      <div className="mt-1 text-red-500">
+                        <span className="font-semibold">Erreur :</span> {e.error}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
         <div className="border border-border rounded-lg bg-card overflow-hidden">
