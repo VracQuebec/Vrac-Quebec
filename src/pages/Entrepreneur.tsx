@@ -384,6 +384,7 @@ const escapeHtml = (s: string) =>
 
 const buildPopupHtml = (l: EntLead) => {
   const statusLabel = l.is_assigned ? "Attribué" : l.status;
+  const av = availMeta(l.availability_status);
   const acc = l.accessibility && l.accessibility.length > 0 ? escapeHtml(l.accessibility.join(", ")) : "—";
   const mach = l.machinery_available
     ? `Oui${l.machinery_description ? ` — ${escapeHtml(l.machinery_description)}` : ""}`
@@ -398,6 +399,7 @@ const buildPopupHtml = (l: EntLead) => {
       <span>Dompe #${escapeHtml((l.dompe_number && l.dompe_number.trim()) || String(l.submission_number))}</span>
       <span class="ent-pop-badge" style="background:${MARKER_COLOR}">${escapeHtml(statusLabel)}</span>
     </div>
+    <div class="ent-pop-row"><b>Disponibilité :</b> <span style="display:inline-block;padding:2px 8px;border-radius:999px;color:#fff;background:${av.color};font-weight:700">${av.dot} ${escapeHtml(av.label)}</span>${l.availability_note ? ` <span style="color:#666">— ${escapeHtml(l.availability_note)}</span>` : ""}</div>
     <div class="ent-pop-row"><b>Matériaux :</b><div class="ent-pop-mats">${matBadges || "—"}</div></div>
     <div class="ent-pop-row"><b>Type :</b> ${escapeHtml(l.request_type || "—")}</div>
     <div class="ent-pop-row"><b>Nombre de voyages :</b> ${voyages}</div>
