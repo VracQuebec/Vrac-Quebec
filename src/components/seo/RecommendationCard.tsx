@@ -27,6 +27,8 @@ const TYPE_LABELS: Record<string, string> = {
   missing_city_page: "Page manquante",
   missing_service_content: "Service à couvrir",
   stale_blog: "Article à rafraîchir",
+  smart_new_page: "Nouvelle page suggérée",
+  smart_new_service_page: "Nouveau service suggéré",
 };
 
 function priorityColor(p: number) {
@@ -59,6 +61,23 @@ export default function RecommendationCard({
       </div>
       <h4 className="font-display font-semibold text-sm text-foreground mb-1">{reco.title}</h4>
       {reco.rationale && <p className="text-xs text-muted-foreground mb-3">{reco.rationale}</p>}
+      {(() => {
+        const p = reco.payload as {
+          potential?: number; traffic_estimate_monthly?: number; difficulty?: number;
+          estimated_time_minutes?: number; cannibalization_risk?: number; reason?: string;
+        };
+        if (!p) return null;
+        const hasSmart = p.potential != null || p.traffic_estimate_monthly != null || p.difficulty != null;
+        if (!hasSmart) return null;
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 mb-3">
+            {p.potential != null && <SmartStat label="Potentiel" value={`${p.potential}/100`} tone="primary" />}
+            {p.traffic_estimate_monthly != null && <SmartStat label="Trafic est." value={`~${p.traffic_estimate_monthly}/mois`} />}
+            {p.difficulty != null && <SmartStat label="Difficulté" value={`${p.difficulty}/100`} tone={p.difficulty > 70 ? "warn" : undefined} />}
+            {p.estimated_time_minutes != null && <SmartStat label="Temps" value={`${p.estimated_time_minutes} min`} />}
+          </div>
+        );
+      })()}
       <div className="flex items-center gap-2">
         <button type="button" disabled={busy !== null}
           onClick={async () => { setBusy("apply"); try { await onApply(reco); } finally { setBusy(null); } }}
@@ -78,6 +97,16 @@ export default function RecommendationCard({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+function SmartStat({ label, value, tone }: { label: string; value: string; tone?: "primary" | "warn" }) {
+  const color = tone === "primary" ? "text-primary" : tone === "warn" ? "text-amber-500" : "text-foreground";
+  return (
+    <div className="rounded border border-border px-2 py-1 bg-background">
+      <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className={`text-xs font-display font-bold ${color}`}>{value}</div>
     </div>
   );
 }
