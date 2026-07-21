@@ -7,19 +7,40 @@ import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import {
   Truck, MapPin, Package, Ruler, Loader2, ChevronLeft, ChevronRight,
-  CheckCircle2, Medal, LocateFixed, Sparkles, Phone, Clock,
+  CheckCircle2, LocateFixed, Sparkles, Phone, Clock, Download,
+  MessageCircle, ShieldCheck, Zap, Network, Target, HelpCircle,
 } from "lucide-react";
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
 const MATERIALS = [
-  { id: "terre", label: "Terre", icon: "🟫" },
-  { id: "sable", label: "Sable", icon: "🟨" },
-  { id: "pierre_concassee", label: "Pierre concassée", icon: "⬜" },
-  { id: "remblai", label: "Remblai", icon: "🟩" },
-  { id: "enrochement", label: "Enrochement", icon: "🪨" },
-  { id: "autre", label: "Autre", icon: "❓" },
+  { id: "terre", label: "Terre", icon: "🟫", desc: "Remblai, nivellement et aménagement." },
+  { id: "sable", label: "Sable", icon: "🟨", desc: "Compaction, drainage et pose de pavé." },
+  { id: "pierre_concassee", label: "Pierre concassée", icon: "⬜", desc: "Fondation, entrée et stationnement." },
+  { id: "remblai", label: "Remblai", icon: "🟩", desc: "Solution économique pour remplir rapidement." },
+  { id: "enrochement", label: "Enrochement", icon: "🪨", desc: "Stabilisation, soutènement et protection des berges." },
+  { id: "autre", label: "Autre", icon: "❓", desc: "Vous avez un besoin spécifique ? On vous guide." },
 ] as const;
+
+const STEP_LABELS = [
+  { n: 1, label: "Matériau", icon: "📦" },
+  { n: 2, label: "Chantier", icon: "📍" },
+  { n: 3, label: "Quantité", icon: "⚖️" },
+  { n: 4, label: "Recommandations", icon: "🗺️" },
+  { n: 5, label: "Confirmation", icon: "🚛" },
+];
+
+// "Je ne sais pas" project assistant → material recommendation
+const PROJECT_TYPES: { id: string; label: string; icon: string; material: string; trucks: string }[] = [
+  { id: "fondation",   label: "Fondation",           icon: "🏗️", material: "pierre_concassee", trucks: "10 ou 12 roues" },
+  { id: "entree",      label: "Entrée / stationnement", icon: "🚗", material: "pierre_concassee", trucks: "10 roues" },
+  { id: "drain",       label: "Drain français",      icon: "💧", material: "pierre_concassee", trucks: "10 roues" },
+  { id: "nivellement", label: "Nivellement",         icon: "📐", material: "terre",             trucks: "12 roues" },
+  { id: "soutenement", label: "Mur de soutènement",  icon: "🧱", material: "enrochement",       trucks: "12 roues" },
+  { id: "enrochement", label: "Enrochement / berge", icon: "🪨", material: "enrochement",       trucks: "12 roues" },
+  { id: "terrassement",label: "Terrassement",        icon: "⛏️", material: "terre",             trucks: "12 roues" },
+  { id: "autre",       label: "Autre projet",        icon: "❓", material: "autre",             trucks: "À déterminer" },
+];
 
 interface DumpCandidate {
   id: string;
