@@ -4,6 +4,8 @@ import { colorForMaterials } from "@/lib/material-colors";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
 import { Crosshair, X, Search } from "lucide-react";
 import type { LeadStatus } from "@/hooks/useLeadStatuses";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface Submission {
   id: string;
