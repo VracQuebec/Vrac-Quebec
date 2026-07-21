@@ -7,19 +7,40 @@ import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import {
   Truck, MapPin, Package, Ruler, Loader2, ChevronLeft, ChevronRight,
-  CheckCircle2, Medal, LocateFixed, Sparkles, Phone, Clock,
+  CheckCircle2, LocateFixed, Sparkles, Phone, Clock, Download,
+  MessageCircle, ShieldCheck, Zap, Network, Target, HelpCircle,
 } from "lucide-react";
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
 const MATERIALS = [
-  { id: "terre", label: "Terre", icon: "🟫" },
-  { id: "sable", label: "Sable", icon: "🟨" },
-  { id: "pierre_concassee", label: "Pierre concassée", icon: "⬜" },
-  { id: "remblai", label: "Remblai", icon: "🟩" },
-  { id: "enrochement", label: "Enrochement", icon: "🪨" },
-  { id: "autre", label: "Autre", icon: "❓" },
+  { id: "terre", label: "Terre", icon: "🟫", desc: "Remblai, nivellement et aménagement." },
+  { id: "sable", label: "Sable", icon: "🟨", desc: "Compaction, drainage et pose de pavé." },
+  { id: "pierre_concassee", label: "Pierre concassée", icon: "⬜", desc: "Fondation, entrée et stationnement." },
+  { id: "remblai", label: "Remblai", icon: "🟩", desc: "Solution économique pour remplir rapidement." },
+  { id: "enrochement", label: "Enrochement", icon: "🪨", desc: "Stabilisation, soutènement et protection des berges." },
+  { id: "autre", label: "Autre", icon: "❓", desc: "Vous avez un besoin spécifique ? On vous guide." },
 ] as const;
+
+const STEP_LABELS = [
+  { n: 1, label: "Matériau", icon: "📦" },
+  { n: 2, label: "Chantier", icon: "📍" },
+  { n: 3, label: "Quantité", icon: "⚖️" },
+  { n: 4, label: "Recommandations", icon: "🗺️" },
+  { n: 5, label: "Confirmation", icon: "🚛" },
+];
+
+// "Je ne sais pas" project assistant → material recommendation
+const PROJECT_TYPES: { id: string; label: string; icon: string; material: string; trucks: string }[] = [
+  { id: "fondation",   label: "Fondation",           icon: "🏗️", material: "pierre_concassee", trucks: "10 ou 12 roues" },
+  { id: "entree",      label: "Entrée / stationnement", icon: "🚗", material: "pierre_concassee", trucks: "10 roues" },
+  { id: "drain",       label: "Drain français",      icon: "💧", material: "pierre_concassee", trucks: "10 roues" },
+  { id: "nivellement", label: "Nivellement",         icon: "📐", material: "terre",             trucks: "12 roues" },
+  { id: "soutenement", label: "Mur de soutènement",  icon: "🧱", material: "enrochement",       trucks: "12 roues" },
+  { id: "enrochement", label: "Enrochement / berge", icon: "🪨", material: "enrochement",       trucks: "12 roues" },
+  { id: "terrassement",label: "Terrassement",        icon: "⛏️", material: "terre",             trucks: "12 roues" },
+  { id: "autre",       label: "Autre projet",        icon: "❓", material: "autre",             trucks: "À déterminer" },
+];
 
 interface DumpCandidate {
   id: string;
@@ -63,6 +84,12 @@ const TransportRequest = () => {
   const { user } = useAuthReady();
   const [step, setStep] = useState<Step>(1);
   const [showMaterialHelper, setShowMaterialHelper] = useState(false);
+  const [helperStep, setHelperStep] = useState(0);
+  const [helperProject, setHelperProject] = useState<string>("");
+  const [helperArea, setHelperArea] = useState<string>("");
+  const [helperDepth, setHelperDepth] = useState<string>("");
+  const [helperGoal, setHelperGoal] = useState<string>("");
+  const [suggestedTruck, setSuggestedTruck] = useState<string>("");
 
   // Step 1: material
   const [material, setMaterial] = useState<string>("");
@@ -268,23 +295,36 @@ const TransportRequest = () => {
       {/* Progress */}
       {step < 6 && (
         <div className="container mx-auto px-4 pt-4">
-          <div className="flex items-center gap-2 max-w-3xl mx-auto">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <div key={n} className="flex-1 flex flex-col items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-display font-bold transition-all ${
-                    step === n
-                      ? "bg-primary text-primary-foreground scale-110"
-                      : step > n
-                        ? "bg-primary/20 text-primary"
-                        : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {step > n ? <CheckCircle2 className="w-4 h-4" /> : n}
-                </div>
-                {n < 5 && <div className={`h-0.5 w-full mt-4 -mb-4 ${step > n ? "bg-primary/40" : "bg-muted"}`} />}
-              </div>
-            ))}
+          <div className="max-w-3xl mx-auto">
+            <div className="flex items-center gap-1 sm:gap-2">
+              {STEP_LABELS.map((s, idx) => {
+                const active = step === s.n;
+                const done = step > s.n;
+                return (
+                  <div key={s.n} className="flex-1 flex items-center">
+                    <div className="flex flex-col items-center flex-shrink-0 w-full">
+                      <div
+                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-base font-display font-bold transition-all ${
+                          active
+                            ? "bg-primary text-primary-foreground scale-110 shadow-md"
+                            : done
+                              ? "bg-primary/20 text-primary"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {done ? <CheckCircle2 className="w-4 h-4" /> : <span>{s.icon}</span>}
+                      </div>
+                      <span className={`mt-1 text-[10px] sm:text-xs font-display font-semibold text-center leading-tight ${active ? "text-foreground" : "text-muted-foreground"}`}>
+                        {s.label}
+                      </span>
+                    </div>
+                    {idx < STEP_LABELS.length - 1 && (
+                      <div className={`h-0.5 flex-1 mb-5 ${done ? "bg-primary/40" : "bg-muted"}`} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -293,12 +333,24 @@ const TransportRequest = () => {
         {/* Step 1 */}
         {step === 1 && (
           <section className="animate-in fade-in duration-300">
-            <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2 flex items-center gap-2">
-              <Package className="w-7 h-7 text-primary" /> Quel matériau cherchez-vous ?
-            </h1>
-            <p className="text-muted-foreground text-sm mb-5">Choisissez le matériau à transporter.</p>
+            {/* Reassuring hero */}
+            <div className="text-center mb-6">
+              <h1 className="font-display font-bold text-2xl sm:text-4xl leading-tight mb-2">
+                Trouvez le meilleur matériau et le meilleur point de dépôt en quelques clics.
+              </h1>
+              <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
+                Nous analysons votre chantier afin de vous recommander les meilleures options disponibles près de chez vous.
+              </p>
+              <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-display font-bold">
+                <Clock className="w-3.5 h-3.5" /> Temps estimé : moins de 60 secondes
+              </div>
+            </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <h2 className="font-display font-bold text-lg sm:text-xl mb-3 flex items-center gap-2">
+              <Package className="w-5 h-5 text-primary" /> Quel matériau cherchez-vous ?
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {MATERIALS.map((m) => (
                 <button
                   key={m.id}
@@ -306,33 +358,131 @@ const TransportRequest = () => {
                   className={`p-4 rounded-xl border-2 text-left transition-all ${
                     material === m.id
                       ? "border-primary bg-primary/5 shadow-md"
-                      : "border-border bg-card hover:border-primary/40"
+                      : "border-border bg-card hover:border-primary/40 hover:shadow-sm"
                   }`}
                 >
-                  <div className="text-3xl mb-2">{m.icon}</div>
-                  <div className="font-display font-bold text-sm">{m.label}</div>
+                  <div className="flex items-start gap-3">
+                    <div className="text-3xl flex-shrink-0">{m.icon}</div>
+                    <div className="min-w-0">
+                      <div className="font-display font-bold text-base">{m.label}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{m.desc}</div>
+                    </div>
+                    {material === m.id && (
+                      <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 ml-auto" />
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
 
             <button
-              onClick={() => setShowMaterialHelper((v) => !v)}
-              className="mt-4 text-sm text-primary hover:underline flex items-center gap-1.5 font-body"
+              onClick={() => { setShowMaterialHelper((v) => !v); setHelperStep(0); }}
+              className="mt-4 w-full sm:w-auto text-sm text-primary hover:underline flex items-center gap-1.5 font-display font-semibold"
             >
-              <Sparkles className="w-4 h-4" /> Je ne sais pas quel matériau choisir
+              <Sparkles className="w-4 h-4" /> Je ne sais pas — aidez-moi à choisir
             </button>
+
             {showMaterialHelper && (
-              <div className="mt-3 p-4 bg-primary/5 border border-primary/20 rounded-lg text-sm space-y-2">
-                <p><b>Terre</b> — nivellement, jardins, aménagement paysager.</p>
-                <p><b>Sable</b> — coulis, mortier, base sous pavés.</p>
-                <p><b>Pierre concassée</b> — entrées, drains, allées carrossables.</p>
-                <p><b>Remblai</b> — recevoir des matériaux excavés (dompe destination).</p>
-                <p><b>Enrochement</b> — protection berge, mur de soutènement.</p>
-                <p className="text-xs text-muted-foreground pt-1">
-                  Toujours hésitant ? Choisissez "Autre" — Transport JSC vous rappellera pour préciser.
-                </p>
+              <div className="mt-4 p-4 sm:p-5 bg-primary/5 border border-primary/20 rounded-xl">
+                {helperStep === 0 && (
+                  <>
+                    <p className="font-display font-bold mb-3 flex items-center gap-2"><HelpCircle className="w-4 h-4 text-primary" /> Quel est votre projet ?</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {PROJECT_TYPES.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => { setHelperProject(p.id); setHelperStep(1); }}
+                          className="p-3 rounded-lg border border-border bg-card hover:border-primary text-left text-sm font-display font-semibold flex items-center gap-2"
+                        >
+                          <span className="text-lg">{p.icon}</span> {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {helperStep === 1 && (
+                  <>
+                    <p className="font-display font-bold mb-3">Quelle superficie approximative ?</p>
+                    <input
+                      value={helperArea}
+                      onChange={(e) => setHelperArea(e.target.value)}
+                      placeholder="Ex. 50 m² ou 500 pi²"
+                      className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm mb-3"
+                    />
+                    <p className="font-display font-bold mb-2">Quelle profondeur ?</p>
+                    <input
+                      value={helperDepth}
+                      onChange={(e) => setHelperDepth(e.target.value)}
+                      placeholder="Ex. 6 pouces"
+                      className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm mb-3"
+                    />
+                    <p className="font-display font-bold mb-2">Objectif principal ?</p>
+                    <input
+                      value={helperGoal}
+                      onChange={(e) => setHelperGoal(e.target.value)}
+                      placeholder="Ex. drainage, base solide, aménagement"
+                      className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm mb-4"
+                    />
+                    <button
+                      onClick={() => {
+                        const proj = PROJECT_TYPES.find((p) => p.id === helperProject);
+                        if (proj) {
+                          setMaterial(proj.material);
+                          setSuggestedTruck(proj.trucks);
+                        }
+                        setHelperStep(2);
+                      }}
+                      className="w-full px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm"
+                    >
+                      Voir la recommandation →
+                    </button>
+                  </>
+                )}
+                {helperStep === 2 && (() => {
+                  const proj = PROJECT_TYPES.find((p) => p.id === helperProject);
+                  const mat = MATERIALS.find((m) => m.id === (proj?.material || ""));
+                  return (
+                    <div>
+                      <p className="font-display font-bold text-base mb-2 flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Notre recommandation</p>
+                      <div className="bg-card rounded-lg border border-primary/30 p-3 space-y-1.5 text-sm">
+                        <p>📦 <b>Matériau :</b> {mat?.label} {mat?.icon}</p>
+                        {helperArea && helperDepth && <p>📏 <b>Chantier :</b> {helperArea} × {helperDepth}</p>}
+                        {proj && <p>🚛 <b>Type de camion suggéré :</b> {proj.trucks}</p>}
+                        <p className="text-xs text-muted-foreground pt-1">Vous ajusterez la quantité à l'étape suivante.</p>
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => { setShowMaterialHelper(false); setHelperStep(0); }}
+                          className="flex-1 px-3 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm"
+                        >
+                          Utiliser cette recommandation
+                        </button>
+                        <button
+                          onClick={() => setHelperStep(0)}
+                          className="px-3 py-2 rounded-lg border border-border font-display font-semibold text-sm"
+                        >
+                          Recommencer
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
+
+            {/* Trust section */}
+            <div className="mt-8 p-4 sm:p-5 rounded-xl bg-muted/40 border border-border">
+              <p className="font-display font-bold text-sm mb-3 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-primary" /> Pourquoi utiliser Vrac Québec ?
+              </p>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
+                <li className="flex items-center gap-2"><Target className="w-3.5 h-3.5 text-primary" /> Recommandations intelligentes</li>
+                <li className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-primary" /> Recherche des meilleures dompes</li>
+                <li className="flex items-center gap-2"><Zap className="w-3.5 h-3.5 text-primary" /> Gain de temps</li>
+                <li className="flex items-center gap-2"><Truck className="w-3.5 h-3.5 text-primary" /> Demande de transport simplifiée</li>
+                <li className="flex items-center gap-2 sm:col-span-2"><Network className="w-3.5 h-3.5 text-primary" /> Réseau de partenaires au Québec</li>
+              </ul>
+            </div>
           </section>
         )}
 
@@ -515,14 +665,31 @@ const TransportRequest = () => {
               Presque terminé — Transport JSC vous rappellera pour confirmer.
             </p>
 
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4 text-sm">
-              <p className="font-display font-bold mb-1">Récapitulatif</p>
-              <ul className="space-y-0.5 text-xs">
-                <li>📍 <b>Chantier :</b> {address}</li>
-                <li>📦 <b>Matériau :</b> {MATERIALS.find((m) => m.id === material)?.label}</li>
-                <li>📏 <b>Quantité :</b> {unit === "inconnu" ? "À déterminer" : `${quantity} ${unit}`}</li>
-                <li>🎯 <b>Dompe :</b> #{selectedDump.dompe_number?.replace(/^dompe\s*/i, "").trim() || selectedDump.submission_number} — {selectedDump.distance_km} km ({selectedDump.duration_minutes} min)</li>
-              </ul>
+            {/* Full summary card */}
+            <div className="bg-card rounded-2xl border-2 border-primary/30 p-4 sm:p-5 mb-5 shadow-md">
+              <p className="font-display font-bold text-base mb-3 flex items-center gap-2">
+                <Target className="w-4 h-4 text-primary" /> Votre chantier
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                <SummaryRow icon="📍" label="Adresse" value={address} />
+                <SummaryRow icon="📦" label="Matériau recommandé" value={MATERIALS.find((m) => m.id === material)?.label || material} />
+                <SummaryRow icon="📏" label="Quantité estimée" value={unit === "inconnu" ? "À déterminer" : `${quantity} ${unit}`} />
+                <SummaryRow icon="🚛" label="Voyages estimés" value={trips || "À confirmer"} />
+                <SummaryRow icon="⏱️" label="Temps de trajet" value={`${selectedDump.duration_minutes} min`} />
+                <SummaryRow icon="🎯" label="Dompe recommandée" value={`#${selectedDump.dompe_number?.replace(/^dompe\s*/i, "").trim() || selectedDump.submission_number} • ${selectedDump.distance_km} km`} />
+              </div>
+              {dumps.length > 1 && (
+                <div className="mt-3 pt-3 border-t border-border">
+                  <p className="text-xs font-display font-bold uppercase text-muted-foreground mb-1.5">Alternatives</p>
+                  <div className="space-y-1 text-xs">
+                    {dumps.filter((d) => d.id !== selectedDump.id).slice(0, 2).map((d, i) => (
+                      <p key={d.id}>
+                        {i === 0 ? "🥈" : "🥉"} Dompe #{d.dompe_number?.replace(/^dompe\s*/i, "").trim() || d.submission_number} — {d.distance_km} km ({d.duration_minutes} min)
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -530,7 +697,7 @@ const TransportRequest = () => {
               <Field label="Entreprise" value={clientCompany} onChange={setClientCompany} placeholder="Construction ABC inc." />
               <Field label="Téléphone *" value={clientPhone} onChange={setClientPhone} placeholder="418-555-0000" type="tel" />
               <Field label="Courriel" value={clientEmail} onChange={setClientEmail} placeholder="vous@exemple.com" type="email" />
-              <Field label="Type de camion" value={truckType} onChange={setTruckType} placeholder="Ex. 12 roues" />
+              <Field label="Type de camion" value={truckType} onChange={setTruckType} placeholder={suggestedTruck || "Ex. 12 roues"} />
               <Field label="Voyages estimés" value={trips} onChange={setTrips} placeholder="Ex. 3" type="number" />
               <Field label="Date souhaitée" value={desiredDate} onChange={setDesiredDate} type="date" />
               <Field label="Heure souhaitée" value={desiredTime} onChange={setDesiredTime} type="time" />
@@ -540,28 +707,21 @@ const TransportRequest = () => {
 
         {/* Step 6: confirmation */}
         {step === 6 && (
-          <section className="animate-in fade-in duration-300 text-center py-8">
-            <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-12 h-12 text-primary" />
-            </div>
-            <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">Demande envoyée !</h1>
-            <p className="text-muted-foreground text-sm mb-1">Votre numéro de demande :</p>
-            <p className="font-display font-bold text-2xl text-primary mb-6">{confirmedNumber}</p>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-              Transport JSC va vous rappeler sous peu pour confirmer les détails et planifier le transport.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <a href="tel:5819947717" className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold">
-                <Phone className="w-4 h-4" /> 581-994-7717
-              </a>
-              <button
-                onClick={() => navigate("/")}
-                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg border border-border font-display font-bold"
-              >
-                Retour à l'accueil
-              </button>
-            </div>
-          </section>
+          <ConfirmationView
+            requestNumber={confirmedNumber}
+            clientName={clientName}
+            clientPhone={clientPhone}
+            clientEmail={clientEmail}
+            address={address}
+            material={MATERIALS.find((m) => m.id === material)?.label || material}
+            quantity={unit === "inconnu" ? "À déterminer" : `${quantity} ${unit}`}
+            trips={trips}
+            truckType={truckType || suggestedTruck}
+            desiredDate={desiredDate}
+            desiredTime={desiredTime}
+            dump={selectedDump ? `#${selectedDump.dompe_number?.replace(/^dompe\s*/i, "").trim() || selectedDump.submission_number} — ${selectedDump.distance_km} km (${selectedDump.duration_minutes} min)` : ""}
+            onHome={() => navigate("/")}
+          />
         )}
 
         {/* Navigation */}
@@ -606,6 +766,134 @@ const Field = ({
     />
   </label>
 );
+
+const SummaryRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => (
+  <div className="flex items-start gap-2">
+    <span className="text-base leading-none pt-0.5">{icon}</span>
+    <div className="min-w-0 flex-1">
+      <div className="text-[10px] font-display font-bold uppercase text-muted-foreground tracking-wide">{label}</div>
+      <div className="text-sm font-display font-semibold text-foreground truncate">{value || "—"}</div>
+    </div>
+  </div>
+);
+
+const ConfirmationView = ({
+  requestNumber, clientName, clientPhone, clientEmail,
+  address, material, quantity, trips, truckType, desiredDate, desiredTime, dump, onHome,
+}: {
+  requestNumber: string | null;
+  clientName: string; clientPhone: string; clientEmail: string;
+  address: string; material: string; quantity: string; trips: string;
+  truckType: string; desiredDate: string; desiredTime: string; dump: string;
+  onHome: () => void;
+}) => {
+  const downloadSummary = () => {
+    const lines = [
+      "VRAC QUÉBEC — RÉSUMÉ DE LA DEMANDE DE TRANSPORT",
+      "================================================",
+      `Numéro de demande : ${requestNumber || "—"}`,
+      `Date : ${new Date().toLocaleString("fr-CA")}`,
+      "",
+      "CLIENT",
+      `Nom       : ${clientName}`,
+      `Téléphone : ${clientPhone}`,
+      `Courriel  : ${clientEmail || "—"}`,
+      "",
+      "CHANTIER",
+      `Adresse   : ${address}`,
+      "",
+      "TRANSPORT",
+      `Matériau       : ${material}`,
+      `Quantité       : ${quantity}`,
+      `Voyages estimés: ${trips || "à confirmer"}`,
+      `Type de camion : ${truckType || "à confirmer"}`,
+      `Date souhaitée : ${desiredDate || "—"} ${desiredTime || ""}`.trim(),
+      `Dompe          : ${dump || "—"}`,
+      "",
+      "SUIVI",
+      "Transport JSC — 581-994-7717 / 819-592-3495",
+    ];
+    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `demande-${requestNumber || "vrac-quebec"}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const hour = new Date().getHours();
+  const isOpen = hour >= 7 && hour < 19;
+
+  return (
+    <section className="animate-in fade-in duration-300 py-4">
+      <div className="text-center">
+        <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
+          <CheckCircle2 className="w-12 h-12 text-primary" />
+        </div>
+        <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">🎉 Votre demande est bien reçue !</h1>
+        <p className="text-muted-foreground text-sm mb-6">
+          Merci {clientName ? clientName.split(" ")[0] : ""} — voici les prochaines étapes.
+        </p>
+      </div>
+
+      <div className="bg-card rounded-2xl border-2 border-primary/30 p-4 sm:p-5 shadow-md space-y-3 mb-5">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">✅</div>
+          <div>
+            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">Numéro de demande</div>
+            <div className="font-display font-bold text-lg text-primary">{requestNumber}</div>
+          </div>
+        </div>
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">👤</div>
+          <div>
+            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">Votre conseiller</div>
+            <div className="font-display font-semibold text-sm">Équipe Transport JSC</div>
+          </div>
+        </div>
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">⏱️</div>
+          <div>
+            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">Délai estimé</div>
+            <div className="font-display font-semibold text-sm">
+              {isOpen ? "Moins de 30 minutes (heures d'ouverture)" : "Réponse dès l'ouverture (7h)"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+        <a href="tel:5819947717" className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
+          <Phone className="w-4 h-4" /> Appeler maintenant
+        </a>
+        <a
+          href="https://wa.me/15819947717?text=Bonjour%2C%20je%20fais%20suite%20%C3%A0%20ma%20demande%20de%20transport."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[#25D366] text-white font-display font-bold text-sm"
+        >
+          <MessageCircle className="w-4 h-4" /> Discuter avec nous
+        </a>
+        <button
+          onClick={downloadSummary}
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-border font-display font-bold text-sm hover:border-primary/40"
+        >
+          <Download className="w-4 h-4" /> Télécharger le résumé
+        </button>
+      </div>
+
+      <button
+        onClick={onHome}
+        className="w-full text-center text-sm text-muted-foreground hover:text-foreground underline font-body py-2"
+      >
+        Retour à l'accueil
+      </button>
+    </section>
+  );
+};
 
 const haversine = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
   const R = 6371;
