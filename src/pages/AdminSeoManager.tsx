@@ -2141,17 +2141,17 @@ function ProductionTab() {
     });
   }, [items, filterP]);
 
-  async function generateOne(it: QueueItem, thr: number): Promise<{ ok: boolean; score?: number; blockers?: string[]; error?: string }> {
+  async function generateOne(it: QueueItem, thr: number): Promise<{ ok: boolean; score?: number; blockers?: string[]; warnings?: string[]; slug?: string; error?: string }> {
     const body: Record<string, unknown> = { force: true };
     if (it.city) body.city = it.city;
     if (it.material) body.material = it.material;
     if (it.service) body.service = it.service;
-    const gen = await invokeWithFreshSession<Record<string, unknown>, { page?: { id: string }; error?: string }>("seo-generate-page", body);
+    const gen = await invokeWithFreshSession<Record<string, unknown>, { page?: { id: string; slug?: string }; error?: string }>("seo-generate-page", body);
     if (gen.error || !gen.data?.page?.id) return { ok: false, error: gen.error?.message || gen.data?.error || "Erreur génération" };
     const pageId = gen.data.page.id;
-    const qa = await invokeWithFreshSession<{ page_id: string; threshold: number; enforce_draft: boolean }, { score?: number; blockers?: string[]; error?: string }>("seo-qa-check", { page_id: pageId, threshold: thr, enforce_draft: true });
+    const qa = await invokeWithFreshSession<{ page_id: string; threshold: number; enforce_draft: boolean }, { score?: number; blockers?: string[]; warnings?: string[]; error?: string }>("seo-qa-check", { page_id: pageId, threshold: thr, enforce_draft: true });
     if (qa.error) return { ok: false, error: qa.error.message };
-    return { ok: true, score: qa.data?.score, blockers: qa.data?.blockers };
+    return { ok: true, score: qa.data?.score, blockers: qa.data?.blockers, warnings: qa.data?.warnings, slug: gen.data.page.slug };
   }
 
   async function runWave(source: "filtered" | "missing", size: number, thr: number) {
@@ -2159,6 +2159,8 @@ function ProductionTab() {
     setPauseFlag(false);
     setRunning(true);
     setLog([]);
+    setWaveEntries([]);
+    setShowReport(false);
     const pool = (source === "missing" ? filtered.filter((i) => !i.existing) : filtered).slice(0, size);
     setProgress({ done: 0, total: pool.length, current: "" });
     pushLog(`Démarrage vague : ${pool.length} pages, seuil QA ${thr}.`, "info");
@@ -2166,7 +2168,19 @@ function ProductionTab() {
       if (pauseFlag) { pushLog("Pause demandée.", "warn"); break; }
       const it = pool[i];
       setProgress({ done: i, total: pool.length, current: it.label });
+      const t0 = Date.now();
       const res = await generateOne(it, thr);
+      const dt = (Date.now() - t0) / 1000;
+      setAvgSecPerItem((prev) => (i === 0 ? dt : prev * 0.7 + dt * 0.3));
+      const keywords = [it.material?.name, it.service?.name, it.city?.name].filter(Boolean) as string[];
+      const status: WaveEntry["status"] = !res.ok
+        ? "rejected"
+        : ((res.blockers?.length ?? 0) === 0 && (res.score ?? 0) >= thr) ? "published" : "draft";
+      setWaveEntries((prev) => [...prev, {
+        label: it.label, priority: it.priority, ok: res.ok, score: res.score,
+        blockers: res.blockers ?? [], warnings: res.warnings ?? [], keywords,
+        slug: res.slug, error: res.error, status,
+      }]);
       if (!res.ok) {
         pushLog(`❌ ${it.label} — ${res.error}`, "err");
         // brief backoff on 429/402-style errors
@@ -2180,8 +2194,41 @@ function ProductionTab() {
     }
     setProgress((p) => ({ ...p, done: p.total, current: "" }));
     setRunning(false);
+    setShowReport(true);
     await load();
     toast.success("Vague terminée.");
+  }
+
+  const waveStats = useMemo(() => {
+    const s = { published: 0, draft: 0, rejected: 0, total: waveEntries.length, avgScore: 0 };
+    let sum = 0, n = 0;
+    for (const e of waveEntries) {
+      s[e.status]++;
+      if (typeof e.score === "number") { sum += e.score; n++; }
+    }
+    s.avgScore = n ? Math.round(sum / n) : 0;
+    return s;
+  }, [waveEntries]);
+
+  const etaSec = running && progress.total > 0
+    ? Math.max(0, Math.round((progress.total - progress.done) * avgSecPerItem))
+    : 0;
+
+  function downloadReport() {
+    const rows = [
+      ["priorite","page","statut","score","bloqueurs","avertissements","mots_cles","slug","erreur"],
+      ...waveEntries.map((e) => [
+        `P${e.priority}`, e.label, e.status, String(e.score ?? ""),
+        e.blockers.join(" | "), e.warnings.join(" | "), e.keywords.join(" | "),
+        e.slug ?? "", e.error ?? "",
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `rapport-vague-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
   }
 
   const counts = useMemo(() => {
