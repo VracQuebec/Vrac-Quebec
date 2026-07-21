@@ -4,6 +4,8 @@ import { colorForMaterials } from "@/lib/material-colors";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
 import { Crosshair, X, Search } from "lucide-react";
 import type { LeadStatus } from "@/hooks/useLeadStatuses";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface Submission {
   id: string;
@@ -32,6 +34,7 @@ interface Submission {
   internal_notes?: string | null;
   status?: string | null;
   show_on_admin_map?: boolean | null;
+  availability_status?: string | null;
 }
 
 const createNumberIconSvg = (label: string, color: string) => {
@@ -84,6 +87,13 @@ const buildPopup = (sub: Submission, leadStatuses?: LeadStatus[]) => {
   } else if (sub.status) {
     html += `<div><b>Statut:</b> ${sub.status}</div>`;
   }
+  const availOpts = AVAILABILITY_OPTIONS.map(
+    (o) =>
+      `<option value="${o.value}" ${o.value === (sub.availability_status || "available") ? "selected" : ""}>${o.label}</option>`,
+  ).join("");
+  html += `<div style="margin:4px 0"><b>Disponibilité:</b>
+    <select data-lead-avail-select="${sub.id}" style="margin-left:6px;padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-size:12px">${availOpts}</select>
+  </div>`;
   html += `<div><b>Type:</b> ${sub.property_type}</div>
     <div><b>Voyages:</b> ${sub.quantity}</div>
     <div><b>Tonnage:</b> ${sub.tonnage}</div>`;
@@ -101,6 +111,15 @@ const buildPopup = (sub: Submission, leadStatuses?: LeadStatus[]) => {
 };
 
 const HIDDEN_STATUSES = ["archivé", "perdu", "terminé"];
+
+const AVAILABILITY_OPTIONS: { value: string; label: string; color: string }[] = [
+  { value: "available", label: "🟢 Disponible", color: "#16a34a" },
+  { value: "limited", label: "🟡 Capacité limitée", color: "#ca8a04" },
+  { value: "unavailable", label: "🔴 Indisponible", color: "#dc2626" },
+];
+
+const availabilityLabel = (v?: string | null) =>
+  AVAILABILITY_OPTIONS.find((o) => o.value === (v || "available"))?.label ?? "🟢 Disponible";
 
 const RADIUS_OPTIONS_KM = [1, 2, 5, 10, 15, 20, 25, 50, 100];
 
@@ -219,11 +238,28 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
         if (infoRef.current && !(infoRef.current as any).__statusListenerAttached) {
           infoRef.current.addListener("domready", () => {
             const el = document.querySelector<HTMLSelectElement>("select[data-lead-status-select]");
-            if (!el) return;
-            el.onchange = () => {
-              const id = el.getAttribute("data-lead-status-select");
-              if (id && onStatusChange) onStatusChange(id, el.value);
-            };
+            if (el) {
+              el.onchange = () => {
+                const id = el.getAttribute("data-lead-status-select");
+                if (id && onStatusChange) onStatusChange(id, el.value);
+              };
+            }
+            const availEl = document.querySelector<HTMLSelectElement>("select[data-lead-avail-select]");
+            if (availEl) {
+              availEl.onchange = async () => {
+                const id = availEl.getAttribute("data-lead-avail-select");
+                if (!id) return;
+                const { error } = await supabase
+                  .from("submissions")
+                  .update({ availability_status: availEl.value })
+                  .eq("id", id);
+                if (error) {
+                  toast({ title: "Erreur", description: error.message, variant: "destructive" });
+                } else {
+                  toast({ title: "Disponibilité mise à jour", description: availabilityLabel(availEl.value) });
+                }
+              };
+            }
           });
           (infoRef.current as any).__statusListenerAttached = true;
         }
@@ -233,7 +269,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
       });
 
     return () => { cancelled = true; };
-  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}`).join(","), leadStatuses?.map((s) => s.value).join(",")]);
+  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}:${s.availability_status || ""}`).join(","), leadStatuses?.map((s) => s.value).join(",")]);
 
   // Distances + in-radius set
   const results = useMemo(() => {

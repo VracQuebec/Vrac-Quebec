@@ -2100,6 +2100,8 @@ export type Database = {
           accessibility: string[] | null
           address: string
           assigned_entrepreneur: string | null
+          availability_note: string | null
+          availability_status: string
           budget_max: string | null
           budget_unit: string | null
           city: string | null
@@ -2133,6 +2135,7 @@ export type Database = {
           machinery_description: string | null
           materials: string[]
           name: string
+          opening_hours: string | null
           other_material: string | null
           phone: string | null
           photos: string[] | null
@@ -2146,11 +2149,13 @@ export type Database = {
           property_type: string
           province: string | null
           quantity: string
+          remaining_capacity: string | null
           request_type: string
           show_on_admin_map: boolean
           status: string
           submission_number: number
           tonnage: string
+          truck_types_allowed: string[] | null
           visible_to_entrepreneur: boolean
           width_ft: string | null
         }
@@ -2158,6 +2163,8 @@ export type Database = {
           accessibility?: string[] | null
           address: string
           assigned_entrepreneur?: string | null
+          availability_note?: string | null
+          availability_status?: string
           budget_max?: string | null
           budget_unit?: string | null
           city?: string | null
@@ -2191,6 +2198,7 @@ export type Database = {
           machinery_description?: string | null
           materials: string[]
           name: string
+          opening_hours?: string | null
           other_material?: string | null
           phone?: string | null
           photos?: string[] | null
@@ -2204,11 +2212,13 @@ export type Database = {
           property_type: string
           province?: string | null
           quantity: string
+          remaining_capacity?: string | null
           request_type?: string
           show_on_admin_map?: boolean
           status?: string
           submission_number?: number
           tonnage: string
+          truck_types_allowed?: string[] | null
           visible_to_entrepreneur?: boolean
           width_ft?: string | null
         }
@@ -2216,6 +2226,8 @@ export type Database = {
           accessibility?: string[] | null
           address?: string
           assigned_entrepreneur?: string | null
+          availability_note?: string | null
+          availability_status?: string
           budget_max?: string | null
           budget_unit?: string | null
           city?: string | null
@@ -2249,6 +2261,7 @@ export type Database = {
           machinery_description?: string | null
           materials?: string[]
           name?: string
+          opening_hours?: string | null
           other_material?: string | null
           phone?: string | null
           photos?: string[] | null
@@ -2262,11 +2275,13 @@ export type Database = {
           property_type?: string
           province?: string | null
           quantity?: string
+          remaining_capacity?: string | null
           request_type?: string
           show_on_admin_map?: boolean
           status?: string
           submission_number?: number
           tonnage?: string
+          truck_types_allowed?: string[] | null
           visible_to_entrepreneur?: boolean
           width_ft?: string | null
         }
@@ -2446,6 +2461,8 @@ export type Database = {
         Args: never
         Returns: {
           accessibility: string[]
+          availability_note: string
+          availability_status: string
           contamination: string
           created_at: string
           deliver_or_remove: string
@@ -2457,15 +2474,18 @@ export type Database = {
           machinery_available: boolean
           machinery_description: string
           materials: string[]
+          opening_hours: string
           other_material: string
           postal_prefix: string
           priority: string
           property_type: string
           quantity: string
+          remaining_capacity: string
           request_type: string
           status: string
           submission_number: number
           tonnage: string
+          truck_types_allowed: string[]
         }[]
       }
       has_role: {

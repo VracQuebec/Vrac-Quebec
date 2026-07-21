@@ -39,7 +39,16 @@ interface EntLead {
   accessibility: string[] | null;
   created_at: string;
   is_assigned: boolean;
+  availability_status?: string | null;
+  availability_note?: string | null;
 }
+
+const AVAIL_META: Record<string, { label: string; color: string; dot: string }> = {
+  available: { label: "Disponible", color: "#16a34a", dot: "🟢" },
+  limited: { label: "Capacité limitée", color: "#ca8a04", dot: "🟡" },
+  unavailable: { label: "Indisponible", color: "#dc2626", dot: "🔴" },
+};
+const availMeta = (v?: string | null) => AVAIL_META[v || "available"] || AVAIL_META.available;
 
 const Entrepreneur = () => {
   const [leads, setLeads] = useState<EntLead[]>([]);
@@ -123,7 +132,12 @@ const Entrepreneur = () => {
 
       const bounds = new g.maps.LatLngBounds();
       geo.forEach((l) => {
-        const color = MARKER_COLOR;
+        const av = availMeta(l.availability_status);
+        const color = l.availability_status === "unavailable"
+          ? "#9ca3af"
+          : l.availability_status === "limited"
+            ? "#ca8a04"
+            : MARKER_COLOR;
         const label = (() => {
           if (l.dompe_number) {
             const cleaned = l.dompe_number.replace(/^dompe\s*/i, "").trim();
@@ -139,6 +153,8 @@ const Entrepreneur = () => {
         const m = new g.maps.Marker({
           map: mapRef.current!,
           position: pos,
+          opacity: l.availability_status === "unavailable" ? 0.6 : 1,
+          title: `${av.dot} ${av.label}`,
           icon: {
             url,
             scaledSize: new g.maps.Size(width, 30),
@@ -321,6 +337,14 @@ const Entrepreneur = () => {
                       <span className="font-display font-bold text-sm">#{(l.dompe_number && l.dompe_number.trim()) || l.submission_number}</span>
                       <span className="text-[10px] text-muted-foreground font-body">{l.quantity}</span>
                     </div>
+                    <div className="mb-1.5">
+                      <span
+                        className="inline-flex items-center gap-1 text-[10px] font-display font-bold px-2 py-0.5 rounded-full text-white"
+                        style={{ background: availMeta(l.availability_status).color }}
+                      >
+                        {availMeta(l.availability_status).dot} {availMeta(l.availability_status).label}
+                      </span>
+                    </div>
                     <div className="flex flex-wrap gap-1 mb-1.5">
                       {leadMaterialKeys(l).map((k) => (
                         <span
@@ -367,6 +391,7 @@ const escapeHtml = (s: string) =>
 
 const buildPopupHtml = (l: EntLead) => {
   const statusLabel = l.is_assigned ? "Attribué" : l.status;
+  const av = availMeta(l.availability_status);
   const acc = l.accessibility && l.accessibility.length > 0 ? escapeHtml(l.accessibility.join(", ")) : "—";
   const mach = l.machinery_available
     ? `Oui${l.machinery_description ? ` — ${escapeHtml(l.machinery_description)}` : ""}`
@@ -381,6 +406,7 @@ const buildPopupHtml = (l: EntLead) => {
       <span>Dompe #${escapeHtml((l.dompe_number && l.dompe_number.trim()) || String(l.submission_number))}</span>
       <span class="ent-pop-badge" style="background:${MARKER_COLOR}">${escapeHtml(statusLabel)}</span>
     </div>
+    <div class="ent-pop-row"><b>Disponibilité :</b> <span style="display:inline-block;padding:2px 8px;border-radius:999px;color:#fff;background:${av.color};font-weight:700">${av.dot} ${escapeHtml(av.label)}</span>${l.availability_note ? ` <span style="color:#666">— ${escapeHtml(l.availability_note)}</span>` : ""}</div>
     <div class="ent-pop-row"><b>Matériaux :</b><div class="ent-pop-mats">${matBadges || "—"}</div></div>
     <div class="ent-pop-row"><b>Type :</b> ${escapeHtml(l.request_type || "—")}</div>
     <div class="ent-pop-row"><b>Nombre de voyages :</b> ${voyages}</div>
