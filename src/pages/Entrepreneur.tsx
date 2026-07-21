@@ -132,7 +132,12 @@ const Entrepreneur = () => {
 
       const bounds = new g.maps.LatLngBounds();
       geo.forEach((l) => {
-        const color = MARKER_COLOR;
+        const av = availMeta(l.availability_status);
+        const color = l.availability_status === "unavailable"
+          ? "#9ca3af"
+          : l.availability_status === "limited"
+            ? "#ca8a04"
+            : MARKER_COLOR;
         const label = (() => {
           if (l.dompe_number) {
             const cleaned = l.dompe_number.replace(/^dompe\s*/i, "").trim();
@@ -148,6 +153,8 @@ const Entrepreneur = () => {
         const m = new g.maps.Marker({
           map: mapRef.current!,
           position: pos,
+          opacity: l.availability_status === "unavailable" ? 0.6 : 1,
+          title: `${av.dot} ${av.label}`,
           icon: {
             url,
             scaledSize: new g.maps.Size(width, 30),
