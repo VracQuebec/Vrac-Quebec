@@ -2368,6 +2368,171 @@ export type Database = {
         }
         Relationships: []
       }
+      transport_request_history: {
+        Row: {
+          created_at: string
+          field_key: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          request_id: string
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          field_key: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          request_id: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          field_key?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          request_id?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_request_history_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "transport_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transport_requests: {
+        Row: {
+          assigned_dispatcher: string | null
+          client_company: string | null
+          client_email: string | null
+          client_name: string
+          client_phone: string
+          created_at: string
+          desired_date: string | null
+          desired_time: string | null
+          distance_km: number | null
+          driver_id: string | null
+          dump_name: string | null
+          dump_submission_id: string | null
+          estimated_trips: number | null
+          id: string
+          internal_notes: string | null
+          material_other: string | null
+          material_type: string
+          quantity: number | null
+          quantity_unit: string | null
+          request_number: string | null
+          site_address: string
+          site_city: string | null
+          site_latitude: number | null
+          site_longitude: number | null
+          source: string
+          status: Database["public"]["Enums"]["transport_request_status"]
+          travel_time_minutes: number | null
+          truck_id: string | null
+          truck_type: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          assigned_dispatcher?: string | null
+          client_company?: string | null
+          client_email?: string | null
+          client_name: string
+          client_phone: string
+          created_at?: string
+          desired_date?: string | null
+          desired_time?: string | null
+          distance_km?: number | null
+          driver_id?: string | null
+          dump_name?: string | null
+          dump_submission_id?: string | null
+          estimated_trips?: number | null
+          id?: string
+          internal_notes?: string | null
+          material_other?: string | null
+          material_type: string
+          quantity?: number | null
+          quantity_unit?: string | null
+          request_number?: string | null
+          site_address: string
+          site_city?: string | null
+          site_latitude?: number | null
+          site_longitude?: number | null
+          source?: string
+          status?: Database["public"]["Enums"]["transport_request_status"]
+          travel_time_minutes?: number | null
+          truck_id?: string | null
+          truck_type?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          assigned_dispatcher?: string | null
+          client_company?: string | null
+          client_email?: string | null
+          client_name?: string
+          client_phone?: string
+          created_at?: string
+          desired_date?: string | null
+          desired_time?: string | null
+          distance_km?: number | null
+          driver_id?: string | null
+          dump_name?: string | null
+          dump_submission_id?: string | null
+          estimated_trips?: number | null
+          id?: string
+          internal_notes?: string | null
+          material_other?: string | null
+          material_type?: string
+          quantity?: number | null
+          quantity_unit?: string | null
+          request_number?: string | null
+          site_address?: string
+          site_city?: string | null
+          site_latitude?: number | null
+          site_longitude?: number | null
+          source?: string
+          status?: Database["public"]["Enums"]["transport_request_status"]
+          travel_time_minutes?: number | null
+          truck_id?: string | null
+          truck_type?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_requests_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_requests_dump_submission_id_fkey"
+            columns: ["dump_submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_requests_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trucks: {
         Row: {
           active: boolean
@@ -2488,6 +2653,22 @@ export type Database = {
           truck_types_allowed: string[]
         }[]
       }
+      get_public_dumps: {
+        Args: never
+        Returns: {
+          accessibility: string[]
+          availability_status: string
+          dompe_number: string
+          id: string
+          latitude: number
+          longitude: number
+          materials: string[]
+          opening_hours: string
+          remaining_capacity: string
+          submission_number: number
+          truck_types_allowed: string[]
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2541,6 +2722,16 @@ export type Database = {
         | "reporte"
         | "annule"
       driver_status: "disponible" | "occupe" | "inactif"
+      transport_request_status:
+        | "nouvelle"
+        | "a_rappeler"
+        | "en_analyse"
+        | "soumission_envoyee"
+        | "acceptee"
+        | "planifiee"
+        | "en_cours"
+        | "terminee"
+        | "annulee"
       truck_type:
         | "6_roues"
         | "10_roues"
@@ -2686,6 +2877,17 @@ export const Constants = {
         "annule",
       ],
       driver_status: ["disponible", "occupe", "inactif"],
+      transport_request_status: [
+        "nouvelle",
+        "a_rappeler",
+        "en_analyse",
+        "soumission_envoyee",
+        "acceptee",
+        "planifiee",
+        "en_cours",
+        "terminee",
+        "annulee",
+      ],
       truck_type: [
         "6_roues",
         "10_roues",

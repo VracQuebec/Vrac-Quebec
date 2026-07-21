@@ -93,6 +93,29 @@ const Index = () => {
           <div id="questionnaire">
             <Questionnaire />
           </div>
+
+          {/* Assistant de demande de transport rapide */}
+          <div className="mt-10 max-w-3xl mx-auto">
+            <a
+              href="/demande-transport"
+              className="block p-5 sm:p-6 rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10 hover:border-primary transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="text-4xl">⚡</div>
+                <div className="flex-1">
+                  <div className="font-display font-bold text-lg sm:text-xl text-foreground">
+                    Assistant de demande de transport
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Trouvez la meilleure dompe en moins de 60 secondes.
+                  </p>
+                </div>
+                <span className="hidden sm:inline text-primary font-display font-bold text-sm group-hover:translate-x-1 transition-transform">
+                  Commencer →
+                </span>
+              </div>
+            </a>
+          </div>
         </div>
       </main>
 

@@ -34,6 +34,8 @@ const ZonesIndex = lazy(() => import("./pages/ZonesIndex"));
 const ZoneCityIndex = lazy(() => import("./pages/ZoneCityIndex"));
 const AdminSeoManager = lazy(() => import("./pages/AdminSeoManager"));
 const SeoLandingPage = lazy(() => import("./pages/SeoLandingPage"));
+const TransportRequest = lazy(() => import("./pages/TransportRequest"));
+const AdminTransportRequests = lazy(() => import("./pages/AdminTransportRequests"));
 
 const queryClient = new QueryClient();
 
@@ -79,6 +81,8 @@ const App = () => (
             <Route path="/admin/blogue/editer/:id" element={<AdminBlogEditor />} />
             <Route path="/admin/liste-noire" element={<AdminBlacklist />} />
             <Route path="/admin/seo" element={<AdminSeoManager />} />
+            <Route path="/demande-transport" element={<TransportRequest />} />
+            <Route path="/admin/demandes-transport" element={<AdminTransportRequests />} />
             {/* Alias historique — redirige vers la route canonique */}
             <Route path="/admin/seo-manager" element={<Navigate to="/admin/seo" replace />} />
             <Route path="/livraison" element={<ZonesIndex />} />
