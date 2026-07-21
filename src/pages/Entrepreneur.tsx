@@ -39,7 +39,16 @@ interface EntLead {
   accessibility: string[] | null;
   created_at: string;
   is_assigned: boolean;
+  availability_status?: string | null;
+  availability_note?: string | null;
 }
+
+const AVAIL_META: Record<string, { label: string; color: string; dot: string }> = {
+  available: { label: "Disponible", color: "#16a34a", dot: "🟢" },
+  limited: { label: "Capacité limitée", color: "#ca8a04", dot: "🟡" },
+  unavailable: { label: "Indisponible", color: "#dc2626", dot: "🔴" },
+};
+const availMeta = (v?: string | null) => AVAIL_META[v || "available"] || AVAIL_META.available;
 
 const Entrepreneur = () => {
   const [leads, setLeads] = useState<EntLead[]>([]);
