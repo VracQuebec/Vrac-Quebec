@@ -2,6 +2,8 @@
 // Admin-only. Every page is isolated with timeout/retry/watchdog so one stuck page never blocks a wave.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+declare const EdgeRuntime: { waitUntil?: (promise: Promise<unknown>) => void } | undefined;
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -492,7 +494,7 @@ Deno.serve(async (req) => {
       }
     })();
 
-    processing.catch(async (e) => {
+    const guardedProcessing = processing.catch(async (e) => {
       await updateJob(supabase, jobId, {
         status: "completed_with_warnings",
         finished_at: nowIso(),
@@ -500,6 +502,10 @@ Deno.serve(async (req) => {
         report: { error: e instanceof Error ? e.message : String(e), final_status: "completed_with_warnings" },
       });
     });
+
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
+      EdgeRuntime.waitUntil(guardedProcessing);
+    }
 
     return json({ ok: true, job_id: jobId, total, mode, wave, timeout_seconds: TASK_TIMEOUT_MS / 1000, max_attempts: MAX_ATTEMPTS });
   } catch (e) {
