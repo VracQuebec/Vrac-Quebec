@@ -295,23 +295,36 @@ const TransportRequest = () => {
       {/* Progress */}
       {step < 6 && (
         <div className="container mx-auto px-4 pt-4">
-          <div className="flex items-center gap-2 max-w-3xl mx-auto">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <div key={n} className="flex-1 flex flex-col items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-display font-bold transition-all ${
-                    step === n
-                      ? "bg-primary text-primary-foreground scale-110"
-                      : step > n
-                        ? "bg-primary/20 text-primary"
-                        : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {step > n ? <CheckCircle2 className="w-4 h-4" /> : n}
-                </div>
-                {n < 5 && <div className={`h-0.5 w-full mt-4 -mb-4 ${step > n ? "bg-primary/40" : "bg-muted"}`} />}
-              </div>
-            ))}
+          <div className="max-w-3xl mx-auto">
+            <div className="flex items-center gap-1 sm:gap-2">
+              {STEP_LABELS.map((s, idx) => {
+                const active = step === s.n;
+                const done = step > s.n;
+                return (
+                  <div key={s.n} className="flex-1 flex items-center">
+                    <div className="flex flex-col items-center flex-shrink-0 w-full">
+                      <div
+                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-base font-display font-bold transition-all ${
+                          active
+                            ? "bg-primary text-primary-foreground scale-110 shadow-md"
+                            : done
+                              ? "bg-primary/20 text-primary"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {done ? <CheckCircle2 className="w-4 h-4" /> : <span>{s.icon}</span>}
+                      </div>
+                      <span className={`mt-1 text-[10px] sm:text-xs font-display font-semibold text-center leading-tight ${active ? "text-foreground" : "text-muted-foreground"}`}>
+                        {s.label}
+                      </span>
+                    </div>
+                    {idx < STEP_LABELS.length - 1 && (
+                      <div className={`h-0.5 flex-1 mb-5 ${done ? "bg-primary/40" : "bg-muted"}`} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -320,12 +333,24 @@ const TransportRequest = () => {
         {/* Step 1 */}
         {step === 1 && (
           <section className="animate-in fade-in duration-300">
-            <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2 flex items-center gap-2">
-              <Package className="w-7 h-7 text-primary" /> Quel matériau cherchez-vous ?
-            </h1>
-            <p className="text-muted-foreground text-sm mb-5">Choisissez le matériau à transporter.</p>
+            {/* Reassuring hero */}
+            <div className="text-center mb-6">
+              <h1 className="font-display font-bold text-2xl sm:text-4xl leading-tight mb-2">
+                Trouvez le meilleur matériau et le meilleur point de dépôt en quelques clics.
+              </h1>
+              <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
+                Nous analysons votre chantier afin de vous recommander les meilleures options disponibles près de chez vous.
+              </p>
+              <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-display font-bold">
+                <Clock className="w-3.5 h-3.5" /> Temps estimé : moins de 60 secondes
+              </div>
+            </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <h2 className="font-display font-bold text-lg sm:text-xl mb-3 flex items-center gap-2">
+              <Package className="w-5 h-5 text-primary" /> Quel matériau cherchez-vous ?
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {MATERIALS.map((m) => (
                 <button
                   key={m.id}
@@ -333,33 +358,131 @@ const TransportRequest = () => {
                   className={`p-4 rounded-xl border-2 text-left transition-all ${
                     material === m.id
                       ? "border-primary bg-primary/5 shadow-md"
-                      : "border-border bg-card hover:border-primary/40"
+                      : "border-border bg-card hover:border-primary/40 hover:shadow-sm"
                   }`}
                 >
-                  <div className="text-3xl mb-2">{m.icon}</div>
-                  <div className="font-display font-bold text-sm">{m.label}</div>
+                  <div className="flex items-start gap-3">
+                    <div className="text-3xl flex-shrink-0">{m.icon}</div>
+                    <div className="min-w-0">
+                      <div className="font-display font-bold text-base">{m.label}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{m.desc}</div>
+                    </div>
+                    {material === m.id && (
+                      <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 ml-auto" />
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
 
             <button
-              onClick={() => setShowMaterialHelper((v) => !v)}
-              className="mt-4 text-sm text-primary hover:underline flex items-center gap-1.5 font-body"
+              onClick={() => { setShowMaterialHelper((v) => !v); setHelperStep(0); }}
+              className="mt-4 w-full sm:w-auto text-sm text-primary hover:underline flex items-center gap-1.5 font-display font-semibold"
             >
-              <Sparkles className="w-4 h-4" /> Je ne sais pas quel matériau choisir
+              <Sparkles className="w-4 h-4" /> Je ne sais pas — aidez-moi à choisir
             </button>
+
             {showMaterialHelper && (
-              <div className="mt-3 p-4 bg-primary/5 border border-primary/20 rounded-lg text-sm space-y-2">
-                <p><b>Terre</b> — nivellement, jardins, aménagement paysager.</p>
-                <p><b>Sable</b> — coulis, mortier, base sous pavés.</p>
-                <p><b>Pierre concassée</b> — entrées, drains, allées carrossables.</p>
-                <p><b>Remblai</b> — recevoir des matériaux excavés (dompe destination).</p>
-                <p><b>Enrochement</b> — protection berge, mur de soutènement.</p>
-                <p className="text-xs text-muted-foreground pt-1">
-                  Toujours hésitant ? Choisissez "Autre" — Transport JSC vous rappellera pour préciser.
-                </p>
+              <div className="mt-4 p-4 sm:p-5 bg-primary/5 border border-primary/20 rounded-xl">
+                {helperStep === 0 && (
+                  <>
+                    <p className="font-display font-bold mb-3 flex items-center gap-2"><HelpCircle className="w-4 h-4 text-primary" /> Quel est votre projet ?</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {PROJECT_TYPES.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => { setHelperProject(p.id); setHelperStep(1); }}
+                          className="p-3 rounded-lg border border-border bg-card hover:border-primary text-left text-sm font-display font-semibold flex items-center gap-2"
+                        >
+                          <span className="text-lg">{p.icon}</span> {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {helperStep === 1 && (
+                  <>
+                    <p className="font-display font-bold mb-3">Quelle superficie approximative ?</p>
+                    <input
+                      value={helperArea}
+                      onChange={(e) => setHelperArea(e.target.value)}
+                      placeholder="Ex. 50 m² ou 500 pi²"
+                      className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm mb-3"
+                    />
+                    <p className="font-display font-bold mb-2">Quelle profondeur ?</p>
+                    <input
+                      value={helperDepth}
+                      onChange={(e) => setHelperDepth(e.target.value)}
+                      placeholder="Ex. 6 pouces"
+                      className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm mb-3"
+                    />
+                    <p className="font-display font-bold mb-2">Objectif principal ?</p>
+                    <input
+                      value={helperGoal}
+                      onChange={(e) => setHelperGoal(e.target.value)}
+                      placeholder="Ex. drainage, base solide, aménagement"
+                      className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm mb-4"
+                    />
+                    <button
+                      onClick={() => {
+                        const proj = PROJECT_TYPES.find((p) => p.id === helperProject);
+                        if (proj) {
+                          setMaterial(proj.material);
+                          setSuggestedTruck(proj.trucks);
+                        }
+                        setHelperStep(2);
+                      }}
+                      className="w-full px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm"
+                    >
+                      Voir la recommandation →
+                    </button>
+                  </>
+                )}
+                {helperStep === 2 && (() => {
+                  const proj = PROJECT_TYPES.find((p) => p.id === helperProject);
+                  const mat = MATERIALS.find((m) => m.id === (proj?.material || ""));
+                  return (
+                    <div>
+                      <p className="font-display font-bold text-base mb-2 flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Notre recommandation</p>
+                      <div className="bg-card rounded-lg border border-primary/30 p-3 space-y-1.5 text-sm">
+                        <p>📦 <b>Matériau :</b> {mat?.label} {mat?.icon}</p>
+                        {helperArea && helperDepth && <p>📏 <b>Chantier :</b> {helperArea} × {helperDepth}</p>}
+                        {proj && <p>🚛 <b>Type de camion suggéré :</b> {proj.trucks}</p>}
+                        <p className="text-xs text-muted-foreground pt-1">Vous ajusterez la quantité à l'étape suivante.</p>
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => { setShowMaterialHelper(false); setHelperStep(0); }}
+                          className="flex-1 px-3 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm"
+                        >
+                          Utiliser cette recommandation
+                        </button>
+                        <button
+                          onClick={() => setHelperStep(0)}
+                          className="px-3 py-2 rounded-lg border border-border font-display font-semibold text-sm"
+                        >
+                          Recommencer
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
+
+            {/* Trust section */}
+            <div className="mt-8 p-4 sm:p-5 rounded-xl bg-muted/40 border border-border">
+              <p className="font-display font-bold text-sm mb-3 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-primary" /> Pourquoi utiliser Vrac Québec ?
+              </p>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
+                <li className="flex items-center gap-2"><Target className="w-3.5 h-3.5 text-primary" /> Recommandations intelligentes</li>
+                <li className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-primary" /> Recherche des meilleures dompes</li>
+                <li className="flex items-center gap-2"><Zap className="w-3.5 h-3.5 text-primary" /> Gain de temps</li>
+                <li className="flex items-center gap-2"><Truck className="w-3.5 h-3.5 text-primary" /> Demande de transport simplifiée</li>
+                <li className="flex items-center gap-2 sm:col-span-2"><Network className="w-3.5 h-3.5 text-primary" /> Réseau de partenaires au Québec</li>
+              </ul>
+            </div>
           </section>
         )}
 
