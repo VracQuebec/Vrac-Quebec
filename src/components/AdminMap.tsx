@@ -87,6 +87,13 @@ const buildPopup = (sub: Submission, leadStatuses?: LeadStatus[]) => {
   } else if (sub.status) {
     html += `<div><b>Statut:</b> ${sub.status}</div>`;
   }
+  const availOpts = AVAILABILITY_OPTIONS.map(
+    (o) =>
+      `<option value="${o.value}" ${o.value === (sub.availability_status || "available") ? "selected" : ""}>${o.label}</option>`,
+  ).join("");
+  html += `<div style="margin:4px 0"><b>Disponibilité:</b>
+    <select data-lead-avail-select="${sub.id}" style="margin-left:6px;padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-size:12px">${availOpts}</select>
+  </div>`;
   html += `<div><b>Type:</b> ${sub.property_type}</div>
     <div><b>Voyages:</b> ${sub.quantity}</div>
     <div><b>Tonnage:</b> ${sub.tonnage}</div>`;
