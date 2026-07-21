@@ -1432,10 +1432,18 @@ export type Database = {
           created_by: string | null
           done: number
           errors: Json
+          failed: number
+          finished_at: string | null
+          heartbeat_at: string | null
           id: string
+          mode: string
+          report: Json
+          started_at: string | null
           status: string
+          succeeded: number
           total: number
           updated_at: string
+          wave: string | null
         }
         Insert: {
           combinations?: Json
@@ -1443,10 +1451,18 @@ export type Database = {
           created_by?: string | null
           done?: number
           errors?: Json
+          failed?: number
+          finished_at?: string | null
+          heartbeat_at?: string | null
           id?: string
+          mode?: string
+          report?: Json
+          started_at?: string | null
           status?: string
+          succeeded?: number
           total?: number
           updated_at?: string
+          wave?: string | null
         }
         Update: {
           combinations?: Json
@@ -1454,10 +1470,18 @@ export type Database = {
           created_by?: string | null
           done?: number
           errors?: Json
+          failed?: number
+          finished_at?: string | null
+          heartbeat_at?: string | null
           id?: string
+          mode?: string
+          report?: Json
+          started_at?: string | null
           status?: string
+          succeeded?: number
           total?: number
           updated_at?: string
+          wave?: string | null
         }
         Relationships: []
       }
@@ -1816,6 +1840,7 @@ export type Database = {
           title: string
           updated_at: string
           view_count: number
+          wave: string | null
           word_count: number
         }
         Insert: {
@@ -1857,6 +1882,7 @@ export type Database = {
           title?: string
           updated_at?: string
           view_count?: number
+          wave?: string | null
           word_count?: number
         }
         Update: {
@@ -1898,6 +1924,7 @@ export type Database = {
           title?: string
           updated_at?: string
           view_count?: number
+          wave?: string | null
           word_count?: number
         }
         Relationships: []
@@ -2109,6 +2136,39 @@ export type Database = {
           short_name?: string | null
           slug?: string
           sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seo_waves: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          priority: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          priority?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          priority?: number
           updated_at?: string
         }
         Relationships: []
@@ -2895,6 +2955,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      seo_dashboard_stats: { Args: never; Returns: Json }
       seo_priority_score: { Args: { _page_id: string }; Returns: number }
       unaccent_string: { Args: { input: string }; Returns: string }
     }
