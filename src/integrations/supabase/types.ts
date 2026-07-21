@@ -1757,6 +1757,9 @@ export type Database = {
           priority: number
           priority_locked: boolean
           published_at: string | null
+          qa_blockers: string[]
+          qa_last_checked_at: string | null
+          qa_last_score: number | null
           refresh_reason: string | null
           seo_score: number | null
           service_slug: string | null
@@ -1795,6 +1798,9 @@ export type Database = {
           priority?: number
           priority_locked?: boolean
           published_at?: string | null
+          qa_blockers?: string[]
+          qa_last_checked_at?: string | null
+          qa_last_score?: number | null
           refresh_reason?: string | null
           seo_score?: number | null
           service_slug?: string | null
@@ -1833,6 +1839,9 @@ export type Database = {
           priority?: number
           priority_locked?: boolean
           published_at?: string | null
+          qa_blockers?: string[]
+          qa_last_checked_at?: string | null
+          qa_last_score?: number | null
           refresh_reason?: string | null
           seo_score?: number | null
           service_slug?: string | null
@@ -1888,6 +1897,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "seo_pagespeed_snapshots_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_qa_reports: {
+        Row: {
+          auto_published: boolean
+          blockers: string[]
+          checked_at: string
+          checks: Json
+          id: string
+          page_id: string
+          score: number
+          warnings: string[]
+        }
+        Insert: {
+          auto_published?: boolean
+          blockers?: string[]
+          checked_at?: string
+          checks?: Json
+          id?: string
+          page_id: string
+          score?: number
+          warnings?: string[]
+        }
+        Update: {
+          auto_published?: boolean
+          blockers?: string[]
+          checked_at?: string
+          checks?: Json
+          id?: string
+          page_id?: string
+          score?: number
+          warnings?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_qa_reports_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
             referencedRelation: "seo_pages"
