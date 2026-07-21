@@ -26,7 +26,7 @@ import ExcelImportModal from "@/components/ExcelImportModal";
 import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
-import { Search, CalendarDays, Menu, BookOpen as BookOpenIcon } from "lucide-react";
+import { Search, CalendarDays, Menu, BookOpen as BookOpenIcon, TrendingUp } from "lucide-react";
 import { Ban } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import TransportBanner from "@/components/TransportBanner";
@@ -579,6 +579,9 @@ const Admin = () => {
 
           {/* Desktop nav */}
           <div className="hidden sm:flex items-center gap-3">
+            <Link to="/admin/business-intelligence" className="flex items-center gap-1.5 text-sm text-primary hover:opacity-80 font-body font-semibold">
+              <TrendingUp className="w-4 h-4" /> BI
+            </Link>
             <Link to="/admin/calendrier" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <CalendarDays className="w-4 h-4" /> Calendrier
             </Link>
@@ -627,6 +630,9 @@ const Admin = () => {
                 </button>
                 <Link to="/admin/calendrier" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
                   <CalendarDays className="w-4 h-4" /> Calendrier
+                </Link>
+                <Link to="/admin/business-intelligence" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-primary font-semibold hover:bg-secondary">
+                  <TrendingUp className="w-4 h-4" /> Business Intelligence
                 </Link>
                 <Link to="/admin/demandes-transport" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
                   <Truck className="w-4 h-4" /> Demandes de transport
