@@ -84,6 +84,12 @@ const TransportRequest = () => {
   const { user } = useAuthReady();
   const [step, setStep] = useState<Step>(1);
   const [showMaterialHelper, setShowMaterialHelper] = useState(false);
+  const [helperStep, setHelperStep] = useState(0);
+  const [helperProject, setHelperProject] = useState<string>("");
+  const [helperArea, setHelperArea] = useState<string>("");
+  const [helperDepth, setHelperDepth] = useState<string>("");
+  const [helperGoal, setHelperGoal] = useState<string>("");
+  const [suggestedTruck, setSuggestedTruck] = useState<string>("");
 
   // Step 1: material
   const [material, setMaterial] = useState<string>("");
