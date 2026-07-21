@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, LayoutDashboard, MapPin, Package, Wrench, Sparkles, Lightbulb,
   Loader2, Plus, Trash2, Play, Pause, RotateCcw, Save, ExternalLink, Gauge, RefreshCw,
-  FileText, Zap, ListChecks, Search as SearchIcon, TrendingUp,
+  FileText, Zap, ListChecks, Search as SearchIcon, TrendingUp, Download,
 } from "lucide-react";
 import PriorityStars, { priorityLabel } from "@/components/seo/PriorityStars";
 import CoverageMatrix from "@/components/seo/CoverageMatrix";
@@ -2039,6 +2039,17 @@ function ProductionTab() {
   const pushLog = (msg: string, tone: "info" | "ok" | "warn" | "err" = "info") =>
     setLog((l) => [{ ts: Date.now(), msg, tone }, ...l].slice(0, 200));
 
+  type WaveEntry = {
+    label: string; priority: 1 | 2 | 3 | 4;
+    ok: boolean; score?: number;
+    blockers: string[]; warnings: string[]; keywords: string[];
+    slug?: string; error?: string;
+    status: "published" | "draft" | "rejected";
+  };
+  const [waveEntries, setWaveEntries] = useState<WaveEntry[]>([]);
+  const [avgSecPerItem, setAvgSecPerItem] = useState<number>(35);
+  const [showReport, setShowReport] = useState(false);
+
   async function load() {
     setLoading(true);
     const [{ data: mats }, { data: svcs }, { data: cts }, { data: pgs }] = await Promise.all([
@@ -2130,17 +2141,17 @@ function ProductionTab() {
     });
   }, [items, filterP]);
 
-  async function generateOne(it: QueueItem, thr: number): Promise<{ ok: boolean; score?: number; blockers?: string[]; error?: string }> {
+  async function generateOne(it: QueueItem, thr: number): Promise<{ ok: boolean; score?: number; blockers?: string[]; warnings?: string[]; slug?: string; error?: string }> {
     const body: Record<string, unknown> = { force: true };
     if (it.city) body.city = it.city;
     if (it.material) body.material = it.material;
     if (it.service) body.service = it.service;
-    const gen = await invokeWithFreshSession<Record<string, unknown>, { page?: { id: string }; error?: string }>("seo-generate-page", body);
+    const gen = await invokeWithFreshSession<Record<string, unknown>, { page?: { id: string; slug?: string }; error?: string }>("seo-generate-page", body);
     if (gen.error || !gen.data?.page?.id) return { ok: false, error: gen.error?.message || gen.data?.error || "Erreur génération" };
     const pageId = gen.data.page.id;
-    const qa = await invokeWithFreshSession<{ page_id: string; threshold: number; enforce_draft: boolean }, { score?: number; blockers?: string[]; error?: string }>("seo-qa-check", { page_id: pageId, threshold: thr, enforce_draft: true });
+    const qa = await invokeWithFreshSession<{ page_id: string; threshold: number; enforce_draft: boolean }, { score?: number; blockers?: string[]; warnings?: string[]; error?: string }>("seo-qa-check", { page_id: pageId, threshold: thr, enforce_draft: true });
     if (qa.error) return { ok: false, error: qa.error.message };
-    return { ok: true, score: qa.data?.score, blockers: qa.data?.blockers };
+    return { ok: true, score: qa.data?.score, blockers: qa.data?.blockers, warnings: qa.data?.warnings, slug: gen.data.page.slug };
   }
 
   async function runWave(source: "filtered" | "missing", size: number, thr: number) {
@@ -2148,6 +2159,8 @@ function ProductionTab() {
     setPauseFlag(false);
     setRunning(true);
     setLog([]);
+    setWaveEntries([]);
+    setShowReport(false);
     const pool = (source === "missing" ? filtered.filter((i) => !i.existing) : filtered).slice(0, size);
     setProgress({ done: 0, total: pool.length, current: "" });
     pushLog(`Démarrage vague : ${pool.length} pages, seuil QA ${thr}.`, "info");
@@ -2155,7 +2168,19 @@ function ProductionTab() {
       if (pauseFlag) { pushLog("Pause demandée.", "warn"); break; }
       const it = pool[i];
       setProgress({ done: i, total: pool.length, current: it.label });
+      const t0 = Date.now();
       const res = await generateOne(it, thr);
+      const dt = (Date.now() - t0) / 1000;
+      setAvgSecPerItem((prev) => (i === 0 ? dt : prev * 0.7 + dt * 0.3));
+      const keywords = [it.material?.name, it.service?.name, it.city?.name].filter(Boolean) as string[];
+      const status: WaveEntry["status"] = !res.ok
+        ? "rejected"
+        : ((res.blockers?.length ?? 0) === 0 && (res.score ?? 0) >= thr) ? "published" : "draft";
+      setWaveEntries((prev) => [...prev, {
+        label: it.label, priority: it.priority, ok: res.ok, score: res.score,
+        blockers: res.blockers ?? [], warnings: res.warnings ?? [], keywords,
+        slug: res.slug, error: res.error, status,
+      }]);
       if (!res.ok) {
         pushLog(`❌ ${it.label} — ${res.error}`, "err");
         // brief backoff on 429/402-style errors
@@ -2169,8 +2194,41 @@ function ProductionTab() {
     }
     setProgress((p) => ({ ...p, done: p.total, current: "" }));
     setRunning(false);
+    setShowReport(true);
     await load();
     toast.success("Vague terminée.");
+  }
+
+  const waveStats = useMemo(() => {
+    const s = { published: 0, draft: 0, rejected: 0, total: waveEntries.length, avgScore: 0 };
+    let sum = 0, n = 0;
+    for (const e of waveEntries) {
+      s[e.status]++;
+      if (typeof e.score === "number") { sum += e.score; n++; }
+    }
+    s.avgScore = n ? Math.round(sum / n) : 0;
+    return s;
+  }, [waveEntries]);
+
+  const etaSec = running && progress.total > 0
+    ? Math.max(0, Math.round((progress.total - progress.done) * avgSecPerItem))
+    : 0;
+
+  function downloadReport() {
+    const rows = [
+      ["priorite","page","statut","score","bloqueurs","avertissements","mots_cles","slug","erreur"],
+      ...waveEntries.map((e) => [
+        `P${e.priority}`, e.label, e.status, String(e.score ?? ""),
+        e.blockers.join(" | "), e.warnings.join(" | "), e.keywords.join(" | "),
+        e.slug ?? "", e.error ?? "",
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `rapport-vague-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
   }
 
   const counts = useMemo(() => {
@@ -2248,7 +2306,10 @@ function ProductionTab() {
           <div className="pt-2">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
               <span>{progress.current || (running ? "…" : "Terminé")}</span>
-              <span>{progress.done} / {progress.total}</span>
+              <span>
+                {progress.done} / {progress.total}
+                {etaSec > 0 && ` • ~${Math.floor(etaSec / 60)}m ${etaSec % 60}s restants`}
+              </span>
             </div>
             <div className="h-2 rounded-full bg-secondary overflow-hidden">
               <div className="h-full bg-primary transition-all" style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }} />
@@ -2256,6 +2317,79 @@ function ProductionTab() {
           </div>
         )}
       </section>
+
+      {waveEntries.length > 0 && (
+        <section className="border border-border rounded-lg p-4 bg-card space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="text-sm font-display font-bold">Tableau de bord de la vague</h3>
+            <div className="flex gap-2">
+              <button onClick={() => setShowReport((v) => !v)} className="text-xs rounded-md border border-border px-2 py-1 hover:bg-secondary inline-flex items-center gap-1">
+                <FileText className="w-3 h-3" /> {showReport ? "Masquer" : "Voir"} le rapport
+              </button>
+              <button onClick={downloadReport} className="text-xs rounded-md border border-border px-2 py-1 hover:bg-secondary inline-flex items-center gap-1">
+                <Download className="w-3 h-3" /> CSV
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <Metric label="Prévues" value={progress.total || waveStats.total} />
+            <Metric label="Publiées" value={waveStats.published} />
+            <Metric label="Brouillons" value={waveStats.draft} />
+            <Metric label="Rejetées" value={waveStats.rejected} />
+            <Metric label="Score moyen" value={waveStats.avgScore || "—"} />
+          </div>
+          {showReport && (
+            <div className="pt-2 border-t border-border">
+              <p className="text-xs text-muted-foreground mb-2">
+                Rapport de vague — à valider avant de lancer la vague suivante. Les pages en brouillon nécessitent une révision selon les bloqueurs listés.
+              </p>
+              <div className="max-h-[400px] overflow-y-auto space-y-2">
+                {waveEntries.map((e, i) => (
+                  <div key={i} className="text-xs border border-border rounded-md p-2 bg-background">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="font-semibold text-foreground">
+                        <span className="font-mono text-muted-foreground mr-2">P{e.priority}</span>
+                        {e.label}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={
+                          e.status === "published" ? "text-primary font-semibold" :
+                          e.status === "draft" ? "text-amber-600 font-semibold" :
+                          "text-red-500 font-semibold"
+                        }>
+                          {e.status === "published" ? "✅ publiée" : e.status === "draft" ? "⚠️ brouillon" : "❌ rejetée"}
+                          {typeof e.score === "number" && ` — ${e.score}/100`}
+                        </span>
+                        {e.slug && <Link to={`/${e.slug}`} target="_blank" className="text-muted-foreground hover:text-foreground"><ExternalLink className="w-3 h-3" /></Link>}
+                      </div>
+                    </div>
+                    {e.keywords.length > 0 && (
+                      <div className="mt-1 text-muted-foreground">
+                        <span className="font-semibold">Mots-clés :</span> {e.keywords.join(" · ")}
+                      </div>
+                    )}
+                    {e.blockers.length > 0 && (
+                      <div className="mt-1 text-red-600">
+                        <span className="font-semibold">À corriger :</span> {e.blockers.join(" ; ")}
+                      </div>
+                    )}
+                    {e.warnings.length > 0 && (
+                      <div className="mt-1 text-amber-600">
+                        <span className="font-semibold">Avertissements :</span> {e.warnings.join(" ; ")}
+                      </div>
+                    )}
+                    {e.error && (
+                      <div className="mt-1 text-red-500">
+                        <span className="font-semibold">Erreur :</span> {e.error}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
         <div className="border border-border rounded-lg bg-card overflow-hidden">
