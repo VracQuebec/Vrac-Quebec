@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeSeo } from "@/lib/seo/api";
 import { toast } from "sonner";
@@ -66,7 +66,7 @@ export default function WaveRunner() {
       .limit(5);
     setHistory((data ?? []) as unknown as Job[]);
     const active = (data ?? []).find((j) => j.status === "running");
-    if (active) setJob(active as Job);
+    setJob(active ? (active as Job) : null);
   }
 
   useEffect(() => {
@@ -321,7 +321,7 @@ function LogStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function LogSection({ title, icon, items, empty }: { title: string; icon: React.ReactNode; items: PipelineEvent[]; empty: string }) {
+function LogSection({ title, icon, items, empty }: { title: string; icon: ReactNode; items: PipelineEvent[]; empty: string }) {
   return (
     <div className="space-y-2 mb-5">
       <h3 className="text-xs font-display font-bold uppercase text-muted-foreground flex items-center gap-2">
