@@ -124,6 +124,103 @@ const TransportRequest = () => {
   const [submitting, setSubmitting] = useState(false);
   const [confirmedNumber, setConfirmedNumber] = useState<string | null>(null);
 
+  // Navigation helpers: exit confirmation + resume-previous-session
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const hydratedRef = useRef(false);
+
+  const hasProgress = () =>
+    step > 1 || !!material || !!address || !!quantity || !!clientName || !!clientPhone;
+
+  // Hydrate from localStorage on mount → offer to resume
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) { hydratedRef.current = true; return; }
+      const saved = JSON.parse(raw);
+      if (saved && (saved.step > 1 || saved.material)) {
+        setShowResumePrompt(true);
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+        hydratedRef.current = true;
+      }
+    } catch {
+      hydratedRef.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const resumeSaved = () => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      if (s.step) setStep(s.step);
+      if (s.material) setMaterial(s.material);
+      if (s.address) setAddress(s.address);
+      if (s.coords) setCoords(s.coords);
+      if (s.city) setCity(s.city);
+      if (s.quantity) setQuantity(s.quantity);
+      if (s.unit) setUnit(s.unit);
+      if (s.clientName) setClientName(s.clientName);
+      if (s.clientCompany) setClientCompany(s.clientCompany);
+      if (s.clientPhone) setClientPhone(s.clientPhone);
+      if (s.clientEmail) setClientEmail(s.clientEmail);
+      if (s.truckType) setTruckType(s.truckType);
+      if (s.trips) setTrips(s.trips);
+      if (s.desiredDate) setDesiredDate(s.desiredDate);
+      if (s.desiredTime) setDesiredTime(s.desiredTime);
+    } catch { /* ignore */ }
+    setShowResumePrompt(false);
+    hydratedRef.current = true;
+  };
+
+  const clearSavedAndStartNew = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setShowResumePrompt(false);
+    hydratedRef.current = true;
+  };
+
+  // Autosave progress on any relevant change (skip after final confirmation)
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    if (step === 6) return;
+    try {
+      const payload = {
+        step, material, address, coords, city, quantity, unit,
+        clientName, clientCompany, clientPhone, clientEmail,
+        truckType, trips, desiredDate, desiredTime,
+        savedAt: Date.now(),
+      };
+      if (
+        step > 1 || material || address || quantity ||
+        clientName || clientPhone
+      ) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      }
+    } catch { /* ignore */ }
+  }, [step, material, address, coords, city, quantity, unit, clientName, clientCompany, clientPhone, clientEmail, truckType, trips, desiredDate, desiredTime]);
+
+  // Clear saved draft after successful submission
+  useEffect(() => {
+    if (step === 6) {
+      try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    }
+  }, [step]);
+
+  const requestExit = () => {
+    if (hasProgress() && step < 6) {
+      setShowExitConfirm(true);
+    } else {
+      navigate("/");
+    }
+  };
+
+  const confirmExit = () => {
+    setShowExitConfirm(false);
+    navigate("/");
+  };
+
   // Prefill email if logged in
   useEffect(() => {
     if (user?.email) setClientEmail(user.email);
