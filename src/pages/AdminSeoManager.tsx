@@ -2135,10 +2135,10 @@ function ProductionTab() {
     if (it.city) body.city = it.city;
     if (it.material) body.material = it.material;
     if (it.service) body.service = it.service;
-    const gen = await invokeWithFreshSession<Record<string, unknown>, { page?: { id: string }; error?: string }>("seo-generate-page", { body });
+    const gen = await invokeWithFreshSession<Record<string, unknown>, { page?: { id: string }; error?: string }>("seo-generate-page", body);
     if (gen.error || !gen.data?.page?.id) return { ok: false, error: gen.error?.message || gen.data?.error || "Erreur génération" };
     const pageId = gen.data.page.id;
-    const qa = await invokeWithFreshSession<{ page_id: string; threshold: number; enforce_draft: boolean }, { score?: number; blockers?: string[]; error?: string }>("seo-qa-check", { body: { page_id: pageId, threshold: thr, enforce_draft: true } });
+    const qa = await invokeWithFreshSession<{ page_id: string; threshold: number; enforce_draft: boolean }, { score?: number; blockers?: string[]; error?: string }>("seo-qa-check", { page_id: pageId, threshold: thr, enforce_draft: true });
     if (qa.error) return { ok: false, error: qa.error.message };
     return { ok: true, score: qa.data?.score, blockers: qa.data?.blockers };
   }
