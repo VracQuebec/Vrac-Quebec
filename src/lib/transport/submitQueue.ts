@@ -140,7 +140,6 @@ async function attemptSend(
   try {
     const { data, error } = await supabase.functions.invoke(FN_NAME, {
       body: item.payload,
-      headers: { "x-attempt": String(item.attempts + 1) },
     });
 
     if (error) {
