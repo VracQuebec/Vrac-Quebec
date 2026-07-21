@@ -330,6 +330,14 @@ const Entrepreneur = () => {
                       <span className="font-display font-bold text-sm">#{(l.dompe_number && l.dompe_number.trim()) || l.submission_number}</span>
                       <span className="text-[10px] text-muted-foreground font-body">{l.quantity}</span>
                     </div>
+                    <div className="mb-1.5">
+                      <span
+                        className="inline-flex items-center gap-1 text-[10px] font-display font-bold px-2 py-0.5 rounded-full text-white"
+                        style={{ background: availMeta(l.availability_status).color }}
+                      >
+                        {availMeta(l.availability_status).dot} {availMeta(l.availability_status).label}
+                      </span>
+                    </div>
                     <div className="flex flex-wrap gap-1 mb-1.5">
                       {leadMaterialKeys(l).map((k) => (
                         <span
