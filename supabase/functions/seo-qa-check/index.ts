@@ -40,6 +40,15 @@ function countCTAs(html: string): number {
   }
   return n;
 }
+function countImages(html: string): { total: number; withAlt: number } {
+  const imgs = html.match(/<img\s[^>]*>/gi) ?? [];
+  let withAlt = 0;
+  for (const img of imgs) {
+    const alt = /alt=["']([^"']*)["']/i.exec(img)?.[1] ?? "";
+    if (alt.trim().length >= 3) withAlt++;
+  }
+  return { total: imgs.length, withAlt };
+}
 function avgSentenceLength(text: string): number {
   const sentences = text.split(/[.!?]+\s/).filter((s) => s.trim().length > 0);
   if (!sentences.length) return 0;
@@ -60,7 +69,16 @@ function jaccard(a: Set<string>, b: Set<string>): number {
   return inter / (a.size + b.size - inter);
 }
 
-type Check = { key: string; label: string; ok: boolean; blocker?: boolean; detail?: string };
+type Check = {
+  key: string;
+  label: string;
+  ok: boolean;
+  status: "ok" | "warn" | "fail";
+  blocker?: boolean;
+  detail?: string;
+  fixable?: boolean;
+  fix_action?: string;
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
