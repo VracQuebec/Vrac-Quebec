@@ -6,6 +6,11 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import {
+  submitTransportRequest,
+  newIdempotencyKey,
+  bootSubmitQueue,
+} from "@/lib/transport/submitQueue";
+import {
   Truck, MapPin, Package, Ruler, Loader2, ChevronLeft, ChevronRight,
   CheckCircle2, LocateFixed, Sparkles, Phone, Clock, Download,
   MessageCircle, ShieldCheck, Zap, Network, Target, HelpCircle,
@@ -123,6 +128,10 @@ const TransportRequest = () => {
   const [desiredTime, setDesiredTime] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmedNumber, setConfirmedNumber] = useState<string | null>(null);
+  // "queued" = accepted locally, still finishing its send in the background.
+  // "confirmed" = server acknowledged with a request_number.
+  const [confirmationMode, setConfirmationMode] = useState<"confirmed" | "queued">("confirmed");
+  const idempotencyRef = useRef<string>("");
 
   // Navigation helpers: exit confirmation + resume-previous-session
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -226,6 +235,13 @@ const TransportRequest = () => {
     if (user?.email) setClientEmail(user.email);
   }, [user]);
 
+  // Boot the persistent submit queue once. Any pending submissions saved in
+  // a previous session (page reload, crash, connection loss) are retried
+  // automatically as soon as the app mounts.
+  useEffect(() => {
+    bootSubmitQueue();
+  }, []);
+
   const useMyPosition = () => {
     if (!navigator.geolocation) {
       toast({ title: "Géolocalisation indisponible", variant: "destructive" });
@@ -319,39 +335,40 @@ const TransportRequest = () => {
   const submitRequest = async () => {
     if (!selectedDump || !coords) return;
     setSubmitting(true);
-    const { data, error } = await supabase
-      .from("transport_requests")
-      .insert({
-        client_name: clientName.trim(),
-        client_company: clientCompany.trim() || null,
-        client_phone: clientPhone.trim(),
-        client_email: clientEmail.trim() || null,
-        user_id: user?.id ?? null,
-        site_address: address,
-        site_latitude: coords.lat,
-        site_longitude: coords.lng,
-        site_city: city || null,
-        material_type: material,
-        quantity: quantity ? Number(quantity) : null,
-        quantity_unit: unit,
-        dump_submission_id: selectedDump.id,
-        dump_name: selectedDump.dompe_number || `#${selectedDump.submission_number}`,
-        distance_km: selectedDump.distance_km ?? null,
-        travel_time_minutes: selectedDump.duration_minutes ?? null,
-        truck_type: truckType || null,
-        estimated_trips: trips ? Number(trips) : null,
-        desired_date: desiredDate || null,
-        desired_time: desiredTime || null,
-        source: user ? "wizard_authenticated" : "wizard_public",
-      })
-      .select("request_number")
-      .single();
+
+    // Stable idempotency key per submission. If the user double-clicks or the
+    // network hiccups mid-send, retries reuse the same key so we never create
+    // a duplicate row.
+    if (!idempotencyRef.current) idempotencyRef.current = newIdempotencyKey();
+
+    const result = await submitTransportRequest({
+      idempotency_key: idempotencyRef.current,
+      client_name: clientName.trim(),
+      client_company: clientCompany.trim() || null,
+      client_phone: clientPhone.trim(),
+      client_email: clientEmail.trim() || null,
+      user_id: user?.id ?? null,
+      site_address: address,
+      site_latitude: coords.lat,
+      site_longitude: coords.lng,
+      site_city: city || null,
+      material_type: material,
+      quantity: quantity ? Number(quantity) : null,
+      quantity_unit: unit,
+      dump_submission_id: selectedDump.id,
+      dump_name: selectedDump.dompe_number || `#${selectedDump.submission_number}`,
+      distance_km: selectedDump.distance_km ?? null,
+      travel_time_minutes: selectedDump.duration_minutes ?? null,
+      truck_type: truckType || null,
+      estimated_trips: trips ? Number(trips) : null,
+      desired_date: desiredDate || null,
+      desired_time: desiredTime || null,
+      source: user ? "wizard_authenticated" : "wizard_public",
+    });
+
     setSubmitting(false);
-    if (error) {
-      toast({ title: "Erreur d'envoi", description: error.message, variant: "destructive" });
-      return;
-    }
-    setConfirmedNumber((data as any)?.request_number || "envoyée");
+    setConfirmationMode(result.status);
+    setConfirmedNumber(result.request_number ?? null);
     setStep(6);
   };
 
