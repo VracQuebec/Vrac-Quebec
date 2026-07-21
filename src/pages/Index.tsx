@@ -1,5 +1,6 @@
 import Questionnaire from "@/components/Questionnaire";
 import heroBanner from "@/assets/hero-banner.webp";
+import heroBannerMobile from "@/assets/hero-banner-mobile.webp";
 import TransportBanner from "@/components/TransportBanner";
 import { HardHat } from "lucide-react";
 
@@ -26,13 +27,14 @@ const Index = () => {
       <header className="relative w-full overflow-hidden">
         {/* Mobile image (kept as-is) */}
         <img
-          src={heroBanner}
+          src={heroBannerMobile}
           alt="Vrac Québec — Sites de dépôt, terre, sable, gravier, remblai"
           className="md:hidden w-full h-[280px] sm:h-[360px] object-cover"
           fetchPriority="high"
           decoding="async"
-          width={1200}
-          height={360}
+          loading="eager"
+          width={800}
+          height={447}
         />
         <div className="md:hidden absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
 
