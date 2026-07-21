@@ -2009,3 +2009,325 @@ function CompetitorsTab() {
     </div>
   );
 }
+
+/* =========================================================================
+ * PRODUCTION QUEUE — 4 priority queues + wave runner + QA gating
+ * ========================================================================= */
+type QueueItem = {
+  key: string;
+  priority: 1 | 2 | 3 | 4;
+  label: string;
+  sub: string;
+  city?: { slug: string; name: string; region: string };
+  material?: { slug: string; name: string; short_name?: string; description?: string };
+  service?: { slug: string; name: string; description?: string };
+  existing?: { id: string; slug: string; status: string; qa_last_score: number | null; qa_last_checked_at: string | null; qa_blockers: string[] | null };
+  score: number;
+};
+
+function ProductionTab() {
+  const [items, setItems] = useState<QueueItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterP, setFilterP] = useState<0 | 1 | 2 | 3 | 4>(0);
+  const [waveSize, setWaveSize] = useState(25);
+  const [threshold, setThreshold] = useState(90);
+  const [running, setRunning] = useState(false);
+  const [pauseFlag, setPauseFlag] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number; current: string }>({ done: 0, total: 0, current: "" });
+  const [log, setLog] = useState<Array<{ ts: number; msg: string; tone: "info" | "ok" | "warn" | "err" }>>([]);
+
+  const pushLog = (msg: string, tone: "info" | "ok" | "warn" | "err" = "info") =>
+    setLog((l) => [{ ts: Date.now(), msg, tone }, ...l].slice(0, 200));
+
+  async function load() {
+    setLoading(true);
+    const [{ data: mats }, { data: svcs }, { data: cts }, { data: pgs }] = await Promise.all([
+      supabase.from("seo_materials").select("slug, name, short_name, description, sort_order").eq("active", true).order("sort_order"),
+      supabase.from("seo_services").select("slug, name, description, sort_order").eq("active", true).order("sort_order"),
+      supabase.from("seo_cities").select("slug, name, region, population, sort_order").eq("active", true).order("population", { ascending: false, nullsFirst: false }),
+      supabase.from("seo_pages").select("id, slug, city_slug, material_slug, service_slug, status, qa_last_score, qa_last_checked_at, qa_blockers"),
+    ]);
+    const pageIndex = new Map<string, QueueItem["existing"]>();
+    for (const p of pgs ?? []) {
+      const k = [p.service_slug ?? "", p.material_slug ?? "", p.city_slug ?? ""].join("|");
+      pageIndex.set(k, { id: p.id, slug: p.slug, status: p.status, qa_last_score: p.qa_last_score, qa_last_checked_at: p.qa_last_checked_at, qa_blockers: p.qa_blockers });
+    }
+    const queue: QueueItem[] = [];
+    // P1 — Matériaux (page dédiée : material seul, sans ville). Pour Vrac Québec on couvre par la ville « quebec » comme hub.
+    // Ici on prend material × ville hub (Québec) pour créer une page vitrine du matériau.
+    const hub = (cts ?? []).find((c) => c.slug === "quebec") ?? (cts ?? [])[0];
+    for (const m of mats ?? []) {
+      const key = ["", m.slug, hub?.slug ?? ""].join("|");
+      queue.push({
+        key: `p1:${m.slug}`,
+        priority: 1,
+        label: `Matériau — ${m.name}`,
+        sub: `Page hub matériau (${hub?.name ?? "—"})`,
+        material: { slug: m.slug, name: m.name, short_name: m.short_name, description: m.description },
+        city: hub ? { slug: hub.slug, name: hub.name, region: hub.region } : undefined,
+        existing: pageIndex.get(key),
+        score: 100 - (m.sort_order ?? 0),
+      });
+    }
+    // P2 — Services
+    for (const s of svcs ?? []) {
+      const key = [s.slug, "", hub?.slug ?? ""].join("|");
+      queue.push({
+        key: `p2:${s.slug}`,
+        priority: 2,
+        label: `Service — ${s.name}`,
+        sub: `Page hub service (${hub?.name ?? "—"})`,
+        service: { slug: s.slug, name: s.name, description: s.description },
+        city: hub ? { slug: hub.slug, name: hub.name, region: hub.region } : undefined,
+        existing: pageIndex.get(key),
+        score: 90 - (s.sort_order ?? 0),
+      });
+    }
+    // P3 — Villes / secteurs (une page par ville, sans matériau ni service → hub local)
+    for (const c of cts ?? []) {
+      const key = ["", "", c.slug].join("|");
+      queue.push({
+        key: `p3:${c.slug}`,
+        priority: 3,
+        label: `Ville — ${c.name}`,
+        sub: `${c.region}${c.population ? ` — ${c.population.toLocaleString("fr-CA")} hab.` : ""}`,
+        city: { slug: c.slug, name: c.name, region: c.region },
+        existing: pageIndex.get(key),
+        score: Math.min(80, Math.round(((c.population ?? 0) / 3000))),
+      });
+    }
+    // P4 — Combinaisons matériau × ville (top villes × tous matériaux)
+    const topCities = (cts ?? []).slice(0, 15);
+    for (const c of topCities) {
+      for (const m of mats ?? []) {
+        const key = ["", m.slug, c.slug].join("|");
+        queue.push({
+          key: `p4:${m.slug}:${c.slug}`,
+          priority: 4,
+          label: `${m.name} — ${c.name}`,
+          sub: "Combinaison matériau × ville",
+          material: { slug: m.slug, name: m.name, short_name: m.short_name, description: m.description },
+          city: { slug: c.slug, name: c.name, region: c.region },
+          existing: pageIndex.get(key),
+          score: Math.min(60, Math.round(((c.population ?? 0) / 5000))) + (10 - (m.sort_order ?? 0)),
+        });
+      }
+    }
+    setItems(queue);
+    setLoading(false);
+  }
+  useEffect(() => { load(); }, []);
+
+  const filtered = useMemo(() => {
+    const list = filterP === 0 ? items : items.filter((i) => i.priority === filterP);
+    return [...list].sort((a, b) => {
+      // Missing/draft first, then by score desc, then priority asc.
+      const aDone = a.existing?.status === "published" && (a.existing.qa_last_score ?? 0) >= 90;
+      const bDone = b.existing?.status === "published" && (b.existing.qa_last_score ?? 0) >= 90;
+      if (aDone !== bDone) return aDone ? 1 : -1;
+      if (a.priority !== b.priority) return a.priority - b.priority;
+      return b.score - a.score;
+    });
+  }, [items, filterP]);
+
+  async function generateOne(it: QueueItem, thr: number): Promise<{ ok: boolean; score?: number; blockers?: string[]; error?: string }> {
+    const body: Record<string, unknown> = { force: true };
+    if (it.city) body.city = it.city;
+    if (it.material) body.material = it.material;
+    if (it.service) body.service = it.service;
+    const gen = await invokeWithFreshSession<Record<string, unknown>, { page?: { id: string }; error?: string }>("seo-generate-page", { body });
+    if (gen.error || !gen.data?.page?.id) return { ok: false, error: gen.error?.message || gen.data?.error || "Erreur génération" };
+    const pageId = gen.data.page.id;
+    const qa = await invokeWithFreshSession<{ page_id: string; threshold: number; enforce_draft: boolean }, { score?: number; blockers?: string[]; error?: string }>("seo-qa-check", { body: { page_id: pageId, threshold: thr, enforce_draft: true } });
+    if (qa.error) return { ok: false, error: qa.error.message };
+    return { ok: true, score: qa.data?.score, blockers: qa.data?.blockers };
+  }
+
+  async function runWave(source: "filtered" | "missing", size: number, thr: number) {
+    if (running) return;
+    setPauseFlag(false);
+    setRunning(true);
+    setLog([]);
+    const pool = (source === "missing" ? filtered.filter((i) => !i.existing) : filtered).slice(0, size);
+    setProgress({ done: 0, total: pool.length, current: "" });
+    pushLog(`Démarrage vague : ${pool.length} pages, seuil QA ${thr}.`, "info");
+    for (let i = 0; i < pool.length; i++) {
+      if (pauseFlag) { pushLog("Pause demandée.", "warn"); break; }
+      const it = pool[i];
+      setProgress({ done: i, total: pool.length, current: it.label });
+      const res = await generateOne(it, thr);
+      if (!res.ok) {
+        pushLog(`❌ ${it.label} — ${res.error}`, "err");
+        // brief backoff on 429/402-style errors
+        await new Promise((r) => setTimeout(r, 3000));
+      } else if ((res.blockers?.length ?? 0) > 0) {
+        pushLog(`⚠️ ${it.label} — score ${res.score}, gardée en brouillon (${res.blockers!.length} bloqueur(s))`, "warn");
+      } else {
+        pushLog(`✅ ${it.label} — score ${res.score}${(res.score ?? 0) >= thr ? " (publiée)" : " (brouillon)"}`, "ok");
+      }
+      await new Promise((r) => setTimeout(r, 800));
+    }
+    setProgress((p) => ({ ...p, done: p.total, current: "" }));
+    setRunning(false);
+    await load();
+    toast.success("Vague terminée.");
+  }
+
+  const counts = useMemo(() => {
+    const c = { p1: 0, p2: 0, p3: 0, p4: 0, missing: 0, ready: 0, draft: 0 };
+    for (const it of items) {
+      c[`p${it.priority}` as "p1" | "p2" | "p3" | "p4"]++;
+      if (!it.existing) c.missing++;
+      else if (it.existing.status === "published" && (it.existing.qa_last_score ?? 0) >= 90) c.ready++;
+      else c.draft++;
+    }
+    return c;
+  }, [items]);
+
+  if (loading) return <div className="text-sm text-muted-foreground p-6"><Spinner /> Chargement de la file…</div>;
+
+  return (
+    <div className="space-y-6">
+      <section>
+        <h2 className="text-xl font-display font-bold text-foreground">File de production</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Génération progressive avec contrôle qualité automatique (unicité, structure, maillage, Schema.org, FAQ, CTA). Les pages qui n'atteignent pas le seuil restent en brouillon.
+        </p>
+      </section>
+
+      <section className="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <Metric label="P1 Matériaux" value={counts.p1} />
+        <Metric label="P2 Services" value={counts.p2} />
+        <Metric label="P3 Villes" value={counts.p3} />
+        <Metric label="P4 Combinaisons" value={counts.p4} />
+        <Metric label="Publiées OK" value={counts.ready} />
+        <Metric label="À produire" value={counts.missing} />
+      </section>
+
+      <section className="border border-border rounded-lg p-4 bg-card space-y-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Priorité</label>
+            <select value={filterP} onChange={(e) => setFilterP(Number(e.target.value) as 0 | 1 | 2 | 3 | 4)} className="rounded-md border border-border bg-background px-2 py-1 text-sm">
+              <option value={0}>Toutes</option>
+              <option value={1}>P1 — Matériaux</option>
+              <option value={2}>P2 — Services</option>
+              <option value={3}>P3 — Villes</option>
+              <option value={4}>P4 — Combinaisons</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Taille de vague</label>
+            <input type="number" min={1} max={100} value={waveSize} onChange={(e) => setWaveSize(Number(e.target.value) || 1)} className="w-24 rounded-md border border-border bg-background px-2 py-1 text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Seuil QA</label>
+            <input type="number" min={50} max={100} value={threshold} onChange={(e) => setThreshold(Number(e.target.value) || 90)} className="w-20 rounded-md border border-border bg-background px-2 py-1 text-sm" />
+          </div>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <button disabled={running} onClick={() => runWave("missing", waveSize, threshold)} className="inline-flex items-center gap-1 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-semibold disabled:opacity-50">
+              <Play className="w-4 h-4" /> Générer les {waveSize} prochaines manquantes
+            </button>
+            <button disabled={running} onClick={() => runWave("filtered", waveSize, threshold)} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-semibold disabled:opacity-50">
+              <RotateCcw className="w-4 h-4" /> Regénérer les {waveSize} affichées
+            </button>
+            {running && (
+              <button onClick={() => setPauseFlag(true)} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-semibold">
+                <Pause className="w-4 h-4" /> Pause
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
+          <span className="text-xs text-muted-foreground w-full">Vagues préconfigurées :</span>
+          <button disabled={running} onClick={() => { setWaveSize(25); setThreshold(90); runWave("missing", 25, 90); }} className="text-xs rounded-md border border-border px-2 py-1 hover:bg-secondary">S1 — 25 pages</button>
+          <button disabled={running} onClick={() => { setWaveSize(40); setThreshold(88); runWave("missing", 40, 88); }} className="text-xs rounded-md border border-border px-2 py-1 hover:bg-secondary">S2 — 40 pages</button>
+          <button disabled={running} onClick={() => { setWaveSize(30); setThreshold(85); runWave("missing", 30, 85); }} className="text-xs rounded-md border border-border px-2 py-1 hover:bg-secondary">S3 — 30 combos</button>
+        </div>
+        {(running || progress.total > 0) && (
+          <div className="pt-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+              <span>{progress.current || (running ? "…" : "Terminé")}</span>
+              <span>{progress.done} / {progress.total}</span>
+            </div>
+            <div className="h-2 rounded-full bg-secondary overflow-hidden">
+              <div className="h-full bg-primary transition-all" style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }} />
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
+        <div className="border border-border rounded-lg bg-card overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/50 text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-left">P</th>
+                <th className="px-3 py-2 text-left">Page</th>
+                <th className="px-3 py-2 text-left">Statut</th>
+                <th className="px-3 py-2 text-left">QA</th>
+                <th className="px-3 py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.slice(0, 200).map((it) => (
+                <tr key={it.key} className="border-t border-border">
+                  <td className="px-3 py-2 font-mono text-xs">P{it.priority}</td>
+                  <td className="px-3 py-2">
+                    <div className="font-semibold text-foreground">{it.label}</div>
+                    <div className="text-xs text-muted-foreground">{it.sub}</div>
+                  </td>
+                  <td className="px-3 py-2">
+                    {!it.existing ? <span className="text-xs text-muted-foreground">à créer</span>
+                      : it.existing.status === "published" ? <span className="text-xs text-primary font-semibold">publiée</span>
+                      : <span className="text-xs text-amber-600 font-semibold">brouillon</span>}
+                  </td>
+                  <td className="px-3 py-2">
+                    <QaReportBadge score={it.existing?.qa_last_score} blockers={it.existing?.qa_blockers ?? []} checkedAt={it.existing?.qa_last_checked_at} />
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <button disabled={running} onClick={async () => {
+                      setRunning(true); setLog([]);
+                      setProgress({ done: 0, total: 1, current: it.label });
+                      const res = await generateOne(it, threshold);
+                      pushLog(res.ok ? `✅ ${it.label} — score ${res.score}` : `❌ ${it.label} — ${res.error}`, res.ok ? "ok" : "err");
+                      setProgress({ done: 1, total: 1, current: "" });
+                      setRunning(false); await load();
+                    }} className="text-xs rounded-md border border-border px-2 py-1 hover:bg-secondary disabled:opacity-50 inline-flex items-center gap-1">
+                      <Zap className="w-3 h-3" /> Générer & vérifier
+                    </button>
+                    {it.existing && (
+                      <Link to={`/${it.existing.slug}`} target="_blank" className="ml-2 text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+                        <ExternalLink className="w-3 h-3" />
+                      </Link>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={5} className="px-3 py-6 text-center text-sm text-muted-foreground">Aucun élément.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <aside className="border border-border rounded-lg bg-card p-3 h-fit max-h-[600px] overflow-y-auto">
+          <h3 className="text-sm font-display font-bold mb-2">Journal</h3>
+          {log.length === 0 ? <p className="text-xs text-muted-foreground">Aucune activité pour le moment.</p> : (
+            <ul className="space-y-1 text-xs">
+              {log.map((l) => (
+                <li key={l.ts} className={
+                  l.tone === "ok" ? "text-primary" :
+                  l.tone === "warn" ? "text-amber-600" :
+                  l.tone === "err" ? "text-red-500" : "text-muted-foreground"
+                }>
+                  <span className="opacity-60 mr-1">{new Date(l.ts).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
+                  {l.msg}
+                </li>
+              ))}
+            </ul>
+          )}
+        </aside>
+      </section>
+    </div>
+  );
+}
