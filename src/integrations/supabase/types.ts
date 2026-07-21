@@ -1427,60 +1427,84 @@ export type Database = {
       }
       seo_generation_jobs: {
         Row: {
+          blocked_items: Json
           combinations: Json
           created_at: string
           created_by: string | null
+          current_attempt: number
+          current_started_at: string | null
+          current_step: string | null
+          current_target: Json | null
           done: number
           errors: Json
           failed: number
           finished_at: string | null
           heartbeat_at: string | null
           id: string
+          last_progress_at: string | null
           mode: string
           report: Json
+          retry_queue: Json
           started_at: string | null
           status: string
           succeeded: number
           total: number
           updated_at: string
+          watchdog_events: Json
           wave: string | null
         }
         Insert: {
+          blocked_items?: Json
           combinations?: Json
           created_at?: string
           created_by?: string | null
+          current_attempt?: number
+          current_started_at?: string | null
+          current_step?: string | null
+          current_target?: Json | null
           done?: number
           errors?: Json
           failed?: number
           finished_at?: string | null
           heartbeat_at?: string | null
           id?: string
+          last_progress_at?: string | null
           mode?: string
           report?: Json
+          retry_queue?: Json
           started_at?: string | null
           status?: string
           succeeded?: number
           total?: number
           updated_at?: string
+          watchdog_events?: Json
           wave?: string | null
         }
         Update: {
+          blocked_items?: Json
           combinations?: Json
           created_at?: string
           created_by?: string | null
+          current_attempt?: number
+          current_started_at?: string | null
+          current_step?: string | null
+          current_target?: Json | null
           done?: number
           errors?: Json
           failed?: number
           finished_at?: string | null
           heartbeat_at?: string | null
           id?: string
+          last_progress_at?: string | null
           mode?: string
           report?: Json
+          retry_queue?: Json
           started_at?: string | null
           status?: string
           succeeded?: number
           total?: number
           updated_at?: string
+          watchdog_events?: Json
           wave?: string | null
         }
         Relationships: []
