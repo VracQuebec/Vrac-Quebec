@@ -1,7 +1,6 @@
 // Compute driving distance + duration from a site to a list of dumps
 // via Google Routes API (computeRouteMatrix) through the Lovable connector gateway.
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
-import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
 const MAX_DESTINATIONS = 25;
@@ -16,21 +15,10 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    // Require an authenticated caller (any signed-in Supabase user) to prevent
-    // anonymous abuse of the paid Google Routes API.
+    // Require a Supabase JWT (anon or user). verify_jwt below enforces this at
+    // the platform edge; the check here is defense-in-depth.
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -49,6 +37,10 @@ Deno.serve(async (req) => {
     }
     if (body.dumps.length > MAX_DESTINATIONS) {
       return new Response(JSON.stringify({ error: `Trop de destinations (max ${MAX_DESTINATIONS})` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    if (typeof body.origin.lat !== 'number' || typeof body.origin.lng !== 'number') {
+      return new Response(JSON.stringify({ error: 'origin invalide' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
