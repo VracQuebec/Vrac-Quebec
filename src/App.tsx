@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useEffect, lazy, Suspense } from "react";
 import Index from "./pages/Index";
 import SessionKeeper from "./components/SessionKeeper";
@@ -79,7 +79,8 @@ const App = () => (
             <Route path="/admin/blogue/editer/:id" element={<AdminBlogEditor />} />
             <Route path="/admin/liste-noire" element={<AdminBlacklist />} />
             <Route path="/admin/seo" element={<AdminSeoManager />} />
-            <Route path="/admin/seo-manager" element={<AdminSeoManager />} />
+            {/* Alias historique — redirige vers la route canonique */}
+            <Route path="/admin/seo-manager" element={<Navigate to="/admin/seo" replace />} />
             <Route path="/livraison" element={<ZonesIndex />} />
             <Route path="/livraison/:citySlug" element={<ZoneCityIndex />} />
             {/* Local SEO landing: MUST stay just before the catch-all route */}
