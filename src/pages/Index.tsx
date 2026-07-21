@@ -105,15 +105,62 @@ const Index = () => {
             </div>
             <h2
               id="espace-entrepreneur-title"
-              className="mt-4 text-xl sm:text-2xl font-display font-extrabold text-foreground"
+              className="mt-4 text-2xl sm:text-3xl font-display font-extrabold text-foreground leading-tight"
             >
-              Connectez-vous pour accéder à notre{" "}
-              <span className="text-primary">assistant intelligent de recherche de dompes</span>.
+              Trouvez la meilleure dompe{" "}
+              <span className="text-primary">en moins de 60 secondes</span>.
             </h2>
-            <p className="mt-3 text-sm sm:text-base text-muted-foreground font-body max-w-xl mx-auto">
-              Réservé aux entrepreneurs : trouvez la meilleure dompe compatible avec votre chantier en moins de 60 secondes, puis transmettez votre demande à Transport JSC.
+            <p className="mt-4 text-sm sm:text-base text-muted-foreground font-body max-w-xl mx-auto leading-relaxed">
+              Connectez-vous à votre espace entrepreneur pour accéder à notre assistant intelligent.
             </p>
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <p className="mt-3 text-sm sm:text-base text-muted-foreground font-body max-w-xl mx-auto leading-relaxed">
+              Il analyse automatiquement votre chantier et vous recommande les meilleurs sites disponibles selon le matériau à transporter, la distance, le temps de trajet, la disponibilité et le type de camion.
+            </p>
+            <p className="mt-3 text-sm sm:text-base text-muted-foreground font-body max-w-xl mx-auto leading-relaxed">
+              Une fois la meilleure option trouvée, votre demande est transmise à Transport JSC qui coordonne l’accès avec le propriétaire de la dompe.
+            </p>
+
+            {/* Avantages */}
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left max-w-xl mx-auto">
+              <div className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
+                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary shrink-0">
+                  <Brain className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-display font-semibold text-foreground text-sm">Recommandation intelligente</p>
+                  <p className="text-xs text-muted-foreground">Un site suggéré selon votre chantier.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
+                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary shrink-0">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-display font-semibold text-foreground text-sm">Distance et temps de trajet</p>
+                  <p className="text-xs text-muted-foreground">Calculs automatisés en temps réel.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
+                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary shrink-0">
+                  <Truck className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-display font-semibold text-foreground text-sm">Compatible avec votre camion</p>
+                  <p className="text-xs text-muted-foreground">Seuls les sites adaptés sont affichés.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
+                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary shrink-0">
+                  <Zap className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-display font-semibold text-foreground text-sm">Demande transmise à Transport JSC</p>
+                  <p className="text-xs text-muted-foreground">Transport JSC coordonne l’accès au site.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">
               <a
                 href="/login"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base shadow-lg hover:opacity-90 transition-opacity"
