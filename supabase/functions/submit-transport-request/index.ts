@@ -40,6 +40,7 @@ type Payload = {
   desired_time?: string | null;
   source?: string | null;
   user_id?: string | null;
+  client_notes?: string | null;
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -92,6 +93,7 @@ function validate(p: Partial<Payload>): { ok: true; data: Payload } | { ok: fals
       desired_time: sanitize(p.desired_time, 20),
       source: sanitize(p.source, 60) ?? "wizard_public",
       user_id: typeof p.user_id === "string" ? p.user_id : null,
+      client_notes: sanitize(p.client_notes, 2000),
     },
   };
 }
@@ -239,6 +241,7 @@ Deno.serve(async (req) => {
         desired_date: data.desired_date,
         desired_time: data.desired_time,
         source: data.source,
+        client_notes: data.client_notes,
       })
       .select("id, request_number")
       .single();

@@ -35,7 +35,7 @@ const STEP_LABELS = [
   { n: 2, label: "Chantier", icon: "📍" },
   { n: 3, label: "Quantité", icon: "⚖️" },
   { n: 4, label: "Recommandations", icon: "🗺️" },
-  { n: 5, label: "Confirmation", icon: "🚛" },
+  { n: 5, label: "Confirmation", icon: "✅" },
 ];
 
 // "Je ne sais pas" project assistant → material recommendation
@@ -126,6 +126,9 @@ const TransportRequest = () => {
   const [trips, setTrips] = useState<string>("");
   const [desiredDate, setDesiredDate] = useState<string>("");
   const [desiredTime, setDesiredTime] = useState<string>("");
+  const [clientNotes, setClientNotes] = useState<string>("");
+  const [editIdentity, setEditIdentity] = useState<boolean>(false);
+  const [profileLoaded, setProfileLoaded] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmedNumber, setConfirmedNumber] = useState<string | null>(null);
   // "queued" = accepted locally, still finishing its send in the background.
@@ -234,6 +237,33 @@ const TransportRequest = () => {
   useEffect(() => {
     if (user?.email) setClientEmail(user.email);
   }, [user]);
+
+  // Prefill full identity from the entrepreneur profile when the user is
+  // signed in. The entrepreneur should never have to retype what we already
+  // know about them — this is the whole point of the connected experience.
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!user?.id) { setProfileLoaded(false); return; }
+      try {
+        const { data } = await supabase
+          .from("entrepreneurs")
+          .select("name, company, phone, email")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (cancelled) return;
+        if (data) {
+          if (data.name) setClientName((prev) => prev || data.name);
+          if (data.company) setClientCompany((prev) => prev || data.company);
+          if (data.phone) setClientPhone((prev) => prev || data.phone);
+          if (data.email) setClientEmail((prev) => prev || data.email);
+          setProfileLoaded(true);
+        }
+      } catch { /* ignore — user can still fill manually */ }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   // Boot the persistent submit queue once. Any pending submissions saved in
   // a previous session (page reload, crash, connection loss) are retried
@@ -363,6 +393,7 @@ const TransportRequest = () => {
       estimated_trips: trips ? Number(trips) : null,
       desired_date: desiredDate || null,
       desired_time: desiredTime || null,
+      client_notes: clientNotes.trim() || null,
       source: user ? "wizard_authenticated" : "wizard_public",
     });
 
@@ -871,9 +902,11 @@ const TransportRequest = () => {
         {/* Step 5 */}
         {step === 5 && selectedDump && coords && (
           <section className="animate-in fade-in duration-300">
-            <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">📞 Vos coordonnées</h1>
+            <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">
+              ✅ Confirmation de votre demande d'accès
+            </h1>
             <p className="text-muted-foreground text-sm mb-5">
-              Presque terminé — Transport JSC vous rappellera pour confirmer.
+              L'assistant a déjà fait le travail — il ne vous reste qu'à confirmer votre demande d'accès à la dompe recommandée.
             </p>
 
             {/* Full summary card */}
@@ -903,15 +936,67 @@ const TransportRequest = () => {
               )}
             </div>
 
+            {/* Identity — prefilled from the entrepreneur profile when signed in */}
+            {user && profileLoaded && !editIdentity ? (
+              <div className="bg-muted/40 rounded-xl border border-border p-4 mb-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-display font-bold uppercase text-muted-foreground tracking-wide mb-1">
+                      Demande faite au nom de
+                    </p>
+                    <p className="font-display font-bold text-base truncate">
+                      {clientName}{clientCompany ? ` — ${clientCompany}` : ""}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {clientPhone}{clientEmail ? ` · ${clientEmail}` : ""}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setEditIdentity(true)}
+                    className="text-xs font-display font-semibold text-primary hover:underline flex-shrink-0"
+                  >
+                    Modifier
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <Field label="Nom complet *" value={clientName} onChange={setClientName} placeholder="Jean Tremblay" />
+                <Field label="Entreprise" value={clientCompany} onChange={setClientCompany} placeholder="Construction ABC inc." />
+                <Field label="Téléphone *" value={clientPhone} onChange={setClientPhone} placeholder="418-555-0000" type="tel" />
+                <Field label="Courriel" value={clientEmail} onChange={setClientEmail} placeholder="vous@exemple.com" type="email" />
+              </div>
+            )}
+
+            {/* Chantier-specific fields only */}
+            <p className="text-[10px] font-display font-bold uppercase text-muted-foreground tracking-wide mb-2">
+              Informations sur ce chantier
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Nom complet *" value={clientName} onChange={setClientName} placeholder="Jean Tremblay" />
-              <Field label="Entreprise" value={clientCompany} onChange={setClientCompany} placeholder="Construction ABC inc." />
-              <Field label="Téléphone *" value={clientPhone} onChange={setClientPhone} placeholder="418-555-0000" type="tel" />
-              <Field label="Courriel" value={clientEmail} onChange={setClientEmail} placeholder="vous@exemple.com" type="email" />
               <Field label="Type de camion" value={truckType} onChange={setTruckType} placeholder={suggestedTruck || "Ex. 12 roues"} />
-              <Field label="Voyages estimés" value={trips} onChange={setTrips} placeholder="Ex. 3" type="number" />
               <Field label="Date souhaitée" value={desiredDate} onChange={setDesiredDate} type="date" />
               <Field label="Heure souhaitée" value={desiredTime} onChange={setDesiredTime} type="time" />
+              <Field label="Voyages estimés (facultatif)" value={trips} onChange={setTrips} placeholder="Ex. 3" type="number" />
+            </div>
+
+            <label className="block mt-3">
+              <span className="block text-xs font-display font-bold uppercase text-muted-foreground mb-1.5">
+                Commentaires particuliers (facultatif)
+              </span>
+              <textarea
+                value={clientNotes}
+                onChange={(e) => setClientNotes(e.target.value)}
+                rows={3}
+                placeholder="Contraintes d'accès, précisions sur le chantier, etc."
+                className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+              />
+            </label>
+
+            <div className="mt-5 p-3.5 rounded-xl bg-primary/5 border border-primary/20 text-sm text-foreground/90 flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+              <p>
+                Votre demande sera transmise à <b>Transport JSC</b> qui validera la disponibilité de la dompe et communiquera avec vous rapidement.
+              </p>
             </div>
           </section>
         )}
@@ -952,7 +1037,7 @@ const TransportRequest = () => {
               className="px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm disabled:opacity-40 flex items-center gap-1.5"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {step === 5 ? "Envoyer ma demande" : "Continuer"}
+              {step === 5 ? "Envoyer ma demande d'accès" : "Continuer"}
               {step !== 5 && !submitting && <ChevronRight className="w-4 h-4" />}
             </button>
           </div>
@@ -1002,7 +1087,7 @@ const ConfirmationView = ({
 }) => {
   const downloadSummary = () => {
     const lines = [
-      "VRAC QUÉBEC — RÉSUMÉ DE LA DEMANDE DE TRANSPORT",
+      "VRAC QUÉBEC — RÉSUMÉ DE LA DEMANDE D'ACCÈS À LA DOMPE",
       "================================================",
       `Numéro de demande : ${requestNumber || "—"}`,
       `Date : ${new Date().toLocaleString("fr-CA")}`,
@@ -1051,12 +1136,12 @@ const ConfirmationView = ({
           )}
         </div>
         <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">
-          {pending ? "✅ Votre demande est enregistrée" : "🎉 Votre demande est bien reçue !"}
+          {pending ? "✅ Votre demande d'accès est enregistrée" : "🎉 Votre demande d'accès est bien reçue !"}
         </h1>
         <p className="text-muted-foreground text-sm mb-6">
           {pending
             ? "Nous terminons son envoi automatiquement. Vous pouvez fermer cette page en toute tranquillité."
-            : `Merci ${clientName ? clientName.split(" ")[0] : ""} — voici les prochaines étapes.`}
+            : `Merci ${clientName ? clientName.split(" ")[0] : ""} — Transport JSC valide la disponibilité de la dompe et vous recontacte rapidement.`}
         </p>
       </div>
 
