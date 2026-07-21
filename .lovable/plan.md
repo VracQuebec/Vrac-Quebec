@@ -1,115 +1,98 @@
+# Fiabilisation complète du pipeline SEO
 
-# Optimisation finale du SEO — Chaîne de production automatisée
+Objectif : un système de production unique, cohérent en temps réel, sans doublon ni blocage.
 
-Le Centre de Pilotage devient un vrai pipeline industriel : une source de vérité, du recalcul automatique, et un mode "Générer → Vérifier → Publier" par vagues.
+## 1. Source de vérité unique (`seo_pipeline_state`)
 
-## 1. Source unique de vérité (stats cohérentes)
+Nouvelle vue matérialisée + RPC `seo_pipeline_state()` qui agrège en un seul appel :
+- job actif (une seule ligne max, verrou applicatif),
+- stats live (pages générées/publiées, couverture, QA moy., score SEO, gain estimé),
+- métriques de progression (vitesse pages/min, ETA, étape en cours),
+- 5 derniers jobs terminés (archivés).
 
-Créer un unique moteur de stats côté serveur :
+Le Centre de pilotage (`CommandCenter`), `StrategicReport`, `WaveRunner` et `useSeoStats` liront tous **uniquement** cette RPC. Suppression des sources parallèles pour éliminer les incohérences.
 
-- **Edge function `seo-stats`** (GET) → retourne un objet unique consommé par toutes les cartes du dashboard :
-  - `pages_total`, `pages_published`, `pages_draft`, `pages_needs_fix`
-  - `cities_covered / cities_total`, `materials_covered / materials_total`, `services_covered / services_total`
-  - `combinations_created / combinations_possible`
-  - `qa_avg`, `seo_avg`, `gsc_impressions`, `gsc_clicks`, `gsc_position`
-- Cache court (60s) via table `seo_stats_cache` (colonnes : `key`, `payload jsonb`, `computed_at`).
-- Toutes les vues (CommandCenter, CoverageOverview, StrategicReport) lisent cette seule source via un hook `useSeoStats()`.
+## 2. Déduplication garantie
 
-## 2. Recalcul automatique
+- Contrainte `UNIQUE` partielle sur `seo_generation_jobs (mode, wave) WHERE status = 'running'` — impossible d'avoir deux jobs actifs identiques.
+- Lors du `launch()`, `INSERT ... ON CONFLICT DO NOTHING` puis retour du job existant si conflit ; toast "Un job identique tourne déjà".
+- Purge auto au démarrage : les jobs `running` dont `last_progress_at < now() - 3 min` passent en `failed_with_retries` avant tout nouveau lancement.
 
-- **Trigger DB** sur `seo_pages` (INSERT/UPDATE/DELETE) → `UPDATE seo_stats_cache SET stale = true`.
-- Le hook `useSeoStats()` invalide et refetch dès qu'une mutation SEO se produit (canal Realtime `seo_pages`).
-- Chaque edge function d'écriture (`seo-generate-page`, `seo-qa-autofix`, `seo-publish-wave`, suppression) marque le cache stale en fin d'exécution.
+## 3. Rapports en temps réel
 
-## 3. Correction des erreurs actuelles
+`seo-strategic-report` (et son affichage) intègre le job actif :
+- ajoute `in_progress.pages_generating`, `in_progress.percent`, `in_progress.eta_seconds` au payload,
+- projections recalculées avec les pages déjà générées dans le job courant (jamais "0 nouvelles pages" pendant un run).
 
-Audit ciblé des "Load failed" et incohérences :
+Rafraîchissement automatique du rapport toutes les 10 s tant qu'un job tourne (via Realtime sur `seo_generation_jobs`).
 
-- Wrapper `invokeSeo(name, body)` centralisé (dans `src/lib/seo/api.ts`) :
-  - retry x2 sur erreur réseau ;
-  - lecture propre du corps d'erreur ;
-  - toasts homogènes ;
-  - typage strict des retours.
-- Remplacer tous les `supabase.functions.invoke(...)` du module SEO par ce wrapper.
-- Ajouter `ErrorBoundary` local autour de chaque carte du CommandCenter → une carte en erreur ne casse pas le tableau de bord, elle affiche "Réessayer".
-- Fixer les états Loading/Empty/Error explicites sur chaque carte.
+## 4. Synchronisation automatique par page
 
-## 4. Moteur de validation avant publication
+Dans `seo-pipeline-run`, après **chaque** page traitée (succès ou échec) :
+- appel `refresh_seo_aggregates()` (RPC légère qui met à jour `seo_pages` compteurs + `seo_goals` progrès + moyennes QA/score),
+- broadcast Realtime sur `seo_generation_jobs` déclenche le re-fetch côté client de `useSeoStats`.
 
-Nouvelle edge function **`seo-validate-page`** (réutilise la logique de `seo-qa-check`) qui retourne :
+Résultat : couverture, objectifs, QA moyenne et recommandations bougent en direct.
 
-```
-{ valid: boolean, score: number, blockers: [...], warnings: [...] }
-```
+## 5. Historique propre
 
-Vérifie : contenu, meta title/description, H1/H2, URL, liens internes, Schema.org, images alt, duplication (trigrammes), score QA ≥ seuil (par défaut 80).
+- Trigger `seo_jobs_dedupe_history` : à la clôture d'un job, tous les jobs antérieurs de même `(mode, wave)` en état terminal sont supprimés sauf le plus récent.
+- La liste "Derniers rapports" du `WaveRunner` lit une vue `seo_recent_jobs_v` qui déduplique par `(mode, wave)` et garde la dernière ligne.
 
-Les pages qui échouent restent en `status='draft'` avec `qa_blockers` renseigné, et apparaissent dans un onglet **À corriger**.
+## 6. Progression réelle
 
-## 5. Publication par vagues
+Nouvelles colonnes calculées côté RPC :
+- `pages_remaining = total - done`,
+- `pages_per_minute` (moyenne glissante sur `progress_samples` JSONB, échantillon ajouté à chaque page),
+- `eta_seconds = pages_remaining / pages_per_minute * 60`,
+- `current_step` déjà présent.
 
-Nouvelle table **`seo_waves`** :
+`WaveRunner` affiche : `24/27 · 3 restantes · 4.2 p/min · ~45 s restants · étape : publication`.
 
-```text
-id | name (S1/S2/S3) | description | priority | active
-```
+## 7. Auto-réparation
 
-Chaque page a déjà `wave` (colonne existante à ajouter si absente : `wave text`).
+Cron `pg_cron` toutes les 60 s → `seo-pipeline-supervisor` (nouvelle edge function) qui :
+- détecte doublons `running` et fusionne (garde le plus avancé, marque l'autre `superseded`),
+- relance les jobs bloqués (>90 s sans progression) via l'action `watchdog` existante,
+- ré-arme les pages "blocked" une fois par heure automatiquement,
+- purge les logs > 200 entrées par job.
 
-Nouvelles edge functions :
-
-- **`seo-publish-wave`** — publie toutes les pages `draft` d'une vague qui passent `seo-validate-page` (seuil configurable). Renvoie un rapport détaillé.
-- **`seo-generate-wave`** — génère toutes les combinaisons manquantes d'une vague en file d'attente (utilise `seo-generate-page` en boucle contrôlée avec `p-limit`-style concurrency=3).
-- **`seo-pipeline-run`** — orchestrateur "Générer → Vérifier → Corriger → Publier" pour une vague ou toutes.
-
-## 6. File d'attente + progression
-
-Table **`seo_generation_jobs`** (déjà existante) enrichie :
-
-- `wave`, `mode` (`generate`/`validate`/`publish`/`pipeline`), `total`, `processed`, `succeeded`, `failed`, `status`, `started_at`, `finished_at`, `report jsonb`.
-
-UI : composant **`WaveRunner`** :
-
-- boutons **Générer S1 / S2 / S3 / Toutes**, **Publier S1/…/Toutes**, **Pipeline complet**.
-- toggle **Générer → Vérifier → Publier automatiquement**.
-- barre de progression live (Realtime sur `seo_generation_jobs`), ETA calculée depuis la vitesse moyenne.
-- reprise automatique : si `status='running'` et pas de heartbeat > 60s, relance à partir de `processed`.
-
-Traitement côté serveur en batches (concurrence 3, timeout par page, retry x2), pour tenir 500+ pages.
-
-## 7. Rapport de vague
-
-À la fin de chaque exécution, `seo-pipeline-run` écrit dans `strategic_reports` :
-
-- générées, publiées, brouillons, refusées, erreurs
-- QA moyen, SEO moyen, durée
-- résumé IA (Gemini) des améliorations apportées
-
-Affiché en modal auto à la fin du job + archivé dans l'onglet Rapports.
-
-## 8. UI — Centre de Pilotage V3
-
-- Nouvelle carte en tête : **Pipeline SEO** avec les 4 gros boutons de vagues + toggle auto.
-- CommandCenter branché sur `useSeoStats()` (une seule source).
-- Onglet **À corriger** listant les pages non conformes avec bouton "Corriger auto" (utilise `seo-qa-autofix`).
-- Toutes les cartes : Loading / Empty / Error propres, plus jamais de "Load failed" nu.
+Aucun bouton manuel nécessaire ; le superviseur tourne en tâche de fond.
 
 ## Détails techniques
 
-- **Migration DB** : `seo_waves`, `seo_stats_cache`, colonnes `wave`, `qa_blockers` (si absentes), trigger d'invalidation cache, GRANTs authenticated/service_role, RLS admin-only.
-- **Edge functions nouvelles** : `seo-stats`, `seo-validate-page`, `seo-publish-wave`, `seo-generate-wave`, `seo-pipeline-run`. Toutes admin-only (JWT + `has_role`).
-- **Concurrency** : `Promise.all` par lots de 3, `AbortSignal.timeout(60_000)` par page.
-- **Realtime** : abonnement `seo_generation_jobs` et `seo_pages` pour rafraîchir dashboard + progress.
-- **Idempotence** : `seo-pipeline-run` accepte un `job_id` pour reprise.
-- **Wrapper client** : `src/lib/seo/api.ts` + `src/lib/seo/useSeoStats.ts`.
-- **UI** : `src/components/seo/WaveRunner.tsx`, `src/components/seo/PipelineReport.tsx`, `src/components/seo/NeedsFixList.tsx`.
+**Migration SQL** (`supabase/migrations/…_seo_pipeline_unification.sql`) :
+- `ALTER TABLE seo_generation_jobs ADD progress_samples jsonb DEFAULT '[]'::jsonb, pages_per_minute numeric, eta_seconds int`.
+- `CREATE UNIQUE INDEX seo_jobs_one_running ON seo_generation_jobs(mode, wave) WHERE status = 'running'`.
+- `CREATE VIEW seo_recent_jobs_v` (DISTINCT ON `(mode, wave)` ordre `started_at DESC` sur états terminaux).
+- Trigger `seo_jobs_dedupe_history_trg` sur `AFTER UPDATE OF status`.
+- RPC `seo_pipeline_state()` — SECURITY DEFINER admin only, retourne `jsonb` unifié.
+- RPC `refresh_seo_aggregates()` — met à jour `seo_goals.current_value` + counters.
+- GRANT EXECUTE aux `authenticated` (protégée par `has_role` admin en interne).
 
-## Étapes de livraison
+**Edge functions** :
+- `seo-pipeline-run/index.ts` : après chaque page, push d'un sample `{at, done}` dans `progress_samples`, calcul `pages_per_minute` + `eta_seconds`, appel `refresh_seo_aggregates`.
+- Nouvelle `seo-pipeline-supervisor/index.ts` : logique auto-repair ci-dessus.
+- `seo-strategic-report/index.ts` : lit le job actif et injecte `in_progress` dans le payload.
 
-1. Migration DB (vagues, cache, colonnes, trigger, RLS/GRANT).
-2. Edge functions : `seo-stats`, `seo-validate-page`.
-3. Edge functions vagues : `seo-generate-wave`, `seo-publish-wave`, `seo-pipeline-run`.
-4. Wrapper client `invokeSeo` + hook `useSeoStats` + Realtime.
-5. Refactor CommandCenter/CoverageOverview/StrategicReport → source unique + ErrorBoundary.
-6. UI `WaveRunner` + toggle auto + progression + rapport final.
-7. Onglet **À corriger** avec autofix en masse.
+**Frontend** :
+- `src/lib/seo/useSeoStats.ts` : bascule sur `supabase.rpc('seo_pipeline_state')` ; conserve l'ancien fallback si RPC indispo.
+- `src/components/seo/WaveRunner.tsx` : affiche restant / p.min / ETA ; lit `seo_recent_jobs_v` pour l'historique ; bloque le lancement si conflit dédupliqué.
+- `src/components/seo/CommandCenter.tsx` et `StrategicReport.tsx` : consomment `in_progress` du state unifié.
+
+**Cron** (via `supabase--insert`, pas migration — contient URL/anon) :
+`select cron.schedule('seo-pipeline-supervisor', '1 minute', $$ select net.http_post(...) $$);`
+
+## Ordre d'exécution
+
+1. Migration SQL (schéma + RPC + vue + triggers + index unique).
+2. Edge functions : mise à jour `seo-pipeline-run`, `seo-strategic-report` ; création `seo-pipeline-supervisor`.
+3. Cron via insert tool.
+4. Frontend : `useSeoStats`, `WaveRunner`, `CommandCenter`, `StrategicReport`.
+5. Vérification build.
+
+## Hors périmètre
+
+- Refonte de la génération de contenu (`seo-generate-page`) : inchangée.
+- Nouveaux critères QA : inchangés.
+- UI du blog / Assistant entrepreneur : inchangés.
