@@ -37,6 +37,18 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function computeProgressMetrics(startMs: number, done: number, total: number) {
+  const elapsedMin = Math.max(0.001, (Date.now() - startMs) / 60_000);
+  const ppm = done / elapsedMin;
+  const remaining = Math.max(0, total - done);
+  const eta = ppm > 0 ? Math.round((remaining / ppm) * 60) : null;
+  return {
+    pages_per_minute: Number(ppm.toFixed(2)),
+    eta_seconds: eta,
+    progress_samples: null as unknown as undefined, // placeholder — updated separately below
+  };
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -353,6 +365,7 @@ Deno.serve(async (req) => {
     const jobId = jobRow.id;
 
     const processing = (async () => {
+      const jobStartMs = Date.now();
       let running = true;
       const stopWatchdog = startWatchdog(supabase, jobId, () => running);
       const logs: PipelineItem[] = [];
