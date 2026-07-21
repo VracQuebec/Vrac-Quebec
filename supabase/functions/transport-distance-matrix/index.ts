@@ -3,7 +3,7 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
-const MAX_DESTINATIONS = 25;
+const MAX_DESTINATIONS = 500;
 
 interface DumpInput { id: string; lat: number; lng: number }
 interface Body {
