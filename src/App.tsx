@@ -13,6 +13,11 @@ const Admin = lazy(() => import("./pages/Admin"));
 const AdminData = lazy(() => import("./pages/AdminData"));
 const AdminCalendar = lazy(() => import("./pages/AdminCalendar"));
 const Entrepreneur = lazy(() => import("./pages/Entrepreneur"));
+const EntrepreneurDashboard = lazy(() => import("./pages/EntrepreneurDashboard"));
+const EntrepreneurDemandes = lazy(() => import("./pages/EntrepreneurDemandes"));
+const EntrepreneurFavoris = lazy(() => import("./pages/EntrepreneurFavoris"));
+const EntrepreneurHistorique = lazy(() => import("./pages/EntrepreneurHistorique"));
+const EntrepreneurCompte = lazy(() => import("./pages/EntrepreneurCompte"));
 const EntrepreneurSignup = lazy(() => import("./pages/EntrepreneurSignup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -66,7 +71,12 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/donnees" element={<AdminData />} />
             <Route path="/admin/calendrier" element={<AdminCalendar />} />
-            <Route path="/entrepreneur" element={<Entrepreneur />} />
+            <Route path="/entrepreneur" element={<EntrepreneurDashboard />} />
+            <Route path="/entrepreneur/carte" element={<Entrepreneur />} />
+            <Route path="/entrepreneur/demandes" element={<EntrepreneurDemandes />} />
+            <Route path="/entrepreneur/favoris" element={<EntrepreneurFavoris />} />
+            <Route path="/entrepreneur/historique" element={<EntrepreneurHistorique />} />
+            <Route path="/entrepreneur/compte" element={<EntrepreneurCompte />} />
             <Route path="/entrepreneur/inscription" element={<EntrepreneurSignup />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/recherche" element={<BlogSearch />} />
