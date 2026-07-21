@@ -2653,6 +2653,22 @@ export type Database = {
           truck_types_allowed: string[]
         }[]
       }
+      get_public_dumps: {
+        Args: never
+        Returns: {
+          accessibility: string[]
+          availability_status: string
+          dompe_number: string
+          id: string
+          latitude: number
+          longitude: number
+          materials: string[]
+          opening_hours: string
+          remaining_capacity: string
+          submission_number: number
+          truck_types_allowed: string[]
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
