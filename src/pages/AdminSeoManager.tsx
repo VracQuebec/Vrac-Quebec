@@ -1053,7 +1053,7 @@ function AnalyticsTab() {
       const { data: city } = await supabase.from("seo_cities").select("slug, name, region").eq("slug", page.city_slug).maybeSingle();
       const { data: material } = page.material_slug ? await supabase.from("seo_materials").select("slug, name, short_name, description").eq("slug", page.material_slug).maybeSingle() : { data: null };
       const { data: service } = page.service_slug ? await supabase.from("seo_services").select("slug, name, description").eq("slug", page.service_slug).maybeSingle() : { data: null };
-      const res = await invokeWithFreshSession("seo-generate-page", { body: { city, material, service, force: true } });
+      const res = await invokeWithFreshSession("seo-generate-page", { city, material, service, force: true });
       if ((res as any)?.error) throw new Error((res as any).error?.message || "Erreur");
       toast.success("Page régénérée");
       load();
