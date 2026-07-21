@@ -1677,9 +1677,10 @@ function AssistantTab() {
   async function scan() {
     setScanning(true);
     try {
-      const { error } = await invokeWithFreshSession("seo-assistant-scan", {});
+      // Analyse complète : orchestre scan + linkcheck + suggestions + rapport.
+      const { error } = await invokeWithFreshSession("seo-strategic-report", {});
       if (error) throw error;
-      toast.success("Analyse terminée");
+      toast.success("Analyse complète terminée — rapport stratégique généré");
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur");

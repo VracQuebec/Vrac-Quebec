@@ -6,6 +6,8 @@ import {
   CheckCircle2, AlertCircle, Sparkles, FileText, MapPin, Package,
   Wrench, Eye, Phone, MessageCircle, Send, RefreshCw, Search,
 } from "lucide-react";
+import StrategicReport from "@/components/seo/StrategicReport";
+import CoverageOverview from "@/components/seo/CoverageOverview";
 
 type PageRow = {
   id: string; slug: string; title: string; status: string;
@@ -180,6 +182,13 @@ export default function CommandCenter() {
           <RefreshCw className="w-3.5 h-3.5" /> Actualiser
         </button>
       </header>
+
+      <StrategicReport />
+
+      <section>
+        <SectionTitle>Couverture territoriale</SectionTitle>
+        <CoverageOverview />
+      </section>
 
       {/* Vue d'ensemble */}
       <section>

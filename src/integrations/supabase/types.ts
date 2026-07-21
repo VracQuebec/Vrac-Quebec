@@ -1240,6 +1240,54 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_business_metrics: {
+        Row: {
+          ads_equivalent_value: number
+          attributed_revenue: number
+          cost_per_submission: number
+          created_at: string
+          estimated_revenue: number
+          extras: Json
+          id: string
+          organic_visitors: number
+          period_month: string
+          roi: number
+          seo_conversion_rate: number
+          seo_submissions: number
+          updated_at: string
+        }
+        Insert: {
+          ads_equivalent_value?: number
+          attributed_revenue?: number
+          cost_per_submission?: number
+          created_at?: string
+          estimated_revenue?: number
+          extras?: Json
+          id?: string
+          organic_visitors?: number
+          period_month: string
+          roi?: number
+          seo_conversion_rate?: number
+          seo_submissions?: number
+          updated_at?: string
+        }
+        Update: {
+          ads_equivalent_value?: number
+          attributed_revenue?: number
+          cost_per_submission?: number
+          created_at?: string
+          estimated_revenue?: number
+          extras?: Json
+          id?: string
+          organic_visitors?: number
+          period_month?: string
+          roi?: number
+          seo_conversion_rate?: number
+          seo_submissions?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       seo_cities: {
         Row: {
           active: boolean
@@ -1957,6 +2005,7 @@ export type Database = {
           entity_type: string
           id: string
           impact_estimate: number
+          is_daily_priority: boolean
           page_id: string | null
           payload: Json
           priority: number
@@ -1977,6 +2026,7 @@ export type Database = {
           entity_type: string
           id?: string
           impact_estimate?: number
+          is_daily_priority?: boolean
           page_id?: string | null
           payload?: Json
           priority?: number
@@ -1997,6 +2047,7 @@ export type Database = {
           entity_type?: string
           id?: string
           impact_estimate?: number
+          is_daily_priority?: boolean
           page_id?: string | null
           payload?: Json
           priority?: number
@@ -2059,6 +2110,33 @@ export type Database = {
           slug?: string
           sort_order?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      strategic_reports: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          generated_at: string
+          id: string
+          payload: Json
+          summary: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          generated_at?: string
+          id?: string
+          payload?: Json
+          summary?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          generated_at?: string
+          id?: string
+          payload?: Json
+          summary?: string | null
         }
         Relationships: []
       }

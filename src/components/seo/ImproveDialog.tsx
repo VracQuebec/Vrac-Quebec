@@ -3,6 +3,7 @@ import { Loader2, Sparkles, X, ArrowRight, Check } from "lucide-react";
 import { toast } from "sonner";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { sanitizeHtml } from "@/lib/blog/utils";
+import QaChecklist from "@/components/seo/QaChecklist";
 
 type Snapshot = {
   title?: string; meta_title?: string; meta_description?: string;
@@ -74,6 +75,8 @@ export default function ImproveDialog({
         </header>
 
         <div className="p-4 overflow-y-auto flex-1 space-y-4">
+          <QaChecklist pageId={pageId} onScoreChange={() => { /* refresh handled on close */ }} />
+
           {!before && (
             <div className="text-center py-12">
               <p className="text-sm text-muted-foreground font-body mb-4 max-w-md mx-auto">
