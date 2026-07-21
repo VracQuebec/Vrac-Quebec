@@ -105,6 +105,15 @@ const buildPopup = (sub: Submission, leadStatuses?: LeadStatus[]) => {
 
 const HIDDEN_STATUSES = ["archivé", "perdu", "terminé"];
 
+const AVAILABILITY_OPTIONS: { value: string; label: string; color: string }[] = [
+  { value: "available", label: "🟢 Disponible", color: "#16a34a" },
+  { value: "limited", label: "🟡 Capacité limitée", color: "#ca8a04" },
+  { value: "unavailable", label: "🔴 Indisponible", color: "#dc2626" },
+];
+
+const availabilityLabel = (v?: string | null) =>
+  AVAILABILITY_OPTIONS.find((o) => o.value === (v || "available"))?.label ?? "🟢 Disponible";
+
 const RADIUS_OPTIONS_KM = [1, 2, 5, 10, 15, 20, 25, 50, 100];
 
 const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
