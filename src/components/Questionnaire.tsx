@@ -6,6 +6,7 @@ import RemblaiForm from "./RemblaiForm";
 import { initialFormData, MATERIAL_TYPES, detectRequestType, isRemblaiRequest, type QuestionnaireData } from "@/lib/questionnaire-data";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { logSeoEvent } from "@/lib/seo/tracking";
 import { ChevronLeft, ChevronRight, Send, Check, Loader2, Facebook } from "lucide-react";
 
 const STEPS = [
@@ -14,7 +15,7 @@ const STEPS = [
   { label: "Contact", number: 3 },
 ];
 
-const Questionnaire = () => {
+const Questionnaire = ({ sourcePageSlug }: { sourcePageSlug?: string } = {}) => {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<QuestionnaireData>(initialFormData);
   const [submitted, setSubmitted] = useState(false);
@@ -261,6 +262,9 @@ const Questionnaire = () => {
       }
 
       setSubmitted(true);
+      if (sourcePageSlug) {
+        logSeoEvent(sourcePageSlug, "submission");
+      }
       toast({ title: "Demande envoyée! ✅", description: "Nous vous contacterons rapidement." });
     } catch (err) {
       console.error(err);

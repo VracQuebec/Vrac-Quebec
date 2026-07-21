@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ChevronRight, Home, MapPin, Truck, Loader2, MapPinned, CheckCircle2 } from "lucide-react";
+import { ChevronRight, Home, MapPin, Truck, Loader2, MapPinned, CheckCircle2, Phone, MessageCircle } from "lucide-react";
 import Questionnaire from "@/components/Questionnaire";
 import TransportBanner from "@/components/TransportBanner";
 import { supabase } from "@/integrations/supabase/client";
 import InternalLinksBlock, { type InternalLink } from "@/components/seo/InternalLinksBlock";
+import { logSeoEvent, logSeoViewOnce } from "@/lib/seo/tracking";
 import {
   matchMaterialCitySlug,
   RESERVED_TOP_LEVEL_SLUGS,
@@ -96,6 +97,10 @@ export default function SeoLandingPage() {
     })();
     return () => { cancelled = true; };
   }, [slug]);
+
+  useEffect(() => {
+    if (page?.slug) logSeoViewOnce(page.slug);
+  }, [page?.slug]);
 
   // If no seo_pages row exists, try matching {material-slug}-{city-slug} against DB.
   const legacyMatch = useMemo(
@@ -218,6 +223,22 @@ export default function SeoLandingPage() {
           <a href="#soumission" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold shadow-lg hover:opacity-90 transition-opacity">
             <Truck className="w-4 h-4" /> Obtenir une soumission gratuite
           </a>
+          <a
+            href="tel:+15819947717"
+            onClick={() => logSeoEvent(page.slug, "phone_click")}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-border bg-card text-foreground font-display font-bold hover:border-primary transition-colors"
+          >
+            <Phone className="w-4 h-4" /> 581-994-7717
+          </a>
+          <a
+            href="https://wa.me/15819947717"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => logSeoEvent(page.slug, "whatsapp_click")}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-border bg-card text-foreground font-display font-bold hover:border-primary transition-colors"
+          >
+            <MessageCircle className="w-4 h-4" /> WhatsApp
+          </a>
         </div>
       </header>
 
@@ -253,7 +274,7 @@ export default function SeoLandingPage() {
               Formulaire rapide — moins d'une minute pour recevoir une soumission.
             </p>
           </div>
-          <Questionnaire />
+          <Questionnaire sourcePageSlug={page.slug} />
         </div>
       </section>
 
