@@ -9,9 +9,12 @@ import {
   Truck, MapPin, Package, Ruler, Loader2, ChevronLeft, ChevronRight,
   CheckCircle2, LocateFixed, Sparkles, Phone, Clock, Download,
   MessageCircle, ShieldCheck, Zap, Network, Target, HelpCircle,
+  Home, X,
 } from "lucide-react";
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6;
+
+const STORAGE_KEY = "vq_transport_wizard_v1";
 
 const MATERIALS = [
   { id: "terre", label: "Terre", icon: "🟫", desc: "Remblai, nivellement et aménagement." },
