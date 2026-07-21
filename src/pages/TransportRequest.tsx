@@ -767,6 +767,134 @@ const Field = ({
   </label>
 );
 
+const SummaryRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => (
+  <div className="flex items-start gap-2">
+    <span className="text-base leading-none pt-0.5">{icon}</span>
+    <div className="min-w-0 flex-1">
+      <div className="text-[10px] font-display font-bold uppercase text-muted-foreground tracking-wide">{label}</div>
+      <div className="text-sm font-display font-semibold text-foreground truncate">{value || "—"}</div>
+    </div>
+  </div>
+);
+
+const ConfirmationView = ({
+  requestNumber, clientName, clientPhone, clientEmail,
+  address, material, quantity, trips, truckType, desiredDate, desiredTime, dump, onHome,
+}: {
+  requestNumber: string | null;
+  clientName: string; clientPhone: string; clientEmail: string;
+  address: string; material: string; quantity: string; trips: string;
+  truckType: string; desiredDate: string; desiredTime: string; dump: string;
+  onHome: () => void;
+}) => {
+  const downloadSummary = () => {
+    const lines = [
+      "VRAC QUÉBEC — RÉSUMÉ DE LA DEMANDE DE TRANSPORT",
+      "================================================",
+      `Numéro de demande : ${requestNumber || "—"}`,
+      `Date : ${new Date().toLocaleString("fr-CA")}`,
+      "",
+      "CLIENT",
+      `Nom       : ${clientName}`,
+      `Téléphone : ${clientPhone}`,
+      `Courriel  : ${clientEmail || "—"}`,
+      "",
+      "CHANTIER",
+      `Adresse   : ${address}`,
+      "",
+      "TRANSPORT",
+      `Matériau       : ${material}`,
+      `Quantité       : ${quantity}`,
+      `Voyages estimés: ${trips || "à confirmer"}`,
+      `Type de camion : ${truckType || "à confirmer"}`,
+      `Date souhaitée : ${desiredDate || "—"} ${desiredTime || ""}`.trim(),
+      `Dompe          : ${dump || "—"}`,
+      "",
+      "SUIVI",
+      "Transport JSC — 581-994-7717 / 819-592-3495",
+    ];
+    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `demande-${requestNumber || "vrac-quebec"}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const hour = new Date().getHours();
+  const isOpen = hour >= 7 && hour < 19;
+
+  return (
+    <section className="animate-in fade-in duration-300 py-4">
+      <div className="text-center">
+        <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
+          <CheckCircle2 className="w-12 h-12 text-primary" />
+        </div>
+        <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">🎉 Votre demande est bien reçue !</h1>
+        <p className="text-muted-foreground text-sm mb-6">
+          Merci {clientName ? clientName.split(" ")[0] : ""} — voici les prochaines étapes.
+        </p>
+      </div>
+
+      <div className="bg-card rounded-2xl border-2 border-primary/30 p-4 sm:p-5 shadow-md space-y-3 mb-5">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">✅</div>
+          <div>
+            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">Numéro de demande</div>
+            <div className="font-display font-bold text-lg text-primary">{requestNumber}</div>
+          </div>
+        </div>
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">👤</div>
+          <div>
+            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">Votre conseiller</div>
+            <div className="font-display font-semibold text-sm">Équipe Transport JSC</div>
+          </div>
+        </div>
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">⏱️</div>
+          <div>
+            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">Délai estimé</div>
+            <div className="font-display font-semibold text-sm">
+              {isOpen ? "Moins de 30 minutes (heures d'ouverture)" : "Réponse dès l'ouverture (7h)"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+        <a href="tel:5819947717" className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
+          <Phone className="w-4 h-4" /> Appeler maintenant
+        </a>
+        <a
+          href="https://wa.me/15819947717?text=Bonjour%2C%20je%20fais%20suite%20%C3%A0%20ma%20demande%20de%20transport."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[#25D366] text-white font-display font-bold text-sm"
+        >
+          <MessageCircle className="w-4 h-4" /> Discuter avec nous
+        </a>
+        <button
+          onClick={downloadSummary}
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 border-border font-display font-bold text-sm hover:border-primary/40"
+        >
+          <Download className="w-4 h-4" /> Télécharger le résumé
+        </button>
+      </div>
+
+      <button
+        onClick={onHome}
+        className="w-full text-center text-sm text-muted-foreground hover:text-foreground underline font-body py-2"
+      >
+        Retour à l'accueil
+      </button>
+    </section>
+  );
+};
+
 const haversine = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
   const R = 6371;
   const toRad = (v: number) => (v * Math.PI) / 180;
