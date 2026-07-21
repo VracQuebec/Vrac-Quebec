@@ -1654,6 +1654,33 @@ export type Database = {
           },
         ]
       }
+      seo_page_events: {
+        Row: {
+          event_type: string
+          id: string
+          occurred_at: string
+          page_slug: string
+          session_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          occurred_at?: string
+          page_slug: string
+          session_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          page_slug?: string
+          session_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       seo_page_improvements: {
         Row: {
           after_snapshot: Json
