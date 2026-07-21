@@ -454,6 +454,7 @@ Deno.serve(async (req) => {
               failed,
               last_progress_at: nowIso(),
               report: { logs: logs.slice(-100), warnings: retryQueue.slice(-50), blocked: blockedItems.slice(-50) },
+              ...computeProgressMetrics(jobStartMs, done, total),
             });
             return;
           }
@@ -490,10 +491,13 @@ Deno.serve(async (req) => {
           errors: blockedItems.slice(-100),
           last_progress_at: nowIso(),
           report: { logs: logs.slice(-100), warnings: retryQueue.slice(-50), blocked: blockedItems.slice(-50) },
+          ...computeProgressMetrics(jobStartMs, done, total),
         });
       };
 
       try {
+        const jobStartMs = Date.now();
+        void jobStartMs; // ensure captured below via closure fallback
         for (let i = 0; i < items.length; i += CONCURRENCY) {
           const batch = items.slice(i, i + CONCURRENCY);
           await Promise.all(batch.map(runOne));
