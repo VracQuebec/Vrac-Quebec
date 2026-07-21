@@ -1,86 +1,106 @@
-# Production SEO progressive — 4 vagues contrôlées
 
-Objectif : publier des pages **haute qualité** au rythme recommandé (20-30 → 30-50 → +blog → ajustements GSC), avec un contrôle qualité automatique **avant** publication. On réutilise le SEO Manager existant, on n'ajoute que le pipeline de QA et l'ordonnancement par priorité.
+# Centre de Pilotage SEO V2 — Copilote IA
+
+Refonte du SEO Manager en directeur SEO virtuel : chaque donnée devient une action. Livré en 6 phases pour rester stable en production.
 
 ---
 
-## 1. Ordonnancement par priorité (dans le SEO Manager)
+## Phase 1 — QA intelligent par page
 
-Nouvel onglet **File de production** dans `/admin/seo` qui affiche 4 files ordonnées par `seo_priority_score` :
+**Objectif** : remplacer le score opaque par une checklist détaillée + correction auto.
 
-- **P1 — Matériaux** : une page par matériau (`/materiaux/{slug}`), triée par popularité (impressions GSC + volume estimé).
-- **P2 — Services** : une page par service (`/services/{slug}`).
-- **P3 — Villes/secteurs** : une page par ville active (`/zones/{slug}`), triée par population × demande locale (`count_active_dumps_by_city`).
-- **P4 — Combinaisons** : matériau × ville × service, triées par `seo_priority_score`.
+- Étendre `seo-qa-check` pour retourner ~10 vérifications explicites, chacune avec `status` (`ok` | `warn` | `fail`), `label`, `detail`, `fixable` (bool), `fix_action` (clé) :
+  - Longueur contenu, FAQ complète, H1-H6, maillage interne, images (nombre + alt), meta description, Schema.org, mots-clés secondaires, CTA, unicité.
+- Nouveau composant `QaChecklist.tsx` dans le dialog `ImproveDialog` : affiche chaque item avec icône ✅/⚠/❌ + explication.
+- Bouton **« Corriger automatiquement »** → nouvelle edge function `seo-qa-autofix` qui, pour chaque `fix_action`, appelle Lovable AI (`google/gemini-3-flash-preview`) pour régénérer uniquement le fragment concerné (FAQ, meta, images alt, mots-clés, liens internes) et re-run QA.
 
-Chaque file affiche : score, statut (draft/published), dernier QA, bouton **Générer & vérifier**.
+## Phase 2 — Suggestions intelligentes (anti-cannibalisation)
 
-## 2. QA automatique avant publication
+**Objectif** : recommandations validées avant d'apparaître.
 
-Nouvelle edge function `seo-qa-check` (appelée automatiquement après `seo-generate-page` / `seo-improve-page`, avant passage en `published`). Vérifie 8 critères, retourne `{ score, checks[], blockers[] }` :
+- Nouvelle edge function `seo-suggest-pages` qui, pour chaque combo `(city, material|service)` manquant :
+  1. vérifie que la ville + matériau/service existent et sont `active`;
+  2. vérifie qu'aucune `seo_pages` publiée ne cible déjà cette combo (anti-doublon);
+  3. calcule un score cannibalisation (similarité titre + slug vs pages existantes de la même ville);
+  4. estime potentiel (population × facteur matériau), difficulté (KDI moyen depuis `seo_gsc_metrics` + concurrents), temps de création, priorité (1–5).
+- Persiste dans `seo_recommendations` avec un `payload` enrichi.
+- Le composant `RecommendationCard` affiche : Potentiel, Trafic estimé, Difficulté, Temps, Priorité, Justification.
 
-1. **Unicité** — similarité < 70 % (trigrammes/Jaccard) contre les autres `seo_pages` de la même famille.
-2. **Qualité SEO** — 800-1500 mots, ≥ 4 H2, densité mot-clé principal 1-2 %, lisibilité (phrases < 25 mots en moyenne).
-3. **Maillage interne** — ≥ 3 liens vers d'autres `seo_pages` ou `blog_posts` de la même ville/matériau.
-4. **Title & Meta** — Title 40-65 car, Meta 140-160 car, mot-clé présent, non dupliqués.
-5. **Schema.org** — JSON-LD `Service` ou `LocalBusiness` + `FAQPage` valides (parse test).
-6. **FAQ** — ≥ 5 Q/R, réponses ≥ 40 mots, pas de duplicata.
-7. **Liens connexes** — bloc "Guides & conseils" et "Autres villes / matériaux" non vides.
-8. **CTA** — ≥ 2 CTA vers `/transport-request` ou `/#questionnaire`.
+## Phase 3 — Analyse SEO complète + rapport stratégique
 
-Blockers (score < 75, unicité échouée, meta hors bornes, Schema invalide) → page reste en `draft`, badge rouge et diff dans l'UI. Warnings (score 75-89) → publiable manuellement. ≥ 90 → auto-publiable.
+**Objectif** : le bouton **Analyser maintenant** produit un rapport hebdomadaire actionnable.
 
-Table `seo_qa_reports` (page_id, score, checks jsonb, blockers text[], warnings text[], checked_at).
+- Nouvelle edge function `seo-strategic-report` qui chaîne :
+  - `seo-gsc-sync` (impressions, clics, positions, CTR)
+  - `seo-linkcheck` (erreurs, orphelines)
+  - `seo-pagespeed` (Core Web Vitals)
+  - `seo-assistant-scan` (thin content, quick wins, stale)
+  - `seo-suggest-pages` (Phase 2)
+- Agrège en un `strategic_reports` (nouvelle table) : `{ pages_to_create, pages_to_refresh, links_to_add, qa_to_fix, blog_to_publish, projected_impressions_gain, projected_clicks_gain }`.
+- Composant `StrategicReport.tsx` affiche le rapport en tête du Command Center.
 
-## 3. Runner par vagues
+## Phase 4 — Valeur d'affaires du SEO
 
-Composant `WaveRunner` dans `AdminSeoManager.tsx` (onglet File de production). Une vague = 3 paramètres :
-- taille max (25 / 40 / …),
-- priorité cible (P1 / P2 / P3 / P4 ou "toutes"),
-- seuil QA auto-publication (par défaut 90).
+**Objectif** : indicateurs business, pas seulement SEO.
 
-Boucle séquentielle : `seo-generate-page` → `seo-qa-check` → si score ≥ seuil, publier ; sinon garder en `draft`. Pause/reprise, retry sur 429/402, journal en direct.
+- Nouvelle table `seo_business_metrics` (snapshot mensuel) : `organic_visitors`, `ads_equivalent_value`, `seo_submissions`, `seo_conversion_rate`, `estimated_revenue`, `cost_per_submission`, `roi`.
+- Alimentée par edge function `seo-business-metrics-refresh` (cron mensuel) qui croise `seo_page_events` + `submissions` (via `lead_source`) + CPC moyen GSC.
+- Nouveau bloc **Valeur SEO** dans le Command Center avec 8 KPI cards.
 
-Vagues préconfigurées (boutons) :
+## Phase 5 — IA proactive quotidienne
 
-| Vague | Contenu | Volume |
-|---|---|---|
-| S1 | P1 (10 matériaux) + P2 (10 services) + top 10 P3 | 25-30 pages |
-| S2 | P3 complet (villes restantes) + top 15 P4 | 30-45 pages |
-| S3 | +30 combinaisons P4 haute priorité + 6 articles blog liés | ~35 items |
-| S4 | Recos GSC (`quick_win_gsc`, `low_ctr`) + amélioration pages P1/P2 | variable |
+**Objectif** : file de priorités générée chaque jour.
 
-## 4. Suivi hebdomadaire
+- Cron quotidien étendu (`seo-weekly-ideas` → renommé `seo-daily-priorities`) qui :
+  1. relance scan + suggest + strategic-report;
+  2. sélectionne les 5 actions à plus fort ROI (impact × facilité);
+  3. écrit dans `seo_recommendations` avec `is_daily_priority = true`.
+- Nouveau bloc **Priorités du jour** en haut du Command Center (top 5 cartes).
 
-Widget **Progression** dans l'onglet Assistant IA : nb de pages publiées cette semaine, score QA moyen, top blockers récurrents. Bouton **Ouvrir GSC** pour la revue S4.
+## Phase 6 — Carte de couverture territoriale
+
+**Objectif** : voir d'un coup d'œil le territoire couvert.
+
+- Composant `CoverageMap.tsx` : carte Google Maps avec un marqueur/heatmap par ville, couleur = % de matériaux couverts.
+- Panneau latéral : `Territoire couvert %`, `Matériaux %`, `Services %`, `Combinaisons X / Y`.
+- Utilise `seo_cities`, `seo_materials`, `seo_services`, `seo_pages` (comptage combos existants).
 
 ---
 
 ## Détails techniques
 
-**Migrations DB**
-- `seo_qa_reports` (page_id fk, score int, checks jsonb, blockers text[], warnings text[], checked_at timestamptz)
-- GRANT authenticated + service_role ; RLS admin-only.
-- Ajout colonne `seo_pages.qa_last_score int`, `qa_last_checked_at timestamptz`, `qa_blockers text[]`.
+**Nouvelles tables (migration)** :
+- `strategic_reports` (id, generated_at, payload jsonb, created_by uuid, RLS admin).
+- `seo_business_metrics` (id, period_month date, kpis jsonb, RLS admin).
+- Colonne `seo_recommendations.is_daily_priority boolean default false`.
+- Étendre `seo_qa_reports.checks` (jsonb déjà présent) — pas de migration.
 
-**Edge functions**
-- `seo-qa-check` : lit la page + Schema + FAQ + liens, calcule scores, appelle Gemini 3 Flash uniquement pour la similarité sémantique et une passe de lisibilité, écrit `seo_qa_reports` et met à jour `seo_pages`.
-- `seo-generate-page` et `seo-improve-page` : ajout d'un flag `run_qa: true` qui enchaîne `seo-qa-check` et publie si score ≥ seuil passé en paramètre.
+**Nouvelles edge functions** :
+- `seo-qa-autofix` (admin, appelle Lovable AI par fragment)
+- `seo-suggest-pages` (admin/cron)
+- `seo-strategic-report` (admin, orchestre les scans)
+- `seo-business-metrics-refresh` (cron mensuel)
+- `seo-daily-priorities` (cron quotidien, remplace weekly-ideas)
 
-**Front**
-- Nouvel onglet **File de production** dans `AdminSeoManager.tsx` avec 4 sous-listes + `WaveRunner`.
-- `src/components/seo/QaReportBadge.tsx` (score + blockers cliquables).
-- Réutilise `PriorityStars`, `RecommendationCard`.
+**Frontend (`src/pages/AdminSeoManager.tsx` + `src/components/seo/`)** :
+- `QaChecklist.tsx`, `StrategicReport.tsx`, `BusinessMetricsBlock.tsx`, `DailyPriorities.tsx`, `CoverageMap.tsx`.
+- Le bouton **Analyser maintenant** appelle `seo-strategic-report` (spinner + toast progression).
+- Le bouton **Corriger automatiquement** dans `ImproveDialog` appelle `seo-qa-autofix`.
 
-**Aucun ajout côté public** (SeoLandingPage, routes, sitemap inchangés).
+**IA** : Lovable AI Gateway avec `google/gemini-3-flash-preview` (fallback `gemini-2.5-pro` pour rapport stratégique).
+
+**Sécurité** : toutes les nouvelles fonctions vérifient `has_role(admin)` sauf appels cron (`Lovable-Context: cron` + service role).
 
 ---
 
-## Séquencement de livraison
+## Ordre de livraison suggéré
 
-1. Migration `seo_qa_reports` + colonnes `seo_pages`.
-2. Edge `seo-qa-check` + intégration dans `generate`/`improve`.
-3. Onglet File de production + `WaveRunner` + `QaReportBadge`.
-4. Boutons vagues préconfigurés + widget progression.
+1. Migration DB (tables + colonne).
+2. Phase 1 (QA + autofix) — impact immédiat visible.
+3. Phase 2 (suggestions filtrées).
+4. Phase 3 (rapport stratégique).
+5. Phase 5 (priorités quotidiennes, réutilise 2+3).
+6. Phase 4 (valeur business).
+7. Phase 6 (carte couverture).
 
-Livraison en un chantier. Après ça tu lances toi-même vague S1 depuis l'UI quand tu veux.
+Confirme et je commence par la migration + Phase 1.
