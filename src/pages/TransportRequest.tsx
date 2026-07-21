@@ -35,7 +35,7 @@ const STEP_LABELS = [
   { n: 2, label: "Chantier", icon: "📍" },
   { n: 3, label: "Quantité", icon: "⚖️" },
   { n: 4, label: "Recommandations", icon: "🗺️" },
-  { n: 5, label: "Confirmation", icon: "🚛" },
+  { n: 5, label: "Confirmation", icon: "✅" },
 ];
 
 // "Je ne sais pas" project assistant → material recommendation
@@ -126,6 +126,9 @@ const TransportRequest = () => {
   const [trips, setTrips] = useState<string>("");
   const [desiredDate, setDesiredDate] = useState<string>("");
   const [desiredTime, setDesiredTime] = useState<string>("");
+  const [clientNotes, setClientNotes] = useState<string>("");
+  const [editIdentity, setEditIdentity] = useState<boolean>(false);
+  const [profileLoaded, setProfileLoaded] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmedNumber, setConfirmedNumber] = useState<string | null>(null);
   // "queued" = accepted locally, still finishing its send in the background.
@@ -234,6 +237,33 @@ const TransportRequest = () => {
   useEffect(() => {
     if (user?.email) setClientEmail(user.email);
   }, [user]);
+
+  // Prefill full identity from the entrepreneur profile when the user is
+  // signed in. The entrepreneur should never have to retype what we already
+  // know about them — this is the whole point of the connected experience.
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!user?.id) { setProfileLoaded(false); return; }
+      try {
+        const { data } = await supabase
+          .from("entrepreneurs")
+          .select("name, company, phone, email")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (cancelled) return;
+        if (data) {
+          if (data.name) setClientName((prev) => prev || data.name);
+          if (data.company) setClientCompany((prev) => prev || data.company);
+          if (data.phone) setClientPhone((prev) => prev || data.phone);
+          if (data.email) setClientEmail((prev) => prev || data.email);
+          setProfileLoaded(true);
+        }
+      } catch { /* ignore — user can still fill manually */ }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   // Boot the persistent submit queue once. Any pending submissions saved in
   // a previous session (page reload, crash, connection loss) are retried
@@ -363,6 +393,7 @@ const TransportRequest = () => {
       estimated_trips: trips ? Number(trips) : null,
       desired_date: desiredDate || null,
       desired_time: desiredTime || null,
+      client_notes: clientNotes.trim() || null,
       source: user ? "wizard_authenticated" : "wizard_public",
     });
 
