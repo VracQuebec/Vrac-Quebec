@@ -36,6 +36,7 @@ const AdminSeoManager = lazy(() => import("./pages/AdminSeoManager"));
 const SeoLandingPage = lazy(() => import("./pages/SeoLandingPage"));
 const TransportRequest = lazy(() => import("./pages/TransportRequest"));
 const AdminTransportRequests = lazy(() => import("./pages/AdminTransportRequests"));
+const AdminBusinessIntelligence = lazy(() => import("./pages/AdminBusinessIntelligence"));
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,7 @@ const App = () => (
             <Route path="/admin/seo" element={<AdminSeoManager />} />
             <Route path="/demande-transport" element={<TransportRequest />} />
             <Route path="/admin/demandes-transport" element={<AdminTransportRequests />} />
+            <Route path="/admin/business-intelligence" element={<AdminBusinessIntelligence />} />
             {/* Alias historique — redirige vers la route canonique */}
             <Route path="/admin/seo-manager" element={<Navigate to="/admin/seo" replace />} />
             <Route path="/livraison" element={<ZonesIndex />} />
