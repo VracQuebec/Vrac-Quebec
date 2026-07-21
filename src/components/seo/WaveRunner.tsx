@@ -271,6 +271,14 @@ function formatDuration(ms?: number) {
   return `${seconds}s`;
 }
 
+function formatEta(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "—";
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return s > 0 ? `${m}m${s.toString().padStart(2, "0")}s` : `${m}m`;
+}
+
 function logsFrom(job: Job) {
   const report = (job.report ?? {}) as { logs?: PipelineEvent[]; warnings?: PipelineEvent[]; blocked?: PipelineEvent[] };
   return {
