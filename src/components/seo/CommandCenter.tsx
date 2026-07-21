@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import StrategicReport from "@/components/seo/StrategicReport";
 import CoverageOverview from "@/components/seo/CoverageOverview";
+import WaveRunner from "@/components/seo/WaveRunner";
+import { useSeoStats } from "@/lib/seo/useSeoStats";
 
 type PageRow = {
   id: string; slug: string; title: string; status: string;
@@ -26,6 +28,7 @@ type Health = "green" | "yellow" | "red";
 
 export default function CommandCenter() {
   const [loading, setLoading] = useState(true);
+  const { stats, error: statsError, reload: reloadStats } = useSeoStats();
   const [pages, setPages] = useState<PageRow[]>([]);
   const [gsc, setGsc] = useState<Map<string, GscRow>>(new Map());
   const [events, setEvents] = useState<Map<string, { view: number; phone: number; whatsapp: number; submission: number; cta: number }>>(new Map());
@@ -184,6 +187,34 @@ export default function CommandCenter() {
       </header>
 
       <StrategicReport />
+
+      <WaveRunner />
+
+      {stats && (
+        <section>
+          <SectionTitle>Source unique — chiffres consolidés</SectionTitle>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Stat label="Pages totales" value={stats.pages_total} />
+            <Stat label="Publiées" value={stats.pages_published} tone="good" />
+            <Stat label="Brouillons" value={stats.pages_draft} />
+            <Stat label="À corriger" value={stats.pages_needs_fix} tone={stats.pages_needs_fix > 0 ? "warn" : "good"} />
+            <Stat label="Villes couvertes" value={`${stats.cities_covered}/${stats.cities_total} (${stats.coverage_cities_pct}%)`} />
+            <Stat label="Matériaux couverts" value={`${stats.materials_covered}/${stats.materials_total} (${stats.coverage_materials_pct}%)`} />
+            <Stat label="Services couverts" value={`${stats.services_covered}/${stats.services_total} (${stats.coverage_services_pct}%)`} />
+            <Stat label="Combinaisons" value={`${stats.combinations_created}/${stats.combinations_possible} (${stats.coverage_combinations_pct}%)`} />
+            <Stat label="Score SEO moyen" value={stats.seo_avg ? `${stats.seo_avg}/100` : "—"} />
+            <Stat label="Score QA moyen" value={stats.qa_avg ? `${stats.qa_avg}/100` : "—"} />
+            <Stat label="Impressions GSC" value={stats.gsc_impressions.toLocaleString("fr-CA")} />
+            <Stat label="Clics GSC" value={stats.gsc_clicks.toLocaleString("fr-CA")} />
+          </div>
+        </section>
+      )}
+      {statsError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+          Statistiques indisponibles — {statsError}
+          <button onClick={() => void reloadStats()} className="ml-2 underline">Réessayer</button>
+        </div>
+      )}
 
       <section>
         <SectionTitle>Couverture territoriale</SectionTitle>
