@@ -2,7 +2,7 @@ import Questionnaire from "@/components/Questionnaire";
 import heroBanner from "@/assets/hero-banner.webp";
 import heroBannerMobile from "@/assets/hero-banner-mobile.webp";
 import TransportBanner from "@/components/TransportBanner";
-import { HardHat } from "lucide-react";
+import { HardHat, Sparkles } from "lucide-react";
 
 const Index = () => {
   return (
@@ -94,28 +94,41 @@ const Index = () => {
             <Questionnaire />
           </div>
 
-          {/* Assistant de demande de transport rapide */}
-          <div className="mt-10 max-w-3xl mx-auto">
-            <a
-              href="/demande-transport"
-              className="block p-5 sm:p-6 rounded-2xl border-2 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10 hover:border-primary transition-all group"
+          {/* Espace entrepreneur — site public reste vitrine; les outils avancés vivent derrière la connexion */}
+          <section
+            aria-labelledby="espace-entrepreneur-title"
+            className="mt-14 max-w-3xl mx-auto rounded-2xl border border-border bg-card p-6 sm:p-8 text-center"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-display font-bold uppercase tracking-wide">
+              <Sparkles className="w-3.5 h-3.5" />
+              Espace entrepreneur
+            </div>
+            <h2
+              id="espace-entrepreneur-title"
+              className="mt-4 text-xl sm:text-2xl font-display font-extrabold text-foreground"
             >
-              <div className="flex items-center gap-4">
-                <div className="text-4xl">⚡</div>
-                <div className="flex-1">
-                  <div className="font-display font-bold text-lg sm:text-xl text-foreground">
-                    Assistant de demande de transport
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    Trouvez la meilleure dompe en moins de 60 secondes.
-                  </p>
-                </div>
-                <span className="hidden sm:inline text-primary font-display font-bold text-sm group-hover:translate-x-1 transition-transform">
-                  Commencer →
-                </span>
-              </div>
-            </a>
-          </div>
+              Connectez-vous pour accéder à notre{" "}
+              <span className="text-primary">assistant intelligent de recherche de dompes</span>.
+            </h2>
+            <p className="mt-3 text-sm sm:text-base text-muted-foreground font-body max-w-xl mx-auto">
+              Réservé aux entrepreneurs : trouvez la meilleure dompe compatible avec votre chantier en moins de 60 secondes, puis transmettez votre demande à Transport JSC.
+            </p>
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a
+                href="/login"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base shadow-lg hover:opacity-90 transition-opacity"
+              >
+                <HardHat className="w-5 h-5" />
+                Connexion entrepreneur
+              </a>
+              <a
+                href="/entrepreneur/inscription"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-lg border-2 border-primary text-primary font-display font-bold text-base hover:bg-primary/10 transition-colors"
+              >
+                Devenir entrepreneur
+              </a>
+            </div>
+          </section>
         </div>
       </main>
 
