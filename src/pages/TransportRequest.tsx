@@ -920,6 +920,7 @@ const TransportRequest = () => {
         {step === 6 && (
           <ConfirmationView
             requestNumber={confirmedNumber}
+            pending={confirmationMode === "queued"}
             clientName={clientName}
             clientPhone={clientPhone}
             clientEmail={clientEmail}
@@ -989,10 +990,11 @@ const SummaryRow = ({ icon, label, value }: { icon: string; label: string; value
 );
 
 const ConfirmationView = ({
-  requestNumber, clientName, clientPhone, clientEmail,
+  requestNumber, pending, clientName, clientPhone, clientEmail,
   address, material, quantity, trips, truckType, desiredDate, desiredTime, dump, onHome,
 }: {
   requestNumber: string | null;
+  pending?: boolean;
   clientName: string; clientPhone: string; clientEmail: string;
   address: string; material: string; quantity: string; trips: string;
   truckType: string; desiredDate: string; desiredTime: string; dump: string;
