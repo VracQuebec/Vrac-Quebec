@@ -131,6 +131,22 @@ Deno.serve(async (req) => {
   const userAgent = req.headers.get("user-agent");
   const ip = req.headers.get("x-forwarded-for");
 
+  // Resolve the authenticated user (if any) from the caller's JWT. We do not
+  // trust `payload.user_id` — a public caller could send any UUID. The edge
+  // function is publicly callable (verify_jwt=false) so the JWT is optional.
+  let authenticatedUserId: string | null = null;
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.replace("Bearer ", "");
+    try {
+      const { data: claims } = await admin.auth.getClaims(token);
+      const sub = claims?.claims?.sub;
+      if (typeof sub === "string" && sub.length > 0) authenticatedUserId = sub;
+    } catch {
+      // Bad/expired JWT is fine — treat as anonymous.
+    }
+  }
+
   let raw: Partial<Payload> = {};
   try {
     raw = await req.json();
@@ -253,6 +269,20 @@ Deno.serve(async (req) => {
       });
       // Transient — client should retry.
       return jsonResponse({ ok: false, retry: true, message: "temporary_failure" }, 503);
+    }
+
+    // The BEFORE INSERT trigger unconditionally nulls user_id when auth.uid()
+    // is NULL (which is the case under service-role). Reattach the id here so
+    // authenticated users can see their own requests in the CRM.
+    if (authenticatedUserId && inserted?.id) {
+      try {
+        await admin
+          .from("transport_requests")
+          .update({ user_id: authenticatedUserId })
+          .eq("id", inserted.id);
+      } catch (_e) {
+        // best-effort — the row is already persisted
+      }
     }
 
     return jsonResponse({
