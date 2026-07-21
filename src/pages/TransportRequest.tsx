@@ -902,9 +902,11 @@ const TransportRequest = () => {
         {/* Step 5 */}
         {step === 5 && selectedDump && coords && (
           <section className="animate-in fade-in duration-300">
-            <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">📞 Vos coordonnées</h1>
+            <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">
+              ✅ Confirmation de votre demande d'accès
+            </h1>
             <p className="text-muted-foreground text-sm mb-5">
-              Presque terminé — Transport JSC vous rappellera pour confirmer.
+              L'assistant a déjà fait le travail — il ne vous reste qu'à confirmer votre demande d'accès à la dompe recommandée.
             </p>
 
             {/* Full summary card */}
@@ -934,15 +936,67 @@ const TransportRequest = () => {
               )}
             </div>
 
+            {/* Identity — prefilled from the entrepreneur profile when signed in */}
+            {user && profileLoaded && !editIdentity ? (
+              <div className="bg-muted/40 rounded-xl border border-border p-4 mb-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-display font-bold uppercase text-muted-foreground tracking-wide mb-1">
+                      Demande faite au nom de
+                    </p>
+                    <p className="font-display font-bold text-base truncate">
+                      {clientName}{clientCompany ? ` — ${clientCompany}` : ""}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {clientPhone}{clientEmail ? ` · ${clientEmail}` : ""}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setEditIdentity(true)}
+                    className="text-xs font-display font-semibold text-primary hover:underline flex-shrink-0"
+                  >
+                    Modifier
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <Field label="Nom complet *" value={clientName} onChange={setClientName} placeholder="Jean Tremblay" />
+                <Field label="Entreprise" value={clientCompany} onChange={setClientCompany} placeholder="Construction ABC inc." />
+                <Field label="Téléphone *" value={clientPhone} onChange={setClientPhone} placeholder="418-555-0000" type="tel" />
+                <Field label="Courriel" value={clientEmail} onChange={setClientEmail} placeholder="vous@exemple.com" type="email" />
+              </div>
+            )}
+
+            {/* Chantier-specific fields only */}
+            <p className="text-[10px] font-display font-bold uppercase text-muted-foreground tracking-wide mb-2">
+              Informations sur ce chantier
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Nom complet *" value={clientName} onChange={setClientName} placeholder="Jean Tremblay" />
-              <Field label="Entreprise" value={clientCompany} onChange={setClientCompany} placeholder="Construction ABC inc." />
-              <Field label="Téléphone *" value={clientPhone} onChange={setClientPhone} placeholder="418-555-0000" type="tel" />
-              <Field label="Courriel" value={clientEmail} onChange={setClientEmail} placeholder="vous@exemple.com" type="email" />
               <Field label="Type de camion" value={truckType} onChange={setTruckType} placeholder={suggestedTruck || "Ex. 12 roues"} />
-              <Field label="Voyages estimés" value={trips} onChange={setTrips} placeholder="Ex. 3" type="number" />
               <Field label="Date souhaitée" value={desiredDate} onChange={setDesiredDate} type="date" />
               <Field label="Heure souhaitée" value={desiredTime} onChange={setDesiredTime} type="time" />
+              <Field label="Voyages estimés (facultatif)" value={trips} onChange={setTrips} placeholder="Ex. 3" type="number" />
+            </div>
+
+            <label className="block mt-3">
+              <span className="block text-xs font-display font-bold uppercase text-muted-foreground mb-1.5">
+                Commentaires particuliers (facultatif)
+              </span>
+              <textarea
+                value={clientNotes}
+                onChange={(e) => setClientNotes(e.target.value)}
+                rows={3}
+                placeholder="Contraintes d'accès, précisions sur le chantier, etc."
+                className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+              />
+            </label>
+
+            <div className="mt-5 p-3.5 rounded-xl bg-primary/5 border border-primary/20 text-sm text-foreground/90 flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+              <p>
+                Votre demande sera transmise à <b>Transport JSC</b> qui validera la disponibilité de la dompe et communiquera avec vous rapidement.
+              </p>
             </div>
           </section>
         )}
@@ -983,7 +1037,7 @@ const TransportRequest = () => {
               className="px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm disabled:opacity-40 flex items-center gap-1.5"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {step === 5 ? "Envoyer ma demande" : "Continuer"}
+              {step === 5 ? "Envoyer ma demande d'accès" : "Continuer"}
               {step !== 5 && !submitting && <ChevronRight className="w-4 h-4" />}
             </button>
           </div>
