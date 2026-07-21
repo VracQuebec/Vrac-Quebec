@@ -665,14 +665,31 @@ const TransportRequest = () => {
               Presque terminé — Transport JSC vous rappellera pour confirmer.
             </p>
 
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4 text-sm">
-              <p className="font-display font-bold mb-1">Récapitulatif</p>
-              <ul className="space-y-0.5 text-xs">
-                <li>📍 <b>Chantier :</b> {address}</li>
-                <li>📦 <b>Matériau :</b> {MATERIALS.find((m) => m.id === material)?.label}</li>
-                <li>📏 <b>Quantité :</b> {unit === "inconnu" ? "À déterminer" : `${quantity} ${unit}`}</li>
-                <li>🎯 <b>Dompe :</b> #{selectedDump.dompe_number?.replace(/^dompe\s*/i, "").trim() || selectedDump.submission_number} — {selectedDump.distance_km} km ({selectedDump.duration_minutes} min)</li>
-              </ul>
+            {/* Full summary card */}
+            <div className="bg-card rounded-2xl border-2 border-primary/30 p-4 sm:p-5 mb-5 shadow-md">
+              <p className="font-display font-bold text-base mb-3 flex items-center gap-2">
+                <Target className="w-4 h-4 text-primary" /> Votre chantier
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                <SummaryRow icon="📍" label="Adresse" value={address} />
+                <SummaryRow icon="📦" label="Matériau recommandé" value={MATERIALS.find((m) => m.id === material)?.label || material} />
+                <SummaryRow icon="📏" label="Quantité estimée" value={unit === "inconnu" ? "À déterminer" : `${quantity} ${unit}`} />
+                <SummaryRow icon="🚛" label="Voyages estimés" value={trips || "À confirmer"} />
+                <SummaryRow icon="⏱️" label="Temps de trajet" value={`${selectedDump.duration_minutes} min`} />
+                <SummaryRow icon="🎯" label="Dompe recommandée" value={`#${selectedDump.dompe_number?.replace(/^dompe\s*/i, "").trim() || selectedDump.submission_number} • ${selectedDump.distance_km} km`} />
+              </div>
+              {dumps.length > 1 && (
+                <div className="mt-3 pt-3 border-t border-border">
+                  <p className="text-xs font-display font-bold uppercase text-muted-foreground mb-1.5">Alternatives</p>
+                  <div className="space-y-1 text-xs">
+                    {dumps.filter((d) => d.id !== selectedDump.id).slice(0, 2).map((d, i) => (
+                      <p key={d.id}>
+                        {i === 0 ? "🥈" : "🥉"} Dompe #{d.dompe_number?.replace(/^dompe\s*/i, "").trim() || d.submission_number} — {d.distance_km} km ({d.duration_minutes} min)
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -680,7 +697,7 @@ const TransportRequest = () => {
               <Field label="Entreprise" value={clientCompany} onChange={setClientCompany} placeholder="Construction ABC inc." />
               <Field label="Téléphone *" value={clientPhone} onChange={setClientPhone} placeholder="418-555-0000" type="tel" />
               <Field label="Courriel" value={clientEmail} onChange={setClientEmail} placeholder="vous@exemple.com" type="email" />
-              <Field label="Type de camion" value={truckType} onChange={setTruckType} placeholder="Ex. 12 roues" />
+              <Field label="Type de camion" value={truckType} onChange={setTruckType} placeholder={suggestedTruck || "Ex. 12 roues"} />
               <Field label="Voyages estimés" value={trips} onChange={setTrips} placeholder="Ex. 3" type="number" />
               <Field label="Date souhaitée" value={desiredDate} onChange={setDesiredDate} type="date" />
               <Field label="Heure souhaitée" value={desiredTime} onChange={setDesiredTime} type="time" />
@@ -690,28 +707,21 @@ const TransportRequest = () => {
 
         {/* Step 6: confirmation */}
         {step === 6 && (
-          <section className="animate-in fade-in duration-300 text-center py-8">
-            <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-12 h-12 text-primary" />
-            </div>
-            <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">Demande envoyée !</h1>
-            <p className="text-muted-foreground text-sm mb-1">Votre numéro de demande :</p>
-            <p className="font-display font-bold text-2xl text-primary mb-6">{confirmedNumber}</p>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-              Transport JSC va vous rappeler sous peu pour confirmer les détails et planifier le transport.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <a href="tel:5819947717" className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold">
-                <Phone className="w-4 h-4" /> 581-994-7717
-              </a>
-              <button
-                onClick={() => navigate("/")}
-                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg border border-border font-display font-bold"
-              >
-                Retour à l'accueil
-              </button>
-            </div>
-          </section>
+          <ConfirmationView
+            requestNumber={confirmedNumber}
+            clientName={clientName}
+            clientPhone={clientPhone}
+            clientEmail={clientEmail}
+            address={address}
+            material={MATERIALS.find((m) => m.id === material)?.label || material}
+            quantity={unit === "inconnu" ? "À déterminer" : `${quantity} ${unit}`}
+            trips={trips}
+            truckType={truckType || suggestedTruck}
+            desiredDate={desiredDate}
+            desiredTime={desiredTime}
+            dump={selectedDump ? `#${selectedDump.dompe_number?.replace(/^dompe\s*/i, "").trim() || selectedDump.submission_number} — ${selectedDump.distance_km} km (${selectedDump.duration_minutes} min)` : ""}
+            onHome={() => navigate("/")}
+          />
         )}
 
         {/* Navigation */}
