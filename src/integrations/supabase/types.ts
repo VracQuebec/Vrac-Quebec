@@ -2119,6 +2119,8 @@ export type Database = {
           meta_description: string | null
           meta_title: string | null
           needs_refresh: boolean
+          og_description: string | null
+          og_title: string | null
           priority: number
           priority_locked: boolean
           published_at: string | null
@@ -2161,6 +2163,8 @@ export type Database = {
           meta_description?: string | null
           meta_title?: string | null
           needs_refresh?: boolean
+          og_description?: string | null
+          og_title?: string | null
           priority?: number
           priority_locked?: boolean
           published_at?: string | null
@@ -2203,6 +2207,8 @@ export type Database = {
           meta_description?: string | null
           meta_title?: string | null
           needs_refresh?: boolean
+          og_description?: string | null
+          og_title?: string | null
           priority?: number
           priority_locked?: boolean
           published_at?: string | null
