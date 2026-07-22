@@ -1309,6 +1309,42 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_advisor_reports: {
+        Row: {
+          created_at: string
+          estimated_gain: Json
+          generated_at: string
+          id: string
+          issues: Json
+          opportunities: Json
+          period_label: string
+          report_md: string
+          summary: string
+        }
+        Insert: {
+          created_at?: string
+          estimated_gain?: Json
+          generated_at?: string
+          id?: string
+          issues?: Json
+          opportunities?: Json
+          period_label: string
+          report_md?: string
+          summary?: string
+        }
+        Update: {
+          created_at?: string
+          estimated_gain?: Json
+          generated_at?: string
+          id?: string
+          issues?: Json
+          opportunities?: Json
+          period_label?: string
+          report_md?: string
+          summary?: string
+        }
+        Relationships: []
+      }
       seo_broken_links: {
         Row: {
           checked_at: string
@@ -2125,6 +2161,7 @@ export type Database = {
           priority_locked: boolean
           published_at: string | null
           qa_blockers: string[]
+          qa_breakdown: Json
           qa_last_checked_at: string | null
           qa_last_score: number | null
           refresh_reason: string | null
@@ -2169,6 +2206,7 @@ export type Database = {
           priority_locked?: boolean
           published_at?: string | null
           qa_blockers?: string[]
+          qa_breakdown?: Json
           qa_last_checked_at?: string | null
           qa_last_score?: number | null
           refresh_reason?: string | null
@@ -2213,6 +2251,7 @@ export type Database = {
           priority_locked?: boolean
           published_at?: string | null
           qa_blockers?: string[]
+          qa_breakdown?: Json
           qa_last_checked_at?: string | null
           qa_last_score?: number | null
           refresh_reason?: string | null
