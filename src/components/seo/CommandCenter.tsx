@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2, TrendingUp, TrendingDown, ExternalLink, AlertTriangle,
   CheckCircle2, AlertCircle, Sparkles, FileText, MapPin, Package,
-  Wrench, Eye, Phone, MessageCircle, Send, RefreshCw, Search,
+  Wrench, Eye, Phone, MessageCircle, Send, RefreshCw, Search, Wand2,
 } from "lucide-react";
+import { toast } from "sonner";
+import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import StrategicReport from "@/components/seo/StrategicReport";
 import CoverageOverview from "@/components/seo/CoverageOverview";
 import WaveRunner from "@/components/seo/WaveRunner";
@@ -30,6 +32,7 @@ type Health = "green" | "yellow" | "red";
 export default function CommandCenter() {
   const [loading, setLoading] = useState(true);
   const { stats, error: statsError, reload: reloadStats } = useSeoStats();
+  const [optimizing, setOptimizing] = useState(false);
   const [pages, setPages] = useState<PageRow[]>([]);
   const [gsc, setGsc] = useState<Map<string, GscRow>>(new Map());
   const [events, setEvents] = useState<Map<string, { view: number; phone: number; whatsapp: number; submission: number; cta: number }>>(new Map());
@@ -76,6 +79,22 @@ export default function CommandCenter() {
     setBlogPosts((blogRes.data ?? []) as typeof blogPosts);
     setBrokenLinks(brokenRes.count ?? 0);
     setLoading(false);
+  }
+
+  async function optimizeAll() {
+    if (!confirm("Lancer l'optimisation automatique de toutes les pages sous 90/100 ?\n\nJusqu'à 100 pages seront corrigées en arrière-plan (métadonnées, FAQ, liens internes, contenu). Cela peut prendre plusieurs minutes.")) return;
+    setOptimizing(true);
+    try {
+      const { data, error } = await invokeWithFreshSession("seo-optimize-all", { threshold: 90, max: 100 });
+      if (error) throw new Error(error.message);
+      const d = data as { ok?: boolean; queued?: number; error?: string };
+      if (d.error) throw new Error(d.error);
+      toast.success(`Optimisation lancée sur ${d.queued ?? 0} page(s). Les scores se mettront à jour dans quelques minutes.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setOptimizing(false);
+    }
   }
 
   useEffect(() => { void loadAll(); }, []);
@@ -182,9 +201,16 @@ export default function CommandCenter() {
           <h1 className="text-2xl font-display font-extrabold text-foreground">Centre de pilotage SEO</h1>
           <p className="text-sm text-muted-foreground font-body mt-1">Vue stratégique en temps réel — où nous en sommes, ce qui fonctionne, ce qui doit être amélioré.</p>
         </div>
-        <button onClick={loadAll} className="inline-flex items-center gap-2 text-xs font-display font-semibold px-3 py-1.5 rounded-md border border-border hover:border-primary hover:text-primary">
-          <RefreshCw className="w-3.5 h-3.5" /> Actualiser
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={optimizeAll} disabled={optimizing}
+            className="inline-flex items-center gap-2 text-xs font-display font-bold px-3 py-2 rounded-md bg-primary text-primary-foreground shadow hover:opacity-90 disabled:opacity-50">
+            {optimizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+            Optimiser tout le site
+          </button>
+          <button onClick={loadAll} className="inline-flex items-center gap-2 text-xs font-display font-semibold px-3 py-1.5 rounded-md border border-border hover:border-primary hover:text-primary">
+            <RefreshCw className="w-3.5 h-3.5" /> Actualiser
+          </button>
+        </div>
       </header>
 
       <StrategicReport />
@@ -224,18 +250,13 @@ export default function CommandCenter() {
         <CoverageOverview />
       </section>
 
-      {/* Vue d'ensemble */}
+      {/* Vue d'ensemble supprimée : les chiffres consolidés sont dans « Source unique » ci-dessus.
+          On conserve ici uniquement les indicateurs qui ne sont pas déjà dans le bloc unifié. */}
       <section>
-        <SectionTitle>Vue d'ensemble</SectionTitle>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <Stat label="Total pages" value={overview.total} />
-          <Stat label="Publiées" value={overview.published} tone="good" />
-          <Stat label="Brouillons" value={overview.drafts} />
-          <Stat label="Rejetées" value={overview.rejected} tone={overview.rejected > 0 ? "warn" : undefined} />
-          <Stat label="Score SEO moyen" value={overview.seoAvg ? `${Math.round(overview.seoAvg)}/100` : "—"} />
+        <SectionTitle>Indexation Google</SectionTitle>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="Indexées Google" value={overview.indexed} tone="good" />
           <Stat label="Non indexées" value={overview.notIndexed} tone={overview.notIndexed > 0 ? "warn" : "good"} />
-          <Stat label="Score qualité (QA)" value={overview.qaAvg ? `${Math.round(overview.qaAvg)}/100` : "—"} />
           <Stat label="Dernière génération" value={fmtRel(overview.lastGen)} />
           <Stat label="Dernière indexation" value={fmtRel(overview.lastIdx)} />
         </div>
