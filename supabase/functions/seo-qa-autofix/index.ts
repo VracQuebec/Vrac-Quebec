@@ -48,16 +48,22 @@ Deno.serve(async (req) => {
   try {
     const jwt = (req.headers.get("Authorization") || "").replace("Bearer ", "");
     if (!jwt) return json({ error: "Non autorisé" }, 401);
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      serviceKey,
       { auth: { persistSession: false } },
     );
-    const { data: userData } = await supabase.auth.getUser(jwt);
-    const uid = userData?.user?.id;
-    if (!uid) return json({ error: "Session invalide" }, 401);
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: uid, _role: "admin" });
-    if (!isAdmin) return json({ error: "Réservé aux administrateurs" }, 403);
+    // Internal call from optimizer worker: bypass user check when the caller
+    // presents the service-role key. Safe because that key is server-only.
+    const isInternal = jwt === serviceKey;
+    if (!isInternal) {
+      const { data: userData } = await supabase.auth.getUser(jwt);
+      const uid = userData?.user?.id;
+      if (!uid) return json({ error: "Session invalide" }, 401);
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: uid, _role: "admin" });
+      if (!isAdmin) return json({ error: "Réservé aux administrateurs" }, 403);
+    }
 
     const body = await req.json().catch(() => ({}));
     const pageId: string | undefined = body?.page_id;
@@ -77,11 +83,13 @@ Deno.serve(async (req) => {
 
     const updates: Record<string, unknown> = {};
     const fixedActions: string[] = [];
+    let aiCalls = 0;
     const wantAll = actions.length === 0;
     const want = (k: string) => wantAll || actions.includes(k);
 
     // Regenerate FAQ
     if (want("regenerate_faq")) {
+      aiCalls++;
       const faq = await aiJson<{ faq: Array<{ question: string; answer: string }> }>(
         "Tu es un expert SEO local au Québec. Produis un JSON strict.",
         `Génère 6 questions FAQ pertinentes pour cette page. Réponses ≥ 50 mots, ton professionnel, orienté client B2B/B2C au Québec. Format JSON: { "faq": [{ "question": "...", "answer": "..." }, ...] }.\n\nContexte:\n${context}`,
@@ -94,6 +102,7 @@ Deno.serve(async (req) => {
 
     // Meta title
     if (want("rewrite_meta_title")) {
+      aiCalls++;
       const mt = await aiJson<{ meta_title: string }>(
         "SEO expert. JSON strict.",
         `Rédige un meta title unique en français (55–63 caractères), incluant ville et matériau si présents. Format: { "meta_title": "..." }.\n\n${context}`,
@@ -106,6 +115,7 @@ Deno.serve(async (req) => {
 
     // Meta description
     if (want("rewrite_meta_description")) {
+      aiCalls++;
       const md = await aiJson<{ meta_description: string }>(
         "SEO expert. JSON strict.",
         `Rédige une meta description en français (145–160 caractères) avec bénéfice concret + appel à l'action. Format: { "meta_description": "..." }.\n\n${context}`,
@@ -118,6 +128,7 @@ Deno.serve(async (req) => {
 
     // Open Graph
     if (want("rewrite_open_graph")) {
+      aiCalls++;
       const og = await aiJson<{ og_title: string; og_description: string }>(
         "SEO expert. JSON strict.",
         `Rédige un og_title (30–80 car.) et une og_description (100–180 car.) en français, orientés partage social, incluant ville et matériau si présents. Format: { "og_title": "...", "og_description": "..." }.\n\n${context}`,
@@ -132,6 +143,7 @@ Deno.serve(async (req) => {
 
     // Keywords
     if (want("generate_keywords")) {
+      aiCalls++;
       const kw = await aiJson<{ keywords: string[] }>(
         "SEO expert. JSON strict.",
         `Génère 8 mots-clés secondaires (longue traîne) en français pour le SEO local Québec. Format: { "keywords": ["...", "..."] }.\n\n${context}`,
@@ -201,6 +213,7 @@ Deno.serve(async (req) => {
 
     // Expand content / rebuild headings / readability: delegate to full improvement
     if (want("expand_content") || want("rebuild_headings") || want("improve_readability")) {
+      aiCalls++;
       const rewrite = await aiJson<{ content_html: string }>(
         "SEO expert. HTML sémantique propre. JSON strict, pas de markdown.",
         `Réécris le contenu HTML de la page pour: (1) atteindre 900–1400 mots, (2) structurer avec ≥ 4 H2 et ≥ 2 H3, (3) phrases courtes (< 25 mots). Garde le sens et le ton du texte actuel. Format: { "content_html": "<h2>...</h2>..." }.\n\nContenu actuel (HTML):\n${String(page.content_html || "").slice(0, 6000)}`,
@@ -217,7 +230,7 @@ Deno.serve(async (req) => {
     }
 
     if (Object.keys(updates).length === 0) {
-      return json({ ok: true, fixed: [], message: "Aucune correction applicable." });
+      return json({ ok: true, fixed: [], ai_calls: aiCalls, message: "Aucune correction applicable." });
     }
 
     updates.updated_at = new Date().toISOString();
@@ -229,14 +242,14 @@ Deno.serve(async (req) => {
     try {
       const qaRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/seo-qa-check`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: req.headers.get("Authorization") || "" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
         body: JSON.stringify({ page_id: pageId, enforce_draft: false }),
       });
       const qaJson = await qaRes.json().catch(() => ({}));
       if (typeof qaJson?.score === "number") newScore = qaJson.score;
     } catch { /* ignore */ }
 
-    return json({ ok: true, fixed: fixedActions, new_score: newScore });
+    return json({ ok: true, fixed: fixedActions, new_score: newScore, ai_calls: aiCalls });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }

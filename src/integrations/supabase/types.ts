@@ -1900,6 +1900,171 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_optimization_runs: {
+        Row: {
+          actions: string[]
+          ai_calls: number
+          concurrency: number
+          cost_estimate: number
+          created_at: string
+          created_by: string | null
+          done: number
+          failed: number
+          filter: Json
+          finished_at: string | null
+          force_all: boolean
+          id: string
+          last_progress_at: string
+          qa_after_avg: number | null
+          qa_before_avg: number | null
+          qa_skip_above: number
+          qa_threshold: number
+          retried: number
+          skipped: number
+          started_at: string | null
+          status: string
+          succeeded: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          actions?: string[]
+          ai_calls?: number
+          concurrency?: number
+          cost_estimate?: number
+          created_at?: string
+          created_by?: string | null
+          done?: number
+          failed?: number
+          filter?: Json
+          finished_at?: string | null
+          force_all?: boolean
+          id?: string
+          last_progress_at?: string
+          qa_after_avg?: number | null
+          qa_before_avg?: number | null
+          qa_skip_above?: number
+          qa_threshold?: number
+          retried?: number
+          skipped?: number
+          started_at?: string | null
+          status?: string
+          succeeded?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          actions?: string[]
+          ai_calls?: number
+          concurrency?: number
+          cost_estimate?: number
+          created_at?: string
+          created_by?: string | null
+          done?: number
+          failed?: number
+          filter?: Json
+          finished_at?: string | null
+          force_all?: boolean
+          id?: string
+          last_progress_at?: string
+          qa_after_avg?: number | null
+          qa_before_avg?: number | null
+          qa_skip_above?: number
+          qa_threshold?: number
+          retried?: number
+          skipped?: number
+          started_at?: string | null
+          status?: string
+          succeeded?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seo_optimization_tasks: {
+        Row: {
+          ai_calls: number
+          attempts: number
+          cost_estimate: number
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          finished_at: string | null
+          fixed_actions: string[]
+          id: string
+          last_error_at: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          page_id: string
+          qa_after: number | null
+          qa_before: number | null
+          run_id: string
+          skip_reason: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ai_calls?: number
+          attempts?: number
+          cost_estimate?: number
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          finished_at?: string | null
+          fixed_actions?: string[]
+          id?: string
+          last_error_at?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          page_id: string
+          qa_after?: number | null
+          qa_before?: number | null
+          run_id: string
+          skip_reason?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_calls?: number
+          attempts?: number
+          cost_estimate?: number
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          finished_at?: string | null
+          fixed_actions?: string[]
+          id?: string
+          last_error_at?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          page_id?: string
+          qa_after?: number | null
+          qa_before?: number | null
+          run_id?: string
+          skip_reason?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_optimization_tasks_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_optimization_tasks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "seo_optimization_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_page_analytics: {
         Row: {
           analyzed_at: string
@@ -3401,6 +3566,27 @@ export type Database = {
         }[]
       }
       seo_dashboard_stats: { Args: never; Returns: Json }
+      seo_optimization_cancel: { Args: { _run_id: string }; Returns: undefined }
+      seo_optimization_pause: { Args: { _run_id: string }; Returns: undefined }
+      seo_optimization_resume: { Args: { _run_id: string }; Returns: undefined }
+      seo_optimization_retry_errors: {
+        Args: { _run_id: string }
+        Returns: number
+      }
+      seo_optimization_start: {
+        Args: {
+          _actions?: string[]
+          _city_slugs?: string[]
+          _concurrency?: number
+          _force_all?: boolean
+          _limit?: number
+          _skip_above?: number
+          _threshold?: number
+        }
+        Returns: string
+      }
+      seo_optimization_state: { Args: never; Returns: Json }
+      seo_optimization_watchdog: { Args: never; Returns: number }
       seo_pipeline_cancel: { Args: { _run_id: string }; Returns: undefined }
       seo_pipeline_pause: { Args: { _run_id: string }; Returns: undefined }
       seo_pipeline_purge_stale: { Args: never; Returns: number }
