@@ -189,6 +189,8 @@ export default function CommandCenter() {
 
       <StrategicReport />
 
+      <PipelineControlCenter />
+
       <WaveRunner />
 
       {stats && (
