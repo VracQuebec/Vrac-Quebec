@@ -55,24 +55,49 @@ export default function AdminSeoManager() {
   }, [authReady, user, isAdmin, roleLoading, navigate]);
   if (!isAdmin) return null;
 
-  const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
-    { id: "dashboard", label: "Centre de pilotage", icon: LayoutDashboard },
-    { id: "assistant", label: "Assistant IA", icon: Sparkles },
-    { id: "production", label: "File de production", icon: Play },
-    { id: "goals", label: "Objectifs", icon: TrendingUp },
-    { id: "competitors", label: "Concurrents", icon: SearchIcon },
-    { id: "pages", label: "Pages", icon: ListChecks },
-    { id: "coverage", label: "Couverture", icon: LayoutDashboard },
-    { id: "conversions", label: "Conversions", icon: TrendingUp },
-    { id: "cities", label: "Villes", icon: MapPin },
-    { id: "materials", label: "Matériaux", icon: Package },
-    { id: "uses", label: "Usages", icon: Wrench },
-    { id: "services", label: "Services", icon: Wrench },
-    { id: "generator", label: "Générateur", icon: Sparkles },
-    { id: "analytics", label: "Analyse SEO", icon: Gauge },
-    { id: "gsc", label: "Search Console", icon: TrendingUp },
-    { id: "suggestions", label: "Suggestions", icon: Lightbulb },
-    { id: "blog", label: "Blogue", icon: FileText },
+  const tabGroups: Array<{ title: string; tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> }> = [
+    {
+      title: "Pilotage",
+      tabs: [
+        { id: "dashboard", label: "Centre de pilotage", icon: LayoutDashboard },
+        { id: "production", label: "File de production", icon: Play },
+      ],
+    },
+    {
+      title: "Pages & performance",
+      tabs: [
+        { id: "pages", label: "Pages", icon: ListChecks },
+        { id: "analytics", label: "Analyse SEO", icon: Gauge },
+        { id: "gsc", label: "Search Console", icon: TrendingUp },
+        { id: "conversions", label: "Conversions", icon: TrendingUp },
+      ],
+    },
+    {
+      title: "Couverture & objectifs",
+      tabs: [
+        { id: "coverage", label: "Couverture", icon: LayoutDashboard },
+        { id: "goals", label: "Objectifs", icon: TrendingUp },
+        { id: "competitors", label: "Concurrents", icon: SearchIcon },
+      ],
+    },
+    {
+      title: "Intelligence",
+      tabs: [
+        { id: "assistant", label: "Assistant IA", icon: Sparkles },
+        { id: "suggestions", label: "Suggestions", icon: Lightbulb },
+      ],
+    },
+    {
+      title: "Contenu & référentiels",
+      tabs: [
+        { id: "generator", label: "Générateur", icon: Sparkles },
+        { id: "blog", label: "Blogue", icon: FileText },
+        { id: "cities", label: "Villes", icon: MapPin },
+        { id: "materials", label: "Matériaux", icon: Package },
+        { id: "uses", label: "Usages", icon: Wrench },
+        { id: "services", label: "Services", icon: Wrench },
+      ],
+    },
   ];
 
   return (
@@ -86,14 +111,21 @@ export default function AdminSeoManager() {
         </div>
       </header>
       <div className="container mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6">
-        <nav className="flex md:flex-col gap-1 md:sticky md:top-20 h-fit overflow-x-auto">
-          {tabs.map((t) => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-display font-semibold whitespace-nowrap ${
-                tab === t.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
-              }`}>
-              <t.icon className="w-4 h-4" /> {t.label}
-            </button>
+        <nav className="flex md:flex-col gap-1 md:sticky md:top-20 h-fit overflow-x-auto md:overflow-visible">
+          {tabGroups.map((group) => (
+            <div key={group.title} className="md:mb-3 flex md:block gap-1">
+              <div className="hidden md:block text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground/70 px-3 pt-1 pb-1">
+                {group.title}
+              </div>
+              {group.tabs.map((t) => (
+                <button key={t.id} onClick={() => setTab(t.id)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-display font-semibold whitespace-nowrap ${
+                    tab === t.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+                  }`}>
+                  <t.icon className="w-4 h-4" /> {t.label}
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
         <main>

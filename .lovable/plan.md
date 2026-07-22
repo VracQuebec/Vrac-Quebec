@@ -1,92 +1,111 @@
 
-# Refonte pipeline SEO — Génération ville par ville
+# Refonte SEO Manager — Plateforme de pilotage professionnelle
 
-Objectif : remplacer la génération "par vagues de N pages" par une **pipeline par ville**, séquentielle, contrôlable, reprise-après-crash, et scalable à plusieurs milliers de pages.
+Objectif : transformer le SEO Manager actuel (fonctionnel mais fragmenté) en un outil unifié, sans doublons, avec QA transparent, corrections en 1 clic (page + site), suggestions priorisées, projections de couverture, suivi de conversions par page, conseiller IA hebdomadaire, et pipeline scalable.
 
-## 1. Modèle de données (migration)
+L'infra existe déjà en grande partie (pipeline V2, QA autofix, mesh blog, business metrics, events, recommandations). Ce plan **consolide** au lieu de reconstruire.
 
-Nouvelles tables :
+---
 
-- **`seo_pipeline_runs`** — un run global (ex. « Générer tout »).
-  - `id`, `status` (queued/running/paused/stopped/completed/failed), `mode` (all_cities / single_city / retry_errors), `city_slugs[]`, `qa_threshold` (défaut 90), `max_retries` (défaut 3), `page_timeout_ms` (défaut 60000), progression agrégée, `created_by`, timestamps.
+## 1. Nettoyage du tableau de bord (source unique)
 
-- **`seo_city_batches`** — un batch = une ville dans un run.
-  - `id`, `run_id`, `city_slug`, `status` (queued/running/paused/qa/fixing/publishing/completed/failed), compteurs (`total`, `done`, `succeeded`, `failed`, `retries`), `sitemap_updated_at`, timestamps.
+- Supprimer les compteurs redondants dans `CommandCenter.tsx`, `CoverageOverview.tsx`, `WaveRunner.tsx`, `HealthScoreGauge.tsx`.
+- Une seule RPC `seo_dashboard_v2()` retourne : totaux (pages, publiées, drafts, needs-fix), QA moyen, couverture (villes/matériaux/services/combos), pipeline actif, top 10 recos, projections, conversions 30j.
+- Nouveau layout `AdminSeoManager.tsx` avec 5 onglets seulement : **Pilotage · Pages · Couverture · Suggestions · Conseiller IA**. Retirer les onglets qui recoupent (Conversions fusionne dans Pilotage, Waves fusionne dans Pilotage).
 
-- **`seo_page_tasks`** — file d'attente unitaire (une page à faire).
-  - `id`, `batch_id`, `city_slug`, `material_slug?`, `service_slug?`, `kind` (generate/qa/autofix/publish), `status` (queued/running/succeeded/failed/needs_retry/skipped), `attempts`, `last_error`, `page_id?`, `qa_score?`, `started_at`, `finished_at`, `next_attempt_at`.
-  - Index unique partiel `(batch_id, city_slug, material_slug, service_slug, kind)` pour empêcher doublons.
+## 2. Score QA transparent
 
-Vue **`seo_pipeline_live_v`** : agrège run → batches → tasks pour le dashboard.
+- Refondre `seo-qa-check` avec **11 critères pondérés** (contenu, H1, H2, title, meta desc, OG, FAQ, schema.org, liens internes, longueur, duplication, optimisation locale ville+matériau).
+- Chaque critère renvoie `{ id, label, weight, passed, score, details, fixable }`.
+- Stocker le détail dans `seo_pages.qa_breakdown jsonb`.
+- Nouveau composant `QaBreakdown.tsx` : liste visuelle « pourquoi cette note », avec badges verts/rouges par critère.
 
-## 2. Orchestration (edge functions)
+## 3. Bouton « Corriger automatiquement » (par page)
 
-Remplace la logique « lancer 300 pages à la fois » par un **worker séquentiel** :
+- Un seul CTA sur chaque ligne + dans la fiche page.
+- Enchaîne : QA → autofix ciblé sur critères ratés (métadonnées, FAQ, contenu, liens internes, OG) → re-QA → sauvegarde.
+- Étend `seo-qa-autofix` pour couvrir Open Graph et schema.org (manquants aujourd'hui).
+- Feedback temps réel : progression + nouveau score.
 
-- **`seo-pipeline-orchestrator`** (nouvelle)
-  - Idempotente. Appelée en boucle (client polling + cron watchdog).
-  - Sélectionne le run actif non pausé, la prochaine ville `queued`, matérialise ses `seo_page_tasks` (matériaux × services de la ville, plus la page hub), passe le batch en `running`.
-  - Pour cette ville : boucle **une page à la fois** — `generate` → `qa` → si score < seuil `autofix` → `qa` → `publish`. Chaque étape est une tâche persistée.
-  - Timeout dur 60 s par page (via `Promise.race`) ; échec → `attempts++`, remis en queue avec back-off exponentiel jusqu'à `max_retries`, puis marquée `needs_retry`.
-  - Quand toutes les tâches de la ville sont `succeeded`/`skipped`/`needs_retry` : régénère le sitemap (`seo-sitemap-refresh`) et passe le batch `completed`. Puis passe à la ville suivante.
-  - Respecte `status = paused/stopped` à chaque itération (arrêt immédiat entre pages).
+## 4. « Optimiser tout le site » (global)
 
-- **`seo-pipeline-supervisor`** (existante, étendue)
-  - Cron 1 min : détecte tâches `running` > 90 s → repasse `queued`. Détecte runs `running` sans progression > 3 min → relance l'orchestrateur. Merge doublons.
+- Nouveau bouton dans Pilotage → lance un run `seo_pipeline_start('optimize_all')`.
+- Sélectionne toutes les pages publiées avec `qa_last_score < 90` OU métadonnées manquantes OU < 5 liens internes.
+- Traitement en lot via l'orchestrator existant (pas de nouveau moteur).
+- Progression visible dans `PipelineControlCenter`.
 
-- **`seo-sitemap-refresh`** (nouvelle, légère) — régénère `sitemap.xml` pour une ville / global.
+## 5. Suggestions intelligentes (top 10)
 
-Réutilise `seo-generate-page`, `seo-qa-check`, `seo-qa-autofix` existantes ; l'orchestrateur les appelle une par une.
+- Utiliser la table `seo_recommendations` existante.
+- Nouveau composant `TopActionsPanel.tsx` : 10 recos triées par `impact/effort` avec priorité, trafic estimé, difficulté.
+- Bouton « Appliquer » par reco (déjà via `RecommendationCard`).
+- Job hebdo `seo-suggest-pages` (existe) recalcule.
 
-## 3. RPC de contrôle (SQL)
+## 6. Couverture territoriale avec projections
 
-- `seo_pipeline_start(mode, city_slugs, qa_threshold)` — crée run + batches `queued`.
-- `seo_pipeline_pause(run_id)` / `seo_pipeline_resume(run_id)` / `seo_pipeline_stop(run_id)` / `seo_pipeline_cancel(run_id)`.
-- `seo_pipeline_retry_errors(run_id | batch_id)` — repasse les `needs_retry`/`failed` en `queued` et reset `attempts`.
-- `seo_pipeline_regenerate_city(city_slug)` — nouveau run mode `single_city`, force regénération.
-- `seo_pipeline_republish_city(city_slug)` — crée batch avec tâches `publish` uniquement.
-- `seo_pipeline_state_v2()` — snapshot complet pour le dashboard.
+- Étendre `seo_dashboard_stats` pour calculer, pour chaque item manquant :
+  - pages générables = N combinaisons
+  - impressions estimées = population × ratio search × CTR moyen catégorie
+  - clics estimés = impressions × CTR pos moyenne
+- Nouveau composant `CoverageProjections.tsx` : par bloc (villes / matériaux / services / combos / articles) : « +X pages · +Y impr/mois · +Z clics/mois ».
+- CTA « Créer ces N pages » → lance la génération ciblée.
 
-Admin-only (via `has_role`).
+## 7. Suivi réel des conversions par page
 
-## 4. Reprise après crash
+- La table `seo_page_events` existe déjà (view, phone_click, whatsapp_click, submission, cta_click).
+- Ajouter tracking `email_click` dans `logSeoEvent` + boutons courriel du site public.
+- Nouvelle vue matérialisée `seo_page_conversions_30d` : par page → views, phone, whatsapp, email, submissions, ratio conv.
+- Colonne « Conversions » dans la table des pages + agrégat dans Pilotage.
 
-Aucun état en mémoire : tout vit dans `seo_pipeline_runs` / `seo_city_batches` / `seo_page_tasks`. Au démarrage l'orchestrateur reprend simplement la prochaine tâche `queued`. Les tâches `succeeded` ne sont jamais rejouées. Le cron supervisor garantit la relance même si personne n'a le dashboard ouvert.
+## 8. Conseiller IA hebdomadaire
 
-## 5. Frontend — Centre de pilotage V2
+- Nouvelle table `seo_advisor_reports` (weekly digest).
+- Edge function `seo-advisor-weekly` (pg_cron dimanche 6h) qui utilise Gemini pour produire :
+  - résumé de la semaine (delta pages, QA, trafic)
+  - problèmes détectés
+  - pages à créer / améliorer
+  - villes/matériaux/articles à ajouter
+  - gain SEO estimé
+- Nouvel onglet **Conseiller IA** : dernier rapport + historique + bouton « Générer maintenant ».
 
-Refonte de `src/components/seo/WaveRunner.tsx` → nouveau composant **`PipelineControlCenter.tsx`** :
+## 9. Performance (scalabilité milliers de pages)
 
-- Header : bouton **🚀 Générer tout** + ⏸ Pause / ▶ Reprendre / ⏹ Arrêter / ↻ Relancer erreurs.
-- Barre globale : ville en cours, pages faites / total, vitesse (p/min), ETA, réussites / échecs / retries, QA moyen.
-- Liste des villes (une carte par ville) :
-  - État visuel : ✅ 100 % • 🔄 62 % • ⏳ En attente • ⚠ Erreurs
-  - Actions par ville : Voir logs, Pause, Reprendre, Regénérer, Republier, Voir erreurs.
-- Onglet Logs (temps réel via Supabase Realtime sur `seo_page_tasks`).
-- Onglet À reprendre (tâches `needs_retry`).
+L'infra est déjà là : `seo_pipeline_runs`, batches, tasks, watchdog, cron supervisor. Ajustements :
+- Index manquants sur `seo_pages(status, qa_last_score)`, `seo_page_events(page_slug, created_at)`.
+- Pagination serveur dans la table des pages (actuellement client-side).
+- Cache mémoire 30s côté RPC dashboard.
+- Batch size dynamique dans l'orchestrator selon la charge.
 
-Nouveau hook `useSeoPipelineV2()` qui consomme `seo_pipeline_state_v2()` + Realtime.
+---
 
-Un **client-side poker** (fetch orchestrator toutes les 3-5 s pendant qu'un run est actif) déclenche la progression sans dépendre uniquement du cron.
+## Détails techniques
 
-## 6. Détails techniques
+**Migrations SQL**
+- `seo_pages.qa_breakdown jsonb`
+- `seo_advisor_reports` (id, generated_at, summary, issues, opportunities, estimated_gain, report_md)
+- Vue matérialisée `seo_page_conversions_30d` + refresh cron 15 min
+- Index perf
+- RPC `seo_dashboard_v2()` + `seo_coverage_projections()`
 
-- Contrainte unique partielle `WHERE status IN ('queued','running')` sur `seo_page_tasks` pour empêcher doublons.
-- Back-off : 5 s, 20 s, 60 s.
-- Sitemap régénéré une seule fois par ville terminée, puis un rebuild global à la fin du run.
-- Toutes les RPC/tables : GRANT approprié (`authenticated` pour lecture admin, `service_role` complet).
-- Realtime activé sur `seo_pipeline_runs`, `seo_city_batches`, `seo_page_tasks`.
-- Aucune modification des tables `seo_pages` existantes (compatibilité totale avec pages déjà publiées).
+**Edge functions**
+- Refonte `seo-qa-check` (critères pondérés + breakdown)
+- Extension `seo-qa-autofix` (OG + schema.org)
+- Nouvelle `seo-advisor-weekly`
+- Mode `optimize_all` dans `seo-pipeline-orchestrator`
 
-## 7. Migration douce
+**Frontend**
+- `AdminSeoManager.tsx` : 5 onglets, layout consolidé
+- Nouveaux : `QaBreakdown.tsx`, `TopActionsPanel.tsx`, `CoverageProjections.tsx`, `AdvisorPanel.tsx`
+- Retrait : composants doublons (compteurs répétés)
+- Table pages : pagination serveur, colonne Conversions, bouton « Corriger » unifié
+- Tracking `email_click` ajouté à `src/lib/seo/tracking.ts` + boutons mailto sur pages publiques
 
-L'ancien `WaveRunner` reste accessible en mode legacy le temps de valider la V2, puis sera retiré dans une seconde passe.
+---
 
-## Fichiers touchés
+## Livraison en 3 phases
 
-- Migration : nouvelles tables, index, RPC, activation Realtime, GRANTs, cron supervisor.
-- Nouvelles edge functions : `seo-pipeline-orchestrator/index.ts`, `seo-sitemap-refresh/index.ts`.
-- Edge functions modifiées : `seo-pipeline-supervisor/index.ts`.
-- Frontend : `src/components/seo/PipelineControlCenter.tsx` (nouveau), `src/lib/seo/useSeoPipelineV2.ts` (nouveau), intégration dans `src/components/seo/CommandCenter.tsx`.
+1. **Consolidation** (nettoyage doublons, RPC unique, QA breakdown, bouton corriger unifié) — base saine.
+2. **Intelligence** (projections couverture, top actions, tracking conversions étendu, optimize_all).
+3. **Conseiller IA + perf** (rapport hebdo, index/pagination/cache).
 
-Une fois ce plan approuvé, j'exécute la migration en premier (approbation séparée), puis les edge functions, puis l'UI.
+Chaque phase est livrable indépendamment et laisse le module utilisable.

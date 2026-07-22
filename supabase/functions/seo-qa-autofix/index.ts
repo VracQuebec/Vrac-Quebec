@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
 
     const { data: page, error: pErr } = await supabase
       .from("seo_pages")
-      .select("id, slug, title, meta_title, meta_description, content_html, intro, faq, internal_links, keywords, city_slug, material_slug, service_slug")
+      .select("id, slug, title, meta_title, meta_description, content_html, intro, faq, internal_links, keywords, city_slug, material_slug, service_slug, og_title, og_description")
       .eq("id", pageId)
       .maybeSingle();
     if (pErr || !page) return json({ error: pErr?.message || "Page introuvable" }, 404);
@@ -113,6 +113,20 @@ Deno.serve(async (req) => {
       if (typeof md.meta_description === "string" && md.meta_description.length >= 140 && md.meta_description.length <= 165) {
         updates.meta_description = md.meta_description;
         fixedActions.push("rewrite_meta_description");
+      }
+    }
+
+    // Open Graph
+    if (want("rewrite_open_graph")) {
+      const og = await aiJson<{ og_title: string; og_description: string }>(
+        "SEO expert. JSON strict.",
+        `Rédige un og_title (30–80 car.) et une og_description (100–180 car.) en français, orientés partage social, incluant ville et matériau si présents. Format: { "og_title": "...", "og_description": "..." }.\n\n${context}`,
+      );
+      if (typeof og.og_title === "string" && og.og_title.length >= 20 && og.og_title.length <= 90
+          && typeof og.og_description === "string" && og.og_description.length >= 60 && og.og_description.length <= 200) {
+        updates.og_title = og.og_title;
+        updates.og_description = og.og_description;
+        fixedActions.push("rewrite_open_graph");
       }
     }
 
