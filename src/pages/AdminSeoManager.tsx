@@ -15,12 +15,13 @@ import CoverageMatrix from "@/components/seo/CoverageMatrix";
 import ConversionsTable from "@/components/seo/ConversionsTable";
 import CommandCenter from "@/components/seo/CommandCenter";
 import ImproveDialog from "@/components/seo/ImproveDialog";
+import OptimizationEngine from "@/components/seo/OptimizationEngine";
 import RecommendationCard, { type Reco } from "@/components/seo/RecommendationCard";
 import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
 import GoalCard, { type Goal } from "@/components/seo/GoalCard";
 import QaReportBadge from "@/components/seo/QaReportBadge";
 
-type Tab = "dashboard" | "assistant" | "production" | "goals" | "competitors" | "pages" | "coverage" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
+type Tab = "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "coverage" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
 
 type City = {
   id: string; slug: string; name: string; region: string;
@@ -61,6 +62,7 @@ export default function AdminSeoManager() {
       tabs: [
         { id: "dashboard", label: "Centre de pilotage", icon: LayoutDashboard },
         { id: "production", label: "File de production", icon: Play },
+        { id: "optimizer", label: "Moteur d'optimisation", icon: Zap },
       ],
     },
     {
@@ -132,6 +134,7 @@ export default function AdminSeoManager() {
           {tab === "dashboard" && <CommandCenter />}
           {tab === "assistant" && <AssistantTab />}
           {tab === "production" && <ProductionTab />}
+          {tab === "optimizer" && <OptimizationEngine />}
           {tab === "goals" && <GoalsTab />}
           {tab === "competitors" && <CompetitorsTab />}
           {tab === "pages" && <PagesTab />}
