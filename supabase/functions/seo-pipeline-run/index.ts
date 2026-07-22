@@ -265,6 +265,7 @@ Deno.serve(async (req) => {
 
     let combinations: Array<{ city_slug: string; material_slug: string | null; service_slug: string | null }> = [];
     let toPublishIds: string[] = [];
+    let draftIds: string[] = [];
 
     if (mode === "generate" || mode === "pipeline") {
       const [{ data: cities }, { data: mats }, { data: svcs }, { data: existingPages }] = await Promise.all([
@@ -295,6 +296,15 @@ Deno.serve(async (req) => {
         }
       }
       combinations = combinations.slice(0, limitCombinations);
+
+      // Pipeline mode also reprocesses existing drafts (QA → autofix → publish).
+      // Without this, once every combination has a page, the queue is always empty even if drafts remain.
+      if (mode === "pipeline") {
+        let draftQuery = supabase.from("seo_pages").select("id, wave").eq("status", "draft");
+        if (wave) draftQuery = draftQuery.eq("wave", wave);
+        const { data: drafts } = await draftQuery.limit(1000);
+        draftIds = (drafts ?? []).map((r: { id: string }) => r.id);
+      }
     }
 
     if (mode === "publish") {
@@ -304,7 +314,11 @@ Deno.serve(async (req) => {
       toPublishIds = (data ?? []).map((row: { id: string }) => row.id);
     }
 
-    const items: Target[] = mode === "publish" ? toPublishIds : combinations;
+    const items: Target[] = mode === "publish"
+      ? toPublishIds
+      : mode === "pipeline"
+        ? [...combinations, ...draftIds]
+        : combinations;
     const total = items.length;
     if (total === 0) return json({ ok: true, empty: true, message: "Rien à traiter." });
 
@@ -383,7 +397,8 @@ Deno.serve(async (req) => {
         await markStep(supabase, jobId, target, step, attempt);
 
         const run = async () => {
-          if (mode === "generate" || mode === "pipeline") {
+          const isExistingPage = typeof target === "string";
+          if (!isExistingPage && (mode === "generate" || mode === "pipeline")) {
             step = "génération";
             await markStep(supabase, jobId, target, step, attempt);
             const genRes = await callFn("seo-generate-page", target, authHeader, step, STEP_TIMEOUT_MS);
@@ -418,6 +433,8 @@ Deno.serve(async (req) => {
               await publishPage(supabase, pageId);
             }
           } else {
+            // Existing page (draft) path — used by mode=publish and by mode=pipeline
+            // when reprocessing pre-existing drafts.
             step = "QA";
             await markStep(supabase, jobId, target, step, attempt);
             const qa = await callFn("seo-qa-check", { page_id: pageId, threshold: qaThreshold, enforce_draft: true }, authHeader, step, STEP_TIMEOUT_MS);
@@ -434,7 +451,13 @@ Deno.serve(async (req) => {
               const recheck = await callFn("seo-qa-check", { page_id: pageId, threshold: qaThreshold, enforce_draft: true }, authHeader, step, STEP_TIMEOUT_MS);
               const reScore = (recheck as { score?: number })?.score ?? 0;
               const reBlockers = ((recheck as { blockers?: unknown[] })?.blockers?.length ?? 0) > 0;
-              if (reScore < qaThreshold || reBlockers) throw new Error(`QA insuffisant après correction (${reScore}/100)`);
+              if (reScore < qaThreshold || reBlockers) {
+                if (mode === "pipeline") {
+                  // Don't hard-fail during a broad pipeline sweep: leave the page as draft for the next run.
+                  return;
+                }
+                throw new Error(`QA insuffisant après correction (${reScore}/100)`);
+              }
             }
             step = "publication";
             await markStep(supabase, jobId, target, step, attempt);

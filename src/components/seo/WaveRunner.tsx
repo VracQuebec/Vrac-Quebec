@@ -147,6 +147,15 @@ export default function WaveRunner() {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {newestJob && <LogsDialog job={newestJob} />}
+          <button
+            onClick={() => launch("pipeline", null)}
+            disabled={running !== null}
+            title="Reconstruit la file à partir de l'état réel de la base : combinaisons manquantes + brouillons à corriger/publier."
+            className="inline-flex items-center gap-2 rounded-md border border-primary/40 px-3 py-1.5 text-xs font-display font-semibold text-primary hover:bg-primary/10 disabled:opacity-50"
+          >
+            {running === "pipeline-all" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+            Recalculer & relancer
+          </button>
           <label className="flex items-center gap-2 text-xs font-display font-semibold cursor-pointer">
             <input type="checkbox" checked={autoPipeline} onChange={(e) => setAutoPipeline(e.target.checked)} className="accent-primary" />
             Pipeline automatique
