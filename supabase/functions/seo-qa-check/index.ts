@@ -15,6 +15,15 @@ const json = (b: unknown, s = 200) =>
 function stripHtml(html: string): string {
   return (html || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
+function normalize(text: string): string {
+  return (text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+function containsWord(haystack: string, needle: string): boolean {
+  const h = normalize(haystack);
+  const n = normalize(needle);
+  if (!n) return false;
+  return h.includes(n);
+}
 function countWords(html: string): number {
   const t = stripHtml(html);
   return t ? t.split(" ").length : 0;
