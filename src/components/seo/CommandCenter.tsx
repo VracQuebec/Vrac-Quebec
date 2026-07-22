@@ -9,6 +9,7 @@ import {
 import StrategicReport from "@/components/seo/StrategicReport";
 import CoverageOverview from "@/components/seo/CoverageOverview";
 import WaveRunner from "@/components/seo/WaveRunner";
+import PipelineControlCenter from "@/components/seo/PipelineControlCenter";
 import { useSeoStats } from "@/lib/seo/useSeoStats";
 
 type PageRow = {
@@ -187,6 +188,8 @@ export default function CommandCenter() {
       </header>
 
       <StrategicReport />
+
+      <PipelineControlCenter />
 
       <WaveRunner />
 
