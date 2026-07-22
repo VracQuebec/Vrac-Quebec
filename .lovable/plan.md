@@ -1,98 +1,89 @@
-# Fiabilisation complète du pipeline SEO
+# Maillage intelligent Blogue ↔ SEO
 
-Objectif : un système de production unique, cohérent en temps réel, sans doublon ni blocage.
+Objectif : connecter automatiquement les 200 articles du blogue aux bonnes pages SEO (ville/matériau/service), maintenir le maillage à chaque nouvel ajout, et fournir un tableau de bord avec un bouton unique « Analyser et rattacher ».
 
-## 1. Source de vérité unique (`seo_pipeline_state`)
+## 1. Base de données (migration)
 
-Nouvelle vue matérialisée + RPC `seo_pipeline_state()` qui agrège en un seul appel :
-- job actif (une seule ligne max, verrou applicatif),
-- stats live (pages générées/publiées, couverture, QA moy., score SEO, gain estimé),
-- métriques de progression (vitesse pages/min, ETA, étape en cours),
-- 5 derniers jobs terminés (archivés).
+Nouvelle table `blog_seo_links` (source unique du maillage) :
+- `blog_post_id` → `blog_posts.id`
+- `seo_page_id` → `seo_pages.id`
+- `relevance_score` (0–100)
+- `match_reasons` (jsonb : ville, matériau, service, mots‑clés)
+- `link_direction` (`both` / `blog_to_seo` / `seo_to_blog`)
+- `auto_generated` (bool), `confirmed_by_admin` (bool)
+- Contrainte unique (blog_post_id, seo_page_id)
+- RLS admin only + GRANT
 
-Le Centre de pilotage (`CommandCenter`), `StrategicReport`, `WaveRunner` et `useSeoStats` liront tous **uniquement** cette RPC. Suppression des sources parallèles pour éliminer les incohérences.
+Nouvelle table `blog_mesh_runs` (historique + rapport) :
+- `stats` jsonb (analysés, reliés, orphelins, liens créés, opportunités)
+- `orphan_post_ids` uuid[], `opportunities` jsonb
+- `status`, `started_at`, `finished_at`, `error`
 
-## 2. Déduplication garantie
+Ajout à `blog_posts` :
+- `mesh_analyzed_at timestamptz`
+- `mesh_score int` (score de rattachement 0–100)
 
-- Contrainte `UNIQUE` partielle sur `seo_generation_jobs (mode, wave) WHERE status = 'running'` — impossible d'avoir deux jobs actifs identiques.
-- Lors du `launch()`, `INSERT ... ON CONFLICT DO NOTHING` puis retour du job existant si conflit ; toast "Un job identique tourne déjà".
-- Purge auto au démarrage : les jobs `running` dont `last_progress_at < now() - 3 min` passent en `failed_with_retries` avant tout nouveau lancement.
+RPC `blog_mesh_stats()` (admin) → { total, linked, orphan, links_total, opportunities, avg_mesh_score }.
 
-## 3. Rapports en temps réel
+## 2. Edge function `blog-mesh-analyze`
 
-`seo-strategic-report` (et son affichage) intègre le job actif :
-- ajoute `in_progress.pages_generating`, `in_progress.percent`, `in_progress.eta_seconds` au payload,
-- projections recalculées avec les pages déjà générées dans le job courant (jamais "0 nouvelles pages" pendant un run).
+Un seul endpoint qui accepte `{ post_ids?: uuid[], mode: 'all' | 'orphans' | 'single' }`.
 
-Rafraîchissement automatique du rapport toutes les 10 s tant qu'un job tourne (via Realtime sur `seo_generation_jobs`).
+Algorithme (sans appel LLM par défaut, rapide et déterministe) :
+1. Charger toutes les `seo_pages` publiées avec `city_slug`, `material_slug`, `service_slug`, `title`, `meta_description`.
+2. Charger les articles ciblés (titre + excerpt + contenu texte + tags + catégorie).
+3. Normaliser (unaccent, lowercase) et scorer chaque paire :
+   - +40 si ville détectée dans texte article
+   - +30 si matériau détecté
+   - +20 si service détecté
+   - +10 par mot‑clé partagé (max 20)
+   - bonus si présent dans titre
+4. Garder les paires ≥ seuil (par défaut 45), max 5 pages SEO par article.
+5. Upsert dans `blog_seo_links` (auto_generated=true, ne pas écraser les `confirmed_by_admin`).
+6. Nettoyer les anciens liens auto devenus non pertinents.
+7. Identifier orphelins et produire opportunités (article sans page SEO cible → suggérer création page ville/matériau manquante ; page SEO sans article → suggérer nouveau sujet).
+8. Écrire un `blog_mesh_runs`.
 
-## 4. Synchronisation automatique par page
+Option `useAi=true` (fallback) : appelle Lovable AI (`google/gemini-3.6-flash`) uniquement sur les articles à score faible pour proposer un rattachement ou un plan d'amélioration.
 
-Dans `seo-pipeline-run`, après **chaque** page traitée (succès ou échec) :
-- appel `refresh_seo_aggregates()` (RPC légère qui met à jour `seo_pages` compteurs + `seo_goals` progrès + moyennes QA/score),
-- broadcast Realtime sur `seo_generation_jobs` déclenche le re-fetch côté client de `useSeoStats`.
+## 3. Injection automatique des liens internes
 
-Résultat : couverture, objectifs, QA moyenne et recommandations bougent en direct.
+- **SEO → Blogue** : `SeoLandingPage.tsx` charge via `blog_seo_links` les 3–6 articles reliés à la page et les affiche dans `InternalLinksBlock`.
+- **Blogue → SEO** : `BlogPost.tsx` affiche un bloc « Pages liées » en fin d'article (pages SEO reliées).
+- **Articles connexes** : `fetchRelatedPosts` étendu pour compléter avec des articles partageant les mêmes pages SEO quand la catégorie ne suffit pas.
 
-## 5. Historique propre
+Aucune modification du HTML stocké des articles : les liens sont rendus au moment de l'affichage (pas de pollution du contenu).
 
-- Trigger `seo_jobs_dedupe_history` : à la clôture d'un job, tous les jobs antérieurs de même `(mode, wave)` en état terminal sont supprimés sauf le plus récent.
-- La liste "Derniers rapports" du `WaveRunner` lit une vue `seo_recent_jobs_v` qui déduplique par `(mode, wave)` et garde la dernière ligne.
+## 4. Trigger de maintenance
 
-## 6. Progression réelle
+Trigger AFTER INSERT/UPDATE sur `blog_posts` et `seo_pages` → marque `mesh_analyzed_at = null` pour re‑scan au prochain run. Un cron optionnel (toutes les nuits) rattrape les articles non analysés.
 
-Nouvelles colonnes calculées côté RPC :
-- `pages_remaining = total - done`,
-- `pages_per_minute` (moyenne glissante sur `progress_samples` JSONB, échantillon ajouté à chaque page),
-- `eta_seconds = pages_remaining / pages_per_minute * 60`,
-- `current_step` déjà présent.
+## 5. Tableau de bord `/admin/blogue/maillage`
 
-`WaveRunner` affiche : `24/27 · 3 restantes · 4.2 p/min · ~45 s restants · étape : publication`.
+Nouvelle page (lien depuis `AdminBlog.tsx` header) affichant :
+- 5 KPI cards : Articles reliés / Orphelins / Liens créés / Opportunités / Score moyen de maillage
+- Bouton principal **« Analyser et rattacher automatiquement tous les articles »** (déclenche `blog-mesh-analyze` mode=all, progression realtime via `blog_mesh_runs`).
+- Onglet **Orphelins** : liste des articles sans lien, avec suggestions IA (bouton « Générer suggestion »).
+- Onglet **Opportunités** : pages SEO sans article + articles sans page SEO adéquate.
+- Onglet **Historique** : derniers runs et leurs rapports.
 
-## 7. Auto-réparation
+## 6. Sécurité
 
-Cron `pg_cron` toutes les 60 s → `seo-pipeline-supervisor` (nouvelle edge function) qui :
-- détecte doublons `running` et fusionne (garde le plus avancé, marque l'autre `superseded`),
-- relance les jobs bloqués (>90 s sans progression) via l'action `watchdog` existante,
-- ré-arme les pages "blocked" une fois par heure automatiquement,
-- purge les logs > 200 entrées par job.
-
-Aucun bouton manuel nécessaire ; le superviseur tourne en tâche de fond.
+- Toutes les mutations passent par la edge function (JWT admin obligatoire).
+- Nouvelles tables : RLS admin uniquement, `GRANT` service_role + authenticated (SELECT) pour lecture publique nécessaire sur `blog_seo_links` (utilisé côté site public pour afficher les liens).
 
 ## Détails techniques
 
-**Migration SQL** (`supabase/migrations/…_seo_pipeline_unification.sql`) :
-- `ALTER TABLE seo_generation_jobs ADD progress_samples jsonb DEFAULT '[]'::jsonb, pages_per_minute numeric, eta_seconds int`.
-- `CREATE UNIQUE INDEX seo_jobs_one_running ON seo_generation_jobs(mode, wave) WHERE status = 'running'`.
-- `CREATE VIEW seo_recent_jobs_v` (DISTINCT ON `(mode, wave)` ordre `started_at DESC` sur états terminaux).
-- Trigger `seo_jobs_dedupe_history_trg` sur `AFTER UPDATE OF status`.
-- RPC `seo_pipeline_state()` — SECURITY DEFINER admin only, retourne `jsonb` unifié.
-- RPC `refresh_seo_aggregates()` — met à jour `seo_goals.current_value` + counters.
-- GRANT EXECUTE aux `authenticated` (protégée par `has_role` admin en interne).
-
-**Edge functions** :
-- `seo-pipeline-run/index.ts` : après chaque page, push d'un sample `{at, done}` dans `progress_samples`, calcul `pages_per_minute` + `eta_seconds`, appel `refresh_seo_aggregates`.
-- Nouvelle `seo-pipeline-supervisor/index.ts` : logique auto-repair ci-dessus.
-- `seo-strategic-report/index.ts` : lit le job actif et injecte `in_progress` dans le payload.
-
-**Frontend** :
-- `src/lib/seo/useSeoStats.ts` : bascule sur `supabase.rpc('seo_pipeline_state')` ; conserve l'ancien fallback si RPC indispo.
-- `src/components/seo/WaveRunner.tsx` : affiche restant / p.min / ETA ; lit `seo_recent_jobs_v` pour l'historique ; bloque le lancement si conflit dédupliqué.
-- `src/components/seo/CommandCenter.tsx` et `StrategicReport.tsx` : consomment `in_progress` du state unifié.
-
-**Cron** (via `supabase--insert`, pas migration — contient URL/anon) :
-`select cron.schedule('seo-pipeline-supervisor', '1 minute', $$ select net.http_post(...) $$);`
-
-## Ordre d'exécution
-
-1. Migration SQL (schéma + RPC + vue + triggers + index unique).
-2. Edge functions : mise à jour `seo-pipeline-run`, `seo-strategic-report` ; création `seo-pipeline-supervisor`.
-3. Cron via insert tool.
-4. Frontend : `useSeoStats`, `WaveRunner`, `CommandCenter`, `StrategicReport`.
-5. Vérification build.
-
-## Hors périmètre
-
-- Refonte de la génération de contenu (`seo-generate-page`) : inchangée.
-- Nouveaux critères QA : inchangés.
-- UI du blog / Assistant entrepreneur : inchangés.
+- Fichiers nouveaux :
+  - `supabase/migrations/<ts>_blog_seo_mesh.sql`
+  - `supabase/functions/blog-mesh-analyze/index.ts`
+  - `src/pages/AdminBlogMesh.tsx`
+  - `src/lib/blog/mesh.ts` (helpers front)
+- Fichiers modifiés :
+  - `src/App.tsx` (route `/admin/blogue/maillage`)
+  - `src/pages/AdminBlog.tsx` (bouton d'accès)
+  - `src/pages/SeoLandingPage.tsx` (bloc articles reliés)
+  - `src/pages/BlogPost.tsx` (bloc pages SEO reliées)
+  - `src/lib/blog/queries.ts` (fetchRelatedSeoPages, fetchPostsBySeoPage)
+- Modèle IA : `google/gemini-3.6-flash` via LOVABLE_API_KEY, uniquement pour suggestions/opportunités, pas pour le scoring de base (déterministe et gratuit).
+- Perf : batch de 25 articles par itération dans la edge function, `EdgeRuntime.waitUntil` pour longs runs, écritures groupées.

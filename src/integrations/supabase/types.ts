@@ -239,6 +239,45 @@ export type Database = {
           },
         ]
       }
+      blog_mesh_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          mode: string
+          opportunities: Json
+          orphan_post_ids: string[]
+          started_at: string
+          stats: Json
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          mode?: string
+          opportunities?: Json
+          orphan_post_ids?: string[]
+          started_at?: string
+          stats?: Json
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          mode?: string
+          opportunities?: Json
+          orphan_post_ids?: string[]
+          started_at?: string
+          stats?: Json
+          status?: string
+        }
+        Relationships: []
+      }
       blog_post_ideas: {
         Row: {
           category: string
@@ -418,6 +457,8 @@ export type Database = {
           id: string
           is_featured: boolean
           is_popular: boolean
+          mesh_analyzed_at: string | null
+          mesh_score: number
           meta_description: string | null
           meta_title: string | null
           noindex: boolean
@@ -451,6 +492,8 @@ export type Database = {
           id?: string
           is_featured?: boolean
           is_popular?: boolean
+          mesh_analyzed_at?: string | null
+          mesh_score?: number
           meta_description?: string | null
           meta_title?: string | null
           noindex?: boolean
@@ -484,6 +527,8 @@ export type Database = {
           id?: string
           is_featured?: boolean
           is_popular?: boolean
+          mesh_analyzed_at?: string | null
+          mesh_score?: number
           meta_description?: string | null
           meta_title?: string | null
           noindex?: boolean
@@ -515,6 +560,60 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "blog_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blog_seo_links: {
+        Row: {
+          auto_generated: boolean
+          blog_post_id: string
+          confirmed_by_admin: boolean
+          created_at: string
+          id: string
+          link_direction: string
+          match_reasons: Json
+          relevance_score: number
+          seo_page_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_generated?: boolean
+          blog_post_id: string
+          confirmed_by_admin?: boolean
+          created_at?: string
+          id?: string
+          link_direction?: string
+          match_reasons?: Json
+          relevance_score?: number
+          seo_page_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_generated?: boolean
+          blog_post_id?: string
+          confirmed_by_admin?: boolean
+          created_at?: string
+          id?: string
+          link_direction?: string
+          match_reasons?: Json
+          relevance_score?: number
+          seo_page_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_seo_links_blog_post_id_fkey"
+            columns: ["blog_post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_seo_links_seo_page_id_fkey"
+            columns: ["seo_page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
         ]
@@ -2901,6 +3000,7 @@ export type Database = {
     }
     Functions: {
       blog_increment_view: { Args: { _post_id: string }; Returns: undefined }
+      blog_mesh_stats: { Args: never; Returns: Json }
       blog_search: {
         Args: { _limit?: number; _query: string }
         Returns: {

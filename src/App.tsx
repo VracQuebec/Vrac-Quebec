@@ -30,6 +30,7 @@ const AdminBlog = lazy(() => import("./pages/AdminBlog"));
 const AdminBlogIdeas = lazy(() => import("./pages/AdminBlogIdeas"));
 const AdminBlogEditor = lazy(() => import("./pages/AdminBlogEditor"));
 const AdminBlogBatch = lazy(() => import("./pages/AdminBlogBatch"));
+const AdminBlogMesh = lazy(() => import("./pages/AdminBlogMesh"));
 const BlogTools = lazy(() => import("./pages/BlogTools"));
 const BlogCalculator = lazy(() => import("./pages/BlogCalculator"));
 const BlogGuides = lazy(() => import("./pages/BlogGuides"));
@@ -89,6 +90,7 @@ const App = () => (
             <Route path="/admin/blogue" element={<AdminBlog />} />
             <Route path="/admin/blogue/idees" element={<AdminBlogIdeas />} />
             <Route path="/admin/blogue/generer" element={<AdminBlogBatch />} />
+            <Route path="/admin/blogue/maillage" element={<AdminBlogMesh />} />
             <Route path="/admin/blogue/editer/:id" element={<AdminBlogEditor />} />
             <Route path="/admin/liste-noire" element={<AdminBlacklist />} />
             <Route path="/admin/seo" element={<AdminSeoManager />} />

@@ -32,12 +32,30 @@ export default function BlogPost() {
   const [seoPages, setSeoPages] = useState<Array<{ slug: string; title: string; city_slug: string }>>([]);
   useEffect(() => {
     if (!post) return;
-    const p = post as unknown as Record<string, unknown>;
-    const cities = (p.related_city_slugs as string[] | undefined) ?? [];
-    const materials = (p.related_material_slugs as string[] | undefined) ?? [];
-    const services = (p.related_service_slugs as string[] | undefined) ?? [];
-    if (!cities.length && !materials.length && !services.length) { setSeoPages([]); return; }
     (async () => {
+      // Prefer mesh table
+      const { data: meshRows } = await supabase
+        .from("blog_seo_links")
+        .select("seo_page_id, relevance_score")
+        .eq("blog_post_id", post.id)
+        .order("relevance_score", { ascending: false })
+        .limit(6);
+      const ids = (meshRows ?? []).map((r) => r.seo_page_id);
+      if (ids.length) {
+        const { data } = await supabase
+          .from("seo_pages")
+          .select("slug, title, city_slug")
+          .in("id", ids)
+          .eq("status", "published");
+        setSeoPages((data ?? []) as typeof seoPages);
+        return;
+      }
+      // Legacy fallback: tagged slugs on the post
+      const p = post as unknown as Record<string, unknown>;
+      const cities = (p.related_city_slugs as string[] | undefined) ?? [];
+      const materials = (p.related_material_slugs as string[] | undefined) ?? [];
+      const services = (p.related_service_slugs as string[] | undefined) ?? [];
+      if (!cities.length && !materials.length && !services.length) { setSeoPages([]); return; }
       let q = supabase.from("seo_pages").select("slug, title, city_slug").eq("status", "published").limit(6);
       if (cities.length) q = q.in("city_slug", cities);
       else if (materials.length) q = q.in("material_slug", materials);
