@@ -120,6 +120,12 @@ export default function AdminBlog() {
               Plan éditorial
             </Link>
             <Link
+              to="/admin/blogue/maillage"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/15 text-primary font-display font-bold text-sm shadow hover:opacity-90"
+            >
+              Maillage SEO
+            </Link>
+            <Link
               to="/admin/blogue/generer"
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-foreground text-background font-display font-bold text-sm shadow hover:opacity-90"
             >
