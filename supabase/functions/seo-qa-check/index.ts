@@ -94,17 +94,20 @@ Deno.serve(async (req) => {
   try {
     const jwt = (req.headers.get("Authorization") || "").replace("Bearer ", "");
     if (!jwt) return json({ error: "Non autorisé" }, 401);
-
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      serviceKey,
       { auth: { persistSession: false } },
     );
-    const { data: userData } = await supabase.auth.getUser(jwt);
-    const uid = userData?.user?.id;
-    if (!uid) return json({ error: "Session invalide" }, 401);
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: uid, _role: "admin" });
-    if (!isAdmin) return json({ error: "Réservé aux administrateurs" }, 403);
+    const isInternal = jwt === serviceKey;
+    if (!isInternal) {
+      const { data: userData } = await supabase.auth.getUser(jwt);
+      const uid = userData?.user?.id;
+      if (!uid) return json({ error: "Session invalide" }, 401);
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: uid, _role: "admin" });
+      if (!isAdmin) return json({ error: "Réservé aux administrateurs" }, 403);
+    }
 
     const body = await req.json().catch(() => ({}));
     const pageId: string | undefined = body?.page_id;
