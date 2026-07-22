@@ -85,7 +85,7 @@ export default function CommandCenter() {
     if (!confirm("Lancer l'optimisation automatique de toutes les pages sous 90/100 ?\n\nJusqu'à 100 pages seront corrigées en arrière-plan (métadonnées, FAQ, liens internes, contenu). Cela peut prendre plusieurs minutes.")) return;
     setOptimizing(true);
     try {
-      const { data, error } = await invokeWithFreshSession("seo-optimize-all", { threshold: 90, max: 100 });
+      const { data, error } = await invokeWithFreshSession("seo-optimize-all", { threshold: 90, max: 2000 });
       if (error) throw new Error(error.message);
       const d = data as { ok?: boolean; queued?: number; error?: string };
       if (d.error) throw new Error(d.error);
