@@ -1,0 +1,1 @@
+ALTER VIEW public.seo_recent_jobs_v SET (security_invoker = true);
