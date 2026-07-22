@@ -397,7 +397,8 @@ Deno.serve(async (req) => {
         await markStep(supabase, jobId, target, step, attempt);
 
         const run = async () => {
-          if (mode === "generate" || mode === "pipeline") {
+          const isExistingPage = typeof target === "string";
+          if (!isExistingPage && (mode === "generate" || mode === "pipeline")) {
             step = "génération";
             await markStep(supabase, jobId, target, step, attempt);
             const genRes = await callFn("seo-generate-page", target, authHeader, step, STEP_TIMEOUT_MS);
@@ -432,6 +433,8 @@ Deno.serve(async (req) => {
               await publishPage(supabase, pageId);
             }
           } else {
+            // Existing page (draft) path — used by mode=publish and by mode=pipeline
+            // when reprocessing pre-existing drafts.
             step = "QA";
             await markStep(supabase, jobId, target, step, attempt);
             const qa = await callFn("seo-qa-check", { page_id: pageId, threshold: qaThreshold, enforce_draft: true }, authHeader, step, STEP_TIMEOUT_MS);
@@ -448,7 +451,13 @@ Deno.serve(async (req) => {
               const recheck = await callFn("seo-qa-check", { page_id: pageId, threshold: qaThreshold, enforce_draft: true }, authHeader, step, STEP_TIMEOUT_MS);
               const reScore = (recheck as { score?: number })?.score ?? 0;
               const reBlockers = ((recheck as { blockers?: unknown[] })?.blockers?.length ?? 0) > 0;
-              if (reScore < qaThreshold || reBlockers) throw new Error(`QA insuffisant après correction (${reScore}/100)`);
+              if (reScore < qaThreshold || reBlockers) {
+                if (mode === "pipeline") {
+                  // Don't hard-fail during a broad pipeline sweep: leave the page as draft for the next run.
+                  return;
+                }
+                throw new Error(`QA insuffisant après correction (${reScore}/100)`);
+              }
             }
             step = "publication";
             await markStep(supabase, jobId, target, step, attempt);
