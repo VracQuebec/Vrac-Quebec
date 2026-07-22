@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
 
     const { data: page, error: pErr } = await supabase
       .from("seo_pages")
-      .select("id, slug, title, meta_title, meta_description, content_html, intro, faq, internal_links, city_slug, material_slug, service_slug, status, keywords")
+      .select("id, slug, title, meta_title, meta_description, content_html, intro, faq, internal_links, city_slug, material_slug, service_slug, status, keywords, og_title, og_description")
       .eq("id", pageId)
       .maybeSingle();
     if (pErr || !page) return json({ error: pErr?.message || "Page introuvable" }, 404);
@@ -128,8 +128,11 @@ Deno.serve(async (req) => {
     const keywords: string[] = Array.isArray((page as { keywords?: unknown }).keywords)
       ? ((page as { keywords: unknown[] }).keywords.filter((k): k is string => typeof k === "string"))
       : [];
+    const ogTitle = String((page as { og_title?: string | null }).og_title || "");
+    const ogDesc = String((page as { og_description?: string | null }).og_description || "");
 
     const words = countWords(html);
+    const h1 = countTags(html, "h1");
     const h2 = countTags(html, "h2");
     const h3 = countTags(html, "h3");
     const internal = countInternalLinks(html);
@@ -137,6 +140,20 @@ Deno.serve(async (req) => {
     const images = countImages(html);
     const plain = stripHtml(html);
     const avgSent = avgSentenceLength(plain);
+
+    // Local optimization: does the content name the city + material/service in body + title?
+    const citySlug = String(page.city_slug || "");
+    const materialSlug = String(page.material_slug || "");
+    const serviceSlug = String(page.service_slug || "");
+    const cityLabel = citySlug.replace(/-/g, " ");
+    const materialLabel = materialSlug.replace(/-/g, " ");
+    const serviceLabel = serviceSlug.replace(/-/g, " ");
+    const cityInTitle = cityLabel ? containsWord(title + " " + metaTitle, cityLabel) : true;
+    const cityInContent = cityLabel ? containsWord(plain, cityLabel) : true;
+    const topicInContent = materialLabel
+      ? containsWord(plain, materialLabel)
+      : serviceLabel ? containsWord(plain, serviceLabel) : true;
+    const localOk = cityInTitle && cityInContent && topicInContent;
 
     // Similarity vs siblings (same family: same material or same service or same city).
     const familyFilter = supabase.from("seo_pages").select("id, title, content_html").neq("id", pageId).eq("status", "published").limit(20);
@@ -170,6 +187,8 @@ Deno.serve(async (req) => {
     // Build a rich, actionable checklist.
     const contentLenOk = words >= 800;
     const contentLenWarn = words >= 500 && words < 800;
+    const h1Ok = h1 === 1;
+    const h1Warn = h1 >= 2;
     const headingsOk = h2 >= 4 && (h2 + h3) >= 6;
     const headingsWarn = h2 >= 2;
     const faqOk = faq.length >= 5 && faq.every((f) => (f.answer || "").split(/\s+/).length >= 40);
@@ -179,6 +198,10 @@ Deno.serve(async (req) => {
     const metaTitleOk = metaTitle.length >= 40 && metaTitle.length <= 65 && metaTitleUnique;
     const metaDescOk = metaDesc.length >= 140 && metaDesc.length <= 165;
     const metaDescWarn = metaDesc.length >= 100 && !metaDescOk;
+    const ogTitleOk = ogTitle.length >= 20 && ogTitle.length <= 90;
+    const ogDescOk = ogDesc.length >= 60 && ogDesc.length <= 200;
+    const ogOk = ogTitleOk && ogDescOk;
+    const ogWarn = (ogTitle.length > 0 && !ogTitleOk) || (ogDesc.length > 0 && !ogDescOk);
     const imagesOk = images.total >= 2 && images.withAlt === images.total;
     const imagesWarn = images.total >= 1 && !imagesOk;
     const keywordsOk = keywords.length >= 5;
@@ -190,6 +213,18 @@ Deno.serve(async (req) => {
       okFlag ? "ok" : warnFlag ? "warn" : "fail";
 
     const checks: Check[] = [
+      {
+        key: "h1",
+        label: `Balise H1 unique (${h1})`,
+        ok: h1Ok,
+        status: mkStatus(h1Ok, h1Warn),
+        blocker: h1 === 0,
+        detail: h1 === 0
+          ? "Aucun H1 détecté — chaque page doit avoir exactement 1 H1."
+          : h1 > 1 ? "Plusieurs H1 détectés — n'en garder qu'un." : undefined,
+        fixable: true,
+        fix_action: "rebuild_headings",
+      },
       {
         key: "content_length",
         label: `Longueur du contenu (${words} mots)`,
@@ -245,6 +280,25 @@ Deno.serve(async (req) => {
         detail: metaDescOk ? undefined : "Cible 140–165 caractères, orientée bénéfice + CTA.",
         fixable: true,
         fix_action: "rewrite_meta_description",
+      },
+      {
+        key: "open_graph",
+        label: `Open Graph (title ${ogTitle.length} / desc ${ogDesc.length})`,
+        ok: ogOk,
+        status: mkStatus(ogOk, ogWarn),
+        detail: ogOk ? undefined : "Renseigner og_title (20–90 car.) et og_description (60–200 car.) pour les aperçus sociaux.",
+        fixable: true,
+        fix_action: "rewrite_open_graph",
+      },
+      {
+        key: "local_optimization",
+        label: `Optimisation locale (ville ${cityInContent ? "✓" : "✗"} / sujet ${topicInContent ? "✓" : "✗"})`,
+        ok: localOk,
+        status: localOk ? "ok" : "fail",
+        detail: localOk ? undefined
+          : `Le contenu doit mentionner ${cityLabel || "la ville"} et ${materialLabel || serviceLabel || "le sujet"} explicitement.`,
+        fixable: true,
+        fix_action: "expand_content",
       },
       {
         key: "images",
