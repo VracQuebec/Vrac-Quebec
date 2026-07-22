@@ -32,7 +32,8 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const threshold: number = Number.isFinite(body?.threshold) ? Number(body.threshold) : 90;
-    const maxPages: number = Math.min(500, Number(body?.max) || 100);
+    // Cap raised to 2000 so a single click can cover the whole site (currently ~600 pages).
+    const maxPages: number = Math.min(2000, Number(body?.max) || 1000);
 
     // Select worst pages first
     const { data: candidates, error: cErr } = await supabase
