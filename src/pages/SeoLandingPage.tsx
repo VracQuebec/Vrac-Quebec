@@ -78,20 +78,36 @@ export default function SeoLandingPage() {
         const { data: cnt } = await supabase.rpc("count_active_dumps_by_city", { _city_slug: citySlugForCount });
         if (!cancelled) setDumpCount(typeof cnt === "number" ? cnt : 0);
       }
-      // Load related blog posts (posts tagged with this city/material/service in SEO Manager)
+      // Load related blog posts via mesh table (blog_seo_links), fallback to legacy tags
       if (p) {
-        const filters: string[] = [];
-        if (p.city_slug) filters.push(`related_city_slugs.cs.{${p.city_slug}}`);
-        if (p.material_slug) filters.push(`related_material_slugs.cs.{${p.material_slug}}`);
-        if (p.service_slug) filters.push(`related_service_slugs.cs.{${p.service_slug}}`);
-        if (filters.length) {
+        const { data: meshRows } = await supabase
+          .from("blog_seo_links")
+          .select("blog_post_id, relevance_score")
+          .eq("seo_page_id", p.id)
+          .order("relevance_score", { ascending: false })
+          .limit(6);
+        const ids = (meshRows ?? []).map((r) => r.blog_post_id);
+        if (ids.length) {
           const { data: postsData } = await supabase
             .from("blog_posts")
             .select("slug, title, excerpt, cover_image_url")
-            .eq("status", "published")
-            .or(filters.join(","))
-            .limit(3);
+            .in("id", ids)
+            .eq("status", "published");
           if (!cancelled) setRelatedPosts((postsData ?? []) as typeof relatedPosts);
+        } else {
+          const filters: string[] = [];
+          if (p.city_slug) filters.push(`related_city_slugs.cs.{${p.city_slug}}`);
+          if (p.material_slug) filters.push(`related_material_slugs.cs.{${p.material_slug}}`);
+          if (p.service_slug) filters.push(`related_service_slugs.cs.{${p.service_slug}}`);
+          if (filters.length) {
+            const { data: postsData } = await supabase
+              .from("blog_posts")
+              .select("slug, title, excerpt, cover_image_url")
+              .eq("status", "published")
+              .or(filters.join(","))
+              .limit(3);
+            if (!cancelled) setRelatedPosts((postsData ?? []) as typeof relatedPosts);
+          }
         }
       }
       setLoading(false);
