@@ -388,6 +388,7 @@ Deno.serve(async (req) => {
       qa_last_score: score,
       qa_last_checked_at: new Date().toISOString(),
       qa_blockers: blockers,
+      qa_breakdown: checks,
     };
     if (shouldDemote) updates.status = "draft";
     await supabase.from("seo_pages").update(updates).eq("id", pageId);
