@@ -1435,6 +1435,80 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_city_batches: {
+        Row: {
+          city_slug: string
+          created_at: string
+          current_step: string | null
+          done_tasks: number
+          failed_tasks: number
+          finished_at: string | null
+          id: string
+          last_error: string | null
+          last_progress_at: string | null
+          qa_avg: number | null
+          retries_count: number
+          run_id: string
+          sitemap_updated_at: string | null
+          sort_order: number
+          started_at: string | null
+          status: string
+          succeeded_tasks: number
+          total_tasks: number
+          updated_at: string
+        }
+        Insert: {
+          city_slug: string
+          created_at?: string
+          current_step?: string | null
+          done_tasks?: number
+          failed_tasks?: number
+          finished_at?: string | null
+          id?: string
+          last_error?: string | null
+          last_progress_at?: string | null
+          qa_avg?: number | null
+          retries_count?: number
+          run_id: string
+          sitemap_updated_at?: string | null
+          sort_order?: number
+          started_at?: string | null
+          status?: string
+          succeeded_tasks?: number
+          total_tasks?: number
+          updated_at?: string
+        }
+        Update: {
+          city_slug?: string
+          created_at?: string
+          current_step?: string | null
+          done_tasks?: number
+          failed_tasks?: number
+          finished_at?: string | null
+          id?: string
+          last_error?: string | null
+          last_progress_at?: string | null
+          qa_avg?: number | null
+          retries_count?: number
+          run_id?: string
+          sitemap_updated_at?: string | null
+          sort_order?: number
+          started_at?: string | null
+          status?: string
+          succeeded_tasks?: number
+          total_tasks?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_city_batches_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "seo_pipeline_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_competitor_pages: {
         Row: {
           city_slug: string | null
@@ -1932,6 +2006,93 @@ export type Database = {
           },
         ]
       }
+      seo_page_tasks: {
+        Row: {
+          attempts: number
+          batch_id: string
+          city_slug: string
+          created_at: string
+          duration_ms: number | null
+          finished_at: string | null
+          id: string
+          kind: string
+          last_error: string | null
+          material_slug: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          page_id: string | null
+          page_slug: string | null
+          qa_score: number | null
+          run_id: string
+          service_slug: string | null
+          started_at: string | null
+          status: string
+          step: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          batch_id: string
+          city_slug: string
+          created_at?: string
+          duration_ms?: number | null
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          last_error?: string | null
+          material_slug?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          page_id?: string | null
+          page_slug?: string | null
+          qa_score?: number | null
+          run_id: string
+          service_slug?: string | null
+          started_at?: string | null
+          status?: string
+          step?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          batch_id?: string
+          city_slug?: string
+          created_at?: string
+          duration_ms?: number | null
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          last_error?: string | null
+          material_slug?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          page_id?: string | null
+          page_slug?: string | null
+          qa_score?: number | null
+          run_id?: string
+          service_slug?: string | null
+          started_at?: string | null
+          status?: string
+          step?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_page_tasks_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "seo_city_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_page_tasks_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "seo_pipeline_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_pages: {
         Row: {
           ai_model: string | null
@@ -2110,6 +2271,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seo_pipeline_runs: {
+        Row: {
+          city_slugs: string[]
+          created_at: string
+          created_by: string | null
+          current_city_slug: string | null
+          done_pages: number
+          eta_seconds: number | null
+          failed_pages: number
+          finished_at: string | null
+          force_regenerate: boolean
+          id: string
+          last_progress_at: string | null
+          max_retries: number
+          mode: string
+          page_timeout_ms: number
+          pages_per_minute: number | null
+          qa_avg: number | null
+          qa_threshold: number
+          retries_count: number
+          started_at: string | null
+          status: string
+          succeeded_pages: number
+          total_pages: number
+          updated_at: string
+        }
+        Insert: {
+          city_slugs?: string[]
+          created_at?: string
+          created_by?: string | null
+          current_city_slug?: string | null
+          done_pages?: number
+          eta_seconds?: number | null
+          failed_pages?: number
+          finished_at?: string | null
+          force_regenerate?: boolean
+          id?: string
+          last_progress_at?: string | null
+          max_retries?: number
+          mode?: string
+          page_timeout_ms?: number
+          pages_per_minute?: number | null
+          qa_avg?: number | null
+          qa_threshold?: number
+          retries_count?: number
+          started_at?: string | null
+          status?: string
+          succeeded_pages?: number
+          total_pages?: number
+          updated_at?: string
+        }
+        Update: {
+          city_slugs?: string[]
+          created_at?: string
+          created_by?: string | null
+          current_city_slug?: string | null
+          done_pages?: number
+          eta_seconds?: number | null
+          failed_pages?: number
+          finished_at?: string | null
+          force_regenerate?: boolean
+          id?: string
+          last_progress_at?: string | null
+          max_retries?: number
+          mode?: string
+          page_timeout_ms?: number
+          pages_per_minute?: number | null
+          qa_avg?: number | null
+          qa_threshold?: number
+          retries_count?: number
+          started_at?: string | null
+          status?: string
+          succeeded_pages?: number
+          total_pages?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       seo_qa_reports: {
         Row: {
@@ -3117,8 +3356,31 @@ export type Database = {
         }[]
       }
       seo_dashboard_stats: { Args: never; Returns: Json }
+      seo_pipeline_cancel: { Args: { _run_id: string }; Returns: undefined }
+      seo_pipeline_pause: { Args: { _run_id: string }; Returns: undefined }
       seo_pipeline_purge_stale: { Args: never; Returns: number }
+      seo_pipeline_regenerate_city: {
+        Args: { _city_slug: string }
+        Returns: string
+      }
+      seo_pipeline_republish_city: {
+        Args: { _city_slug: string }
+        Returns: string
+      }
+      seo_pipeline_resume: { Args: { _run_id: string }; Returns: undefined }
+      seo_pipeline_retry_errors: { Args: { _run_id: string }; Returns: number }
+      seo_pipeline_start: {
+        Args: {
+          _city_slugs?: string[]
+          _force_regenerate?: boolean
+          _mode?: string
+          _qa_threshold?: number
+        }
+        Returns: string
+      }
       seo_pipeline_state: { Args: never; Returns: Json }
+      seo_pipeline_state_v2: { Args: never; Returns: Json }
+      seo_pipeline_stop: { Args: { _run_id: string }; Returns: undefined }
       seo_priority_score: { Args: { _page_id: string }; Returns: number }
       unaccent_string: { Args: { input: string }; Returns: string }
     }
