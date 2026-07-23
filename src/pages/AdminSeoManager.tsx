@@ -14,6 +14,7 @@ import PriorityStars, { priorityLabel } from "@/components/seo/PriorityStars";
 import CoverageMatrix from "@/components/seo/CoverageMatrix";
 import ConversionsTable from "@/components/seo/ConversionsTable";
 import CommandCenter from "@/components/seo/CommandCenter";
+import CopilotDashboard from "@/components/seo/CopilotDashboard";
 import ImproveDialog from "@/components/seo/ImproveDialog";
 import OptimizationEngine from "@/components/seo/OptimizationEngine";
 import RecommendationCard, { type Reco } from "@/components/seo/RecommendationCard";
@@ -21,7 +22,7 @@ import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
 import GoalCard, { type Goal } from "@/components/seo/GoalCard";
 import QaReportBadge from "@/components/seo/QaReportBadge";
 
-type Tab = "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "coverage" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
+type Tab = "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "coverage" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
 
 type City = {
   id: string; slug: string; name: string; region: string;
@@ -48,7 +49,7 @@ export default function AdminSeoManager() {
   const { isReady: authReady, user } = useAuthReady();
   const { isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("dashboard");
+  const [tab, setTab] = useState<Tab>("copilot");
 
   useEffect(() => {
     if (authReady && !user) navigate("/login");
@@ -60,6 +61,7 @@ export default function AdminSeoManager() {
     {
       title: "Pilotage",
       tabs: [
+        { id: "copilot", label: "Copilote IA", icon: Sparkles },
         { id: "dashboard", label: "Centre de pilotage", icon: LayoutDashboard },
         { id: "production", label: "File de production", icon: Play },
         { id: "optimizer", label: "Moteur d'optimisation", icon: Zap },
@@ -131,6 +133,7 @@ export default function AdminSeoManager() {
           ))}
         </nav>
         <main>
+          {tab === "copilot" && <CopilotDashboard />}
           {tab === "dashboard" && <CommandCenter />}
           {tab === "assistant" && <AssistantTab />}
           {tab === "production" && <ProductionTab />}

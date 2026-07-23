@@ -1900,6 +1900,92 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_opportunities: {
+        Row: {
+          applied_at: string | null
+          created_at: string
+          dismissed_at: string | null
+          effort_score: number
+          entity_slug: string | null
+          entity_type: string | null
+          evidence: Json
+          id: string
+          impact_score: number
+          page_id: string | null
+          potential_clicks: number | null
+          potential_leads: number | null
+          potential_searches: number | null
+          rationale: string
+          status: string
+          suggested_action: string
+          target_city_slug: string | null
+          target_material_slug: string | null
+          target_service_slug: string | null
+          tenant_id: string | null
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          effort_score?: number
+          entity_slug?: string | null
+          entity_type?: string | null
+          evidence?: Json
+          id?: string
+          impact_score?: number
+          page_id?: string | null
+          potential_clicks?: number | null
+          potential_leads?: number | null
+          potential_searches?: number | null
+          rationale: string
+          status?: string
+          suggested_action: string
+          target_city_slug?: string | null
+          target_material_slug?: string | null
+          target_service_slug?: string | null
+          tenant_id?: string | null
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          effort_score?: number
+          entity_slug?: string | null
+          entity_type?: string | null
+          evidence?: Json
+          id?: string
+          impact_score?: number
+          page_id?: string | null
+          potential_clicks?: number | null
+          potential_leads?: number | null
+          potential_searches?: number | null
+          rationale?: string
+          status?: string
+          suggested_action?: string
+          target_city_slug?: string | null
+          target_material_slug?: string | null
+          target_service_slug?: string | null
+          tenant_id?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_opportunities_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_optimization_runs: {
         Row: {
           actions: string[]
@@ -2202,6 +2288,53 @@ export type Database = {
             foreignKeyName: "seo_page_improvements_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_page_scores: {
+        Row: {
+          business_score: number
+          competition_score: number
+          computed_at: string
+          conversion_score: number
+          details: Json
+          opportunity_score: number
+          page_id: string
+          qa_score: number
+          seo_score: number
+          traffic_score: number
+        }
+        Insert: {
+          business_score?: number
+          competition_score?: number
+          computed_at?: string
+          conversion_score?: number
+          details?: Json
+          opportunity_score?: number
+          page_id: string
+          qa_score?: number
+          seo_score?: number
+          traffic_score?: number
+        }
+        Update: {
+          business_score?: number
+          competition_score?: number
+          computed_at?: string
+          conversion_score?: number
+          details?: Json
+          opportunity_score?: number
+          page_id?: string
+          qa_score?: number
+          seo_score?: number
+          traffic_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_page_scores_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: true
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -3417,6 +3550,44 @@ export type Database = {
       }
     }
     Views: {
+      seo_gsc_deltas_28d: {
+        Row: {
+          clicks: number | null
+          clicks_delta: number | null
+          ctr: number | null
+          impressions: number | null
+          impressions_delta: number | null
+          page_id: string | null
+          position: number | null
+          position_gain: number | null
+          prev_clicks: number | null
+          prev_impressions: number | null
+          prev_position: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_gsc_metrics_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_page_conversions_30d: {
+        Row: {
+          conversion_rate_pct: number | null
+          conversions: number | null
+          cta_clicks: number | null
+          email_clicks: number | null
+          page_slug: string | null
+          phone_clicks: number | null
+          submissions: number | null
+          views: number | null
+          whatsapp_clicks: number | null
+        }
+        Relationships: []
+      }
       seo_recent_jobs_v: {
         Row: {
           blocked_items: Json | null
@@ -3566,6 +3737,7 @@ export type Database = {
         }[]
       }
       seo_dashboard_stats: { Args: never; Returns: Json }
+      seo_executive_dashboard: { Args: never; Returns: Json }
       seo_optimization_cancel: { Args: { _run_id: string }; Returns: undefined }
       seo_optimization_pause: { Args: { _run_id: string }; Returns: undefined }
       seo_optimization_resume: { Args: { _run_id: string }; Returns: undefined }
@@ -3613,6 +3785,10 @@ export type Database = {
       seo_pipeline_state_v2: { Args: never; Returns: Json }
       seo_pipeline_stop: { Args: { _run_id: string }; Returns: undefined }
       seo_priority_score: { Args: { _page_id: string }; Returns: number }
+      seo_recompute_page_scores: {
+        Args: { _page_id?: string }
+        Returns: number
+      }
       unaccent_string: { Args: { input: string }; Returns: string }
     }
     Enums: {
