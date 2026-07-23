@@ -112,6 +112,13 @@ export default function AdminSeoManager() {
             <ArrowLeft className="w-4 h-4" /> CRM
           </Link>
           <h1 className="text-lg font-display font-bold text-foreground">SEO</h1>
+          <Link
+            to="/admin/ai-economy"
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 text-xs font-semibold"
+            title="Consommation IA, cache et mode Économie maximale"
+          >
+            <Zap className="w-3.5 h-3.5" /> Économie IA
+          </Link>
         </div>
       </header>
       <div className="container mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6">
