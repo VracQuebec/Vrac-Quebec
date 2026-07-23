@@ -1,34 +1,47 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Play, Network, Link2, AlertTriangle, Sparkles, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, Play, Pause, RotateCcw, XCircle, RefreshCw, Zap, Network } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
-import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { toast } from "sonner";
 
-type Stats = {
-  total_posts: number; linked_posts: number; orphan_posts: number;
-  total_links: number; avg_mesh_score: number;
-  seo_pages_total: number; seo_pages_covered: number; seo_pages_uncovered: number;
-  opportunities: number;
-  last_run: null | {
-    id: string; status: string; started_at: string; finished_at: string | null;
-    stats: Record<string, number>; opportunities: Array<Record<string, unknown>>;
-    orphan_post_ids: string[];
-  };
+type Run = {
+  id: string;
+  status: "queued" | "running" | "paused" | "completed" | "failed" | "cancelled";
+  mode: string;
+  total_batches: number;
+  done_batches: number;
+  total_items: number;
+  done_items: number;
+  failed_items: number;
+  batch_size_posts: number;
+  batch_size_pages: number;
+  started_at: string;
+  finished_at: string | null;
+  last_progress_at: string;
+  error: string | null;
 };
+type Batch = {
+  id: string;
+  kind: "posts" | "pages";
+  status: string;
+  attempts: number;
+  processed_count: number;
+  duration_ms: number | null;
+  error: string | null;
+  sort_order: number;
+  item_ids: string[];
+};
+type State = { active_run: Run | null; batches: Batch[]; history: Run[] };
 
 export default function AdminBlogMesh() {
   const { isReady, user } = useAuthReady();
   const { isAdmin, loading: rl } = useUserRoles(user, isReady);
   const navigate = useNavigate();
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [state, setState] = useState<State | null>(null);
   const [loading, setLoading] = useState(true);
-  const [running, setRunning] = useState(false);
-  const [tab, setTab] = useState<"overview" | "orphans" | "opportunities" | "history">("overview");
-  const [runs, setRuns] = useState<Stats["last_run"][]>([]);
-  const [orphans, setOrphans] = useState<Array<{ id: string; title: string; slug: string }>>([]);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (isReady && !user) navigate("/login");
@@ -36,213 +49,205 @@ export default function AdminBlogMesh() {
   }, [isReady, user, isAdmin, rl, navigate]);
 
   const load = async () => {
-    setLoading(true);
-    const { data, error } = await supabase.rpc("blog_mesh_stats");
+    const { data, error } = await supabase.rpc("blog_mesh_state");
     if (error) toast.error(error.message);
-    setStats((data as unknown as Stats) ?? null);
-    const { data: rs } = await supabase
-      .from("blog_mesh_runs")
-      .select("*")
-      .order("started_at", { ascending: false })
-      .limit(10);
-    setRuns((rs ?? []) as unknown as Stats["last_run"][]);
+    setState((data as unknown as State) ?? null);
     setLoading(false);
   };
 
-  const loadOrphans = async () => {
-    // Posts published with no link
-    const { data: linked } = await supabase.from("blog_seo_links").select("blog_post_id");
-    const linkedIds = new Set((linked ?? []).map((r) => r.blog_post_id));
-    const { data: posts } = await supabase
-      .from("blog_posts")
-      .select("id,title,slug")
-      .eq("status", "published")
-      .limit(500);
-    setOrphans(((posts ?? []) as Array<{ id: string; title: string; slug: string }>).filter((p) => !linkedIds.has(p.id)));
-  };
-
   useEffect(() => { if (isAdmin) load(); }, [isAdmin]);
-  useEffect(() => { if (tab === "orphans" && isAdmin) loadOrphans(); }, [tab, isAdmin]);
+  useEffect(() => {
+    if (!isAdmin) return;
+    const id = setInterval(load, 2500);
+    return () => clearInterval(id);
+  }, [isAdmin]);
 
-  const runAnalysis = async (mode: "all" | "orphans" = "all") => {
-    setRunning(true);
-    const t = toast.loading("Analyse en cours… (peut prendre quelques minutes)");
+  const start = async (mode: "full" | "incremental") => {
+    setBusy(true);
     try {
-      const { data, error } = await invokeWithFreshSession<{ mode: string }, { ok: boolean; stats: Record<string, number> }>(
-        "blog-mesh-analyze",
-        { mode },
-      );
-      if (error) throw new Error((error as Error).message);
-      toast.success(
-        `Analyse terminée : ${data?.stats?.linked ?? 0} reliés, ${data?.stats?.orphans ?? 0} orphelins, ${data?.stats?.links_created ?? 0} liens créés.`,
-      );
+      const { data: runId, error } = await supabase.rpc("blog_mesh_start", {
+        _mode: mode,
+        _item_ids: null,
+        _batch_posts: 25,
+        _batch_pages: 50,
+      });
+      if (error) throw error;
+      // Kick worker
+      await supabase.functions.invoke("blog-mesh-worker", { body: { run_id: runId } });
+      toast.success(`Run démarré (${mode})`);
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur");
     } finally {
-      toast.dismiss(t);
-      setRunning(false);
+      setBusy(false);
     }
   };
 
+  const control = async (fn: "blog_mesh_pause" | "blog_mesh_resume" | "blog_mesh_cancel" | "blog_mesh_retry_errors") => {
+    if (!state?.active_run) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase.rpc(fn, { _run_id: state.active_run.id });
+      if (error) throw error;
+      if (fn === "blog_mesh_resume" || fn === "blog_mesh_retry_errors") {
+        await supabase.functions.invoke("blog-mesh-worker", { body: { run_id: state.active_run.id } });
+      }
+      toast.success("OK");
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const metrics = useMemo(() => {
+    const r = state?.active_run;
+    if (!r) return null;
+    const elapsedMs = Date.now() - new Date(r.started_at).getTime();
+    const speed = elapsedMs > 0 ? (r.done_items / (elapsedMs / 60_000)) : 0;
+    const remaining = Math.max(0, r.total_items - r.done_items);
+    const etaMs = speed > 0 ? (remaining / speed) * 60_000 : 0;
+    const pct = r.total_items ? Math.round((r.done_items / r.total_items) * 100) : 0;
+    return { pct, speed: Math.round(speed * 10) / 10, remaining, etaMin: Math.round(etaMs / 60_000), elapsedMin: Math.round(elapsedMs / 60_000) };
+  }, [state?.active_run]);
+
   if (!isReady || rl) return <div className="min-h-screen grid place-items-center"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+
+  const r = state?.active_run;
+  const canStart = !r || (r.status !== "running" && r.status !== "queued" && r.status !== "paused");
 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card sticky top-0 z-40">
-        <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+        <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <Link to="/admin/blogue" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-4 h-4" /> Blogue
             </Link>
-            <h1 className="font-display font-extrabold text-lg text-foreground">Maillage intelligent Blogue ↔ SEO</h1>
+            <h1 className="font-display font-extrabold text-lg text-foreground">Moteur de maillage industriel</h1>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={load}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-foreground font-display font-bold text-sm hover:opacity-90"
-            >
+          <div className="flex flex-wrap gap-2">
+            <button onClick={load} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-foreground font-display font-bold text-sm hover:opacity-90">
               <RefreshCw className="w-4 h-4" /> Actualiser
             </button>
             <button
-              onClick={() => runAnalysis("all")}
-              disabled={running}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm shadow hover:opacity-90 disabled:opacity-50"
+              onClick={() => start("incremental")}
+              disabled={busy || !canStart}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-foreground font-display font-bold text-sm hover:opacity-90 disabled:opacity-40"
+              title="Traite uniquement les articles/pages modifiés"
             >
-              {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-              Analyser et rattacher automatiquement tous les articles
+              <Zap className="w-4 h-4" /> Incrémental
+            </button>
+            <button
+              onClick={() => start("full")}
+              disabled={busy || !canStart}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm shadow hover:opacity-90 disabled:opacity-40"
+            >
+              <Play className="w-4 h-4" /> Analyse complète
             </button>
           </div>
         </div>
       </header>
 
       <div className="container mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {loading || !stats ? (
+        {loading ? (
           <div className="py-12 text-center text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin inline mr-2" /> Chargement…</div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <Kpi label="Articles reliés" value={stats.linked_posts} sub={`/ ${stats.total_posts}`} icon={<Link2 className="w-4 h-4" />} tone="green" />
-              <Kpi label="Orphelins" value={stats.orphan_posts} icon={<AlertTriangle className="w-4 h-4" />} tone="orange" />
-              <Kpi label="Liens créés" value={stats.total_links} icon={<Network className="w-4 h-4" />} />
-              <Kpi label="Opportunités SEO" value={stats.opportunities} icon={<Sparkles className="w-4 h-4" />} tone="blue" />
-              <Kpi label="Score moyen" value={`${stats.avg_mesh_score}/100`} icon={<Network className="w-4 h-4" />} />
-            </div>
-
-            <div className="flex flex-wrap gap-1 border-b border-border">
-              {[
-                ["overview", "Vue d'ensemble"],
-                ["orphans", `Orphelins (${stats.orphan_posts})`],
-                ["opportunities", `Opportunités (${stats.opportunities})`],
-                ["history", "Historique"],
-              ].map(([k, l]) => (
-                <button
-                  key={k}
-                  onClick={() => setTab(k as typeof tab)}
-                  className={`px-4 py-2 text-sm font-display font-semibold border-b-2 -mb-px ${
-                    tab === k ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                >{l}</button>
-              ))}
-            </div>
-
-            {tab === "overview" && (
+            {r ? (
               <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
-                <p className="text-sm text-muted-foreground font-body">
-                  Le maillage est recalculé automatiquement à chaque modification d'un article ou d'une page SEO.
-                  Utilisez le bouton en haut à droite pour un rattachement complet immédiat.
-                </p>
-                <div className="grid md:grid-cols-2 gap-4 text-sm">
-                  <div className="rounded-lg border border-border p-4">
-                    <div className="font-display font-bold text-foreground mb-2">Couverture blogue</div>
-                    <ProgressBar value={stats.total_posts ? Math.round((stats.linked_posts / stats.total_posts) * 100) : 0} />
-                    <div className="text-xs text-muted-foreground mt-1">{stats.linked_posts} / {stats.total_posts} articles reliés</div>
-                  </div>
-                  <div className="rounded-lg border border-border p-4">
-                    <div className="font-display font-bold text-foreground mb-2">Couverture pages SEO</div>
-                    <ProgressBar value={stats.seo_pages_total ? Math.round((stats.seo_pages_covered / stats.seo_pages_total) * 100) : 0} />
-                    <div className="text-xs text-muted-foreground mt-1">{stats.seo_pages_covered} / {stats.seo_pages_total} pages avec au moins un article</div>
-                  </div>
-                </div>
-                {stats.last_run && (
-                  <div className="rounded-lg border border-border p-4 text-sm">
-                    <div className="font-display font-bold text-foreground mb-2">Dernier run</div>
-                    <div className="text-muted-foreground">
-                      {new Date(stats.last_run.started_at).toLocaleString("fr-CA")} — {stats.last_run.status}
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground">Run actif — {r.mode}</div>
+                    <div className="text-2xl font-display font-extrabold text-foreground">
+                      {r.done_items} / {r.total_items} items <span className="text-muted-foreground text-base">({metrics?.pct ?? 0}%)</span>
                     </div>
-                    <pre className="mt-2 text-xs bg-muted rounded p-2 overflow-auto">{JSON.stringify(stats.last_run.stats, null, 2)}</pre>
                   </div>
-                )}
-              </div>
-            )}
-
-            {tab === "orphans" && (
-              <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                <div className="flex items-center justify-between p-4 border-b border-border">
-                  <div className="text-sm text-muted-foreground">Articles sans page SEO reliée.</div>
-                  <button
-                    onClick={() => runAnalysis("orphans")}
-                    disabled={running}
-                    className="text-sm px-3 py-1.5 rounded-lg bg-foreground text-background font-display font-bold hover:opacity-90 disabled:opacity-50"
-                  >
-                    Ré-analyser les orphelins
-                  </button>
+                  <div className="flex gap-2">
+                    {r.status === "running" && (
+                      <button onClick={() => control("blog_mesh_pause")} disabled={busy} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted font-display font-bold text-sm hover:opacity-90 disabled:opacity-40">
+                        <Pause className="w-4 h-4" /> Pause
+                      </button>
+                    )}
+                    {r.status === "paused" && (
+                      <button onClick={() => control("blog_mesh_resume")} disabled={busy} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm hover:opacity-90 disabled:opacity-40">
+                        <Play className="w-4 h-4" /> Reprendre
+                      </button>
+                    )}
+                    <button onClick={() => control("blog_mesh_retry_errors")} disabled={busy} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted font-display font-bold text-sm hover:opacity-90 disabled:opacity-40">
+                      <RotateCcw className="w-4 h-4" /> Relancer erreurs
+                    </button>
+                    <button onClick={() => control("blog_mesh_cancel")} disabled={busy} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-destructive text-destructive-foreground font-display font-bold text-sm hover:opacity-90 disabled:opacity-40">
+                      <XCircle className="w-4 h-4" /> Annuler
+                    </button>
+                  </div>
                 </div>
-                {orphans.length === 0 ? (
-                  <div className="p-10 text-center text-muted-foreground">Aucun orphelin 🎉</div>
-                ) : (
-                  <ul className="divide-y divide-border">
-                    {orphans.map((o) => (
-                      <li key={o.id} className="flex items-center justify-between p-3">
-                        <Link to={`/admin/blogue/editer/${o.id}`} className="font-semibold text-foreground hover:text-primary line-clamp-1">
-                          {o.title}
-                        </Link>
-                        <span className="text-xs text-muted-foreground">/{o.slug}</span>
-                      </li>
+
+                <div className="w-full h-3 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-primary transition-all" style={{ width: `${metrics?.pct ?? 0}%` }} />
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                  <Stat label="Batches" value={`${r.done_batches} / ${r.total_batches}`} />
+                  <Stat label="Vitesse" value={`${metrics?.speed ?? 0}/min`} />
+                  <Stat label="Restants" value={metrics?.remaining ?? 0} />
+                  <Stat label="ETA" value={`${metrics?.etaMin ?? 0} min`} />
+                  <Stat label="Écoulé" value={`${metrics?.elapsedMin ?? 0} min`} />
+                </div>
+                {r.error && <div className="text-sm text-destructive">Erreur : {r.error}</div>}
+
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <div className="px-4 py-2 bg-muted text-xs uppercase tracking-wide text-muted-foreground font-bold">Batches ({state?.batches.length ?? 0})</div>
+                  <div className="max-h-80 overflow-auto divide-y divide-border text-xs">
+                    {(state?.batches ?? []).map((b) => (
+                      <div key={b.id} className="flex items-center justify-between px-4 py-2">
+                        <span className="font-mono">#{b.sort_order} {b.kind}</span>
+                        <span>{b.item_ids.length} items</span>
+                        <span className={badge(b.status)}>{b.status}</span>
+                        <span className="text-muted-foreground">{b.processed_count || 0} traités</span>
+                        <span className="text-muted-foreground">{b.duration_ms ? `${b.duration_ms}ms` : "—"}</span>
+                        {b.error && <span className="text-destructive truncate max-w-[220px]" title={b.error}>{b.error}</span>}
+                      </div>
                     ))}
-                  </ul>
-                )}
+                    {(state?.batches.length ?? 0) === 0 && <div className="px-4 py-6 text-center text-muted-foreground">Aucun batch</div>}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-border bg-card p-10 text-center space-y-2">
+                <Network className="w-8 h-8 text-primary mx-auto" />
+                <div className="font-display font-bold text-foreground">Aucun run actif</div>
+                <p className="text-sm text-muted-foreground max-w-lg mx-auto">
+                  Lancez une <strong>analyse incrémentale</strong> pour ne traiter que les articles/pages modifiés (aucun crédit IA consommé — 100% déterministe),
+                  ou une <strong>analyse complète</strong> pour tout recalculer.
+                </p>
               </div>
             )}
 
-            {tab === "opportunities" && (
-              <div className="rounded-2xl border border-border bg-card p-4">
-                {!stats.last_run?.opportunities?.length ? (
-                  <div className="p-10 text-center text-muted-foreground">Lancez une analyse pour découvrir des opportunités.</div>
-                ) : (
-                  <ul className="space-y-2">
-                    {stats.last_run.opportunities.slice(0, 100).map((o, i) => (
-                      <li key={i} className="p-3 rounded-lg border border-border">
-                        <div className="text-xs uppercase tracking-wide text-primary font-bold">{String(o.type)}</div>
-                        <div className="text-sm text-foreground">{String(o.suggestion ?? "")}</div>
-                        {o.title ? <div className="text-xs text-muted-foreground mt-1">{String(o.title)}</div> : null}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            {tab === "history" && (
+            {state?.history && state.history.length > 0 && (
               <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                <div className="px-4 py-2 bg-muted text-xs uppercase tracking-wide text-muted-foreground font-bold">Historique</div>
                 <table className="w-full text-sm">
-                  <thead className="bg-muted text-muted-foreground text-xs uppercase">
+                  <thead className="text-muted-foreground text-xs uppercase">
                     <tr>
                       <th className="text-left px-4 py-2">Démarré</th>
+                      <th className="text-left px-4 py-2">Mode</th>
                       <th className="text-left px-4 py-2">Statut</th>
-                      <th className="text-left px-4 py-2">Analysés</th>
-                      <th className="text-left px-4 py-2">Reliés</th>
-                      <th className="text-left px-4 py-2">Liens créés</th>
+                      <th className="text-left px-4 py-2">Items</th>
+                      <th className="text-left px-4 py-2">Batches</th>
+                      <th className="text-left px-4 py-2">Erreurs</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {runs.map((r) => r && (
-                      <tr key={r.id}>
-                        <td className="px-4 py-2 text-xs">{new Date(r.started_at).toLocaleString("fr-CA")}</td>
-                        <td className="px-4 py-2">{r.status}</td>
-                        <td className="px-4 py-2">{(r.stats as Record<string, number>)?.analyzed ?? 0}</td>
-                        <td className="px-4 py-2">{(r.stats as Record<string, number>)?.linked ?? 0}</td>
-                        <td className="px-4 py-2">{(r.stats as Record<string, number>)?.links_created ?? 0}</td>
+                    {state.history.map((h) => (
+                      <tr key={h.id}>
+                        <td className="px-4 py-2 text-xs">{new Date(h.started_at).toLocaleString("fr-CA")}</td>
+                        <td className="px-4 py-2">{h.mode}</td>
+                        <td className="px-4 py-2"><span className={badge(h.status)}>{h.status}</span></td>
+                        <td className="px-4 py-2">{h.done_items} / {h.total_items}</td>
+                        <td className="px-4 py-2">{h.done_batches} / {h.total_batches}</td>
+                        <td className="px-4 py-2 text-destructive">{h.failed_items || 0}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -256,23 +261,25 @@ export default function AdminBlogMesh() {
   );
 }
 
-function Kpi({ label, value, sub, icon, tone }: { label: string; value: number | string; sub?: string; icon?: React.ReactNode; tone?: "green" | "orange" | "blue" }) {
-  const toneCls =
-    tone === "green" ? "text-primary" :
-    tone === "orange" ? "text-orange-500" :
-    tone === "blue" ? "text-blue-500" : "text-foreground";
+function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground font-semibold">{icon}{label}</div>
-      <div className={`mt-2 text-2xl font-display font-extrabold ${toneCls}`}>{value}{sub && <span className="text-sm text-muted-foreground ml-1">{sub}</span>}</div>
+    <div className="rounded-lg border border-border p-3">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-1 font-display font-extrabold text-foreground">{value}</div>
     </div>
   );
 }
 
-function ProgressBar({ value }: { value: number }) {
-  return (
-    <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-      <div className="h-full bg-primary transition-all" style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
-    </div>
-  );
+function badge(status: string) {
+  const base = "px-2 py-0.5 rounded text-xs font-bold";
+  switch (status) {
+    case "running": return `${base} bg-blue-500/20 text-blue-600`;
+    case "queued": return `${base} bg-muted text-muted-foreground`;
+    case "claimed": return `${base} bg-yellow-500/20 text-yellow-700`;
+    case "completed": return `${base} bg-primary/20 text-primary`;
+    case "failed": return `${base} bg-destructive/20 text-destructive`;
+    case "cancelled": return `${base} bg-muted text-muted-foreground`;
+    case "paused": return `${base} bg-orange-500/20 text-orange-600`;
+    default: return `${base} bg-muted text-muted-foreground`;
+  }
 }

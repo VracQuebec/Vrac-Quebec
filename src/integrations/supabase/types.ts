@@ -239,42 +239,137 @@ export type Database = {
           },
         ]
       }
-      blog_mesh_runs: {
+      blog_mesh_batches: {
         Row: {
+          attempts: number
           created_at: string
+          duration_ms: number | null
           error: string | null
           finished_at: string | null
           id: string
+          item_ids: string[]
+          kind: string
+          max_attempts: number
+          next_attempt_at: string | null
+          processed_count: number
+          run_id: string
+          sort_order: number
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          item_ids?: string[]
+          kind: string
+          max_attempts?: number
+          next_attempt_at?: string | null
+          processed_count?: number
+          run_id: string
+          sort_order?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          item_ids?: string[]
+          kind?: string
+          max_attempts?: number
+          next_attempt_at?: string | null
+          processed_count?: number
+          run_id?: string
+          sort_order?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_mesh_batches_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "blog_mesh_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blog_mesh_runs: {
+        Row: {
+          batch_size_pages: number
+          batch_size_posts: number
+          created_at: string
+          created_by: string | null
+          done_batches: number
+          done_items: number
+          error: string | null
+          failed_items: number
+          finished_at: string | null
+          id: string
+          item_ids: string[]
+          last_progress_at: string
           mode: string
           opportunities: Json
           orphan_post_ids: string[]
           started_at: string
           stats: Json
           status: string
+          total_batches: number
+          total_items: number
         }
         Insert: {
+          batch_size_pages?: number
+          batch_size_posts?: number
           created_at?: string
+          created_by?: string | null
+          done_batches?: number
+          done_items?: number
           error?: string | null
+          failed_items?: number
           finished_at?: string | null
           id?: string
+          item_ids?: string[]
+          last_progress_at?: string
           mode?: string
           opportunities?: Json
           orphan_post_ids?: string[]
           started_at?: string
           stats?: Json
           status?: string
+          total_batches?: number
+          total_items?: number
         }
         Update: {
+          batch_size_pages?: number
+          batch_size_posts?: number
           created_at?: string
+          created_by?: string | null
+          done_batches?: number
+          done_items?: number
           error?: string | null
+          failed_items?: number
           finished_at?: string | null
           id?: string
+          item_ids?: string[]
+          last_progress_at?: string
           mode?: string
           opportunities?: Json
           orphan_post_ids?: string[]
           started_at?: string
           stats?: Json
           status?: string
+          total_batches?: number
+          total_items?: number
         }
         Relationships: []
       }
@@ -458,6 +553,7 @@ export type Database = {
           is_featured: boolean
           is_popular: boolean
           mesh_analyzed_at: string | null
+          mesh_content_hash: string | null
           mesh_score: number
           meta_description: string | null
           meta_title: string | null
@@ -493,6 +589,7 @@ export type Database = {
           is_featured?: boolean
           is_popular?: boolean
           mesh_analyzed_at?: string | null
+          mesh_content_hash?: string | null
           mesh_score?: number
           meta_description?: string | null
           meta_title?: string | null
@@ -528,6 +625,7 @@ export type Database = {
           is_featured?: boolean
           is_popular?: boolean
           mesh_analyzed_at?: string | null
+          mesh_content_hash?: string | null
           mesh_score?: number
           meta_description?: string | null
           meta_title?: string | null
@@ -2450,6 +2548,7 @@ export type Database = {
           last_analyzed_at: string | null
           last_generated_at: string | null
           material_slug: string | null
+          mesh_content_hash: string | null
           meta_description: string | null
           meta_title: string | null
           needs_refresh: boolean
@@ -2495,6 +2594,7 @@ export type Database = {
           last_analyzed_at?: string | null
           last_generated_at?: string | null
           material_slug?: string | null
+          mesh_content_hash?: string | null
           meta_description?: string | null
           meta_title?: string | null
           needs_refresh?: boolean
@@ -2540,6 +2640,7 @@ export type Database = {
           last_analyzed_at?: string | null
           last_generated_at?: string | null
           material_slug?: string | null
+          mesh_content_hash?: string | null
           meta_description?: string | null
           meta_title?: string | null
           needs_refresh?: boolean
@@ -3620,6 +3721,20 @@ export type Database = {
     }
     Functions: {
       blog_increment_view: { Args: { _post_id: string }; Returns: undefined }
+      blog_mesh_cancel: { Args: { _run_id: string }; Returns: undefined }
+      blog_mesh_pause: { Args: { _run_id: string }; Returns: undefined }
+      blog_mesh_resume: { Args: { _run_id: string }; Returns: undefined }
+      blog_mesh_retry_errors: { Args: { _run_id: string }; Returns: number }
+      blog_mesh_start: {
+        Args: {
+          _batch_pages?: number
+          _batch_posts?: number
+          _item_ids?: string[]
+          _mode?: string
+        }
+        Returns: string
+      }
+      blog_mesh_state: { Args: never; Returns: Json }
       blog_mesh_stats: { Args: never; Returns: Json }
       blog_search: {
         Args: { _limit?: number; _query: string }
