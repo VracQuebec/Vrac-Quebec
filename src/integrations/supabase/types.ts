@@ -3816,6 +3816,10 @@ export type Database = {
       }
     }
     Functions: {
+      ai_cache_hit: {
+        Args: { _credits: number; _key: string }
+        Returns: undefined
+      }
       ai_economy_stats: { Args: { _days?: number }; Returns: Json }
       blog_increment_view: { Args: { _post_id: string }; Returns: undefined }
       blog_mesh_cancel: { Args: { _run_id: string }; Returns: undefined }
