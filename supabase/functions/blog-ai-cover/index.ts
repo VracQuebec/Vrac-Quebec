@@ -2,6 +2,7 @@
 // uploads it to the blog-media bucket, returns a signed URL. Admin only.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logAiCall } from "../_shared/ai-cache.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -33,6 +34,7 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) return json({ error: "LOVABLE_API_KEY manquante" }, 500);
 
+    const started = Date.now();
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
@@ -52,6 +54,12 @@ Deno.serve(async (req) => {
       return json({ error: `Erreur IA image: ${text}` }, 500);
     }
     const data = await resp.json();
+    logAiCall({
+      functionName: "blog-ai-cover",
+      model: "google/gemini-2.5-flash-image",
+      cached: false,
+      durationMs: Date.now() - started,
+    }, supabase).catch(() => {});
     const imgB64: string | undefined = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url
       || data?.choices?.[0]?.message?.images?.[0]?.url;
     if (!imgB64) return json({ error: "Aucune image générée" }, 500);
