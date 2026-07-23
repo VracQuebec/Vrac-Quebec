@@ -119,6 +119,13 @@ export default function AdminSeoManager() {
           >
             <Zap className="w-3.5 h-3.5" /> Économie IA
           </Link>
+          <Link
+            to="/admin/integrations-google"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary hover:bg-secondary/80 text-xs font-semibold"
+            title="Statut des intégrations Google (Search Console, PageSpeed)"
+          >
+            <TrendingUp className="w-3.5 h-3.5" /> Intégrations Google
+          </Link>
         </div>
       </header>
       <div className="container mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6">
