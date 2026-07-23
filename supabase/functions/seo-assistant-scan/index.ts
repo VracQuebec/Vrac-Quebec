@@ -17,6 +17,25 @@ type Reco = {
   title: string; rationale: string; action_type: string; payload?: Record<string, unknown>;
 };
 
+type Opp = {
+  type: string;
+  page_id?: string | null;
+  entity_type?: string | null;
+  entity_slug?: string | null;
+  target_city_slug?: string | null;
+  target_material_slug?: string | null;
+  target_service_slug?: string | null;
+  title: string;
+  rationale: string;
+  suggested_action: "create" | "optimize" | "merge" | "delete" | "ignore";
+  impact_score: number;
+  effort_score: number;
+  potential_searches?: number | null;
+  potential_clicks?: number | null;
+  potential_leads?: number | null;
+  evidence?: Record<string, unknown>;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   try {
@@ -34,6 +53,7 @@ Deno.serve(async (req) => {
     }
 
     const recos: Reco[] = [];
+    const opps: Opp[] = [];
 
     // Load core datasets
     const [pagesRes, blogRes, gscRes, citiesRes, materialsRes, servicesRes] = await Promise.all([
@@ -63,6 +83,13 @@ Deno.serve(async (req) => {
           rationale: `Seulement ${p.word_count ?? 0} mots — objectif 800+ pour ranker localement.`,
           action_type: "improve",
         });
+        opps.push({
+          type: "thin_content", page_id: p.id, entity_type: "page", entity_slug: p.slug,
+          title: `Enrichir « ${p.title} »`,
+          rationale: `Contenu court (${p.word_count ?? 0} mots) — vise 800+ pour ranker localement.`,
+          suggested_action: "optimize", impact_score: 70, effort_score: 30,
+          evidence: { word_count: p.word_count ?? 0 },
+        });
       }
     }
 
@@ -78,6 +105,15 @@ Deno.serve(async (req) => {
           action_type: "improve",
           payload: { position: g.position, impressions: g.impressions },
         });
+        const potClicks = Math.round(g.impressions * 0.15);
+        opps.push({
+          type: "losing_positions", page_id: p.id, entity_type: "page", entity_slug: p.slug,
+          title: `Quick win : « ${p.title} » en position ${g.position.toFixed(1)}`,
+          rationale: `${g.impressions} impressions / 28 j — pousser en 1re page peut multiplier les clics.`,
+          suggested_action: "optimize", impact_score: 90, effort_score: 25,
+          potential_searches: g.impressions, potential_clicks: potClicks,
+          evidence: { position: g.position, impressions: g.impressions, clicks: g.clicks },
+        });
       }
     }
 
@@ -91,6 +127,15 @@ Deno.serve(async (req) => {
           title: `CTR faible sur "${p.title}"`,
           rationale: `${(g.ctr * 100).toFixed(2)}% de CTR pour ${g.impressions} impressions — réécrire le meta title.`,
           action_type: "update_meta",
+        });
+        opps.push({
+          type: "high_impr_low_ctr", page_id: p.id, entity_type: "page", entity_slug: p.slug,
+          title: `Réécrire le titre de « ${p.title} »`,
+          rationale: `${(g.ctr * 100).toFixed(2)}% de CTR pour ${g.impressions} impressions — meta title à réécrire.`,
+          suggested_action: "optimize", impact_score: 60, effort_score: 15,
+          potential_searches: g.impressions,
+          potential_clicks: Math.round(g.impressions * 0.05) - g.clicks,
+          evidence: { ctr: g.ctr, impressions: g.impressions, position: g.position },
         });
       }
     }
@@ -121,6 +166,12 @@ Deno.serve(async (req) => {
             rationale: `Publiée depuis 30 j sans impression Google — améliorer contenu et liens entrants.`,
             action_type: "improve",
           });
+          opps.push({
+            type: "stagnant", page_id: p.id, entity_type: "page", entity_slug: p.slug,
+            title: `« ${p.title} » n'est pas indexée`,
+            rationale: `Publiée depuis 30 j sans impression — enrichir contenu et maillage.`,
+            suggested_action: "optimize", impact_score: 65, effort_score: 20,
+          });
         }
       }
     }
@@ -139,6 +190,21 @@ Deno.serve(async (req) => {
             rationale: `Combinaison ciblée absente — population ${(c.population ?? 0).toLocaleString()}.`,
             action_type: "create",
             payload: { city_slug: c.slug, material_slug: m.slug },
+          });
+          const pop = c.population ?? 0;
+          const potSearches = Math.round(pop / 800);
+          opps.push({
+            type: "new_combo",
+            entity_type: "combo",
+            target_city_slug: c.slug, target_material_slug: m.slug,
+            title: `Créer « ${m.name} à ${c.name} »`,
+            rationale: `Combinaison ciblée absente — population ${pop.toLocaleString()}.`,
+            suggested_action: "create",
+            impact_score: pop > 20000 ? 80 : 55, effort_score: 20,
+            potential_searches: potSearches,
+            potential_clicks: Math.round(potSearches * 0.08),
+            potential_leads: Math.round(potSearches * 0.08 * 0.03),
+            evidence: { population: pop, material: m.name, city: c.name },
           });
         }
       }
@@ -171,6 +237,14 @@ Deno.serve(async (req) => {
           action_type: "create",
           payload: { service_slug: s.slug },
         });
+        opps.push({
+          type: "new_service", entity_type: "service", entity_slug: s.slug,
+          target_service_slug: s.slug,
+          title: `Créer du contenu pour ${s.name}`,
+          rationale: `Aucune page SEO ne cible ce service.`,
+          suggested_action: "create",
+          impact_score: 45, effort_score: 25,
+        });
       }
     }
 
@@ -183,6 +257,20 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Refresh opportunities table (source of truth for Copilot UI)
+    await supabase.from("seo_opportunities").delete().eq("status", "open");
+    if (opps.length > 0) {
+      const chunkSize = 200;
+      for (let i = 0; i < opps.length; i += chunkSize) {
+        await supabase.from("seo_opportunities").insert(opps.slice(i, i + chunkSize));
+      }
+    }
+
+    // Recompute scores for all pages
+    try {
+      await supabase.rpc("seo_recompute_page_scores", { _page_id: null });
+    } catch (_) { /* non-blocking */ }
+
     // Recalcul priorité pages
     for (const p of pages) {
       const { data: sc } = await supabase.rpc("seo_priority_score", { _page_id: p.id });
@@ -191,7 +279,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ ok: true, count: recos.length });
+    return json({ ok: true, recos: recos.length, opportunities: opps.length });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
