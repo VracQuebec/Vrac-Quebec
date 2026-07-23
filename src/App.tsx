@@ -7,6 +7,7 @@ import { useEffect, lazy, Suspense } from "react";
 import Index from "./pages/Index";
 import SessionKeeper from "./components/SessionKeeper";
 import AppErrorBoundary from "./components/AppErrorBoundary";
+import { trackPageView } from "./lib/analytics/ga4";
 
 const Login = lazy(() => import("./pages/Login"));
 const Admin = lazy(() => import("./pages/Admin"));
@@ -56,6 +57,18 @@ const ScrollToTop = () => {
   return null;
 };
 
+const Ga4RouteTracker = () => {
+  const location = useLocation();
+  useEffect(() => {
+    // Laisse le temps au titre de se mettre à jour (Helmet) avant d'envoyer le page_view.
+    const t = window.setTimeout(() => {
+      trackPageView(location.pathname + location.search, document.title);
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, [location.pathname, location.search]);
+  return null;
+};
+
 const App = () => (
   <AppErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -64,6 +77,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ScrollToTop />
+          <Ga4RouteTracker />
           <SessionKeeper />
           <Suspense fallback={null}>
           <Routes>
