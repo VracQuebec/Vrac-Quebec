@@ -4,6 +4,7 @@
 // applies the improvement in a second call to `apply` mode.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAIChatCached } from "../_shared/ai-cache.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -182,26 +183,28 @@ ${JSON.stringify(page.faq ?? [])}
 
 Score SEO actuel : ${page.seo_score ?? "n/a"}/100 (${page.word_count ?? 0} mots).`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
-      body: JSON.stringify({
+    let raw = "";
+    try {
+      // "Améliorer" is always a human-triggered rewrite.
+      const ai = await callAIChatCached({
+        supabase,
+        functionName: "seo-improve-page",
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: system },
           { role: "user", content: user },
         ],
         response_format: { type: "json_object" },
-      }),
-    });
-    if (!resp.ok) {
-      const text = await resp.text();
-      if (resp.status === 429) return json({ error: "Trop de requêtes IA — réessayez plus tard." }, 429);
-      if (resp.status === 402) return json({ error: "Crédits IA épuisés." }, 402);
-      return json({ error: `Erreur IA: ${text}` }, 500);
+        allowAi: true,
+      });
+      raw = ai.content;
+    } catch (e) {
+      const err = e as { status?: number; message?: string };
+      const status = err.status ?? 500;
+      if (status === 429) return json({ error: "Trop de requêtes IA — réessayez plus tard." }, 429);
+      if (status === 402) return json({ error: err.message || "Crédits IA épuisés." }, 402);
+      return json({ error: `Erreur IA: ${err.message}` }, 500);
     }
-    const dataAi = await resp.json();
-    const raw = dataAi?.choices?.[0]?.message?.content ?? "";
     let parsed: Record<string, unknown> = {};
     try { parsed = JSON.parse(raw); } catch {
       const m = raw.match(/\{[\s\S]*\}/); if (m) { try { parsed = JSON.parse(m[0]); } catch { parsed = {}; } }

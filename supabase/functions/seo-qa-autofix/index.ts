@@ -329,21 +329,20 @@ Deno.serve(async (req) => {
         return json({ error: "LOVABLE_API_KEY manquante pour les actions IA demandées." }, 500);
       }
       aiCalls++;
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
-        body: JSON.stringify({
+      try {
+        const { callAIChatCached } = await import("../_shared/ai-cache.ts");
+        const ai = await callAIChatCached({
+          supabase,
+          functionName: "seo-qa-autofix",
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: "SEO expert. HTML sémantique propre. JSON strict, pas de markdown." },
             { role: "user", content: `Réécris le contenu HTML pour: (1) 900–1400 mots, (2) ≥ 4 H2 et ≥ 2 H3, (3) phrases < 25 mots. Garde le sens actuel. Format: { "content_html": "..." }.\n\nContenu actuel:\n${String(p.content_html || "").slice(0, 6000)}` },
           ],
           response_format: { type: "json_object" },
-        }),
-      });
-      if (r.ok) {
-        const j = await r.json();
-        const content = j?.choices?.[0]?.message?.content ?? "{}";
+          allowAi: true, // reached only when the caller explicitly passed allow_ai
+        });
+        const content = ai.content || "{}";
         try {
           const parsed = JSON.parse(content) as { content_html?: string };
           if (typeof parsed.content_html === "string" && parsed.content_html.length > 400) {
@@ -353,7 +352,7 @@ Deno.serve(async (req) => {
             if (want("improve_readability")) fixedActions.push("improve_readability");
           }
         } catch { /* ignore */ }
-      }
+      } catch { /* AI call failed — skip AI-assisted rewrite, deterministic fixes still applied */ }
     }
 
     if (Object.keys(updates).length === 0) {

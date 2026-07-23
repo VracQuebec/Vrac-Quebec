@@ -2,6 +2,7 @@
 // Auth: admin only. Returns { title, slug, excerpt, meta_title, meta_description, content_html, suggested_tags }.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAIChatCached } from "../_shared/ai-cache.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -88,30 +89,28 @@ Objectif : positionner Vrac Québec en tête de Google pour ce mot-clé et conve
 Contexte : Vrac Québec livre du remblai, terre, sable, gravier, pierre partout au Québec et récupère aussi les surplus de chantier.
 Respecte STRICTEMENT le schéma JSON et les règles content_html du system prompt.`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": apiKey,
-      },
-      body: JSON.stringify({
+    let content = "";
+    try {
+      const ai = await callAIChatCached({
+        supabase,
+        functionName: "blog-ai-generate",
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: system },
           { role: "user", content: user },
         ],
         response_format: { type: "json_object" },
-      }),
-    });
-
-    if (!resp.ok) {
-      const text = await resp.text();
-      if (resp.status === 429) return json({ error: "Trop de requêtes IA — réessayez dans un instant." }, 429);
-      if (resp.status === 402) return json({ error: "Crédits IA épuisés. Ajoutez des crédits dans les paramètres." }, 402);
-      return json({ error: `Erreur IA: ${text}` }, 500);
+        // Human-triggered content generation → always allowed.
+        allowAi: true,
+      });
+      content = ai.content;
+    } catch (e) {
+      const err = e as { status?: number; message?: string };
+      const status = err.status ?? 500;
+      if (status === 429) return json({ error: "Trop de requêtes IA — réessayez dans un instant." }, 429);
+      if (status === 402) return json({ error: err.message || "Crédits IA épuisés." }, 402);
+      return json({ error: `Erreur IA: ${err.message}` }, 500);
     }
-    const data = await resp.json();
-    const content = data?.choices?.[0]?.message?.content ?? "";
     let parsed: Record<string, unknown> = {};
     try {
       parsed = JSON.parse(content);

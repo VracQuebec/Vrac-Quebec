@@ -14,6 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_cache: {
+        Row: {
+          cache_key: string
+          completion_tokens: number | null
+          created_at: string
+          estimated_credits_saved: number
+          function_name: string | null
+          hit_count: number
+          last_used_at: string
+          model: string
+          prompt_tokens: number | null
+          response: Json
+        }
+        Insert: {
+          cache_key: string
+          completion_tokens?: number | null
+          created_at?: string
+          estimated_credits_saved?: number
+          function_name?: string | null
+          hit_count?: number
+          last_used_at?: string
+          model: string
+          prompt_tokens?: number | null
+          response: Json
+        }
+        Update: {
+          cache_key?: string
+          completion_tokens?: number | null
+          created_at?: string
+          estimated_credits_saved?: number
+          function_name?: string | null
+          hit_count?: number
+          last_used_at?: string
+          model?: string
+          prompt_tokens?: number | null
+          response?: Json
+        }
+        Relationships: []
+      }
+      ai_call_log: {
+        Row: {
+          cache_key: string | null
+          cached: boolean
+          completion_tokens: number | null
+          created_at: string
+          duration_ms: number | null
+          estimated_credits: number
+          function_name: string | null
+          id: number
+          model: string | null
+          prompt_tokens: number | null
+        }
+        Insert: {
+          cache_key?: string | null
+          cached?: boolean
+          completion_tokens?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          estimated_credits?: number
+          function_name?: string | null
+          id?: number
+          model?: string | null
+          prompt_tokens?: number | null
+        }
+        Update: {
+          cache_key?: string | null
+          cached?: boolean
+          completion_tokens?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          estimated_credits?: number
+          function_name?: string | null
+          id?: number
+          model?: string | null
+          prompt_tokens?: number | null
+        }
+        Relationships: []
+      }
+      ai_settings: {
+        Row: {
+          economy_mode: boolean
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          economy_mode?: boolean
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          economy_mode?: boolean
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       blacklist_entries: {
         Row: {
           active: boolean
@@ -3720,6 +3816,11 @@ export type Database = {
       }
     }
     Functions: {
+      ai_cache_hit: {
+        Args: { _credits: number; _key: string }
+        Returns: undefined
+      }
+      ai_economy_stats: { Args: { _days?: number }; Returns: Json }
       blog_increment_view: { Args: { _post_id: string }; Returns: undefined }
       blog_mesh_cancel: { Args: { _run_id: string }; Returns: undefined }
       blog_mesh_pause: { Args: { _run_id: string }; Returns: undefined }
