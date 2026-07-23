@@ -4,6 +4,7 @@ export type SeoPageEventType =
   | "view"
   | "phone_click"
   | "whatsapp_click"
+  | "email_click"
   | "submission"
   | "cta_click";
 
