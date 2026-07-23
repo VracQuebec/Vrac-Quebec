@@ -187,3 +187,27 @@ export async function callAIChatCached(opts: CachedAIOptions): Promise<CachedAIR
 export async function getEconomyMode(sb?: SupabaseClient): Promise<boolean> {
   return await readEconomyMode(getServiceClient(sb));
 }
+
+/** Log-only helper for callers that manage their own fetch (e.g. image gen). */
+export async function logAiCall(row: {
+  functionName: string; model: string; cached?: boolean;
+  promptTokens?: number; completionTokens?: number; durationMs?: number;
+}, sb?: SupabaseClient): Promise<void> {
+  const client = getServiceClient(sb);
+  await logCall(client, {
+    function_name: row.functionName,
+    model: row.model,
+    cache_key: "",
+    cached: row.cached ?? false,
+    prompt_tokens: row.promptTokens ?? 0,
+    completion_tokens: row.completionTokens ?? 0,
+    estimated_credits: estimateCredits(row.model),
+    duration_ms: row.durationMs ?? 0,
+  });
+}
+
+/** Cheap check whether economy mode currently blocks an automatic call. */
+export async function economyBlocks(allowAi: boolean, sb?: SupabaseClient): Promise<boolean> {
+  if (allowAi) return false;
+  return await readEconomyMode(getServiceClient(sb));
+}
