@@ -1,111 +1,82 @@
+# Copilote SEO intelligent — plan de livraison
 
-# Refonte SEO Manager — Plateforme de pilotage professionnelle
+Objectif : transformer le SEO Manager en un copilote qui décide seul quoi créer, améliorer, fusionner ou supprimer, et exécute via le moteur industriel déjà en place. Aucune duplication : tout réutilise `seo_optimization_*`, `seo_pipeline_*`, `seo_recommendations`, `seo_page_events`, `seo_gsc_metrics`, `seo_business_metrics`, `seo-optimize-worker/supervisor`.
 
-Objectif : transformer le SEO Manager actuel (fonctionnel mais fragmenté) en un outil unifié, sans doublons, avec QA transparent, corrections en 1 clic (page + site), suggestions priorisées, projections de couverture, suivi de conversions par page, conseiller IA hebdomadaire, et pipeline scalable.
-
-L'infra existe déjà en grande partie (pipeline V2, QA autofix, mesh blog, business metrics, events, recommandations). Ce plan **consolide** au lieu de reconstruire.
+Livraison en 4 phases indépendantes, chacune shippable et utilisable seule.
 
 ---
 
-## 1. Nettoyage du tableau de bord (source unique)
+## Phase A — Fondations données (1 migration + 2 vues + 1 RPC)
 
-- Supprimer les compteurs redondants dans `CommandCenter.tsx`, `CoverageOverview.tsx`, `WaveRunner.tsx`, `HealthScoreGauge.tsx`.
-- Une seule RPC `seo_dashboard_v2()` retourne : totaux (pages, publiées, drafts, needs-fix), QA moyen, couverture (villes/matériaux/services/combos), pipeline actif, top 10 recos, projections, conversions 30j.
-- Nouveau layout `AdminSeoManager.tsx` avec 5 onglets seulement : **Pilotage · Pages · Couverture · Suggestions · Conseiller IA**. Retirer les onglets qui recoupent (Conversions fusionne dans Pilotage, Waves fusionne dans Pilotage).
+But : brancher tous les signaux nécessaires aux scores et à l'IA, sans changer l'UI.
 
-## 2. Score QA transparent
+- Table `seo_page_scores` (1 ligne par page, rafraîchie) : seo, qa, business, traffic, conversion, competition, opportunity, computed_at. Formules déterministes documentées dans une fonction SQL `seo_recompute_page_scores(_page_id uuid default null)`.
+- Vue matérialisée `seo_page_conversions_30d` : agrégat par `page_slug` depuis `seo_page_events` (view, phone, whatsapp, email, submission, cta). Refresh cron 15 min.
+- Vue matérialisée `seo_gsc_deltas_28d` : delta position / clics / impressions vs 28j précédents par `page_id` depuis `seo_gsc_metrics`.
+- Table `seo_opportunities` (unique source vérité pour la section « Opportunités »): type (new_city, new_material, new_combo, merge, duplicate, losing_positions, stagnant, high_impr_low_ctr, high_conversion), page_id/entity nullable, impact_score, effort_score, evidence jsonb, suggested_action, status (open/applied/dismissed), created_at.
+- RPC `seo_executive_dashboard()` : agrège scores, conversions, GSC, top gains/pertes 30j, actions IA en attente. Un seul appel front.
+- Tracking `email_click` déjà prévu → ajouté dans `src/lib/seo/tracking.ts` + boutons mailto publics.
 
-- Refondre `seo-qa-check` avec **11 critères pondérés** (contenu, H1, H2, title, meta desc, OG, FAQ, schema.org, liens internes, longueur, duplication, optimisation locale ville+matériau).
-- Chaque critère renvoie `{ id, label, weight, passed, score, details, fixable }`.
-- Stocker le détail dans `seo_pages.qa_breakdown jsonb`.
-- Nouveau composant `QaBreakdown.tsx` : liste visuelle « pourquoi cette note », avec badges verts/rouges par critère.
+## Phase B — Assistant IA stratégique + Opportunités (réutilise `seo-assistant-scan`)
 
-## 3. Bouton « Corriger automatiquement » (par page)
+But : remplacer les recommandations basiques actuelles par une analyse multi-signaux avec potentiel chiffré.
 
-- Un seul CTA sur chaque ligne + dans la fiche page.
-- Enchaîne : QA → autofix ciblé sur critères ratés (métadonnées, FAQ, contenu, liens internes, OG) → re-QA → sauvegarde.
-- Étend `seo-qa-autofix` pour couvrir Open Graph et schema.org (manquants aujourd'hui).
-- Feedback temps réel : progression + nouveau score.
+- Refonte de `supabase/functions/seo-assistant-scan/index.ts` (déjà existant) : consomme scores + GSC deltas + conversions + concurrents, produit des lignes dans `seo_opportunities` avec estimation chiffrée (recherches/mois via `seo_cities.population` × ratio catégorie, demandes potentielles via taux conv historique de la ville).
+- Cron nocturne (pg_cron) `seo_nightly_scan` : rescore pages → scan opportunités → alimente la queue d'optimisation pour toute page `qa < 90` ou `opportunity_score >= 80`, sans intervention humaine (Phase D activera/désactivera le côté "création auto").
+- Nouveau composant `src/components/seo/OpportunitiesPanel.tsx` : liste triée par impact/effort avec 5 actions par ligne (Créer / Optimiser / Fusionner / Supprimer / Ignorer). "Créer" et "Optimiser" pushent dans le moteur existant (`seo_optimization_start` ou `seo_pipeline_start('single_city',...)`).
+- Nouveau composant `src/components/seo/StrategicAdvisor.tsx` : affiche le top 5 priorités avec cartes étoilées (★ à ★★★★★), potentiel, concurrence, impact estimé, bouton "Créer automatiquement".
 
-## 4. « Optimiser tout le site » (global)
+## Phase C — Copilote page-par-page (scores, IA concurrentielle, prévisions)
 
-- Nouveau bouton dans Pilotage → lance un run `seo_pipeline_start('optimize_all')`.
-- Sélectionne toutes les pages publiées avec `qa_last_score < 90` OU métadonnées manquantes OU < 5 liens internes.
-- Traitement en lot via l'orchestrator existant (pas de nouveau moteur).
-- Progression visible dans `PipelineControlCenter`.
+But : donner à chaque page une vue "coach" complète.
 
-## 5. Suggestions intelligentes (top 10)
+- Nouveau composant `src/components/seo/PageScoreCard.tsx` : les 7 scores en radar + tendance 30j (depuis `seo_gsc_deltas_28d`).
+- Refonte `seo-competitor-crawl` (existant) : pour chaque page, compare H1/H2/FAQ/mots/schema/images/maillage/intentions vs top 10 Google. Stocke dans `seo_competitor_pages` (existant, étendu si besoin). Le résultat alimente `competition_score` et `opportunity_score`.
+- Nouveau composant `src/components/seo/CompetitorGapPanel.tsx` : « Ce qu'ont les concurrents / Ce qui manque / Ce qui peut être ajouté » + bouton unique « Optimiser automatiquement » qui déclenche `seo-optimize-worker` avec actions ciblées sur les gaps détectés.
+- Nouveau composant `src/components/seo/SeoForecastChart.tsx` (Recharts) : projections 30/90/180/365j basées sur position actuelle × CTR courbe × trafic potentiel de la ville. Traduit en demandes/revenus via taux conv historique.
 
-- Utiliser la table `seo_recommendations` existante.
-- Nouveau composant `TopActionsPanel.tsx` : 10 recos triées par `impact/effort` avec priorité, trafic estimé, difficulté.
-- Bouton « Appliquer » par reco (déjà via `RecommendationCard`).
-- Job hebdo `seo-suggest-pages` (existe) recalcule.
+## Phase D — Dashboard exécutif + Autopilot
 
-## 6. Couverture territoriale avec projections
+But : une vue Jonathan et un interrupteur "il roule seul".
 
-- Étendre `seo_dashboard_stats` pour calculer, pour chaque item manquant :
-  - pages générables = N combinaisons
-  - impressions estimées = population × ratio search × CTR moyen catégorie
-  - clics estimés = impressions × CTR pos moyenne
-- Nouveau composant `CoverageProjections.tsx` : par bloc (villes / matériaux / services / combos / articles) : « +X pages · +Y impr/mois · +Z clics/mois ».
-- CTA « Créer ces N pages » → lance la génération ciblée.
+- Nouvelle page/onglet `src/components/seo/ExecutiveDashboard.tsx` (onglet **Pilotage** existant, remplace le contenu actuel dupliqué). Consomme `seo_executive_dashboard()` : KPI, top gains/pertes 30j, actions IA en attente, alertes.
+- Nouveau composant `src/components/seo/AutopilotPanel.tsx` : switch on/off + réglages (seuil QA, budget IA quotidien, plafond pages/jour, catégories autorisées). Stocké dans table `seo_autopilot_config` (singleton).
+- Edge function `seo-autopilot-tick` (cron 15 min) : si autopilot ON, lit les opportunités open, filtre selon budget/plafond, push dans le moteur (`seo_optimization_start` pour optimisations, `seo_pipeline_start` pour créations). Publie uniquement les pages qui passent `qa >= threshold`. 100% via l'orchestrator existant, zéro pipeline parallèle.
+- Journal autopilot visible dans le dashboard (nouvelle vue `seo_autopilot_actions` alimentée par les runs déclenchés).
 
-## 7. Suivi réel des conversions par page
+## Nettoyage & architecture
 
-- La table `seo_page_events` existe déjà (view, phone_click, whatsapp_click, submission, cta_click).
-- Ajouter tracking `email_click` dans `logSeoEvent` + boutons courriel du site public.
-- Nouvelle vue matérialisée `seo_page_conversions_30d` : par page → views, phone, whatsapp, email, submissions, ratio conv.
-- Colonne « Conversions » dans la table des pages + agrégat dans Pilotage.
-
-## 8. Conseiller IA hebdomadaire
-
-- Nouvelle table `seo_advisor_reports` (weekly digest).
-- Edge function `seo-advisor-weekly` (pg_cron dimanche 6h) qui utilise Gemini pour produire :
-  - résumé de la semaine (delta pages, QA, trafic)
-  - problèmes détectés
-  - pages à créer / améliorer
-  - villes/matériaux/articles à ajouter
-  - gain SEO estimé
-- Nouvel onglet **Conseiller IA** : dernier rapport + historique + bouton « Générer maintenant ».
-
-## 9. Performance (scalabilité milliers de pages)
-
-L'infra est déjà là : `seo_pipeline_runs`, batches, tasks, watchdog, cron supervisor. Ajustements :
-- Index manquants sur `seo_pages(status, qa_last_score)`, `seo_page_events(page_slug, created_at)`.
-- Pagination serveur dans la table des pages (actuellement client-side).
-- Cache mémoire 30s côté RPC dashboard.
-- Batch size dynamique dans l'orchestrator selon la charge.
+- Aucune nouvelle table qui doublonne : réutilisation stricte de `seo_optimization_*`, `seo_pipeline_*`, `seo_recommendations` (renommé en interne au profit de `seo_opportunities` pour clarifier — migration de compat).
+- `AdminSeoManager.tsx` : les 5 onglets restent (Pilotage, Pages, Couverture, Intelligence, Contenu). Pilotage = ExecutiveDashboard + Autopilot. Intelligence = StrategicAdvisor + Opportunities + CompetitorGap. Pages = liste + PageScoreCard + Forecast quand une page est sélectionnée.
+- Toute logique lourde reste server-side (edge functions + RPC). Le front ne fait que lire.
+- Multi-entreprises futur : chaque nouvelle table porte déjà `created_by` / prête à recevoir un `tenant_id` sans casser les policies existantes (ajouté nullable maintenant, backfill plus tard).
 
 ---
 
 ## Détails techniques
 
-**Migrations SQL**
-- `seo_pages.qa_breakdown jsonb`
-- `seo_advisor_reports` (id, generated_at, summary, issues, opportunities, estimated_gain, report_md)
-- Vue matérialisée `seo_page_conversions_30d` + refresh cron 15 min
-- Index perf
-- RPC `seo_dashboard_v2()` + `seo_coverage_projections()`
+**Migrations (une par phase, atomiques)**
+- Phase A : `seo_page_scores`, `seo_opportunities`, vues matérialisées, RPC `seo_recompute_page_scores`, `seo_executive_dashboard`, trigger de refresh scores sur update `seo_pages`, GRANT + RLS admin-only + service_role.
+- Phase D : `seo_autopilot_config`, cron `seo_nightly_scan` et `seo-autopilot-tick`.
 
 **Edge functions**
-- Refonte `seo-qa-check` (critères pondérés + breakdown)
-- Extension `seo-qa-autofix` (OG + schema.org)
-- Nouvelle `seo-advisor-weekly`
-- Mode `optimize_all` dans `seo-pipeline-orchestrator`
+- Refonte : `seo-assistant-scan`, `seo-competitor-crawl`.
+- Création : `seo-autopilot-tick`, `seo-scores-refresh` (batch nightly, appelle la RPC).
+- Aucune fonction ne double le moteur — toutes appellent `seo_optimization_start` / `seo_pipeline_start`.
 
-**Frontend**
-- `AdminSeoManager.tsx` : 5 onglets, layout consolidé
-- Nouveaux : `QaBreakdown.tsx`, `TopActionsPanel.tsx`, `CoverageProjections.tsx`, `AdvisorPanel.tsx`
-- Retrait : composants doublons (compteurs répétés)
-- Table pages : pagination serveur, colonne Conversions, bouton « Corriger » unifié
-- Tracking `email_click` ajouté à `src/lib/seo/tracking.ts` + boutons mailto sur pages publiques
+**Frontend nouveaux composants**
+`ExecutiveDashboard`, `StrategicAdvisor`, `OpportunitiesPanel`, `PageScoreCard`, `CompetitorGapPanel`, `SeoForecastChart`, `AutopilotPanel`.
+
+**Tracking**
+- Ajout `email_click` dans `logSeoEvent` + wiring sur tous les `mailto:` publics.
 
 ---
 
-## Livraison en 3 phases
+## Ordre de livraison recommandé
 
-1. **Consolidation** (nettoyage doublons, RPC unique, QA breakdown, bouton corriger unifié) — base saine.
-2. **Intelligence** (projections couverture, top actions, tracking conversions étendu, optimize_all).
-3. **Conseiller IA + perf** (rapport hebdo, index/pagination/cache).
+1. **Phase A** (fondations) — livrable seul, débloque tout le reste.
+2. **Phase B** (assistant + opportunités) — apporte immédiatement de la valeur, l'utilisateur voit des priorités chiffrées.
+3. **Phase C** (copilote page) — approfondit l'analyse par page.
+4. **Phase D** (dashboard exécutif + autopilot) — automatise ce que les phases 1-3 ont rendu visible.
 
-Chaque phase est livrable indépendamment et laisse le module utilisable.
+Chaque phase est mergeable indépendamment et laisse la plateforme utilisable. Confirme la Phase A pour que je commence, ou demande-moi de réorganiser.
