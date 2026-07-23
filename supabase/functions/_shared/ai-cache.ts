@@ -113,20 +113,7 @@ export async function callAIChatCached(opts: CachedAIOptions): Promise<CachedAIR
       const { data } = await sb.from("ai_cache").select("response, prompt_tokens, completion_tokens").eq("cache_key", cacheKey).maybeSingle();
       if (data?.response) {
         const content = (data.response as any)?.choices?.[0]?.message?.content ?? "";
-        // fire-and-forget hit bookkeeping
-        sb.from("ai_cache").update({
-          hit_count: (undefined as any),
-          last_used_at: new Date().toISOString(),
-        }).eq("cache_key", cacheKey).then(() => {});
-        // atomic increment via RPC-like update
-        sb.rpc as any; // no-op placeholder — we do a follow-up UPDATE below
-        await sb.from("ai_cache").update({
-          last_used_at: new Date().toISOString(),
-        }).eq("cache_key", cacheKey);
-        await sb.from("ai_cache").update({
-          hit_count: (await sb.from("ai_cache").select("hit_count").eq("cache_key", cacheKey).maybeSingle()).data?.hit_count + 1 || 1,
-          estimated_credits_saved: (await sb.from("ai_cache").select("estimated_credits_saved").eq("cache_key", cacheKey).maybeSingle()).data?.estimated_credits_saved + estCredits || estCredits,
-        }).eq("cache_key", cacheKey);
+        try { await sb.rpc("ai_cache_hit", { _key: cacheKey, _credits: estCredits }); } catch { /* ignore */ }
         await logCall(sb, {
           function_name: opts.functionName, model: opts.model, cache_key: cacheKey,
           cached: true, estimated_credits: estCredits, duration_ms: 0,
