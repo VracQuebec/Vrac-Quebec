@@ -1331,6 +1331,156 @@ export type Database = {
         }
         Relationships: []
       }
+      dispatch_rules: {
+        Row: {
+          active: boolean
+          key: string
+          label: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          active?: boolean
+          key: string
+          label: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          active?: boolean
+          key?: string
+          label?: string
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: []
+      }
+      dispatch_scenarios: {
+        Row: {
+          breakdown: Json
+          carrier_id: string | null
+          chosen_at: string | null
+          chosen_by: string | null
+          created_at: string
+          driver_id: string | null
+          dump_id: string | null
+          estimated_cost: number | null
+          estimated_distance_km: number | null
+          estimated_duration_min: number | null
+          estimated_margin: number | null
+          estimated_revenue: number | null
+          expires_at: string
+          id: string
+          rank: number
+          reasons: Json
+          score: number
+          transport_request_id: string
+          trip_id: string | null
+          truck_id: string | null
+        }
+        Insert: {
+          breakdown?: Json
+          carrier_id?: string | null
+          chosen_at?: string | null
+          chosen_by?: string | null
+          created_at?: string
+          driver_id?: string | null
+          dump_id?: string | null
+          estimated_cost?: number | null
+          estimated_distance_km?: number | null
+          estimated_duration_min?: number | null
+          estimated_margin?: number | null
+          estimated_revenue?: number | null
+          expires_at?: string
+          id?: string
+          rank: number
+          reasons?: Json
+          score?: number
+          transport_request_id: string
+          trip_id?: string | null
+          truck_id?: string | null
+        }
+        Update: {
+          breakdown?: Json
+          carrier_id?: string | null
+          chosen_at?: string | null
+          chosen_by?: string | null
+          created_at?: string
+          driver_id?: string | null
+          dump_id?: string | null
+          estimated_cost?: number | null
+          estimated_distance_km?: number | null
+          estimated_duration_min?: number | null
+          estimated_margin?: number | null
+          estimated_revenue?: number | null
+          expires_at?: string
+          id?: string
+          rank?: number
+          reasons?: Json
+          score?: number
+          transport_request_id?: string
+          trip_id?: string | null
+          truck_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_scenarios_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "carriers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_scenarios_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "crm_carriers_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_scenarios_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_scenarios_dump_id_fkey"
+            columns: ["dump_id"]
+            isOneToOne: false
+            referencedRelation: "crm_dumps_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_scenarios_dump_id_fkey"
+            columns: ["dump_id"]
+            isOneToOne: false
+            referencedRelation: "dumps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_scenarios_transport_request_id_fkey"
+            columns: ["transport_request_id"]
+            isOneToOne: false
+            referencedRelation: "transport_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_scenarios_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_scenarios_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       drivers: {
         Row: {
           carrier_id: string | null
@@ -4431,6 +4581,242 @@ export type Database = {
           },
         ]
       }
+      trip_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          from_status: Database["public"]["Enums"]["trip_status"] | null
+          id: string
+          reason: string | null
+          to_status: Database["public"]["Enums"]["trip_status"]
+          trip_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          from_status?: Database["public"]["Enums"]["trip_status"] | null
+          id?: string
+          reason?: string | null
+          to_status: Database["public"]["Enums"]["trip_status"]
+          trip_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          from_status?: Database["public"]["Enums"]["trip_status"] | null
+          id?: string
+          reason?: string | null
+          to_status?: Database["public"]["Enums"]["trip_status"]
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_status_history_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trips: {
+        Row: {
+          assigned_by: string | null
+          assignment_mode: string
+          calendar_event_id: string | null
+          carrier_id: string | null
+          client_id: string | null
+          completed_at: string | null
+          cost: number | null
+          created_at: string
+          delivered_at: string | null
+          delivery_address: string | null
+          delivery_lat: number | null
+          delivery_lng: number | null
+          distance_km: number | null
+          documents: Json
+          driver_id: string | null
+          dump_id: string | null
+          entrepreneur_id: string | null
+          id: string
+          loaded_at: string | null
+          margin: number | null
+          material: string | null
+          notes: string | null
+          photos: Json
+          pickup_address: string | null
+          pickup_lat: number | null
+          pickup_lng: number | null
+          quarry_address: string | null
+          revenue: number | null
+          scheduled_at: string | null
+          signature_url: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["trip_status"]
+          submission_id: string | null
+          transport_request_id: string | null
+          trip_number: string | null
+          truck_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          assignment_mode?: string
+          calendar_event_id?: string | null
+          carrier_id?: string | null
+          client_id?: string | null
+          completed_at?: string | null
+          cost?: number | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_address?: string | null
+          delivery_lat?: number | null
+          delivery_lng?: number | null
+          distance_km?: number | null
+          documents?: Json
+          driver_id?: string | null
+          dump_id?: string | null
+          entrepreneur_id?: string | null
+          id?: string
+          loaded_at?: string | null
+          margin?: number | null
+          material?: string | null
+          notes?: string | null
+          photos?: Json
+          pickup_address?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          quarry_address?: string | null
+          revenue?: number | null
+          scheduled_at?: string | null
+          signature_url?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["trip_status"]
+          submission_id?: string | null
+          transport_request_id?: string | null
+          trip_number?: string | null
+          truck_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string | null
+          assignment_mode?: string
+          calendar_event_id?: string | null
+          carrier_id?: string | null
+          client_id?: string | null
+          completed_at?: string | null
+          cost?: number | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_address?: string | null
+          delivery_lat?: number | null
+          delivery_lng?: number | null
+          distance_km?: number | null
+          documents?: Json
+          driver_id?: string | null
+          dump_id?: string | null
+          entrepreneur_id?: string | null
+          id?: string
+          loaded_at?: string | null
+          margin?: number | null
+          material?: string | null
+          notes?: string | null
+          photos?: Json
+          pickup_address?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          quarry_address?: string | null
+          revenue?: number | null
+          scheduled_at?: string | null
+          signature_url?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["trip_status"]
+          submission_id?: string | null
+          transport_request_id?: string | null
+          trip_number?: string | null
+          truck_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trips_calendar_event_id_fkey"
+            columns: ["calendar_event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "carriers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "crm_carriers_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "crm_clients_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_dump_id_fkey"
+            columns: ["dump_id"]
+            isOneToOne: false
+            referencedRelation: "crm_dumps_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_dump_id_fkey"
+            columns: ["dump_id"]
+            isOneToOne: false
+            referencedRelation: "dumps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_transport_request_id_fkey"
+            columns: ["transport_request_id"]
+            isOneToOne: false
+            referencedRelation: "transport_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trucks: {
         Row: {
           active: boolean
@@ -4813,6 +5199,10 @@ export type Database = {
       }
     }
     Functions: {
+      _haversine_km: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
       ai_cache_hit: {
         Args: { _credits: number; _key: string }
         Returns: undefined
@@ -4861,6 +5251,41 @@ export type Database = {
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
+      }
+      dispatch_apply_scenario: {
+        Args: { _scenario_id: string; _scheduled_at?: string }
+        Returns: string
+      }
+      dispatch_generate_scenarios: {
+        Args: { _limit?: number; _request_id: string }
+        Returns: {
+          breakdown: Json
+          carrier_id: string | null
+          chosen_at: string | null
+          chosen_by: string | null
+          created_at: string
+          driver_id: string | null
+          dump_id: string | null
+          estimated_cost: number | null
+          estimated_distance_km: number | null
+          estimated_duration_min: number | null
+          estimated_margin: number | null
+          estimated_revenue: number | null
+          expires_at: string
+          id: string
+          rank: number
+          reasons: Json
+          score: number
+          transport_request_id: string
+          trip_id: string | null
+          truck_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "dispatch_scenarios"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
@@ -4945,6 +5370,11 @@ export type Database = {
         }
         Returns: number
       }
+      ops_dashboard_stats: { Args: never; Returns: Json }
+      ops_planning_range: {
+        Args: { _from: string; _to: string }
+        Returns: Json
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -5006,6 +5436,14 @@ export type Database = {
         Args: { _page_id?: string }
         Returns: number
       }
+      trip_advance_status: {
+        Args: {
+          _next: Database["public"]["Enums"]["trip_status"]
+          _reason?: string
+          _trip_id: string
+        }
+        Returns: undefined
+      }
       unaccent_string: { Args: { input: string }; Returns: string }
     }
     Enums: {
@@ -5029,6 +5467,19 @@ export type Database = {
         | "en_cours"
         | "terminee"
         | "annulee"
+      trip_status:
+        | "demande"
+        | "soumission_envoyee"
+        | "accepte"
+        | "planifie"
+        | "en_route"
+        | "chargement"
+        | "transport"
+        | "livraison"
+        | "termine"
+        | "facture"
+        | "paye"
+        | "annule"
       truck_type:
         | "6_roues"
         | "10_roues"
@@ -5184,6 +5635,20 @@ export const Constants = {
         "en_cours",
         "terminee",
         "annulee",
+      ],
+      trip_status: [
+        "demande",
+        "soumission_envoyee",
+        "accepte",
+        "planifie",
+        "en_route",
+        "chargement",
+        "transport",
+        "livraison",
+        "termine",
+        "facture",
+        "paye",
+        "annule",
       ],
       truck_type: [
         "6_roues",
