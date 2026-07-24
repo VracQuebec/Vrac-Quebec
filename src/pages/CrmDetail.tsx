@@ -74,14 +74,14 @@ export default function CrmDetail() {
 
   const toggleFavorite = async () => {
     const next = !entity.is_favorite;
-    const { error } = await supabase.from(TABLE_BY_TYPE[type] as never).update({ is_favorite: next }).eq("id", id!);
+    const { error } = await supabase.from(TABLE_BY_TYPE[type] as never).update({ is_favorite: next } as never).eq("id", id!);
     if (error) return toast({ title: "Erreur", description: error.message, variant: "destructive" });
     setEntity({ ...entity, is_favorite: next });
   };
   const toggleArchive = async () => {
     const next = entity.archived_at ? null : new Date().toISOString();
     const { error } = await supabase.from(TABLE_BY_TYPE[type] as never)
-      .update({ archived_at: next, is_active: !next }).eq("id", id!);
+      .update({ archived_at: next, is_active: !next } as never).eq("id", id!);
     if (error) return toast({ title: "Erreur", description: error.message, variant: "destructive" });
     setEntity({ ...entity, archived_at: next, is_active: !next });
     toast({ title: next ? "Fiche archivée" : "Fiche restaurée" });
@@ -177,7 +177,7 @@ function OverviewTab({ type, entity, onSaved }: { type: OwnerType; entity: any; 
 
   const save = async (patch: Record<string, any>) => {
     setSaving(true);
-    const { error } = await supabase.from(TABLE_BY_TYPE[type] as never).update(patch).eq("id", entity.id);
+    const { error } = await supabase.from(TABLE_BY_TYPE[type] as never).update(patch as never).eq("id", entity.id);
     setSaving(false);
     if (error) return toast({ title: "Erreur", description: error.message, variant: "destructive" });
     toast({ title: "Enregistré" });
