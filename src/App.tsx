@@ -48,6 +48,7 @@ const AdminAiEconomy = lazy(() => import("./pages/AdminAiEconomy"));
 const AdminGoogleIntegrations = lazy(() => import("./pages/AdminGoogleIntegrations"));
 const AdminCrm = lazy(() => import("./pages/AdminCrm"));
 const CrmDetail = lazy(() => import("./pages/CrmDetail"));
+const AdminOperations = lazy(() => import("./pages/AdminOperations"));
 
 const queryClient = new QueryClient();
 
@@ -119,6 +120,7 @@ const App = () => (
             <Route path="/admin/integrations-google" element={<AdminGoogleIntegrations />} />
             <Route path="/admin/crm" element={<AdminCrm />} />
             <Route path="/admin/crm/:ownerType/:id" element={<CrmDetail />} />
+            <Route path="/admin/operations" element={<AdminOperations />} />
             {/* Alias historique — redirige vers la route canonique */}
             <Route path="/admin/seo-manager" element={<Navigate to="/admin/seo" replace />} />
             <Route path="/livraison" element={<ZonesIndex />} />
