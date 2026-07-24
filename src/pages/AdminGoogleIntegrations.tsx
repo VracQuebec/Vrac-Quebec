@@ -7,7 +7,7 @@ import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { toast } from "sonner";
 import {
   ArrowLeft, CheckCircle2, XCircle, RefreshCw, Loader2, ExternalLink,
-  Search, Gauge, BarChart3, Building2, Tag, Megaphone, ShoppingBag,
+  Search, Gauge, BarChart3, Building2, Tag, Megaphone, ShoppingBag, LineChart,
 } from "lucide-react";
 
 type SyncState = {
@@ -29,7 +29,8 @@ export default function AdminGoogleIntegrations() {
 
   const [gsc, setGsc] = useState<SyncState>({ lastSyncAt: null, count: 0, error: null });
   const [psi, setPsi] = useState<SyncState>({ lastSyncAt: null, count: 0, error: null });
-  const [syncing, setSyncing] = useState<"gsc" | "psi" | null>(null);
+  const [ga4, setGa4] = useState<SyncState>({ lastSyncAt: null, count: 0, error: null });
+  const [syncing, setSyncing] = useState<"gsc" | "psi" | "ga4" | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,10 +40,12 @@ export default function AdminGoogleIntegrations() {
 
   const loadStatus = async () => {
     setLoading(true);
-    const [gscRes, psiRes] = await Promise.all([
+    const [gscRes, psiRes, gaRes] = await Promise.all([
       supabase.from("seo_gsc_metrics").select("fetched_at", { count: "exact", head: false })
         .order("fetched_at", { ascending: false }).limit(1),
       supabase.from("seo_pagespeed_snapshots").select("fetched_at", { count: "exact", head: false })
+        .order("fetched_at", { ascending: false }).limit(1),
+      supabase.from("ga4_page_metrics").select("fetched_at", { count: "exact", head: false })
         .order("fetched_at", { ascending: false }).limit(1),
     ]);
     setGsc({
@@ -55,21 +58,28 @@ export default function AdminGoogleIntegrations() {
       count: psiRes.count ?? 0,
       error: psiRes.error?.message ?? null,
     });
+    setGa4({
+      lastSyncAt: gaRes.data?.[0]?.fetched_at ?? null,
+      count: gaRes.count ?? 0,
+      error: gaRes.error?.message ?? null,
+    });
     setLoading(false);
   };
 
   useEffect(() => { if (isAdmin) loadStatus(); }, [isAdmin]);
 
-  const runSync = async (which: "gsc" | "psi") => {
+  const runSync = async (which: "gsc" | "psi" | "ga4") => {
     setSyncing(which);
     try {
-      const fn = which === "gsc" ? "seo-gsc-sync" : "seo-pagespeed";
-      const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { ok?: boolean; error?: string; upserts?: number; measured?: number }>(fn, {});
+      const fn = which === "gsc" ? "seo-gsc-sync" : which === "psi" ? "seo-pagespeed" : "ga4-sync";
+      const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { ok?: boolean; error?: string; upserts?: number; measured?: number; page_upserts?: number; hint?: string }>(fn, {});
       if (error) throw new Error((error as Error).message || "Erreur de synchronisation");
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.hint ? `${data.error}\n${data.hint}` : data.error);
       toast.success(which === "gsc"
         ? `Search Console synchronisé (${data?.upserts ?? 0} enregistrements).`
-        : `PageSpeed mesuré (${data?.measured ?? 0} URLs).`);
+        : which === "psi"
+          ? `PageSpeed mesuré (${data?.measured ?? 0} URLs).`
+          : `Google Analytics synchronisé (${data?.page_upserts ?? 0} pages).`);
       await loadStatus();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -81,7 +91,7 @@ export default function AdminGoogleIntegrations() {
 
   if (!isAdmin) return null;
 
-  const active: Array<{ id: "gsc" | "psi"; title: string; desc: string; icon: typeof Search; state: SyncState; schedule: string }> = [
+  const active: Array<{ id: "gsc" | "psi" | "ga4"; title: string; desc: string; icon: typeof Search; state: SyncState; schedule: string }> = [
     {
       id: "gsc",
       title: "Google Search Console",
@@ -89,6 +99,14 @@ export default function AdminGoogleIntegrations() {
       icon: Search,
       state: gsc,
       schedule: "Automatique tous les jours à 05h15",
+    },
+    {
+      id: "ga4",
+      title: "Google Analytics 4",
+      desc: "Utilisateurs, sessions, pages vues, taux d'engagement, conversions, sources — propriété GA4 546980703 (G-T6HYZVY8E0).",
+      icon: LineChart,
+      state: ga4,
+      schedule: "Automatique tous les jours à 05h30",
     },
     {
       id: "psi",
@@ -101,7 +119,6 @@ export default function AdminGoogleIntegrations() {
   ];
 
   const notAvailable = [
-    { title: "Google Analytics 4", icon: BarChart3, why: "Aucun connecteur Lovable natif pour GA4 pour l'instant. Peut être ajouté via clé de service (JSON) — dis-le-moi et je branche le flux." },
     { title: "Google Business Profile", icon: Building2, why: "Pas de connecteur Lovable. OAuth custom requis (Google My Business API)." },
     { title: "Google Tag Manager", icon: Tag, why: "Se configure côté conteneur GTM. Ajout d'un ID GTM au site possible sur demande." },
     { title: "Google Ads", icon: Megaphone, why: "Pas de connecteur Lovable. OAuth + developer token requis." },
@@ -173,6 +190,12 @@ export default function AdminGoogleIntegrations() {
                           <a href="https://search.google.com/search-console" target="_blank" rel="noreferrer"
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary hover:bg-secondary/80 text-xs font-semibold">
                             <ExternalLink className="w-3.5 h-3.5" /> Ouvrir GSC
+                          </a>
+                        )}
+                        {c.id === "ga4" && (
+                          <a href="https://analytics.google.com/analytics/web/#/p546980703/reports/intelligenthome" target="_blank" rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary hover:bg-secondary/80 text-xs font-semibold">
+                            <ExternalLink className="w-3.5 h-3.5" /> Ouvrir GA4
                           </a>
                         )}
                       </div>
