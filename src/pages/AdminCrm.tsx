@@ -1,0 +1,458 @@
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useUserRoles } from "@/hooks/useUserRole";
+import FullPageState from "@/components/FullPageState";
+import EntrepreneursAdmin from "@/components/EntrepreneursAdmin";
+import TransportBanner from "@/components/TransportBanner";
+import { toast } from "@/hooks/use-toast";
+import {
+  ArrowLeft, Users, Truck, MapPin, Building2, Plus, Loader2, Search, Trash2,
+} from "lucide-react";
+
+type Tab = "clients" | "entrepreneurs" | "carriers" | "dumps";
+
+interface ClientRow {
+  id: string; name: string; company: string | null; email: string | null;
+  phone: string | null; city: string | null; is_active: boolean;
+  submissions_count?: number; transport_requests_count?: number; revenue_total?: number;
+}
+interface CarrierRow {
+  id: string; name: string; contact_name: string | null; email: string | null;
+  phone: string | null; city: string | null; is_active: boolean;
+  service_zones: string[]; truck_types: string[];
+  insurance_expires_at: string | null; permit_expires_at: string | null;
+  trucks_count?: number; drivers_count?: number;
+}
+interface DumpRow {
+  id: string; name: string; city: string | null; postal_code: string | null;
+  materials_accepted: string[]; truck_types_allowed: string[];
+  availability_status: string; capacity_remaining_m3: number | null;
+  is_active: boolean; owner_name?: string | null;
+}
+
+const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: "clients", label: "Clients", icon: Users },
+  { key: "entrepreneurs", label: "Entrepreneurs", icon: Building2 },
+  { key: "carriers", label: "Transporteurs", icon: Truck },
+  { key: "dumps", label: "Dompes", icon: MapPin },
+];
+
+export default function AdminCrm() {
+  const navigate = useNavigate();
+  const { user, isReady } = useAuthReady();
+  const { isAdmin, loading: roleLoading } = useUserRoles(user, isReady);
+  const [tab, setTab] = useState<Tab>("clients");
+
+  useEffect(() => {
+    if (!isReady || roleLoading) return;
+    if (!user || !isAdmin) navigate("/login", { replace: true });
+  }, [isReady, roleLoading, user, isAdmin, navigate]);
+
+  if (!isReady || !user || roleLoading) {
+    return <FullPageState title="Chargement du CRM" message="Vérification des permissions…" />;
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <nav className="border-b border-border bg-card">
+        <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link to="/admin" className="flex items-center gap-2 text-sm font-display font-semibold text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="w-4 h-4" /> Retour à l'admin
+          </Link>
+          <h1 className="font-display font-bold">CRM unifié</h1>
+          <div className="w-24" />
+        </div>
+      </nav>
+
+      <TransportBanner />
+
+      <main className="container mx-auto px-4 sm:px-6 py-6">
+        <div className="flex flex-wrap gap-2 mb-6">
+          {TABS.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`px-4 py-2 rounded-lg text-sm font-display font-semibold inline-flex items-center gap-2 transition-colors ${
+                tab === key ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground hover:bg-secondary/80"
+              }`}
+            >
+              <Icon className="w-4 h-4" /> {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "clients" && <ClientsTab />}
+        {tab === "entrepreneurs" && <EntrepreneursAdmin />}
+        {tab === "carriers" && <CarriersTab />}
+        {tab === "dumps" && <DumpsTab />}
+      </main>
+    </div>
+  );
+}
+
+/* ---------------- CLIENTS ---------------- */
+
+function ClientsTab() {
+  const [rows, setRows] = useState<ClientRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", company: "", email: "", phone: "", city: "" });
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("crm_clients_v" as never)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    setRows((data as ClientRow[]) || []);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const create = async () => {
+    if (!form.name.trim()) { toast({ title: "Nom requis", variant: "destructive" }); return; }
+    const { error } = await supabase.from("clients").insert({
+      name: form.name.trim(),
+      company: form.company.trim() || null,
+      email: form.email.trim() || null,
+      phone: form.phone.trim() || null,
+      city: form.city.trim() || null,
+    });
+    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
+    setForm({ name: "", company: "", email: "", phone: "", city: "" });
+    setShowForm(false);
+    toast({ title: "Client créé" });
+    load();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Supprimer ce client ?")) return;
+    const { error } = await supabase.from("clients").delete().eq("id", id);
+    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
+    load();
+  };
+
+  const filtered = rows.filter((r) => {
+    if (!q) return true;
+    const s = `${r.name} ${r.company ?? ""} ${r.email ?? ""} ${r.phone ?? ""} ${r.city ?? ""}`.toLowerCase();
+    return s.includes(q.toLowerCase());
+  });
+
+  return (
+    <section>
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un client…"
+            className="pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-card font-body" />
+        </div>
+        <div className="text-sm text-muted-foreground font-body">{filtered.length} client(s)</div>
+        <button onClick={() => setShowForm((s) => !s)}
+          className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold">
+          <Plus className="w-4 h-4" /> Nouveau client
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-card rounded-lg border border-border p-4 mb-4 grid gap-3 md:grid-cols-5">
+          <input placeholder="Nom *"        value={form.name}    onChange={(e) => setForm({ ...form, name: e.target.value })}    className="px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+          <input placeholder="Entreprise"  value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} className="px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+          <input placeholder="Courriel"    value={form.email}   onChange={(e) => setForm({ ...form, email: e.target.value })}   className="px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+          <input placeholder="Téléphone"   value={form.phone}   onChange={(e) => setForm({ ...form, phone: e.target.value })}   className="px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+          <input placeholder="Ville"       value={form.city}    onChange={(e) => setForm({ ...form, city: e.target.value })}    className="px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+          <div className="md:col-span-5 flex justify-end">
+            <button onClick={create} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold">Créer</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-card rounded-lg border border-border p-8 text-center text-muted-foreground font-body">Aucun client. Créez-en un pour démarrer.</div>
+      ) : (
+        <div className="overflow-x-auto bg-card rounded-lg border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary">
+              <tr>
+                {["Nom", "Entreprise", "Courriel", "Téléphone", "Ville", "Demandes", "Revenu $", ""].map((h) => (
+                  <th key={h} className="text-left px-3 py-2 font-display font-bold text-xs uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((r) => (
+                <tr key={r.id} className="border-t border-border hover:bg-secondary/50">
+                  <td className="px-3 py-2 font-body font-semibold">{r.name}</td>
+                  <td className="px-3 py-2 font-body">{r.company ?? "—"}</td>
+                  <td className="px-3 py-2 font-body">{r.email ?? "—"}</td>
+                  <td className="px-3 py-2 font-body">{r.phone ?? "—"}</td>
+                  <td className="px-3 py-2 font-body">{r.city ?? "—"}</td>
+                  <td className="px-3 py-2 font-body">{(r.submissions_count ?? 0) + (r.transport_requests_count ?? 0)}</td>
+                  <td className="px-3 py-2 font-body">{Number(r.revenue_total ?? 0).toFixed(2)}</td>
+                  <td className="px-3 py-2 text-right">
+                    <button onClick={() => remove(r.id)} className="text-muted-foreground hover:text-destructive" aria-label="Supprimer">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ---------------- CARRIERS ---------------- */
+
+function CarriersTab() {
+  const [rows, setRows] = useState<CarrierRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", contact_name: "", email: "", phone: "", city: "" });
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("crm_carriers_v" as never)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    setRows((data as CarrierRow[]) || []);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const create = async () => {
+    if (!form.name.trim()) { toast({ title: "Nom requis", variant: "destructive" }); return; }
+    const { error } = await supabase.from("carriers").insert({
+      name: form.name.trim(),
+      contact_name: form.contact_name.trim() || null,
+      email: form.email.trim() || null,
+      phone: form.phone.trim() || null,
+      city: form.city.trim() || null,
+    });
+    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
+    setForm({ name: "", contact_name: "", email: "", phone: "", city: "" });
+    setShowForm(false);
+    toast({ title: "Transporteur créé" });
+    load();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Supprimer ce transporteur ?")) return;
+    const { error } = await supabase.from("carriers").delete().eq("id", id);
+    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
+    load();
+  };
+
+  const filtered = rows.filter((r) => {
+    if (!q) return true;
+    const s = `${r.name} ${r.contact_name ?? ""} ${r.email ?? ""} ${r.phone ?? ""} ${r.city ?? ""}`.toLowerCase();
+    return s.includes(q.toLowerCase());
+  });
+
+  return (
+    <section>
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un transporteur…"
+            className="pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-card font-body" />
+        </div>
+        <div className="text-sm text-muted-foreground font-body">{filtered.length} transporteur(s)</div>
+        <button onClick={() => setShowForm((s) => !s)}
+          className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold">
+          <Plus className="w-4 h-4" /> Nouveau transporteur
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-card rounded-lg border border-border p-4 mb-4 grid gap-3 md:grid-cols-5">
+          <input placeholder="Nom *"       value={form.name}         onChange={(e) => setForm({ ...form, name: e.target.value })}         className="px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+          <input placeholder="Contact"     value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} className="px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+          <input placeholder="Courriel"    value={form.email}        onChange={(e) => setForm({ ...form, email: e.target.value })}        className="px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+          <input placeholder="Téléphone"   value={form.phone}        onChange={(e) => setForm({ ...form, phone: e.target.value })}        className="px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+          <input placeholder="Ville"       value={form.city}         onChange={(e) => setForm({ ...form, city: e.target.value })}         className="px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+          <div className="md:col-span-5 flex justify-end">
+            <button onClick={create} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold">Créer</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-card rounded-lg border border-border p-8 text-center text-muted-foreground font-body">Aucun transporteur enregistré. Ajoutez-en un pour élargir votre réseau.</div>
+      ) : (
+        <div className="overflow-x-auto bg-card rounded-lg border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary">
+              <tr>
+                {["Nom", "Contact", "Téléphone", "Ville", "Camions", "Chauffeurs", "Assurance", "Permis", ""].map((h) => (
+                  <th key={h} className="text-left px-3 py-2 font-display font-bold text-xs uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((r) => (
+                <tr key={r.id} className="border-t border-border hover:bg-secondary/50">
+                  <td className="px-3 py-2 font-body font-semibold">{r.name}</td>
+                  <td className="px-3 py-2 font-body">{r.contact_name ?? "—"}</td>
+                  <td className="px-3 py-2 font-body">{r.phone ?? "—"}</td>
+                  <td className="px-3 py-2 font-body">{r.city ?? "—"}</td>
+                  <td className="px-3 py-2 font-body">{r.trucks_count ?? 0}</td>
+                  <td className="px-3 py-2 font-body">{r.drivers_count ?? 0}</td>
+                  <td className="px-3 py-2 font-body">{r.insurance_expires_at ?? "—"}</td>
+                  <td className="px-3 py-2 font-body">{r.permit_expires_at ?? "—"}</td>
+                  <td className="px-3 py-2 text-right">
+                    <button onClick={() => remove(r.id)} className="text-muted-foreground hover:text-destructive" aria-label="Supprimer">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ---------------- DUMPS ---------------- */
+
+function DumpsTab() {
+  const [rows, setRows] = useState<DumpRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", city: "", postal_code: "", availability_status: "available" });
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("crm_dumps_v" as never)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    setRows((data as DumpRow[]) || []);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const create = async () => {
+    if (!form.name.trim()) { toast({ title: "Nom requis", variant: "destructive" }); return; }
+    const { error } = await supabase.from("dumps").insert({
+      name: form.name.trim(),
+      city: form.city.trim() || null,
+      postal_code: form.postal_code.trim() || null,
+      availability_status: form.availability_status,
+    });
+    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
+    setForm({ name: "", city: "", postal_code: "", availability_status: "available" });
+    setShowForm(false);
+    toast({ title: "Dompe créée" });
+    load();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Supprimer cette dompe ?")) return;
+    const { error } = await supabase.from("dumps").delete().eq("id", id);
+    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
+    load();
+  };
+
+  const filtered = rows.filter((r) => {
+    if (!q) return true;
+    const s = `${r.name} ${r.city ?? ""} ${(r.materials_accepted ?? []).join(" ")}`.toLowerCase();
+    return s.includes(q.toLowerCase());
+  });
+
+  return (
+    <section>
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher une dompe…"
+            className="pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-card font-body" />
+        </div>
+        <div className="text-sm text-muted-foreground font-body">{filtered.length} dompe(s)</div>
+        <button onClick={() => setShowForm((s) => !s)}
+          className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold">
+          <Plus className="w-4 h-4" /> Nouvelle dompe
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-card rounded-lg border border-border p-4 mb-4 grid gap-3 md:grid-cols-4">
+          <input placeholder="Nom *"          value={form.name}        onChange={(e) => setForm({ ...form, name: e.target.value })}        className="px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+          <input placeholder="Ville"          value={form.city}        onChange={(e) => setForm({ ...form, city: e.target.value })}        className="px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+          <input placeholder="Code postal"    value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} className="px-3 py-2 rounded-lg border border-border bg-background text-sm" />
+          <select value={form.availability_status} onChange={(e) => setForm({ ...form, availability_status: e.target.value })}
+            className="px-3 py-2 rounded-lg border border-border bg-background text-sm">
+            <option value="available">Disponible</option>
+            <option value="limited">Capacité limitée</option>
+            <option value="full">Pleine</option>
+            <option value="closed">Fermée</option>
+          </select>
+          <div className="md:col-span-4 flex justify-end">
+            <button onClick={create} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold">Créer</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-card rounded-lg border border-border p-8 text-center text-muted-foreground font-body">
+          Aucune dompe enregistrée dans la nouvelle table. Les dompes historiques restent visibles sur la carte /admin.
+        </div>
+      ) : (
+        <div className="overflow-x-auto bg-card rounded-lg border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary">
+              <tr>
+                {["Nom", "Ville", "Matériaux", "Camions", "Statut", "Capacité restante", "Propriétaire", ""].map((h) => (
+                  <th key={h} className="text-left px-3 py-2 font-display font-bold text-xs uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((r) => (
+                <tr key={r.id} className="border-t border-border hover:bg-secondary/50">
+                  <td className="px-3 py-2 font-body font-semibold">{r.name}</td>
+                  <td className="px-3 py-2 font-body">{r.city ?? "—"}</td>
+                  <td className="px-3 py-2 font-body">{(r.materials_accepted ?? []).join(", ") || "—"}</td>
+                  <td className="px-3 py-2 font-body">{(r.truck_types_allowed ?? []).join(", ") || "—"}</td>
+                  <td className="px-3 py-2 font-body">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-display font-semibold bg-primary/10 text-primary">
+                      {r.availability_status}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 font-body">{r.capacity_remaining_m3 ?? "—"}</td>
+                  <td className="px-3 py-2 font-body">{r.owner_name ?? "—"}</td>
+                  <td className="px-3 py-2 text-right">
+                    <button onClick={() => remove(r.id)} className="text-muted-foreground hover:text-destructive" aria-label="Supprimer">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
