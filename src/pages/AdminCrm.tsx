@@ -456,18 +456,8 @@ function DumpsTab() {
 
   return (
     <section>
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher une dompe…"
-            className="pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-card font-body" />
-        </div>
-        <div className="text-sm text-muted-foreground font-body">{filtered.length} dompe(s)</div>
-        <button onClick={() => setShowForm((s) => !s)}
-          className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold">
-          <Plus className="w-4 h-4" /> Nouvelle dompe
-        </button>
-      </div>
+      <FilterBar {...filters} count={filtered.length} label="dompe(s)"
+        onNew={() => setShowForm((s) => !s)} newLabel="Nouvelle dompe" />
 
       {showForm && (
         <div className="bg-card rounded-lg border border-border p-4 mb-4 grid gap-3 md:grid-cols-4">
@@ -494,39 +484,12 @@ function DumpsTab() {
           Aucune dompe enregistrée dans la nouvelle table. Les dompes historiques restent visibles sur la carte /admin.
         </div>
       ) : (
-        <div className="overflow-x-auto bg-card rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary">
-              <tr>
-                {["Nom", "Ville", "Matériaux", "Camions", "Statut", "Capacité restante", "Propriétaire", ""].map((h) => (
-                  <th key={h} className="text-left px-3 py-2 font-display font-bold text-xs uppercase">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => (
-                <tr key={r.id} className="border-t border-border hover:bg-secondary/50">
-                  <td className="px-3 py-2 font-body font-semibold">{r.name}</td>
-                  <td className="px-3 py-2 font-body">{r.city ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{(r.materials_accepted ?? []).join(", ") || "—"}</td>
-                  <td className="px-3 py-2 font-body">{(r.truck_types_allowed ?? []).join(", ") || "—"}</td>
-                  <td className="px-3 py-2 font-body">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-display font-semibold bg-primary/10 text-primary">
-                      {r.availability_status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 font-body">{r.capacity_remaining_m3 ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{r.owner_name ?? "—"}</td>
-                  <td className="px-3 py-2 text-right">
-                    <button onClick={() => remove(r.id)} className="text-muted-foreground hover:text-destructive" aria-label="Supprimer">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <CrmTable ownerType="dump" rows={filtered} columns={[
+          { key: "city", label: "Ville" },
+          { key: "materials_accepted", label: "Matériaux", render: (r) => (r.materials_accepted ?? []).join(", ") || "—" },
+          { key: "availability_status", label: "Disponibilité" },
+          { key: "capacity_remaining_m3", label: "Capacité restante" },
+        ]} onRemove={remove} onReload={load} />
       )}
     </section>
   );
