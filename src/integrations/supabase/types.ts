@@ -807,6 +807,13 @@ export type Database = {
             foreignKeyName: "blog_seo_links_seo_page_id_fkey"
             columns: ["seo_page_id"]
             isOneToOne: false
+            referencedRelation: "seo_gsc_ga4_merged_v"
+            referencedColumns: ["page_id"]
+          },
+          {
+            foreignKeyName: "blog_seo_links_seo_page_id_fkey"
+            columns: ["seo_page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -1258,6 +1265,138 @@ export type Database = {
           notes?: string | null
           tps?: number | null
           tvq?: number | null
+        }
+        Relationships: []
+      }
+      ga4_daily_summary: {
+        Row: {
+          avg_engagement_time_sec: number
+          conversions: number
+          created_at: string
+          date: string
+          engagement_rate: number
+          events_count: number
+          fetched_at: string
+          id: string
+          new_users: number
+          page_views: number
+          sessions: number
+          users: number
+        }
+        Insert: {
+          avg_engagement_time_sec?: number
+          conversions?: number
+          created_at?: string
+          date: string
+          engagement_rate?: number
+          events_count?: number
+          fetched_at?: string
+          id?: string
+          new_users?: number
+          page_views?: number
+          sessions?: number
+          users?: number
+        }
+        Update: {
+          avg_engagement_time_sec?: number
+          conversions?: number
+          created_at?: string
+          date?: string
+          engagement_rate?: number
+          events_count?: number
+          fetched_at?: string
+          id?: string
+          new_users?: number
+          page_views?: number
+          sessions?: number
+          users?: number
+        }
+        Relationships: []
+      }
+      ga4_page_metrics: {
+        Row: {
+          avg_engagement_time_sec: number
+          conversions: number
+          created_at: string
+          engagement_rate: number
+          events_count: number
+          fetched_at: string
+          id: string
+          new_users: number
+          page_path: string
+          page_views: number
+          period: string
+          sessions: number
+          users: number
+        }
+        Insert: {
+          avg_engagement_time_sec?: number
+          conversions?: number
+          created_at?: string
+          engagement_rate?: number
+          events_count?: number
+          fetched_at?: string
+          id?: string
+          new_users?: number
+          page_path: string
+          page_views?: number
+          period: string
+          sessions?: number
+          users?: number
+        }
+        Update: {
+          avg_engagement_time_sec?: number
+          conversions?: number
+          created_at?: string
+          engagement_rate?: number
+          events_count?: number
+          fetched_at?: string
+          id?: string
+          new_users?: number
+          page_path?: string
+          page_views?: number
+          period?: string
+          sessions?: number
+          users?: number
+        }
+        Relationships: []
+      }
+      ga4_traffic_sources: {
+        Row: {
+          channel: string | null
+          conversions: number
+          created_at: string
+          fetched_at: string
+          id: string
+          medium: string
+          period: string
+          sessions: number
+          source: string
+          users: number
+        }
+        Insert: {
+          channel?: string | null
+          conversions?: number
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          medium: string
+          period: string
+          sessions?: number
+          source: string
+          users?: number
+        }
+        Update: {
+          channel?: string | null
+          conversions?: number
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          medium?: string
+          period?: string
+          sessions?: number
+          source?: string
+          users?: number
         }
         Relationships: []
       }
@@ -2005,6 +2144,13 @@ export type Database = {
             foreignKeyName: "seo_gsc_metrics_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_gsc_ga4_merged_v"
+            referencedColumns: ["page_id"]
+          },
+          {
+            foreignKeyName: "seo_gsc_metrics_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -2175,6 +2321,13 @@ export type Database = {
             foreignKeyName: "seo_opportunities_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_gsc_ga4_merged_v"
+            referencedColumns: ["page_id"]
+          },
+          {
+            foreignKeyName: "seo_opportunities_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -2333,6 +2486,13 @@ export type Database = {
             foreignKeyName: "seo_optimization_tasks_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_gsc_ga4_merged_v"
+            referencedColumns: ["page_id"]
+          },
+          {
+            foreignKeyName: "seo_optimization_tasks_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -2404,6 +2564,13 @@ export type Database = {
           word_count?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "seo_page_analytics_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_gsc_ga4_merged_v"
+            referencedColumns: ["page_id"]
+          },
           {
             foreignKeyName: "seo_page_analytics_page_id_fkey"
             columns: ["page_id"]
@@ -2482,6 +2649,13 @@ export type Database = {
             foreignKeyName: "seo_page_improvements_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_gsc_ga4_merged_v"
+            referencedColumns: ["page_id"]
+          },
+          {
+            foreignKeyName: "seo_page_improvements_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -2525,6 +2699,13 @@ export type Database = {
           traffic_score?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "seo_page_scores_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: true
+            referencedRelation: "seo_gsc_ga4_merged_v"
+            referencedColumns: ["page_id"]
+          },
           {
             foreignKeyName: "seo_page_scores_page_id_fkey"
             columns: ["page_id"]
@@ -2807,6 +2988,13 @@ export type Database = {
             foreignKeyName: "seo_pagespeed_snapshots_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_gsc_ga4_merged_v"
+            referencedColumns: ["page_id"]
+          },
+          {
+            foreignKeyName: "seo_pagespeed_snapshots_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -2926,6 +3114,13 @@ export type Database = {
             foreignKeyName: "seo_qa_reports_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_gsc_ga4_merged_v"
+            referencedColumns: ["page_id"]
+          },
+          {
+            foreignKeyName: "seo_qa_reports_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -3002,6 +3197,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "blog_posts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_recommendations_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_gsc_ga4_merged_v"
+            referencedColumns: ["page_id"]
           },
           {
             foreignKeyName: "seo_recommendations_page_id_fkey"
@@ -3766,10 +3968,37 @@ export type Database = {
             foreignKeyName: "seo_gsc_metrics_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_gsc_ga4_merged_v"
+            referencedColumns: ["page_id"]
+          },
+          {
+            foreignKeyName: "seo_gsc_metrics_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
         ]
+      }
+      seo_gsc_ga4_merged_v: {
+        Row: {
+          ga_avg_engagement_time_sec: number | null
+          ga_conversions: number | null
+          ga_engagement_rate: number | null
+          ga_new_users: number | null
+          ga_page_views: number | null
+          ga_sessions: number | null
+          ga_users: number | null
+          gsc_clicks: number | null
+          gsc_ctr: number | null
+          gsc_impressions: number | null
+          gsc_position: number | null
+          page_id: string | null
+          slug: string | null
+          status: string | null
+          title: string | null
+        }
+        Relationships: []
       }
       seo_page_conversions_30d: {
         Row: {
