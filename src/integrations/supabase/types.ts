@@ -965,6 +965,8 @@ export type Database = {
       carriers: {
         Row: {
           address: string | null
+          archived_at: string | null
+          assignee_id: string | null
           base_rate_per_hour: number | null
           base_rate_per_km: number | null
           city: string | null
@@ -976,6 +978,9 @@ export type Database = {
           insurance_expires_at: string | null
           insurance_policy: string | null
           is_active: boolean
+          is_favorite: boolean
+          last_activity_at: string | null
+          merged_into_id: string | null
           name: string
           notes: string | null
           permit_expires_at: string | null
@@ -984,11 +989,15 @@ export type Database = {
           postal_code: string | null
           rating: number | null
           service_zones: string[]
+          status_label: string
+          tags: string[]
           truck_types: string[]
           updated_at: string
         }
         Insert: {
           address?: string | null
+          archived_at?: string | null
+          assignee_id?: string | null
           base_rate_per_hour?: number | null
           base_rate_per_km?: number | null
           city?: string | null
@@ -1000,6 +1009,9 @@ export type Database = {
           insurance_expires_at?: string | null
           insurance_policy?: string | null
           is_active?: boolean
+          is_favorite?: boolean
+          last_activity_at?: string | null
+          merged_into_id?: string | null
           name: string
           notes?: string | null
           permit_expires_at?: string | null
@@ -1008,11 +1020,15 @@ export type Database = {
           postal_code?: string | null
           rating?: number | null
           service_zones?: string[]
+          status_label?: string
+          tags?: string[]
           truck_types?: string[]
           updated_at?: string
         }
         Update: {
           address?: string | null
+          archived_at?: string | null
+          assignee_id?: string | null
           base_rate_per_hour?: number | null
           base_rate_per_km?: number | null
           city?: string | null
@@ -1024,6 +1040,9 @@ export type Database = {
           insurance_expires_at?: string | null
           insurance_policy?: string | null
           is_active?: boolean
+          is_favorite?: boolean
+          last_activity_at?: string | null
+          merged_into_id?: string | null
           name?: string
           notes?: string | null
           permit_expires_at?: string | null
@@ -1032,14 +1051,33 @@ export type Database = {
           postal_code?: string | null
           rating?: number | null
           service_zones?: string[]
+          status_label?: string
+          tags?: string[]
           truck_types?: string[]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "carriers_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "carriers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carriers_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "crm_carriers_v"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       clients: {
         Row: {
           address: string | null
+          archived_at: string | null
+          assignee_id: string | null
           city: string | null
           company: string | null
           created_at: string
@@ -1047,18 +1085,24 @@ export type Database = {
           email: string | null
           id: string
           is_active: boolean
+          is_favorite: boolean
+          last_activity_at: string | null
           latitude: number | null
           longitude: number | null
+          merged_into_id: string | null
           name: string
           notes: string | null
           phone: string | null
           postal_code: string | null
           source: string | null
+          status_label: string
           tags: string[]
           updated_at: string
         }
         Insert: {
           address?: string | null
+          archived_at?: string | null
+          assignee_id?: string | null
           city?: string | null
           company?: string | null
           created_at?: string
@@ -1066,18 +1110,24 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean
+          is_favorite?: boolean
+          last_activity_at?: string | null
           latitude?: number | null
           longitude?: number | null
+          merged_into_id?: string | null
           name: string
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
           source?: string | null
+          status_label?: string
           tags?: string[]
           updated_at?: string
         }
         Update: {
           address?: string | null
+          archived_at?: string | null
+          assignee_id?: string | null
           city?: string | null
           company?: string | null
           created_at?: string
@@ -1085,17 +1135,36 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean
+          is_favorite?: boolean
+          last_activity_at?: string | null
           latitude?: number | null
           longitude?: number | null
+          merged_into_id?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
           source?: string | null
+          status_label?: string
           tags?: string[]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "crm_clients_v"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       crm_activities: {
         Row: {
@@ -1142,6 +1211,45 @@ export type Database = {
           owner_type?: string
           subject?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          field: string | null
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          owner_id: string
+          owner_type: string
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          field?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          owner_id: string
+          owner_type: string
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          field?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          owner_id?: string
+          owner_type?: string
         }
         Relationships: []
       }
@@ -1278,6 +1386,8 @@ export type Database = {
         Row: {
           accessibility: string[]
           address: string | null
+          archived_at: string | null
+          assignee_id: string | null
           availability_status: string
           capacity_remaining_m3: number | null
           capacity_total_m3: number | null
@@ -1286,9 +1396,12 @@ export type Database = {
           equipment: string[]
           id: string
           is_active: boolean
+          is_favorite: boolean
+          last_activity_at: string | null
           latitude: number | null
           longitude: number | null
           materials_accepted: string[]
+          merged_into_id: string | null
           name: string
           notes: string | null
           opening_hours: string | null
@@ -1297,13 +1410,17 @@ export type Database = {
           postal_code: string | null
           price_per_material: Json
           rating: number | null
+          status_label: string
           submission_id: string | null
+          tags: string[]
           truck_types_allowed: string[]
           updated_at: string
         }
         Insert: {
           accessibility?: string[]
           address?: string | null
+          archived_at?: string | null
+          assignee_id?: string | null
           availability_status?: string
           capacity_remaining_m3?: number | null
           capacity_total_m3?: number | null
@@ -1312,9 +1429,12 @@ export type Database = {
           equipment?: string[]
           id?: string
           is_active?: boolean
+          is_favorite?: boolean
+          last_activity_at?: string | null
           latitude?: number | null
           longitude?: number | null
           materials_accepted?: string[]
+          merged_into_id?: string | null
           name: string
           notes?: string | null
           opening_hours?: string | null
@@ -1323,13 +1443,17 @@ export type Database = {
           postal_code?: string | null
           price_per_material?: Json
           rating?: number | null
+          status_label?: string
           submission_id?: string | null
+          tags?: string[]
           truck_types_allowed?: string[]
           updated_at?: string
         }
         Update: {
           accessibility?: string[]
           address?: string | null
+          archived_at?: string | null
+          assignee_id?: string | null
           availability_status?: string
           capacity_remaining_m3?: number | null
           capacity_total_m3?: number | null
@@ -1338,9 +1462,12 @@ export type Database = {
           equipment?: string[]
           id?: string
           is_active?: boolean
+          is_favorite?: boolean
+          last_activity_at?: string | null
           latitude?: number | null
           longitude?: number | null
           materials_accepted?: string[]
+          merged_into_id?: string | null
           name?: string
           notes?: string | null
           opening_hours?: string | null
@@ -1349,11 +1476,27 @@ export type Database = {
           postal_code?: string | null
           price_per_material?: Json
           rating?: number | null
+          status_label?: string
           submission_id?: string | null
+          tags?: string[]
           truck_types_allowed?: string[]
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "dumps_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "crm_dumps_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dumps_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "dumps"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "dumps_owner_entrepreneur_id_fkey"
             columns: ["owner_entrepreneur_id"]
@@ -4709,6 +4852,10 @@ export type Database = {
       count_active_dumps_by_city: {
         Args: { _city_slug: string }
         Returns: number
+      }
+      crm_merge_entities: {
+        Args: { _owner_type: string; _source_id: string; _target_id: string }
+        Returns: undefined
       }
       current_user_email: { Args: never; Returns: string }
       delete_email: {

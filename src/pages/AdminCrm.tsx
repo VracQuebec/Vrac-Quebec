@@ -9,6 +9,7 @@ import TransportBanner from "@/components/TransportBanner";
 import { toast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Users, Truck, MapPin, Building2, Plus, Loader2, Search, Trash2,
+  Star, Archive, ArchiveRestore, ExternalLink,
 } from "lucide-react";
 
 type Tab = "clients" | "entrepreneurs" | "carriers" | "dumps";
@@ -92,24 +93,176 @@ export default function AdminCrm() {
   );
 }
 
+/* ---------------- SHARED FILTERS ---------------- */
+
+type Sort = "recent" | "name" | "last_activity";
+function FilterBar(props: {
+  q: string; setQ: (v: string) => void;
+  favOnly: boolean; setFavOnly: (v: boolean) => void;
+  includeArchived: boolean; setIncludeArchived: (v: boolean) => void;
+  status: string; setStatus: (v: string) => void;
+  sort: Sort; setSort: (v: Sort) => void;
+  count: number; label: string;
+  onNew: () => void; newLabel: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <input value={props.q} onChange={(e) => props.setQ(e.target.value)} placeholder="Recherche instantanée…"
+          className="pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-card font-body" />
+      </div>
+      <select value={props.status} onChange={(e) => props.setStatus(e.target.value)}
+        className="px-2 py-2 text-sm rounded-lg border border-border bg-card">
+        <option value="all">Tous statuts</option>
+        <option value="active">Actif</option><option value="prospect">Prospect</option>
+        <option value="vip">VIP</option><option value="pause">En pause</option><option value="lost">Perdu</option>
+      </select>
+      <select value={props.sort} onChange={(e) => props.setSort(e.target.value as Sort)}
+        className="px-2 py-2 text-sm rounded-lg border border-border bg-card">
+        <option value="recent">Récents</option>
+        <option value="name">Nom (A-Z)</option>
+        <option value="last_activity">Dernière activité</option>
+      </select>
+      <button onClick={() => props.setFavOnly(!props.favOnly)}
+        className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm ${props.favOnly ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
+        <Star className="w-4 h-4" /> Favoris
+      </button>
+      <button onClick={() => props.setIncludeArchived(!props.includeArchived)}
+        className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm ${props.includeArchived ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
+        <Archive className="w-4 h-4" /> Inclure archivés
+      </button>
+      <div className="text-sm text-muted-foreground font-body">{props.count} {props.label}</div>
+      <button onClick={props.onNew}
+        className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold">
+        <Plus className="w-4 h-4" /> {props.newLabel}
+      </button>
+    </div>
+  );
+}
+
+function useCrmFilters() {
+  const [q, setQ] = useState("");
+  const [favOnly, setFavOnly] = useState(false);
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const [status, setStatus] = useState("all");
+  const [sort, setSort] = useState<Sort>("recent");
+  return { q, setQ, favOnly, setFavOnly, includeArchived, setIncludeArchived, status, setStatus, sort, setSort };
+}
+
+function applyFilters<T extends Record<string, any>>(rows: T[], f: ReturnType<typeof useCrmFilters>, searchFields: (keyof T)[]) {
+  let out = rows.filter((r) => {
+    if (!f.includeArchived && r.archived_at) return false;
+    if (f.favOnly && !r.is_favorite) return false;
+    if (f.status !== "all" && (r.status_label ?? "active") !== f.status) return false;
+    if (f.q) {
+      const s = searchFields.map((k) => String(r[k] ?? "")).join(" ").toLowerCase();
+      if (!s.includes(f.q.toLowerCase())) return false;
+    }
+    return true;
+  });
+  out.sort((a, b) => {
+    if (f.sort === "name") return String(a.name ?? "").localeCompare(String(b.name ?? ""));
+    if (f.sort === "last_activity") return new Date(b.last_activity_at ?? 0).getTime() - new Date(a.last_activity_at ?? 0).getTime();
+    return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
+  });
+  return out;
+}
+
+/* ---------------- SHARED TABLE ---------------- */
+
+function CrmTable(props: {
+  ownerType: "client" | "carrier" | "dump";
+  rows: any[];
+  columns: { key: string; label: string; render?: (r: any) => React.ReactNode }[];
+  onRemove: (id: string) => void;
+  onReload: () => void;
+}) {
+  const table = props.ownerType === "client" ? "clients" : props.ownerType === "carrier" ? "carriers" : "dumps";
+
+  const toggleFav = async (id: string, cur: boolean) => {
+    await supabase.from(table as never).update({ is_favorite: !cur } as never).eq("id", id);
+    props.onReload();
+  };
+  const toggleArchive = async (id: string, archived: boolean) => {
+    const next = archived ? null : new Date().toISOString();
+    await supabase.from(table as never).update({ archived_at: next, is_active: !next } as never).eq("id", id);
+    props.onReload();
+  };
+
+  return (
+    <div className="overflow-x-auto bg-card rounded-lg border border-border">
+      <table className="w-full text-sm">
+        <thead className="bg-secondary">
+          <tr>
+            <th className="w-8"></th>
+            <th className="text-left px-3 py-2 font-display font-bold text-xs uppercase">Nom</th>
+            {props.columns.map((c) => (
+              <th key={c.key} className="text-left px-3 py-2 font-display font-bold text-xs uppercase">{c.label}</th>
+            ))}
+            <th className="text-left px-3 py-2 font-display font-bold text-xs uppercase">Statut</th>
+            <th className="text-left px-3 py-2 font-display font-bold text-xs uppercase">Dernière activité</th>
+            <th className="w-28"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {props.rows.map((r) => (
+            <tr key={r.id} className={`border-t border-border hover:bg-secondary/50 ${r.archived_at ? "opacity-60" : ""}`}>
+              <td className="px-2 py-2">
+                <button onClick={() => toggleFav(r.id, !!r.is_favorite)} aria-label="Favori">
+                  <Star className={`w-4 h-4 ${r.is_favorite ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+                </button>
+              </td>
+              <td className="px-3 py-2 font-body font-semibold">
+                <Link to={`/admin/crm/${props.ownerType}/${r.id}`} className="hover:underline inline-flex items-center gap-1">
+                  {r.name} <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                </Link>
+              </td>
+              {props.columns.map((c) => (
+                <td key={c.key} className="px-3 py-2 font-body">{c.render ? c.render(r) : (r[c.key] ?? "—")}</td>
+              ))}
+              <td className="px-3 py-2 font-body">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-display font-semibold bg-primary/10 text-primary">
+                  {r.status_label ?? "active"}
+                </span>
+              </td>
+              <td className="px-3 py-2 font-body text-xs text-muted-foreground">
+                {r.last_activity_at ? new Date(r.last_activity_at).toLocaleDateString("fr-CA") : "—"}
+              </td>
+              <td className="px-3 py-2 text-right">
+                <button onClick={() => toggleArchive(r.id, !!r.archived_at)} className="p-1 text-muted-foreground hover:text-foreground" aria-label="Archiver">
+                  {r.archived_at ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+                </button>
+                <button onClick={() => props.onRemove(r.id)} className="p-1 text-muted-foreground hover:text-destructive" aria-label="Supprimer">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /* ---------------- CLIENTS ---------------- */
 
 function ClientsTab() {
-  const [rows, setRows] = useState<ClientRow[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
+  const filters = useCrmFilters();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", company: "", email: "", phone: "", city: "" });
 
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("crm_clients_v" as never)
+      .from("clients")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    setRows((data as ClientRow[]) || []);
+    setRows(data || []);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -137,26 +290,12 @@ function ClientsTab() {
     load();
   };
 
-  const filtered = rows.filter((r) => {
-    if (!q) return true;
-    const s = `${r.name} ${r.company ?? ""} ${r.email ?? ""} ${r.phone ?? ""} ${r.city ?? ""}`.toLowerCase();
-    return s.includes(q.toLowerCase());
-  });
+  const filtered = applyFilters(rows, filters, ["name", "company", "email", "phone", "city"]);
 
   return (
     <section>
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un client…"
-            className="pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-card font-body" />
-        </div>
-        <div className="text-sm text-muted-foreground font-body">{filtered.length} client(s)</div>
-        <button onClick={() => setShowForm((s) => !s)}
-          className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold">
-          <Plus className="w-4 h-4" /> Nouveau client
-        </button>
-      </div>
+      <FilterBar {...filters} count={filtered.length} label="client(s)"
+        onNew={() => setShowForm((s) => !s)} newLabel="Nouveau client" />
 
       {showForm && (
         <div className="bg-card rounded-lg border border-border p-4 mb-4 grid gap-3 md:grid-cols-5">
@@ -176,35 +315,12 @@ function ClientsTab() {
       ) : filtered.length === 0 ? (
         <div className="bg-card rounded-lg border border-border p-8 text-center text-muted-foreground font-body">Aucun client. Créez-en un pour démarrer.</div>
       ) : (
-        <div className="overflow-x-auto bg-card rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary">
-              <tr>
-                {["Nom", "Entreprise", "Courriel", "Téléphone", "Ville", "Demandes", "Revenu $", ""].map((h) => (
-                  <th key={h} className="text-left px-3 py-2 font-display font-bold text-xs uppercase">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => (
-                <tr key={r.id} className="border-t border-border hover:bg-secondary/50">
-                  <td className="px-3 py-2 font-body font-semibold">{r.name}</td>
-                  <td className="px-3 py-2 font-body">{r.company ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{r.email ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{r.phone ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{r.city ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{(r.submissions_count ?? 0) + (r.transport_requests_count ?? 0)}</td>
-                  <td className="px-3 py-2 font-body">{Number(r.revenue_total ?? 0).toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right">
-                    <button onClick={() => remove(r.id)} className="text-muted-foreground hover:text-destructive" aria-label="Supprimer">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <CrmTable ownerType="client" rows={filtered} columns={[
+          { key: "company", label: "Entreprise" },
+          { key: "email", label: "Courriel" },
+          { key: "phone", label: "Téléphone" },
+          { key: "city", label: "Ville" },
+        ]} onRemove={remove} onReload={load} />
       )}
     </section>
   );
@@ -213,21 +329,21 @@ function ClientsTab() {
 /* ---------------- CARRIERS ---------------- */
 
 function CarriersTab() {
-  const [rows, setRows] = useState<CarrierRow[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
+  const filters = useCrmFilters();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", contact_name: "", email: "", phone: "", city: "" });
 
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("crm_carriers_v" as never)
+      .from("carriers")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    setRows((data as CarrierRow[]) || []);
+    setRows(data || []);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -255,26 +371,12 @@ function CarriersTab() {
     load();
   };
 
-  const filtered = rows.filter((r) => {
-    if (!q) return true;
-    const s = `${r.name} ${r.contact_name ?? ""} ${r.email ?? ""} ${r.phone ?? ""} ${r.city ?? ""}`.toLowerCase();
-    return s.includes(q.toLowerCase());
-  });
+  const filtered = applyFilters(rows, filters, ["name", "contact_name", "email", "phone", "city"]);
 
   return (
     <section>
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un transporteur…"
-            className="pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-card font-body" />
-        </div>
-        <div className="text-sm text-muted-foreground font-body">{filtered.length} transporteur(s)</div>
-        <button onClick={() => setShowForm((s) => !s)}
-          className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold">
-          <Plus className="w-4 h-4" /> Nouveau transporteur
-        </button>
-      </div>
+      <FilterBar {...filters} count={filtered.length} label="transporteur(s)"
+        onNew={() => setShowForm((s) => !s)} newLabel="Nouveau transporteur" />
 
       {showForm && (
         <div className="bg-card rounded-lg border border-border p-4 mb-4 grid gap-3 md:grid-cols-5">
@@ -294,36 +396,13 @@ function CarriersTab() {
       ) : filtered.length === 0 ? (
         <div className="bg-card rounded-lg border border-border p-8 text-center text-muted-foreground font-body">Aucun transporteur enregistré. Ajoutez-en un pour élargir votre réseau.</div>
       ) : (
-        <div className="overflow-x-auto bg-card rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary">
-              <tr>
-                {["Nom", "Contact", "Téléphone", "Ville", "Camions", "Chauffeurs", "Assurance", "Permis", ""].map((h) => (
-                  <th key={h} className="text-left px-3 py-2 font-display font-bold text-xs uppercase">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => (
-                <tr key={r.id} className="border-t border-border hover:bg-secondary/50">
-                  <td className="px-3 py-2 font-body font-semibold">{r.name}</td>
-                  <td className="px-3 py-2 font-body">{r.contact_name ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{r.phone ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{r.city ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{r.trucks_count ?? 0}</td>
-                  <td className="px-3 py-2 font-body">{r.drivers_count ?? 0}</td>
-                  <td className="px-3 py-2 font-body">{r.insurance_expires_at ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{r.permit_expires_at ?? "—"}</td>
-                  <td className="px-3 py-2 text-right">
-                    <button onClick={() => remove(r.id)} className="text-muted-foreground hover:text-destructive" aria-label="Supprimer">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <CrmTable ownerType="carrier" rows={filtered} columns={[
+          { key: "contact_name", label: "Contact" },
+          { key: "phone", label: "Téléphone" },
+          { key: "city", label: "Ville" },
+          { key: "insurance_expires_at", label: "Assurance" },
+          { key: "permit_expires_at", label: "Permis" },
+        ]} onRemove={remove} onReload={load} />
       )}
     </section>
   );
@@ -332,21 +411,21 @@ function CarriersTab() {
 /* ---------------- DUMPS ---------------- */
 
 function DumpsTab() {
-  const [rows, setRows] = useState<DumpRow[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
+  const filters = useCrmFilters();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", city: "", postal_code: "", availability_status: "available" });
 
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("crm_dumps_v" as never)
+      .from("dumps")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    setRows((data as DumpRow[]) || []);
+    setRows(data || []);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -373,26 +452,12 @@ function DumpsTab() {
     load();
   };
 
-  const filtered = rows.filter((r) => {
-    if (!q) return true;
-    const s = `${r.name} ${r.city ?? ""} ${(r.materials_accepted ?? []).join(" ")}`.toLowerCase();
-    return s.includes(q.toLowerCase());
-  });
+  const filtered = applyFilters(rows, filters, ["name", "city", "postal_code"]);
 
   return (
     <section>
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher une dompe…"
-            className="pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-card font-body" />
-        </div>
-        <div className="text-sm text-muted-foreground font-body">{filtered.length} dompe(s)</div>
-        <button onClick={() => setShowForm((s) => !s)}
-          className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold">
-          <Plus className="w-4 h-4" /> Nouvelle dompe
-        </button>
-      </div>
+      <FilterBar {...filters} count={filtered.length} label="dompe(s)"
+        onNew={() => setShowForm((s) => !s)} newLabel="Nouvelle dompe" />
 
       {showForm && (
         <div className="bg-card rounded-lg border border-border p-4 mb-4 grid gap-3 md:grid-cols-4">
@@ -419,39 +484,12 @@ function DumpsTab() {
           Aucune dompe enregistrée dans la nouvelle table. Les dompes historiques restent visibles sur la carte /admin.
         </div>
       ) : (
-        <div className="overflow-x-auto bg-card rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary">
-              <tr>
-                {["Nom", "Ville", "Matériaux", "Camions", "Statut", "Capacité restante", "Propriétaire", ""].map((h) => (
-                  <th key={h} className="text-left px-3 py-2 font-display font-bold text-xs uppercase">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => (
-                <tr key={r.id} className="border-t border-border hover:bg-secondary/50">
-                  <td className="px-3 py-2 font-body font-semibold">{r.name}</td>
-                  <td className="px-3 py-2 font-body">{r.city ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{(r.materials_accepted ?? []).join(", ") || "—"}</td>
-                  <td className="px-3 py-2 font-body">{(r.truck_types_allowed ?? []).join(", ") || "—"}</td>
-                  <td className="px-3 py-2 font-body">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-display font-semibold bg-primary/10 text-primary">
-                      {r.availability_status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 font-body">{r.capacity_remaining_m3 ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{r.owner_name ?? "—"}</td>
-                  <td className="px-3 py-2 text-right">
-                    <button onClick={() => remove(r.id)} className="text-muted-foreground hover:text-destructive" aria-label="Supprimer">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <CrmTable ownerType="dump" rows={filtered} columns={[
+          { key: "city", label: "Ville" },
+          { key: "materials_accepted", label: "Matériaux", render: (r) => (r.materials_accepted ?? []).join(", ") || "—" },
+          { key: "availability_status", label: "Disponibilité" },
+          { key: "capacity_remaining_m3", label: "Capacité restante" },
+        ]} onRemove={remove} onReload={load} />
       )}
     </section>
   );
