@@ -45,7 +45,7 @@ async function getAccessToken(): Promise<{ token: string; sa: { client_email: st
   // Progressive repair: wrap missing braces, escape unescaped newlines in the
   // private_key body, strip wrapping quotes — the secret often loses shape when
   // pasted through form UIs.
-  const trimmed = raw.trim().replace(/^['"]|['"]$/g, "");
+  const trimmed = raw.trim();
   const escapeKey = (s: string) => s.replace(
     /("private_key"\s*:\s*")([\s\S]*?)("[\s,}])/,
     (_m, a, body, c) => a + body.replace(/\r?\n/g, "\\n") + c,
