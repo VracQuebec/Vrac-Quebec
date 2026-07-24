@@ -41,7 +41,23 @@ async function getAccessToken(): Promise<{ token: string; sa: { client_email: st
   const raw = Deno.env.get("GA4_SERVICE_ACCOUNT_JSON");
   if (!raw) throw new Error("GA4_SERVICE_ACCOUNT_JSON manquant");
   let sa: { client_email: string; private_key: string; token_uri?: string; project_id: string };
-  try { sa = JSON.parse(raw); } catch { throw new Error("GA4_SERVICE_ACCOUNT_JSON invalide (JSON malformé)"); }
+  const tryParse = (s: string) => { try { return JSON.parse(s); } catch { return null; } };
+  sa = tryParse(raw);
+  if (!sa) {
+    // Common paste error: real newlines inside the private_key string.
+    // Escape any newlines that fall between BEGIN/END markers.
+    const repaired = raw.replace(
+      /("private_key"\s*:\s*")([\s\S]*?)(")/,
+      (_m, a, body, c) => a + body.replace(/\r?\n/g, "\\n") + c,
+    );
+    sa = tryParse(repaired);
+  }
+  if (!sa) {
+    // Second fallback: strip wrapping single-quotes.
+    const stripped = raw.trim().replace(/^'|'$/g, "");
+    sa = tryParse(stripped);
+  }
+  if (!sa) throw new Error("GA4_SERVICE_ACCOUNT_JSON invalide (JSON malformé). Recolle le contenu du fichier .json du service account.");
   if (!sa.client_email || !sa.private_key) throw new Error("Service account incomplet (client_email/private_key manquants)");
 
   const now = Math.floor(Date.now() / 1000);
