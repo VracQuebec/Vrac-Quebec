@@ -329,21 +329,21 @@ function ClientsTab() {
 /* ---------------- CARRIERS ---------------- */
 
 function CarriersTab() {
-  const [rows, setRows] = useState<CarrierRow[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
+  const filters = useCrmFilters();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", contact_name: "", email: "", phone: "", city: "" });
 
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("crm_carriers_v" as never)
+      .from("carriers")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    setRows((data as CarrierRow[]) || []);
+    setRows(data || []);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -371,26 +371,12 @@ function CarriersTab() {
     load();
   };
 
-  const filtered = rows.filter((r) => {
-    if (!q) return true;
-    const s = `${r.name} ${r.contact_name ?? ""} ${r.email ?? ""} ${r.phone ?? ""} ${r.city ?? ""}`.toLowerCase();
-    return s.includes(q.toLowerCase());
-  });
+  const filtered = applyFilters(rows, filters, ["name", "contact_name", "email", "phone", "city"]);
 
   return (
     <section>
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un transporteur…"
-            className="pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-card font-body" />
-        </div>
-        <div className="text-sm text-muted-foreground font-body">{filtered.length} transporteur(s)</div>
-        <button onClick={() => setShowForm((s) => !s)}
-          className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold">
-          <Plus className="w-4 h-4" /> Nouveau transporteur
-        </button>
-      </div>
+      <FilterBar {...filters} count={filtered.length} label="transporteur(s)"
+        onNew={() => setShowForm((s) => !s)} newLabel="Nouveau transporteur" />
 
       {showForm && (
         <div className="bg-card rounded-lg border border-border p-4 mb-4 grid gap-3 md:grid-cols-5">
@@ -410,36 +396,13 @@ function CarriersTab() {
       ) : filtered.length === 0 ? (
         <div className="bg-card rounded-lg border border-border p-8 text-center text-muted-foreground font-body">Aucun transporteur enregistré. Ajoutez-en un pour élargir votre réseau.</div>
       ) : (
-        <div className="overflow-x-auto bg-card rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary">
-              <tr>
-                {["Nom", "Contact", "Téléphone", "Ville", "Camions", "Chauffeurs", "Assurance", "Permis", ""].map((h) => (
-                  <th key={h} className="text-left px-3 py-2 font-display font-bold text-xs uppercase">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => (
-                <tr key={r.id} className="border-t border-border hover:bg-secondary/50">
-                  <td className="px-3 py-2 font-body font-semibold">{r.name}</td>
-                  <td className="px-3 py-2 font-body">{r.contact_name ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{r.phone ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{r.city ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{r.trucks_count ?? 0}</td>
-                  <td className="px-3 py-2 font-body">{r.drivers_count ?? 0}</td>
-                  <td className="px-3 py-2 font-body">{r.insurance_expires_at ?? "—"}</td>
-                  <td className="px-3 py-2 font-body">{r.permit_expires_at ?? "—"}</td>
-                  <td className="px-3 py-2 text-right">
-                    <button onClick={() => remove(r.id)} className="text-muted-foreground hover:text-destructive" aria-label="Supprimer">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <CrmTable ownerType="carrier" rows={filtered} columns={[
+          { key: "contact_name", label: "Contact" },
+          { key: "phone", label: "Téléphone" },
+          { key: "city", label: "Ville" },
+          { key: "insurance_expires_at", label: "Assurance" },
+          { key: "permit_expires_at", label: "Permis" },
+        ]} onRemove={remove} onReload={load} />
       )}
     </section>
   );
@@ -448,21 +411,21 @@ function CarriersTab() {
 /* ---------------- DUMPS ---------------- */
 
 function DumpsTab() {
-  const [rows, setRows] = useState<DumpRow[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
+  const filters = useCrmFilters();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", city: "", postal_code: "", availability_status: "available" });
 
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("crm_dumps_v" as never)
+      .from("dumps")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    setRows((data as DumpRow[]) || []);
+    setRows(data || []);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -489,11 +452,7 @@ function DumpsTab() {
     load();
   };
 
-  const filtered = rows.filter((r) => {
-    if (!q) return true;
-    const s = `${r.name} ${r.city ?? ""} ${(r.materials_accepted ?? []).join(" ")}`.toLowerCase();
-    return s.includes(q.toLowerCase());
-  });
+  const filtered = applyFilters(rows, filters, ["name", "city", "postal_code"]);
 
   return (
     <section>
