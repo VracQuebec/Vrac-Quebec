@@ -57,6 +57,25 @@ async function getAccessToken(): Promise<{ token: string; sa: { client_email: st
     sa = tryParse(a);
     if (sa) break;
   }
+  // Last-resort: regex extraction — some form-based paste UIs mangle JSON
+  // whitespace beyond repair while keeping fields intact.
+  if (!sa) {
+    const emailMatch = raw.match(/"client_email"\s*:\s*"([^"]+)"/);
+    const keyMatch = raw.match(/"private_key"\s*:\s*"((?:[^"\\]|\\.|\n|\r)+?)"\s*[,}]/);
+    const projMatch = raw.match(/"project_id"\s*:\s*"([^"]+)"/);
+    const tokenUri = raw.match(/"token_uri"\s*:\s*"([^"]+)"/);
+    if (emailMatch && keyMatch) {
+      let pk = keyMatch[1];
+      // Normalise: if literal newlines are present, keep them; if escaped, unescape.
+      if (pk.includes("\\n")) pk = pk.replace(/\\n/g, "\n");
+      sa = {
+        client_email: emailMatch[1],
+        private_key: pk,
+        project_id: projMatch?.[1] ?? "",
+        token_uri: tokenUri?.[1],
+      };
+    }
+  }
   if (!sa) {
     const head = raw.slice(0, 40);
     const tail = raw.slice(-40);
