@@ -42,20 +42,20 @@ async function getAccessToken(): Promise<{ token: string; sa: { client_email: st
   if (!raw) throw new Error("GA4_SERVICE_ACCOUNT_JSON manquant");
   let sa: { client_email: string; private_key: string; token_uri?: string; project_id: string };
   const tryParse = (s: string) => { try { return JSON.parse(s); } catch { return null; } };
-  sa = tryParse(raw);
-  if (!sa) {
-    // Common paste error: real newlines inside the private_key string.
-    // Escape any newlines that fall between BEGIN/END markers.
-    const repaired = raw.replace(
-      /("private_key"\s*:\s*")([\s\S]*?)(")/,
-      (_m, a, body, c) => a + body.replace(/\r?\n/g, "\\n") + c,
-    );
-    sa = tryParse(repaired);
-  }
-  if (!sa) {
-    // Second fallback: strip wrapping single-quotes.
-    const stripped = raw.trim().replace(/^'|'$/g, "");
-    sa = tryParse(stripped);
+  // Progressive repair: wrap missing braces, escape unescaped newlines in the
+  // private_key body, strip wrapping quotes — the secret often loses shape when
+  // pasted through form UIs.
+  const trimmed = raw.trim().replace(/^['"]|['"]$/g, "");
+  const escapeKey = (s: string) => s.replace(
+    /("private_key"\s*:\s*")([\s\S]*?)("[\s,}])/,
+    (_m, a, body, c) => a + body.replace(/\r?\n/g, "\\n") + c,
+  );
+  const withBraces = (s: string) =>
+    (s.startsWith("{") ? s : "{" + s) + (s.endsWith("}") ? "" : "}");
+  const attempts = [raw, trimmed, withBraces(trimmed), escapeKey(withBraces(trimmed)), escapeKey(trimmed)];
+  for (const a of attempts) {
+    sa = tryParse(a);
+    if (sa) break;
   }
   if (!sa) {
     const head = raw.slice(0, 40);
