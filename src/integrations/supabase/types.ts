@@ -962,6 +962,234 @@ export type Database = {
           },
         ]
       }
+      carriers: {
+        Row: {
+          address: string | null
+          base_rate_per_hour: number | null
+          base_rate_per_km: number | null
+          city: string | null
+          contact_name: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          insurance_expires_at: string | null
+          insurance_policy: string | null
+          is_active: boolean
+          name: string
+          notes: string | null
+          permit_expires_at: string | null
+          permit_number: string | null
+          phone: string | null
+          postal_code: string | null
+          rating: number | null
+          service_zones: string[]
+          truck_types: string[]
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          base_rate_per_hour?: number | null
+          base_rate_per_km?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          insurance_expires_at?: string | null
+          insurance_policy?: string | null
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          permit_expires_at?: string | null
+          permit_number?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          rating?: number | null
+          service_zones?: string[]
+          truck_types?: string[]
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          base_rate_per_hour?: number | null
+          base_rate_per_km?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          insurance_expires_at?: string | null
+          insurance_policy?: string | null
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          permit_expires_at?: string | null
+          permit_number?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          rating?: number | null
+          service_zones?: string[]
+          truck_types?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      clients: {
+        Row: {
+          address: string | null
+          city: string | null
+          company: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          name: string
+          notes: string | null
+          phone: string | null
+          postal_code: string | null
+          source: string | null
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          source?: string | null
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          source?: string | null
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_activities: {
+        Row: {
+          body: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          due_at: string | null
+          id: string
+          kind: string
+          metadata: Json
+          outcome: string | null
+          owner_id: string
+          owner_type: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          id?: string
+          kind: string
+          metadata?: Json
+          outcome?: string | null
+          owner_id: string
+          owner_type: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          id?: string
+          kind?: string
+          metadata?: Json
+          outcome?: string | null
+          owner_id?: string
+          owner_type?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_documents: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          kind: string
+          mime_type: string | null
+          owner_id: string
+          owner_type: string
+          size_bytes: number | null
+          title: string | null
+          updated_at: string
+          uploaded_by: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          kind: string
+          mime_type?: string | null
+          owner_id: string
+          owner_type: string
+          size_bytes?: number | null
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          owner_id?: string
+          owner_type?: string
+          size_bytes?: number | null
+          title?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       custom_fields: {
         Row: {
           created_at: string
@@ -997,6 +1225,7 @@ export type Database = {
       }
       drivers: {
         Row: {
+          carrier_id: string | null
           created_at: string
           email: string | null
           id: string
@@ -1007,6 +1236,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          carrier_id?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -1017,6 +1247,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          carrier_id?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -1026,7 +1257,118 @@ export type Database = {
           status?: Database["public"]["Enums"]["driver_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "drivers_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "carriers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drivers_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "crm_carriers_v"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dumps: {
+        Row: {
+          accessibility: string[]
+          address: string | null
+          availability_status: string
+          capacity_remaining_m3: number | null
+          capacity_total_m3: number | null
+          city: string | null
+          created_at: string
+          equipment: string[]
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          materials_accepted: string[]
+          name: string
+          notes: string | null
+          opening_hours: string | null
+          owner_entrepreneur_id: string | null
+          photos: string[]
+          postal_code: string | null
+          price_per_material: Json
+          rating: number | null
+          submission_id: string | null
+          truck_types_allowed: string[]
+          updated_at: string
+        }
+        Insert: {
+          accessibility?: string[]
+          address?: string | null
+          availability_status?: string
+          capacity_remaining_m3?: number | null
+          capacity_total_m3?: number | null
+          city?: string | null
+          created_at?: string
+          equipment?: string[]
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          materials_accepted?: string[]
+          name: string
+          notes?: string | null
+          opening_hours?: string | null
+          owner_entrepreneur_id?: string | null
+          photos?: string[]
+          postal_code?: string | null
+          price_per_material?: Json
+          rating?: number | null
+          submission_id?: string | null
+          truck_types_allowed?: string[]
+          updated_at?: string
+        }
+        Update: {
+          accessibility?: string[]
+          address?: string | null
+          availability_status?: string
+          capacity_remaining_m3?: number | null
+          capacity_total_m3?: number | null
+          city?: string | null
+          created_at?: string
+          equipment?: string[]
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          materials_accepted?: string[]
+          name?: string
+          notes?: string | null
+          opening_hours?: string | null
+          owner_entrepreneur_id?: string | null
+          photos?: string[]
+          postal_code?: string | null
+          price_per_material?: Json
+          rating?: number | null
+          submission_id?: string | null
+          truck_types_allowed?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dumps_owner_entrepreneur_id_fkey"
+            columns: ["owner_entrepreneur_id"]
+            isOneToOne: false
+            referencedRelation: "entrepreneurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dumps_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_send_log: {
         Row: {
@@ -1579,6 +1921,7 @@ export type Database = {
           client_address: string | null
           client_confirmation: string | null
           client_email: string | null
+          client_id: string | null
           client_invoiced: string | null
           client_name: string | null
           client_payment_date: string | null
@@ -1601,6 +1944,7 @@ export type Database = {
           client_address?: string | null
           client_confirmation?: string | null
           client_email?: string | null
+          client_id?: string | null
           client_invoiced?: string | null
           client_name?: string | null
           client_payment_date?: string | null
@@ -1623,6 +1967,7 @@ export type Database = {
           client_address?: string | null
           client_confirmation?: string | null
           client_email?: string | null
+          client_id?: string | null
           client_invoiced?: string | null
           client_name?: string | null
           client_payment_date?: string | null
@@ -1640,7 +1985,22 @@ export type Database = {
           total?: number | null
           trips?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "crm_clients_v"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       seo_advisor_reports: {
         Row: {
@@ -3406,6 +3766,7 @@ export type Database = {
           budget_max: string | null
           budget_unit: string | null
           city: string | null
+          client_id: string | null
           company: string | null
           contamination: string | null
           created_at: string
@@ -3469,6 +3830,7 @@ export type Database = {
           budget_max?: string | null
           budget_unit?: string | null
           city?: string | null
+          client_id?: string | null
           company?: string | null
           contamination?: string | null
           created_at?: string
@@ -3532,6 +3894,7 @@ export type Database = {
           budget_max?: string | null
           budget_unit?: string | null
           city?: string | null
+          client_id?: string | null
           company?: string | null
           contamination?: string | null
           created_at?: string
@@ -3586,7 +3949,22 @@ export type Database = {
           visible_to_entrepreneur?: boolean
           width_ft?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "submissions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "crm_clients_v"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       submissions_geo_backup: {
         Row: {
@@ -3768,6 +4146,7 @@ export type Database = {
           assigned_dispatcher: string | null
           client_company: string | null
           client_email: string | null
+          client_id: string | null
           client_name: string
           client_notes: string | null
           client_phone: string
@@ -3803,6 +4182,7 @@ export type Database = {
           assigned_dispatcher?: string | null
           client_company?: string | null
           client_email?: string | null
+          client_id?: string | null
           client_name: string
           client_notes?: string | null
           client_phone: string
@@ -3838,6 +4218,7 @@ export type Database = {
           assigned_dispatcher?: string | null
           client_company?: string | null
           client_email?: string | null
+          client_id?: string | null
           client_name?: string
           client_notes?: string | null
           client_phone?: string
@@ -3871,6 +4252,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "transport_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "crm_clients_v"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "transport_requests_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
@@ -3896,6 +4291,7 @@ export type Database = {
       trucks: {
         Row: {
           active: boolean
+          carrier_id: string | null
           created_at: string
           id: string
           name: string
@@ -3906,6 +4302,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          carrier_id?: string | null
           created_at?: string
           id?: string
           name: string
@@ -3916,6 +4313,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          carrier_id?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -3924,7 +4322,22 @@ export type Database = {
           type?: Database["public"]["Enums"]["truck_type"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "trucks_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "carriers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trucks_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "crm_carriers_v"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -3949,6 +4362,218 @@ export type Database = {
       }
     }
     Views: {
+      crm_carriers_v: {
+        Row: {
+          address: string | null
+          base_rate_per_hour: number | null
+          base_rate_per_km: number | null
+          city: string | null
+          contact_name: string | null
+          created_at: string | null
+          created_by: string | null
+          drivers_count: number | null
+          email: string | null
+          id: string | null
+          insurance_expires_at: string | null
+          insurance_policy: string | null
+          is_active: boolean | null
+          name: string | null
+          notes: string | null
+          permit_expires_at: string | null
+          permit_number: string | null
+          phone: string | null
+          postal_code: string | null
+          rating: number | null
+          service_zones: string[] | null
+          truck_types: string[] | null
+          trucks_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          base_rate_per_hour?: number | null
+          base_rate_per_km?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          drivers_count?: never
+          email?: string | null
+          id?: string | null
+          insurance_expires_at?: string | null
+          insurance_policy?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          notes?: string | null
+          permit_expires_at?: string | null
+          permit_number?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          rating?: number | null
+          service_zones?: string[] | null
+          truck_types?: string[] | null
+          trucks_count?: never
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          base_rate_per_hour?: number | null
+          base_rate_per_km?: number | null
+          city?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          drivers_count?: never
+          email?: string | null
+          id?: string | null
+          insurance_expires_at?: string | null
+          insurance_policy?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          notes?: string | null
+          permit_expires_at?: string | null
+          permit_number?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          rating?: number | null
+          service_zones?: string[] | null
+          truck_types?: string[] | null
+          trucks_count?: never
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      crm_clients_v: {
+        Row: {
+          address: string | null
+          city: string | null
+          company: string | null
+          created_at: string | null
+          created_by: string | null
+          email: string | null
+          id: string | null
+          is_active: boolean | null
+          latitude: number | null
+          longitude: number | null
+          name: string | null
+          notes: string | null
+          phone: string | null
+          postal_code: string | null
+          revenue_total: number | null
+          source: string | null
+          submissions_count: number | null
+          tags: string[] | null
+          transport_requests_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          company?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          revenue_total?: never
+          source?: string | null
+          submissions_count?: never
+          tags?: string[] | null
+          transport_requests_count?: never
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          company?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          revenue_total?: never
+          source?: string | null
+          submissions_count?: never
+          tags?: string[] | null
+          transport_requests_count?: never
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      crm_deals_v: {
+        Row: {
+          city: string | null
+          client_id: string | null
+          created_at: string | null
+          id: string | null
+          latitude: number | null
+          longitude: number | null
+          materials: string[] | null
+          postal_code: string | null
+          source: string | null
+          status: string | null
+          tonnage: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      crm_dumps_v: {
+        Row: {
+          accessibility: string[] | null
+          address: string | null
+          availability_status: string | null
+          capacity_remaining_m3: number | null
+          capacity_total_m3: number | null
+          city: string | null
+          created_at: string | null
+          equipment: string[] | null
+          id: string | null
+          is_active: boolean | null
+          latitude: number | null
+          longitude: number | null
+          materials_accepted: string[] | null
+          name: string | null
+          notes: string | null
+          opening_hours: string | null
+          owner_entrepreneur_id: string | null
+          owner_name: string | null
+          photos: string[] | null
+          postal_code: string | null
+          price_per_material: Json | null
+          rating: number | null
+          submission_id: string | null
+          truck_types_allowed: string[] | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dumps_owner_entrepreneur_id_fkey"
+            columns: ["owner_entrepreneur_id"]
+            isOneToOne: false
+            referencedRelation: "entrepreneurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dumps_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_gsc_deltas_28d: {
         Row: {
           clicks: number | null
