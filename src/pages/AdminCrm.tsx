@@ -169,6 +169,82 @@ function applyFilters<T extends Record<string, any>>(rows: T[], f: ReturnType<ty
   return out;
 }
 
+/* ---------------- SHARED TABLE ---------------- */
+
+function CrmTable(props: {
+  ownerType: "client" | "carrier" | "dump";
+  rows: any[];
+  columns: { key: string; label: string; render?: (r: any) => React.ReactNode }[];
+  onRemove: (id: string) => void;
+  onReload: () => void;
+}) {
+  const table = props.ownerType === "client" ? "clients" : props.ownerType === "carrier" ? "carriers" : "dumps";
+
+  const toggleFav = async (id: string, cur: boolean) => {
+    await supabase.from(table as never).update({ is_favorite: !cur } as never).eq("id", id);
+    props.onReload();
+  };
+  const toggleArchive = async (id: string, archived: boolean) => {
+    const next = archived ? null : new Date().toISOString();
+    await supabase.from(table as never).update({ archived_at: next, is_active: !next } as never).eq("id", id);
+    props.onReload();
+  };
+
+  return (
+    <div className="overflow-x-auto bg-card rounded-lg border border-border">
+      <table className="w-full text-sm">
+        <thead className="bg-secondary">
+          <tr>
+            <th className="w-8"></th>
+            <th className="text-left px-3 py-2 font-display font-bold text-xs uppercase">Nom</th>
+            {props.columns.map((c) => (
+              <th key={c.key} className="text-left px-3 py-2 font-display font-bold text-xs uppercase">{c.label}</th>
+            ))}
+            <th className="text-left px-3 py-2 font-display font-bold text-xs uppercase">Statut</th>
+            <th className="text-left px-3 py-2 font-display font-bold text-xs uppercase">Dernière activité</th>
+            <th className="w-28"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {props.rows.map((r) => (
+            <tr key={r.id} className={`border-t border-border hover:bg-secondary/50 ${r.archived_at ? "opacity-60" : ""}`}>
+              <td className="px-2 py-2">
+                <button onClick={() => toggleFav(r.id, !!r.is_favorite)} aria-label="Favori">
+                  <Star className={`w-4 h-4 ${r.is_favorite ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+                </button>
+              </td>
+              <td className="px-3 py-2 font-body font-semibold">
+                <Link to={`/admin/crm/${props.ownerType}/${r.id}`} className="hover:underline inline-flex items-center gap-1">
+                  {r.name} <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                </Link>
+              </td>
+              {props.columns.map((c) => (
+                <td key={c.key} className="px-3 py-2 font-body">{c.render ? c.render(r) : (r[c.key] ?? "—")}</td>
+              ))}
+              <td className="px-3 py-2 font-body">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-display font-semibold bg-primary/10 text-primary">
+                  {r.status_label ?? "active"}
+                </span>
+              </td>
+              <td className="px-3 py-2 font-body text-xs text-muted-foreground">
+                {r.last_activity_at ? new Date(r.last_activity_at).toLocaleDateString("fr-CA") : "—"}
+              </td>
+              <td className="px-3 py-2 text-right">
+                <button onClick={() => toggleArchive(r.id, !!r.archived_at)} className="p-1 text-muted-foreground hover:text-foreground" aria-label="Archiver">
+                  {r.archived_at ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+                </button>
+                <button onClick={() => props.onRemove(r.id)} className="p-1 text-muted-foreground hover:text-destructive" aria-label="Supprimer">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /* ---------------- CLIENTS ---------------- */
 
 function ClientsTab() {
