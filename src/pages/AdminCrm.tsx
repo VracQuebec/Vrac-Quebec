@@ -9,6 +9,7 @@ import TransportBanner from "@/components/TransportBanner";
 import { toast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Users, Truck, MapPin, Building2, Plus, Loader2, Search, Trash2,
+  Star, Archive, ArchiveRestore, ExternalLink,
 } from "lucide-react";
 
 type Tab = "clients" | "entrepreneurs" | "carriers" | "dumps";
