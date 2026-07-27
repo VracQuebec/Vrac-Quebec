@@ -1,86 +1,63 @@
-## Objectif
+# Audit SEO complet de Vrac Québec
 
-Rendre le moteur d'optimisation SEO complètement autonome : redémarrage auto, adaptation dynamique du parallélisme, rapport final, notification, et UI temps réel enrichie. Plus aucune surveillance manuelle requise.
-
----
-
-## 1. Autonomie backend (cron + supervisor)
-
-**Supervisor `seo-optimize-supervisor`** (déjà cron chaque minute) — enrichi pour :
-- Relancer automatiquement tout run `running` sans progrès depuis > 60s (déjà présent, à durcir).
-- **Auto-reprise des runs `paused` orphelins** > 10 min (probable oubli).
-- **Requeue automatique des tâches `pending`/`error` avec `next_attempt_at` échu** sans attendre une action manuelle.
-- **Adaptation dynamique du parallélisme** : lit le taux de 429 sur les 5 dernières minutes (via `ai_call_log` + tasks) et ajuste `seo_optimization_runs.concurrency` (1 → 5) pour le run actif.
-- **Finalisation automatique** du run quand toutes les tâches sont dans un état terminal (`completed`/`skipped`/`error` sans retry) → génère le rapport final et déclenche la notification.
-
-**Worker `seo-optimize-worker`** :
-- Respecte la nouvelle valeur `concurrency` relue à chaque batch.
-- Sur 429 : incrémente un compteur `rate_limit_hits` sur le run, augmente la pause inter-batch temporairement.
+Livraison en deux temps : (1) un **rapport d'audit** basé sur une inspection réelle du code, de la base et des pages publiées ; (2) une **implémentation** des modules manquants (Diagnostic, Correcteur auto, Monitoring, Tableau SEO branché sur données réelles). Aucune modification ne sera appliquée avant que le rapport d'audit soit validé par toi.
 
 ---
 
-## 2. Rapport final + notification
+## Étape 1 — Rapport d'audit (aucune modif code)
 
-**Nouvelle table `seo_optimization_reports`** liée à chaque run :
-- pages_optimized, pages_skipped, pages_failed, errors_fixed
-- duration_seconds, ai_calls, cost_estimate
-- avg_qa_before, avg_qa_after, avg_qa_delta
-- top_fixes (jsonb: comptage des actions appliquées)
-- generated_at
+Je produis un rapport Markdown affiché en chat + sauvegardé dans `/mnt/documents/seo-audit-YYYYMMDD.md`, couvrant :
 
-**Génération** : RPC `seo_optimization_finalize(_run_id)` appelée par le supervisor à la clôture. Idempotente.
+- **Architecture** : routes React (`src/App.tsx`), routes publiques vs privées, pages SEO dynamiques (`SeoLandingPage`, `ZoneCityIndex`, blog), Edge Functions SEO, robots.txt, sitemap generator, headers HTTP servis par Lovable hosting, canonical / meta robots / OG / JSON-LD / Schema par type de page.
+- **Vérification live** de N pages publiées (échantillon 30 + toutes les erreurs) via `fetch` HTTP : status, canonical, meta robots, title, H1, description, JSON-LD, OG, Twitter, breadcrumb, temps de réponse.
+- **Sitemap** : diff entre `seo_pages(status=published)` DB et `sitemap.xml` (manquants, doublons, URLs privées, lastmod).
+- **Robots.txt** : règles bloquantes, présence sitemap, exceptions par bot.
+- **Google Search Console** : test réel via connecteur (`sites.list`, `searchAnalytics`) — indique si connecté et propriété vérifiée, sinon marque "non configurée".
+- **Base SEO** : compteurs réels par catégorie (publiées, brouillons, noindex, sans canonical, sans H1, sans description, contenu faible < seuil, doublons de title/description, orphelines par analyse du maillage).
+- **Anomalies** classées 🔴 / 🟠 / 🟢 avec origine, gravité, correction proposée.
 
-**Notification** :
-- Insertion d'une ligne dans une table légère `admin_notifications` (title, body, level, link, read_at) → affichée dans un `<Toaster>` global déjà présent + badge dans le header admin.
-- Optionnel : email admin via `send-transactional-email` (template court « Run terminé »). On garde ça derrière un toggle `ai_settings.notify_email_on_run_finish` (défaut off).
+## Étape 2 — Implémentation (après validation du rapport)
 
----
+### 2.1 Diagnostic SEO Intelligent
+- Nouvelle Edge Function `seo-diagnostic-scan` : boucle sur `seo_pages` publiées, fait `HEAD/GET` sur `https://vracquebec.ca/{slug}`, parse HTML (title, H1, meta robots, canonical, JSON-LD, OG), cross-check avec sitemap + robots + DB. Stocke résultats dans nouvelle table `seo_diagnostic_findings`.
+- Bouton **Analyser maintenant** dans `AdminSeoManager` → lance la fonction en tâche de fond, progression realtime.
+- Tableau des findings avec 🟢/🟠/🔴, filtre par catégorie, explication + suggestion.
 
-## 3. UI — `OptimizationEngine.tsx` enrichi
+### 2.2 Correcteur automatique
+- Edge Function `seo-autofix` : corrige uniquement méta / canonical / meta robots / sitemap / maillage / pages orphelines / liens cassés, JAMAIS le contenu. Idempotente, journalisée dans `seo_diagnostic_findings.fixed_at`.
+- Bouton **Corriger automatiquement** avec dry-run + confirmation.
 
-- **Barre de progression** temps réel (déjà partielle) + **ETA calculé** = `(pending_tasks × avg_duration_ms) / concurrency`.
-- **Compteurs live** : traitées / restantes / échouées / ignorées / concurrence courante / 429 récents.
-- **Bandeau autonome** : "Autopilot activé — aucune action requise". Boutons Pause/Reprendre/Stop restent disponibles.
-- **Modal Rapport final** ouvert automatiquement à la fin du run : lit `seo_optimization_reports`, affiche les KPIs + top fixes + avant/après moyen. Bouton "Télécharger CSV" (client-side).
-- **Toast** + son discret à la fin.
-- Historique enrichi : chaque ligne montre un badge "Rapport" cliquable.
+### 2.3 Sitemap toujours à jour
+- Trigger DB sur `seo_pages` (INSERT/UPDATE/DELETE) → notifie une Edge Function `seo-sitemap-refresh` qui régénère `public/sitemap.xml` **au niveau CDN** en écrivant dans le storage bucket public + fallback : `predev`/`prebuild` déjà en place.
+- Alternative retenue si trigger CDN indisponible : route dynamique `/sitemap.xml` servie par une Edge Function qui lit la DB en direct → toujours frais.
 
----
+### 2.4 Robots.txt
+- Vérification que la config actuelle est correcte, ajout d'une règle explicite `Allow: /` pour tous, `Sitemap:` présent, aucun `Disallow` sur `/`, `/blog`, ou routes SEO.
 
-## 4. Détails techniques
+### 2.5 Google Search Console — affichage réel
+- `useSeoStats` + Command Center : détectent l'absence de connexion GSC (`GOOGLE_SEARCH_CONSOLE_API_KEY` manquant OU `sites.list` vide) et affichent **"Search Console non configurée"** au lieu de zéros. Bouton "Configurer" ouvrant le connecteur.
 
-<details>
-<summary>Migrations SQL</summary>
+### 2.6 Tableau SEO branché sur données réelles
+- Nouvelle RPC `seo_health_dashboard()` retournant : publiées, brouillons, indexées (via `seo_gsc_metrics`), sans canonical, sans H1, sans description, noindex, HTTP erreurs (via `seo_diagnostic_findings`), redirections, contenu faible, doublons, orphelines.
+- `CommandCenter` remplace les compteurs statiques par cette RPC.
 
-- `seo_optimization_runs` : ajouter `rate_limit_hits int default 0`, `auto_adjusted_concurrency boolean default false`.
-- `seo_optimization_reports` : nouvelle table (grants + RLS admin only).
-- `admin_notifications` : nouvelle table (grants + RLS admin only, realtime activé).
-- RPCs : `seo_optimization_finalize(_run_id uuid)`, `seo_optimization_autotune(_run_id uuid)`.
-- Watchdog `seo_optimization_watchdog` : élargi pour finaliser les runs terminés et adapter la concurrence.
-</details>
-
-<details>
-<summary>Fichiers touchés</summary>
-
-- `supabase/migrations/*` : 1 migration
-- `supabase/functions/seo-optimize-supervisor/index.ts` : logique autotune + finalize
-- `supabase/functions/seo-optimize-worker/index.ts` : relit concurrency, incrémente rate_limit_hits
-- `src/components/seo/OptimizationEngine.tsx` : ETA, compteurs enrichis, modal rapport
-- `src/components/seo/OptimizationReportModal.tsx` : nouveau
-- `src/hooks/useAdminNotifications.ts` : nouveau (realtime + toasts)
-- `src/pages/Admin.tsx` (ou shell admin) : monte le hook global
-</details>
-
-<details>
-<summary>Hors scope</summary>
-
-- Pas de refonte du scoring QA.
-- Pas de changement des règles d'autofix.
-- Pas de facturation ni de quotas.
-</details>
+### 2.7 Monitoring horaire
+- Cron pg_cron toutes les heures → `seo-diagnostic-scan` en mode léger (delta uniquement) + `seo-gsc-sync` + `seo-linkcheck`.
+- Nouvelles alertes dans `admin_notifications` (déjà existant) : nouvelles erreurs, désindexations, sitemap invalide.
 
 ---
 
-## Résultat attendu
+## Détails techniques
 
-Un clic sur **Démarrer** suffit. Le moteur tourne, s'auto-ajuste, se relance seul en cas d'arrêt, finalise le run, affiche un rapport complet et notifie l'admin. Zéro babysitting.
+- **Fichiers créés** : `supabase/functions/seo-diagnostic-scan/index.ts`, `supabase/functions/seo-autofix/index.ts`, `supabase/functions/seo-sitemap-refresh/index.ts` (optionnel), `src/components/seo/DiagnosticPanel.tsx`, `src/components/seo/AutofixButton.tsx`, `src/lib/seo/useDiagnostic.ts`.
+- **Migrations** : table `seo_diagnostic_findings` (page_id, category, severity, message, suggested_fix, fixed_at, detected_at), fonction `seo_health_dashboard()`, cron horaire.
+- **Fichiers modifiés** : `src/pages/AdminSeoManager.tsx`, `src/components/seo/CommandCenter.tsx`, `scripts/generate-sitemap.ts` (nettoyage lastmod), `public/robots.txt` si nécessaire.
+- **Non modifié** : CRM, comptes entrepreneurs, calendrier, blog CMS, dispatch, facturation.
+
+## Livrables
+
+1. Rapport d'audit complet (chat + fichier).
+2. Après validation : migrations + Edge Functions + UI Diagnostic/Autofix/Monitoring + tableau SEO réel.
+3. Test final : scan sur 100 % des pages, rapport de conformité, liste résiduelle triée par gravité.
+
+Confirme et je démarre par l'audit (étape 1, sans modification de code).
