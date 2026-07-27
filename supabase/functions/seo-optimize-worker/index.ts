@@ -189,7 +189,10 @@ async function kick(supabase: ReturnType<typeof createClient>, supaUrl: string, 
         return;
       }
 
-      const batch = await claimBatch(supabase, runId, Math.max(1, Math.min(20, run.concurrency ?? 5)));
+      // Cap real concurrency to 3 to stay under the Edge Function runtime limit
+      // (parallel autofix + qa-check invocations otherwise trigger project-wide 429s).
+      const desired = Math.max(1, Math.min(3, run.concurrency ?? 3));
+      const batch = await claimBatch(supabase, runId, desired);
       if (batch.length === 0) {
         console.log("worker: no tasks to claim; exiting loop.");
         return;
@@ -203,6 +206,8 @@ async function kick(supabase: ReturnType<typeof createClient>, supaUrl: string, 
 
       // Bump last_progress_at
       await supabase.from("seo_optimization_runs").update({ last_progress_at: new Date().toISOString() }).eq("id", runId);
+      // Small pause between batches to smooth out the edge-function invocation rate.
+      await new Promise((r) => setTimeout(r, 400));
     }
   };
 
