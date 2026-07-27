@@ -1,107 +1,86 @@
-# Phase — Moteur opérationnel intelligent (Vrac Québec OS)
+## Objectif
 
-Objectif : bâtir le cœur d'exploitation sur la base CRM 360° existante (clients, entrepreneurs, carriers, dumps, trucks, drivers, transport_requests, lead_trips, crm_activities, crm_documents, calendar_events). Aucune table existante n'est recréée.
+Rendre le moteur d'optimisation SEO complètement autonome : redémarrage auto, adaptation dynamique du parallélisme, rapport final, notification, et UI temps réel enrichie. Plus aucune surveillance manuelle requise.
 
-## 1. Fondation données (migration additive)
+---
 
-Nouvelles tables :
-- `trips` — voyage unitaire. Colonnes : `trip_number` (auto `V-0001`), `transport_request_id`, `client_id`, `entrepreneur_id`, `carrier_id`, `driver_id`, `truck_id`, `dump_id`, `material`, `quarry_address`, `pickup_address`, `delivery_address`, `pickup_lat/lng`, `delivery_lat/lng`, `distance_km`, `scheduled_at`, `started_at`, `loaded_at`, `delivered_at`, `completed_at`, `status` (enum), `cost`, `revenue`, `margin` (généré), `notes`, `signature_url`, `photos jsonb`, `documents jsonb`, `assigned_by`, `assignment_mode` ('auto'|'manual').
-- `trip_status_history` — journal `trip_id, from_status, to_status, changed_by, changed_at, reason`.
-- `dispatch_scenarios` — propositions du moteur : `transport_request_id`, `rank`, `carrier_id`, `driver_id`, `truck_id`, `dump_id`, `estimated_distance_km`, `estimated_duration_min`, `estimated_cost`, `estimated_margin`, `score`, `reasons jsonb`, `expires_at`, `chosen_at`.
-- `dispatch_rules` — pondérations éditables : `key`, `weight`, `active`.
+## 1. Autonomie backend (cron + supervisor)
 
-Enum `trip_status` : `demande, soumission_envoyee, accepte, planifie, en_route, chargement, transport, livraison, termine, facture, paye, annule`.
+**Supervisor `seo-optimize-supervisor`** (déjà cron chaque minute) — enrichi pour :
+- Relancer automatiquement tout run `running` sans progrès depuis > 60s (déjà présent, à durcir).
+- **Auto-reprise des runs `paused` orphelins** > 10 min (probable oubli).
+- **Requeue automatique des tâches `pending`/`error` avec `next_attempt_at` échu** sans attendre une action manuelle.
+- **Adaptation dynamique du parallélisme** : lit le taux de 429 sur les 5 dernières minutes (via `ai_call_log` + tasks) et ajuste `seo_optimization_runs.concurrency` (1 → 5) pour le run actif.
+- **Finalisation automatique** du run quand toutes les tâches sont dans un état terminal (`completed`/`skipped`/`error` sans retry) → génère le rapport final et déclenche la notification.
 
-Nouveaux triggers :
-- `trips_before_write` : `trip_number`, calcul `margin = revenue - cost`, sync `last_activity_at` sur client/carrier/dump/entrepreneur, création `calendar_events` liée quand `scheduled_at` défini.
-- `trips_status_audit` : insère `trip_status_history`, publie `crm_activities` (`type='status_change'`), met à jour `transport_requests.status` correspondant, notifie via `pg_notify('trip_events', payload)`.
-- `dispatch_scenarios_expire` : cron 5 min qui expire les scénarios non choisis > 30 min.
+**Worker `seo-optimize-worker`** :
+- Respecte la nouvelle valeur `concurrency` relue à chaque batch.
+- Sur 429 : incrémente un compteur `rate_limit_hits` sur le run, augmente la pause inter-batch temporairement.
 
-RPCs :
-- `dispatch_generate_scenarios(_request_id uuid, _limit int)` — SECURITY DEFINER admin : calcule scoring déterministe (distance Haversine sur lat/lng existants, capacité camion vs quantité, disponibilité dump `availability_status`, blacklist, horaires) et insère top-N scénarios.
-- `dispatch_apply_scenario(_scenario_id uuid)` — crée le(s) `trips` et change `transport_requests.status → planifie`.
-- `trip_advance_status(_trip_id, _next_status, _reason)` — validation transitions + audit.
-- `ops_dashboard_stats()` — KPI cockpit (voyages jour/semaine/mois, camions/transporteurs/clients/dompes actifs, revenu, marge, top matériaux, top villes, temps moyen chargement→livraison).
-- `ops_planning_range(_from, _to, _view)` — retourne voyages + événements calendrier pour vues jour/semaine/mois.
+---
 
-Realtime : `ADD TABLE trips, trip_status_history, dispatch_scenarios` à `supabase_realtime`.
+## 2. Rapport final + notification
 
-GRANTS / RLS : admins full ; entrepreneur voit ses voyages via `entrepreneur_id = auth.uid()` ; transporteurs (rôle futur) prêts via `carrier_id`.
+**Nouvelle table `seo_optimization_reports`** liée à chaque run :
+- pages_optimized, pages_skipped, pages_failed, errors_fixed
+- duration_seconds, ai_calls, cost_estimate
+- avg_qa_before, avg_qa_after, avg_qa_delta
+- top_fixes (jsonb: comptage des actions appliquées)
+- generated_at
 
-## 2. Moteur de répartition (edge function `dispatch-engine`)
+**Génération** : RPC `seo_optimization_finalize(_run_id)` appelée par le supervisor à la clôture. Idempotente.
 
-Boundary serveur pour enrichissement (Distance Matrix Google via connector) — appelé par la RPC quand lat/lng manquent. Fallback : Haversine local. Retourne scénarios triés, écrits via RPC. 100 % déterministe, zéro appel IA (respecte l'économie Phase 3).
+**Notification** :
+- Insertion d'une ligne dans une table légère `admin_notifications` (title, body, level, link, read_at) → affichée dans un `<Toaster>` global déjà présent + badge dans le header admin.
+- Optionnel : email admin via `send-transactional-email` (template court « Run terminé »). On garde ça derrière un toggle `ai_settings.notify_email_on_run_finish` (défaut off).
 
-Scoring pondéré (via `dispatch_rules`) :
-- distance (30 %) — plus court = mieux
-- disponibilité dump (20 %)
-- adéquation type camion / tonnage (20 %)
-- charge du transporteur (15 %) — voyages actifs
-- historique performance (10 %) — % `termine` sans incident
-- coût estimé vs marge cible (5 %)
+---
 
-## 3. Frontend — `/admin/operations`
+## 3. UI — `OptimizationEngine.tsx` enrichi
 
-Nouvelle page `src/pages/AdminOperations.tsx` avec sous-onglets :
+- **Barre de progression** temps réel (déjà partielle) + **ETA calculé** = `(pending_tasks × avg_duration_ms) / concurrency`.
+- **Compteurs live** : traitées / restantes / échouées / ignorées / concurrence courante / 429 récents.
+- **Bandeau autonome** : "Autopilot activé — aucune action requise". Boutons Pause/Reprendre/Stop restent disponibles.
+- **Modal Rapport final** ouvert automatiquement à la fin du run : lit `seo_optimization_reports`, affiche les KPIs + top fixes + avant/après moyen. Bouton "Télécharger CSV" (client-side).
+- **Toast** + son discret à la fin.
+- Historique enrichi : chaque ligne montre un badge "Rapport" cliquable.
 
-### a) Cockpit
-`OpsCockpit.tsx` — KPI temps réel via `ops_dashboard_stats` + abonnement realtime, cartes : voyages actifs, camions en route, revenu/marge du jour, temps moyen, top matériaux/villes.
+---
 
-### b) Répartition
-`DispatchBoard.tsx` — file des `transport_requests` sans voyage. Bouton « Générer scénarios » → tableau top-5 avec score, distance, coût, marge, transporteur/camion/dompe suggérés. Bouton « Appliquer » (crée le voyage) ou « Manuel » (formulaire).
+## 4. Détails techniques
 
-### c) Planification
-`PlanningBoard.tsx` — vues :
-- **Jour** : timeline horaire par camion (colonnes camions, lignes 06 h→20 h).
-- **Semaine** : grille 7 jours × camions.
-- **Mois** : mini-calendrier.
-- **Carte** : Google Maps avec pins chargement/livraison, itinéraires.
-Drag & drop léger (`@dnd-kit/core` déjà présent sinon `react-beautiful-dnd`, sinon HTML5 natif — on utilise HTML5 natif pour éviter dep) pour déplacer un voyage entre camions ou créneaux → appelle `trip_reschedule` RPC.
+<details>
+<summary>Migrations SQL</summary>
 
-### d) Voyages
-`TripsTable.tsx` — liste filtrable par statut/date/client/transporteur, ouvre `TripDetail.tsx` (drawer) : timeline statuts, coûts/marge, photos, signature (preview), documents (bucket `crm-docs`), boutons de transition (`Avancer statut`) et raccourcis vers fiche CRM.
+- `seo_optimization_runs` : ajouter `rate_limit_hits int default 0`, `auto_adjusted_concurrency boolean default false`.
+- `seo_optimization_reports` : nouvelle table (grants + RLS admin only).
+- `admin_notifications` : nouvelle table (grants + RLS admin only, realtime activé).
+- RPCs : `seo_optimization_finalize(_run_id uuid)`, `seo_optimization_autotune(_run_id uuid)`.
+- Watchdog `seo_optimization_watchdog` : élargi pour finaliser les runs terminés et adapter la concurrence.
+</details>
 
-### e) Automatisations
-`AutomationsPanel.tsx` — liste des règles actives (readonly V1), toggle notifications par statut.
+<details>
+<summary>Fichiers touchés</summary>
 
-Réutilise : `EntrepreneurShell`/`AdminMap`/`google-maps-loader`/`material-colors`/`calendar-utils`/`InlineField`/`FullPageState`/`FilterBar` du CRM.
+- `supabase/migrations/*` : 1 migration
+- `supabase/functions/seo-optimize-supervisor/index.ts` : logique autotune + finalize
+- `supabase/functions/seo-optimize-worker/index.ts` : relit concurrency, incrémente rate_limit_hits
+- `src/components/seo/OptimizationEngine.tsx` : ETA, compteurs enrichis, modal rapport
+- `src/components/seo/OptimizationReportModal.tsx` : nouveau
+- `src/hooks/useAdminNotifications.ts` : nouveau (realtime + toasts)
+- `src/pages/Admin.tsx` (ou shell admin) : monte le hook global
+</details>
 
-## 4. Realtime & notifications
+<details>
+<summary>Hors scope</summary>
 
-- Hook `useTripsRealtime()` — un seul channel `trips` monté au niveau `/admin/operations`, teardown au unmount.
-- Toast sur transition importante (accepte → planifie, en_route → livraison, termine).
-- Enqueue email transactionnel (réutilise `enqueue_email` + templates `client-confirmation` / `new-lead-notification`) lorsque `accepte`, `planifie`, `termine`, `facture`.
+- Pas de refonte du scoring QA.
+- Pas de changement des règles d'autofix.
+- Pas de facturation ni de quotas.
+</details>
 
-## 5. Intégrations préparées (interfaces, pas implémentation)
+---
 
-- `src/lib/ops/pricing.ts` — signatures pour futur module facturation (`computeTripInvoice(trip)`).
-- `src/lib/ops/routing.ts` — wrapper Google `routes/directions/v2:computeRoutes` (gateway) déjà branché ; utilisé par le moteur si lat/lng présents.
-- `src/lib/ops/signature.ts` — placeholders (`captureSignature`, `attachSignatureToTrip`).
-- Points d'extension explicités en commentaires (Comptabilité, App chauffeur/entrepreneur, IA recommandation).
+## Résultat attendu
 
-## 6. Vérification finale
-
-- Migration → linter Supabase (RLS/GRANT).
-- `bunx tsgo --noEmit` doit rester vert.
-- Smoke test : créer une `transport_request` de test → générer scénarios → appliquer → avancer statuts jusqu'à `termine` → vérifier historique + KPI cockpit + calendar_events créés.
-
-## Détails techniques
-
-```text
-transport_requests ──► dispatch_generate_scenarios ──► dispatch_scenarios
-                                                            │
-                                                            └─ apply ─► trips ──► trip_status_history
-                                                                          │
-                                                                          ├─► calendar_events (auto)
-                                                                          ├─► crm_activities (auto)
-                                                                          └─► realtime channel `trips`
-```
-
-- Aucune table existante recréée. Toutes les nouvelles colonnes/tables sont additives.
-- Tous les nouveaux endpoints DB sont `SECURITY DEFINER` avec check `has_role(auth.uid(),'admin')`.
-- Toutes les nouvelles tables portent `GRANT` explicites (authenticated + service_role) et RLS activée.
-- Zéro appel IA dans le moteur (100 % déterministe, aligné sur la politique d'économie de crédits).
-
-## Livraison
-
-Un seul lot : migration → edge function `dispatch-engine` → page `/admin/operations` + composants → hooks realtime → validation typecheck. Confirme-moi le go et j'exécute.
+Un clic sur **Démarrer** suffit. Le moteur tourne, s'auto-ajuste, se relance seul en cas d'arrêt, finalise le run, affiche un rapport complet et notifie l'admin. Zéro babysitting.
