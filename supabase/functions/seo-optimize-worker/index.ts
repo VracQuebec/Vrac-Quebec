@@ -58,7 +58,7 @@ async function claimBatch(supabase: ReturnType<typeof createClient>, runId: stri
   return picked;
 }
 
-async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: string, serviceKey: string, task: Task, run: { qa_skip_above: number; force_all: boolean; actions: string[] }) {
+async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: string, serviceKey: string, task: Task, run: { qa_skip_above: number; force_all: boolean; actions: string[] }): Promise<"ok" | "rate_limited" | "skipped" | "error"> {
   const start = Date.now();
   try {
     // Fetch current page qa
@@ -79,7 +79,7 @@ async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: s
         finished_at: new Date().toISOString(),
         duration_ms: Date.now() - start,
       }).eq("id", task.id);
-      return;
+      return "skipped";
     }
 
     // Mark optimizing
@@ -99,13 +99,13 @@ async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: s
       await supabase.from("seo_optimization_tasks").update({
         status: "pending",
         attempts: Math.max(0, (task.attempts ?? 1) - 1), // don't consume an attempt on rate limit
-        error: null,
+        error: "rate_limit",
         last_error_at: new Date().toISOString(),
         next_attempt_at: new Date(Date.now() + retryMs).toISOString(),
         started_at: null,
       }).eq("id", task.id);
       await new Promise((r) => setTimeout(r, retryMs));
-      return;
+      return "rate_limited";
     }
     if (!res.ok || body?.error) {
       throw new Error(body?.error || `autofix ${res.status}`);
@@ -124,6 +124,7 @@ async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: s
       finished_at: new Date().toISOString(),
       error: null,
     }).eq("id", task.id);
+    return "ok";
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     const willRetry = task.attempts < task.max_attempts;
@@ -135,6 +136,7 @@ async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: s
       duration_ms: Date.now() - start,
       finished_at: willRetry ? null : new Date().toISOString(),
     }).eq("id", task.id);
+    return "error";
   }
 }
 
