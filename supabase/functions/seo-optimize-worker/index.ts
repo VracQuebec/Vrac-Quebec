@@ -92,6 +92,21 @@ async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: s
       body: JSON.stringify({ page_id: task.page_id, actions: run.actions ?? [] }),
     });
     const body = await res.json().catch(() => ({}));
+    // Edge Function runtime rate limit: retry without penalizing the task.
+    if (res.status === 429 || /Rate limit exceeded for trace/i.test(String(body?.error ?? ""))) {
+      const retryMsMatch = /Retry after (\d+)ms/i.exec(String(body?.error ?? "")) ?? /Retry after (\d+)ms/i.exec(res.headers.get("retry-after") ?? "");
+      const retryMs = Math.min(60_000, Math.max(2_000, Number(retryMsMatch?.[1] ?? "5000")));
+      await supabase.from("seo_optimization_tasks").update({
+        status: "pending",
+        attempts: Math.max(0, (task.attempts ?? 1) - 1), // don't consume an attempt on rate limit
+        error: null,
+        last_error_at: new Date().toISOString(),
+        next_attempt_at: new Date(Date.now() + retryMs).toISOString(),
+        started_at: null,
+      }).eq("id", task.id);
+      await new Promise((r) => setTimeout(r, retryMs));
+      return;
+    }
     if (!res.ok || body?.error) {
       throw new Error(body?.error || `autofix ${res.status}`);
     }
@@ -174,7 +189,10 @@ async function kick(supabase: ReturnType<typeof createClient>, supaUrl: string, 
         return;
       }
 
-      const batch = await claimBatch(supabase, runId, Math.max(1, Math.min(20, run.concurrency ?? 5)));
+      // Cap real concurrency to 3 to stay under the Edge Function runtime limit
+      // (parallel autofix + qa-check invocations otherwise trigger project-wide 429s).
+      const desired = Math.max(1, Math.min(3, run.concurrency ?? 3));
+      const batch = await claimBatch(supabase, runId, desired);
       if (batch.length === 0) {
         console.log("worker: no tasks to claim; exiting loop.");
         return;
@@ -188,6 +206,8 @@ async function kick(supabase: ReturnType<typeof createClient>, supaUrl: string, 
 
       // Bump last_progress_at
       await supabase.from("seo_optimization_runs").update({ last_progress_at: new Date().toISOString() }).eq("id", runId);
+      // Small pause between batches to smooth out the edge-function invocation rate.
+      await new Promise((r) => setTimeout(r, 400));
     }
   };
 
