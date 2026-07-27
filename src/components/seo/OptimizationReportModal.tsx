@@ -46,7 +46,7 @@ export default function OptimizationReportModal({
     const load = async () => {
       setLoading(true);
       try {
-        await supabase.rpc("seo_optimization_finalize" as never, { _run_id: runId });
+        await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<unknown>)("seo_optimization_finalize", { _run_id: runId });
         const { data, error } = await supabase
           .from("seo_optimization_reports" as never)
           .select("*")
