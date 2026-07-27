@@ -36,6 +36,29 @@ Deno.serve(async (req) => {
     const { data: purged } = await supabase.rpc("seo_pipeline_purge_stale");
     actions.stale_purged = purged ?? 0;
 
+    // 1b. Detect stalled batches and raise alerts.
+    const { data: stalls } = await supabase.rpc("seo_pipeline_detect_stalls", { _alert_minutes: 10 });
+    actions.stalls = stalls ?? null;
+
+    // 1c. Auto-resume any run left in 'queued' or with tasks still pending
+    //     by kicking the orchestrator once (idempotent, protected by lock).
+    try {
+      const url = Deno.env.get("SUPABASE_URL")!
+        .replace(".supabase.co", ".functions.supabase.co")
+        .replace(/\/$/, "");
+      await fetch(`${url}/seo-pipeline-orchestrator`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}`,
+          "apikey": Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+          "Lovable-Context": "cron",
+        },
+        body: JSON.stringify({ steps: 40 }),
+      }).catch(() => {});
+      actions.orchestrator_kicked = true;
+    } catch { actions.orchestrator_kicked = false; }
+
     // 2. Merge duplicate running jobs (same mode, wave)
     const { data: running } = await supabase
       .from("seo_generation_jobs")

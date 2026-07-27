@@ -16,6 +16,11 @@ const json = (b: unknown, s = 200) =>
 const TASK_TIMEOUT_MS = 60_000;
 const STEP_TIMEOUT_MS = 45_000;
 const STALE_RUNNING_MS = 90_000;
+// Distributed lock key so only ONE orchestrator instance runs at any time.
+// Any 32-bit int works — chosen once and kept stable.
+const ORCH_LOCK_KEY = 918273645;
+// Max wall-clock time we allow a single invocation to keep the lock.
+const MAX_INVOCATION_MS = 50_000;
 
 function nowIso() { return new Date().toISOString(); }
 function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
@@ -335,16 +340,37 @@ Deno.serve(async (req) => {
     if (!isAdmin) return json({ error: "Réservé aux administrateurs" }, 403);
   }
 
-  // Body: { steps?: number } — how many tasks to try in one call. Default 1.
+  // Body: { steps?: number } — hard cap on ticks per invocation. Default 40.
+  // The invocation also self-terminates before MAX_INVOCATION_MS to leave
+  // room for the next cron/user trigger without ever holding the lock past
+  // the edge-runtime timeout.
   const body = await req.json().catch(() => ({}));
-  const steps = Math.max(1, Math.min(5, Number(body?.steps ?? 1)));
+  const steps = Math.max(1, Math.min(200, Number(body?.steps ?? 40)));
 
-  const results: any[] = [];
-  for (let i = 0; i < steps; i++) {
-    const r = await tick(sb);
-    results.push(r);
-    if (r.processed === 0) break;
-    await sleep(50);
+  // Distributed lock via Postgres advisory lock. Guarantees a single
+  // active orchestrator across cron + manual triggers.
+  const { data: lockRes } = await sb.rpc("pg_try_advisory_lock" as any, { key: ORCH_LOCK_KEY } as any)
+    .then((r: any) => r, () => ({ data: null }));
+  // Fallback: run a raw SELECT via a dedicated RPC if the direct call is unavailable.
+  let acquired: boolean = lockRes === true;
+  if (!acquired) {
+    const { data } = await sb.rpc("seo_orchestrator_try_lock" as any).then((r: any) => r, () => ({ data: null }));
+    acquired = data === true;
   }
-  return json({ ok: true, ticks: results });
+  if (!acquired) return json({ ok: true, locked: true, message: "Another orchestrator is running" });
+
+  const startedAt = Date.now();
+  const results: any[] = [];
+  try {
+    for (let i = 0; i < steps; i++) {
+      if (Date.now() - startedAt > MAX_INVOCATION_MS) { results.push({ state: "time_budget_exhausted" }); break; }
+      const r = await tick(sb);
+      results.push(r);
+      if (r.processed === 0) break;
+      await sleep(50);
+    }
+  } finally {
+    await sb.rpc("seo_orchestrator_unlock" as any).catch(() => {});
+  }
+  return json({ ok: true, ticks: results, elapsed_ms: Date.now() - startedAt });
 });
