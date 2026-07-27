@@ -314,6 +314,7 @@ export default function OptimizationEngine() {
                 <th className="text-right px-3 py-2">Appels IA</th>
                 <th className="text-right px-3 py-2">Coût</th>
                 <th className="text-right px-3 py-2">Durée</th>
+                <th className="text-right px-3 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -350,6 +351,10 @@ export default function OptimizationEngine() {
           </table>
         </div>
       </section>
+
+      {reportRunId && (
+        <OptimizationReportModal runId={reportRunId} onClose={() => setReportRunId(null)} />
+      )}
     </div>
   );
 }
