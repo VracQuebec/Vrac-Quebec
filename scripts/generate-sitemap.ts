@@ -41,42 +41,22 @@ async function build(): Promise<Entry[]> {
     { path: "/livraison", changefreq: "weekly", priority: "0.8" },
   ];
 
-  // Load active cities & materials from DB (single source of truth).
-  let cities: { slug: string }[] = [];
-  let materials: { slug: string }[] = [];
+  // /livraison/:citySlug — only cities that actually have visible dumps.
+  // Uses the same public RPC the app uses so we never advertise an empty city.
   try {
-    const [dbCities, dbMaterials] = await Promise.all([
-      fetchJson(`${SUPABASE_URL}/rest/v1/seo_cities?select=slug&active=eq.true&order=sort_order`),
-      fetchJson(`${SUPABASE_URL}/rest/v1/seo_materials?select=slug&active=eq.true&order=sort_order`),
-    ]);
-    if (Array.isArray(dbCities)) cities = dbCities;
-    if (Array.isArray(dbMaterials)) materials = dbMaterials;
-  } catch (e) {
-    console.warn("sitemap: could not fetch SEO cities/materials from DB:", e);
-  }
-
-  for (const c of cities) {
-    entries.push({ path: `/livraison/${c.slug}`, changefreq: "monthly", priority: "0.7" });
-  }
-  for (const m of materials) {
-    for (const c of cities) {
-      entries.push({ path: `/${m.slug}-${c.slug}`, changefreq: "monthly", priority: "0.7" });
-    }
-  }
-
-  // Material-usage pages
-  try {
-    const uses = (await fetchJson(
-      `${SUPABASE_URL}/rest/v1/seo_material_uses?select=slug&active=eq.true&order=sort_order`
+    const cities = (await fetchJson(
+      `${SUPABASE_URL}/rest/v1/seo_cities?select=slug&active=eq.true&order=sort_order`,
     )) as { slug: string }[];
-    for (const u of uses) {
-      entries.push({ path: `/${u.slug}`, changefreq: "monthly", priority: "0.7" });
+    for (const c of cities) {
+      entries.push({ path: `/livraison/${c.slug}`, changefreq: "monthly", priority: "0.7" });
     }
   } catch (e) {
-    console.warn("sitemap: could not fetch material uses:", e);
+    console.warn("sitemap: could not fetch seo_cities:", e);
   }
 
-  // Generated SEO pages (SEO Manager)
+  // /:slug — ONLY published SEO pages that actually exist in DB.
+  // Do NOT generate material×city combos programmatically — they 404 when
+  // no seo_pages row exists, and Google penalizes ghost URLs in sitemaps.
   try {
     const pages = (await fetchJson(
       `${SUPABASE_URL}/rest/v1/seo_pages?select=slug,updated_at&status=eq.published&order=updated_at.desc&limit=5000`
