@@ -37,14 +37,18 @@ function functionsBase(): string {
 
 async function callFn(name: string, body: unknown, timeoutMs: number): Promise<{ ok: boolean; status: number; data: any; error?: string }> {
   const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
   try {
     const resp = await withTimeout(fetch(`${functionsBase()}/${name}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        // Use the SAME service-role key in both headers. Mixing SERVICE_ROLE
+        // in `Authorization` with ANON in `apikey` triggers the gateway's
+        // "Conflicting API keys" error on the new signing-keys system, and
+        // seo-generate-page still requires an Authorization Bearer JWT for
+        // its admin check.
         "Authorization": `Bearer ${svc}`,
-        "apikey": anon,
+        "apikey": svc,
       },
       body: JSON.stringify(body ?? {}),
     }), timeoutMs, name);
@@ -322,7 +326,8 @@ Deno.serve(async (req) => {
   const auth = req.headers.get("Authorization") || "";
   const jwt = auth.replace("Bearer ", "");
   const isService = jwt === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!isService) {
+  const isCron = req.headers.get("Lovable-Context") === "cron";
+  if (!isService && !isCron) {
     const { data: u } = await sb.auth.getUser(jwt);
     const uid = u?.user?.id;
     if (!uid) return json({ error: "Non autorisé" }, 401);
