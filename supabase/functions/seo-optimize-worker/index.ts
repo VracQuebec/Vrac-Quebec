@@ -14,6 +14,18 @@ const CORS = {
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
 
+class EdgeCallError extends Error {
+  constructor(
+    message: string,
+    public source: string,
+    public httpStatus: number,
+    public payload: unknown,
+  ) {
+    super(message);
+    this.name = "EdgeCallError";
+  }
+}
+
 // deno-lint-ignore no-explicit-any
 declare const EdgeRuntime: any;
 
@@ -42,7 +54,8 @@ async function claimBatch(supabase: ReturnType<typeof createClient>, runId: stri
     .select("id, page_id, attempts, max_attempts, qa_before")
     .eq("run_id", runId)
     .in("status", ["pending", "error"])
-    .lte("attempts", 10)
+    .lt("attempts", 10)
+    .or(`next_attempt_at.is.null,next_attempt_at.lte.${new Date().toISOString()}`)
     .order("created_at", { ascending: true })
     .limit(size);
   for (const row of rows ?? []) {
@@ -58,8 +71,9 @@ async function claimBatch(supabase: ReturnType<typeof createClient>, runId: stri
   return picked;
 }
 
-async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: string, serviceKey: string, task: Task, run: { qa_skip_above: number; force_all: boolean; actions: string[] }): Promise<"ok" | "rate_limited" | "skipped" | "error"> {
+async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: string, serviceKey: string, runId: string, task: Task, run: { qa_skip_above: number; force_all: boolean; actions: string[] }): Promise<"ok" | "rate_limited" | "skipped" | "error"> {
   const start = Date.now();
+  const currentFunction = "seo-optimize-worker.processTask";
   try {
     // Fetch current page qa
     const { data: page } = await supabase
@@ -92,7 +106,7 @@ async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: s
       body: JSON.stringify({ page_id: task.page_id, actions: run.actions ?? [] }),
     });
     const body = await res.json().catch(() => ({}));
-    // Edge Function runtime rate limit: retry without penalizing the task.
+    // Edge Function runtime/gateway limits: retry without penalizing the task.
     if (res.status === 429 || /Rate limit exceeded for trace/i.test(String(body?.error ?? ""))) {
       const retryMsMatch = /Retry after (\d+)ms/i.exec(String(body?.error ?? "")) ?? /Retry after (\d+)ms/i.exec(res.headers.get("retry-after") ?? "");
       const retryMs = Math.min(60_000, Math.max(2_000, Number(retryMsMatch?.[1] ?? "5000")));
@@ -107,8 +121,31 @@ async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: s
       await new Promise((r) => setTimeout(r, retryMs));
       return "rate_limited";
     }
+    if ([502, 503, 504].includes(res.status)) {
+      const retryMs = 15_000;
+      await supabase.from("seo_optimization_tasks").update({
+        status: "pending",
+        attempts: Math.max(0, (task.attempts ?? 1) - 1),
+        error: `gateway_${res.status}`,
+        error_source: "edge_gateway",
+        error_http_status: res.status,
+        error_function: "seo-qa-autofix",
+        error_stack: `Transient gateway response from seo-qa-autofix: HTTP ${res.status}`,
+        error_context: { page_id: task.page_id, task_id: task.id, source_payload: body ?? null },
+        last_error_at: new Date().toISOString(),
+        next_attempt_at: new Date(Date.now() + retryMs).toISOString(),
+        started_at: null,
+      }).eq("id", task.id);
+      await new Promise((r) => setTimeout(r, retryMs));
+      return "rate_limited";
+    }
     if (!res.ok || body?.error) {
-      throw new Error(body?.error || `autofix ${res.status}`);
+      throw new EdgeCallError(
+        String(body?.error || `seo-qa-autofix returned HTTP ${res.status}`),
+        "edge_function",
+        res.status,
+        body,
+      );
     }
     const fixed: string[] = Array.isArray(body?.fixed) ? body.fixed : [];
     const aiCalls: number = Number(body?.ai_calls ?? 0);
@@ -128,9 +165,20 @@ async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: s
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     const willRetry = task.attempts < task.max_attempts;
+    const edgeError = e instanceof EdgeCallError ? e : null;
     await supabase.from("seo_optimization_tasks").update({
       status: willRetry ? "pending" : "error",
       error: message.slice(0, 500),
+      error_source: edgeError?.source ?? "worker",
+      error_http_status: edgeError?.httpStatus ?? null,
+      error_function: edgeError ? "seo-qa-autofix" : currentFunction,
+      error_stack: e instanceof Error ? e.stack ?? message : String(e),
+      error_context: {
+        run_id: runId,
+        page_id: task.page_id,
+        task_id: task.id,
+        source_payload: edgeError?.payload ?? null,
+      },
       last_error_at: new Date().toISOString(),
       next_attempt_at: willRetry ? new Date(Date.now() + Math.min(60_000, 5_000 * task.attempts)).toISOString() : null,
       duration_ms: Date.now() - start,
@@ -181,7 +229,10 @@ Deno.serve(async (req) => {
 async function kick(supabase: ReturnType<typeof createClient>, supaUrl: string, serviceKey: string, runId: string): Promise<Response> {
   const worker = async () => {
     let extraPauseMs = 0;
+    let loops = 0;
+    const maxLoopsPerInvocation = 6;
     while (true) {
+      loops++;
       const { data: run } = await supabase
         .from("seo_optimization_runs")
         .select("id, status, concurrency, qa_skip_above, force_all, actions, rate_limit_hits")
@@ -205,7 +256,7 @@ async function kick(supabase: ReturnType<typeof createClient>, supaUrl: string, 
         return;
       }
 
-      const results = await Promise.all(batch.map((t) => processTask(supabase, supaUrl, serviceKey, t, {
+      const results = await Promise.all(batch.map((t) => processTask(supabase, supaUrl, serviceKey, runId, t, {
         qa_skip_above: run.qa_skip_above ?? 95,
         force_all: run.force_all ?? false,
         actions: Array.isArray(run.actions) ? run.actions : [],
@@ -225,6 +276,15 @@ async function kick(supabase: ReturnType<typeof createClient>, supaUrl: string, 
       await supabase.from("seo_optimization_runs").update({ last_progress_at: new Date().toISOString() }).eq("id", runId);
       // Small pause between batches to smooth out the edge-function invocation rate.
       await new Promise((r) => setTimeout(r, 400 + extraPauseMs));
+
+      if (loops >= maxLoopsPerInvocation) {
+        await fetch(`${supaUrl}/functions/v1/seo-optimize-worker`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+          body: JSON.stringify({ run_id: runId }),
+        });
+        return;
+      }
     }
   };
 
