@@ -5,8 +5,9 @@ import { useOptimizationState, type OptimizationRun } from "@/lib/seo/useOptimiz
 import { toast } from "sonner";
 import {
   Play, Pause, Square, RotateCcw, AlertTriangle, CheckCircle2, Clock,
-  Cpu, DollarSign, Zap, Loader2, TrendingUp, TrendingDown, ArrowRight,
+  Cpu, DollarSign, Zap, Loader2, TrendingUp, TrendingDown, ArrowRight, FileText, Sparkles,
 } from "lucide-react";
+import OptimizationReportModal from "@/components/seo/OptimizationReportModal";
 
 function fmtDuration(ms: number | null | undefined) {
   if (!ms || ms < 0) return "—";
@@ -46,6 +47,7 @@ export default function OptimizationEngine() {
   const [skipAbove, setSkipAbove] = useState(95);
   const [forceAll, setForceAll] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [reportRunId, setReportRunId] = useState<string | null>(null);
 
   const metrics = useMemo(() => computeMetrics(activeRun), [activeRun]);
 
@@ -105,7 +107,10 @@ export default function OptimizationEngine() {
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-xl font-display font-bold text-foreground">Moteur d'optimisation industriel</h2>
-          <p className="text-sm text-muted-foreground">Queue intelligente, parallélisme configurable, reprise automatique, journal complet.</p>
+          <p className="text-sm text-muted-foreground">Queue intelligente, parallélisme adaptatif, reprise automatique, journal complet.</p>
+          <div className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 border border-primary/30 rounded-full px-2 py-0.5">
+            <Sparkles className="w-3 h-3" /> Mode auto-pilote : watchdog, auto-tune et finalisation automatiques
+          </div>
         </div>
         {error && <div className="text-sm text-red-600 flex items-center gap-1"><AlertTriangle className="w-4 h-4" />{error}</div>}
       </header>
@@ -309,6 +314,7 @@ export default function OptimizationEngine() {
                 <th className="text-right px-3 py-2">Appels IA</th>
                 <th className="text-right px-3 py-2">Coût</th>
                 <th className="text-right px-3 py-2">Durée</th>
+                <th className="text-right px-3 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -329,16 +335,26 @@ export default function OptimizationEngine() {
                     <td className="px-3 py-2 text-right">{r.ai_calls}</td>
                     <td className="px-3 py-2 text-right">${Number(r.cost_estimate).toFixed(2)}</td>
                     <td className="px-3 py-2 text-right">{dur ? fmtDuration(dur) : "—"}</td>
+                    <td className="px-3 py-2 text-right">
+                      <button onClick={() => setReportRunId(r.id)}
+                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                        <FileText className="w-3 h-3" /> Rapport
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
               {history.length === 0 && (
-                <tr><td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">Aucun run passé.</td></tr>
+                <tr><td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">Aucun run passé.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </section>
+
+      {reportRunId && (
+        <OptimizationReportModal runId={reportRunId} onClose={() => setReportRunId(null)} />
+      )}
     </div>
   );
 }

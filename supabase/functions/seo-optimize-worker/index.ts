@@ -58,7 +58,7 @@ async function claimBatch(supabase: ReturnType<typeof createClient>, runId: stri
   return picked;
 }
 
-async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: string, serviceKey: string, task: Task, run: { qa_skip_above: number; force_all: boolean; actions: string[] }) {
+async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: string, serviceKey: string, task: Task, run: { qa_skip_above: number; force_all: boolean; actions: string[] }): Promise<"ok" | "rate_limited" | "skipped" | "error"> {
   const start = Date.now();
   try {
     // Fetch current page qa
@@ -79,7 +79,7 @@ async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: s
         finished_at: new Date().toISOString(),
         duration_ms: Date.now() - start,
       }).eq("id", task.id);
-      return;
+      return "skipped";
     }
 
     // Mark optimizing
@@ -99,13 +99,13 @@ async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: s
       await supabase.from("seo_optimization_tasks").update({
         status: "pending",
         attempts: Math.max(0, (task.attempts ?? 1) - 1), // don't consume an attempt on rate limit
-        error: null,
+        error: "rate_limit",
         last_error_at: new Date().toISOString(),
         next_attempt_at: new Date(Date.now() + retryMs).toISOString(),
         started_at: null,
       }).eq("id", task.id);
       await new Promise((r) => setTimeout(r, retryMs));
-      return;
+      return "rate_limited";
     }
     if (!res.ok || body?.error) {
       throw new Error(body?.error || `autofix ${res.status}`);
@@ -124,6 +124,7 @@ async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: s
       finished_at: new Date().toISOString(),
       error: null,
     }).eq("id", task.id);
+    return "ok";
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     const willRetry = task.attempts < task.max_attempts;
@@ -135,6 +136,7 @@ async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: s
       duration_ms: Date.now() - start,
       finished_at: willRetry ? null : new Date().toISOString(),
     }).eq("id", task.id);
+    return "error";
   }
 }
 
@@ -178,36 +180,51 @@ Deno.serve(async (req) => {
 
 async function kick(supabase: ReturnType<typeof createClient>, supaUrl: string, serviceKey: string, runId: string): Promise<Response> {
   const worker = async () => {
+    let extraPauseMs = 0;
     while (true) {
       const { data: run } = await supabase
         .from("seo_optimization_runs")
-        .select("id, status, concurrency, qa_skip_above, force_all, actions")
+        .select("id, status, concurrency, qa_skip_above, force_all, actions, rate_limit_hits")
         .eq("id", runId)
         .maybeSingle();
       if (!run || run.status !== "running") {
         console.log(`worker: stopping (run status = ${run?.status ?? "missing"})`);
+        // Ensure finalization if terminal
+        await supabase.rpc("seo_optimization_finalize" as never, { _run_id: runId });
         return;
       }
 
       // Cap real concurrency to 3 to stay under the Edge Function runtime limit
       // (parallel autofix + qa-check invocations otherwise trigger project-wide 429s).
-      const desired = Math.max(1, Math.min(3, run.concurrency ?? 3));
+      const desired = Math.max(1, Math.min(5, run.concurrency ?? 3));
       const batch = await claimBatch(supabase, runId, desired);
       if (batch.length === 0) {
         console.log("worker: no tasks to claim; exiting loop.");
+        // Finalize if everything is done
+        await supabase.rpc("seo_optimization_finalize" as never, { _run_id: runId });
         return;
       }
 
-      await Promise.all(batch.map((t) => processTask(supabase, supaUrl, serviceKey, t, {
+      const results = await Promise.all(batch.map((t) => processTask(supabase, supaUrl, serviceKey, t, {
         qa_skip_above: run.qa_skip_above ?? 95,
         force_all: run.force_all ?? false,
         actions: Array.isArray(run.actions) ? run.actions : [],
       })));
+      const rateLimited = results.filter((r) => r === "rate_limited").length;
+      if (rateLimited > 0) {
+        await supabase.rpc("seo_optimization_autotune" as never, { _run_id: runId });
+        await supabase.from("seo_optimization_runs")
+          .update({ rate_limit_hits: (run.rate_limit_hits ?? 0) + rateLimited })
+          .eq("id", runId);
+        extraPauseMs = Math.min(10_000, (extraPauseMs || 500) * 2);
+      } else {
+        extraPauseMs = Math.max(0, Math.floor(extraPauseMs / 2));
+      }
 
       // Bump last_progress_at
       await supabase.from("seo_optimization_runs").update({ last_progress_at: new Date().toISOString() }).eq("id", runId);
       // Small pause between batches to smooth out the edge-function invocation rate.
-      await new Promise((r) => setTimeout(r, 400));
+      await new Promise((r) => setTimeout(r, 400 + extraPauseMs));
     }
   };
 

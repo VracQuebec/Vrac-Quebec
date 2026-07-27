@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          level: string
+          link: string | null
+          meta: Json
+          read_at: string | null
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          level?: string
+          link?: string | null
+          meta?: Json
+          read_at?: string | null
+          title: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          level?: string
+          link?: string | null
+          meta?: Json
+          read_at?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       ai_cache: {
         Row: {
           cache_key: string
@@ -2986,10 +3019,73 @@ export type Database = {
           },
         ]
       }
+      seo_optimization_reports: {
+        Row: {
+          ai_calls: number
+          avg_qa_after: number | null
+          avg_qa_before: number | null
+          avg_qa_delta: number | null
+          cost_estimate: number
+          duration_seconds: number
+          errors_fixed: number
+          final_status: string
+          generated_at: string
+          id: string
+          pages_failed: number
+          pages_optimized: number
+          pages_skipped: number
+          run_id: string
+          top_fixes: Json
+        }
+        Insert: {
+          ai_calls?: number
+          avg_qa_after?: number | null
+          avg_qa_before?: number | null
+          avg_qa_delta?: number | null
+          cost_estimate?: number
+          duration_seconds?: number
+          errors_fixed?: number
+          final_status: string
+          generated_at?: string
+          id?: string
+          pages_failed?: number
+          pages_optimized?: number
+          pages_skipped?: number
+          run_id: string
+          top_fixes?: Json
+        }
+        Update: {
+          ai_calls?: number
+          avg_qa_after?: number | null
+          avg_qa_before?: number | null
+          avg_qa_delta?: number | null
+          cost_estimate?: number
+          duration_seconds?: number
+          errors_fixed?: number
+          final_status?: string
+          generated_at?: string
+          id?: string
+          pages_failed?: number
+          pages_optimized?: number
+          pages_skipped?: number
+          run_id?: string
+          top_fixes?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_optimization_reports_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "seo_optimization_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_optimization_runs: {
         Row: {
           actions: string[]
           ai_calls: number
+          auto_adjusted_concurrency: boolean
           concurrency: number
           cost_estimate: number
           created_at: string
@@ -3005,6 +3101,8 @@ export type Database = {
           qa_before_avg: number | null
           qa_skip_above: number
           qa_threshold: number
+          rate_limit_hits: number
+          report_id: string | null
           retried: number
           skipped: number
           started_at: string | null
@@ -3016,6 +3114,7 @@ export type Database = {
         Insert: {
           actions?: string[]
           ai_calls?: number
+          auto_adjusted_concurrency?: boolean
           concurrency?: number
           cost_estimate?: number
           created_at?: string
@@ -3031,6 +3130,8 @@ export type Database = {
           qa_before_avg?: number | null
           qa_skip_above?: number
           qa_threshold?: number
+          rate_limit_hits?: number
+          report_id?: string | null
           retried?: number
           skipped?: number
           started_at?: string | null
@@ -3042,6 +3143,7 @@ export type Database = {
         Update: {
           actions?: string[]
           ai_calls?: number
+          auto_adjusted_concurrency?: boolean
           concurrency?: number
           cost_estimate?: number
           created_at?: string
@@ -3057,6 +3159,8 @@ export type Database = {
           qa_before_avg?: number | null
           qa_skip_above?: number
           qa_threshold?: number
+          rate_limit_hits?: number
+          report_id?: string | null
           retried?: number
           skipped?: number
           started_at?: string | null
@@ -5385,7 +5489,9 @@ export type Database = {
       }
       seo_dashboard_stats: { Args: never; Returns: Json }
       seo_executive_dashboard: { Args: never; Returns: Json }
+      seo_optimization_autotune: { Args: { _run_id: string }; Returns: number }
       seo_optimization_cancel: { Args: { _run_id: string }; Returns: undefined }
+      seo_optimization_finalize: { Args: { _run_id: string }; Returns: string }
       seo_optimization_pause: { Args: { _run_id: string }; Returns: undefined }
       seo_optimization_resume: { Args: { _run_id: string }; Returns: undefined }
       seo_optimization_retry_errors: {
