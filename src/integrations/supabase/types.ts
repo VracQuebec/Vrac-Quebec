@@ -3179,6 +3179,11 @@ export type Database = {
           created_at: string
           duration_ms: number | null
           error: string | null
+          error_context: Json
+          error_function: string | null
+          error_http_status: number | null
+          error_source: string | null
+          error_stack: string | null
           finished_at: string | null
           fixed_actions: string[]
           id: string
@@ -3201,6 +3206,11 @@ export type Database = {
           created_at?: string
           duration_ms?: number | null
           error?: string | null
+          error_context?: Json
+          error_function?: string | null
+          error_http_status?: number | null
+          error_source?: string | null
+          error_stack?: string | null
           finished_at?: string | null
           fixed_actions?: string[]
           id?: string
@@ -3223,6 +3233,11 @@ export type Database = {
           created_at?: string
           duration_ms?: number | null
           error?: string | null
+          error_context?: Json
+          error_function?: string | null
+          error_http_status?: number | null
+          error_source?: string | null
+          error_stack?: string | null
           finished_at?: string | null
           fixed_actions?: string[]
           id?: string
@@ -3579,6 +3594,7 @@ export type Database = {
           internal_link_count: number
           internal_links: Json
           intro: string | null
+          keywords: string[]
           last_analyzed_at: string | null
           last_generated_at: string | null
           material_slug: string | null
@@ -3625,6 +3641,7 @@ export type Database = {
           internal_link_count?: number
           internal_links?: Json
           intro?: string | null
+          keywords?: string[]
           last_analyzed_at?: string | null
           last_generated_at?: string | null
           material_slug?: string | null
@@ -3671,6 +3688,7 @@ export type Database = {
           internal_link_count?: number
           internal_links?: Json
           intro?: string | null
+          keywords?: string[]
           last_analyzed_at?: string | null
           last_generated_at?: string | null
           material_slug?: string | null
@@ -5395,6 +5413,16 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      exec_claim_optim_tasks: {
+        Args: { _run_id: string; _size: number }
+        Returns: {
+          attempts: number
+          id: string
+          max_attempts: number
+          page_id: string
+          qa_before: number
+        }[]
       }
       get_entrepreneur_leads: {
         Args: never
