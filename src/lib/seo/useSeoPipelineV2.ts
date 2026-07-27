@@ -32,7 +32,6 @@ export function useSeoPipelineV2() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const debounce = useRef<number | null>(null);
-  const pokerRef = useRef<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -52,21 +51,14 @@ export function useSeoPipelineV2() {
     debounce.current = window.setTimeout(() => { void load(); }, 400);
   }, [load]);
 
+  // Server-side orchestration: a pg_cron job invokes seo-pipeline-orchestrator
+  // every minute (and seo-pipeline-supervisor every 5 min). The client no
+  // longer needs to poke the edge function — kept as a no-op for callers
+  // that still trigger it after a manual action (start / resume / retry).
   const poke = useCallback(async () => {
-    try { await supabase.functions.invoke("seo-pipeline-orchestrator", { body: { steps: 2 } }); }
-    catch { /* ignore */ }
+    try { await supabase.functions.invoke("seo-pipeline-orchestrator", { body: { steps: 10 } }); }
+    catch { /* ignore — cron will pick it up within 60s */ }
   }, []);
-
-  // Client-side poker: while a run is active, ping orchestrator every 4s
-  useEffect(() => {
-    if (pokerRef.current) { window.clearInterval(pokerRef.current); pokerRef.current = null; }
-    const run = state?.active_run;
-    if (run && (run.status === "running" || run.status === "queued")) {
-      pokerRef.current = window.setInterval(() => { void poke(); }, 4000);
-      void poke();
-    }
-    return () => { if (pokerRef.current) window.clearInterval(pokerRef.current); };
-  }, [state?.active_run?.id, state?.active_run?.status, poke]);
 
   useEffect(() => {
     void load();
@@ -80,7 +72,7 @@ export function useSeoPipelineV2() {
       if (debounce.current) window.clearTimeout(debounce.current);
       void supabase.removeChannel(ch);
     };
-  }, [load, schedule]);
+    }, [load, schedule]);
 
   const start = useCallback(async (opts?: { mode?: string; city_slugs?: string[]; qa_threshold?: number; force?: boolean }) => {
     const { error } = await supabase.rpc("seo_pipeline_start", {
