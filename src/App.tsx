@@ -8,6 +8,12 @@ import Index from "./pages/Index";
 import SessionKeeper from "./components/SessionKeeper";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 import { trackPageView } from "./lib/analytics/ga4";
+import { useAdminNotifications } from "./hooks/useAdminNotifications";
+
+function AdminNotificationsMount() {
+  useAdminNotifications();
+  return null;
+}
 
 const Login = lazy(() => import("./pages/Login"));
 const Admin = lazy(() => import("./pages/Admin"));
@@ -82,6 +88,7 @@ const App = () => (
           <ScrollToTop />
           <Ga4RouteTracker />
           <SessionKeeper />
+          <AdminNotificationsMount />
           <Suspense fallback={null}>
           <Routes>
             <Route path="/" element={<Index />} />
