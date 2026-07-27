@@ -5540,7 +5540,14 @@ export type Database = {
       }
       seo_optimization_state: { Args: never; Returns: Json }
       seo_optimization_watchdog: { Args: never; Returns: number }
+      seo_orchestrator_try_lock: { Args: never; Returns: boolean }
+      seo_orchestrator_unlock: { Args: never; Returns: boolean }
       seo_pipeline_cancel: { Args: { _run_id: string }; Returns: undefined }
+      seo_pipeline_detect_stalls: {
+        Args: { _alert_minutes?: number }
+        Returns: Json
+      }
+      seo_pipeline_health: { Args: never; Returns: Json }
       seo_pipeline_pause: { Args: { _run_id: string }; Returns: undefined }
       seo_pipeline_purge_stale: { Args: never; Returns: number }
       seo_pipeline_regenerate_city: {
