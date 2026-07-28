@@ -5544,6 +5544,7 @@ export type Database = {
       }
       seo_dashboard_stats: { Args: never; Returns: Json }
       seo_executive_dashboard: { Args: never; Returns: Json }
+      seo_final_coverage_report: { Args: never; Returns: Json }
       seo_final_report: { Args: { _run_id?: string }; Returns: Json }
       seo_optimization_autotune: { Args: { _run_id: string }; Returns: number }
       seo_optimization_cancel: { Args: { _run_id: string }; Returns: undefined }
@@ -5601,6 +5602,7 @@ export type Database = {
       seo_pipeline_state_v2: { Args: never; Returns: Json }
       seo_pipeline_stop: { Args: { _run_id: string }; Returns: undefined }
       seo_priority_score: { Args: { _page_id: string }; Returns: number }
+      seo_publication_dashboard: { Args: never; Returns: Json }
       seo_recompute_page_scores: {
         Args: { _page_id?: string }
         Returns: number
