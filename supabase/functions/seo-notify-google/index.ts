@@ -57,12 +57,7 @@ Deno.serve(async (req) => {
       results[sm] = { status: r.status, body: text.slice(0, 300) };
     }
 
-    // Log the notification for the dashboard.
-    await supabase.from("seo_page_events").insert({
-      event_type: "sitemap_submitted",
-      details: { site: SITE_URL, sitemaps: SITEMAP_URLS, results },
-    }).select().maybeSingle().then(() => {}).catch(() => {});
-
+    console.log(`[seo-notify-google] submitted`, JSON.stringify(results));
     return json({ ok: true, site: SITE_URL, results });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
