@@ -66,7 +66,37 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vracquebec.ca/livraison/saint-sauveur</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/montcalm</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/duberger</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/neufchatel</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vracquebec.ca/livraison/beauport</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/loretteville</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/lac-saint-charles</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -102,6 +132,16 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/livraison/sillery</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/saint-etienne-de-lauzon</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/lauzon</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -161,6 +201,21 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vracquebec.ca/livraison/sainte-anne-de-beaupre</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/beaupre</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/saint-ferreol-les-neiges</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vracquebec.ca/livraison/les-rivieres</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -171,22 +226,22 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/livraison/saint-gabriel-de-valcartier</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/livraison/la-haute-saint-charles</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/livraison/sainte-foy-sillery-cap-rouge</loc>
+    <loc>https://vracquebec.ca/livraison/saint-gabriel-de-valcartier</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://vracquebec.ca/livraison/saint-nicolas</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/sainte-foy-sillery-cap-rouge</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -231,6 +286,21 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vracquebec.ca/livraison/lac-delage</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/fossambault-sur-le-lac</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/lac-saint-joseph</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vracquebec.ca/livraison/pont-rouge</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -247,6 +317,21 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/livraison/sainte-catherine-de-la-jacques-cartier</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/saint-raymond</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/portneuf</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison/cap-sante</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
