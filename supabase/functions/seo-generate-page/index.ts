@@ -321,6 +321,18 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
     const h2 = countTags(contentHtml, "h2");
     const h3 = countTags(contentHtml, "h3");
     const linkStats = countLinks(contentHtml);
+
+    // Guardrail: never persist an empty / stub page. If the AI response was
+    // malformed or truncated, return a retryable 502 so the pipeline requeues
+    // the task instead of publishing a 0-word page that QA autofix would then
+    // overwrite with a CTA-only stub.
+    if (words < 400 || contentHtml.length < 1500 || h2 < 3 || faq.length < 3) {
+      return json({
+        error: "AI response incomplete (content too short or malformed) — task will retry",
+        details: { words, contentLen: contentHtml.length, h2, faq: faq.length },
+      }, 502);
+    }
+
     const analytics = computeSeoScore({
       words, h2, h3,
       internal: linkStats.internal,

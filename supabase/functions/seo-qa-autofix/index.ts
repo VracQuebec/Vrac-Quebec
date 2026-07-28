@@ -316,7 +316,9 @@ Deno.serve(async (req) => {
     if (want("insert_ctas")) {
       const html = String(updates.content_html ?? p.content_html ?? "");
       const ctaBlock = `\n<p class="cta-block"><a href="/transport-request" class="cta-primary">Demander une soumission gratuite</a> ou appelez le <a href="tel:+15819947717">581-994-7717</a>.</p>\n`;
-      if (!/\/transport-request/.test(html)) {
+      // Never inject a CTA into an empty page — that produces a CTA-only stub
+      // (0-word "published" page). Require real body content first.
+      if (html.trim().length > 400 && !/\/transport-request/.test(html)) {
         updates.content_html = html + ctaBlock;
         fixedActions.push("insert_ctas");
       }

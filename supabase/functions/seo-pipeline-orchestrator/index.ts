@@ -210,7 +210,11 @@ async function runOneTask(sb: SupabaseClient, run: any, batch: any, task: any) {
       // GENERATE
       const gen = await withTimeout(
         callFn("seo-generate-page", {
-          city: ctx.city, material: ctx.material, service: ctx.service, force: !!run.force_regenerate,
+          city: ctx.city, material: ctx.material, service: ctx.service,
+          force: !!run.force_regenerate,
+          // Admin-triggered pipeline: always allow the AI call so economy mode
+          // doesn't block generation and leave a needs_retry task forever.
+          allow_ai: true,
         }, STEP_TIMEOUT_MS),
         TASK_TIMEOUT_MS, "génération",
       );
