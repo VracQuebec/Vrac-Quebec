@@ -15,10 +15,9 @@ const json = (b: unknown, s = 200) =>
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_search_console";
 const SITE_URL = "sc-domain:vracquebec.ca";
-const SITEMAP_URLS = [
-  "https://vracquebec.ca/sitemap.xml",
-  `${(Deno.env.get("SUPABASE_URL") || "").replace(".supabase.co", ".functions.supabase.co")}/sitemap-live`,
-];
+// Only submit sitemap URLs hosted on the verified property. GSC rejects
+// cross-domain sitemaps for a Domain property.
+const SITEMAP_URLS = ["https://vracquebec.ca/sitemap.xml"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
