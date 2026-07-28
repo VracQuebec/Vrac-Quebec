@@ -14,6 +14,7 @@ import PriorityStars, { priorityLabel } from "@/components/seo/PriorityStars";
 import CoverageMatrix from "@/components/seo/CoverageMatrix";
 import TerritorialCoverage from "@/components/seo/TerritorialCoverage";
 import PublicationDashboard from "@/components/seo/PublicationDashboard";
+import SeoIntelligence from "@/components/seo/SeoIntelligence";
 import ConversionsTable from "@/components/seo/ConversionsTable";
 import CommandCenter from "@/components/seo/CommandCenter";
 import CopilotDashboard from "@/components/seo/CopilotDashboard";
@@ -24,7 +25,7 @@ import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
 import GoalCard, { type Goal } from "@/components/seo/GoalCard";
 import QaReportBadge from "@/components/seo/QaReportBadge";
 
-type Tab = "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "publication" | "coverage" | "territory" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
+type Tab = "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "publication" | "intelligence" | "coverage" | "territory" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
 
 type City = {
   id: string; slug: string; name: string; region: string;
@@ -74,6 +75,7 @@ export default function AdminSeoManager() {
       tabs: [
         { id: "pages", label: "Pages", icon: ListChecks },
         { id: "publication", label: "Publication", icon: FileText },
+        { id: "intelligence", label: "SEO Intelligence", icon: Sparkles },
         { id: "analytics", label: "Analyse SEO", icon: Gauge },
         { id: "gsc", label: "Search Console", icon: TrendingUp },
         { id: "conversions", label: "Conversions", icon: TrendingUp },
@@ -160,6 +162,7 @@ export default function AdminSeoManager() {
           {tab === "competitors" && <CompetitorsTab />}
           {tab === "pages" && <PagesTab />}
           {tab === "publication" && <PublicationDashboard />}
+          {tab === "intelligence" && <SeoIntelligence />}
           {tab === "coverage" && <CoverageMatrix />}
           {tab === "territory" && <TerritorialCoverage />}
           {tab === "conversions" && <ConversionsTable />}
