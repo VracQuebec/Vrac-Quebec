@@ -1,117 +1,99 @@
-## Objectif
+# Intégration Google Business Profile — Plan Phase 1
 
-Faire passer le générateur SEO de la version "test 39 villes Québec/Lévis" à une couverture territoriale complète, entièrement pilotée par la base, avec un pipeline industriel reprenable et un rapport final vérifiable.
+**Périmètre confirmé** : une seule fiche, sync quotidien 05h45, publications + Q&R en écriture, avis livrés en Phase 2 quand Google approuve l'accès `mybusiness.v4`.
 
-## État actuel (constaté)
+## Prérequis à faire de ton côté (bloquants)
 
-- `seo_cities` contient 39 villes actives, sans région / MRC / type / population structurés.
-- `seo_pages` = 618 pages, majoritairement `draft`, alimentées par `seo_pipeline_runs` + `seo_city_batches` + `seo_page_tasks`.
-- Orchestrateur serveur (`seo-pipeline-orchestrator`) + supervisor + cron déjà en place, verrou distribué, watchdog, garde-fous IA (min 400 mots).
-- Sitemap régénéré depuis `seo_pages.status='published'`.
+1. **Google Cloud Console** — activer 4 APIs dans le projet GCP (idéalement le même que GSC/GA4) :
+   - My Business Business Information API
+   - My Business Account Management API
+   - Business Profile Performance API
+   - My Business Q&A API
 
-Ce qu'il manque : structure territoriale complète, ingestion massive des municipalités, tableau de bord de couverture, rapport final auto, garde-fous "≥ 800 mots" et non-régression des pages déjà publiées.
+2. **OAuth Client ID** type "Web application" avec redirect URI exact :
+   `https://kenduhxscnynugpvktin.supabase.co/functions/v1/gbp-oauth-callback`
+   Scopes autorisés : `https://www.googleapis.com/auth/business.manage`
 
----
+3. **Deux secrets** que je te demanderai via `add_secret` :
+   - `GBP_GOOGLE_CLIENT_ID`
+   - `GBP_GOOGLE_CLIENT_SECRET`
 
-## Plan d'exécution
+4. **Demander l'accès Reviews API** dès maintenant via [le formulaire Google](https://support.google.com/business/contact/api_default) — délai 2-6 semaines. Livraison Phase 2 quand ça arrive.
 
-### 1. Modèle territorial enrichi (migration DB)
+## Architecture
 
-Ajouter à `public.seo_cities` :
+```text
+Admin (bouton "Connecter Google Business")
+   → gbp-oauth-start        (redirige vers consent Google, state signé)
+   → Google consent
+   → gbp-oauth-callback     (échange code → refresh_token, stocké chiffré)
+   → gbp-select-location    (liste comptes + établissements, admin choisit)
+   ↓
+   gbp_config (1 ligne : refresh_token, account_name, location_name)
+   ↓
+   pg_cron 05h45 → gbp-sync-daily
+      • Performance API  → gbp_daily_metrics
+      • Q&A API          → gbp_questions
+      • Business Info    → gbp_location (photos count, note moy., etc.)
+   ↓
+   Dashboard "Google Business" dans SEO Manager
+```
 
-- `arrondissement text`, `mrc text`, `region_admin text`, `province text default 'QC'`
-- `territory_type text` (`ville` | `arrondissement` | `quartier` | `secteur` | `municipalite`)
-- `parent_slug text` (référence vers ville parente pour les arrondissements / quartiers)
-- `seo_priority int default 50` (0-100)
-- `served boolean default true` (desservi par Vrac Québec)
-- `last_generated_at timestamptz`
+## Tables (migration unique, RLS admin-only)
 
-Index sur `(active, served, seo_priority desc)` et `(parent_slug)`.
+| Table | Rôle |
+|---|---|
+| `gbp_config` | Une seule ligne (refresh_token chiffré via pgsodium, account_name, location_name, dernière synchro) |
+| `gbp_daily_metrics` | Un enregistrement par jour × métrique : CALL_CLICKS, WEBSITE_CLICKS, BUSINESS_DIRECTION_REQUESTS, BUSINESS_IMPRESSIONS_DESKTOP_MAPS, BUSINESS_IMPRESSIONS_DESKTOP_SEARCH, BUSINESS_IMPRESSIONS_MOBILE_MAPS, BUSINESS_IMPRESSIONS_MOBILE_SEARCH, BUSINESS_CONVERSATIONS, BUSINESS_BOOKINGS |
+| `gbp_location` | Snapshot fiche : nom, adresse, catégories, note moyenne, nombre d'avis, nombre de photos, URL |
+| `gbp_posts` | Publications créées (statut : draft/published/failed, réponse API, date programmée) |
+| `gbp_questions` | Questions publiques + réponses avec états read/answered |
 
-### 2. Ingestion complète des municipalités desservies
+Placeholder `gbp_reviews` documenté mais pas créé (Phase 2).
 
-Insertion idempotente (`INSERT ... ON CONFLICT (slug) DO UPDATE`) des territoires listés par l'utilisateur :
+## Edge functions
 
-- Ville de Québec + 6 arrondissements + tous les quartiers cités.
-- Ville de Lévis + secteurs (Charny, Saint-Romuald, Saint-Nicolas, Pintendre, Breakeyville, Saint-Jean-Chrysostome, Saint-Étienne, Lauzon…).
-- Ceinture : Boischatel, L'Ange-Gardien, Beaupré, Château-Richer, Sainte-Anne-de-Beaupré, Saint-Ferréol-les-Neiges, Stoneham-et-Tewkesbury, Shannon, Lac-Beauport, Lac-Delage, Sainte-Brigitte-de-Laval, Saint-Augustin-de-Desmaures, Wendake, Donnacona, Pont-Rouge, Portneuf, Fossambault-sur-le-Lac, Sainte-Catherine-de-la-Jacques-Cartier, Saint-Raymond.
-- Chaque entrée : `territory_type`, `parent_slug` (le cas échéant), `region_admin`, `mrc`, `seo_priority` calculé par population.
+| Fonction | JWT | Rôle |
+|---|---|---|
+| `gbp-oauth-start` | ✅ admin only | Génère URL consent Google avec state signé |
+| `gbp-oauth-callback` | ❌ (Google appelle) | Échange code, vérifie state, stocke refresh_token |
+| `gbp-list-locations` | ✅ admin | Liste comptes + établissements du compte connecté |
+| `gbp-set-location` | ✅ admin | Sauvegarde le location_name choisi + snapshot initial |
+| `gbp-sync-daily` | ❌ (pg_cron) | Refresh access_token → Performance/Q&A/Info APIs → upsert |
+| `gbp-post-create` | ✅ admin | POST vers `mybusiness.googleapis.com/v4/{location}/localPosts` |
+| `gbp-qa-answer` | ✅ admin | Répond à une question |
+| `gbp-disconnect` | ✅ admin | Révoque refresh_token + purge `gbp_config` |
 
-### 3. Combinatoire de génération pilotée par la base
+Toutes reprennent le pattern existant : refresh access_token à chaque appel via `client_credentials` OAuth flow, backoff sur 429/5xx, logs d'erreur structurés.
 
-- `seo_pipeline_start` mis à jour : charge automatiquement toutes les villes `active=true AND served=true`, triées par `seo_priority DESC, population DESC`.
-- Pour chaque ville, `seo_city_batches` génère les tâches attendues : hub ville + N matériaux + M services + pages livraison / dompes / transport, avec `INSERT ... ON CONFLICT DO NOTHING` pour ne jamais dupliquer.
-- Nouvelle fonction `seo_pipeline_plan_expected(city_slug) → int` : renvoie le nombre de pages attendues pour la ville (référence "total prévu").
+## Interface — nouvel onglet "Google Business" dans SEO Manager
 
-### 4. Reprise et checkpoints (renforcement)
+- **Bandeau connexion** : "Non connecté / Connecté à [Nom fiche]" + bouton Connecter/Déconnecter.
+- **KPIs 28 j** (cartes) : Vues totales, Recherches directes, Recherches découverte, Appels, Itinéraires, Clics site.
+- **Graphique 90 j** : évolution vues + actions (recharts).
+- **Répartition sources** : donut Maps vs Search × Desktop vs Mobile.
+- **Correlation SEO** : tableau agrégeant impressions GSC + vues GBP pour les 56 territoires (jointure statistique globale — une seule fiche donc pas de mapping 1-1).
+- **Section Publications** : liste + éditeur (titre, corps, CTA, image) + bouton "Publier maintenant" ou "Programmer".
+- **Section Q&R** : liste des questions non répondues + formulaire de réponse inline.
+- **Snapshot fiche** : note moyenne, nombre d'avis, nombre de photos (lien "Gérer sur Google" en attendant Phase 2).
 
-- `seo_page_tasks.status` normalisé à l'ensemble : `pending | processing | completed | failed | skipped`.
-- Colonnes déjà présentes utilisées comme checkpoint (`attempts`, `next_attempt_at`, `finished_at`).
-- `seo_pipeline_resume` : garantit qu'on ne rejoue jamais un `completed` (déjà le cas), documenté et testé.
-- `seo_pipeline_start(_force_regenerate=false)` : skip toute ville dont toutes les pages sont `published` et `word_count >= 800`.
-- Bouton **Régénérer** (déjà existant) reste le seul moyen de forcer le retraitement.
+## Alertes nouveaux avis
 
-### 5. Garde-fous qualité renforcés
+Reportée à Phase 2 avec l'accès Reviews API. Placeholder dans `admin_notifications` prêt à recevoir les événements dès que l'API répond.
 
-- `seo-generate-page` : seuil relevé à **≥ 800 mots** (au lieu de 400) pour publication ; sinon 502 retryable.
-- `seo-qa-check` : marque `needs_refresh=true` si `word_count < 800`, `meta_title` vide, `meta_description` vide, `canonical` manquant, `jsonld` manquant, FAQ absente, ou < 3 liens internes.
-- Job de sanity nocturne (cron déjà existant) : recompte `word_count`, détecte slugs en doublon, boucles `needs_retry > 5`, batches inactifs > 15 min.
+## Ordre d'exécution
 
-### 6. Tableau de bord "Couverture territoriale"
+1. Migration DB (tables + RLS + trigger updated_at + cron 05h45).
+2. Je te demande `GBP_GOOGLE_CLIENT_ID` / `GBP_GOOGLE_CLIENT_SECRET` via `add_secret`.
+3. Déploiement des 8 edge functions + `verify_jwt` correct dans `supabase/config.toml`.
+4. Composant `GbpDashboard.tsx` + wiring dans `AdminSeoManager.tsx` (nouvel onglet "Google Business").
+5. Test end-to-end : connexion OAuth → sélection fiche → sync manuelle → création d'un post test → réponse Q&R test.
+6. Activation du cron 05h45.
 
-Nouveau composant `src/components/seo/TerritorialCoverage.tsx` branché dans `AdminSeoManager.tsx`, alimenté par une RPC `seo_territorial_coverage()` qui renvoie :
+## Ce qui n'est PAS livré Phase 1
 
-- Totaux : municipalités, arrondissements, quartiers, secteurs.
-- Pages prévues / générées / publiées / indexables / restantes.
-- Progression et QA moyenne par ville (tableau triable).
-- Vitesse (pages/min), ETA, coût IA cumulé (via `ai_economy_stats`).
-- Historique des runs.
+- Lecture des avis Google + réponses aux avis (API dépréciée, en attente d'approbation).
+- Alertes nouveaux avis (dépend du point ci-dessus).
+- Upload de photos (l'API existe mais lourde à intégrer proprement — à confirmer si besoin).
 
-### 7. Lancement du batch complet + rapport final
-
-- Déclenchement d'un `seo_pipeline_start('all_cities')` post-migration.
-- Nouvelle RPC `seo_final_report(run_id)` produisant le JSON exigé :
-  villes couvertes, arrondissements, quartiers, pages prévues / générées / publiées / indexées, QA moyenne, mots moyens, échecs restants, recommandations.
-- Modal "Rapport final" dans le Command Center + export copiable.
-
-### 8. Sitemap & Search Console
-
-- `scripts/generate-sitemap.ts` déjà limité à `status='published'` → confirmé, aucun changement.
-- Ajout d'une vérification post-run : compte `published` vs URLs dans le sitemap ; alerte si écart.
-- Rappel dans le rapport final : resoumettre le sitemap depuis GSC (action humaine, non automatisable côté Cloudflare/GSC).
-
----
-
-## Détails techniques
-
-**Migrations SQL (dans l'ordre) :**
-
-1. `ALTER TABLE public.seo_cities ADD COLUMN ...` (colonnes territoriales).
-2. `INSERT ... ON CONFLICT (slug) DO UPDATE` pour toutes les municipalités listées.
-3. `CREATE OR REPLACE FUNCTION public.seo_territorial_coverage()` (SECURITY DEFINER, admin-only).
-4. `CREATE OR REPLACE FUNCTION public.seo_final_report(_run_id uuid)` (SECURITY DEFINER, admin-only).
-5. Mise à jour `seo_pipeline_start` pour intégrer `served=true` et le tri par priorité.
-
-**Edge functions modifiées :**
-
-- `seo-generate-page/index.ts` : seuil `words < 800`.
-- `seo-qa-check/index.ts` : marquer `needs_refresh` si sous-standards.
-
-**Frontend :**
-
-- `src/components/seo/TerritorialCoverage.tsx` (nouveau).
-- `src/components/seo/FinalReportModal.tsx` (nouveau).
-- `src/pages/AdminSeoManager.tsx` : nouvel onglet "Couverture territoriale" + bouton "Rapport final".
-
-**Aucun changement** au verrou distribué, watchdog, cron, backoff 429/50x — déjà validés.
-
----
-
-## Livrables
-
-- 39 → ~80+ territoires actifs et servis, couvrant toutes les municipalités listées.
-- Pipeline capable de traiter l'ensemble sans intervention, avec reprise garantie.
-- Dashboard couverture + rapport final exportable.
-- Rapport texte détaillé livré dans le chat après le premier batch complet.
-
-**Non inclus** (nécessite action humaine ou clés externes) : validation par GSC réel, désactivation Bot Fight Cloudflare, indexation Google (délai naturel).
+Confirme le plan et je démarre par la migration DB.
