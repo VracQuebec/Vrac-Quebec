@@ -24,7 +24,7 @@ import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
 import GoalCard, { type Goal } from "@/components/seo/GoalCard";
 import QaReportBadge from "@/components/seo/QaReportBadge";
 
-type Tab = "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "coverage" | "territory" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
+type Tab = "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "publication" | "coverage" | "territory" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
 
 type City = {
   id: string; slug: string; name: string; region: string;
