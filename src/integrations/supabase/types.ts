@@ -2445,47 +2445,74 @@ export type Database = {
       seo_cities: {
         Row: {
           active: boolean
+          arrondissement: string | null
           created_at: string
           id: string
           intro: string | null
+          last_generated_at: string | null
           latitude: number | null
           longitude: number | null
+          mrc: string | null
           name: string
           neighbors: string[]
+          parent_slug: string | null
           population: number | null
+          province: string
           region: string
+          region_admin: string | null
+          seo_priority: number
+          served: boolean
           slug: string
           sort_order: number
+          territory_type: string
           updated_at: string
         }
         Insert: {
           active?: boolean
+          arrondissement?: string | null
           created_at?: string
           id?: string
           intro?: string | null
+          last_generated_at?: string | null
           latitude?: number | null
           longitude?: number | null
+          mrc?: string | null
           name: string
           neighbors?: string[]
+          parent_slug?: string | null
           population?: number | null
+          province?: string
           region?: string
+          region_admin?: string | null
+          seo_priority?: number
+          served?: boolean
           slug: string
           sort_order?: number
+          territory_type?: string
           updated_at?: string
         }
         Update: {
           active?: boolean
+          arrondissement?: string | null
           created_at?: string
           id?: string
           intro?: string | null
+          last_generated_at?: string | null
           latitude?: number | null
           longitude?: number | null
+          mrc?: string | null
           name?: string
           neighbors?: string[]
+          parent_slug?: string | null
           population?: number | null
+          province?: string
           region?: string
+          region_admin?: string | null
+          seo_priority?: number
+          served?: boolean
           slug?: string
           sort_order?: number
+          territory_type?: string
           updated_at?: string
         }
         Relationships: []
@@ -5517,6 +5544,7 @@ export type Database = {
       }
       seo_dashboard_stats: { Args: never; Returns: Json }
       seo_executive_dashboard: { Args: never; Returns: Json }
+      seo_final_report: { Args: { _run_id?: string }; Returns: Json }
       seo_optimization_autotune: { Args: { _run_id: string }; Returns: number }
       seo_optimization_cancel: { Args: { _run_id: string }; Returns: undefined }
       seo_optimization_finalize: { Args: { _run_id: string }; Returns: string }
@@ -5577,6 +5605,7 @@ export type Database = {
         Args: { _page_id?: string }
         Returns: number
       }
+      seo_territorial_coverage: { Args: never; Returns: Json }
       trip_advance_status: {
         Args: {
           _next: Database["public"]["Enums"]["trip_status"]

@@ -1,63 +1,117 @@
-# Audit SEO complet de Vrac Québec
+## Objectif
 
-Livraison en deux temps : (1) un **rapport d'audit** basé sur une inspection réelle du code, de la base et des pages publiées ; (2) une **implémentation** des modules manquants (Diagnostic, Correcteur auto, Monitoring, Tableau SEO branché sur données réelles). Aucune modification ne sera appliquée avant que le rapport d'audit soit validé par toi.
+Faire passer le générateur SEO de la version "test 39 villes Québec/Lévis" à une couverture territoriale complète, entièrement pilotée par la base, avec un pipeline industriel reprenable et un rapport final vérifiable.
+
+## État actuel (constaté)
+
+- `seo_cities` contient 39 villes actives, sans région / MRC / type / population structurés.
+- `seo_pages` = 618 pages, majoritairement `draft`, alimentées par `seo_pipeline_runs` + `seo_city_batches` + `seo_page_tasks`.
+- Orchestrateur serveur (`seo-pipeline-orchestrator`) + supervisor + cron déjà en place, verrou distribué, watchdog, garde-fous IA (min 400 mots).
+- Sitemap régénéré depuis `seo_pages.status='published'`.
+
+Ce qu'il manque : structure territoriale complète, ingestion massive des municipalités, tableau de bord de couverture, rapport final auto, garde-fous "≥ 800 mots" et non-régression des pages déjà publiées.
 
 ---
 
-## Étape 1 — Rapport d'audit (aucune modif code)
+## Plan d'exécution
 
-Je produis un rapport Markdown affiché en chat + sauvegardé dans `/mnt/documents/seo-audit-YYYYMMDD.md`, couvrant :
+### 1. Modèle territorial enrichi (migration DB)
 
-- **Architecture** : routes React (`src/App.tsx`), routes publiques vs privées, pages SEO dynamiques (`SeoLandingPage`, `ZoneCityIndex`, blog), Edge Functions SEO, robots.txt, sitemap generator, headers HTTP servis par Lovable hosting, canonical / meta robots / OG / JSON-LD / Schema par type de page.
-- **Vérification live** de N pages publiées (échantillon 30 + toutes les erreurs) via `fetch` HTTP : status, canonical, meta robots, title, H1, description, JSON-LD, OG, Twitter, breadcrumb, temps de réponse.
-- **Sitemap** : diff entre `seo_pages(status=published)` DB et `sitemap.xml` (manquants, doublons, URLs privées, lastmod).
-- **Robots.txt** : règles bloquantes, présence sitemap, exceptions par bot.
-- **Google Search Console** : test réel via connecteur (`sites.list`, `searchAnalytics`) — indique si connecté et propriété vérifiée, sinon marque "non configurée".
-- **Base SEO** : compteurs réels par catégorie (publiées, brouillons, noindex, sans canonical, sans H1, sans description, contenu faible < seuil, doublons de title/description, orphelines par analyse du maillage).
-- **Anomalies** classées 🔴 / 🟠 / 🟢 avec origine, gravité, correction proposée.
+Ajouter à `public.seo_cities` :
 
-## Étape 2 — Implémentation (après validation du rapport)
+- `arrondissement text`, `mrc text`, `region_admin text`, `province text default 'QC'`
+- `territory_type text` (`ville` | `arrondissement` | `quartier` | `secteur` | `municipalite`)
+- `parent_slug text` (référence vers ville parente pour les arrondissements / quartiers)
+- `seo_priority int default 50` (0-100)
+- `served boolean default true` (desservi par Vrac Québec)
+- `last_generated_at timestamptz`
 
-### 2.1 Diagnostic SEO Intelligent
-- Nouvelle Edge Function `seo-diagnostic-scan` : boucle sur `seo_pages` publiées, fait `HEAD/GET` sur `https://vracquebec.ca/{slug}`, parse HTML (title, H1, meta robots, canonical, JSON-LD, OG), cross-check avec sitemap + robots + DB. Stocke résultats dans nouvelle table `seo_diagnostic_findings`.
-- Bouton **Analyser maintenant** dans `AdminSeoManager` → lance la fonction en tâche de fond, progression realtime.
-- Tableau des findings avec 🟢/🟠/🔴, filtre par catégorie, explication + suggestion.
+Index sur `(active, served, seo_priority desc)` et `(parent_slug)`.
 
-### 2.2 Correcteur automatique
-- Edge Function `seo-autofix` : corrige uniquement méta / canonical / meta robots / sitemap / maillage / pages orphelines / liens cassés, JAMAIS le contenu. Idempotente, journalisée dans `seo_diagnostic_findings.fixed_at`.
-- Bouton **Corriger automatiquement** avec dry-run + confirmation.
+### 2. Ingestion complète des municipalités desservies
 
-### 2.3 Sitemap toujours à jour
-- Trigger DB sur `seo_pages` (INSERT/UPDATE/DELETE) → notifie une Edge Function `seo-sitemap-refresh` qui régénère `public/sitemap.xml` **au niveau CDN** en écrivant dans le storage bucket public + fallback : `predev`/`prebuild` déjà en place.
-- Alternative retenue si trigger CDN indisponible : route dynamique `/sitemap.xml` servie par une Edge Function qui lit la DB en direct → toujours frais.
+Insertion idempotente (`INSERT ... ON CONFLICT (slug) DO UPDATE`) des territoires listés par l'utilisateur :
 
-### 2.4 Robots.txt
-- Vérification que la config actuelle est correcte, ajout d'une règle explicite `Allow: /` pour tous, `Sitemap:` présent, aucun `Disallow` sur `/`, `/blog`, ou routes SEO.
+- Ville de Québec + 6 arrondissements + tous les quartiers cités.
+- Ville de Lévis + secteurs (Charny, Saint-Romuald, Saint-Nicolas, Pintendre, Breakeyville, Saint-Jean-Chrysostome, Saint-Étienne, Lauzon…).
+- Ceinture : Boischatel, L'Ange-Gardien, Beaupré, Château-Richer, Sainte-Anne-de-Beaupré, Saint-Ferréol-les-Neiges, Stoneham-et-Tewkesbury, Shannon, Lac-Beauport, Lac-Delage, Sainte-Brigitte-de-Laval, Saint-Augustin-de-Desmaures, Wendake, Donnacona, Pont-Rouge, Portneuf, Fossambault-sur-le-Lac, Sainte-Catherine-de-la-Jacques-Cartier, Saint-Raymond.
+- Chaque entrée : `territory_type`, `parent_slug` (le cas échéant), `region_admin`, `mrc`, `seo_priority` calculé par population.
 
-### 2.5 Google Search Console — affichage réel
-- `useSeoStats` + Command Center : détectent l'absence de connexion GSC (`GOOGLE_SEARCH_CONSOLE_API_KEY` manquant OU `sites.list` vide) et affichent **"Search Console non configurée"** au lieu de zéros. Bouton "Configurer" ouvrant le connecteur.
+### 3. Combinatoire de génération pilotée par la base
 
-### 2.6 Tableau SEO branché sur données réelles
-- Nouvelle RPC `seo_health_dashboard()` retournant : publiées, brouillons, indexées (via `seo_gsc_metrics`), sans canonical, sans H1, sans description, noindex, HTTP erreurs (via `seo_diagnostic_findings`), redirections, contenu faible, doublons, orphelines.
-- `CommandCenter` remplace les compteurs statiques par cette RPC.
+- `seo_pipeline_start` mis à jour : charge automatiquement toutes les villes `active=true AND served=true`, triées par `seo_priority DESC, population DESC`.
+- Pour chaque ville, `seo_city_batches` génère les tâches attendues : hub ville + N matériaux + M services + pages livraison / dompes / transport, avec `INSERT ... ON CONFLICT DO NOTHING` pour ne jamais dupliquer.
+- Nouvelle fonction `seo_pipeline_plan_expected(city_slug) → int` : renvoie le nombre de pages attendues pour la ville (référence "total prévu").
 
-### 2.7 Monitoring horaire
-- Cron pg_cron toutes les heures → `seo-diagnostic-scan` en mode léger (delta uniquement) + `seo-gsc-sync` + `seo-linkcheck`.
-- Nouvelles alertes dans `admin_notifications` (déjà existant) : nouvelles erreurs, désindexations, sitemap invalide.
+### 4. Reprise et checkpoints (renforcement)
+
+- `seo_page_tasks.status` normalisé à l'ensemble : `pending | processing | completed | failed | skipped`.
+- Colonnes déjà présentes utilisées comme checkpoint (`attempts`, `next_attempt_at`, `finished_at`).
+- `seo_pipeline_resume` : garantit qu'on ne rejoue jamais un `completed` (déjà le cas), documenté et testé.
+- `seo_pipeline_start(_force_regenerate=false)` : skip toute ville dont toutes les pages sont `published` et `word_count >= 800`.
+- Bouton **Régénérer** (déjà existant) reste le seul moyen de forcer le retraitement.
+
+### 5. Garde-fous qualité renforcés
+
+- `seo-generate-page` : seuil relevé à **≥ 800 mots** (au lieu de 400) pour publication ; sinon 502 retryable.
+- `seo-qa-check` : marque `needs_refresh=true` si `word_count < 800`, `meta_title` vide, `meta_description` vide, `canonical` manquant, `jsonld` manquant, FAQ absente, ou < 3 liens internes.
+- Job de sanity nocturne (cron déjà existant) : recompte `word_count`, détecte slugs en doublon, boucles `needs_retry > 5`, batches inactifs > 15 min.
+
+### 6. Tableau de bord "Couverture territoriale"
+
+Nouveau composant `src/components/seo/TerritorialCoverage.tsx` branché dans `AdminSeoManager.tsx`, alimenté par une RPC `seo_territorial_coverage()` qui renvoie :
+
+- Totaux : municipalités, arrondissements, quartiers, secteurs.
+- Pages prévues / générées / publiées / indexables / restantes.
+- Progression et QA moyenne par ville (tableau triable).
+- Vitesse (pages/min), ETA, coût IA cumulé (via `ai_economy_stats`).
+- Historique des runs.
+
+### 7. Lancement du batch complet + rapport final
+
+- Déclenchement d'un `seo_pipeline_start('all_cities')` post-migration.
+- Nouvelle RPC `seo_final_report(run_id)` produisant le JSON exigé :
+  villes couvertes, arrondissements, quartiers, pages prévues / générées / publiées / indexées, QA moyenne, mots moyens, échecs restants, recommandations.
+- Modal "Rapport final" dans le Command Center + export copiable.
+
+### 8. Sitemap & Search Console
+
+- `scripts/generate-sitemap.ts` déjà limité à `status='published'` → confirmé, aucun changement.
+- Ajout d'une vérification post-run : compte `published` vs URLs dans le sitemap ; alerte si écart.
+- Rappel dans le rapport final : resoumettre le sitemap depuis GSC (action humaine, non automatisable côté Cloudflare/GSC).
 
 ---
 
 ## Détails techniques
 
-- **Fichiers créés** : `supabase/functions/seo-diagnostic-scan/index.ts`, `supabase/functions/seo-autofix/index.ts`, `supabase/functions/seo-sitemap-refresh/index.ts` (optionnel), `src/components/seo/DiagnosticPanel.tsx`, `src/components/seo/AutofixButton.tsx`, `src/lib/seo/useDiagnostic.ts`.
-- **Migrations** : table `seo_diagnostic_findings` (page_id, category, severity, message, suggested_fix, fixed_at, detected_at), fonction `seo_health_dashboard()`, cron horaire.
-- **Fichiers modifiés** : `src/pages/AdminSeoManager.tsx`, `src/components/seo/CommandCenter.tsx`, `scripts/generate-sitemap.ts` (nettoyage lastmod), `public/robots.txt` si nécessaire.
-- **Non modifié** : CRM, comptes entrepreneurs, calendrier, blog CMS, dispatch, facturation.
+**Migrations SQL (dans l'ordre) :**
+
+1. `ALTER TABLE public.seo_cities ADD COLUMN ...` (colonnes territoriales).
+2. `INSERT ... ON CONFLICT (slug) DO UPDATE` pour toutes les municipalités listées.
+3. `CREATE OR REPLACE FUNCTION public.seo_territorial_coverage()` (SECURITY DEFINER, admin-only).
+4. `CREATE OR REPLACE FUNCTION public.seo_final_report(_run_id uuid)` (SECURITY DEFINER, admin-only).
+5. Mise à jour `seo_pipeline_start` pour intégrer `served=true` et le tri par priorité.
+
+**Edge functions modifiées :**
+
+- `seo-generate-page/index.ts` : seuil `words < 800`.
+- `seo-qa-check/index.ts` : marquer `needs_refresh` si sous-standards.
+
+**Frontend :**
+
+- `src/components/seo/TerritorialCoverage.tsx` (nouveau).
+- `src/components/seo/FinalReportModal.tsx` (nouveau).
+- `src/pages/AdminSeoManager.tsx` : nouvel onglet "Couverture territoriale" + bouton "Rapport final".
+
+**Aucun changement** au verrou distribué, watchdog, cron, backoff 429/50x — déjà validés.
+
+---
 
 ## Livrables
 
-1. Rapport d'audit complet (chat + fichier).
-2. Après validation : migrations + Edge Functions + UI Diagnostic/Autofix/Monitoring + tableau SEO réel.
-3. Test final : scan sur 100 % des pages, rapport de conformité, liste résiduelle triée par gravité.
+- 39 → ~80+ territoires actifs et servis, couvrant toutes les municipalités listées.
+- Pipeline capable de traiter l'ensemble sans intervention, avec reprise garantie.
+- Dashboard couverture + rapport final exportable.
+- Rapport texte détaillé livré dans le chat après le premier batch complet.
 
-Confirme et je démarre par l'audit (étape 1, sans modification de code).
+**Non inclus** (nécessite action humaine ou clés externes) : validation par GSC réel, désactivation Bot Fight Cloudflare, indexation Google (délai naturel).

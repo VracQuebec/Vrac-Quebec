@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import PriorityStars, { priorityLabel } from "@/components/seo/PriorityStars";
 import CoverageMatrix from "@/components/seo/CoverageMatrix";
+import TerritorialCoverage from "@/components/seo/TerritorialCoverage";
 import ConversionsTable from "@/components/seo/ConversionsTable";
 import CommandCenter from "@/components/seo/CommandCenter";
 import CopilotDashboard from "@/components/seo/CopilotDashboard";
@@ -22,7 +23,7 @@ import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
 import GoalCard, { type Goal } from "@/components/seo/GoalCard";
 import QaReportBadge from "@/components/seo/QaReportBadge";
 
-type Tab = "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "coverage" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
+type Tab = "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "coverage" | "territory" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
 
 type City = {
   id: string; slug: string; name: string; region: string;
@@ -79,6 +80,7 @@ export default function AdminSeoManager() {
     {
       title: "Couverture & objectifs",
       tabs: [
+        { id: "territory", label: "Territoire", icon: MapPin },
         { id: "coverage", label: "Couverture", icon: LayoutDashboard },
         { id: "goals", label: "Objectifs", icon: TrendingUp },
         { id: "competitors", label: "Concurrents", icon: SearchIcon },
@@ -156,6 +158,7 @@ export default function AdminSeoManager() {
           {tab === "competitors" && <CompetitorsTab />}
           {tab === "pages" && <PagesTab />}
           {tab === "coverage" && <CoverageMatrix />}
+          {tab === "territory" && <TerritorialCoverage />}
           {tab === "conversions" && <ConversionsTable />}
           {tab === "cities" && <CitiesTab />}
           {tab === "materials" && <MaterialsTab />}
