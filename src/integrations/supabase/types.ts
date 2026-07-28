@@ -2068,6 +2068,297 @@ export type Database = {
         }
         Relationships: []
       }
+      gbp_config: {
+        Row: {
+          account_display_name: string | null
+          account_name: string | null
+          connected_at: string
+          connected_by: string | null
+          created_at: string
+          google_email: string | null
+          id: string
+          last_sync_at: string | null
+          last_sync_error: string | null
+          last_sync_status: string | null
+          location_address: string | null
+          location_display_name: string | null
+          location_name: string | null
+          refresh_token: string
+          updated_at: string
+        }
+        Insert: {
+          account_display_name?: string | null
+          account_name?: string | null
+          connected_at?: string
+          connected_by?: string | null
+          created_at?: string
+          google_email?: string | null
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          location_address?: string | null
+          location_display_name?: string | null
+          location_name?: string | null
+          refresh_token: string
+          updated_at?: string
+        }
+        Update: {
+          account_display_name?: string | null
+          account_name?: string | null
+          connected_at?: string
+          connected_by?: string | null
+          created_at?: string
+          google_email?: string | null
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          location_address?: string | null
+          location_display_name?: string | null
+          location_name?: string | null
+          refresh_token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gbp_daily_metrics: {
+        Row: {
+          fetched_at: string
+          id: string
+          metric_date: string
+          metric_name: string
+          value: number
+        }
+        Insert: {
+          fetched_at?: string
+          id?: string
+          metric_date: string
+          metric_name: string
+          value?: number
+        }
+        Update: {
+          fetched_at?: string
+          id?: string
+          metric_date?: string
+          metric_name?: string
+          value?: number
+        }
+        Relationships: []
+      }
+      gbp_location: {
+        Row: {
+          address_lines: Json
+          average_rating: number | null
+          categories: Json
+          display_name: string | null
+          fetched_at: string
+          id: string
+          labels: Json
+          locality: string | null
+          location_name: string
+          maps_uri: string | null
+          phone: string | null
+          postal_code: string | null
+          primary_category: string | null
+          raw: Json | null
+          region: string | null
+          total_photos: number
+          total_reviews: number
+          updated_at: string
+          website_uri: string | null
+        }
+        Insert: {
+          address_lines?: Json
+          average_rating?: number | null
+          categories?: Json
+          display_name?: string | null
+          fetched_at?: string
+          id?: string
+          labels?: Json
+          locality?: string | null
+          location_name: string
+          maps_uri?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          primary_category?: string | null
+          raw?: Json | null
+          region?: string | null
+          total_photos?: number
+          total_reviews?: number
+          updated_at?: string
+          website_uri?: string | null
+        }
+        Update: {
+          address_lines?: Json
+          average_rating?: number | null
+          categories?: Json
+          display_name?: string | null
+          fetched_at?: string
+          id?: string
+          labels?: Json
+          locality?: string | null
+          location_name?: string
+          maps_uri?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          primary_category?: string | null
+          raw?: Json | null
+          region?: string | null
+          total_photos?: number
+          total_reviews?: number
+          updated_at?: string
+          website_uri?: string | null
+        }
+        Relationships: []
+      }
+      gbp_oauth_state: {
+        Row: {
+          created_at: string
+          expires_at: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          state: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gbp_posts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cta_type: string | null
+          cta_url: string | null
+          error_message: string | null
+          event_end_at: string | null
+          event_start_at: string | null
+          event_title: string | null
+          google_name: string | null
+          google_search_url: string | null
+          id: string
+          media_url: string | null
+          offer_coupon_code: string | null
+          offer_terms: string | null
+          published_at: string | null
+          raw_response: Json | null
+          scheduled_for: string | null
+          status: string
+          summary: string
+          topic_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cta_type?: string | null
+          cta_url?: string | null
+          error_message?: string | null
+          event_end_at?: string | null
+          event_start_at?: string | null
+          event_title?: string | null
+          google_name?: string | null
+          google_search_url?: string | null
+          id?: string
+          media_url?: string | null
+          offer_coupon_code?: string | null
+          offer_terms?: string | null
+          published_at?: string | null
+          raw_response?: Json | null
+          scheduled_for?: string | null
+          status?: string
+          summary: string
+          topic_type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cta_type?: string | null
+          cta_url?: string | null
+          error_message?: string | null
+          event_end_at?: string | null
+          event_start_at?: string | null
+          event_title?: string | null
+          google_name?: string | null
+          google_search_url?: string | null
+          id?: string
+          media_url?: string | null
+          offer_coupon_code?: string | null
+          offer_terms?: string | null
+          published_at?: string | null
+          raw_response?: Json | null
+          scheduled_for?: string | null
+          status?: string
+          summary?: string
+          topic_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gbp_questions: {
+        Row: {
+          author_display_name: string | null
+          author_type: string | null
+          created_at_google: string | null
+          fetched_at: string
+          google_name: string
+          id: string
+          owner_answer: string | null
+          owner_answered_at: string | null
+          owner_answered_by: string | null
+          question_text: string
+          raw: Json | null
+          status: string
+          total_answer_count: number
+          updated_at: string
+          upvote_count: number
+        }
+        Insert: {
+          author_display_name?: string | null
+          author_type?: string | null
+          created_at_google?: string | null
+          fetched_at?: string
+          google_name: string
+          id?: string
+          owner_answer?: string | null
+          owner_answered_at?: string | null
+          owner_answered_by?: string | null
+          question_text: string
+          raw?: Json | null
+          status?: string
+          total_answer_count?: number
+          updated_at?: string
+          upvote_count?: number
+        }
+        Update: {
+          author_display_name?: string | null
+          author_type?: string | null
+          created_at_google?: string | null
+          fetched_at?: string
+          google_name?: string
+          id?: string
+          owner_answer?: string | null
+          owner_answered_at?: string | null
+          owner_answered_by?: string | null
+          question_text?: string
+          raw?: Json | null
+          status?: string
+          total_answer_count?: number
+          updated_at?: string
+          upvote_count?: number
+        }
+        Relationships: []
+      }
       lead_notes: {
         Row: {
           author_email: string | null
