@@ -3604,12 +3604,15 @@ export type Database = {
       seo_pages: {
         Row: {
           ai_model: string | null
+          backlinks_count: number
           city_slug: string
           content_html: string
           cover_image_alt: string | null
           cover_image_prompt: string | null
           cover_image_url: string | null
           created_at: string
+          diagnostic_report: Json
+          discovered_at: string | null
           external_link_count: number
           faq: Json
           google_index_status: string | null
@@ -3618,6 +3621,9 @@ export type Database = {
           h2_count: number
           h3_count: number
           id: string
+          indexed_at: string | null
+          intelligence_flags: string[]
+          intelligence_last_checked_at: string | null
           internal_link_count: number
           internal_links: Json
           intro: string | null
@@ -3651,12 +3657,15 @@ export type Database = {
         }
         Insert: {
           ai_model?: string | null
+          backlinks_count?: number
           city_slug: string
           content_html?: string
           cover_image_alt?: string | null
           cover_image_prompt?: string | null
           cover_image_url?: string | null
           created_at?: string
+          diagnostic_report?: Json
+          discovered_at?: string | null
           external_link_count?: number
           faq?: Json
           google_index_status?: string | null
@@ -3665,6 +3674,9 @@ export type Database = {
           h2_count?: number
           h3_count?: number
           id?: string
+          indexed_at?: string | null
+          intelligence_flags?: string[]
+          intelligence_last_checked_at?: string | null
           internal_link_count?: number
           internal_links?: Json
           intro?: string | null
@@ -3698,12 +3710,15 @@ export type Database = {
         }
         Update: {
           ai_model?: string | null
+          backlinks_count?: number
           city_slug?: string
           content_html?: string
           cover_image_alt?: string | null
           cover_image_prompt?: string | null
           cover_image_url?: string | null
           created_at?: string
+          diagnostic_report?: Json
+          discovered_at?: string | null
           external_link_count?: number
           faq?: Json
           google_index_status?: string | null
@@ -3712,6 +3727,9 @@ export type Database = {
           h2_count?: number
           h3_count?: number
           id?: string
+          indexed_at?: string | null
+          intelligence_flags?: string[]
+          intelligence_last_checked_at?: string | null
           internal_link_count?: number
           internal_links?: Json
           intro?: string | null
@@ -5546,6 +5564,29 @@ export type Database = {
       seo_executive_dashboard: { Args: never; Returns: Json }
       seo_final_coverage_report: { Args: never; Returns: Json }
       seo_final_report: { Args: { _run_id?: string }; Returns: Json }
+      seo_intelligence_dashboard: { Args: never; Returns: Json }
+      seo_intelligence_pages: {
+        Args: { _filter?: string; _limit?: number }
+        Returns: {
+          avg_position: number
+          backlinks_count: number
+          clicks: number
+          ctr: number
+          diagnostic_report: Json
+          discovered_at: string
+          id: string
+          impressions: number
+          indexed_at: string
+          intelligence_flags: string[]
+          intelligence_last_checked_at: string
+          published_at: string
+          qa_last_score: number
+          slug: string
+          status: string
+          title: string
+          top_queries: Json
+        }[]
+      }
       seo_optimization_autotune: { Args: { _run_id: string }; Returns: number }
       seo_optimization_cancel: { Args: { _run_id: string }; Returns: undefined }
       seo_optimization_finalize: { Args: { _run_id: string }; Returns: string }
