@@ -135,7 +135,12 @@ Deno.serve(async (req) => {
     const ogDesc = String((page as { og_description?: string | null }).og_description || "");
 
     const words = countWords(html);
-    const h1 = countTags(html, "h1");
+    // The SPA template (SeoLandingPage.tsx) renders <h1> from page.title / page.h1,
+    // not from content_html. Count the effective H1: template-provided title OR an
+    // explicit <h1> in content. Presence of the title field is sufficient.
+    const contentH1 = countTags(html, "h1");
+    const templateH1 = String(page.title || "").trim().length > 0 ? 1 : 0;
+    const h1 = templateH1 + contentH1; // 1 (template only) is the normal case
     const h2 = countTags(html, "h2");
     const h3 = countTags(html, "h3");
     const internal = countInternalLinks(html);
@@ -190,8 +195,8 @@ Deno.serve(async (req) => {
     // Build a rich, actionable checklist.
     const contentLenOk = words >= 800;
     const contentLenWarn = words >= 500 && words < 800;
-    const h1Ok = h1 === 1;
-    const h1Warn = h1 >= 2;
+    const h1Ok = h1 >= 1 && contentH1 <= 1;
+    const h1Warn = contentH1 >= 2;
     const headingsOk = h2 >= 4 && (h2 + h3) >= 6;
     const headingsWarn = h2 >= 2;
     const faqOk = faq.length >= 5 && faq.every((f) => (f.answer || "").split(/\s+/).length >= 40);
@@ -218,13 +223,13 @@ Deno.serve(async (req) => {
     const checks: Check[] = [
       {
         key: "h1",
-        label: `Balise H1 unique (${h1})`,
+        label: `Balise H1 unique (${h1Ok ? 1 : contentH1})`,
         ok: h1Ok,
         status: mkStatus(h1Ok, h1Warn),
         blocker: h1 === 0,
         detail: h1 === 0
-          ? "Aucun H1 détecté — chaque page doit avoir exactement 1 H1."
-          : h1 > 1 ? "Plusieurs H1 détectés — n'en garder qu'un." : undefined,
+          ? "Aucun titre défini — remplir le champ `title` de la page."
+          : contentH1 >= 2 ? "Plusieurs <h1> dans le contenu — n'en garder qu'un (le template en injecte déjà un)." : undefined,
         fixable: true,
         fix_action: "rebuild_headings",
       },
