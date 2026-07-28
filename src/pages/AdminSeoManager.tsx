@@ -8,13 +8,14 @@ import { toast } from "sonner";
 import {
   ArrowLeft, LayoutDashboard, MapPin, Package, Wrench, Sparkles, Lightbulb,
   Loader2, Plus, Trash2, Play, Pause, RotateCcw, Save, ExternalLink, Gauge, RefreshCw,
-  FileText, Zap, ListChecks, Search as SearchIcon, TrendingUp, Download,
+  FileText, Zap, ListChecks, Search as SearchIcon, TrendingUp, Download, Building2,
 } from "lucide-react";
 import PriorityStars, { priorityLabel } from "@/components/seo/PriorityStars";
 import CoverageMatrix from "@/components/seo/CoverageMatrix";
 import TerritorialCoverage from "@/components/seo/TerritorialCoverage";
 import PublicationDashboard from "@/components/seo/PublicationDashboard";
 import SeoIntelligence from "@/components/seo/SeoIntelligence";
+import GbpDashboard from "@/components/seo/GbpDashboard";
 import ConversionsTable from "@/components/seo/ConversionsTable";
 import CommandCenter from "@/components/seo/CommandCenter";
 import CopilotDashboard from "@/components/seo/CopilotDashboard";
@@ -25,7 +26,7 @@ import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
 import GoalCard, { type Goal } from "@/components/seo/GoalCard";
 import QaReportBadge from "@/components/seo/QaReportBadge";
 
-type Tab = "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "publication" | "intelligence" | "coverage" | "territory" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "blog";
+type Tab = "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "publication" | "intelligence" | "coverage" | "territory" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "gbp" | "blog";
 
 type City = {
   id: string; slug: string; name: string; region: string;
@@ -79,6 +80,7 @@ export default function AdminSeoManager() {
         { id: "analytics", label: "Analyse SEO", icon: Gauge },
         { id: "gsc", label: "Search Console", icon: TrendingUp },
         { id: "conversions", label: "Conversions", icon: TrendingUp },
+        { id: "gbp", label: "Google Business", icon: Building2 },
       ],
     },
     {
@@ -173,6 +175,7 @@ export default function AdminSeoManager() {
           {tab === "generator" && <GeneratorTab />}
           {tab === "analytics" && <AnalyticsTab />}
           {tab === "gsc" && <GscTab />}
+          {tab === "gbp" && <GbpDashboard />}
           {tab === "suggestions" && <SuggestionsTab />}
           {tab === "blog" && <BlogTab />}
         </main>
