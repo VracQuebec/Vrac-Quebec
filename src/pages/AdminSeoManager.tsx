@@ -13,6 +13,7 @@ import {
 import PriorityStars, { priorityLabel } from "@/components/seo/PriorityStars";
 import CoverageMatrix from "@/components/seo/CoverageMatrix";
 import TerritorialCoverage from "@/components/seo/TerritorialCoverage";
+import PublicationDashboard from "@/components/seo/PublicationDashboard";
 import ConversionsTable from "@/components/seo/ConversionsTable";
 import CommandCenter from "@/components/seo/CommandCenter";
 import CopilotDashboard from "@/components/seo/CopilotDashboard";
@@ -72,6 +73,7 @@ export default function AdminSeoManager() {
       title: "Pages & performance",
       tabs: [
         { id: "pages", label: "Pages", icon: ListChecks },
+        { id: "publication", label: "Publication", icon: FileText },
         { id: "analytics", label: "Analyse SEO", icon: Gauge },
         { id: "gsc", label: "Search Console", icon: TrendingUp },
         { id: "conversions", label: "Conversions", icon: TrendingUp },
@@ -157,6 +159,7 @@ export default function AdminSeoManager() {
           {tab === "goals" && <GoalsTab />}
           {tab === "competitors" && <CompetitorsTab />}
           {tab === "pages" && <PagesTab />}
+          {tab === "publication" && <PublicationDashboard />}
           {tab === "coverage" && <CoverageMatrix />}
           {tab === "territory" && <TerritorialCoverage />}
           {tab === "conversions" && <ConversionsTable />}
