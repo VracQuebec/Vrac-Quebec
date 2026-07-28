@@ -23,3 +23,9 @@ verify_jwt = true
 
 [functions.blog-mesh-analyze]
 verify_jwt = true
+
+[functions.gbp-oauth-callback]
+verify_jwt = false
+
+[functions.gbp-sync-daily]
+verify_jwt = false
