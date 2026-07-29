@@ -26,6 +26,32 @@ async function fetchJson(url: string) {
   return res.json();
 }
 
+// PostgREST caps responses (default 1000 rows). Page through results with
+// Range headers so the sitemap always includes every published row.
+async function fetchAll<T>(baseUrl: string, pageSize = 1000): Promise<T[]> {
+  const out: T[] = [];
+  let from = 0;
+  // Safety cap to avoid infinite loops.
+  for (let i = 0; i < 100; i++) {
+    const to = from + pageSize - 1;
+    const res = await fetch(baseUrl, {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        Range: `${from}-${to}`,
+        "Range-Unit": "items",
+        Prefer: "count=exact",
+      },
+    });
+    if (!res.ok && res.status !== 206) throw new Error(`${res.status} ${res.statusText}`);
+    const batch = (await res.json()) as T[];
+    out.push(...batch);
+    if (batch.length < pageSize) break;
+    from += pageSize;
+  }
+  return out;
+}
+
 async function build(): Promise<Entry[]> {
   const entries: Entry[] = [
     { path: "/", changefreq: "weekly", priority: "1.0" },
@@ -58,9 +84,9 @@ async function build(): Promise<Entry[]> {
   // Do NOT generate material×city combos programmatically — they 404 when
   // no seo_pages row exists, and Google penalizes ghost URLs in sitemaps.
   try {
-    const pages = (await fetchJson(
-      `${SUPABASE_URL}/rest/v1/seo_pages?select=slug,updated_at&status=eq.published&order=updated_at.desc&limit=5000`
-    )) as { slug: string; updated_at: string }[];
+    const pages = await fetchAll<{ slug: string; updated_at: string }>(
+      `${SUPABASE_URL}/rest/v1/seo_pages?select=slug,updated_at&status=eq.published&order=updated_at.desc`,
+    );
     for (const p of pages) {
       entries.push({
         path: `/${p.slug}`,
@@ -86,9 +112,9 @@ async function build(): Promise<Entry[]> {
 
   try {
     const nowIso = new Date().toISOString();
-    const posts = (await fetchJson(
-      `${SUPABASE_URL}/rest/v1/blog_posts?select=slug,updated_at,published_at&status=eq.published&published_at=lte.${nowIso}&noindex=eq.false&order=published_at.desc&limit=5000`
-    )) as { slug: string; updated_at: string; published_at: string }[];
+    const posts = await fetchAll<{ slug: string; updated_at: string; published_at: string }>(
+      `${SUPABASE_URL}/rest/v1/blog_posts?select=slug,updated_at,published_at&status=eq.published&published_at=lte.${nowIso}&noindex=eq.false&order=published_at.desc`,
+    );
     for (const p of posts) {
       entries.push({
         path: `/blog/${p.slug}`,

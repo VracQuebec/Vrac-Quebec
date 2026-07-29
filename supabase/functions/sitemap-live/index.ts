@@ -25,7 +25,8 @@ Deno.serve(async () => {
     .from("seo_pages")
     .select("slug, updated_at, last_generated_at")
     .eq("status", "published")
-    .order("slug");
+    .order("slug")
+    .range(0, 9999);
   for (const p of pages ?? []) {
     const ts = String((p as { updated_at?: string | null }).updated_at ?? (p as { last_generated_at?: string | null }).last_generated_at ?? "");
     urls.push({
@@ -40,7 +41,8 @@ Deno.serve(async () => {
     .from("blog_posts")
     .select("slug, updated_at, published_at")
     .eq("status", "published")
-    .lte("published_at", new Date().toISOString());
+    .lte("published_at", new Date().toISOString())
+    .range(0, 9999);
   for (const p of posts ?? []) {
     const ts = String((p as { updated_at?: string | null }).updated_at ?? (p as { published_at?: string | null }).published_at ?? "");
     urls.push({
