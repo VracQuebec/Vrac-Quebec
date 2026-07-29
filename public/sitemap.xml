@@ -337,6 +337,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vracquebec.ca/roche-quebec</loc>
+    <lastmod>2026-07-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vracquebec.ca/livraison-terre-duberger</loc>
     <lastmod>2026-07-29</lastmod>
     <changefreq>monthly</changefreq>
@@ -6326,12 +6332,6 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/pierre-donnacona</loc>
-    <lastmod>2026-07-29</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/livraison-pierre-l-ange-gardien</loc>
     <lastmod>2026-07-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
