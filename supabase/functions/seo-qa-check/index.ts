@@ -376,7 +376,13 @@ Deno.serve(async (req) => {
     const blockers = checks.filter((c) => !c.ok && c.blocker).map((c) => c.label);
     const warnings = checks.filter((c) => !c.ok && !c.blocker).map((c) => c.label);
 
-    const shouldDemote = enforceDraft && (blockers.length > 0 || score < threshold);
+    // Persistent-state guarantee: never demote a page that has already
+    // been published. Once a page is live, subsequent QA runs must only
+    // record diagnostics — they cannot flip the page back to draft on
+    // restart / refresh. Only pages still in draft may be blocked from
+    // being auto-published by a below-threshold QA check.
+    const isDraft = (page as { status?: string | null }).status === "draft";
+    const shouldDemote = enforceDraft && isDraft && (blockers.length > 0 || score < threshold);
     const autoPublished = !shouldDemote;
 
     const { data: report } = await supabase
