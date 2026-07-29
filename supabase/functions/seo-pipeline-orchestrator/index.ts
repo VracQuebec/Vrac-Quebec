@@ -98,17 +98,44 @@ async function materializeBatch(sb: SupabaseClient, run: any, batch: any) {
     sb.from("seo_services").select("slug").eq("active", true),
   ]);
 
+  // Persistent-state guarantee: never re-queue pages that already exist
+  // unless the run explicitly requested a force regeneration. This keeps
+  // the pipeline resumable and prevents overwriting content, slugs, SEO
+  // metadata or generated_at timestamps of pages already produced.
+  const force = !!run.force_regenerate;
+  const existingKeys = new Set<string>();
+  if (!force) {
+    const { data: existingPages } = await sb.from("seo_pages")
+      .select("material_slug, service_slug")
+      .eq("city_slug", citySlug);
+    for (const p of existingPages ?? []) {
+      existingKeys.add(`${p.material_slug ?? ""}::${p.service_slug ?? ""}`);
+    }
+  }
+  const shouldQueue = (material: string | null, service: string | null) =>
+    force || !existingKeys.has(`${material ?? ""}::${service ?? ""}`);
+
   const rows: any[] = [];
-  rows.push({ batch_id: batch.id, run_id: run.id, city_slug: citySlug, material_slug: null, service_slug: null, kind: "full", status: "queued", max_attempts: run.max_retries ?? 3 });
+  if (shouldQueue(null, null)) {
+    rows.push({ batch_id: batch.id, run_id: run.id, city_slug: citySlug, material_slug: null, service_slug: null, kind: "full", status: "queued", max_attempts: run.max_retries ?? 3 });
+  }
   for (const m of mats ?? []) {
-    rows.push({ batch_id: batch.id, run_id: run.id, city_slug: citySlug, material_slug: m.slug, service_slug: null, kind: "full", status: "queued", max_attempts: run.max_retries ?? 3 });
+    if (shouldQueue(m.slug, null)) {
+      rows.push({ batch_id: batch.id, run_id: run.id, city_slug: citySlug, material_slug: m.slug, service_slug: null, kind: "full", status: "queued", max_attempts: run.max_retries ?? 3 });
+    }
   }
   for (const s of svcs ?? []) {
-    rows.push({ batch_id: batch.id, run_id: run.id, city_slug: citySlug, material_slug: null, service_slug: s.slug, kind: "full", status: "queued", max_attempts: run.max_retries ?? 3 });
+    if (shouldQueue(null, s.slug)) {
+      rows.push({ batch_id: batch.id, run_id: run.id, city_slug: citySlug, material_slug: null, service_slug: s.slug, kind: "full", status: "queued", max_attempts: run.max_retries ?? 3 });
+    }
   }
   if (rows.length) await sb.from("seo_page_tasks").insert(rows);
   await sb.from("seo_city_batches").update({
-    total_tasks: rows.length, status: "running", started_at: nowIso(), last_progress_at: nowIso(), current_step: "génération",
+    total_tasks: rows.length,
+    status: rows.length === 0 ? "completed" : "running",
+    started_at: nowIso(), last_progress_at: nowIso(),
+    current_step: rows.length === 0 ? "déjà à jour" : "génération",
+    finished_at: rows.length === 0 ? nowIso() : null,
   }).eq("id", batch.id);
 }
 
