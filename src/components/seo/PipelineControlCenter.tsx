@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useEffect } from "react";
 import { useSeoPipelineV2, type CityBatch } from "@/lib/seo/useSeoPipelineV2";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -46,6 +47,29 @@ export default function PipelineControlCenter() {
   const [busy, setBusy] = useState(false);
   const [logsBatch, setLogsBatch] = useState<CityBatch | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
+  const [counters, setCounters] = useState<{ target_total: number; in_db: number; drafts: number; in_qa: number; published: number } | null>(null);
+  const [errorsCount, setErrorsCount] = useState<number>(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function refresh() {
+      const [{ data: dash }, { count: errs }] = await Promise.all([
+        supabase.rpc("seo_publication_dashboard"),
+        supabase.from("seo_page_tasks").select("id", { count: "exact", head: true }).eq("status", "needs_retry"),
+      ]);
+      if (cancelled) return;
+      const c = (dash as any)?.counts ?? null;
+      if (c) setCounters({ target_total: c.target_total, in_db: c.in_db, drafts: c.drafts, in_qa: c.in_qa, published: c.published });
+      setErrorsCount(errs ?? 0);
+    }
+    void refresh();
+    const t = window.setInterval(refresh, 10000);
+    const ch = supabase.channel("seo-pipeline-global-counters")
+      .on("postgres_changes", { event: "*", schema: "public", table: "seo_pages" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "seo_page_tasks" }, refresh)
+      .subscribe();
+    return () => { cancelled = true; window.clearInterval(t); void supabase.removeChannel(ch); };
+  }, []);
 
   const run = state?.active_run ?? null;
   const batches = state?.batches ?? [];
@@ -101,6 +125,25 @@ export default function PipelineControlCenter() {
 
       {error && <div className="text-sm text-destructive">{error}</div>}
       {loading && !state && <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</div>}
+
+      {counters && (
+        <div className="space-y-2 rounded-lg border border-border bg-background/50 p-3">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Progression réelle · pages persistées en base (jamais régénérées automatiquement)</span>
+            <span className="font-semibold text-foreground">
+              {counters.target_total > 0 ? Math.round((counters.published / counters.target_total) * 100) : 0}%
+            </span>
+          </div>
+          <Progress value={counters.target_total > 0 ? Math.round((counters.published / counters.target_total) * 100) : 0} className="h-2" />
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+            <Stat label="Total cible" value={counters.target_total} />
+            <Stat label="Générées" value={counters.in_db} tone="good" />
+            <Stat label="Publiées" value={counters.published} tone="good" />
+            <Stat label="Restantes" value={Math.max(0, counters.target_total - counters.in_db)} />
+            <Stat label="Erreurs" value={errorsCount} tone={errorsCount > 0 ? "bad" : "muted"} />
+          </div>
+        </div>
+      )}
 
       {run && (
         <div className="space-y-3">
