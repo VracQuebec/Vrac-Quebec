@@ -32,7 +32,10 @@ export async function geocode(address: string): Promise<GeocodedAddress> {
   if (!res.ok) throw new Error(`Geocoding failed [${res.status}]: ${JSON.stringify(data)}`);
   const result = data?.results?.[0];
   const loc = result?.geometry?.location;
-  if (!loc) throw new Error("Adresse de livraison introuvable.");
+  if (!loc) {
+    console.error('geocode empty', JSON.stringify({ status: data?.status, error: data?.error_message }));
+    throw new Error("Adresse de livraison introuvable.");
+  }
   const comp = (type: string) =>
     result.address_components?.find((c: { types: string[] }) => c.types?.includes(type))?.long_name ?? null;
   return {
