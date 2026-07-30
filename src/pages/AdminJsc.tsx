@@ -27,6 +27,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 const ICONS: Record<string, typeof Layers> = {
   Layers, Building2, Building, MapPin, DollarSign, Truck, Route, Globe2, Percent, Settings2,
   FolderTree, UserCog, Users, Inbox, FileText, ClipboardList, Receipt, ShieldCheck,
+  LayoutDashboard, History, DatabaseBackup,
 };
 
 const REFERENTIEL = [...JSC_RESOURCES, JSC_COMPANY_RESOURCE];
