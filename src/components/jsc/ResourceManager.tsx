@@ -215,6 +215,8 @@ export default function ResourceManager({
   };
 
   const renderCell = (row: Row, f: FieldDef) => {
+    const v0 = row[f.key];
+    void v0;
     const v = row[f.key];
     if (f.type === "boolean") return v ? "Oui" : "Non";
     if (v === null || v === undefined || v === "") return <span className="text-muted-foreground">—</span>;
