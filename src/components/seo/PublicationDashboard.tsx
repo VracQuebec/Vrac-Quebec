@@ -7,6 +7,9 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, RefreshCw, Send, AlertTriangle, FileCheck2, FileText, Search, CheckCircle2, Download } from "lucide-react";
 import { toast } from "sonner";
 
+type StuckPage = { slug: string; status: string; qa_last_score: number | null; word_count: number | null; qa_blockers: string[] | null; stuck_minutes: number; reason: string };
+type PublishedPage = { slug: string; title: string; published_at?: string | null; updated_at: string; qa_last_score: number | null; word_count: number | null; google_index_status: string | null };
+
 type Dashboard = {
   computed_at: string;
   counts: {
@@ -14,22 +17,31 @@ type Dashboard = {
     published: number; discovered: number; indexed: number;
     qa_avg: number; words_avg: number; last_published: string | null;
   };
-  stuck_pages: Array<{ slug: string; status: string; qa_last_score: number | null; word_count: number | null; qa_blockers: string[] | null; stuck_minutes: number; reason: string }>;
-  recent_published: Array<{ slug: string; title: string; updated_at: string; qa_last_score: number | null; word_count: number | null; google_index_status: string | null }>;
-  ready_for_final_qa: boolean;
+  stuck?: StuckPage[];
+  stuck_pages?: StuckPage[];
+  recent?: PublishedPage[];
+  recent_published?: PublishedPage[];
+  ready_for_final_qa?: boolean;
 };
 
 export default function PublicationDashboard() {
   const [data, setData] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState<Record<string, unknown> | null>(null);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.rpc("seo_publication_dashboard");
-    if (error) toast.error(error.message);
-    else setData(data as unknown as Dashboard);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.rpc("seo_publication_dashboard");
+      if (error) throw error;
+      setData(data as unknown as Dashboard);
+      setErr(null);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Erreur de chargement");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -62,9 +74,17 @@ export default function PublicationDashboard() {
     toast.success("Rapport de couverture SEO généré");
   }
 
-  if (loading || !data) return <div className="p-8 text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement du tableau de publication…</div>;
+  if (loading) return <div className="p-8 text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement du tableau de publication…</div>;
+  if (err || !data) return (
+    <Card className="p-6 space-y-3">
+      <div className="flex items-center gap-2 text-destructive text-sm"><AlertTriangle className="w-4 h-4" /> {err ?? "Aucune donnée de publication"}</div>
+      <Button size="sm" variant="outline" onClick={load} className="gap-2"><RefreshCw className="w-4 h-4" /> Réessayer</Button>
+    </Card>
+  );
 
-  const c = data.counts;
+  const c = data.counts ?? { target_total: 0, in_db: 0, drafts: 0, in_qa: 0, published: 0, discovered: 0, indexed: 0, qa_avg: 0, words_avg: 0, last_published: null };
+  const stuckPages = data.stuck_pages ?? data.stuck ?? [];
+  const recentPublished = data.recent_published ?? data.recent ?? [];
   const pct = c.target_total > 0 ? Math.round((c.published / c.target_total) * 100) : 0;
   const funnel = [
     { key: "drafts", label: "Brouillons", value: c.drafts, icon: FileText, tone: "muted" as const },
@@ -118,10 +138,10 @@ export default function PublicationDashboard() {
         </div>
       </Card>
 
-      {data.stuck_pages.length > 0 && (
+      {stuckPages.length > 0 && (
         <Card className="p-4 md:p-6">
           <h3 className="text-sm font-semibold flex items-center gap-2 mb-3 text-destructive">
-            <AlertTriangle className="w-4 h-4" /> Pages bloquées depuis &gt; 5 minutes ({data.stuck_pages.length})
+            <AlertTriangle className="w-4 h-4" /> Pages bloquées depuis &gt; 5 minutes ({stuckPages.length})
           </h3>
           <div className="overflow-auto max-h-[400px]">
             <table className="w-full text-xs">
@@ -135,7 +155,7 @@ export default function PublicationDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {data.stuck_pages.map((p) => (
+                {stuckPages.map((p) => (
                   <tr key={p.slug} className="border-b border-border/50">
                     <td className="p-2 font-mono">{p.slug}</td>
                     <td className="p-2">{p.stuck_minutes} min</td>
@@ -165,14 +185,14 @@ export default function PublicationDashboard() {
               </tr>
             </thead>
             <tbody>
-              {data.recent_published.map((p) => (
+              {recentPublished.map((p) => (
                 <tr key={p.slug} className="border-b border-border/50">
                   <td className="p-2 max-w-[280px] truncate">{p.title}</td>
                   <td className="p-2 font-mono text-muted-foreground">{p.slug}</td>
                   <td className="p-2 text-right">{p.qa_last_score ?? "—"}</td>
                   <td className="p-2 text-right">{p.word_count ?? "—"}</td>
                   <td className="p-2"><Badge variant="outline" className="text-[10px]">{p.google_index_status ?? "unknown"}</Badge></td>
-                  <td className="p-2 text-muted-foreground">{new Date(p.updated_at).toLocaleString("fr-CA")}</td>
+                  <td className="p-2 text-muted-foreground">{new Date(p.published_at ?? p.updated_at).toLocaleString("fr-CA")}</td>
                 </tr>
               ))}
             </tbody>
