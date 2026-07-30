@@ -31,10 +31,16 @@ export default function PublicationDashboard() {
   const [report, setReport] = useState<Record<string, unknown> | null>(null);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.rpc("seo_publication_dashboard");
-    if (error) toast.error(error.message);
-    else setData(data as unknown as Dashboard);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.rpc("seo_publication_dashboard");
+      if (error) throw error;
+      setData(data as unknown as Dashboard);
+      setErr(null);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Erreur de chargement");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
