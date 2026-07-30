@@ -3,18 +3,49 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, Layers, Building2, MapPin, DollarSign, Truck, Route, Globe2, Percent, Settings2, ShieldCheck,
+  ArrowLeft, Layers, Building2, Building, MapPin, DollarSign, Truck, Route, Globe2, Percent,
+  Settings2, ShieldCheck, History, DatabaseBackup, Loader2,
 } from "lucide-react";
-import { JSC_RESOURCES } from "@/lib/jsc/config";
+import { JSC_RESOURCES, JSC_COMPANY_RESOURCE } from "@/lib/jsc/config";
 import ResourceManager from "@/components/jsc/ResourceManager";
+import AuditTrail from "@/components/jsc/AuditTrail";
+import ConfigBackup from "@/components/jsc/ConfigBackup";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useUserRoles } from "@/hooks/useUserRole";
 
 const ICONS: Record<string, typeof Layers> = {
-  Layers, Building2, MapPin, DollarSign, Truck, Route, Globe2, Percent, Settings2,
+  Layers, Building2, Building, MapPin, DollarSign, Truck, Route, Globe2, Percent, Settings2,
 };
 
+const RESOURCES = [...JSC_RESOURCES, JSC_COMPANY_RESOURCE];
+
 export default function AdminJsc() {
-  const [activeId, setActiveId] = useState(JSC_RESOURCES[0].id);
-  const active = JSC_RESOURCES.find((r) => r.id === activeId) ?? JSC_RESOURCES[0];
+  const { isReady, user } = useAuthReady();
+  const { isAdmin, loading: rolesLoading } = useUserRoles(user, isReady);
+  const [activeId, setActiveId] = useState(RESOURCES[0].id);
+  const [reloadKey, setReloadKey] = useState(0);
+  const active = RESOURCES.find((r) => r.id === activeId);
+
+  if (!isReady || rolesLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Vérification des permissions…
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
+        <ShieldCheck className="h-8 w-8 text-muted-foreground" />
+        <h1 className="text-xl font-semibold">Accès réservé</h1>
+        <p className="max-w-md text-sm text-muted-foreground">
+          Les paramètres Transport JSC sont accessibles uniquement aux administrateurs.
+        </p>
+        <Link to="/" className="text-sm text-primary hover:underline">Retour à l'accueil</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -38,7 +69,7 @@ export default function AdminJsc() {
 
       <div className="mx-auto max-w-7xl gap-6 px-4 py-6 lg:flex">
         <nav className="mb-4 flex gap-2 overflow-x-auto lg:mb-0 lg:w-64 lg:flex-col lg:overflow-visible">
-          {JSC_RESOURCES.map((r) => {
+          {RESOURCES.map((r) => {
             const Icon = ICONS[r.icon] ?? Settings2;
             const isActive = r.id === activeId;
             return (
@@ -56,10 +87,50 @@ export default function AdminJsc() {
               </button>
             );
           })}
+          {[
+            { id: "audit", title: "Journal d'audit", Icon: History },
+            { id: "backup", title: "Sauvegarde", Icon: DatabaseBackup },
+          ].map(({ id, title, Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveId(id)}
+              className={`flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                activeId === id
+                  ? "border-primary bg-primary/10 font-medium text-foreground"
+                  : "border-transparent text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              <span className="whitespace-nowrap">{title}</span>
+            </button>
+          ))}
         </nav>
 
         <main className="min-w-0 flex-1">
-          <ResourceManager key={active.id} resource={active} />
+          {activeId === "audit" && (
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-xl font-semibold">Journal d'audit</h2>
+                <p className="text-sm text-muted-foreground">
+                  Chaque création, modification, archivage ou suppression est historisée avec
+                  l'utilisateur, la date, l'ancienne et la nouvelle valeur.
+                </p>
+              </div>
+              <AuditTrail />
+            </div>
+          )}
+          {activeId === "backup" && (
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-xl font-semibold">Export / import de la configuration</h2>
+                <p className="text-sm text-muted-foreground">
+                  Sauvegarde complète et restauration de tous les paramètres.
+                </p>
+              </div>
+              <ConfigBackup onImported={() => setReloadKey((k) => k + 1)} />
+            </div>
+          )}
+          {active && <ResourceManager key={`${active.id}-${reloadKey}`} resource={active} />}
         </main>
       </div>
     </div>
