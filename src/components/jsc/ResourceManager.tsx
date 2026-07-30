@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Loader2, Plus, Pencil, Archive, ArchiveRestore, Search, Lock, History, Download, Upload,
+  Loader2, Plus, Pencil, Archive, ArchiveRestore, Search, Lock, History, Download, Upload, Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -150,10 +150,27 @@ export default function ResourceManager({
     setOpen(true);
   };
 
+  const toDraftValue = (f: FieldDef, v: unknown) => {
+    if (f.type === "list") return Array.isArray(v) ? (v as string[]).join("\n") : (v ?? "");
+    return v ?? (f.type === "boolean" ? false : "");
+  };
+
   const openEdit = (row: Row) => {
     setEditing(row);
     const d: Row = {};
-    for (const f of resource.fields) d[f.key] = row[f.key] ?? (f.type === "boolean" ? false : "");
+    for (const f of resource.fields) d[f.key] = toDraftValue(f, row[f.key]);
+    setDraft(d);
+    setOpen(true);
+  };
+
+  // Duplication : reprend toutes les valeurs sauf l'identifiant et le numéro.
+  const openDuplicate = (row: Row) => {
+    setEditing(null);
+    const d: Row = {};
+    for (const f of resource.fields) d[f.key] = toDraftValue(f, row[f.key]);
+    if (typeof d.name === "string") d.name = `${d.name} (copie)`;
+    if (typeof d.code === "string" && d.code) d.code = `${d.code}-COPIE`;
+    if ("slug" in d) d.slug = "";
     setDraft(d);
     setOpen(true);
   };
@@ -168,6 +185,10 @@ export default function ResourceManager({
       }
       if (f.type === "boolean") payload[f.key] = Boolean(raw);
       else if (f.type === "number") payload[f.key] = raw === "" || raw === null ? null : Number(raw);
+      else if (f.type === "list") {
+        payload[f.key] = String(raw ?? "")
+          .split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean);
+      }
       else payload[f.key] = raw === "" ? null : raw;
     }
     return payload;
