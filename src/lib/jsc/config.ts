@@ -308,3 +308,30 @@ export const JSC_RESOURCES: ResourceDef[] = [
 ];
 
 export const getResource = (id: string) => JSC_RESOURCES.find((r) => r.id === id);
+
+// Module transverse : entreprises (architecture multi-entreprise).
+// Une seule entreprise est utilisée aujourd'hui (Transport JSC), mais chaque
+// enregistrement de chaque module est déjà rattaché à une entreprise.
+export const JSC_COMPANY_RESOURCE: ResourceDef = {
+  id: "companies",
+  table: "jsc_companies",
+  title: "Entreprises",
+  singular: "Entreprise",
+  description:
+    "Entités exploitant la plateforme. Toutes les données de configuration sont cloisonnées par entreprise.",
+  icon: "Building",
+  labelField: "name",
+  orderBy: [{ column: "created_at", ascending: true }],
+  fields: [
+    { key: "name", label: "Nom", type: "text", inList: true, required: true },
+    { key: "legal_name", label: "Raison sociale", type: "text" },
+    { key: "code", label: "Code", type: "text", inList: true, required: true, placeholder: "ex. JSC" },
+    { key: "phone", label: "Téléphone", type: "text", inList: true },
+    { key: "email", label: "Courriel", type: "text" },
+    { key: "address", label: "Adresse", type: "text" },
+    { key: "currency", label: "Devise", type: "text", inList: true, defaultValue: "CAD" },
+    { key: "timezone", label: "Fuseau horaire", type: "text", defaultValue: "America/Toronto" },
+    { key: "is_default", label: "Entreprise par défaut", type: "boolean", inList: true, defaultValue: false },
+    activeField,
+  ],
+};
