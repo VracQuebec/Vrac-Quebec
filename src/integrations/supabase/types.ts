@@ -2366,7 +2366,10 @@ export type Database = {
           actor_id: string | null
           changed_fields: string[]
           company_id: string | null
+          context: Json | null
           created_at: string
+          entity_id: string | null
+          entity_type: string | null
           id: string
           new_values: Json | null
           old_values: Json | null
@@ -2380,7 +2383,10 @@ export type Database = {
           actor_id?: string | null
           changed_fields?: string[]
           company_id?: string | null
+          context?: Json | null
           created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           new_values?: Json | null
           old_values?: Json | null
@@ -2394,7 +2400,10 @@ export type Database = {
           actor_id?: string | null
           changed_fields?: string[]
           company_id?: string | null
+          context?: Json | null
           created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           new_values?: Json | null
           old_values?: Json | null
@@ -2403,6 +2412,83 @@ export type Database = {
           table_name?: string
         }
         Relationships: []
+      }
+      jsc_clients: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          billing_address: string | null
+          city: string | null
+          client_type: string
+          company_id: string
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          internal_notes: string | null
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          name: string
+          payment_terms: string | null
+          phone: string | null
+          postal_code: string | null
+          tax_exempt: boolean
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          billing_address?: string | null
+          city?: string | null
+          client_type?: string
+          company_id?: string
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          internal_notes?: string | null
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          payment_terms?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          tax_exempt?: boolean
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          billing_address?: string | null
+          city?: string | null
+          client_type?: string
+          company_id?: string
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          internal_notes?: string | null
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          payment_terms?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          tax_exempt?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       jsc_companies: {
         Row: {
@@ -2457,6 +2543,444 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      jsc_drivers: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          company_id: string
+          created_at: string
+          default_truck_id: string | null
+          email: string | null
+          first_name: string
+          hire_date: string | null
+          hourly_cost: number | null
+          id: string
+          internal_notes: string | null
+          is_active: boolean
+          last_name: string | null
+          license_class: string | null
+          license_number: string | null
+          phone: string | null
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          company_id?: string
+          created_at?: string
+          default_truck_id?: string | null
+          email?: string | null
+          first_name: string
+          hire_date?: string | null
+          hourly_cost?: number | null
+          id?: string
+          internal_notes?: string | null
+          is_active?: boolean
+          last_name?: string | null
+          license_class?: string | null
+          license_number?: string | null
+          phone?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          company_id?: string
+          created_at?: string
+          default_truck_id?: string | null
+          email?: string | null
+          first_name?: string
+          hire_date?: string | null
+          hourly_cost?: number | null
+          id?: string
+          internal_notes?: string | null
+          is_active?: boolean
+          last_name?: string | null
+          license_class?: string | null
+          license_number?: string | null
+          phone?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_drivers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_drivers_default_truck_id_fkey"
+            columns: ["default_truck_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_estimates: {
+        Row: {
+          billed_hours: number | null
+          calculation: Json | null
+          carrier_id: string | null
+          company_id: string
+          computed_by: string | null
+          created_at: string
+          currency: string
+          decision: Json | null
+          distance_km: number | null
+          engine_version: string | null
+          id: string
+          is_selected: boolean
+          margin: number | null
+          material_cost: number | null
+          material_id: string | null
+          pickup_location_id: string | null
+          request_id: string
+          settings_snapshot: Json | null
+          subtotal: number | null
+          supplier_id: string | null
+          surcharges: number | null
+          tax_total: number | null
+          total: number | null
+          transport_cost: number | null
+          transport_rate_id: string | null
+          trips: number | null
+          truck_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          billed_hours?: number | null
+          calculation?: Json | null
+          carrier_id?: string | null
+          company_id?: string
+          computed_by?: string | null
+          created_at?: string
+          currency?: string
+          decision?: Json | null
+          distance_km?: number | null
+          engine_version?: string | null
+          id?: string
+          is_selected?: boolean
+          margin?: number | null
+          material_cost?: number | null
+          material_id?: string | null
+          pickup_location_id?: string | null
+          request_id: string
+          settings_snapshot?: Json | null
+          subtotal?: number | null
+          supplier_id?: string | null
+          surcharges?: number | null
+          tax_total?: number | null
+          total?: number | null
+          transport_cost?: number | null
+          transport_rate_id?: string | null
+          trips?: number | null
+          truck_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billed_hours?: number | null
+          calculation?: Json | null
+          carrier_id?: string | null
+          company_id?: string
+          computed_by?: string | null
+          created_at?: string
+          currency?: string
+          decision?: Json | null
+          distance_km?: number | null
+          engine_version?: string | null
+          id?: string
+          is_selected?: boolean
+          margin?: number | null
+          material_cost?: number | null
+          material_id?: string | null
+          pickup_location_id?: string | null
+          request_id?: string
+          settings_snapshot?: Json | null
+          subtotal?: number | null
+          supplier_id?: string | null
+          surcharges?: number | null
+          tax_total?: number | null
+          total?: number | null
+          transport_cost?: number | null
+          transport_rate_id?: string | null
+          trips?: number | null
+          truck_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_estimates_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_estimates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_estimates_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_estimates_pickup_location_id_fkey"
+            columns: ["pickup_location_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_pickup_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_estimates_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_estimates_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_estimates_transport_rate_id_fkey"
+            columns: ["transport_rate_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_transport_rates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_estimates_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_invoice_lines: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          line_total: number
+          line_type: string
+          quantity: number
+          sort_order: number
+          tax_ids: string[]
+          unit: string | null
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          line_total?: number
+          line_type?: string
+          quantity?: number
+          sort_order?: number
+          tax_ids?: string[]
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          line_total?: number
+          line_type?: string
+          quantity?: number
+          sort_order?: number
+          tax_ids?: string[]
+          unit?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_invoice_lines_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_invoices: {
+        Row: {
+          amount_paid: number
+          archived_at: string | null
+          archived_by: string | null
+          balance: number | null
+          client_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          due_at: string | null
+          id: string
+          invoice_number: string | null
+          issued_at: string | null
+          notes: string | null
+          order_id: string | null
+          payment_terms: string | null
+          status: string
+          subtotal: number
+          tax_total: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          amount_paid?: number
+          archived_at?: string | null
+          archived_by?: string | null
+          balance?: number | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          due_at?: string | null
+          id?: string
+          invoice_number?: string | null
+          issued_at?: string | null
+          notes?: string | null
+          order_id?: string | null
+          payment_terms?: string | null
+          status?: string
+          subtotal?: number
+          tax_total?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          amount_paid?: number
+          archived_at?: string | null
+          archived_by?: string | null
+          balance?: number | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          due_at?: string | null
+          id?: string
+          invoice_number?: string | null
+          issued_at?: string | null
+          notes?: string | null
+          order_id?: string | null
+          payment_terms?: string | null
+          status?: string
+          subtotal?: number
+          tax_total?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_material_categories: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          code: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          code?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          code?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_material_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       jsc_material_prices: {
         Row: {
@@ -2546,6 +3070,7 @@ export type Database = {
           archived_at: string | null
           archived_by: string | null
           category: string | null
+          category_id: string | null
           code: string | null
           company_id: string
           created_at: string
@@ -2566,6 +3091,7 @@ export type Database = {
           archived_at?: string | null
           archived_by?: string | null
           category?: string | null
+          category_id?: string | null
           code?: string | null
           company_id?: string
           created_at?: string
@@ -2586,6 +3112,7 @@ export type Database = {
           archived_at?: string | null
           archived_by?: string | null
           category?: string | null
+          category_id?: string | null
           code?: string | null
           company_id?: string
           created_at?: string
@@ -2604,10 +3131,225 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "jsc_materials_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_categories"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "jsc_materials_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_number_counters: {
+        Row: {
+          company_id: string
+          created_at: string
+          current_value: number
+          id: string
+          kind: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string
+          created_at?: string
+          current_value?: number
+          id?: string
+          kind: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          current_value?: number
+          id?: string
+          kind?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_number_counters_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_orders: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          cancelled_at: string | null
+          carrier_id: string | null
+          client_id: string | null
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          delivered_quantity: number | null
+          delivered_unit: string | null
+          driver_id: string | null
+          id: string
+          internal_notes: string | null
+          material_id: string | null
+          order_number: string | null
+          pickup_location_id: string | null
+          quote_id: string | null
+          request_id: string | null
+          scheduled_date: string | null
+          scheduled_time: string | null
+          status: string
+          subtotal: number | null
+          supplier_id: string | null
+          tax_total: number | null
+          total: number | null
+          trips_completed: number
+          trips_planned: number | null
+          truck_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          cancelled_at?: string | null
+          carrier_id?: string | null
+          client_id?: string | null
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          delivered_quantity?: number | null
+          delivered_unit?: string | null
+          driver_id?: string | null
+          id?: string
+          internal_notes?: string | null
+          material_id?: string | null
+          order_number?: string | null
+          pickup_location_id?: string | null
+          quote_id?: string | null
+          request_id?: string | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          status?: string
+          subtotal?: number | null
+          supplier_id?: string | null
+          tax_total?: number | null
+          total?: number | null
+          trips_completed?: number
+          trips_planned?: number | null
+          truck_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          cancelled_at?: string | null
+          carrier_id?: string | null
+          client_id?: string | null
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          delivered_quantity?: number | null
+          delivered_unit?: string | null
+          driver_id?: string | null
+          id?: string
+          internal_notes?: string | null
+          material_id?: string | null
+          order_number?: string | null
+          pickup_location_id?: string | null
+          quote_id?: string | null
+          request_id?: string | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          status?: string
+          subtotal?: number | null
+          supplier_id?: string | null
+          tax_total?: number | null
+          total?: number | null
+          trips_completed?: number
+          trips_planned?: number | null
+          truck_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_orders_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_orders_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_orders_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_orders_pickup_location_id_fkey"
+            columns: ["pickup_location_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_pickup_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_orders_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_orders_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_orders_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_trucks"
             referencedColumns: ["id"]
           },
         ]
@@ -2693,6 +3435,217 @@ export type Database = {
           },
           {
             foreignKeyName: "jsc_pickup_locations_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_quotes: {
+        Row: {
+          accepted_at: string | null
+          archived_at: string | null
+          archived_by: string | null
+          client_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          estimate_id: string | null
+          id: string
+          public_payload: Json | null
+          quote_number: string | null
+          refusal_reason: string | null
+          refused_at: string | null
+          request_id: string | null
+          sent_at: string | null
+          status: string
+          subtotal: number | null
+          tax_total: number | null
+          total: number | null
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          estimate_id?: string | null
+          id?: string
+          public_payload?: Json | null
+          quote_number?: string | null
+          refusal_reason?: string | null
+          refused_at?: string | null
+          request_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subtotal?: number | null
+          tax_total?: number | null
+          total?: number | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          estimate_id?: string | null
+          id?: string
+          public_payload?: Json | null
+          quote_number?: string | null
+          refusal_reason?: string | null
+          refused_at?: string | null
+          request_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subtotal?: number | null
+          tax_total?: number | null
+          total?: number | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_quotes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_quotes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_quotes_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_quotes_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_requests: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          city: string | null
+          client_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          delivery_address: string | null
+          desired_date: string | null
+          id: string
+          internal_notes: string | null
+          latitude: number | null
+          longitude: number | null
+          material_id: string | null
+          notes: string | null
+          postal_code: string | null
+          quantity: number | null
+          quantity_unit: string | null
+          request_number: string | null
+          source: string
+          status: string
+          updated_at: string
+          zone_id: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          city?: string | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          delivery_address?: string | null
+          desired_date?: string | null
+          id?: string
+          internal_notes?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          material_id?: string | null
+          notes?: string | null
+          postal_code?: string | null
+          quantity?: number | null
+          quantity_unit?: string | null
+          request_number?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          city?: string | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          delivery_address?: string | null
+          desired_date?: string | null
+          id?: string
+          internal_notes?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          material_id?: string | null
+          notes?: string | null
+          postal_code?: string | null
+          quantity?: number | null
+          quantity_unit?: string | null
+          request_number?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_requests_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_requests_zone_id_fkey"
             columns: ["zone_id"]
             isOneToOne: false
             referencedRelation: "jsc_zones"
@@ -6593,6 +7546,20 @@ export type Database = {
       jsc_import_config: {
         Args: { _company_id?: string; _payload: Json }
         Returns: Json
+      }
+      jsc_log_event: {
+        Args: {
+          _action: string
+          _context?: Json
+          _entity_id: string
+          _entity_type: string
+          _label?: string
+        }
+        Returns: string
+      }
+      jsc_next_number: {
+        Args: { _company_id: string; _kind: string }
+        Returns: string
       }
       list_users_with_roles: {
         Args: never
