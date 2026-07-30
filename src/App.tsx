@@ -48,6 +48,7 @@ const ZoneCityIndex = lazy(() => import("./pages/ZoneCityIndex"));
 const AdminSeoManager = lazy(() => import("./pages/AdminSeoManager"));
 const SeoLandingPage = lazy(() => import("./pages/SeoLandingPage"));
 const TransportRequest = lazy(() => import("./pages/TransportRequest"));
+const Soumission = lazy(() => import("./pages/Soumission"));
 const AdminTransportRequests = lazy(() => import("./pages/AdminTransportRequests"));
 const AdminBusinessIntelligence = lazy(() => import("./pages/AdminBusinessIntelligence"));
 const AdminAiEconomy = lazy(() => import("./pages/AdminAiEconomy"));
@@ -122,6 +123,7 @@ const App = () => (
             <Route path="/admin/liste-noire" element={<AdminBlacklist />} />
             <Route path="/admin/seo" element={<AdminSeoManager />} />
             <Route path="/demande-transport" element={<TransportRequest />} />
+            <Route path="/soumission" element={<Soumission />} />
             <Route path="/admin/demandes-transport" element={<AdminTransportRequests />} />
             <Route path="/admin/business-intelligence" element={<AdminBusinessIntelligence />} />
             <Route path="/admin/ai-economy" element={<AdminAiEconomy />} />
