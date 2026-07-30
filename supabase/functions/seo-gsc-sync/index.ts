@@ -168,7 +168,22 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ ok: true, pages: pages?.length ?? 0, upserts, siteUrl });
+    // Refresh SEO goals immediately so counters reflect the fresh GSC data
+    let goalsRefreshed = false;
+    try {
+      const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/seo-goals-refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Lovable-Context": "cron",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: "{}",
+      });
+      goalsRefreshed = r.ok;
+    } catch (_e) { goalsRefreshed = false; }
+
+    return json({ ok: true, pages: pages?.length ?? 0, upserts, siteUrl, goalsRefreshed });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
