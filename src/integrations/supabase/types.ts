@@ -2359,6 +2359,522 @@ export type Database = {
         }
         Relationships: []
       }
+      jsc_material_prices: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_preferred: boolean
+          material_id: string
+          minimum_quantity: number | null
+          pickup_location_id: string | null
+          purchase_price: number
+          selling_price: number
+          supplier_id: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_preferred?: boolean
+          material_id: string
+          minimum_quantity?: number | null
+          pickup_location_id?: string | null
+          purchase_price?: number
+          selling_price?: number
+          supplier_id?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_preferred?: boolean
+          material_id?: string
+          minimum_quantity?: number | null
+          pickup_location_id?: string | null
+          purchase_price?: number
+          selling_price?: number
+          supplier_id?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_material_prices_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_material_prices_pickup_location_id_fkey"
+            columns: ["pickup_location_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_pickup_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_material_prices_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_materials: {
+        Row: {
+          category: string | null
+          code: string | null
+          created_at: string
+          density_kg_per_m3: number | null
+          id: string
+          internal_notes: string | null
+          is_active: boolean
+          is_taxable: boolean
+          name: string
+          public_description: string | null
+          purchase_price: number
+          selling_price: number
+          sort_order: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          code?: string | null
+          created_at?: string
+          density_kg_per_m3?: number | null
+          id?: string
+          internal_notes?: string | null
+          is_active?: boolean
+          is_taxable?: boolean
+          name: string
+          public_description?: string | null
+          purchase_price?: number
+          selling_price?: number
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          code?: string | null
+          created_at?: string
+          density_kg_per_m3?: number | null
+          id?: string
+          internal_notes?: string | null
+          is_active?: boolean
+          is_taxable?: boolean
+          name?: string
+          public_description?: string | null
+          purchase_price?: number
+          selling_price?: number
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      jsc_pickup_locations: {
+        Row: {
+          access_notes: string | null
+          address: string
+          city: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          latitude: number | null
+          loading_time_minutes: number
+          longitude: number | null
+          name: string
+          opening_hours: string | null
+          postal_code: string | null
+          sort_order: number
+          supplier_id: string | null
+          updated_at: string
+          zone_id: string | null
+        }
+        Insert: {
+          access_notes?: string | null
+          address: string
+          city?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          loading_time_minutes?: number
+          longitude?: number | null
+          name: string
+          opening_hours?: string | null
+          postal_code?: string | null
+          sort_order?: number
+          supplier_id?: string | null
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Update: {
+          access_notes?: string | null
+          address?: string
+          city?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          loading_time_minutes?: number
+          longitude?: number | null
+          name?: string
+          opening_hours?: string | null
+          postal_code?: string | null
+          sort_order?: number
+          supplier_id?: string | null
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_pickup_locations_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_pickup_locations_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_settings: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          key: string
+          label: string
+          sort_order: number
+          unit: string | null
+          updated_at: string
+          value: string | null
+          value_type: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          unit?: string | null
+          updated_at?: string
+          value?: string | null
+          value_type?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          unit?: string | null
+          updated_at?: string
+          value?: string | null
+          value_type?: string
+        }
+        Relationships: []
+      }
+      jsc_suppliers: {
+        Row: {
+          address: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          internal_notes: string | null
+          is_active: boolean
+          name: string
+          payment_terms: string | null
+          phone: string | null
+          sort_order: number
+          updated_at: string
+          zone_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          internal_notes?: string | null
+          is_active?: boolean
+          name: string
+          payment_terms?: string | null
+          phone?: string | null
+          sort_order?: number
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          internal_notes?: string | null
+          is_active?: boolean
+          name?: string
+          payment_terms?: string | null
+          phone?: string | null
+          sort_order?: number
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_suppliers_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_taxes: {
+        Row: {
+          apply_order: number
+          code: string | null
+          compound: boolean
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          rate_percent: number
+          registration_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          apply_order?: number
+          code?: string | null
+          compound?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          rate_percent?: number
+          registration_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          apply_order?: number
+          code?: string | null
+          compound?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          rate_percent?: number
+          registration_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      jsc_transport_rates: {
+        Row: {
+          created_at: string
+          distance_from_km: number | null
+          distance_to_km: number | null
+          flat_rate: number
+          hourly_rate: number
+          id: string
+          is_active: boolean
+          minimum_charge: number
+          minimum_hours: number
+          name: string
+          notes: string | null
+          rate_mode: string
+          rate_per_km: number
+          rate_per_trip: number
+          sort_order: number
+          truck_id: string | null
+          updated_at: string
+          zone_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          distance_from_km?: number | null
+          distance_to_km?: number | null
+          flat_rate?: number
+          hourly_rate?: number
+          id?: string
+          is_active?: boolean
+          minimum_charge?: number
+          minimum_hours?: number
+          name: string
+          notes?: string | null
+          rate_mode?: string
+          rate_per_km?: number
+          rate_per_trip?: number
+          sort_order?: number
+          truck_id?: string | null
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          distance_from_km?: number | null
+          distance_to_km?: number | null
+          flat_rate?: number
+          hourly_rate?: number
+          id?: string
+          is_active?: boolean
+          minimum_charge?: number
+          minimum_hours?: number
+          name?: string
+          notes?: string | null
+          rate_mode?: string
+          rate_per_km?: number
+          rate_per_trip?: number
+          sort_order?: number
+          truck_id?: string | null
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_transport_rates_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_trucks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_transport_rates_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_trucks: {
+        Row: {
+          capacity_m3: number | null
+          capacity_tonnes: number
+          created_at: string
+          fixed_time_minutes: number
+          hourly_rate: number
+          id: string
+          internal_notes: string | null
+          is_active: boolean
+          is_subcontracted: boolean
+          loading_time_minutes: number
+          name: string
+          sort_order: number
+          truck_type: string | null
+          unloading_time_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          capacity_m3?: number | null
+          capacity_tonnes?: number
+          created_at?: string
+          fixed_time_minutes?: number
+          hourly_rate?: number
+          id?: string
+          internal_notes?: string | null
+          is_active?: boolean
+          is_subcontracted?: boolean
+          loading_time_minutes?: number
+          name: string
+          sort_order?: number
+          truck_type?: string | null
+          unloading_time_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          capacity_m3?: number | null
+          capacity_tonnes?: number
+          created_at?: string
+          fixed_time_minutes?: number
+          hourly_rate?: number
+          id?: string
+          internal_notes?: string | null
+          is_active?: boolean
+          is_subcontracted?: boolean
+          loading_time_minutes?: number
+          name?: string
+          sort_order?: number
+          truck_type?: string | null
+          unloading_time_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      jsc_zones: {
+        Row: {
+          center_address: string | null
+          center_lat: number | null
+          center_lng: number | null
+          code: string | null
+          created_at: string
+          distance_surcharge: number
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          radius_km: number | null
+          region: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          center_address?: string | null
+          center_lat?: number | null
+          center_lng?: number | null
+          code?: string | null
+          created_at?: string
+          distance_surcharge?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          radius_km?: number | null
+          region?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          center_address?: string | null
+          center_lat?: number | null
+          center_lng?: number | null
+          code?: string | null
+          created_at?: string
+          distance_surcharge?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          radius_km?: number | null
+          region?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_notes: {
         Row: {
           author_email: string | null
