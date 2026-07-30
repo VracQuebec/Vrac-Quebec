@@ -32,21 +32,29 @@ Deno.serve(async (req) => {
       let value = 0;
       switch (g.metric_type) {
         case "indexed_pages": {
-          const { count } = await supabase.from("seo_pages").select("*", { count: "exact", head: true }).eq("google_index_status", "indexed");
-          value = count ?? 0; break;
+          // Source of truth = Google Search Console (28d window)
+          const { data } = await supabase
+            .from("seo_gsc_metrics").select("page_id,impressions,index_status").eq("period", "28d").range(0, 9999);
+          const pages = new Set<string>();
+          for (const r of data ?? []) {
+            if ((r.impressions ?? 0) > 0 || r.index_status === "indexed") pages.add(r.page_id as string);
+          }
+          value = pages.size; break;
         }
         case "total_pages": {
           const { count } = await supabase.from("seo_pages").select("*", { count: "exact", head: true }).eq("status", "published");
           value = count ?? 0; break;
         }
         case "organic_clicks_month": {
-          const { data } = await supabase.from("seo_gsc_metrics").select("clicks").eq("period", "28d");
+          const { data } = await supabase.from("seo_gsc_metrics").select("clicks").eq("period", "28d").range(0, 9999);
           value = (data ?? []).reduce((s, r) => s + (r.clicks ?? 0), 0); break;
         }
         case "avg_ctr": {
-          const { data } = await supabase.from("seo_gsc_metrics").select("ctr,impressions").eq("period", "28d");
-          const rows = (data ?? []).filter((r) => (r.impressions ?? 0) > 0);
-          value = rows.length ? rows.reduce((s, r) => s + (r.ctr ?? 0), 0) / rows.length : 0; break;
+          // Weighted CTR = total clicks / total impressions (real GSC aggregate)
+          const { data } = await supabase.from("seo_gsc_metrics").select("clicks,impressions").eq("period", "28d").range(0, 9999);
+          const imp = (data ?? []).reduce((s, r) => s + (r.impressions ?? 0), 0);
+          const clk = (data ?? []).reduce((s, r) => s + (r.clicks ?? 0), 0);
+          value = imp > 0 ? clk / imp : 0; break;
         }
         case "submissions_month": {
           const { count } = await supabase.from("submissions").select("*", { count: "exact", head: true }).gte("created_at", monthAgo);
@@ -59,7 +67,7 @@ Deno.serve(async (req) => {
         }
         case "keyword_rank": {
           if (!g.keyword) break;
-          const { data } = await supabase.from("seo_gsc_metrics").select("top_queries").eq("period", "28d");
+          const { data } = await supabase.from("seo_gsc_metrics").select("top_queries").eq("period", "28d").range(0, 9999);
           let best = 100;
           for (const row of data ?? []) {
             const q = (row.top_queries as Array<{ query: string; position: number }> | null) ?? [];
