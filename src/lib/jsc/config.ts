@@ -256,10 +256,6 @@ export const JSC_RESOURCES: ResourceDef[] = [
     ],
   },
   {
-    id: "zones",
-    table: "jsc_zones_placeholder_marker",
-  } as ResourceDef,
-  {
     id: "drivers",
     table: "jsc_drivers",
     title: "Chauffeurs",
