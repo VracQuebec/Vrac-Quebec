@@ -1,6 +1,6 @@
-// Client unique du moteur de calcul Vrac Québec.
-// Tout appel d'estimation (site public, CRM, futurs canaux) passe ici :
-// aucun calcul de prix ne doit être refait côté interface.
+// Client unique des moteurs Vrac Québec OS (Decision + Calculation).
+// Tout appel d'estimation (site public, calculateur, CRM, commandes,
+// répartition) passe ici : aucune interface ne refait un calcul.
 import { supabase } from "@/integrations/supabase/client";
 
 export type QuoteUnit = "tonne" | "verge" | "m3";
@@ -14,34 +14,41 @@ export interface QuoteRequest {
   delivery?: { lat: number; lng: number; address?: string };
   /** Restreindre à un transporteur précis (usage interne) */
   carrier_id?: string | null;
+  /** Restreindre à un fournisseur précis (usage interne) */
+  supplier_id?: string | null;
 }
 
-export interface ClientQuote {
+export interface TaxLine { name: string; code: string | null; rate_percent: number; amount: number }
+
+/** Données publiques : jamais de fournisseur, transporteur, coût ni marge. */
+export interface PublicQuote {
   material: { id: string; name: string };
+  quantity: number;
+  unit: string;
   tonnage: number;
   trips: number;
   estimated_duration_minutes: number;
   delivery_address: string | null;
-  total_before_tax: number;
-  computed_at: string;
+  subtotal: number;
+  taxes: TaxLine[];
+  tax_total: number;
+  total: number;
 }
 
-/** Résultat complet (fournisseur, transporteur, camion, coûts) — administrateurs seulement. */
-export interface InternalQuote extends Record<string, unknown> {
+/** Bloc technique complet (décision, options écartées, coûts, marge) — administrateurs seulement. */
+export interface TechnicalQuote extends Record<string, unknown> {
   selected: Record<string, unknown>;
-  candidates_evaluated: Record<string, unknown>[];
-  totals: {
-    transport_cost: number;
-    material_cost: number;
-    surcharges: number;
-    margin: number;
-    total_before_tax: number;
-  };
+  options: Record<string, unknown>[];
+  decision_trace: Record<string, unknown>;
+  settings_used: Record<string, number>;
 }
 
 export type QuoteResponse =
-  | { ok: true; scope: "client"; quote: ClientQuote }
-  | { ok: true; scope: "internal"; quote: InternalQuote };
+  | { ok: true; scope: "client"; engine_version: string; computed_at: string; quote: { public: PublicQuote } }
+  | {
+      ok: true; scope: "internal"; engine_version: string; computed_at: string;
+      quote: { public: PublicQuote; technical: TechnicalQuote };
+    };
 
 export async function getQuote(request: QuoteRequest): Promise<QuoteResponse> {
   const { data, error } = await supabase.functions.invoke("quote-engine", {
@@ -63,4 +70,10 @@ export async function getQuote(request: QuoteRequest): Promise<QuoteResponse> {
 
   if (!data?.ok) throw new Error(data?.error ?? "Estimation indisponible.");
   return data as QuoteResponse;
+}
+
+/** Raccourci : les données affichables côté client, quel que soit le rôle. */
+export async function getPublicQuote(request: QuoteRequest): Promise<PublicQuote> {
+  const response = await getQuote(request);
+  return response.quote.public;
 }
