@@ -1,15 +1,15 @@
 // ============================================================
-// VRAC QUÉBEC — MOTEUR DE CALCUL V1 (point d'entrée unique)
-// Utilisable par : site web, CRM, API futures, IA téléphonique,
-// applications mobiles. Toute estimation de la plateforme passe ici.
+// VRAC QUÉBEC OS — API DES MOTEURS (point d'entrée unique)
+// Decision Engine + Calculation Engine exposés à toute la plateforme :
+// site web, calculateur public, CRM, commandes, répartition,
+// API futures, IA téléphonique, applications mobiles.
 //
-// POST { material_id, quantity, unit, address | delivery:{lat,lng}, carrier_id? }
-// Réponse client  : total, délai, voyages (aucune donnée stratégique).
-// Réponse interne : ajoutée uniquement pour les administrateurs.
+// POST { material_id, quantity, unit, address | delivery:{lat,lng}, carrier_id?, supplier_id? }
+// Réponse : bloc `public` toujours ; bloc `technical` pour les administrateurs.
 // ============================================================
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { computeQuote, type DistanceProvider, type EngineConfig, type Unit } from '../_shared/quote-engine.ts';
+import { runQuote, type DistanceProvider, type EngineConfig, type Unit } from '../_shared/vqos/index.ts';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
@@ -72,7 +72,7 @@ const distanceProvider: DistanceProvider = async (origins, destination) => {
 const live = (q: any) => q.eq('is_active', true).is('archived_at', null);
 
 async function loadConfig(db: any, materialId: string): Promise<EngineConfig> {
-  const [material, prices, pickups, suppliers, carriers, trucks, rates, zones, settings] = await Promise.all([
+  const [material, prices, pickups, suppliers, carriers, trucks, rates, zones, taxes, settings] = await Promise.all([
     db.from('jsc_materials').select('*').eq('id', materialId).is('archived_at', null).maybeSingle(),
     live(db.from('jsc_material_prices').select('*')).eq('material_id', materialId),
     live(db.from('jsc_pickup_locations').select('*')),
@@ -81,6 +81,7 @@ async function loadConfig(db: any, materialId: string): Promise<EngineConfig> {
     live(db.from('jsc_trucks').select('*')),
     live(db.from('jsc_transport_rates').select('*')),
     live(db.from('jsc_zones').select('id,name,distance_surcharge')),
+    live(db.from('jsc_taxes').select('id,name,code,rate_percent,apply_order,compound')),
     live(db.from('jsc_settings').select('key,value')),
   ]);
 
@@ -99,6 +100,7 @@ async function loadConfig(db: any, materialId: string): Promise<EngineConfig> {
     trucks: trucks.data ?? [],
     rates: rates.data ?? [],
     zones: zones.data ?? [],
+    taxes: taxes.data ?? [],
     settings: settingsMap,
   };
 }
@@ -142,28 +144,23 @@ Deno.serve(async (req) => {
     }
 
     const config = await loadConfig(db, materialId);
-    const result = await computeQuote(
-      { material_id: materialId, quantity, unit, delivery, carrier_id: body?.carrier_id ?? null },
+    const result = await runQuote(
+      {
+        material_id: materialId, quantity, unit, delivery,
+        carrier_id: body?.carrier_id ?? null,
+        supplier_id: body?.supplier_id ?? null,
+      },
       config,
       distanceProvider,
     );
 
-    if (isAdmin) return json({ ok: true, scope: 'internal', quote: result });
-
-    // Vue client : prix, délai et logistique visible, rien de stratégique.
-    const s = result.selected;
+    // Le moteur retourne les données ; l'exposition dépend uniquement du rôle.
+    if (isAdmin) {
+      return json({ ok: true, scope: 'internal', engine_version: result.engine_version, computed_at: result.computed_at, quote: result });
+    }
     return json({
-      ok: true,
-      scope: 'client',
-      quote: {
-        material: { id: result.material.id, name: result.material.name },
-        tonnage: result.input.tonnage,
-        trips: s.trips,
-        estimated_duration_minutes: s.total_minutes_rounded,
-        delivery_address: delivery.address ?? null,
-        total_before_tax: result.totals.total_before_tax,
-        computed_at: result.computed_at,
-      },
+      ok: true, scope: 'client', engine_version: result.engine_version,
+      computed_at: result.computed_at, quote: { public: result.public },
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Erreur inconnue';
