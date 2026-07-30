@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Loader2, Plus, Pencil, Archive, ArchiveRestore, Search, Lock, History, Download, Upload,
+  Loader2, Plus, Pencil, Archive, ArchiveRestore, Search, Lock, History, Download, Upload, Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -150,10 +150,27 @@ export default function ResourceManager({
     setOpen(true);
   };
 
+  const toDraftValue = (f: FieldDef, v: unknown) => {
+    if (f.type === "list") return Array.isArray(v) ? (v as string[]).join("\n") : (v ?? "");
+    return v ?? (f.type === "boolean" ? false : "");
+  };
+
   const openEdit = (row: Row) => {
     setEditing(row);
     const d: Row = {};
-    for (const f of resource.fields) d[f.key] = row[f.key] ?? (f.type === "boolean" ? false : "");
+    for (const f of resource.fields) d[f.key] = toDraftValue(f, row[f.key]);
+    setDraft(d);
+    setOpen(true);
+  };
+
+  // Duplication : reprend toutes les valeurs sauf l'identifiant et le numéro.
+  const openDuplicate = (row: Row) => {
+    setEditing(null);
+    const d: Row = {};
+    for (const f of resource.fields) d[f.key] = toDraftValue(f, row[f.key]);
+    if (typeof d.name === "string") d.name = `${d.name} (copie)`;
+    if (typeof d.code === "string" && d.code) d.code = `${d.code}-COPIE`;
+    if ("slug" in d) d.slug = "";
     setDraft(d);
     setOpen(true);
   };
@@ -168,6 +185,10 @@ export default function ResourceManager({
       }
       if (f.type === "boolean") payload[f.key] = Boolean(raw);
       else if (f.type === "number") payload[f.key] = raw === "" || raw === null ? null : Number(raw);
+      else if (f.type === "list") {
+        payload[f.key] = String(raw ?? "")
+          .split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean);
+      }
       else payload[f.key] = raw === "" ? null : raw;
     }
     return payload;
@@ -217,6 +238,10 @@ export default function ResourceManager({
   const renderCell = (row: Row, f: FieldDef) => {
     const v = row[f.key];
     if (f.type === "boolean") return v ? "Oui" : "Non";
+    if (f.type === "list") {
+      const arr = Array.isArray(v) ? (v as string[]) : [];
+      return arr.length ? arr.join(", ") : <span className="text-muted-foreground">—</span>;
+    }
     if (v === null || v === undefined || v === "") return <span className="text-muted-foreground">—</span>;
     if (f.type === "reference") {
       const found = refs[f.key]?.find((o) => o.id === String(v));
@@ -259,6 +284,7 @@ export default function ResourceManager({
           const raw = (line[i] ?? "").trim();
           if (f.type === "boolean") p[f.key] = ["1", "true", "oui", "vrai", "yes"].includes(raw.toLowerCase());
           else if (f.type === "number") p[f.key] = raw === "" ? null : Number(raw.replace(",", "."));
+          else if (f.type === "list") p[f.key] = raw ? raw.split(/[|,;]+/).map((s) => s.trim()).filter(Boolean) : [];
           else p[f.key] = raw === "" ? null : raw;
         });
         if (scopeId) p.company_id = scopeId;
@@ -297,6 +323,16 @@ export default function ResourceManager({
           rows={3}
           value={String(v ?? "")}
           placeholder={f.placeholder}
+          onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
+        />
+      );
+    }
+    if (f.type === "list") {
+      return (
+        <Textarea
+          rows={3}
+          value={Array.isArray(v) ? (v as string[]).join("\n") : String(v ?? "")}
+          placeholder={f.placeholder ?? "Une valeur par ligne"}
           onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
         />
       );
@@ -446,6 +482,9 @@ export default function ResourceManager({
                           <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Modifier">
                             <Pencil className="h-4 w-4" />
                           </Button>
+                          <Button variant="ghost" size="icon" onClick={() => openDuplicate(row)} aria-label="Dupliquer">
+                            <Copy className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => setToArchive(row)} aria-label="Archiver">
                             <Archive className="h-4 w-4 text-destructive" />
                           </Button>
@@ -472,7 +511,7 @@ export default function ResourceManager({
             {resource.fields.map((f) => (
               <div
                 key={f.key}
-                className={f.type === "textarea" ? "sm:col-span-2 space-y-1.5" : "space-y-1.5"}
+                className={f.type === "textarea" || f.type === "list" ? "sm:col-span-2 space-y-1.5" : "space-y-1.5"}
               >
                 <Label className="flex items-center gap-1.5">
                   {f.label}

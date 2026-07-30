@@ -14,7 +14,8 @@ export type FieldType =
   | "number"
   | "boolean"
   | "select"
-  | "reference";
+  | "reference"
+  | "list";
 
 export interface FieldDef {
   key: string;
@@ -141,6 +142,7 @@ export const JSC_RESOURCES: ResourceDef[] = [
         refTable: "jsc_material_categories", refLabel: "name",
       },
       { key: "category", label: "Catégorie (libellé libre)", type: "text", placeholder: "ex. Pierre, Sable, Terre" },
+      { key: "subcategory", label: "Sous-catégorie", type: "text", inList: true, placeholder: "ex. Concassé 0-3/4" },
       {
         key: "unit", label: "Unité de vente", type: "select", inList: true, defaultValue: "tonne",
         options: [
@@ -153,8 +155,30 @@ export const JSC_RESOURCES: ResourceDef[] = [
       { key: "density_kg_per_m3", label: "Densité", type: "number", suffix: "kg/m³", help: "Sert à convertir volume ↔ masse." },
       { key: "purchase_price", label: "Prix d'achat", type: "number", suffix: "$", confidential: true, defaultValue: 0 },
       { key: "selling_price", label: "Prix de vente", type: "number", inList: true, suffix: "$", defaultValue: 0 },
+      { key: "margin_percent", label: "Marge", type: "number", suffix: "%", confidential: true, help: "Marge appliquée par le moteur de calcul si définie." },
+      { key: "promo_price", label: "Prix promotionnel", type: "number", suffix: "$", confidential: true },
+      { key: "promo_starts_on", label: "Promotion — début", type: "text", placeholder: "AAAA-MM-JJ" },
+      { key: "promo_ends_on", label: "Promotion — fin", type: "text", placeholder: "AAAA-MM-JJ" },
       { key: "is_taxable", label: "Taxable", type: "boolean", defaultValue: true },
+      {
+        key: "availability", label: "Disponibilité", type: "select", inList: true, defaultValue: "disponible",
+        options: [
+          { value: "disponible", label: "Disponible" },
+          { value: "sur_commande", label: "Sur commande" },
+          { value: "limite", label: "Stock limité" },
+          { value: "rupture", label: "Rupture" },
+        ],
+      },
       { key: "public_description", label: "Description publique", type: "textarea" },
+      { key: "uses", label: "Utilisations", type: "list", placeholder: "Une utilisation par ligne" },
+      { key: "cover_image_url", label: "Image principale (URL)", type: "text" },
+      { key: "images", label: "Images additionnelles (URL)", type: "list", placeholder: "Une URL par ligne" },
+      { key: "is_public", label: "Visible sur le site", type: "boolean", inList: true, defaultValue: true, help: "Désactiver retire immédiatement la fiche du catalogue public." },
+      { key: "slug", label: "Adresse web (slug)", type: "text", help: "Généré automatiquement à partir du nom si laissé vide." },
+      { key: "seo_title", label: "Meta title", type: "text", placeholder: "60 caractères max" },
+      { key: "seo_description", label: "Meta description", type: "textarea", placeholder: "160 caractères max" },
+      { key: "seo_keywords", label: "Mots-clés SEO", type: "list", placeholder: "Un mot-clé par ligne" },
+      { key: "seo_text", label: "Texte SEO", type: "textarea" },
       { key: "internal_notes", label: "Notes internes", type: "textarea", confidential: true },
       sortField,
       activeField,
@@ -175,6 +199,12 @@ export const JSC_RESOURCES: ResourceDef[] = [
       { key: "phone", label: "Téléphone", type: "text", inList: true },
       { key: "email", label: "Courriel", type: "text" },
       { key: "address", label: "Adresse", type: "text" },
+      { key: "city", label: "Ville", type: "text", inList: true },
+      { key: "postal_code", label: "Code postal", type: "text" },
+      { key: "latitude", label: "Latitude", type: "number" },
+      { key: "longitude", label: "Longitude", type: "number" },
+      { key: "opening_hours", label: "Heures d'ouverture", type: "text", placeholder: "ex. Lun-Ven 6h-17h" },
+      { key: "website", label: "Site web", type: "text" },
       { key: "zone_id", label: "Zone", type: "reference", refTable: "jsc_zones", refLabel: "name", inList: true },
       { key: "payment_terms", label: "Conditions de paiement", type: "text", placeholder: "ex. Net 30" },
       { key: "internal_notes", label: "Notes internes", type: "textarea", confidential: true },
@@ -249,9 +279,21 @@ export const JSC_RESOURCES: ResourceDef[] = [
     fields: [
       { key: "name", label: "Nom / identifiant", type: "text", inList: true, required: true },
       { key: "truck_type", label: "Type", type: "text", inList: true, placeholder: "ex. 10 roues, semi-remorque" },
+      { key: "axle_count", label: "Nombre d'essieux", type: "number", inList: true },
       { key: "capacity_tonnes", label: "Capacité", type: "number", inList: true, suffix: "t", defaultValue: 0 },
       { key: "capacity_m3", label: "Capacité volume", type: "number", suffix: "m³" },
       { key: "hourly_rate", label: "Taux horaire", type: "number", inList: true, suffix: "$/h", confidential: true, defaultValue: 0 },
+      { key: "per_km_rate", label: "Coût au kilomètre", type: "number", suffix: "$/km", confidential: true },
+      { key: "per_trip_rate", label: "Coût au voyage", type: "number", suffix: "$/voyage", confidential: true },
+      {
+        key: "availability", label: "Disponibilité", type: "select", inList: true, defaultValue: "disponible",
+        options: [
+          { value: "disponible", label: "Disponible" },
+          { value: "reserve", label: "Réservé" },
+          { value: "entretien", label: "En entretien" },
+          { value: "indisponible", label: "Indisponible" },
+        ],
+      },
       { key: "loading_time_minutes", label: "Temps de chargement", type: "number", suffix: "min", defaultValue: 0 },
       { key: "unloading_time_minutes", label: "Temps de déchargement", type: "number", suffix: "min", defaultValue: 0 },
       { key: "fixed_time_minutes", label: "Autre temps fixe", type: "number", suffix: "min", defaultValue: 0 },
@@ -461,10 +503,50 @@ export const JSC_COMPANY_RESOURCE: ResourceDef = {
     { key: "address", label: "Adresse", type: "text" },
     { key: "currency", label: "Devise", type: "text", inList: true, defaultValue: "CAD" },
     { key: "timezone", label: "Fuseau horaire", type: "text", defaultValue: "America/Toronto" },
+    {
+      key: "availability", label: "Disponibilité", type: "select", inList: true, defaultValue: "disponible",
+      options: [
+        { value: "disponible", label: "Disponible" },
+        { value: "capacite_limitee", label: "Capacité limitée" },
+        { value: "indisponible", label: "Indisponible" },
+      ],
+    },
+    { key: "priority", label: "Priorité", type: "number", inList: true, defaultValue: 100, help: "Plus la valeur est basse, plus le transporteur est priorisé à coût égal." },
     { key: "is_default", label: "Transporteur par défaut", type: "boolean", inList: true, defaultValue: false },
     activeField,
   ],
 };
+
+// Recommandations administrables entre matériaux (catalogue public).
+export const JSC_CATALOG_RESOURCES: ResourceDef[] = [
+  {
+    id: "material_recommendations",
+    table: "jsc_material_recommendations",
+    title: "Recommandations",
+    singular: "Recommandation",
+    description:
+      "Produits similaires, complémentaires ou recommandés affichés sur les fiches publiques des matériaux.",
+    icon: "Sparkles",
+    labelField: "id",
+    companyScoped: true,
+    orderBy: [{ column: "sort_order", ascending: true }, { column: "created_at", ascending: true }],
+    fields: [
+      { key: "material_id", label: "Matériau", type: "reference", refTable: "jsc_materials", refLabel: "name", inList: true, required: true },
+      { key: "related_material_id", label: "Matériau recommandé", type: "reference", refTable: "jsc_materials", refLabel: "name", inList: true, required: true },
+      {
+        key: "relation_type", label: "Type de lien", type: "select", inList: true, defaultValue: "similaire",
+        options: [
+          { value: "similaire", label: "Produit similaire" },
+          { value: "complementaire", label: "Produit complémentaire" },
+          { value: "recommande", label: "Matériau recommandé" },
+        ],
+      },
+      { key: "note", label: "Note", type: "text" },
+      sortField,
+      activeField,
+    ],
+  },
+];
 
 // ============================================================
 // Flux commercial : demandes → soumissions → commandes → factures

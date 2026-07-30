@@ -2495,6 +2495,7 @@ export type Database = {
           address: string | null
           archived_at: string | null
           archived_by: string | null
+          availability: string
           code: string
           created_at: string
           currency: string
@@ -2505,6 +2506,7 @@ export type Database = {
           legal_name: string | null
           name: string
           phone: string | null
+          priority: number
           timezone: string
           updated_at: string
         }
@@ -2512,6 +2514,7 @@ export type Database = {
           address?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          availability?: string
           code: string
           created_at?: string
           currency?: string
@@ -2522,6 +2525,7 @@ export type Database = {
           legal_name?: string | null
           name: string
           phone?: string | null
+          priority?: number
           timezone?: string
           updated_at?: string
         }
@@ -2529,6 +2533,7 @@ export type Database = {
           address?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          availability?: string
           code?: string
           created_at?: string
           currency?: string
@@ -2539,6 +2544,7 @@ export type Database = {
           legal_name?: string | null
           name?: string
           phone?: string | null
+          priority?: number
           timezone?: string
           updated_at?: string
         }
@@ -3118,69 +3124,181 @@ export type Database = {
           },
         ]
       }
-      jsc_materials: {
+      jsc_material_recommendations: {
         Row: {
           archived_at: string | null
           archived_by: string | null
-          category: string | null
-          category_id: string | null
-          code: string | null
-          company_id: string
+          company_id: string | null
           created_at: string
-          density_kg_per_m3: number | null
           id: string
-          internal_notes: string | null
           is_active: boolean
-          is_taxable: boolean
-          name: string
-          public_description: string | null
-          purchase_price: number
-          selling_price: number
+          material_id: string
+          note: string | null
+          related_material_id: string
+          relation_type: string
           sort_order: number
-          unit: string
           updated_at: string
         }
         Insert: {
           archived_at?: string | null
           archived_by?: string | null
-          category?: string | null
-          category_id?: string | null
-          code?: string | null
-          company_id?: string
+          company_id?: string | null
           created_at?: string
-          density_kg_per_m3?: number | null
           id?: string
-          internal_notes?: string | null
           is_active?: boolean
-          is_taxable?: boolean
-          name: string
-          public_description?: string | null
-          purchase_price?: number
-          selling_price?: number
+          material_id: string
+          note?: string | null
+          related_material_id: string
+          relation_type?: string
           sort_order?: number
-          unit?: string
           updated_at?: string
         }
         Update: {
           archived_at?: string | null
           archived_by?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          material_id?: string
+          note?: string | null
+          related_material_id?: string
+          relation_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_material_recommendations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_material_recommendations_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_material_recommendations_related_material_id_fkey"
+            columns: ["related_material_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_materials: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          availability: string
+          category: string | null
+          category_id: string | null
+          code: string | null
+          company_id: string
+          cover_image_url: string | null
+          created_at: string
+          density_kg_per_m3: number | null
+          id: string
+          images: string[]
+          internal_notes: string | null
+          is_active: boolean
+          is_public: boolean
+          is_taxable: boolean
+          margin_percent: number | null
+          name: string
+          promo_ends_on: string | null
+          promo_price: number | null
+          promo_starts_on: string | null
+          public_description: string | null
+          purchase_price: number
+          selling_price: number
+          seo_description: string | null
+          seo_keywords: string[]
+          seo_text: string | null
+          seo_title: string | null
+          slug: string | null
+          sort_order: number
+          subcategory: string | null
+          unit: string
+          updated_at: string
+          uses: string[]
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          availability?: string
           category?: string | null
           category_id?: string | null
           code?: string | null
           company_id?: string
+          cover_image_url?: string | null
           created_at?: string
           density_kg_per_m3?: number | null
           id?: string
+          images?: string[]
           internal_notes?: string | null
           is_active?: boolean
+          is_public?: boolean
           is_taxable?: boolean
-          name?: string
+          margin_percent?: number | null
+          name: string
+          promo_ends_on?: string | null
+          promo_price?: number | null
+          promo_starts_on?: string | null
           public_description?: string | null
           purchase_price?: number
           selling_price?: number
+          seo_description?: string | null
+          seo_keywords?: string[]
+          seo_text?: string | null
+          seo_title?: string | null
+          slug?: string | null
           sort_order?: number
+          subcategory?: string | null
           unit?: string
           updated_at?: string
+          uses?: string[]
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          availability?: string
+          category?: string | null
+          category_id?: string | null
+          code?: string | null
+          company_id?: string
+          cover_image_url?: string | null
+          created_at?: string
+          density_kg_per_m3?: number | null
+          id?: string
+          images?: string[]
+          internal_notes?: string | null
+          is_active?: boolean
+          is_public?: boolean
+          is_taxable?: boolean
+          margin_percent?: number | null
+          name?: string
+          promo_ends_on?: string | null
+          promo_price?: number | null
+          promo_starts_on?: string | null
+          public_description?: string | null
+          purchase_price?: number
+          selling_price?: number
+          seo_description?: string | null
+          seo_keywords?: string[]
+          seo_text?: string | null
+          seo_title?: string | null
+          slug?: string | null
+          sort_order?: number
+          subcategory?: string | null
+          unit?: string
+          updated_at?: string
+          uses?: string[]
         }
         Relationships: [
           {
@@ -3829,6 +3947,7 @@ export type Database = {
           address: string | null
           archived_at: string | null
           archived_by: string | null
+          city: string | null
           company_id: string
           contact_name: string | null
           created_at: string
@@ -3836,17 +3955,23 @@ export type Database = {
           id: string
           internal_notes: string | null
           is_active: boolean
+          latitude: number | null
+          longitude: number | null
           name: string
+          opening_hours: string | null
           payment_terms: string | null
           phone: string | null
+          postal_code: string | null
           sort_order: number
           updated_at: string
+          website: string | null
           zone_id: string | null
         }
         Insert: {
           address?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          city?: string | null
           company_id?: string
           contact_name?: string | null
           created_at?: string
@@ -3854,17 +3979,23 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
           name: string
+          opening_hours?: string | null
           payment_terms?: string | null
           phone?: string | null
+          postal_code?: string | null
           sort_order?: number
           updated_at?: string
+          website?: string | null
           zone_id?: string | null
         }
         Update: {
           address?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          city?: string | null
           company_id?: string
           contact_name?: string | null
           created_at?: string
@@ -3872,11 +4003,16 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
           name?: string
+          opening_hours?: string | null
           payment_terms?: string | null
           phone?: string | null
+          postal_code?: string | null
           sort_order?: number
           updated_at?: string
+          website?: string | null
           zone_id?: string | null
         }
         Relationships: [
@@ -4050,6 +4186,8 @@ export type Database = {
         Row: {
           archived_at: string | null
           archived_by: string | null
+          availability: string
+          axle_count: number | null
           capacity_m3: number | null
           capacity_tonnes: number
           company_id: string
@@ -4062,6 +4200,8 @@ export type Database = {
           is_subcontracted: boolean
           loading_time_minutes: number
           name: string
+          per_km_rate: number | null
+          per_trip_rate: number | null
           sort_order: number
           truck_type: string | null
           unloading_time_minutes: number
@@ -4070,6 +4210,8 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           archived_by?: string | null
+          availability?: string
+          axle_count?: number | null
           capacity_m3?: number | null
           capacity_tonnes?: number
           company_id?: string
@@ -4082,6 +4224,8 @@ export type Database = {
           is_subcontracted?: boolean
           loading_time_minutes?: number
           name: string
+          per_km_rate?: number | null
+          per_trip_rate?: number | null
           sort_order?: number
           truck_type?: string | null
           unloading_time_minutes?: number
@@ -4090,6 +4234,8 @@ export type Database = {
         Update: {
           archived_at?: string | null
           archived_by?: string | null
+          availability?: string
+          axle_count?: number | null
           capacity_m3?: number | null
           capacity_tonnes?: number
           company_id?: string
@@ -4102,6 +4248,8 @@ export type Database = {
           is_subcontracted?: boolean
           loading_time_minutes?: number
           name?: string
+          per_km_rate?: number | null
+          per_trip_rate?: number | null
           sort_order?: number
           truck_type?: string | null
           unloading_time_minutes?: number
@@ -7671,10 +7819,30 @@ export type Database = {
         }
         Returns: string
       }
+      jsc_material_slugify: { Args: { _text: string }; Returns: string }
       jsc_next_number: {
         Args: { _company_id: string; _kind: string }
         Returns: string
       }
+      jsc_public_catalog: {
+        Args: never
+        Returns: {
+          availability: string
+          category: string
+          cover_image_url: string
+          images: string[]
+          name: string
+          public_description: string
+          seo_description: string
+          seo_keywords: string[]
+          seo_title: string
+          slug: string
+          subcategory: string
+          unit: string
+          uses: string[]
+        }[]
+      }
+      jsc_public_material: { Args: { _slug: string }; Returns: Json }
       list_users_with_roles: {
         Args: never
         Returns: {
@@ -7804,6 +7972,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      unaccent_immutable: { Args: { _text: string }; Returns: string }
       unaccent_string: { Args: { input: string }; Returns: string }
     }
     Enums: {
