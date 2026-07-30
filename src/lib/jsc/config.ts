@@ -503,10 +503,50 @@ export const JSC_COMPANY_RESOURCE: ResourceDef = {
     { key: "address", label: "Adresse", type: "text" },
     { key: "currency", label: "Devise", type: "text", inList: true, defaultValue: "CAD" },
     { key: "timezone", label: "Fuseau horaire", type: "text", defaultValue: "America/Toronto" },
+    {
+      key: "availability", label: "Disponibilité", type: "select", inList: true, defaultValue: "disponible",
+      options: [
+        { value: "disponible", label: "Disponible" },
+        { value: "capacite_limitee", label: "Capacité limitée" },
+        { value: "indisponible", label: "Indisponible" },
+      ],
+    },
+    { key: "priority", label: "Priorité", type: "number", inList: true, defaultValue: 100, help: "Plus la valeur est basse, plus le transporteur est priorisé à coût égal." },
     { key: "is_default", label: "Transporteur par défaut", type: "boolean", inList: true, defaultValue: false },
     activeField,
   ],
 };
+
+// Recommandations administrables entre matériaux (catalogue public).
+export const JSC_CATALOG_RESOURCES: ResourceDef[] = [
+  {
+    id: "material_recommendations",
+    table: "jsc_material_recommendations",
+    title: "Recommandations",
+    singular: "Recommandation",
+    description:
+      "Produits similaires, complémentaires ou recommandés affichés sur les fiches publiques des matériaux.",
+    icon: "Sparkles",
+    labelField: "id",
+    companyScoped: true,
+    orderBy: [{ column: "sort_order", ascending: true }, { column: "created_at", ascending: true }],
+    fields: [
+      { key: "material_id", label: "Matériau", type: "reference", refTable: "jsc_materials", refLabel: "name", inList: true, required: true },
+      { key: "related_material_id", label: "Matériau recommandé", type: "reference", refTable: "jsc_materials", refLabel: "name", inList: true, required: true },
+      {
+        key: "relation_type", label: "Type de lien", type: "select", inList: true, defaultValue: "similaire",
+        options: [
+          { value: "similaire", label: "Produit similaire" },
+          { value: "complementaire", label: "Produit complémentaire" },
+          { value: "recommande", label: "Matériau recommandé" },
+        ],
+      },
+      { key: "note", label: "Note", type: "text" },
+      sortField,
+      activeField,
+    ],
+  },
+];
 
 // ============================================================
 // Flux commercial : demandes → soumissions → commandes → factures
