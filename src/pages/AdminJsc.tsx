@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft, Layers, Building2, Building, MapPin, DollarSign, Truck, Route, Globe2, Percent,
-  Settings2, ShieldCheck, History, DatabaseBackup, Loader2,
+  Settings2, ShieldCheck, History, DatabaseBackup, Loader2, FolderTree, UserCog, Users,
 } from "lucide-react";
 import { JSC_RESOURCES, JSC_COMPANY_RESOURCE } from "@/lib/jsc/config";
 import ResourceManager from "@/components/jsc/ResourceManager";
@@ -15,6 +15,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 
 const ICONS: Record<string, typeof Layers> = {
   Layers, Building2, Building, MapPin, DollarSign, Truck, Route, Globe2, Percent, Settings2,
+  FolderTree, UserCog, Users,
 };
 
 const RESOURCES = [...JSC_RESOURCES, JSC_COMPANY_RESOURCE];
