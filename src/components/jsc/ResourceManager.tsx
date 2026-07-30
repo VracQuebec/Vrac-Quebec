@@ -4,7 +4,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Archive, ArchiveRestore, Search, Lock, History } from "lucide-react";
+import {
+  Loader2, Plus, Pencil, Archive, ArchiveRestore, Search, Lock, History, Download, Upload,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +42,40 @@ function emptyDraft(resource: ResourceDef): Row {
   return draft;
 }
 
-export default function ResourceManager({ resource }: { resource: ResourceDef }) {
+// --- CSV (compatible Excel) -------------------------------------------------
+const csvCell = (v: unknown) => {
+  const s = v === null || v === undefined ? "" : String(v);
+  return /[";\n,]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cur = "";
+  let quoted = false;
+  const sep = text.split("\n")[0].includes(";") ? ";" : ",";
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else cur += c;
+    } else if (c === '"') quoted = true;
+    else if (c === sep) { row.push(cur); cur = ""; }
+    else if (c === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; }
+    else if (c !== "\r") cur += c;
+  }
+  if (cur !== "" || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter((r) => r.some((c) => c.trim() !== ""));
+}
+
+export default function ResourceManager({
+  resource,
+  companyId,
+}: {
+  resource: ResourceDef;
+  companyId?: string | null;
+}) {
   const [rows, setRows] = useState<Row[]>([]);
   const [refs, setRefs] = useState<RefMap>({});
   const [loading, setLoading] = useState(true);
@@ -52,22 +87,29 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
   const [toArchive, setToArchive] = useState<Row | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [historyRow, setHistoryRow] = useState<Row | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const listFields = useMemo(
     () => resource.fields.filter((f) => f.inList && f.key !== "is_active"),
     [resource],
   );
+  const hasActive = useMemo(
+    () => resource.fields.some((f) => f.key === "is_active"),
+    [resource],
+  );
+  const scopeId = resource.companyScoped ? companyId ?? null : null;
 
   const load = useCallback(async () => {
     setLoading(true);
     let q = supabase.from(resource.table as never).select("*");
     q = showArchived ? q.not("archived_at", "is", null) : q.is("archived_at", null);
+    if (resource.companyScoped && companyId) q = q.eq("company_id", companyId);
     for (const o of resource.orderBy) q = q.order(o.column, { ascending: o.ascending });
     const { data, error } = await q.limit(1000);
     if (error) toast.error(error.message);
     setRows((data as unknown as Row[]) ?? []);
     setLoading(false);
-  }, [resource, showArchived]);
+  }, [resource, showArchived, companyId]);
 
   const loadRefs = useCallback(async () => {
     const refFields = resource.fields.filter((f) => f.type === "reference" && f.refTable);
@@ -134,6 +176,7 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
   const save = async () => {
     const payload = serialize();
     if (!payload) return;
+    if (scopeId && !editing) payload.company_id = scopeId;
     setSaving(true);
     const res = editing
       ? await supabase.from(resource.table as never).update(payload as never).eq("id", String(editing.id))
