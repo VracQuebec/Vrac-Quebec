@@ -15,7 +15,9 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { persistSession: false } },
     );
-    const isCron = req.headers.get("Lovable-Context") === "cron";
+    const authHeader = (req.headers.get("Authorization") || "").replace("Bearer ", "");
+    const isCron = req.headers.get("Lovable-Context") === "cron" &&
+      authHeader === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!isCron) {
       const jwt = (req.headers.get("Authorization") || "").replace("Bearer ", "");
       const { data: u } = await supabase.auth.getUser(jwt);
