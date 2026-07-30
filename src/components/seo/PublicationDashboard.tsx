@@ -74,9 +74,17 @@ export default function PublicationDashboard() {
     toast.success("Rapport de couverture SEO généré");
   }
 
-  if (loading || !data) return <div className="p-8 text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement du tableau de publication…</div>;
+  if (loading) return <div className="p-8 text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement du tableau de publication…</div>;
+  if (err || !data) return (
+    <Card className="p-6 space-y-3">
+      <div className="flex items-center gap-2 text-destructive text-sm"><AlertTriangle className="w-4 h-4" /> {err ?? "Aucune donnée de publication"}</div>
+      <Button size="sm" variant="outline" onClick={load} className="gap-2"><RefreshCw className="w-4 h-4" /> Réessayer</Button>
+    </Card>
+  );
 
-  const c = data.counts;
+  const c = data.counts ?? { target_total: 0, in_db: 0, drafts: 0, in_qa: 0, published: 0, discovered: 0, indexed: 0, qa_avg: 0, words_avg: 0, last_published: null };
+  const stuckPages = data.stuck_pages ?? data.stuck ?? [];
+  const recentPublished = data.recent_published ?? data.recent ?? [];
   const pct = c.target_total > 0 ? Math.round((c.published / c.target_total) * 100) : 0;
   const funnel = [
     { key: "drafts", label: "Brouillons", value: c.drafts, icon: FileText, tone: "muted" as const },
