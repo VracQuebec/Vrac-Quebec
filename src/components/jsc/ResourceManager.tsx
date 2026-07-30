@@ -1,0 +1,366 @@
+// Gestionnaire CRUD générique piloté par la configuration (src/lib/jsc/config.ts).
+// Ajouter / modifier / activer / désactiver / supprimer, pour n'importe quelle
+// table jsc_*. Un seul composant = comportement identique partout.
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Loader2, Plus, Pencil, Trash2, Search, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import type { FieldDef, ResourceDef } from "@/lib/jsc/config";
+
+type Row = Record<string, unknown>;
+type RefMap = Record<string, { id: string; label: string }[]>;
+
+const NONE = "__none__";
+
+function emptyDraft(resource: ResourceDef): Row {
+  const draft: Row = {};
+  for (const f of resource.fields) {
+    draft[f.key] = f.defaultValue ?? (f.type === "boolean" ? false : "");
+  }
+  return draft;
+}
+
+export default function ResourceManager({ resource }: { resource: ResourceDef }) {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [refs, setRefs] = useState<RefMap>({});
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState<Row | null>(null);
+  const [draft, setDraft] = useState<Row>(() => emptyDraft(resource));
+  const [toDelete, setToDelete] = useState<Row | null>(null);
+
+  const listFields = useMemo(
+    () => resource.fields.filter((f) => f.inList && f.key !== "is_active"),
+    [resource],
+  );
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    let q = supabase.from(resource.table as never).select("*");
+    for (const o of resource.orderBy) q = q.order(o.column, { ascending: o.ascending });
+    const { data, error } = await q.limit(1000);
+    if (error) toast.error(error.message);
+    setRows((data as unknown as Row[]) ?? []);
+    setLoading(false);
+  }, [resource]);
+
+  const loadRefs = useCallback(async () => {
+    const refFields = resource.fields.filter((f) => f.type === "reference" && f.refTable);
+    if (refFields.length === 0) return;
+    const next: RefMap = {};
+    await Promise.all(
+      refFields.map(async (f) => {
+        const { data } = await supabase
+          .from(f.refTable as never)
+          .select(`id, ${f.refLabel ?? "name"}`)
+          .limit(1000);
+        next[f.key] = ((data as unknown as Row[]) ?? []).map((r) => ({
+          id: String(r.id),
+          label: String(r[f.refLabel ?? "name"] ?? "—"),
+        }));
+      }),
+    );
+    setRefs((prev) => ({ ...prev, ...next }));
+  }, [resource]);
+
+  useEffect(() => {
+    setQuery("");
+    void load();
+    void loadRefs();
+  }, [load, loadRefs]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r) =>
+      listFields.some((f) => String(r[f.key] ?? "").toLowerCase().includes(q)),
+    );
+  }, [rows, query, listFields]);
+
+  const openCreate = () => {
+    setEditing(null);
+    setDraft(emptyDraft(resource));
+    setOpen(true);
+  };
+
+  const openEdit = (row: Row) => {
+    setEditing(row);
+    const d: Row = {};
+    for (const f of resource.fields) d[f.key] = row[f.key] ?? (f.type === "boolean" ? false : "");
+    setDraft(d);
+    setOpen(true);
+  };
+
+  const serialize = (): Row | null => {
+    const payload: Row = {};
+    for (const f of resource.fields) {
+      const raw = draft[f.key];
+      if (f.required && (raw === "" || raw === null || raw === undefined)) {
+        toast.error(`Le champ « ${f.label} » est obligatoire.`);
+        return null;
+      }
+      if (f.type === "boolean") payload[f.key] = Boolean(raw);
+      else if (f.type === "number") payload[f.key] = raw === "" || raw === null ? null : Number(raw);
+      else payload[f.key] = raw === "" ? null : raw;
+    }
+    return payload;
+  };
+
+  const save = async () => {
+    const payload = serialize();
+    if (!payload) return;
+    setSaving(true);
+    const res = editing
+      ? await supabase.from(resource.table as never).update(payload as never).eq("id", String(editing.id))
+      : await supabase.from(resource.table as never).insert(payload as never);
+    setSaving(false);
+    if (res.error) { toast.error(res.error.message); return; }
+    toast.success(editing ? `${resource.singular} modifié.` : `${resource.singular} ajouté.`);
+    setOpen(false);
+    void load();
+    void loadRefs();
+  };
+
+  const toggleActive = async (row: Row) => {
+    const next = !row.is_active;
+    const { error } = await supabase
+      .from(resource.table as never)
+      .update({ is_active: next } as never)
+      .eq("id", String(row.id));
+    if (error) { toast.error(error.message); return; }
+    setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, is_active: next } : r)));
+    toast.success(next ? "Activé." : "Désactivé.");
+  };
+
+  const confirmDelete = async () => {
+    if (!toDelete) return;
+    const { error } = await supabase.from(resource.table as never).delete().eq("id", String(toDelete.id));
+    setToDelete(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${resource.singular} supprimé.`);
+    void load();
+    void loadRefs();
+  };
+
+  const renderCell = (row: Row, f: FieldDef) => {
+    const v = row[f.key];
+    if (f.type === "boolean") return v ? "Oui" : "Non";
+    if (v === null || v === undefined || v === "") return <span className="text-muted-foreground">—</span>;
+    if (f.type === "reference") {
+      const found = refs[f.key]?.find((o) => o.id === String(v));
+      return found?.label ?? <span className="text-muted-foreground">—</span>;
+    }
+    if (f.type === "select") {
+      return f.options?.find((o) => o.value === String(v))?.label ?? String(v);
+    }
+    return `${v}${f.suffix ? ` ${f.suffix}` : ""}`;
+  };
+
+  const renderInput = (f: FieldDef) => {
+    const v = draft[f.key];
+    if (f.type === "boolean") {
+      return (
+        <div className="flex h-10 items-center">
+          <Switch
+            checked={Boolean(v)}
+            onCheckedChange={(c) => setDraft((d) => ({ ...d, [f.key]: c }))}
+          />
+        </div>
+      );
+    }
+    if (f.type === "textarea") {
+      return (
+        <Textarea
+          rows={3}
+          value={String(v ?? "")}
+          placeholder={f.placeholder}
+          onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
+        />
+      );
+    }
+    if (f.type === "select") {
+      return (
+        <Select
+          value={String(v ?? "")}
+          onValueChange={(val) => setDraft((d) => ({ ...d, [f.key]: val }))}
+        >
+          <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
+          <SelectContent>
+            {f.options?.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      );
+    }
+    if (f.type === "reference") {
+      const options = refs[f.key] ?? [];
+      return (
+        <Select
+          value={v ? String(v) : NONE}
+          onValueChange={(val) => setDraft((d) => ({ ...d, [f.key]: val === NONE ? "" : val }))}
+        >
+          <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NONE}>Aucun</SelectItem>
+            {options.map((o) => <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      );
+    }
+    return (
+      <Input
+        type={f.type === "number" ? "number" : "text"}
+        step="any"
+        value={v === null || v === undefined ? "" : String(v)}
+        placeholder={f.placeholder}
+        onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
+      />
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">{resource.title}</h2>
+          <p className="text-sm text-muted-foreground">{resource.description}</p>
+        </div>
+        <div className="flex gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="w-full pl-9 sm:w-56"
+              placeholder="Rechercher…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <Button onClick={openCreate}>
+            <Plus className="mr-2 h-4 w-4" /> Ajouter
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-lg border bg-card">
+        {loading ? (
+          <div className="flex items-center justify-center py-16 text-muted-foreground">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Chargement…
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="px-6 py-16 text-center text-sm text-muted-foreground">
+            Aucun élément. Cliquez sur « Ajouter » pour créer le premier {resource.singular.toLowerCase()}.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {listFields.map((f) => <TableHead key={f.key}>{f.label}</TableHead>)}
+                  <TableHead>Statut</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((row) => (
+                  <TableRow key={String(row.id)} className={row.is_active ? "" : "opacity-60"}>
+                    {listFields.map((f) => (
+                      <TableCell key={f.key} className="whitespace-nowrap text-sm">
+                        {renderCell(row, f)}
+                      </TableCell>
+                    ))}
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Switch checked={Boolean(row.is_active)} onCheckedChange={() => toggleActive(row)} />
+                        <Badge variant={row.is_active ? "default" : "secondary"}>
+                          {row.is_active ? "Actif" : "Inactif"}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Modifier">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setToDelete(row)} aria-label="Supprimer">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editing ? `Modifier — ${resource.singular}` : `Nouveau ${resource.singular.toLowerCase()}`}
+            </DialogTitle>
+            <DialogDescription>{resource.description}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {resource.fields.map((f) => (
+              <div
+                key={f.key}
+                className={f.type === "textarea" ? "sm:col-span-2 space-y-1.5" : "space-y-1.5"}
+              >
+                <Label className="flex items-center gap-1.5">
+                  {f.label}
+                  {f.required && <span className="text-destructive">*</span>}
+                  {f.suffix && <span className="text-xs text-muted-foreground">({f.suffix})</span>}
+                  {f.confidential && <Lock className="h-3 w-3 text-muted-foreground" />}
+                </Label>
+                {renderInput(f)}
+                {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+            <Button onClick={save} disabled={saving}>
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer définitivement ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Pour conserver l'historique, préférez la désactivation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
