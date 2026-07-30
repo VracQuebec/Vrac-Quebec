@@ -179,7 +179,7 @@ export const JSC_RESOURCES: ResourceDef[] = [
     table: "jsc_trucks",
     title: "Camions",
     singular: "Camion",
-    description: "Flotte et sous-traitants : capacités, taux horaires et temps fixes.",
+    description: "Flotte des transporteurs partenaires : capacités, taux horaires et temps fixes. Chaque camion appartient à un transporteur.",
     icon: "Truck",
     labelField: "name",
     orderBy: [{ column: "sort_order", ascending: true }, { column: "name", ascending: true }],
