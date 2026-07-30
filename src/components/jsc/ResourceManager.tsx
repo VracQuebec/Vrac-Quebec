@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Trash2, Search, Lock } from "lucide-react";
+import { Loader2, Plus, Pencil, Archive, ArchiveRestore, Search, Lock, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +25,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import type { FieldDef, ResourceDef } from "@/lib/jsc/config";
+import AuditTrail from "@/components/jsc/AuditTrail";
 
 type Row = Record<string, unknown>;
 type RefMap = Record<string, { id: string; label: string }[]>;
@@ -48,7 +49,9 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
   const [draft, setDraft] = useState<Row>(() => emptyDraft(resource));
-  const [toDelete, setToDelete] = useState<Row | null>(null);
+  const [toArchive, setToArchive] = useState<Row | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [historyRow, setHistoryRow] = useState<Row | null>(null);
 
   const listFields = useMemo(
     () => resource.fields.filter((f) => f.inList && f.key !== "is_active"),
@@ -58,12 +61,13 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
   const load = useCallback(async () => {
     setLoading(true);
     let q = supabase.from(resource.table as never).select("*");
+    q = showArchived ? q.not("archived_at", "is", null) : q.is("archived_at", null);
     for (const o of resource.orderBy) q = q.order(o.column, { ascending: o.ascending });
     const { data, error } = await q.limit(1000);
     if (error) toast.error(error.message);
     setRows((data as unknown as Row[]) ?? []);
     setLoading(false);
-  }, [resource]);
+  }, [resource, showArchived]);
 
   const loadRefs = useCallback(async () => {
     const refFields = resource.fields.filter((f) => f.type === "reference" && f.refTable);
@@ -153,12 +157,16 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
     toast.success(next ? "Activé." : "Désactivé.");
   };
 
-  const confirmDelete = async () => {
-    if (!toDelete) return;
-    const { error } = await supabase.from(resource.table as never).delete().eq("id", String(toDelete.id));
-    setToDelete(null);
+  // Archivage / restauration : opération transactionnelle côté base de données.
+  const setArchived = async (row: Row, restore: boolean) => {
+    const { error } = await supabase.rpc("jsc_archive_record", {
+      _table: resource.table,
+      _id: String(row.id),
+      _restore: restore,
+    });
+    setToArchive(null);
     if (error) { toast.error(error.message); return; }
-    toast.success(`${resource.singular} supprimé.`);
+    toast.success(restore ? `${resource.singular} restauré.` : `${resource.singular} archivé.`);
     void load();
     void loadRefs();
   };
@@ -246,6 +254,13 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
           <p className="text-sm text-muted-foreground">{resource.description}</p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant={showArchived ? "default" : "outline"}
+            onClick={() => setShowArchived((v) => !v)}
+          >
+            <Archive className="mr-2 h-4 w-4" />
+            {showArchived ? "Actifs" : "Archives"}
+          </Button>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -255,7 +270,7 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          <Button onClick={openCreate}>
+          <Button onClick={openCreate} disabled={showArchived}>
             <Plus className="mr-2 h-4 w-4" /> Ajouter
           </Button>
         </div>
@@ -268,7 +283,9 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
           </div>
         ) : filtered.length === 0 ? (
           <div className="px-6 py-16 text-center text-sm text-muted-foreground">
-            Aucun élément. Cliquez sur « Ajouter » pour créer le premier {resource.singular.toLowerCase()}.
+            {showArchived
+              ? "Aucun élément archivé."
+              : `Aucun élément. Cliquez sur « Ajouter » pour créer le premier ${resource.singular.toLowerCase()}.`}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -290,19 +307,32 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
                     ))}
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Switch checked={Boolean(row.is_active)} onCheckedChange={() => toggleActive(row)} />
-                        <Badge variant={row.is_active ? "default" : "secondary"}>
-                          {row.is_active ? "Actif" : "Inactif"}
+                        {!showArchived && (
+                          <Switch checked={Boolean(row.is_active)} onCheckedChange={() => toggleActive(row)} />
+                        )}
+                        <Badge variant={showArchived ? "outline" : row.is_active ? "default" : "secondary"}>
+                          {showArchived ? "Archivé" : row.is_active ? "Actif" : "Inactif"}
                         </Badge>
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Modifier">
-                        <Pencil className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" onClick={() => setHistoryRow(row)} aria-label="Historique">
+                        <History className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setToDelete(row)} aria-label="Supprimer">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {showArchived ? (
+                        <Button variant="ghost" size="icon" onClick={() => setArchived(row, true)} aria-label="Restaurer">
+                          <ArchiveRestore className="h-4 w-4 text-primary" />
+                        </Button>
+                      ) : (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Modifier">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setToArchive(row)} aria-label="Archiver">
+                            <Archive className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -347,17 +377,32 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+      <Dialog open={!!historyRow} onOpenChange={(o) => !o && setHistoryRow(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Historique — {resource.singular}</DialogTitle>
+            <DialogDescription>
+              Identifiant unique : <code className="text-xs">{String(historyRow?.id ?? "")}</code>
+            </DialogDescription>
+          </DialogHeader>
+          {historyRow && <AuditTrail recordId={String(historyRow.id)} />}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!toArchive} onOpenChange={(o) => !o && setToArchive(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer définitivement ?</AlertDialogTitle>
+            <AlertDialogTitle>Archiver cet élément ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible. Pour conserver l'historique, préférez la désactivation.
+              Rien n'est supprimé : l'élément est archivé, retiré des listes actives et
+              reste consultable et restaurable à tout moment dans l'onglet « Archives ».
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Supprimer</AlertDialogAction>
+            <AlertDialogAction onClick={() => toArchive && setArchived(toArchive, false)}>
+              Archiver
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
