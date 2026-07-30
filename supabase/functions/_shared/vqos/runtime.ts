@@ -34,7 +34,10 @@ export async function geocode(address: string): Promise<GeocodedAddress> {
   const loc = result?.geometry?.location;
   if (!loc) {
     console.error('geocode empty', JSON.stringify({ status: data?.status, error: data?.error_message }));
-    throw new Error("Adresse de livraison introuvable.");
+    if (data?.status && data.status !== 'ZERO_RESULTS') {
+      throw new Error("Le service de validation d'adresse est momentanément indisponible. Notre équipe peut préparer votre estimation par téléphone.");
+    }
+    throw new Error("Adresse de livraison introuvable. Précisez le numéro civique, la ville et le code postal.");
   }
   const comp = (type: string) =>
     result.address_components?.find((c: { types: string[] }) => c.types?.includes(type))?.long_name ?? null;
