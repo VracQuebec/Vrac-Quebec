@@ -40,7 +40,7 @@ export default function AdminJsc() {
         <ShieldCheck className="h-8 w-8 text-muted-foreground" />
         <h1 className="text-xl font-semibold">Accès réservé</h1>
         <p className="max-w-md text-sm text-muted-foreground">
-          Les paramètres Transport JSC sont accessibles uniquement aux administrateurs.
+          Les paramètres de la plateforme sont accessibles uniquement aux administrateurs.
         </p>
         <Link to="/" className="text-sm text-primary hover:underline">Retour à l'accueil</Link>
       </div>
@@ -55,9 +55,9 @@ export default function AdminJsc() {
             <Link to="/admin" className="mb-2 inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft className="mr-1.5 h-4 w-4" /> Retour à l'administration
             </Link>
-            <h1 className="text-2xl font-bold">Transport JSC — Paramètres</h1>
+            <h1 className="text-2xl font-bold">Vrac Québec — Paramètres de la plateforme</h1>
             <p className="text-sm text-muted-foreground">
-              Source de vérité unique : matériaux, fournisseurs, camions, tarifs, taxes et zones.
+              Source de vérité unique : transporteurs, fournisseurs, matériaux, camions, tarifs, taxes et zones.
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
