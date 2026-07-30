@@ -179,7 +179,7 @@ export const JSC_RESOURCES: ResourceDef[] = [
     table: "jsc_trucks",
     title: "Camions",
     singular: "Camion",
-    description: "Flotte et sous-traitants : capacités, taux horaires et temps fixes.",
+    description: "Flotte des transporteurs partenaires : capacités, taux horaires et temps fixes. Chaque camion appartient à un transporteur.",
     icon: "Truck",
     labelField: "name",
     orderBy: [{ column: "sort_order", ascending: true }, { column: "name", ascending: true }],
@@ -309,16 +309,17 @@ export const JSC_RESOURCES: ResourceDef[] = [
 
 export const getResource = (id: string) => JSC_RESOURCES.find((r) => r.id === id);
 
-// Module transverse : entreprises (architecture multi-entreprise).
-// Une seule entreprise est utilisée aujourd'hui (Transport JSC), mais chaque
-// enregistrement de chaque module est déjà rattaché à une entreprise.
+// Module transverse : transporteurs (architecture multi-transporteur).
+// Vrac Québec est la plateforme; chaque transporteur (Transport JSC en premier)
+// possède ses camions, tarifs, disponibilités et paramètres. Chaque
+// enregistrement de chaque module est rattaché à un transporteur.
 export const JSC_COMPANY_RESOURCE: ResourceDef = {
-  id: "companies",
+  id: "carriers",
   table: "jsc_companies",
-  title: "Entreprises",
-  singular: "Entreprise",
+  title: "Transporteurs",
+  singular: "Transporteur",
   description:
-    "Entités exploitant la plateforme. Toutes les données de configuration sont cloisonnées par entreprise.",
+    "Transporteurs partenaires de la plateforme. Camions, tarifs et paramètres sont cloisonnés par transporteur. Ajouter un transporteur ne demande aucune modification du système.",
   icon: "Building",
   labelField: "name",
   orderBy: [{ column: "created_at", ascending: true }],
@@ -331,7 +332,7 @@ export const JSC_COMPANY_RESOURCE: ResourceDef = {
     { key: "address", label: "Adresse", type: "text" },
     { key: "currency", label: "Devise", type: "text", inList: true, defaultValue: "CAD" },
     { key: "timezone", label: "Fuseau horaire", type: "text", defaultValue: "America/Toronto" },
-    { key: "is_default", label: "Entreprise par défaut", type: "boolean", inList: true, defaultValue: false },
+    { key: "is_default", label: "Transporteur par défaut", type: "boolean", inList: true, defaultValue: false },
     activeField,
   ],
 };
