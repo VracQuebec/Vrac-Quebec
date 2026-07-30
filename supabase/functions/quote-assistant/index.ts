@@ -202,7 +202,7 @@ async function submit(sb: any, body: any) {
     transport_rate_id: best.plan.rate?.id ?? null,
     trips: best.plan.trips,
     distance_km: best.plan.distance_km,
-    billed_hours: (best.time as any).billed_hours ?? null,
+    billed_hours: best.time.total_hours_billed,
     material_cost: best.cost.material_cost,
     transport_cost: best.cost.transport_cost,
     surcharges: best.cost.surcharges_total,
@@ -217,12 +217,14 @@ async function submit(sb: any, body: any) {
   });
   if (estimateError) throw new Error(estimateError.message);
 
-  await sb.rpc('jsc_log_event', {
+  const logged = await sb.rpc('jsc_log_event', {
+    _action: 'assistant_submission',
     _entity_type: 'jsc_requests',
     _entity_id: request.id,
-    _action: 'assistant_submission',
-    _context: { engine_version: result.engine_version, total: result.public.total },
-  }).catch?.(() => {});
+    _label: request.request_number,
+    _context: { engine_version: result.engine_version, total: result.public.total, source: 'assistant' },
+  });
+  if (logged.error) console.error('audit log failed', logged.error.message);
 
   return {
     ok: true,
