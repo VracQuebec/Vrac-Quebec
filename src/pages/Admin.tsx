@@ -751,7 +751,7 @@ const Admin = () => {
               <Truck className="w-4 h-4" /> Opérations
             </Link>
             <Link to="/admin/jsc" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
-              <Settings className="w-4 h-4" /> Paramètres JSC
+              <Settings className="w-4 h-4" /> Paramètres plateforme
             </Link>
             <button onClick={fetchSubmissions} className="text-sm text-primary hover:underline font-body">Actualiser</button>
             <button onClick={() => setShowStatusManager(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
