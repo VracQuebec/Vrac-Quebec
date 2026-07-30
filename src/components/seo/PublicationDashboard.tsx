@@ -138,10 +138,10 @@ export default function PublicationDashboard() {
         </div>
       </Card>
 
-      {data.stuck_pages.length > 0 && (
+      {stuckPages.length > 0 && (
         <Card className="p-4 md:p-6">
           <h3 className="text-sm font-semibold flex items-center gap-2 mb-3 text-destructive">
-            <AlertTriangle className="w-4 h-4" /> Pages bloquées depuis &gt; 5 minutes ({data.stuck_pages.length})
+            <AlertTriangle className="w-4 h-4" /> Pages bloquées depuis &gt; 5 minutes ({stuckPages.length})
           </h3>
           <div className="overflow-auto max-h-[400px]">
             <table className="w-full text-xs">
@@ -155,7 +155,7 @@ export default function PublicationDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {data.stuck_pages.map((p) => (
+                {stuckPages.map((p) => (
                   <tr key={p.slug} className="border-b border-border/50">
                     <td className="p-2 font-mono">{p.slug}</td>
                     <td className="p-2">{p.stuck_minutes} min</td>
@@ -185,14 +185,14 @@ export default function PublicationDashboard() {
               </tr>
             </thead>
             <tbody>
-              {data.recent_published.map((p) => (
+              {recentPublished.map((p) => (
                 <tr key={p.slug} className="border-b border-border/50">
                   <td className="p-2 max-w-[280px] truncate">{p.title}</td>
                   <td className="p-2 font-mono text-muted-foreground">{p.slug}</td>
                   <td className="p-2 text-right">{p.qa_last_score ?? "—"}</td>
                   <td className="p-2 text-right">{p.word_count ?? "—"}</td>
                   <td className="p-2"><Badge variant="outline" className="text-[10px]">{p.google_index_status ?? "unknown"}</Badge></td>
-                  <td className="p-2 text-muted-foreground">{new Date(p.updated_at).toLocaleString("fr-CA")}</td>
+                  <td className="p-2 text-muted-foreground">{new Date(p.published_at ?? p.updated_at).toLocaleString("fr-CA")}</td>
                 </tr>
               ))}
             </tbody>
