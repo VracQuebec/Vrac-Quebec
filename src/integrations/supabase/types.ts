@@ -2413,6 +2413,106 @@ export type Database = {
         }
         Relationships: []
       }
+      jsc_bi_goals: {
+        Row: {
+          archived_at: string | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          ends_on: string
+          id: string
+          is_active: boolean
+          metric: string
+          name: string
+          notes: string | null
+          period: string
+          starts_on: string
+          target_value: number
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string
+          id?: string
+          is_active?: boolean
+          metric: string
+          name: string
+          notes?: string | null
+          period?: string
+          starts_on?: string
+          target_value?: number
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string
+          id?: string
+          is_active?: boolean
+          metric?: string
+          name?: string
+          notes?: string | null
+          period?: string
+          starts_on?: string
+          target_value?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_bi_goals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_bi_layouts: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+          user_id: string
+          widgets: Json
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id: string
+          widgets?: Json
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+          widgets?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_bi_layouts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_clients: {
         Row: {
           archived_at: string | null
@@ -8286,6 +8386,48 @@ export type Database = {
       }
       jsc_archive_record: {
         Args: { _id: string; _restore?: boolean; _table: string }
+        Returns: Json
+      }
+      jsc_bi_alerts: { Args: { _company_id?: string }; Returns: Json }
+      jsc_bi_analytics: {
+        Args: { _company_id?: string; _from?: string; _to?: string }
+        Returns: Json
+      }
+      jsc_bi_forecast: {
+        Args: { _company_id?: string; _months?: number }
+        Returns: Json
+      }
+      jsc_bi_goal_progress: { Args: { _company_id?: string }; Returns: Json }
+      jsc_bi_order_facts: {
+        Args: { _company_id: string; _from: string; _to: string }
+        Returns: {
+          carrier_id: string
+          carrier_name: string
+          category_name: string
+          city: string
+          client_id: string
+          client_name: string
+          gross_margin: number
+          material_cost: number
+          material_id: string
+          material_name: string
+          net_margin: number
+          occurred_on: string
+          order_id: string
+          project_id: string
+          quantity: number
+          region: string
+          status: string
+          subtotal: number
+          supplier_id: string
+          supplier_name: string
+          total: number
+          transport_cost: number
+          truck_id: string
+        }[]
+      }
+      jsc_bi_overview: {
+        Args: { _company_id?: string; _from?: string; _to?: string }
         Returns: Json
       }
       jsc_can_manage: { Args: { _user_id: string }; Returns: boolean }
