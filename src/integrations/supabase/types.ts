@@ -2359,8 +2359,110 @@ export type Database = {
         }
         Relationships: []
       }
+      jsc_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          changed_fields: string[]
+          company_id: string | null
+          created_at: string
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          record_label: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          changed_fields?: string[]
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          record_label?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          changed_fields?: string[]
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          record_label?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
+      jsc_companies: {
+        Row: {
+          address: string | null
+          archived_at: string | null
+          archived_by: string | null
+          code: string
+          created_at: string
+          currency: string
+          email: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          legal_name: string | null
+          name: string
+          phone: string | null
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          code: string
+          created_at?: string
+          currency?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          legal_name?: string | null
+          name: string
+          phone?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          code?: string
+          created_at?: string
+          currency?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          legal_name?: string | null
+          name?: string
+          phone?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       jsc_material_prices: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
+          company_id: string
           created_at: string
           id: string
           is_active: boolean
@@ -2375,6 +2477,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          company_id?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -2389,6 +2494,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          company_id?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -2403,6 +2511,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "jsc_material_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "jsc_material_prices_material_id_fkey"
             columns: ["material_id"]
@@ -2428,8 +2543,11 @@ export type Database = {
       }
       jsc_materials: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           category: string | null
           code: string | null
+          company_id: string
           created_at: string
           density_kg_per_m3: number | null
           id: string
@@ -2445,8 +2563,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           category?: string | null
           code?: string | null
+          company_id?: string
           created_at?: string
           density_kg_per_m3?: number | null
           id?: string
@@ -2462,8 +2583,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           category?: string | null
           code?: string | null
+          company_id?: string
           created_at?: string
           density_kg_per_m3?: number | null
           id?: string
@@ -2478,13 +2602,24 @@ export type Database = {
           unit?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "jsc_materials_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       jsc_pickup_locations: {
         Row: {
           access_notes: string | null
           address: string
+          archived_at: string | null
+          archived_by: string | null
           city: string | null
+          company_id: string
           created_at: string
           id: string
           is_active: boolean
@@ -2502,7 +2637,10 @@ export type Database = {
         Insert: {
           access_notes?: string | null
           address: string
+          archived_at?: string | null
+          archived_by?: string | null
           city?: string | null
+          company_id?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -2520,7 +2658,10 @@ export type Database = {
         Update: {
           access_notes?: string | null
           address?: string
+          archived_at?: string | null
+          archived_by?: string | null
           city?: string | null
+          company_id?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -2536,6 +2677,13 @@ export type Database = {
           zone_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "jsc_pickup_locations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "jsc_pickup_locations_supplier_id_fkey"
             columns: ["supplier_id"]
@@ -2554,7 +2702,10 @@ export type Database = {
       }
       jsc_settings: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           category: string
+          company_id: string
           created_at: string
           description: string | null
           id: string
@@ -2568,7 +2719,10 @@ export type Database = {
           value_type: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           category?: string
+          company_id?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -2582,7 +2736,10 @@ export type Database = {
           value_type?: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           category?: string
+          company_id?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -2595,11 +2752,22 @@ export type Database = {
           value?: string | null
           value_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "jsc_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       jsc_suppliers: {
         Row: {
           address: string | null
+          archived_at: string | null
+          archived_by: string | null
+          company_id: string
           contact_name: string | null
           created_at: string
           email: string | null
@@ -2615,6 +2783,9 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          company_id?: string
           contact_name?: string | null
           created_at?: string
           email?: string | null
@@ -2630,6 +2801,9 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          company_id?: string
           contact_name?: string | null
           created_at?: string
           email?: string | null
@@ -2645,6 +2819,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "jsc_suppliers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "jsc_suppliers_zone_id_fkey"
             columns: ["zone_id"]
             isOneToOne: false
@@ -2656,7 +2837,10 @@ export type Database = {
       jsc_taxes: {
         Row: {
           apply_order: number
+          archived_at: string | null
+          archived_by: string | null
           code: string | null
+          company_id: string
           compound: boolean
           created_at: string
           id: string
@@ -2668,7 +2852,10 @@ export type Database = {
         }
         Insert: {
           apply_order?: number
+          archived_at?: string | null
+          archived_by?: string | null
           code?: string | null
+          company_id?: string
           compound?: boolean
           created_at?: string
           id?: string
@@ -2680,7 +2867,10 @@ export type Database = {
         }
         Update: {
           apply_order?: number
+          archived_at?: string | null
+          archived_by?: string | null
           code?: string | null
+          company_id?: string
           compound?: boolean
           created_at?: string
           id?: string
@@ -2690,10 +2880,21 @@ export type Database = {
           registration_number?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "jsc_taxes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       jsc_transport_rates: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
+          company_id: string
           created_at: string
           distance_from_km: number | null
           distance_to_km: number | null
@@ -2714,6 +2915,9 @@ export type Database = {
           zone_id: string | null
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          company_id?: string
           created_at?: string
           distance_from_km?: number | null
           distance_to_km?: number | null
@@ -2734,6 +2938,9 @@ export type Database = {
           zone_id?: string | null
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          company_id?: string
           created_at?: string
           distance_from_km?: number | null
           distance_to_km?: number | null
@@ -2755,6 +2962,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "jsc_transport_rates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "jsc_transport_rates_truck_id_fkey"
             columns: ["truck_id"]
             isOneToOne: false
@@ -2772,8 +2986,11 @@ export type Database = {
       }
       jsc_trucks: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           capacity_m3: number | null
           capacity_tonnes: number
+          company_id: string
           created_at: string
           fixed_time_minutes: number
           hourly_rate: number
@@ -2789,8 +3006,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           capacity_m3?: number | null
           capacity_tonnes?: number
+          company_id?: string
           created_at?: string
           fixed_time_minutes?: number
           hourly_rate?: number
@@ -2806,8 +3026,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           capacity_m3?: number | null
           capacity_tonnes?: number
+          company_id?: string
           created_at?: string
           fixed_time_minutes?: number
           hourly_rate?: number
@@ -2822,14 +3045,25 @@ export type Database = {
           unloading_time_minutes?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "jsc_trucks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       jsc_zones: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           center_address: string | null
           center_lat: number | null
           center_lng: number | null
           code: string | null
+          company_id: string
           created_at: string
           distance_surcharge: number
           id: string
@@ -2842,10 +3076,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           center_address?: string | null
           center_lat?: number | null
           center_lng?: number | null
           code?: string | null
+          company_id?: string
           created_at?: string
           distance_surcharge?: number
           id?: string
@@ -2858,10 +3095,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           center_address?: string | null
           center_lat?: number | null
           center_lng?: number | null
           code?: string | null
+          company_id?: string
           created_at?: string
           distance_surcharge?: number
           id?: string
@@ -2873,7 +3113,15 @@ export type Database = {
           sort_order?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "jsc_zones_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lead_notes: {
         Row: {
@@ -6334,6 +6582,17 @@ export type Database = {
       is_blacklisted: {
         Args: { _entity_id: string; _entity_type: string }
         Returns: boolean
+      }
+      jsc_archive_record: {
+        Args: { _id: string; _restore?: boolean; _table: string }
+        Returns: Json
+      }
+      jsc_can_manage: { Args: { _user_id: string }; Returns: boolean }
+      jsc_default_company_id: { Args: never; Returns: string }
+      jsc_export_config: { Args: { _company_id?: string }; Returns: Json }
+      jsc_import_config: {
+        Args: { _company_id?: string; _payload: Json }
+        Returns: Json
       }
       list_users_with_roles: {
         Args: never
