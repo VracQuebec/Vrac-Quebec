@@ -45,7 +45,49 @@ export interface ResourceDef {
   labelField: string;
   orderBy: { column: string; ascending: boolean }[];
   fields: FieldDef[];
+  /** Regroupement dans la navigation du back office */
+  group?: "referentiel" | "commercial" | "organisation";
+  /** Les enregistrements sont cloisonnés par entreprise (company_id) */
+  companyScoped?: boolean;
 }
+
+export const JSC_REQUEST_STATUSES = [
+  { value: "nouvelle", label: "Nouvelle" },
+  { value: "en_analyse", label: "En analyse" },
+  { value: "a_rappeler", label: "À rappeler" },
+  { value: "soumission_envoyee", label: "Soumission envoyée" },
+  { value: "acceptee", label: "Acceptée" },
+  { value: "planifiee", label: "Planifiée" },
+  { value: "terminee", label: "Terminée" },
+  { value: "annulee", label: "Annulée" },
+];
+
+export const JSC_QUOTE_STATUSES = [
+  { value: "brouillon", label: "Brouillon" },
+  { value: "envoyee", label: "Envoyée" },
+  { value: "acceptee", label: "Acceptée" },
+  { value: "refusee", label: "Refusée" },
+  { value: "expiree", label: "Expirée" },
+];
+
+export const JSC_ORDER_STATUSES = [
+  { value: "a_planifier", label: "À planifier" },
+  { value: "planifiee", label: "Planifiée" },
+  { value: "en_cours", label: "En cours" },
+  { value: "livree", label: "Livrée" },
+  { value: "facturee", label: "Facturée" },
+  { value: "annulee", label: "Annulée" },
+];
+
+export const JSC_ROLES = [
+  { value: "super_admin", label: "Super administrateur" },
+  { value: "admin", label: "Administrateur" },
+  { value: "dispatcher", label: "Répartiteur" },
+  { value: "employee", label: "Employé" },
+  { value: "sales", label: "Ventes" },
+  { value: "driver", label: "Chauffeur" },
+  { value: "entrepreneur", label: "Entrepreneur" },
+];
 
 const activeField: FieldDef = {
   key: "is_active",
@@ -423,3 +465,196 @@ export const JSC_COMPANY_RESOURCE: ResourceDef = {
     activeField,
   ],
 };
+
+// ============================================================
+// Flux commercial : demandes → soumissions → commandes → factures
+// ============================================================
+export const JSC_COMMERCIAL_RESOURCES: ResourceDef[] = [
+  {
+    id: "requests",
+    table: "jsc_requests",
+    title: "Demandes",
+    singular: "Demande",
+    description: "Demandes reçues (assistant public, téléphone, CRM). Point de départ du flux commercial.",
+    icon: "Inbox",
+    labelField: "request_number",
+    group: "commercial",
+    companyScoped: true,
+    orderBy: [{ column: "created_at", ascending: false }],
+    fields: [
+      { key: "request_number", label: "Numéro", type: "text", inList: true, help: "Généré automatiquement si laissé vide." },
+      { key: "client_id", label: "Client", type: "reference", refTable: "jsc_clients", refLabel: "name", inList: true, required: true },
+      { key: "status", label: "Statut", type: "select", inList: true, defaultValue: "nouvelle", options: JSC_REQUEST_STATUSES },
+      { key: "source", label: "Source", type: "text", inList: true, placeholder: "ex. assistant, téléphone" },
+      { key: "material_id", label: "Matériau", type: "reference", refTable: "jsc_materials", refLabel: "name", inList: true },
+      { key: "quantity", label: "Quantité", type: "number", inList: true },
+      {
+        key: "quantity_unit", label: "Unité", type: "select", defaultValue: "tonne",
+        options: [
+          { value: "tonne", label: "Tonne métrique" },
+          { value: "verge", label: "Verge cube" },
+          { value: "m3", label: "Mètre cube" },
+          { value: "voyage", label: "Voyage" },
+        ],
+      },
+      { key: "delivery_address", label: "Adresse de livraison", type: "text", required: true },
+      { key: "city", label: "Ville", type: "text", inList: true },
+      { key: "postal_code", label: "Code postal", type: "text" },
+      { key: "zone_id", label: "Zone", type: "reference", refTable: "jsc_zones", refLabel: "name" },
+      { key: "desired_date", label: "Date souhaitée", type: "text", inList: true, placeholder: "AAAA-MM-JJ" },
+      { key: "notes", label: "Notes du client", type: "textarea" },
+      { key: "internal_notes", label: "Notes internes", type: "textarea", confidential: true },
+    ],
+  },
+  {
+    id: "quotes",
+    table: "jsc_quotes",
+    title: "Soumissions",
+    singular: "Soumission",
+    description: "Soumissions officielles envoyées aux clients. Chaque soumission fige l'estimation qui l'a produite.",
+    icon: "FileText",
+    labelField: "quote_number",
+    group: "commercial",
+    companyScoped: true,
+    orderBy: [{ column: "created_at", ascending: false }],
+    fields: [
+      { key: "quote_number", label: "Numéro", type: "text", inList: true },
+      { key: "client_id", label: "Client", type: "reference", refTable: "jsc_clients", refLabel: "name", inList: true, required: true },
+      { key: "request_id", label: "Demande", type: "reference", refTable: "jsc_requests", refLabel: "request_number", inList: true },
+      { key: "status", label: "Statut", type: "select", inList: true, defaultValue: "brouillon", options: JSC_QUOTE_STATUSES },
+      { key: "valid_until", label: "Valide jusqu'au", type: "text", placeholder: "AAAA-MM-JJ" },
+      { key: "subtotal", label: "Sous-total", type: "number", inList: true, suffix: "$", defaultValue: 0 },
+      { key: "tax_total", label: "Taxes", type: "number", suffix: "$", defaultValue: 0 },
+      { key: "total", label: "Total", type: "number", inList: true, suffix: "$", defaultValue: 0 },
+      { key: "refusal_reason", label: "Motif de refus", type: "textarea" },
+    ],
+  },
+  {
+    id: "orders",
+    table: "jsc_orders",
+    title: "Commandes",
+    singular: "Commande",
+    description: "Commandes confirmées : planification, transporteur, camion, chauffeur et livraison.",
+    icon: "ClipboardList",
+    labelField: "order_number",
+    group: "commercial",
+    companyScoped: true,
+    orderBy: [{ column: "created_at", ascending: false }],
+    fields: [
+      { key: "order_number", label: "Numéro", type: "text", inList: true },
+      { key: "client_id", label: "Client", type: "reference", refTable: "jsc_clients", refLabel: "name", inList: true, required: true },
+      { key: "quote_id", label: "Soumission", type: "reference", refTable: "jsc_quotes", refLabel: "quote_number" },
+      { key: "status", label: "Statut", type: "select", inList: true, defaultValue: "a_planifier", options: JSC_ORDER_STATUSES },
+      { key: "scheduled_date", label: "Date planifiée", type: "text", inList: true, placeholder: "AAAA-MM-JJ" },
+      { key: "scheduled_time", label: "Heure", type: "text", placeholder: "ex. 07:30" },
+      { key: "carrier_id", label: "Transporteur", type: "reference", refTable: "jsc_companies", refLabel: "name", inList: true },
+      { key: "truck_id", label: "Camion", type: "reference", refTable: "jsc_trucks", refLabel: "name", inList: true },
+      { key: "driver_id", label: "Chauffeur", type: "reference", refTable: "jsc_drivers", refLabel: "first_name", inList: true },
+      { key: "material_id", label: "Matériau", type: "reference", refTable: "jsc_materials", refLabel: "name" },
+      { key: "supplier_id", label: "Fournisseur", type: "reference", refTable: "jsc_suppliers", refLabel: "name", confidential: true },
+      { key: "pickup_location_id", label: "Lieu de chargement", type: "reference", refTable: "jsc_pickup_locations", refLabel: "name", confidential: true },
+      { key: "trips_planned", label: "Voyages prévus", type: "number", defaultValue: 0 },
+      { key: "trips_completed", label: "Voyages complétés", type: "number", defaultValue: 0 },
+      { key: "delivered_quantity", label: "Quantité livrée", type: "number" },
+      { key: "total", label: "Total", type: "number", inList: true, suffix: "$", defaultValue: 0 },
+      { key: "internal_notes", label: "Notes internes", type: "textarea", confidential: true },
+    ],
+  },
+  {
+    id: "invoices",
+    table: "jsc_invoices",
+    title: "Factures",
+    singular: "Facture",
+    description: "Factures émises à partir des commandes livrées. Le solde est calculé automatiquement.",
+    icon: "Receipt",
+    labelField: "invoice_number",
+    group: "commercial",
+    companyScoped: true,
+    orderBy: [{ column: "created_at", ascending: false }],
+    fields: [
+      { key: "invoice_number", label: "Numéro", type: "text", inList: true },
+      { key: "client_id", label: "Client", type: "reference", refTable: "jsc_clients", refLabel: "name", inList: true, required: true },
+      { key: "order_id", label: "Commande", type: "reference", refTable: "jsc_orders", refLabel: "order_number", inList: true },
+      {
+        key: "status", label: "Statut", type: "select", inList: true, defaultValue: "brouillon",
+        options: [
+          { value: "brouillon", label: "Brouillon" },
+          { value: "envoyee", label: "Envoyée" },
+          { value: "partielle", label: "Paiement partiel" },
+          { value: "paid", label: "Payée" },
+          { value: "annulee", label: "Annulée" },
+        ],
+      },
+      { key: "issued_at", label: "Date d'émission", type: "text", inList: true, placeholder: "AAAA-MM-JJ" },
+      { key: "due_at", label: "Échéance", type: "text", placeholder: "AAAA-MM-JJ" },
+      { key: "payment_terms", label: "Conditions de paiement", type: "text" },
+      { key: "subtotal", label: "Sous-total", type: "number", suffix: "$", defaultValue: 0 },
+      { key: "tax_total", label: "Taxes", type: "number", suffix: "$", defaultValue: 0 },
+      { key: "total", label: "Total", type: "number", inList: true, suffix: "$", defaultValue: 0 },
+      { key: "amount_paid", label: "Montant payé", type: "number", inList: true, suffix: "$", defaultValue: 0 },
+    ],
+  },
+];
+
+// ============================================================
+// Organisation : utilisateurs par entreprise et permissions par rôle
+// ============================================================
+export const JSC_ORG_RESOURCES: ResourceDef[] = [
+  {
+    id: "company_members",
+    table: "jsc_company_members",
+    title: "Utilisateurs de l'entreprise",
+    singular: "Utilisateur",
+    description: "Rattachement des utilisateurs à une entreprise avec leur rôle. Ajouter une entreprise ne demande aucune modification du code.",
+    icon: "UserCog",
+    labelField: "email",
+    group: "organisation",
+    companyScoped: true,
+    orderBy: [{ column: "sort_order", ascending: true }, { column: "created_at", ascending: true }],
+    fields: [
+      { key: "user_id", label: "Identifiant utilisateur", type: "text", inList: true, required: true, help: "UUID du compte (visible dans la gestion des utilisateurs)." },
+      { key: "email", label: "Courriel", type: "text", inList: true },
+      { key: "full_name", label: "Nom complet", type: "text", inList: true },
+      { key: "role", label: "Rôle", type: "select", inList: true, defaultValue: "employee", options: JSC_ROLES },
+      sortField,
+      activeField,
+    ],
+  },
+  {
+    id: "role_permissions",
+    table: "jsc_role_permissions",
+    title: "Permissions par rôle",
+    singular: "Permission",
+    description: "Matrice des droits par rôle et par module. Modifiable sans toucher au code.",
+    icon: "ShieldCheck",
+    labelField: "module",
+    group: "organisation",
+    companyScoped: false,
+    orderBy: [{ column: "sort_order", ascending: true }],
+    fields: [
+      { key: "role", label: "Rôle", type: "select", inList: true, required: true, options: JSC_ROLES },
+      {
+        key: "module", label: "Module", type: "select", inList: true, required: true,
+        options: [
+          { value: "dashboard", label: "Tableau de bord" },
+          { value: "catalog", label: "Matériaux" },
+          { value: "suppliers", label: "Fournisseurs" },
+          { value: "fleet", label: "Flotte" },
+          { value: "rates", label: "Tarifs" },
+          { value: "clients", label: "Clients" },
+          { value: "requests", label: "Demandes" },
+          { value: "quotes", label: "Soumissions" },
+          { value: "orders", label: "Commandes" },
+          { value: "invoices", label: "Factures" },
+          { value: "settings", label: "Paramètres" },
+          { value: "audit", label: "Journal d'audit" },
+        ],
+      },
+      { key: "can_view", label: "Consulter", type: "boolean", inList: true, defaultValue: true },
+      { key: "can_edit", label: "Créer / modifier", type: "boolean", inList: true, defaultValue: false },
+      { key: "can_delete", label: "Archiver", type: "boolean", inList: true, defaultValue: false },
+      sortField,
+      activeField,
+    ],
+  },
+];

@@ -4,7 +4,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Archive, ArchiveRestore, Search, Lock, History } from "lucide-react";
+import {
+  Loader2, Plus, Pencil, Archive, ArchiveRestore, Search, Lock, History, Download, Upload,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +42,40 @@ function emptyDraft(resource: ResourceDef): Row {
   return draft;
 }
 
-export default function ResourceManager({ resource }: { resource: ResourceDef }) {
+// --- CSV (compatible Excel) -------------------------------------------------
+const csvCell = (v: unknown) => {
+  const s = v === null || v === undefined ? "" : String(v);
+  return /[";\n,]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cur = "";
+  let quoted = false;
+  const sep = text.split("\n")[0].includes(";") ? ";" : ",";
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else cur += c;
+    } else if (c === '"') quoted = true;
+    else if (c === sep) { row.push(cur); cur = ""; }
+    else if (c === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; }
+    else if (c !== "\r") cur += c;
+  }
+  if (cur !== "" || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter((r) => r.some((c) => c.trim() !== ""));
+}
+
+export default function ResourceManager({
+  resource,
+  companyId,
+}: {
+  resource: ResourceDef;
+  companyId?: string | null;
+}) {
   const [rows, setRows] = useState<Row[]>([]);
   const [refs, setRefs] = useState<RefMap>({});
   const [loading, setLoading] = useState(true);
@@ -52,22 +87,29 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
   const [toArchive, setToArchive] = useState<Row | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [historyRow, setHistoryRow] = useState<Row | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const listFields = useMemo(
     () => resource.fields.filter((f) => f.inList && f.key !== "is_active"),
     [resource],
   );
+  const hasActive = useMemo(
+    () => resource.fields.some((f) => f.key === "is_active"),
+    [resource],
+  );
+  const scopeId = resource.companyScoped ? companyId ?? null : null;
 
   const load = useCallback(async () => {
     setLoading(true);
     let q = supabase.from(resource.table as never).select("*");
     q = showArchived ? q.not("archived_at", "is", null) : q.is("archived_at", null);
+    if (resource.companyScoped && companyId) q = q.eq("company_id", companyId);
     for (const o of resource.orderBy) q = q.order(o.column, { ascending: o.ascending });
     const { data, error } = await q.limit(1000);
     if (error) toast.error(error.message);
     setRows((data as unknown as Row[]) ?? []);
     setLoading(false);
-  }, [resource, showArchived]);
+  }, [resource, showArchived, companyId]);
 
   const loadRefs = useCallback(async () => {
     const refFields = resource.fields.filter((f) => f.type === "reference" && f.refTable);
@@ -134,6 +176,7 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
   const save = async () => {
     const payload = serialize();
     if (!payload) return;
+    if (scopeId && !editing) payload.company_id = scopeId;
     setSaving(true);
     const res = editing
       ? await supabase.from(resource.table as never).update(payload as never).eq("id", String(editing.id))
@@ -183,6 +226,57 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
       return f.options?.find((o) => o.value === String(v))?.label ?? String(v);
     }
     return `${v}${f.suffix ? ` ${f.suffix}` : ""}`;
+  };
+
+  // --- Import / export CSV (ouvrable dans Excel) ----------------------------
+  const exportCsv = () => {
+    const keys = resource.fields.map((f) => f.key);
+    const lines = [
+      keys.join(";"),
+      ...filtered.map((r) => keys.map((k) => csvCell(r[k])).join(";")),
+    ];
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${resource.id}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importCsv = async (file: File) => {
+    setImporting(true);
+    try {
+      const rowsCsv = parseCsv(await file.text());
+      if (rowsCsv.length < 2) { toast.error("Fichier vide ou sans données."); return; }
+      const header = rowsCsv[0].map((h) => h.replace(/^\uFEFF/, "").trim());
+      const known = new Map(resource.fields.map((f) => [f.key, f]));
+      const payloads = rowsCsv.slice(1).map((line) => {
+        const p: Row = {};
+        header.forEach((h, i) => {
+          const f = known.get(h);
+          if (!f) return;
+          const raw = (line[i] ?? "").trim();
+          if (f.type === "boolean") p[f.key] = ["1", "true", "oui", "vrai", "yes"].includes(raw.toLowerCase());
+          else if (f.type === "number") p[f.key] = raw === "" ? null : Number(raw.replace(",", "."));
+          else p[f.key] = raw === "" ? null : raw;
+        });
+        if (scopeId) p.company_id = scopeId;
+        return p;
+      }).filter((p) => Object.keys(p).length > 0);
+
+      if (payloads.length === 0) {
+        toast.error("Aucune colonne reconnue. Exportez d'abord un modèle CSV.");
+        return;
+      }
+      const { error } = await supabase.from(resource.table as never).insert(payloads as never);
+      if (error) { toast.error(error.message); return; }
+      toast.success(`${payloads.length} ligne(s) importée(s).`);
+      void load();
+      void loadRefs();
+    } finally {
+      setImporting(false);
+    }
   };
 
   const renderInput = (f: FieldDef) => {
@@ -270,6 +364,28 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
+          <Button variant="outline" onClick={exportCsv} title="Exporter en CSV / Excel">
+            <Download className="mr-2 h-4 w-4" /> Exporter
+          </Button>
+          <label className="inline-flex">
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="sr-only"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) void importCsv(f);
+              }}
+            />
+            <span
+              className="inline-flex h-10 cursor-pointer items-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+              title="Importer un fichier CSV"
+            >
+              {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              Importer
+            </span>
+          </label>
           <Button onClick={openCreate} disabled={showArchived}>
             <Plus className="mr-2 h-4 w-4" /> Ajouter
           </Button>
@@ -293,18 +409,19 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
               <TableHeader>
                 <TableRow>
                   {listFields.map((f) => <TableHead key={f.key}>{f.label}</TableHead>)}
-                  <TableHead>Statut</TableHead>
+                  {hasActive && <TableHead>Statut</TableHead>}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((row) => (
-                  <TableRow key={String(row.id)} className={row.is_active ? "" : "opacity-60"}>
+                  <TableRow key={String(row.id)} className={hasActive && !row.is_active ? "opacity-60" : ""}>
                     {listFields.map((f) => (
                       <TableCell key={f.key} className="whitespace-nowrap text-sm">
                         {renderCell(row, f)}
                       </TableCell>
                     ))}
+                    {hasActive && (
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {!showArchived && (
@@ -315,6 +432,7 @@ export default function ResourceManager({ resource }: { resource: ResourceDef })
                         </Badge>
                       </div>
                     </TableCell>
+                    )}
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" onClick={() => setHistoryRow(row)} aria-label="Historique">
                         <History className="h-4 w-4" />

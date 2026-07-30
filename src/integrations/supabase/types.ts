@@ -2544,6 +2544,59 @@ export type Database = {
         }
         Relationships: []
       }
+      jsc_company_members: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          company_id: string
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          is_active: boolean
+          role: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          company_id: string
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          role?: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          company_id?: string
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          role?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_company_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_drivers: {
         Row: {
           archived_at: string | null
@@ -3649,6 +3702,62 @@ export type Database = {
             columns: ["zone_id"]
             isOneToOne: false
             referencedRelation: "jsc_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_role_permissions: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          can_delete: boolean
+          can_edit: boolean
+          can_view: boolean
+          company_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          module: string
+          role: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          module: string
+          role: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          module?: string
+          role?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_role_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -7541,6 +7650,11 @@ export type Database = {
         Returns: Json
       }
       jsc_can_manage: { Args: { _user_id: string }; Returns: boolean }
+      jsc_company_role: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: string
+      }
+      jsc_dashboard_stats: { Args: { _company_id?: string }; Returns: Json }
       jsc_default_company_id: { Args: never; Returns: string }
       jsc_export_config: { Args: { _company_id?: string }; Returns: Json }
       jsc_import_config: {
