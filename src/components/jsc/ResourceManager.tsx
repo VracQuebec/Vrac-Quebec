@@ -238,6 +238,10 @@ export default function ResourceManager({
   const renderCell = (row: Row, f: FieldDef) => {
     const v = row[f.key];
     if (f.type === "boolean") return v ? "Oui" : "Non";
+    if (f.type === "list") {
+      const arr = Array.isArray(v) ? (v as string[]) : [];
+      return arr.length ? arr.join(", ") : <span className="text-muted-foreground">—</span>;
+    }
     if (v === null || v === undefined || v === "") return <span className="text-muted-foreground">—</span>;
     if (f.type === "reference") {
       const found = refs[f.key]?.find((o) => o.id === String(v));
@@ -280,6 +284,7 @@ export default function ResourceManager({
           const raw = (line[i] ?? "").trim();
           if (f.type === "boolean") p[f.key] = ["1", "true", "oui", "vrai", "yes"].includes(raw.toLowerCase());
           else if (f.type === "number") p[f.key] = raw === "" ? null : Number(raw.replace(",", "."));
+          else if (f.type === "list") p[f.key] = raw ? raw.split(/[|,;]+/).map((s) => s.trim()).filter(Boolean) : [];
           else p[f.key] = raw === "" ? null : raw;
         });
         if (scopeId) p.company_id = scopeId;
