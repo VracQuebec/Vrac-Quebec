@@ -65,6 +65,23 @@ const sortField: FieldDef = {
 
 export const JSC_RESOURCES: ResourceDef[] = [
   {
+    id: "material_categories",
+    table: "jsc_material_categories",
+    title: "Catégories de matériaux",
+    singular: "Catégorie",
+    description: "Familles de matériaux (pierre, sable, terre…). Sert au classement et aux filtres.",
+    icon: "FolderTree",
+    labelField: "name",
+    orderBy: [{ column: "sort_order", ascending: true }, { column: "name", ascending: true }],
+    fields: [
+      { key: "name", label: "Nom", type: "text", inList: true, required: true },
+      { key: "code", label: "Code", type: "text", inList: true },
+      { key: "description", label: "Description", type: "textarea" },
+      sortField,
+      activeField,
+    ],
+  },
+  {
     id: "materials",
     table: "jsc_materials",
     title: "Matériaux",
@@ -77,7 +94,11 @@ export const JSC_RESOURCES: ResourceDef[] = [
     fields: [
       { key: "name", label: "Nom", type: "text", inList: true, required: true },
       { key: "code", label: "Code", type: "text", inList: true, placeholder: "ex. MG20" },
-      { key: "category", label: "Catégorie", type: "text", inList: true, placeholder: "ex. Pierre, Sable, Terre" },
+      {
+        key: "category_id", label: "Catégorie", type: "reference", inList: true,
+        refTable: "jsc_material_categories", refLabel: "name",
+      },
+      { key: "category", label: "Catégorie (libellé libre)", type: "text", placeholder: "ex. Pierre, Sable, Terre" },
       {
         key: "unit", label: "Unité de vente", type: "select", inList: true, defaultValue: "tonne",
         options: [
