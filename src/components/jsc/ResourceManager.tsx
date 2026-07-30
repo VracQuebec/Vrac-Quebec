@@ -482,6 +482,9 @@ export default function ResourceManager({
                           <Button variant="ghost" size="icon" onClick={() => openEdit(row)} aria-label="Modifier">
                             <Pencil className="h-4 w-4" />
                           </Button>
+                          <Button variant="ghost" size="icon" onClick={() => openDuplicate(row)} aria-label="Dupliquer">
+                            <Copy className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => setToArchive(row)} aria-label="Archiver">
                             <Archive className="h-4 w-4 text-destructive" />
                           </Button>
@@ -508,7 +511,7 @@ export default function ResourceManager({
             {resource.fields.map((f) => (
               <div
                 key={f.key}
-                className={f.type === "textarea" ? "sm:col-span-2 space-y-1.5" : "space-y-1.5"}
+                className={f.type === "textarea" || f.type === "list" ? "sm:col-span-2 space-y-1.5" : "space-y-1.5"}
               >
                 <Label className="flex items-center gap-1.5">
                   {f.label}
