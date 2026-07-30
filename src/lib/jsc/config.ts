@@ -14,7 +14,8 @@ export type FieldType =
   | "number"
   | "boolean"
   | "select"
-  | "reference";
+  | "reference"
+  | "list";
 
 export interface FieldDef {
   key: string;
