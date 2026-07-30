@@ -59,6 +59,7 @@ const AdminCrm = lazy(() => import("./pages/AdminCrm"));
 const CrmDetail = lazy(() => import("./pages/CrmDetail"));
 const AdminOperations = lazy(() => import("./pages/AdminOperations"));
 const AdminJsc = lazy(() => import("./pages/AdminJsc"));
+const OpsCenter = lazy(() => import("./pages/OpsCenter"));
 
 const queryClient = new QueryClient();
 
@@ -136,6 +137,7 @@ const App = () => (
             <Route path="/admin/crm/:ownerType/:id" element={<CrmDetail />} />
             <Route path="/admin/operations" element={<AdminOperations />} />
             <Route path="/admin/jsc" element={<AdminJsc />} />
+            <Route path="/admin/centre-operations" element={<OpsCenter />} />
             {/* Alias historique — redirige vers la route canonique */}
             <Route path="/admin/seo-manager" element={<Navigate to="/admin/seo" replace />} />
             <Route path="/livraison" element={<ZonesIndex />} />
