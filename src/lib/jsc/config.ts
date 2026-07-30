@@ -45,7 +45,49 @@ export interface ResourceDef {
   labelField: string;
   orderBy: { column: string; ascending: boolean }[];
   fields: FieldDef[];
+  /** Regroupement dans la navigation du back office */
+  group?: "referentiel" | "commercial" | "organisation";
+  /** Les enregistrements sont cloisonnés par entreprise (company_id) */
+  companyScoped?: boolean;
 }
+
+export const JSC_REQUEST_STATUSES = [
+  { value: "nouvelle", label: "Nouvelle" },
+  { value: "en_analyse", label: "En analyse" },
+  { value: "a_rappeler", label: "À rappeler" },
+  { value: "soumission_envoyee", label: "Soumission envoyée" },
+  { value: "acceptee", label: "Acceptée" },
+  { value: "planifiee", label: "Planifiée" },
+  { value: "terminee", label: "Terminée" },
+  { value: "annulee", label: "Annulée" },
+];
+
+export const JSC_QUOTE_STATUSES = [
+  { value: "brouillon", label: "Brouillon" },
+  { value: "envoyee", label: "Envoyée" },
+  { value: "acceptee", label: "Acceptée" },
+  { value: "refusee", label: "Refusée" },
+  { value: "expiree", label: "Expirée" },
+];
+
+export const JSC_ORDER_STATUSES = [
+  { value: "a_planifier", label: "À planifier" },
+  { value: "planifiee", label: "Planifiée" },
+  { value: "en_cours", label: "En cours" },
+  { value: "livree", label: "Livrée" },
+  { value: "facturee", label: "Facturée" },
+  { value: "annulee", label: "Annulée" },
+];
+
+export const JSC_ROLES = [
+  { value: "super_admin", label: "Super administrateur" },
+  { value: "admin", label: "Administrateur" },
+  { value: "dispatcher", label: "Répartiteur" },
+  { value: "employee", label: "Employé" },
+  { value: "sales", label: "Ventes" },
+  { value: "driver", label: "Chauffeur" },
+  { value: "entrepreneur", label: "Entrepreneur" },
+];
 
 const activeField: FieldDef = {
   key: "is_active",
