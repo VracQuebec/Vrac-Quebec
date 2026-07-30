@@ -27,6 +27,7 @@ type Dashboard = {
 export default function PublicationDashboard() {
   const [data, setData] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState<Record<string, unknown> | null>(null);
 
