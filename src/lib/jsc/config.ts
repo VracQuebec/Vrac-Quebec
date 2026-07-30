@@ -681,6 +681,46 @@ export const JSC_COMMERCIAL_RESOURCES: ResourceDef[] = [
 // ============================================================
 // Organisation : utilisateurs par entreprise et permissions par rôle
 // ============================================================
+
+// ============================================================
+// Opérations : projets, livraisons et incidents (Centre des Opérations)
+// ============================================================
+export const JSC_OPS_RESOURCES: ResourceDef[] = [
+  {
+    id: "projects",
+    table: "jsc_projects",
+    title: "Projets",
+    singular: "Projet",
+    description: "Regroupe plusieurs demandes, commandes et livraisons pour un même chantier ou client.",
+    icon: "FolderTree",
+    labelField: "name",
+    group: "commercial",
+    companyScoped: true,
+    orderBy: [{ column: "created_at", ascending: false }],
+    fields: [
+      { key: "project_number", label: "Numéro", type: "text", inList: true, help: "Généré automatiquement si laissé vide." },
+      { key: "name", label: "Nom du projet", type: "text", inList: true, required: true },
+      { key: "client_id", label: "Client", type: "reference", refTable: "jsc_clients", refLabel: "name", inList: true },
+      {
+        key: "status", label: "Statut", type: "select", inList: true, defaultValue: "actif",
+        options: [
+          { value: "prospect", label: "Prospect" },
+          { value: "actif", label: "Actif" },
+          { value: "en_pause", label: "En pause" },
+          { value: "termine", label: "Terminé" },
+          { value: "annule", label: "Annulé" },
+        ],
+      },
+      { key: "site_address", label: "Adresse du chantier", type: "text", inList: true },
+      { key: "city", label: "Ville", type: "text", inList: true },
+      { key: "start_date", label: "Date de début", type: "text", placeholder: "AAAA-MM-JJ" },
+      { key: "end_date", label: "Date de fin", type: "text", placeholder: "AAAA-MM-JJ" },
+      { key: "notes", label: "Notes", type: "textarea" },
+      { key: "internal_notes", label: "Notes internes", type: "textarea", confidential: true },
+    ],
+  },
+];
+
 export const JSC_ORG_RESOURCES: ResourceDef[] = [
   {
     id: "company_members",
