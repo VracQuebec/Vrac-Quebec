@@ -49,7 +49,7 @@ const SUPPLIER_COLS: Col[] = [
 export default function BiEntities({ data }: { data: Analytics }) {
   const clients = ((data.clients as Row[]) ?? []);
   const materialsRaw = ((data.materials_trend as Row[]) ?? []);
-  const materials = materialsRaw.map((m) => {
+  const materials: Row[] = materialsRaw.map((m) => {
     const prev = Number(m.previous_revenue ?? 0), cur = Number(m.revenue ?? 0);
     return { ...m, growth: prev ? Math.round(((cur - prev) / prev) * 1000) / 10 : cur ? 100 : 0 };
   });
