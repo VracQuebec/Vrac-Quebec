@@ -7,6 +7,9 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, RefreshCw, Send, AlertTriangle, FileCheck2, FileText, Search, CheckCircle2, Download } from "lucide-react";
 import { toast } from "sonner";
 
+type StuckPage = { slug: string; status: string; qa_last_score: number | null; word_count: number | null; qa_blockers: string[] | null; stuck_minutes: number; reason: string };
+type PublishedPage = { slug: string; title: string; published_at?: string | null; updated_at: string; qa_last_score: number | null; word_count: number | null; google_index_status: string | null };
+
 type Dashboard = {
   computed_at: string;
   counts: {
@@ -14,9 +17,11 @@ type Dashboard = {
     published: number; discovered: number; indexed: number;
     qa_avg: number; words_avg: number; last_published: string | null;
   };
-  stuck_pages: Array<{ slug: string; status: string; qa_last_score: number | null; word_count: number | null; qa_blockers: string[] | null; stuck_minutes: number; reason: string }>;
-  recent_published: Array<{ slug: string; title: string; updated_at: string; qa_last_score: number | null; word_count: number | null; google_index_status: string | null }>;
-  ready_for_final_qa: boolean;
+  stuck?: StuckPage[];
+  stuck_pages?: StuckPage[];
+  recent?: PublishedPage[];
+  recent_published?: PublishedPage[];
+  ready_for_final_qa?: boolean;
 };
 
 export default function PublicationDashboard() {
