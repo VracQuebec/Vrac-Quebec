@@ -415,7 +415,7 @@ export default function ResourceManager({
               </TableHeader>
               <TableBody>
                 {filtered.map((row) => (
-                  <TableRow key={String(row.id)} className={row.is_active ? "" : "opacity-60"}>
+                  <TableRow key={String(row.id)} className={hasActive && !row.is_active ? "opacity-60" : ""}>
                     {listFields.map((f) => (
                       <TableCell key={f.key} className="whitespace-nowrap text-sm">
                         {renderCell(row, f)}
