@@ -327,6 +327,16 @@ export default function ResourceManager({
         />
       );
     }
+    if (f.type === "list") {
+      return (
+        <Textarea
+          rows={3}
+          value={Array.isArray(v) ? (v as string[]).join("\n") : String(v ?? "")}
+          placeholder={f.placeholder ?? "Une valeur par ligne"}
+          onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
+        />
+      );
+    }
     if (f.type === "select") {
       return (
         <Select
