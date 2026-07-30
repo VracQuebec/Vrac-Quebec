@@ -29,3 +29,5 @@ verify_jwt = false
 
 [functions.gbp-sync-daily]
 verify_jwt = false
+[functions.quote-assistant]
+verify_jwt = false
