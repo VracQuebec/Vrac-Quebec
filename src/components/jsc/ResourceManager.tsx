@@ -228,6 +228,57 @@ export default function ResourceManager({
     return `${v}${f.suffix ? ` ${f.suffix}` : ""}`;
   };
 
+  // --- Import / export CSV (ouvrable dans Excel) ----------------------------
+  const exportCsv = () => {
+    const keys = resource.fields.map((f) => f.key);
+    const lines = [
+      keys.join(";"),
+      ...filtered.map((r) => keys.map((k) => csvCell(r[k])).join(";")),
+    ];
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${resource.id}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importCsv = async (file: File) => {
+    setImporting(true);
+    try {
+      const rowsCsv = parseCsv(await file.text());
+      if (rowsCsv.length < 2) { toast.error("Fichier vide ou sans données."); return; }
+      const header = rowsCsv[0].map((h) => h.replace(/^\uFEFF/, "").trim());
+      const known = new Map(resource.fields.map((f) => [f.key, f]));
+      const payloads = rowsCsv.slice(1).map((line) => {
+        const p: Row = {};
+        header.forEach((h, i) => {
+          const f = known.get(h);
+          if (!f) return;
+          const raw = (line[i] ?? "").trim();
+          if (f.type === "boolean") p[f.key] = ["1", "true", "oui", "vrai", "yes"].includes(raw.toLowerCase());
+          else if (f.type === "number") p[f.key] = raw === "" ? null : Number(raw.replace(",", "."));
+          else p[f.key] = raw === "" ? null : raw;
+        });
+        if (scopeId) p.company_id = scopeId;
+        return p;
+      }).filter((p) => Object.keys(p).length > 0);
+
+      if (payloads.length === 0) {
+        toast.error("Aucune colonne reconnue. Exportez d'abord un modèle CSV.");
+        return;
+      }
+      const { error } = await supabase.from(resource.table as never).insert(payloads as never);
+      if (error) { toast.error(error.message); return; }
+      toast.success(`${payloads.length} ligne(s) importée(s).`);
+      void load();
+      void loadRefs();
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const renderInput = (f: FieldDef) => {
     const v = draft[f.key];
     if (f.type === "boolean") {
@@ -313,6 +364,28 @@ export default function ResourceManager({
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
+          <Button variant="outline" onClick={exportCsv} title="Exporter en CSV / Excel">
+            <Download className="mr-2 h-4 w-4" /> Exporter
+          </Button>
+          <label className="inline-flex">
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="sr-only"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) void importCsv(f);
+              }}
+            />
+            <span
+              className="inline-flex h-10 cursor-pointer items-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+              title="Importer un fichier CSV"
+            >
+              {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              Importer
+            </span>
+          </label>
           <Button onClick={openCreate} disabled={showArchived}>
             <Plus className="mr-2 h-4 w-4" /> Ajouter
           </Button>
@@ -336,7 +409,7 @@ export default function ResourceManager({
               <TableHeader>
                 <TableRow>
                   {listFields.map((f) => <TableHead key={f.key}>{f.label}</TableHead>)}
-                  <TableHead>Statut</TableHead>
+                  {hasActive && <TableHead>Statut</TableHead>}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -348,6 +421,7 @@ export default function ResourceManager({
                         {renderCell(row, f)}
                       </TableCell>
                     ))}
+                    {hasActive && (
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {!showArchived && (
@@ -358,6 +432,7 @@ export default function ResourceManager({
                         </Badge>
                       </div>
                     </TableCell>
+                    )}
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" onClick={() => setHistoryRow(row)} aria-label="Historique">
                         <History className="h-4 w-4" />
