@@ -2603,6 +2603,196 @@ export type Database = {
           },
         ]
       }
+      jsc_deliveries: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          cancelled_at: string | null
+          carrier_id: string | null
+          city: string | null
+          client_id: string | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          delivery_address: string | null
+          delivery_number: string | null
+          distance_km: number | null
+          driver_id: string | null
+          duration_minutes: number | null
+          estimated_cost: number | null
+          group_key: string | null
+          id: string
+          internal_notes: string | null
+          latitude: number | null
+          loaded_at: string | null
+          longitude: number | null
+          material_id: string | null
+          notes: string | null
+          order_id: string | null
+          pickup_location_id: string | null
+          postal_code: string | null
+          priority: string
+          project_id: string | null
+          quantity: number | null
+          quantity_unit: string | null
+          scheduled_date: string | null
+          scheduled_time: string | null
+          started_at: string | null
+          status: string
+          supplier_id: string | null
+          trip_index: number | null
+          truck_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          cancelled_at?: string | null
+          carrier_id?: string | null
+          city?: string | null
+          client_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          delivery_address?: string | null
+          delivery_number?: string | null
+          distance_km?: number | null
+          driver_id?: string | null
+          duration_minutes?: number | null
+          estimated_cost?: number | null
+          group_key?: string | null
+          id?: string
+          internal_notes?: string | null
+          latitude?: number | null
+          loaded_at?: string | null
+          longitude?: number | null
+          material_id?: string | null
+          notes?: string | null
+          order_id?: string | null
+          pickup_location_id?: string | null
+          postal_code?: string | null
+          priority?: string
+          project_id?: string | null
+          quantity?: number | null
+          quantity_unit?: string | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          started_at?: string | null
+          status?: string
+          supplier_id?: string | null
+          trip_index?: number | null
+          truck_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          cancelled_at?: string | null
+          carrier_id?: string | null
+          city?: string | null
+          client_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          delivery_address?: string | null
+          delivery_number?: string | null
+          distance_km?: number | null
+          driver_id?: string | null
+          duration_minutes?: number | null
+          estimated_cost?: number | null
+          group_key?: string | null
+          id?: string
+          internal_notes?: string | null
+          latitude?: number | null
+          loaded_at?: string | null
+          longitude?: number | null
+          material_id?: string | null
+          notes?: string | null
+          order_id?: string | null
+          pickup_location_id?: string | null
+          postal_code?: string | null
+          priority?: string
+          project_id?: string | null
+          quantity?: number | null
+          quantity_unit?: string | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
+          started_at?: string | null
+          status?: string
+          supplier_id?: string | null
+          trip_index?: number | null
+          truck_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_deliveries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_deliveries_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_deliveries_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_deliveries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_deliveries_pickup_location_id_fkey"
+            columns: ["pickup_location_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_pickup_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_deliveries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_deliveries_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_deliveries_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_drivers: {
         Row: {
           archived_at: string | null
@@ -2621,6 +2811,7 @@ export type Database = {
           license_class: string | null
           license_number: string | null
           phone: string | null
+          schedule: string | null
           sort_order: number
           status: string
           updated_at: string
@@ -2642,6 +2833,7 @@ export type Database = {
           license_class?: string | null
           license_number?: string | null
           phone?: string | null
+          schedule?: string | null
           sort_order?: number
           status?: string
           updated_at?: string
@@ -2663,6 +2855,7 @@ export type Database = {
           license_class?: string | null
           license_number?: string | null
           phone?: string | null
+          schedule?: string | null
           sort_order?: number
           status?: string
           updated_at?: string
@@ -2830,6 +3023,95 @@ export type Database = {
             columns: ["truck_id"]
             isOneToOne: false
             referencedRelation: "jsc_trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_incidents: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          company_id: string | null
+          created_at: string
+          delivery_id: string | null
+          description: string
+          id: string
+          incident_type: string
+          order_id: string | null
+          project_id: string | null
+          reported_by: string | null
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          company_id?: string | null
+          created_at?: string
+          delivery_id?: string | null
+          description: string
+          id?: string
+          incident_type?: string
+          order_id?: string | null
+          project_id?: string | null
+          reported_by?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          company_id?: string | null
+          created_at?: string
+          delivery_id?: string | null
+          description?: string
+          id?: string
+          incident_type?: string
+          order_id?: string | null
+          project_id?: string | null
+          reported_by?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_incidents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_incidents_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_incidents_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_incidents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -3317,6 +3599,54 @@ export type Database = {
           },
         ]
       }
+      jsc_notifications: {
+        Row: {
+          audience: string
+          body: string | null
+          channel: string
+          company_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          read_at: string | null
+          sent_at: string | null
+          status: string
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          audience?: string
+          body?: string | null
+          channel?: string
+          company_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          read_at?: string | null
+          sent_at?: string | null
+          status?: string
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          audience?: string
+          body?: string | null
+          channel?: string
+          company_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          read_at?: string | null
+          sent_at?: string | null
+          status?: string
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       jsc_number_counters: {
         Row: {
           company_id: string
@@ -3372,6 +3702,8 @@ export type Database = {
           material_id: string | null
           order_number: string | null
           pickup_location_id: string | null
+          priority: string
+          project_id: string | null
           quote_id: string | null
           request_id: string | null
           scheduled_date: string | null
@@ -3405,6 +3737,8 @@ export type Database = {
           material_id?: string | null
           order_number?: string | null
           pickup_location_id?: string | null
+          priority?: string
+          project_id?: string | null
           quote_id?: string | null
           request_id?: string | null
           scheduled_date?: string | null
@@ -3438,6 +3772,8 @@ export type Database = {
           material_id?: string | null
           order_number?: string | null
           pickup_location_id?: string | null
+          priority?: string
+          project_id?: string | null
           quote_id?: string | null
           request_id?: string | null
           scheduled_date?: string | null
@@ -3493,6 +3829,13 @@ export type Database = {
             columns: ["pickup_location_id"]
             isOneToOne: false
             referencedRelation: "jsc_pickup_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_orders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_projects"
             referencedColumns: ["id"]
           },
           {
@@ -3609,6 +3952,96 @@ export type Database = {
             columns: ["zone_id"]
             isOneToOne: false
             referencedRelation: "jsc_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_projects: {
+        Row: {
+          address: string | null
+          archived_at: string | null
+          archived_by: string | null
+          city: string | null
+          client_id: string | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          id: string
+          internal_notes: string | null
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          name: string
+          notes: string | null
+          postal_code: string | null
+          project_number: string | null
+          sort_order: number | null
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          city?: string | null
+          client_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          internal_notes?: string | null
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          notes?: string | null
+          postal_code?: string | null
+          project_number?: string | null
+          sort_order?: number | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          city?: string | null
+          client_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          internal_notes?: string | null
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          notes?: string | null
+          postal_code?: string | null
+          project_number?: string | null
+          sort_order?: number | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -3735,6 +4168,7 @@ export type Database = {
           material_id: string | null
           notes: string | null
           postal_code: string | null
+          project_id: string | null
           quantity: number | null
           quantity_unit: string | null
           request_number: string | null
@@ -3760,6 +4194,7 @@ export type Database = {
           material_id?: string | null
           notes?: string | null
           postal_code?: string | null
+          project_id?: string | null
           quantity?: number | null
           quantity_unit?: string | null
           request_number?: string | null
@@ -3785,6 +4220,7 @@ export type Database = {
           material_id?: string | null
           notes?: string | null
           postal_code?: string | null
+          project_id?: string | null
           quantity?: number | null
           quantity_unit?: string | null
           request_number?: string | null
@@ -3813,6 +4249,13 @@ export type Database = {
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "jsc_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_projects"
             referencedColumns: ["id"]
           },
           {
@@ -3941,6 +4384,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      jsc_status_history: {
+        Row: {
+          actor_email: string | null
+          actor_id: string | null
+          company_id: string | null
+          created_at: string
+          entity_id: string
+          entity_label: string | null
+          entity_type: string
+          from_status: string | null
+          id: string
+          reason: string | null
+          to_status: string
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          entity_id: string
+          entity_label?: string | null
+          entity_type: string
+          from_status?: string | null
+          id?: string
+          reason?: string | null
+          to_status: string
+        }
+        Update: {
+          actor_email?: string | null
+          actor_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_label?: string | null
+          entity_type?: string
+          from_status?: string | null
+          id?: string
+          reason?: string | null
+          to_status?: string
+        }
+        Relationships: []
       }
       jsc_suppliers: {
         Row: {
@@ -4192,6 +4677,7 @@ export type Database = {
           capacity_tonnes: number
           company_id: string
           created_at: string
+          current_driver_id: string | null
           fixed_time_minutes: number
           hourly_rate: number
           id: string
@@ -4200,6 +4686,7 @@ export type Database = {
           is_subcontracted: boolean
           loading_time_minutes: number
           name: string
+          operational_status: string
           per_km_rate: number | null
           per_trip_rate: number | null
           sort_order: number
@@ -4216,6 +4703,7 @@ export type Database = {
           capacity_tonnes?: number
           company_id?: string
           created_at?: string
+          current_driver_id?: string | null
           fixed_time_minutes?: number
           hourly_rate?: number
           id?: string
@@ -4224,6 +4712,7 @@ export type Database = {
           is_subcontracted?: boolean
           loading_time_minutes?: number
           name: string
+          operational_status?: string
           per_km_rate?: number | null
           per_trip_rate?: number | null
           sort_order?: number
@@ -4240,6 +4729,7 @@ export type Database = {
           capacity_tonnes?: number
           company_id?: string
           created_at?: string
+          current_driver_id?: string | null
           fixed_time_minutes?: number
           hourly_rate?: number
           id?: string
@@ -4248,6 +4738,7 @@ export type Database = {
           is_subcontracted?: boolean
           loading_time_minutes?: number
           name?: string
+          operational_status?: string
           per_km_rate?: number | null
           per_trip_rate?: number | null
           sort_order?: number
@@ -7824,6 +8315,7 @@ export type Database = {
         Args: { _company_id: string; _kind: string }
         Returns: string
       }
+      jsc_ops_dashboard: { Args: { _company_id?: string }; Returns: Json }
       jsc_public_catalog: {
         Args: never
         Returns: {
