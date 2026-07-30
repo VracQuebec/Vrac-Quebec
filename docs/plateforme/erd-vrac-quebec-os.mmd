@@ -1,0 +1,26 @@
+erDiagram
+    JSC_COMPANIES ||--o{ JSC_TRUCKS : possede
+    JSC_COMPANIES ||--o{ JSC_DRIVERS : emploie
+    JSC_COMPANIES ||--o{ JSC_TRANSPORT_RATES : tarifie
+    JSC_TRUCKS ||--o{ JSC_TRANSPORT_RATES : concerne
+    JSC_TRUCKS ||--o{ JSC_DRIVERS : habituel
+    JSC_ZONES ||--o{ JSC_TRANSPORT_RATES : delimite
+    JSC_ZONES ||--o{ JSC_PICKUP_LOCATIONS : situe
+    JSC_SUPPLIERS ||--o{ JSC_PICKUP_LOCATIONS : exploite
+    JSC_MATERIAL_CATEGORIES ||--o{ JSC_MATERIALS : classe
+    JSC_MATERIALS ||--o{ JSC_MATERIAL_PRICES : cote
+    JSC_SUPPLIERS ||--o{ JSC_MATERIAL_PRICES : fournit
+    JSC_PICKUP_LOCATIONS ||--o{ JSC_MATERIAL_PRICES : offre
+    JSC_CLIENTS ||--o{ JSC_REQUESTS : soumet
+    JSC_MATERIALS ||--o{ JSC_REQUESTS : demande
+    JSC_REQUESTS ||--o{ JSC_ESTIMATES : genere
+    JSC_ESTIMATES ||--o{ JSC_QUOTES : devient
+    JSC_QUOTES ||--o{ JSC_ORDERS : accepte
+    JSC_ORDERS ||--o{ JSC_INVOICES : facture
+    JSC_INVOICES ||--o{ JSC_INVOICE_LINES : detaille
+    JSC_TRUCKS ||--o{ JSC_ORDERS : assigne
+    JSC_DRIVERS ||--o{ JSC_ORDERS : conduit
+    JSC_SUPPLIERS ||--o{ JSC_ORDERS : approvisionne
+    JSC_TAXES ||--o{ JSC_INVOICE_LINES : applique
+    JSC_SETTINGS ||--o{ JSC_ESTIMATES : parametre
+    JSC_AUDIT_LOG }o--|| JSC_COMPANIES : trace
