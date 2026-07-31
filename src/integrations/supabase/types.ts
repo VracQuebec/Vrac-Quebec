@@ -2791,6 +2791,108 @@ export type Database = {
           },
         ]
       }
+      jsc_availability: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          available_quantity: number | null
+          company_id: string | null
+          created_at: string
+          daily_capacity_tonnes: number | null
+          id: string
+          is_active: boolean
+          lead_time_days: number | null
+          material_id: string | null
+          note: string | null
+          pickup_location_id: string | null
+          price_indication: number | null
+          profile_id: string | null
+          status: string
+          supplier_id: string | null
+          unit: string | null
+          updated_at: string
+          wait_time_minutes: number | null
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          available_quantity?: number | null
+          company_id?: string | null
+          created_at?: string
+          daily_capacity_tonnes?: number | null
+          id?: string
+          is_active?: boolean
+          lead_time_days?: number | null
+          material_id?: string | null
+          note?: string | null
+          pickup_location_id?: string | null
+          price_indication?: number | null
+          profile_id?: string | null
+          status?: string
+          supplier_id?: string | null
+          unit?: string | null
+          updated_at?: string
+          wait_time_minutes?: number | null
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          available_quantity?: number | null
+          company_id?: string | null
+          created_at?: string
+          daily_capacity_tonnes?: number | null
+          id?: string
+          is_active?: boolean
+          lead_time_days?: number | null
+          material_id?: string | null
+          note?: string | null
+          pickup_location_id?: string | null
+          price_indication?: number | null
+          profile_id?: string | null
+          status?: string
+          supplier_id?: string | null
+          unit?: string | null
+          updated_at?: string
+          wait_time_minutes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_availability_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_availability_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_availability_pickup_location_id_fkey"
+            columns: ["pickup_location_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_pickup_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_availability_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_marketplace_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_availability_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_bi_goals: {
         Row: {
           archived_at: string | null
@@ -3125,6 +3227,106 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_contracts: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          client_id: string | null
+          company_id: string | null
+          contract_number: string | null
+          contract_type: string
+          created_at: string
+          credit_limit: number | null
+          delivery_conditions: string | null
+          discount_percent: number | null
+          ends_on: string | null
+          id: string
+          is_active: boolean
+          minimum_volume: number | null
+          name: string
+          negotiated_prices: Json
+          notes: string | null
+          payment_terms_days: number | null
+          starts_on: string | null
+          status: string
+          supplier_id: string | null
+          transport_terms: Json
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          client_id?: string | null
+          company_id?: string | null
+          contract_number?: string | null
+          contract_type?: string
+          created_at?: string
+          credit_limit?: number | null
+          delivery_conditions?: string | null
+          discount_percent?: number | null
+          ends_on?: string | null
+          id?: string
+          is_active?: boolean
+          minimum_volume?: number | null
+          name: string
+          negotiated_prices?: Json
+          notes?: string | null
+          payment_terms_days?: number | null
+          starts_on?: string | null
+          status?: string
+          supplier_id?: string | null
+          transport_terms?: Json
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          client_id?: string | null
+          company_id?: string | null
+          contract_number?: string | null
+          contract_type?: string
+          created_at?: string
+          credit_limit?: number | null
+          delivery_conditions?: string | null
+          discount_percent?: number | null
+          ends_on?: string | null
+          id?: string
+          is_active?: boolean
+          minimum_volume?: number | null
+          name?: string
+          negotiated_prices?: Json
+          notes?: string | null
+          payment_terms_days?: number | null
+          starts_on?: string | null
+          status?: string
+          supplier_id?: string | null
+          transport_terms?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_contracts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_contracts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -4143,6 +4345,118 @@ export type Database = {
           },
         ]
       }
+      jsc_listings: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          available_from: string | null
+          available_until: string | null
+          city: string | null
+          company_id: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          latitude: number | null
+          listing_type: string
+          longitude: number | null
+          material_id: string | null
+          material_label: string | null
+          price: number | null
+          price_unit: string | null
+          profile_id: string | null
+          quantity: number | null
+          quantity_unit: string | null
+          region: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          available_from?: string | null
+          available_until?: string | null
+          city?: string | null
+          company_id?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          listing_type?: string
+          longitude?: number | null
+          material_id?: string | null
+          material_label?: string | null
+          price?: number | null
+          price_unit?: string | null
+          profile_id?: string | null
+          quantity?: number | null
+          quantity_unit?: string | null
+          region?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          available_from?: string | null
+          available_until?: string | null
+          city?: string | null
+          company_id?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          listing_type?: string
+          longitude?: number | null
+          material_id?: string | null
+          material_label?: string | null
+          price?: number | null
+          price_unit?: string | null
+          profile_id?: string | null
+          quantity?: number | null
+          quantity_unit?: string | null
+          region?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_listings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_listings_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_listings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_marketplace_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_login_history: {
         Row: {
           created_at: string
@@ -4169,6 +4483,183 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      jsc_marketplace_profiles: {
+        Row: {
+          address: string | null
+          archived_at: string | null
+          archived_by: string | null
+          carrier_company_id: string | null
+          certifications: Json
+          city: string | null
+          company_id: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          is_featured: boolean
+          is_published: boolean
+          latitude: number | null
+          logo_url: string | null
+          longitude: number | null
+          name: string
+          opening_hours: Json
+          partner_type: string
+          phone: string | null
+          photos: Json
+          postal_code: string | null
+          rating_average: number
+          rating_count: number
+          region: string | null
+          service_radius_km: number | null
+          services: Json
+          slug: string | null
+          supplier_id: string | null
+          tagline: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          carrier_company_id?: string | null
+          certifications?: Json
+          city?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          is_published?: boolean
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          name: string
+          opening_hours?: Json
+          partner_type?: string
+          phone?: string | null
+          photos?: Json
+          postal_code?: string | null
+          rating_average?: number
+          rating_count?: number
+          region?: string | null
+          service_radius_km?: number | null
+          services?: Json
+          slug?: string | null
+          supplier_id?: string | null
+          tagline?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          carrier_company_id?: string | null
+          certifications?: Json
+          city?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          is_published?: boolean
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          name?: string
+          opening_hours?: Json
+          partner_type?: string
+          phone?: string | null
+          photos?: Json
+          postal_code?: string | null
+          rating_average?: number
+          rating_count?: number
+          region?: string | null
+          service_radius_km?: number | null
+          services?: Json
+          slug?: string | null
+          supplier_id?: string | null
+          tagline?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_marketplace_profiles_carrier_company_id_fkey"
+            columns: ["carrier_company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_marketplace_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_marketplace_profiles_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_marketplace_reviews: {
+        Row: {
+          archived_at: string | null
+          author_name: string | null
+          author_user_id: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          is_approved: boolean
+          profile_id: string
+          rating: number
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          author_name?: string | null
+          author_user_id?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          profile_id: string
+          rating: number
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          author_name?: string | null
+          author_user_id?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          profile_id?: string
+          rating?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_marketplace_reviews_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_marketplace_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       jsc_material_categories: {
         Row: {
@@ -5057,6 +5548,208 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_public_offers: {
+        Row: {
+          archived_at: string | null
+          available_date: string | null
+          company_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          lead_time_days: number | null
+          material_price: number | null
+          message: string | null
+          profile_id: string | null
+          public_request_id: string
+          responder_user_id: string | null
+          status: string
+          supplier_id: string | null
+          total_price: number | null
+          transport_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          available_date?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lead_time_days?: number | null
+          material_price?: number | null
+          message?: string | null
+          profile_id?: string | null
+          public_request_id: string
+          responder_user_id?: string | null
+          status?: string
+          supplier_id?: string | null
+          total_price?: number | null
+          transport_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          available_date?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lead_time_days?: number | null
+          material_price?: number | null
+          message?: string | null
+          profile_id?: string | null
+          public_request_id?: string
+          responder_user_id?: string | null
+          status?: string
+          supplier_id?: string | null
+          total_price?: number | null
+          transport_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_public_offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_public_offers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_marketplace_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_public_offers_public_request_id_fkey"
+            columns: ["public_request_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_public_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_public_offers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_public_requests: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          budget_max: number | null
+          client_id: string | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          deadline_at: string | null
+          delivery_address: string | null
+          delivery_city: string | null
+          desired_date: string | null
+          details: string | null
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          material_id: string | null
+          material_label: string | null
+          quantity: number | null
+          quantity_unit: string | null
+          request_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          budget_max?: number | null
+          client_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline_at?: string | null
+          delivery_address?: string | null
+          delivery_city?: string | null
+          desired_date?: string | null
+          details?: string | null
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          material_id?: string | null
+          material_label?: string | null
+          quantity?: number | null
+          quantity_unit?: string | null
+          request_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          budget_max?: number | null
+          client_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline_at?: string | null
+          delivery_address?: string | null
+          delivery_city?: string | null
+          desired_date?: string | null
+          details?: string | null
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          material_id?: string | null
+          material_label?: string | null
+          quantity?: number | null
+          quantity_unit?: string | null
+          request_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_public_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_public_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_public_requests_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_public_requests_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_requests"
             referencedColumns: ["id"]
           },
         ]

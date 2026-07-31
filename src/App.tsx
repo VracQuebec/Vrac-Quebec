@@ -54,6 +54,9 @@ const DriverPortal = lazy(() => import("./pages/DriverPortal"));
 
 const Catalogue = lazy(() => import("./pages/Catalogue"));
 const CatalogueMateriau = lazy(() => import("./pages/CatalogueMateriau"));
+const Reseau = lazy(() => import("./pages/Reseau"));
+const ReseauProfil = lazy(() => import("./pages/ReseauProfil"));
+const PlaceDeMarche = lazy(() => import("./pages/PlaceDeMarche"));
 const AdminTransportRequests = lazy(() => import("./pages/AdminTransportRequests"));
 const AdminBusinessIntelligence = lazy(() => import("./pages/AdminBusinessIntelligence"));
 const AdminIntelligence = lazy(() => import("./pages/AdminIntelligence"));
@@ -136,6 +139,9 @@ const App = () => (
             <Route path="/soumission" element={<Soumission />} />
             <Route path="/materiaux" element={<Catalogue />} />
             <Route path="/materiaux/:slug" element={<CatalogueMateriau />} />
+            <Route path="/reseau" element={<Reseau />} />
+            <Route path="/reseau/:slug" element={<ReseauProfil />} />
+            <Route path="/place-de-marche" element={<PlaceDeMarche />} />
             <Route path="/admin/demandes-transport" element={<AdminTransportRequests />} />
             <Route path="/admin/business-intelligence" element={<AdminBusinessIntelligence />} />
             <Route path="/admin/ai-economy" element={<AdminAiEconomy />} />
