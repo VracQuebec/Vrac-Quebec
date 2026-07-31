@@ -624,6 +624,57 @@ export default function ResourceManager({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Aperçu avant importation</DialogTitle>
+            <DialogDescription>
+              Vérifiez le résultat de l'analyse. Les lignes contenant une colonne « id » mettent à jour
+              l'enregistrement existant, les autres créent de nouveaux éléments.
+            </DialogDescription>
+          </DialogHeader>
+          {preview && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-lg border p-3">
+                  <p className="text-xl font-bold">{preview.creates.length}</p>
+                  <p className="text-xs text-muted-foreground">Créations</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xl font-bold">{preview.updates.length}</p>
+                  <p className="text-xs text-muted-foreground">Mises à jour</p>
+                </div>
+                <div className={`rounded-lg border p-3 ${preview.errors.length ? "border-destructive/40" : ""}`}>
+                  <p className="text-xl font-bold">{preview.errors.length}</p>
+                  <p className="text-xs text-muted-foreground">Lignes rejetées</p>
+                </div>
+              </div>
+              {preview.ignored.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Colonnes ignorées : {preview.ignored.join(", ")}
+                </p>
+              )}
+              {preview.errors.length > 0 && (
+                <div className="max-h-52 space-y-1 overflow-y-auto rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-xs">
+                  {preview.errors.slice(0, 50).map((e) => <p key={e}>{e}</p>)}
+                  {preview.errors.length > 50 && <p>… et {preview.errors.length - 50} autre(s).</p>}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreview(null)}>Annuler</Button>
+            <Button
+              onClick={() => void confirmImport()}
+              disabled={importing || !preview || preview.creates.length + preview.updates.length === 0}
+            >
+              {importing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmer l'importation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
