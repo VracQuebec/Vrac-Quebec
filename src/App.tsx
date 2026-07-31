@@ -57,6 +57,7 @@ const CatalogueMateriau = lazy(() => import("./pages/CatalogueMateriau"));
 const AdminTransportRequests = lazy(() => import("./pages/AdminTransportRequests"));
 const AdminBusinessIntelligence = lazy(() => import("./pages/AdminBusinessIntelligence"));
 const AdminIntelligence = lazy(() => import("./pages/AdminIntelligence"));
+const AdminDirection = lazy(() => import("./pages/AdminDirection"));
 const AdminAiEconomy = lazy(() => import("./pages/AdminAiEconomy"));
 const AdminGoogleIntegrations = lazy(() => import("./pages/AdminGoogleIntegrations"));
 const AdminCrm = lazy(() => import("./pages/AdminCrm"));
@@ -145,6 +146,7 @@ const App = () => (
             <Route path="/admin/jsc" element={<AdminJsc />} />
             <Route path="/admin/centre-operations" element={<OpsCenter />} />
             <Route path="/admin/intelligence" element={<AdminIntelligence />} />
+            <Route path="/admin/direction" element={<AdminDirection />} />
             {/* Alias historique — redirige vers la route canonique */}
             <Route path="/admin/seo-manager" element={<Navigate to="/admin/seo" replace />} />
             <Route path="/livraison" element={<ZonesIndex />} />

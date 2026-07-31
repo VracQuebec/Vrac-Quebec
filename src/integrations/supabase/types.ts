@@ -2359,6 +2359,65 @@ export type Database = {
         }
         Relationships: []
       }
+      jsc_ai_insights: {
+        Row: {
+          body: string | null
+          company_id: string | null
+          created_at: string
+          id: string
+          impact_amount: number | null
+          kind: string
+          model: string | null
+          payload: Json
+          period_end: string | null
+          period_start: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          impact_amount?: number | null
+          kind?: string
+          model?: string | null
+          payload?: Json
+          period_end?: string | null
+          period_start?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          impact_amount?: number | null
+          kind?: string
+          model?: string | null
+          payload?: Json
+          period_end?: string | null
+          period_start?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_ai_insights_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_api_keys: {
         Row: {
           company_id: string | null
@@ -2512,6 +2571,112 @@ export type Database = {
           table_name?: string
         }
         Relationships: []
+      }
+      jsc_automation_rules: {
+        Row: {
+          action: Json
+          archived_at: string | null
+          archived_by: string | null
+          code: string
+          company_id: string | null
+          created_at: string
+          delay_minutes: number
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+          trigger_event: string
+          updated_at: string
+        }
+        Insert: {
+          action?: Json
+          archived_at?: string | null
+          archived_by?: string | null
+          code: string
+          company_id?: string | null
+          created_at?: string
+          delay_minutes?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          trigger_event: string
+          updated_at?: string
+        }
+        Update: {
+          action?: Json
+          archived_at?: string | null
+          archived_by?: string | null
+          code?: string
+          company_id?: string | null
+          created_at?: string
+          delay_minutes?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          trigger_event?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_automation_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_automation_runs: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          detail: string | null
+          entity_id: string | null
+          entity_type: string
+          executed_at: string
+          id: string
+          result: Json
+          rule_code: string
+          status: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          detail?: string | null
+          entity_id?: string | null
+          entity_type: string
+          executed_at?: string
+          id?: string
+          result?: Json
+          rule_code: string
+          status?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          detail?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          executed_at?: string
+          id?: string
+          result?: Json
+          rule_code?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_automation_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       jsc_bi_goals: {
         Row: {
@@ -3293,6 +3458,59 @@ export type Database = {
           },
         ]
       }
+      jsc_forecasts: {
+        Row: {
+          company_id: string | null
+          computed_at: string
+          confidence: number | null
+          created_at: string
+          detail: Json
+          high: number | null
+          id: string
+          low: number | null
+          method: string
+          metric: string
+          period_month: string
+          predicted: number
+        }
+        Insert: {
+          company_id?: string | null
+          computed_at?: string
+          confidence?: number | null
+          created_at?: string
+          detail?: Json
+          high?: number | null
+          id?: string
+          low?: number | null
+          method?: string
+          metric: string
+          period_month: string
+          predicted?: number
+        }
+        Update: {
+          company_id?: string | null
+          computed_at?: string
+          confidence?: number | null
+          created_at?: string
+          detail?: Json
+          high?: number | null
+          id?: string
+          low?: number | null
+          method?: string
+          metric?: string
+          period_month?: string
+          predicted?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_forecasts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_incidents: {
         Row: {
           archived_at: string | null
@@ -3535,6 +3753,125 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "jsc_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_lead_scores: {
+        Row: {
+          client_type: string | null
+          company_id: string | null
+          created_at: string
+          id: string
+          model: string | null
+          potential_revenue: number | null
+          priority: string
+          project_type: string | null
+          reasoning: string | null
+          recommended_rep_name: string | null
+          recommended_rep_user_id: string | null
+          request_id: string
+          score: number
+          signals: Json
+          stars: number
+          updated_at: string
+          win_probability: number | null
+        }
+        Insert: {
+          client_type?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          model?: string | null
+          potential_revenue?: number | null
+          priority?: string
+          project_type?: string | null
+          reasoning?: string | null
+          recommended_rep_name?: string | null
+          recommended_rep_user_id?: string | null
+          request_id: string
+          score?: number
+          signals?: Json
+          stars?: number
+          updated_at?: string
+          win_probability?: number | null
+        }
+        Update: {
+          client_type?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          model?: string | null
+          potential_revenue?: number | null
+          priority?: string
+          project_type?: string | null
+          reasoning?: string | null
+          recommended_rep_name?: string | null
+          recommended_rep_user_id?: string | null
+          request_id?: string
+          score?: number
+          signals?: Json
+          stars?: number
+          updated_at?: string
+          win_probability?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_lead_scores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_lead_scores_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: true
+            referencedRelation: "jsc_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_learning_signals: {
+        Row: {
+          amount: number | null
+          company_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          factors: Json
+          id: string
+          margin: number | null
+          outcome: string
+        }
+        Insert: {
+          amount?: number | null
+          company_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          factors?: Json
+          id?: string
+          margin?: number | null
+          outcome: string
+        }
+        Update: {
+          amount?: number | null
+          company_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          factors?: Json
+          id?: string
+          margin?: number | null
+          outcome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_learning_signals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -4492,6 +4829,57 @@ export type Database = {
           },
           {
             foreignKeyName: "jsc_quotes_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_recommendations: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          model: string | null
+          payload: Json
+          request_id: string | null
+          scope: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          model?: string | null
+          payload?: Json
+          request_id?: string | null
+          scope?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          model?: string | null
+          payload?: Json
+          request_id?: string | null
+          scope?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_recommendations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_recommendations_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "jsc_requests"
@@ -8752,6 +9140,7 @@ export type Database = {
         Args: { _from?: string; _to?: string }
         Returns: Json
       }
+      jsc_executive_dashboard: { Args: { _company_id?: string }; Returns: Json }
       jsc_export_config: { Args: { _company_id?: string }; Returns: Json }
       jsc_flow_allowed: { Args: never; Returns: boolean }
       jsc_generate_deliveries: { Args: { _order_id: string }; Returns: number }
@@ -8761,6 +9150,7 @@ export type Database = {
       }
       jsc_import_transport_request: { Args: { _id: string }; Returns: string }
       jsc_is_member: { Args: { _company_id: string }; Returns: boolean }
+      jsc_learning_stats: { Args: { _company_id?: string }; Returns: Json }
       jsc_log_event: {
         Args: {
           _action: string
