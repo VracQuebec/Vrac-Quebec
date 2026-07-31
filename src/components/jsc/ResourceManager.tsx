@@ -88,6 +88,9 @@ export default function ResourceManager({
   const [showArchived, setShowArchived] = useState(false);
   const [historyRow, setHistoryRow] = useState<Row | null>(null);
   const [importing, setImporting] = useState(false);
+  const [preview, setPreview] = useState<{
+    creates: Row[]; updates: Row[]; errors: string[]; ignored: string[];
+  } | null>(null);
 
   const listFields = useMemo(
     () => resource.fields.filter((f) => f.inList && f.key !== "is_active"),
@@ -276,28 +279,71 @@ export default function ResourceManager({
       if (rowsCsv.length < 2) { toast.error("Fichier vide ou sans données."); return; }
       const header = rowsCsv[0].map((h) => h.replace(/^\uFEFF/, "").trim());
       const known = new Map(resource.fields.map((f) => [f.key, f]));
-      const payloads = rowsCsv.slice(1).map((line) => {
+      const ignored = header.filter((h) => h && h !== "id" && !known.has(h));
+      const errors: string[] = [];
+      const creates: Row[] = [];
+      const updates: Row[] = [];
+      rowsCsv.slice(1).forEach((line, index) => {
+        if (line.every((c) => (c ?? "").trim() === "")) return;
         const p: Row = {};
+        const rowErrors: string[] = [];
         header.forEach((h, i) => {
+          const raw0 = (line[i] ?? "").trim();
+          if (h === "id") { if (raw0) p.id = raw0; return; }
           const f = known.get(h);
           if (!f) return;
-          const raw = (line[i] ?? "").trim();
+          const raw = raw0;
           if (f.type === "boolean") p[f.key] = ["1", "true", "oui", "vrai", "yes"].includes(raw.toLowerCase());
-          else if (f.type === "number") p[f.key] = raw === "" ? null : Number(raw.replace(",", "."));
+          else if (f.type === "number") {
+            if (raw === "") { p[f.key] = null; return; }
+            const n = Number(raw.replace(",", "."));
+            if (!Number.isFinite(n)) rowErrors.push(`« ${f.label} » n'est pas un nombre (${raw})`);
+            else p[f.key] = n;
+          }
           else if (f.type === "list") p[f.key] = raw ? raw.split(/[|,;]+/).map((s) => s.trim()).filter(Boolean) : [];
+          else if (f.type === "select" && raw && f.options && !f.options.some((o) => o.value === raw)) {
+            rowErrors.push(`« ${f.label} » : valeur non reconnue (${raw})`);
+          }
           else p[f.key] = raw === "" ? null : raw;
         });
+        for (const f of resource.fields) {
+          if (f.required && !p.id && (p[f.key] === undefined || p[f.key] === null || p[f.key] === "")) {
+            rowErrors.push(`« ${f.label} » est obligatoire`);
+          }
+        }
         if (scopeId) p.company_id = scopeId;
-        return p;
-      }).filter((p) => Object.keys(p).length > 0);
+        if (rowErrors.length) { errors.push(`Ligne ${index + 2} : ${rowErrors.join(" · ")}`); return; }
+        if (p.id) updates.push(p); else creates.push(p);
+      });
 
-      if (payloads.length === 0) {
+      if (creates.length === 0 && updates.length === 0 && errors.length === 0) {
         toast.error("Aucune colonne reconnue. Exportez d'abord un modèle CSV.");
         return;
       }
-      const { error } = await supabase.from(resource.table as never).insert(payloads as never);
-      if (error) { toast.error(error.message); return; }
-      toast.success(`${payloads.length} ligne(s) importée(s).`);
+      setPreview({ creates, updates, errors, ignored });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  /** Applique l'importation après validation visuelle par l'administrateur. */
+  const confirmImport = async () => {
+    if (!preview) return;
+    setImporting(true);
+    try {
+      if (preview.creates.length) {
+        const { error } = await supabase.from(resource.table as never).insert(preview.creates as never);
+        if (error) { toast.error(error.message); return; }
+      }
+      for (const row of preview.updates) {
+        const { id, ...rest } = row as { id: string } & Row;
+        const { error } = await supabase.from(resource.table as never).update(rest as never).eq("id", id);
+        if (error) { toast.error(`Mise à jour ${id} : ${error.message}`); return; }
+      }
+      toast.success(
+        `${preview.creates.length} création(s) et ${preview.updates.length} mise(s) à jour importée(s).`,
+      );
+      setPreview(null);
       void load();
       void loadRefs();
     } finally {
