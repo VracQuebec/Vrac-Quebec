@@ -4069,6 +4069,324 @@ export type Database = {
           },
         ]
       }
+      jsc_intel_anomalies: {
+        Row: {
+          code: string
+          company_id: string | null
+          created_at: string
+          detail: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          impact_amount: number | null
+          metrics: Json
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          company_id?: string | null
+          created_at?: string
+          detail?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          impact_amount?: number | null
+          metrics?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          company_id?: string | null
+          created_at?: string
+          detail?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          impact_amount?: number | null
+          metrics?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      jsc_intel_learning: {
+        Row: {
+          company_id: string | null
+          computed_at: string
+          confidence: number
+          created_at: string
+          id: string
+          metrics: Json
+          samples: number
+          subject_id: string | null
+          subject_label: string | null
+          subject_type: string | null
+          topic: string
+        }
+        Insert: {
+          company_id?: string | null
+          computed_at?: string
+          confidence?: number
+          created_at?: string
+          id?: string
+          metrics?: Json
+          samples?: number
+          subject_id?: string | null
+          subject_label?: string | null
+          subject_type?: string | null
+          topic: string
+        }
+        Update: {
+          company_id?: string | null
+          computed_at?: string
+          confidence?: number
+          created_at?: string
+          id?: string
+          metrics?: Json
+          samples?: number
+          subject_id?: string | null
+          subject_label?: string | null
+          subject_type?: string | null
+          topic?: string
+        }
+        Relationships: []
+      }
+      jsc_intel_memory: {
+        Row: {
+          company_id: string | null
+          context: Json
+          created_at: string
+          id: string
+          kind: string
+          lesson: string | null
+          outcome: string | null
+          performance: number | null
+          reference_id: string | null
+          reference_type: string | null
+          title: string
+        }
+        Insert: {
+          company_id?: string | null
+          context?: Json
+          created_at?: string
+          id?: string
+          kind: string
+          lesson?: string | null
+          outcome?: string | null
+          performance?: number | null
+          reference_id?: string | null
+          reference_type?: string | null
+          title: string
+        }
+        Update: {
+          company_id?: string | null
+          context?: Json
+          created_at?: string
+          id?: string
+          kind?: string
+          lesson?: string | null
+          outcome?: string | null
+          performance?: number | null
+          reference_id?: string | null
+          reference_type?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      jsc_intel_optimizations: {
+        Row: {
+          applied_at: string | null
+          company_id: string | null
+          confidence: number
+          created_at: string
+          current_state: Json
+          decided_at: string | null
+          decided_by: string | null
+          entity_id: string | null
+          entity_type: string | null
+          estimated_saving: number
+          id: string
+          kind: string
+          proposed_state: Json
+          rationale: string | null
+          result: Json | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          company_id?: string | null
+          confidence?: number
+          created_at?: string
+          current_state?: Json
+          decided_at?: string | null
+          decided_by?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          estimated_saving?: number
+          id?: string
+          kind: string
+          proposed_state?: Json
+          rationale?: string | null
+          result?: Json | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          company_id?: string | null
+          confidence?: number
+          created_at?: string
+          current_state?: Json
+          decided_at?: string | null
+          decided_by?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          estimated_saving?: number
+          id?: string
+          kind?: string
+          proposed_state?: Json
+          rationale?: string | null
+          result?: Json | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      jsc_intel_predictions: {
+        Row: {
+          basis: Json
+          company_id: string | null
+          confidence: number
+          created_at: string
+          high: number | null
+          id: string
+          low: number | null
+          method: string
+          metric: string
+          period_month: string
+          predicted: number
+        }
+        Insert: {
+          basis?: Json
+          company_id?: string | null
+          confidence?: number
+          created_at?: string
+          high?: number | null
+          id?: string
+          low?: number | null
+          method?: string
+          metric: string
+          period_month: string
+          predicted?: number
+        }
+        Update: {
+          basis?: Json
+          company_id?: string | null
+          confidence?: number
+          created_at?: string
+          high?: number | null
+          id?: string
+          low?: number | null
+          method?: string
+          metric?: string
+          period_month?: string
+          predicted?: number
+        }
+        Relationships: []
+      }
+      jsc_intel_reports: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          emailed_at: string | null
+          id: string
+          metrics: Json
+          report_date: string
+          scope: string
+          summary: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          emailed_at?: string | null
+          id?: string
+          metrics?: Json
+          report_date?: string
+          scope?: string
+          summary?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          emailed_at?: string | null
+          id?: string
+          metrics?: Json
+          report_date?: string
+          scope?: string
+          summary?: string | null
+        }
+        Relationships: []
+      }
+      jsc_intel_scores: {
+        Row: {
+          company_id: string | null
+          computed_at: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          factors: Json
+          grade: string | null
+          id: string
+          label: string | null
+          samples: number
+          score: number
+        }
+        Insert: {
+          company_id?: string | null
+          computed_at?: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          factors?: Json
+          grade?: string | null
+          id?: string
+          label?: string | null
+          samples?: number
+          score?: number
+        }
+        Update: {
+          company_id?: string | null
+          computed_at?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          factors?: Json
+          grade?: string | null
+          id?: string
+          label?: string | null
+          samples?: number
+          score?: number
+        }
+        Relationships: []
+      }
       jsc_invoice_lines: {
         Row: {
           company_id: string
@@ -10172,6 +10490,19 @@ export type Database = {
         Returns: Json
       }
       jsc_import_transport_request: { Args: { _id: string }; Returns: string }
+      jsc_intel_apply_optimization: {
+        Args: { _decision?: string; _id: string }
+        Returns: Json
+      }
+      jsc_intel_dashboard: { Args: { _company_id?: string }; Returns: Json }
+      jsc_intel_detect_anomalies: {
+        Args: { _company_id?: string }
+        Returns: Json
+      }
+      jsc_intel_learn: { Args: { _company_id?: string }; Returns: Json }
+      jsc_intel_optimize: { Args: { _company_id?: string }; Returns: Json }
+      jsc_intel_predict: { Args: { _company_id?: string }; Returns: Json }
+      jsc_intel_score_all: { Args: { _company_id?: string }; Returns: Json }
       jsc_is_member: { Args: { _company_id: string }; Returns: boolean }
       jsc_learning_stats: { Args: { _company_id?: string }; Returns: Json }
       jsc_log_event: {
