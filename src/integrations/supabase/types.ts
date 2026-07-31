@@ -2359,6 +2359,106 @@ export type Database = {
         }
         Relationships: []
       }
+      jsc_api_keys: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          revoked_at: string | null
+          scopes: string[]
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          revoked_at?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_api_keys_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_api_requests: {
+        Row: {
+          api_key_id: string | null
+          company_id: string | null
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          id: string
+          ip_address: string | null
+          method: string
+          path: string
+          status_code: number
+        }
+        Insert: {
+          api_key_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          ip_address?: string | null
+          method: string
+          path: string
+          status_code: number
+        }
+        Update: {
+          api_key_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          ip_address?: string | null
+          method?: string
+          path?: string
+          status_code?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_api_requests_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_audit_log: {
         Row: {
           action: string
@@ -2535,6 +2635,7 @@ export type Database = {
           postal_code: string | null
           tax_exempt: boolean
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -2557,6 +2658,7 @@ export type Database = {
           postal_code?: string | null
           tax_exempt?: boolean
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -2579,6 +2681,7 @@ export type Database = {
           postal_code?: string | null
           tax_exempt?: boolean
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2599,16 +2702,31 @@ export type Database = {
           code: string
           created_at: string
           currency: string
+          custom_domain: string | null
+          document_footer: string | null
           email: string | null
+          email_from: string | null
+          email_signature: string | null
+          gst_number: string | null
           id: string
+          invoice_terms: string | null
           is_active: boolean
           is_default: boolean
           legal_name: string | null
+          logo_url: string | null
           name: string
+          notify_email: boolean
+          notify_sms: boolean
           phone: string | null
+          primary_color: string
           priority: number
+          qst_number: string | null
+          quote_terms: string | null
+          secondary_color: string
+          sms_sender: string | null
           timezone: string
           updated_at: string
+          website: string | null
         }
         Insert: {
           address?: string | null
@@ -2618,16 +2736,31 @@ export type Database = {
           code: string
           created_at?: string
           currency?: string
+          custom_domain?: string | null
+          document_footer?: string | null
           email?: string | null
+          email_from?: string | null
+          email_signature?: string | null
+          gst_number?: string | null
           id?: string
+          invoice_terms?: string | null
           is_active?: boolean
           is_default?: boolean
           legal_name?: string | null
+          logo_url?: string | null
           name: string
+          notify_email?: boolean
+          notify_sms?: boolean
           phone?: string | null
+          primary_color?: string
           priority?: number
+          qst_number?: string | null
+          quote_terms?: string | null
+          secondary_color?: string
+          sms_sender?: string | null
           timezone?: string
           updated_at?: string
+          website?: string | null
         }
         Update: {
           address?: string | null
@@ -2637,16 +2770,31 @@ export type Database = {
           code?: string
           created_at?: string
           currency?: string
+          custom_domain?: string | null
+          document_footer?: string | null
           email?: string | null
+          email_from?: string | null
+          email_signature?: string | null
+          gst_number?: string | null
           id?: string
+          invoice_terms?: string | null
           is_active?: boolean
           is_default?: boolean
           legal_name?: string | null
+          logo_url?: string | null
           name?: string
+          notify_email?: boolean
+          notify_sms?: boolean
           phone?: string | null
+          primary_color?: string
           priority?: number
+          qst_number?: string | null
+          quote_terms?: string | null
+          secondary_color?: string
+          sms_sender?: string | null
           timezone?: string
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -2719,6 +2867,7 @@ export type Database = {
           delivery_number: string | null
           distance_km: number | null
           driver_id: string | null
+          driver_notes: string | null
           duration_minutes: number | null
           estimated_cost: number | null
           group_key: string | null
@@ -2734,10 +2883,13 @@ export type Database = {
           postal_code: string | null
           priority: string
           project_id: string | null
+          proof_photos: string[]
           quantity: number | null
           quantity_unit: string | null
           scheduled_date: string | null
           scheduled_time: string | null
+          signature_data: string | null
+          signature_name: string | null
           started_at: string | null
           status: string
           supplier_id: string | null
@@ -2760,6 +2912,7 @@ export type Database = {
           delivery_number?: string | null
           distance_km?: number | null
           driver_id?: string | null
+          driver_notes?: string | null
           duration_minutes?: number | null
           estimated_cost?: number | null
           group_key?: string | null
@@ -2775,10 +2928,13 @@ export type Database = {
           postal_code?: string | null
           priority?: string
           project_id?: string | null
+          proof_photos?: string[]
           quantity?: number | null
           quantity_unit?: string | null
           scheduled_date?: string | null
           scheduled_time?: string | null
+          signature_data?: string | null
+          signature_name?: string | null
           started_at?: string | null
           status?: string
           supplier_id?: string | null
@@ -2801,6 +2957,7 @@ export type Database = {
           delivery_number?: string | null
           distance_km?: number | null
           driver_id?: string | null
+          driver_notes?: string | null
           duration_minutes?: number | null
           estimated_cost?: number | null
           group_key?: string | null
@@ -2816,10 +2973,13 @@ export type Database = {
           postal_code?: string | null
           priority?: string
           project_id?: string | null
+          proof_photos?: string[]
           quantity?: number | null
           quantity_unit?: string | null
           scheduled_date?: string | null
           scheduled_time?: string | null
+          signature_data?: string | null
+          signature_name?: string | null
           started_at?: string | null
           status?: string
           supplier_id?: string | null
@@ -2915,6 +3075,7 @@ export type Database = {
           sort_order: number
           status: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -2937,6 +3098,7 @@ export type Database = {
           sort_order?: number
           status?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -2959,6 +3121,7 @@ export type Database = {
           sort_order?: number
           status?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -3376,6 +3539,33 @@ export type Database = {
           },
         ]
       }
+      jsc_login_history: {
+        Row: {
+          created_at: string
+          email: string | null
+          event: string
+          id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          event?: string
+          id?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          event?: string
+          id?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       jsc_material_categories: {
         Row: {
           archived_at: string | null
@@ -3695,6 +3885,62 @@ export type Database = {
           },
           {
             foreignKeyName: "jsc_materials_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_notification_templates: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          audience: string
+          body: string
+          channel: string
+          company_id: string | null
+          created_at: string
+          event_code: string
+          id: string
+          is_active: boolean
+          sort_order: number
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          audience?: string
+          body: string
+          channel?: string
+          company_id?: string | null
+          created_at?: string
+          event_code: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          audience?: string
+          body?: string
+          channel?: string
+          company_id?: string | null
+          created_at?: string
+          event_code?: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_notification_templates_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
@@ -4425,6 +4671,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      jsc_roles: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          is_internal: boolean
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          is_internal?: boolean
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          is_internal?: boolean
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       jsc_settings: {
         Row: {
@@ -8447,7 +8720,12 @@ export type Database = {
         Args: { _company_id?: string; _from?: string; _to?: string }
         Returns: Json
       }
+      jsc_can: {
+        Args: { _action: string; _company_id: string; _module: string }
+        Returns: boolean
+      }
       jsc_can_manage: { Args: { _user_id: string }; Returns: boolean }
+      jsc_client_portal: { Args: never; Returns: Json }
       jsc_company_role: {
         Args: { _company_id: string; _user_id: string }
         Returns: string
@@ -8470,6 +8748,10 @@ export type Database = {
       }
       jsc_dashboard_stats: { Args: { _company_id?: string }; Returns: Json }
       jsc_default_company_id: { Args: never; Returns: string }
+      jsc_driver_portal: {
+        Args: { _from?: string; _to?: string }
+        Returns: Json
+      }
       jsc_export_config: { Args: { _company_id?: string }; Returns: Json }
       jsc_flow_allowed: { Args: never; Returns: boolean }
       jsc_generate_deliveries: { Args: { _order_id: string }; Returns: number }
@@ -8478,6 +8760,7 @@ export type Database = {
         Returns: Json
       }
       jsc_import_transport_request: { Args: { _id: string }; Returns: string }
+      jsc_is_member: { Args: { _company_id: string }; Returns: boolean }
       jsc_log_event: {
         Args: {
           _action: string
@@ -8489,8 +8772,23 @@ export type Database = {
         Returns: string
       }
       jsc_material_slugify: { Args: { _text: string }; Returns: string }
+      jsc_my_client_ids: { Args: never; Returns: string[] }
+      jsc_my_driver_ids: { Args: never; Returns: string[] }
       jsc_next_number: {
         Args: { _company_id: string; _kind: string }
+        Returns: string
+      }
+      jsc_notify: {
+        Args: {
+          _audience?: string
+          _body: string
+          _company_id: string
+          _entity_id?: string
+          _entity_type?: string
+          _event_code: string
+          _title: string
+          _user_id?: string
+        }
         Returns: string
       }
       jsc_ops_dashboard: { Args: { _company_id?: string }; Returns: Json }
@@ -8515,6 +8813,10 @@ export type Database = {
       }
       jsc_public_material: { Args: { _slug: string }; Returns: Json }
       jsc_readiness: { Args: { _company_id?: string }; Returns: Json }
+      jsc_seed_role_permissions: {
+        Args: { _company_id: string }
+        Returns: number
+      }
       jsc_select_estimate: { Args: { _estimate_id: string }; Returns: string }
       list_users_with_roles: {
         Args: never
