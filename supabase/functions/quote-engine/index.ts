@@ -56,6 +56,17 @@ Deno.serve(async (req) => {
     }
 
     const config = await loadConfig(db, materialId);
+
+    // Sécurité de mise en service : aucun calcul officiel si la configuration
+    // administrateur est incomplète (erreurs critiques détectées).
+    const { data: guard } = await db.rpc('jsc_production_guard');
+    if (guard && guard.ok === false) {
+      return json({
+        error: guard.message ?? "Configuration incomplète : la plateforme ne peut pas produire d'estimation officielle.",
+        blocked: true,
+      }, 409);
+    }
+
     const result = await runQuote(
       {
         material_id: materialId, quantity, unit, delivery,
@@ -68,10 +79,13 @@ Deno.serve(async (req) => {
 
     // Le moteur retourne les données ; l'exposition dépend uniquement du rôle.
     if (isAdmin) {
-      return json({ ok: true, scope: 'internal', engine_version: result.engine_version, computed_at: result.computed_at, quote: result });
+      return json({
+        ok: true, scope: 'internal', mode: guard?.mode ?? 'test',
+        engine_version: result.engine_version, computed_at: result.computed_at, quote: result,
+      });
     }
     return json({
-      ok: true, scope: 'client', engine_version: result.engine_version,
+      ok: true, scope: 'client', mode: guard?.mode ?? 'test', engine_version: result.engine_version,
       computed_at: result.computed_at, quote: { public: result.public },
     });
   } catch (e) {

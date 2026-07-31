@@ -88,6 +88,9 @@ export default function ResourceManager({
   const [showArchived, setShowArchived] = useState(false);
   const [historyRow, setHistoryRow] = useState<Row | null>(null);
   const [importing, setImporting] = useState(false);
+  const [preview, setPreview] = useState<{
+    creates: Row[]; updates: Row[]; errors: string[]; ignored: string[];
+  } | null>(null);
 
   const listFields = useMemo(
     () => resource.fields.filter((f) => f.inList && f.key !== "is_active"),
@@ -276,28 +279,71 @@ export default function ResourceManager({
       if (rowsCsv.length < 2) { toast.error("Fichier vide ou sans données."); return; }
       const header = rowsCsv[0].map((h) => h.replace(/^\uFEFF/, "").trim());
       const known = new Map(resource.fields.map((f) => [f.key, f]));
-      const payloads = rowsCsv.slice(1).map((line) => {
+      const ignored = header.filter((h) => h && h !== "id" && !known.has(h));
+      const errors: string[] = [];
+      const creates: Row[] = [];
+      const updates: Row[] = [];
+      rowsCsv.slice(1).forEach((line, index) => {
+        if (line.every((c) => (c ?? "").trim() === "")) return;
         const p: Row = {};
+        const rowErrors: string[] = [];
         header.forEach((h, i) => {
+          const raw0 = (line[i] ?? "").trim();
+          if (h === "id") { if (raw0) p.id = raw0; return; }
           const f = known.get(h);
           if (!f) return;
-          const raw = (line[i] ?? "").trim();
+          const raw = raw0;
           if (f.type === "boolean") p[f.key] = ["1", "true", "oui", "vrai", "yes"].includes(raw.toLowerCase());
-          else if (f.type === "number") p[f.key] = raw === "" ? null : Number(raw.replace(",", "."));
+          else if (f.type === "number") {
+            if (raw === "") { p[f.key] = null; return; }
+            const n = Number(raw.replace(",", "."));
+            if (!Number.isFinite(n)) rowErrors.push(`« ${f.label} » n'est pas un nombre (${raw})`);
+            else p[f.key] = n;
+          }
           else if (f.type === "list") p[f.key] = raw ? raw.split(/[|,;]+/).map((s) => s.trim()).filter(Boolean) : [];
+          else if (f.type === "select" && raw && f.options && !f.options.some((o) => o.value === raw)) {
+            rowErrors.push(`« ${f.label} » : valeur non reconnue (${raw})`);
+          }
           else p[f.key] = raw === "" ? null : raw;
         });
+        for (const f of resource.fields) {
+          if (f.required && !p.id && (p[f.key] === undefined || p[f.key] === null || p[f.key] === "")) {
+            rowErrors.push(`« ${f.label} » est obligatoire`);
+          }
+        }
         if (scopeId) p.company_id = scopeId;
-        return p;
-      }).filter((p) => Object.keys(p).length > 0);
+        if (rowErrors.length) { errors.push(`Ligne ${index + 2} : ${rowErrors.join(" · ")}`); return; }
+        if (p.id) updates.push(p); else creates.push(p);
+      });
 
-      if (payloads.length === 0) {
+      if (creates.length === 0 && updates.length === 0 && errors.length === 0) {
         toast.error("Aucune colonne reconnue. Exportez d'abord un modèle CSV.");
         return;
       }
-      const { error } = await supabase.from(resource.table as never).insert(payloads as never);
-      if (error) { toast.error(error.message); return; }
-      toast.success(`${payloads.length} ligne(s) importée(s).`);
+      setPreview({ creates, updates, errors, ignored });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  /** Applique l'importation après validation visuelle par l'administrateur. */
+  const confirmImport = async () => {
+    if (!preview) return;
+    setImporting(true);
+    try {
+      if (preview.creates.length) {
+        const { error } = await supabase.from(resource.table as never).insert(preview.creates as never);
+        if (error) { toast.error(error.message); return; }
+      }
+      for (const row of preview.updates) {
+        const { id, ...rest } = row as { id: string } & Row;
+        const { error } = await supabase.from(resource.table as never).update(rest as never).eq("id", id);
+        if (error) { toast.error(`Mise à jour ${id} : ${error.message}`); return; }
+      }
+      toast.success(
+        `${preview.creates.length} création(s) et ${preview.updates.length} mise(s) à jour importée(s).`,
+      );
+      setPreview(null);
       void load();
       void loadRefs();
     } finally {
@@ -402,6 +448,21 @@ export default function ResourceManager({
           </div>
           <Button variant="outline" onClick={exportCsv} title="Exporter en CSV / Excel">
             <Download className="mr-2 h-4 w-4" /> Exporter
+          </Button>
+          <Button
+            variant="outline"
+            title="Télécharger un modèle CSV vide (colonnes attendues)"
+            onClick={() => {
+              const keys = ["id", ...resource.fields.map((f) => f.key)];
+              const blob = new Blob(["\uFEFF" + keys.join(";") + "\n"], { type: "text/csv;charset=utf-8;" });
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(blob);
+              a.download = `modele-${resource.id}.csv`;
+              a.click();
+              URL.revokeObjectURL(a.href);
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" /> Modèle
           </Button>
           <label className="inline-flex">
             <input
@@ -563,6 +624,57 @@ export default function ResourceManager({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Aperçu avant importation</DialogTitle>
+            <DialogDescription>
+              Vérifiez le résultat de l'analyse. Les lignes contenant une colonne « id » mettent à jour
+              l'enregistrement existant, les autres créent de nouveaux éléments.
+            </DialogDescription>
+          </DialogHeader>
+          {preview && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-lg border p-3">
+                  <p className="text-xl font-bold">{preview.creates.length}</p>
+                  <p className="text-xs text-muted-foreground">Créations</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xl font-bold">{preview.updates.length}</p>
+                  <p className="text-xs text-muted-foreground">Mises à jour</p>
+                </div>
+                <div className={`rounded-lg border p-3 ${preview.errors.length ? "border-destructive/40" : ""}`}>
+                  <p className="text-xl font-bold">{preview.errors.length}</p>
+                  <p className="text-xs text-muted-foreground">Lignes rejetées</p>
+                </div>
+              </div>
+              {preview.ignored.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Colonnes ignorées : {preview.ignored.join(", ")}
+                </p>
+              )}
+              {preview.errors.length > 0 && (
+                <div className="max-h-52 space-y-1 overflow-y-auto rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-xs">
+                  {preview.errors.slice(0, 50).map((e) => <p key={e}>{e}</p>)}
+                  {preview.errors.length > 50 && <p>… et {preview.errors.length - 50} autre(s).</p>}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreview(null)}>Annuler</Button>
+            <Button
+              onClick={() => void confirmImport()}
+              disabled={importing || !preview || preview.creates.length + preview.updates.length === 0}
+            >
+              {importing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmer l'importation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

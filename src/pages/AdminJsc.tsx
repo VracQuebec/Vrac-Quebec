@@ -6,6 +6,7 @@ import {
   ArrowLeft, Layers, Building2, Building, MapPin, DollarSign, Truck, Route, Globe2, Percent,
   Settings2, ShieldCheck, History, DatabaseBackup, Loader2, FolderTree, UserCog, Users,
   Inbox, FileText, ClipboardList, Receipt, LayoutDashboard, Table2, Columns3, Calculator,
+  Rocket, FlaskConical,
 } from "lucide-react";
 import {
   JSC_RESOURCES, JSC_COMPANY_RESOURCE, JSC_COMMERCIAL_RESOURCES, JSC_ORG_RESOURCES,
@@ -16,6 +17,7 @@ import AuditTrail from "@/components/jsc/AuditTrail";
 import ConfigBackup from "@/components/jsc/ConfigBackup";
 import JscDashboard from "@/components/jsc/JscDashboard";
 import JscPipeline, { type PipelineKind } from "@/components/jsc/JscPipeline";
+import SetupCenter from "@/components/jsc/SetupCenter";
 import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -27,7 +29,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 const ICONS: Record<string, typeof Layers> = {
   Layers, Building2, Building, MapPin, DollarSign, Truck, Route, Globe2, Percent, Settings2,
   FolderTree, UserCog, Users, Inbox, FileText, ClipboardList, Receipt, ShieldCheck,
-  LayoutDashboard, History, DatabaseBackup, Calculator,
+  LayoutDashboard, History, DatabaseBackup, Calculator, Rocket,
 };
 
 const REFERENTIEL = [...JSC_RESOURCES, JSC_COMPANY_RESOURCE];
@@ -47,6 +49,16 @@ export default function AdminJsc() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [view, setView] = useState<"kanban" | "table">("kanban");
+  const [mode, setMode] = useState<"test" | "production">("test");
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    void (async () => {
+      const { data } = await supabase
+        .from("jsc_settings").select("value").eq("key", "platform_mode").maybeSingle();
+      setMode((data?.value as "test" | "production") ?? "test");
+    })();
+  }, [isAdmin, activeId]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -128,6 +140,16 @@ export default function AdminJsc() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <div
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium ${
+                mode === "production"
+                  ? "border-primary/40 bg-primary/10 text-foreground"
+                  : "border-amber-500/40 bg-amber-500/10 text-foreground"
+              }`}
+            >
+              {mode === "production" ? <Rocket className="h-4 w-4" /> : <FlaskConical className="h-4 w-4" />}
+              {mode === "production" ? "Mode Production" : "Mode Test"}
+            </div>
             {companies.length > 0 && (
               <Select value={companyId ?? undefined} onValueChange={setCompanyId}>
                 <SelectTrigger className="w-56"><SelectValue placeholder="Entreprise" /></SelectTrigger>
@@ -144,9 +166,16 @@ export default function AdminJsc() {
         </div>
       </header>
 
+      {mode === "test" && (
+        <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-xs text-foreground">
+          Environnement de test — les documents générés portent la mention « TEST » et ne sont pas officiels.
+        </div>
+      )}
+
       <div className="mx-auto max-w-7xl gap-6 px-4 py-6 lg:flex">
         <nav className="mb-4 flex gap-2 overflow-x-auto lg:mb-0 lg:w-64 lg:flex-col lg:overflow-visible">
           <NavButton id="dashboard" title="Tableau de bord" icon="LayoutDashboard" />
+          <NavButton id="setup" title="Mise en service" icon="Rocket" />
           <Section label="Flux commercial">
             {JSC_COMMERCIAL_RESOURCES.map((r) => (
               <NavButton key={r.id} id={r.id} title={r.title} icon={r.icon} />
@@ -164,6 +193,10 @@ export default function AdminJsc() {
 
         <main className="min-w-0 flex-1">
           {activeId === "dashboard" && <JscDashboard companyId={companyId} />}
+
+          {activeId === "setup" && (
+            <SetupCenter companyId={companyId} onNavigate={(id) => setActiveId(id)} />
+          )}
 
           {activeId === "audit" && (
             <div className="space-y-4">
