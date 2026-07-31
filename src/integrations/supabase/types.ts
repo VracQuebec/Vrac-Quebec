@@ -8494,6 +8494,7 @@ export type Database = {
         Returns: string
       }
       jsc_ops_dashboard: { Args: { _company_id?: string }; Returns: Json }
+      jsc_production_guard: { Args: never; Returns: Json }
       jsc_public_catalog: {
         Args: never
         Returns: {
@@ -8513,6 +8514,7 @@ export type Database = {
         }[]
       }
       jsc_public_material: { Args: { _slug: string }; Returns: Json }
+      jsc_readiness: { Args: { _company_id?: string }; Returns: Json }
       jsc_select_estimate: { Args: { _estimate_id: string }; Returns: string }
       list_users_with_roles: {
         Args: never
