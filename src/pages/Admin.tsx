@@ -759,6 +759,9 @@ const Admin = () => {
             <Link to="/admin/intelligence" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90">
               <TrendingUp className="w-4 h-4" /> Intelligence d'affaires
             </Link>
+            <Link to="/admin/direction" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90">
+              <TrendingUp className="w-4 h-4" /> Direction
+            </Link>
             <button onClick={fetchSubmissions} className="text-sm text-primary hover:underline font-body">Actualiser</button>
             <button onClick={() => setShowStatusManager(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
               <Settings className="w-4 h-4" /> Statuts
