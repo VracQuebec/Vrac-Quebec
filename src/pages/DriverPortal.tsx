@@ -65,7 +65,7 @@ export default function DriverPortal() {
       signature_name: signature.trim().slice(0, 120),
       signature_data: `signed:${new Date().toISOString()}`,
       driver_notes: notes.trim().slice(0, 1000) || null,
-      completed_at: new Date().toISOString(),
+      delivered_at: new Date().toISOString(),
     }).eq("id", d.id);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
