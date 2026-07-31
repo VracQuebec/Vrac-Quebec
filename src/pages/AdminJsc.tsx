@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowLeft, Layers, Building2, Building, MapPin, DollarSign, Truck, Route, Globe2, Percent,
   Settings2, ShieldCheck, History, DatabaseBackup, Loader2, FolderTree, UserCog, Users,
-  Inbox, FileText, ClipboardList, Receipt, LayoutDashboard, Table2, Columns3,
+  Inbox, FileText, ClipboardList, Receipt, LayoutDashboard, Table2, Columns3, Calculator,
 } from "lucide-react";
 import {
   JSC_RESOURCES, JSC_COMPANY_RESOURCE, JSC_COMMERCIAL_RESOURCES, JSC_ORG_RESOURCES,
@@ -27,7 +27,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 const ICONS: Record<string, typeof Layers> = {
   Layers, Building2, Building, MapPin, DollarSign, Truck, Route, Globe2, Percent, Settings2,
   FolderTree, UserCog, Users, Inbox, FileText, ClipboardList, Receipt, ShieldCheck,
-  LayoutDashboard, History, DatabaseBackup,
+  LayoutDashboard, History, DatabaseBackup, Calculator,
 };
 
 const REFERENTIEL = [...JSC_RESOURCES, JSC_COMPANY_RESOURCE];
