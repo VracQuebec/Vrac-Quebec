@@ -38,8 +38,7 @@ Deno.serve(async (req) => {
     // ---------- 6 : IA commerciale ----------
     if (action === 'commercial') {
       const [learning, scores, anomalies, optims] = await Promise.all([
-        db.from('jsc_intel_learning').select('topic,subject_label,metrics,samples,confidence')
-          .is('company_id', companyId ? undefined : null).limit(200),
+        db.from('jsc_intel_learning').select('topic,subject_label,metrics,samples,confidence').limit(200),
         db.from('jsc_intel_scores').select('entity_type,label,score,grade,factors')
           .order('score', { ascending: false }).limit(60),
         db.from('jsc_intel_anomalies').select('code,severity,title,impact_amount')
