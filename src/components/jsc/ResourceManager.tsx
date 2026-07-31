@@ -449,6 +449,21 @@ export default function ResourceManager({
           <Button variant="outline" onClick={exportCsv} title="Exporter en CSV / Excel">
             <Download className="mr-2 h-4 w-4" /> Exporter
           </Button>
+          <Button
+            variant="outline"
+            title="Télécharger un modèle CSV vide (colonnes attendues)"
+            onClick={() => {
+              const keys = ["id", ...resource.fields.map((f) => f.key)];
+              const blob = new Blob(["\uFEFF" + keys.join(";") + "\n"], { type: "text/csv;charset=utf-8;" });
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(blob);
+              a.download = `modele-${resource.id}.csv`;
+              a.click();
+              URL.revokeObjectURL(a.href);
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" /> Modèle
+          </Button>
           <label className="inline-flex">
             <input
               type="file"
