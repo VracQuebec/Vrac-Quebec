@@ -2989,6 +2989,7 @@ export type Database = {
           decision: Json | null
           distance_km: number | null
           engine_version: string | null
+          estimate_number: string | null
           id: string
           is_selected: boolean
           margin: number | null
@@ -3019,6 +3020,7 @@ export type Database = {
           decision?: Json | null
           distance_km?: number | null
           engine_version?: string | null
+          estimate_number?: string | null
           id?: string
           is_selected?: boolean
           margin?: number | null
@@ -3049,6 +3051,7 @@ export type Database = {
           decision?: Json | null
           distance_km?: number | null
           engine_version?: string | null
+          estimate_number?: string | null
           id?: string
           is_selected?: boolean
           margin?: number | null
