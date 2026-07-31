@@ -825,26 +825,89 @@ export const JSC_ORG_RESOURCES: ResourceDef[] = [
       { key: "role", label: "Rôle", type: "select", inList: true, required: true, options: JSC_ROLES },
       {
         key: "module", label: "Module", type: "select", inList: true, required: true,
-        options: [
-          { value: "dashboard", label: "Tableau de bord" },
-          { value: "catalog", label: "Matériaux" },
-          { value: "suppliers", label: "Fournisseurs" },
-          { value: "fleet", label: "Flotte" },
-          { value: "rates", label: "Tarifs" },
-          { value: "clients", label: "Clients" },
-          { value: "requests", label: "Demandes" },
-          { value: "quotes", label: "Soumissions" },
-          { value: "orders", label: "Commandes" },
-          { value: "invoices", label: "Factures" },
-          { value: "settings", label: "Paramètres" },
-          { value: "audit", label: "Journal d'audit" },
-        ],
+        options: JSC_PERMISSION_MODULES,
       },
       { key: "can_view", label: "Consulter", type: "boolean", inList: true, defaultValue: true },
       { key: "can_edit", label: "Créer / modifier", type: "boolean", inList: true, defaultValue: false },
       { key: "can_delete", label: "Archiver", type: "boolean", inList: true, defaultValue: false },
       sortField,
       activeField,
+    ],
+  },
+];
+
+// ============================================================
+// Plateforme SaaS : modèles de notification et clés d'API
+// ============================================================
+export const JSC_SAAS_RESOURCES: ResourceDef[] = [
+  {
+    id: "notification_templates",
+    table: "jsc_notification_templates",
+    title: "Modèles de notification",
+    singular: "Modèle",
+    description:
+      "Textes envoyés aux clients et à l'équipe pour chaque événement. Personnalisables par entreprise, sans modification du code.",
+    icon: "Bell",
+    labelField: "event_code",
+    group: "organisation",
+    companyScoped: true,
+    orderBy: [{ column: "sort_order", ascending: true }],
+    fields: [
+      {
+        key: "event_code", label: "Événement", type: "select", inList: true, required: true,
+        options: [
+          { value: "request_created", label: "Nouvelle demande" },
+          { value: "quote_sent", label: "Nouvelle soumission" },
+          { value: "order_accepted", label: "Commande acceptée" },
+          { value: "delivery_scheduled", label: "Livraison prévue" },
+          { value: "delivery_completed", label: "Livraison terminée" },
+          { value: "invoice_generated", label: "Facture générée" },
+          { value: "incident_reported", label: "Incident" },
+          { value: "delivery_delayed", label: "Retard" },
+          { value: "internal_message", label: "Message interne" },
+        ],
+      },
+      {
+        key: "channel", label: "Canal", type: "select", inList: true, defaultValue: "in_app",
+        options: [
+          { value: "in_app", label: "Dans la plateforme" },
+          { value: "email", label: "Courriel" },
+          { value: "sms", label: "SMS" },
+        ],
+      },
+      {
+        key: "audience", label: "Destinataire", type: "select", inList: true, defaultValue: "internal",
+        options: [
+          { value: "internal", label: "Équipe interne" },
+          { value: "client", label: "Client" },
+          { value: "driver", label: "Chauffeur" },
+        ],
+      },
+      { key: "subject", label: "Objet", type: "text", inList: true },
+      { key: "body", label: "Message", type: "textarea", required: true, help: "Variables disponibles : {{numero}}, {{client}}, {{date}}, {{message}}." },
+      sortField,
+      activeField,
+    ],
+  },
+  {
+    id: "api_keys",
+    table: "jsc_api_keys",
+    title: "Clés d'API",
+    singular: "Clé d'API",
+    description:
+      "Accès programmatique à l'API publique. La clé complète n'est affichée qu'à la création ; seules l'empreinte et la portée sont conservées.",
+    icon: "KeyRound",
+    labelField: "name",
+    group: "organisation",
+    companyScoped: true,
+    orderBy: [{ column: "created_at", ascending: false }],
+    fields: [
+      { key: "name", label: "Nom", type: "text", inList: true, required: true },
+      { key: "key_prefix", label: "Préfixe", type: "text", inList: true },
+      { key: "scopes", label: "Portées", type: "list", inList: true, help: "read, write" },
+      { key: "expires_at", label: "Expiration", type: "text", inList: true, placeholder: "AAAA-MM-JJ" },
+      { key: "last_used_at", label: "Dernière utilisation", type: "text", inList: true },
+      { key: "revoked_at", label: "Révoquée le", type: "text", inList: true },
     ],
   },
 ];
