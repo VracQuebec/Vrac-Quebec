@@ -96,6 +96,9 @@ export default function AdminDirection() {
               </SelectContent>
             </Select>
           )}
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/ia"><Brain className="mr-1.5 h-4 w-4" /> Centre IA</Link>
+          </Button>
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
             <RefreshCw className={`mr-1.5 h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Actualiser
           </Button>
