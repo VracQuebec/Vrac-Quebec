@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
 
   const started = Date.now();
   const url = new URL(req.url);
-  const path = '/' + url.pathname.replace(/^\/functions\/v1\/api-v1/, '').replace(/^\/+/, '');
+  const path = '/' + url.pathname.replace(/^\/functions\/v1/, '').replace(/^\/api-v1/, '').replace(/^\/+/, '');
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
     auth: { persistSession: false },
   });
