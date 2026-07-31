@@ -7480,6 +7480,7 @@ export type Database = {
           id: string
           idempotency_key: string | null
           internal_notes: string | null
+          jsc_request_id: string | null
           material_other: string | null
           material_type: string
           quantity: number | null
@@ -7516,6 +7517,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           internal_notes?: string | null
+          jsc_request_id?: string | null
           material_other?: string | null
           material_type: string
           quantity?: number | null
@@ -7552,6 +7554,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           internal_notes?: string | null
+          jsc_request_id?: string | null
           material_other?: string | null
           material_type?: string
           quantity?: number | null
@@ -7596,6 +7599,13 @@ export type Database = {
             columns: ["dump_submission_id"]
             isOneToOne: false
             referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_requests_jsc_request_id_fkey"
+            columns: ["jsc_request_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_requests"
             referencedColumns: ["id"]
           },
           {
@@ -8467,6 +8477,7 @@ export type Database = {
         Args: { _company_id?: string; _payload: Json }
         Returns: Json
       }
+      jsc_import_transport_request: { Args: { _id: string }; Returns: string }
       jsc_log_event: {
         Args: {
           _action: string
