@@ -84,10 +84,30 @@ export const JSC_ROLES = [
   { value: "super_admin", label: "Super administrateur" },
   { value: "admin", label: "Administrateur" },
   { value: "dispatcher", label: "Répartiteur" },
-  { value: "employee", label: "Employé" },
-  { value: "sales", label: "Ventes" },
+  { value: "manager", label: "Gestionnaire" },
+  { value: "accounting", label: "Comptabilité" },
   { value: "driver", label: "Chauffeur" },
-  { value: "entrepreneur", label: "Entrepreneur" },
+  { value: "sales", label: "Représentant" },
+  { value: "client", label: "Client" },
+  { value: "contractor", label: "Entrepreneur" },
+];
+
+/** Modules couverts par la matrice de permissions (identiques au serveur). */
+export const JSC_PERMISSION_MODULES = [
+  { value: "clients", label: "Clients" },
+  { value: "requests", label: "Demandes" },
+  { value: "quotes", label: "Soumissions" },
+  { value: "orders", label: "Commandes" },
+  { value: "deliveries", label: "Livraisons" },
+  { value: "invoices", label: "Factures" },
+  { value: "materials", label: "Matériaux" },
+  { value: "suppliers", label: "Fournisseurs" },
+  { value: "carriers", label: "Transporteurs" },
+  { value: "trucks", label: "Camions" },
+  { value: "drivers", label: "Chauffeurs" },
+  { value: "rates", label: "Tarifs" },
+  { value: "settings", label: "Paramètres" },
+  { value: "intelligence", label: "Intelligence d'affaires" },
 ];
 
 const activeField: FieldDef = {
@@ -366,6 +386,7 @@ export const JSC_RESOURCES: ResourceDef[] = [
           { value: "inactif", label: "Inactif" },
         ],
       },
+      { key: "user_id", label: "Compte portail (UUID)", type: "text", help: "Relie ce chauffeur à un compte utilisateur pour l'accès au portail chauffeur." },
       { key: "internal_notes", label: "Notes internes", type: "textarea", confidential: true },
       sortField,
       activeField,
@@ -394,6 +415,7 @@ export const JSC_RESOURCES: ResourceDef[] = [
       { key: "contact_name", label: "Personne-ressource", type: "text", inList: true },
       { key: "phone", label: "Téléphone", type: "text", inList: true },
       { key: "email", label: "Courriel", type: "text", inList: true },
+      { key: "user_id", label: "Compte portail (UUID)", type: "text", help: "Relie ce client à un compte utilisateur pour l'accès au portail client." },
       { key: "billing_address", label: "Adresse de facturation", type: "text" },
       { key: "city", label: "Ville", type: "text", inList: true },
       { key: "postal_code", label: "Code postal", type: "text" },
@@ -513,6 +535,21 @@ export const JSC_COMPANY_RESOURCE: ResourceDef = {
     },
     { key: "priority", label: "Priorité", type: "number", inList: true, defaultValue: 100, help: "Plus la valeur est basse, plus le transporteur est priorisé à coût égal." },
     { key: "is_default", label: "Transporteur par défaut", type: "boolean", inList: true, defaultValue: false },
+    { key: "logo_url", label: "Logo (URL)", type: "text", help: "Affiché sur le portail et les documents de cette entreprise." },
+    { key: "primary_color", label: "Couleur principale", type: "text", defaultValue: "#7ED321", placeholder: "#7ED321" },
+    { key: "secondary_color", label: "Couleur secondaire", type: "text", defaultValue: "#111111", placeholder: "#111111" },
+    { key: "website", label: "Site web", type: "text" },
+    { key: "custom_domain", label: "Domaine personnalisé", type: "text", placeholder: "portail.exemple.ca" },
+    { key: "gst_number", label: "Numéro de TPS", type: "text" },
+    { key: "qst_number", label: "Numéro de TVQ", type: "text" },
+    { key: "email_from", label: "Expéditeur des courriels", type: "text", placeholder: "info@exemple.ca" },
+    { key: "email_signature", label: "Signature des courriels", type: "textarea" },
+    { key: "sms_sender", label: "Expéditeur SMS", type: "text" },
+    { key: "quote_terms", label: "Conditions des soumissions", type: "textarea" },
+    { key: "invoice_terms", label: "Conditions des factures", type: "textarea" },
+    { key: "document_footer", label: "Pied de page des documents", type: "textarea" },
+    { key: "notify_email", label: "Notifications par courriel", type: "boolean", defaultValue: true },
+    { key: "notify_sms", label: "Notifications par SMS", type: "boolean", defaultValue: false },
     activeField,
   ],
 };
@@ -790,24 +827,66 @@ export const JSC_ORG_RESOURCES: ResourceDef[] = [
       { key: "role", label: "Rôle", type: "select", inList: true, required: true, options: JSC_ROLES },
       {
         key: "module", label: "Module", type: "select", inList: true, required: true,
-        options: [
-          { value: "dashboard", label: "Tableau de bord" },
-          { value: "catalog", label: "Matériaux" },
-          { value: "suppliers", label: "Fournisseurs" },
-          { value: "fleet", label: "Flotte" },
-          { value: "rates", label: "Tarifs" },
-          { value: "clients", label: "Clients" },
-          { value: "requests", label: "Demandes" },
-          { value: "quotes", label: "Soumissions" },
-          { value: "orders", label: "Commandes" },
-          { value: "invoices", label: "Factures" },
-          { value: "settings", label: "Paramètres" },
-          { value: "audit", label: "Journal d'audit" },
-        ],
+        options: JSC_PERMISSION_MODULES,
       },
       { key: "can_view", label: "Consulter", type: "boolean", inList: true, defaultValue: true },
       { key: "can_edit", label: "Créer / modifier", type: "boolean", inList: true, defaultValue: false },
       { key: "can_delete", label: "Archiver", type: "boolean", inList: true, defaultValue: false },
+      sortField,
+      activeField,
+    ],
+  },
+];
+
+// ============================================================
+// Plateforme SaaS : modèles de notification et clés d'API
+// ============================================================
+export const JSC_SAAS_RESOURCES: ResourceDef[] = [
+  {
+    id: "notification_templates",
+    table: "jsc_notification_templates",
+    title: "Modèles de notification",
+    singular: "Modèle",
+    description:
+      "Textes envoyés aux clients et à l'équipe pour chaque événement. Personnalisables par entreprise, sans modification du code.",
+    icon: "Bell",
+    labelField: "event_code",
+    group: "organisation",
+    companyScoped: true,
+    orderBy: [{ column: "sort_order", ascending: true }],
+    fields: [
+      {
+        key: "event_code", label: "Événement", type: "select", inList: true, required: true,
+        options: [
+          { value: "request_created", label: "Nouvelle demande" },
+          { value: "quote_sent", label: "Nouvelle soumission" },
+          { value: "order_accepted", label: "Commande acceptée" },
+          { value: "delivery_scheduled", label: "Livraison prévue" },
+          { value: "delivery_completed", label: "Livraison terminée" },
+          { value: "invoice_generated", label: "Facture générée" },
+          { value: "incident_reported", label: "Incident" },
+          { value: "delivery_delayed", label: "Retard" },
+          { value: "internal_message", label: "Message interne" },
+        ],
+      },
+      {
+        key: "channel", label: "Canal", type: "select", inList: true, defaultValue: "in_app",
+        options: [
+          { value: "in_app", label: "Dans la plateforme" },
+          { value: "email", label: "Courriel" },
+          { value: "sms", label: "SMS" },
+        ],
+      },
+      {
+        key: "audience", label: "Destinataire", type: "select", inList: true, defaultValue: "internal",
+        options: [
+          { value: "internal", label: "Équipe interne" },
+          { value: "client", label: "Client" },
+          { value: "driver", label: "Chauffeur" },
+        ],
+      },
+      { key: "subject", label: "Objet", type: "text", inList: true },
+      { key: "body", label: "Message", type: "textarea", required: true, help: "Variables disponibles : {{numero}}, {{client}}, {{date}}, {{message}}." },
       sortField,
       activeField,
     ],
