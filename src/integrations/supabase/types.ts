@@ -8387,6 +8387,10 @@ export type Database = {
         Args: { _entity_id: string; _entity_type: string }
         Returns: boolean
       }
+      jsc_advance_flow: {
+        Args: { _entity_id: string; _entity_type: string }
+        Returns: Json
+      }
       jsc_archive_record: {
         Args: { _id: string; _restore?: boolean; _table: string }
         Returns: Json
@@ -8438,9 +8442,26 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: string
       }
+      jsc_compute_taxes: {
+        Args: { _company_id: string; _subtotal: number; _taxable?: boolean }
+        Returns: Json
+      }
+      jsc_convert_estimate_to_quote: {
+        Args: { _estimate_id: string; _valid_days?: number }
+        Returns: string
+      }
+      jsc_convert_order_to_invoice: {
+        Args: { _order_id: string }
+        Returns: string
+      }
+      jsc_convert_quote_to_order: {
+        Args: { _quote_id: string; _scheduled_date?: string }
+        Returns: string
+      }
       jsc_dashboard_stats: { Args: { _company_id?: string }; Returns: Json }
       jsc_default_company_id: { Args: never; Returns: string }
       jsc_export_config: { Args: { _company_id?: string }; Returns: Json }
+      jsc_generate_deliveries: { Args: { _order_id: string }; Returns: number }
       jsc_import_config: {
         Args: { _company_id?: string; _payload: Json }
         Returns: Json
@@ -8480,6 +8501,7 @@ export type Database = {
         }[]
       }
       jsc_public_material: { Args: { _slug: string }; Returns: Json }
+      jsc_select_estimate: { Args: { _estimate_id: string }; Returns: string }
       list_users_with_roles: {
         Args: never
         Returns: {
