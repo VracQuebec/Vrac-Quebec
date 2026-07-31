@@ -3,17 +3,25 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Search } from "lucide-react";
+import { ArrowRight, Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { advanceFlow, NEXT_STAGE_DONE, NEXT_STAGE_LABEL, type FlowStage } from "@/lib/jsc/flow";
 
 type Row = Record<string, unknown>;
 type Option = { value: string; label: string };
 
 export type PipelineKind = "requests" | "quotes" | "orders";
+
+/** Étape suivante du flux documentaire, gérée entièrement côté serveur. */
+const FLOW_STAGE: Partial<Record<PipelineKind, FlowStage>> = {
+  quotes: "quote",
+  orders: "order",
+};
 
 const CONFIG: Record<PipelineKind, {
   table: string; numberField: string; title: string; amountField?: string;
@@ -42,6 +50,7 @@ export default function JscPipeline({
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [advancing, setAdvancing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,6 +77,24 @@ export default function JscPipeline({
     if (error) { toast.error(error.message); return; }
     toast.success("Statut mis à jour.");
     setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, status } : r)));
+  };
+
+  const stage = FLOW_STAGE[kind];
+
+  const advance = async (row: Row) => {
+    if (!stage) return;
+    setAdvancing(String(row.id));
+    try {
+      const res = await advanceFlow(stage, String(row.id));
+      toast.success(
+        `${NEXT_STAGE_DONE[stage]}${res.deliveries ? ` (${res.deliveries} livraison(s))` : ""}.`,
+      );
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Conversion impossible.");
+    } finally {
+      setAdvancing(null);
+    }
   };
 
   const filtered = useMemo(() => {
@@ -141,6 +168,20 @@ export default function JscPipeline({
                         {statuses.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
+                    {stage && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="mt-2 h-8 w-full text-xs"
+                        disabled={advancing === String(r.id)}
+                        onClick={() => void advance(r)}
+                      >
+                        {advancing === String(r.id)
+                          ? <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          : <ArrowRight className="mr-1 h-3 w-3" />}
+                        {NEXT_STAGE_LABEL[stage]}
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
