@@ -891,25 +891,4 @@ export const JSC_SAAS_RESOURCES: ResourceDef[] = [
       activeField,
     ],
   },
-  {
-    id: "api_keys",
-    table: "jsc_api_keys",
-    title: "Clés d'API",
-    singular: "Clé d'API",
-    description:
-      "Accès programmatique à l'API publique. La clé complète n'est affichée qu'à la création ; seules l'empreinte et la portée sont conservées.",
-    icon: "KeyRound",
-    labelField: "name",
-    group: "organisation",
-    companyScoped: true,
-    orderBy: [{ column: "created_at", ascending: false }],
-    fields: [
-      { key: "name", label: "Nom", type: "text", inList: true, required: true },
-      { key: "key_prefix", label: "Préfixe", type: "text", inList: true },
-      { key: "scopes", label: "Portées", type: "list", inList: true, help: "read, write" },
-      { key: "expires_at", label: "Expiration", type: "text", inList: true, placeholder: "AAAA-MM-JJ" },
-      { key: "last_used_at", label: "Dernière utilisation", type: "text", inList: true },
-      { key: "revoked_at", label: "Révoquée le", type: "text", inList: true },
-    ],
-  },
 ];
