@@ -2678,6 +2678,119 @@ export type Database = {
           },
         ]
       }
+      jsc_autopilot_log: {
+        Row: {
+          action: string
+          company_id: string | null
+          decision_id: string | null
+          detail: string | null
+          entity_id: string | null
+          entity_type: string | null
+          executed_at: string
+          id: string
+          payload: Json
+          status: string
+        }
+        Insert: {
+          action: string
+          company_id?: string | null
+          decision_id?: string | null
+          detail?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          executed_at?: string
+          id?: string
+          payload?: Json
+          status?: string
+        }
+        Update: {
+          action?: string
+          company_id?: string | null
+          decision_id?: string | null
+          detail?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          executed_at?: string
+          id?: string
+          payload?: Json
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_autopilot_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_autopilot_log_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_decisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_autopilot_settings: {
+        Row: {
+          auto_assign_drivers: boolean
+          auto_dispatch_orders: boolean
+          auto_execute_decisions: boolean
+          auto_followups: boolean
+          auto_invoices: boolean
+          auto_schedule_deliveries: boolean
+          auto_send_quotes: boolean
+          company_id: string | null
+          created_at: string
+          enabled: boolean
+          id: string
+          max_auto_amount: number
+          min_confidence: number
+          updated_at: string
+        }
+        Insert: {
+          auto_assign_drivers?: boolean
+          auto_dispatch_orders?: boolean
+          auto_execute_decisions?: boolean
+          auto_followups?: boolean
+          auto_invoices?: boolean
+          auto_schedule_deliveries?: boolean
+          auto_send_quotes?: boolean
+          company_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          max_auto_amount?: number
+          min_confidence?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_assign_drivers?: boolean
+          auto_dispatch_orders?: boolean
+          auto_execute_decisions?: boolean
+          auto_followups?: boolean
+          auto_invoices?: boolean
+          auto_schedule_deliveries?: boolean
+          auto_send_quotes?: boolean
+          company_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          max_auto_amount?: number
+          min_confidence?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_autopilot_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_bi_goals: {
         Row: {
           archived_at: string | null
@@ -3016,6 +3129,95 @@ export type Database = {
           },
         ]
       }
+      jsc_decisions: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          auto_executable: boolean
+          company_id: string | null
+          confidence: number
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          domain: string
+          entity_id: string | null
+          entity_type: string | null
+          evidence: Json
+          executed_at: string | null
+          execution_result: Json | null
+          id: string
+          impact_amount: number
+          kind: string
+          model: string | null
+          proposed_action: Json
+          rationale: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          auto_executable?: boolean
+          company_id?: string | null
+          confidence?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          domain?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          evidence?: Json
+          executed_at?: string | null
+          execution_result?: Json | null
+          id?: string
+          impact_amount?: number
+          kind?: string
+          model?: string | null
+          proposed_action?: Json
+          rationale?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          auto_executable?: boolean
+          company_id?: string | null
+          confidence?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          domain?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          evidence?: Json
+          executed_at?: string | null
+          execution_result?: Json | null
+          id?: string
+          impact_amount?: number
+          kind?: string
+          model?: string | null
+          proposed_action?: Json
+          rationale?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_decisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_deliveries: {
         Row: {
           archived_at: string | null
@@ -3214,6 +3416,71 @@ export type Database = {
             columns: ["truck_id"]
             isOneToOne: false
             referencedRelation: "jsc_trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_documents: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          company_id: string | null
+          created_at: string
+          doc_type: string
+          entity_id: string
+          entity_type: string
+          external_url: string | null
+          id: string
+          mime_type: string | null
+          notes: string | null
+          size_bytes: number | null
+          storage_path: string | null
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          company_id?: string | null
+          created_at?: string
+          doc_type?: string
+          entity_id: string
+          entity_type: string
+          external_url?: string | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          company_id?: string | null
+          created_at?: string
+          doc_type?: string
+          entity_id?: string
+          entity_type?: string
+          external_url?: string | null
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -4222,6 +4489,68 @@ export type Database = {
           },
           {
             foreignKeyName: "jsc_materials_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jsc_monitor_alerts: {
+        Row: {
+          acknowledged_by: string | null
+          code: string
+          company_id: string | null
+          created_at: string
+          detail: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          impact_amount: number
+          metrics: Json
+          resolved_at: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_by?: string | null
+          code: string
+          company_id?: string | null
+          created_at?: string
+          detail?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          impact_amount?: number
+          metrics?: Json
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_by?: string | null
+          code?: string
+          company_id?: string | null
+          created_at?: string
+          detail?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          impact_amount?: number
+          metrics?: Json
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_monitor_alerts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
@@ -9134,6 +9463,7 @@ export type Database = {
         Args: { _quote_id: string; _scheduled_date?: string }
         Returns: string
       }
+      jsc_dashboard_360: { Args: { p_company_id?: string }; Returns: Json }
       jsc_dashboard_stats: { Args: { _company_id?: string }; Returns: Json }
       jsc_default_company_id: { Args: never; Returns: string }
       jsc_driver_portal: {
