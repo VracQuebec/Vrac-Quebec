@@ -128,16 +128,9 @@ Deno.serve(async (req) => {
     // Insertion des nouvelles alertes (l'index unique évite les doublons ouverts).
     let created = 0;
     for (const a of alerts) {
-      const { data: exists } = await admin.from('jsc_monitor_alerts').select('id')
-        .eq('code', a.code).eq('status', 'open')
-        .is('entity_id', a.entity_id ? undefined as never : null)
-        .maybeSingle()
-        .then((r) => r, () => ({ data: null }));
-      if (a.entity_id) {
-        const { data: dup } = await admin.from('jsc_monitor_alerts').select('id')
-          .eq('code', a.code).eq('status', 'open').eq('entity_id', a.entity_id).maybeSingle();
-        if (dup) continue;
-      } else if (exists) continue;
+      const q = admin.from('jsc_monitor_alerts').select('id').eq('code', a.code).eq('status', 'open');
+      const { data: dup } = await (a.entity_id ? q.eq('entity_id', a.entity_id) : q.is('entity_id', null)).maybeSingle();
+      if (dup) continue;
 
       const { error } = await admin.from('jsc_monitor_alerts').insert({
         company_id: companyId, code: a.code, severity: a.severity, title: a.title, detail: a.detail,
