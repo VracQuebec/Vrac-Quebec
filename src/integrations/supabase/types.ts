@@ -8461,6 +8461,7 @@ export type Database = {
       jsc_dashboard_stats: { Args: { _company_id?: string }; Returns: Json }
       jsc_default_company_id: { Args: never; Returns: string }
       jsc_export_config: { Args: { _company_id?: string }; Returns: Json }
+      jsc_flow_allowed: { Args: never; Returns: boolean }
       jsc_generate_deliveries: { Args: { _order_id: string }; Returns: number }
       jsc_import_config: {
         Args: { _company_id?: string; _payload: Json }
