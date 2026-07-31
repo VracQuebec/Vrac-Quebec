@@ -84,10 +84,30 @@ export const JSC_ROLES = [
   { value: "super_admin", label: "Super administrateur" },
   { value: "admin", label: "Administrateur" },
   { value: "dispatcher", label: "Répartiteur" },
-  { value: "employee", label: "Employé" },
-  { value: "sales", label: "Ventes" },
+  { value: "manager", label: "Gestionnaire" },
+  { value: "accounting", label: "Comptabilité" },
   { value: "driver", label: "Chauffeur" },
-  { value: "entrepreneur", label: "Entrepreneur" },
+  { value: "sales", label: "Représentant" },
+  { value: "client", label: "Client" },
+  { value: "contractor", label: "Entrepreneur" },
+];
+
+/** Modules couverts par la matrice de permissions (identiques au serveur). */
+export const JSC_PERMISSION_MODULES = [
+  { value: "clients", label: "Clients" },
+  { value: "requests", label: "Demandes" },
+  { value: "quotes", label: "Soumissions" },
+  { value: "orders", label: "Commandes" },
+  { value: "deliveries", label: "Livraisons" },
+  { value: "invoices", label: "Factures" },
+  { value: "materials", label: "Matériaux" },
+  { value: "suppliers", label: "Fournisseurs" },
+  { value: "carriers", label: "Transporteurs" },
+  { value: "trucks", label: "Camions" },
+  { value: "drivers", label: "Chauffeurs" },
+  { value: "rates", label: "Tarifs" },
+  { value: "settings", label: "Paramètres" },
+  { value: "intelligence", label: "Intelligence d'affaires" },
 ];
 
 const activeField: FieldDef = {
