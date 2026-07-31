@@ -1,7 +1,7 @@
 // Page Direction — cockpit temps réel, IA commerciale, automatisation, prévisions et copilote.
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Bot, Brain, Gauge, Loader2, RefreshCw, TrendingUp, Workflow, Zap } from "lucide-react";
+import { ArrowLeft, Bot, Brain, FileText, Gauge, Loader2, RadioTower, RefreshCw, Rocket, ShieldCheck, TrendingUp, Workflow, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,6 +15,10 @@ import AutomationPanel from "@/components/direction/AutomationPanel";
 import ForecastPanel from "@/components/direction/ForecastPanel";
 import AiAdvisor from "@/components/direction/AiAdvisor";
 import AiCopilot from "@/components/direction/AiCopilot";
+import DecisionCenter from "@/components/autopilot/DecisionCenter";
+import MonitorCenter from "@/components/autopilot/MonitorCenter";
+import DocumentCenter from "@/components/autopilot/DocumentCenter";
+import AutopilotPanel from "@/components/autopilot/AutopilotPanel";
 import type { ExecDashboard } from "@/lib/jsc/intel";
 
 type Company = { id: string; name: string; is_default: boolean | null };
@@ -101,6 +105,10 @@ export default function AdminDirection() {
       <Tabs defaultValue="direction">
         <TabsList className="flex w-full flex-wrap justify-start">
           <TabsTrigger value="direction"><Gauge className="mr-1.5 h-4 w-4" /> Tableau de bord</TabsTrigger>
+          <TabsTrigger value="decisions"><ShieldCheck className="mr-1.5 h-4 w-4" /> Décisions</TabsTrigger>
+          <TabsTrigger value="monitor"><RadioTower className="mr-1.5 h-4 w-4" /> Surveillance</TabsTrigger>
+          <TabsTrigger value="autopilot"><Rocket className="mr-1.5 h-4 w-4" /> Pilote automatique</TabsTrigger>
+          <TabsTrigger value="documents"><FileText className="mr-1.5 h-4 w-4" /> Documents</TabsTrigger>
           <TabsTrigger value="commercial"><Zap className="mr-1.5 h-4 w-4" /> IA commerciale</TabsTrigger>
           <TabsTrigger value="automation"><Workflow className="mr-1.5 h-4 w-4" /> Automatisation</TabsTrigger>
           <TabsTrigger value="forecast"><TrendingUp className="mr-1.5 h-4 w-4" /> Prévisions</TabsTrigger>
@@ -114,6 +122,10 @@ export default function AdminDirection() {
           {!loading && !data && <p className="py-12 text-center text-sm text-muted-foreground">Aucune donnée disponible.</p>}
         </TabsContent>
         <TabsContent value="commercial" className="mt-4"><SalesIntelligence companyId={companyId} /></TabsContent>
+        <TabsContent value="decisions" className="mt-4"><DecisionCenter companyId={companyId} /></TabsContent>
+        <TabsContent value="monitor" className="mt-4"><MonitorCenter companyId={companyId} /></TabsContent>
+        <TabsContent value="autopilot" className="mt-4"><AutopilotPanel companyId={companyId} /></TabsContent>
+        <TabsContent value="documents" className="mt-4"><DocumentCenter companyId={companyId} /></TabsContent>
         <TabsContent value="automation" className="mt-4"><AutomationPanel companyId={companyId} /></TabsContent>
         <TabsContent value="forecast" className="mt-4"><ForecastPanel companyId={companyId} /></TabsContent>
         <TabsContent value="advisor" className="mt-4"><AiAdvisor companyId={companyId} /></TabsContent>
