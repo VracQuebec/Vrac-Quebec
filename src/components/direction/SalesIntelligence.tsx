@@ -17,8 +17,8 @@ type Score = {
 };
 
 type Reco = {
-  id: string; kind: string; title: string; body: string | null;
-  confidence: number | null; created_at: string; request_id: string | null;
+  id: string; scope: string; summary: string | null; payload: unknown;
+  created_at: string; request_id: string | null;
 };
 
 export default function SalesIntelligence({ companyId }: { companyId: string | null }) {
@@ -38,13 +38,13 @@ export default function SalesIntelligence({ companyId }: { companyId: string | n
     const [{ data: sc, error: se }, { data: rc }, { data: ls }] = await Promise.all([
       sq,
       supabase.from("jsc_recommendations")
-        .select("id, kind, title, body, confidence, created_at, request_id")
+        .select("id, scope, summary, payload, created_at, request_id")
         .order("created_at", { ascending: false }).limit(30),
       supabase.from("jsc_learning_signals").select("outcome, amount").limit(1000),
     ]);
     if (se) toast.error(se.message);
     setScores((sc as unknown as Score[]) ?? []);
-    setRecos((rc as Reco[]) ?? []);
+    setRecos((rc as unknown as Reco[]) ?? []);
     const rows = (ls as { outcome: string; amount: number | null }[]) ?? [];
     const won = rows.filter((r) => r.outcome === "won");
     setLearning({
@@ -56,10 +56,10 @@ export default function SalesIntelligence({ companyId }: { companyId: string | n
 
   useEffect(() => { void load(); }, [load]);
 
-  const run = async (fn: string, label: string) => {
+  const run = async (fn: string, label: string, payload: Record<string, unknown> = {}) => {
     setBusy(fn);
     try {
-      await invokeIntel(fn, { limit: 15 });
+      await invokeIntel(fn, payload);
       toast.success(`${label} terminée.`);
       await load();
     } catch (e) { toast.error((e as Error).message); }
@@ -78,13 +78,9 @@ export default function SalesIntelligence({ companyId }: { companyId: string | n
           <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading}>
             <RefreshCw className={`mr-1.5 h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Actualiser
           </Button>
-          <Button size="sm" onClick={() => void run("vqos-ai-score", "Notation IA")} disabled={busy !== null}>
+          <Button size="sm" onClick={() => void run("vqos-ai-score", "Notation IA", { limit: 15 })} disabled={busy !== null}>
             {busy === "vqos-ai-score" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Star className="mr-1.5 h-4 w-4" />}
             Noter les demandes
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => void run("vqos-ai-recommend", "Génération des recommandations")} disabled={busy !== null}>
-            {busy === "vqos-ai-recommend" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Sparkles className="mr-1.5 h-4 w-4" />}
-            Générer les recommandations
           </Button>
         </div>
       </div>
@@ -128,6 +124,16 @@ export default function SalesIntelligence({ companyId }: { companyId: string | n
                   {s.recommended_rep_name && <Badge variant="outline">{s.recommended_rep_name}</Badge>}
                 </div>
                 {s.reasoning && <p className="mt-1.5 text-xs text-muted-foreground">{s.reasoning}</p>}
+                <Button
+                  size="sm" variant="ghost" className="mt-1 h-7 px-2 text-xs"
+                  disabled={busy !== null}
+                  onClick={() => void run("vqos-ai-recommend", "Recommandation", { request_id: s.request_id })}
+                >
+                  {busy === "vqos-ai-recommend"
+                    ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    : <Sparkles className="mr-1.5 h-3.5 w-3.5" />}
+                  Recommandations IA
+                </Button>
               </div>
             ))}
           </CardContent>
@@ -139,15 +145,31 @@ export default function SalesIntelligence({ companyId }: { companyId: string | n
           </CardHeader>
           <CardContent className="max-h-[520px] space-y-2 overflow-y-auto">
             {recos.length === 0 && <p className="text-xs text-muted-foreground">Aucune recommandation générée.</p>}
-            {recos.map((r) => (
-              <div key={r.id} className="rounded-lg border p-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium">{r.title}</span>
-                  <Badge variant="outline">{r.kind}</Badge>
+            {recos.map((r) => {
+              const p = (r.payload ?? {}) as Record<string, { name?: string; window?: string; value?: number; unit?: string }>;
+              const chips = [
+                p.optimal_truck?.name && `Camion : ${p.optimal_truck.name}`,
+                p.optimal_carrier?.name && `Transporteur : ${p.optimal_carrier.name}`,
+                p.ideal_timing?.window && `Moment : ${p.ideal_timing.window}`,
+                p.ideal_quantity?.value && `Quantité : ${p.ideal_quantity.value} ${p.ideal_quantity.unit ?? ""}`,
+              ].filter(Boolean) as string[];
+              return (
+                <div key={r.id} className="rounded-lg border p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium">{r.summary ?? "Recommandation"}</span>
+                    <Badge variant="outline">{r.scope}</Badge>
+                  </div>
+                  {chips.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {chips.map((c) => <Badge key={c} variant="secondary" className="font-normal">{c}</Badge>)}
+                    </div>
+                  )}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {new Date(r.created_at).toLocaleString("fr-CA", { dateStyle: "short", timeStyle: "short" })}
+                  </p>
                 </div>
-                {r.body && <p className="mt-1 text-xs text-muted-foreground">{r.body}</p>}
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       </div>
