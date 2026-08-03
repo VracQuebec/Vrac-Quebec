@@ -172,6 +172,38 @@ const MATERIAL_GROUPS: MaterialGroup[] = [
 ];
 
 const STEP_LABELS = [
+/* Sections de présentation (UI seulement) : regroupent les catégories existantes. */
+const GROUP_SECTIONS: { title: string; keys: string[] }[] = [
+  { title: "Terres", keys: ["terre", "sable"] },
+  { title: "Granulaires", keys: ["gravier", "pierre"] },
+  { title: "Matériaux de démolition", keys: ["beton", "asphalte"] },
+  { title: "Excavation lourde", keys: ["roc"] },
+  { title: "Cas particuliers", keys: ["mixtes", "autre"] },
+];
+
+/* Badge d'acceptation : dérivé du champ `cleanliness` déjà présent dans MATERIALS.
+   Aucune nouvelle règle métier — si l'info n'existe pas, aucun badge. */
+const ACCEPTANCE_BADGES = {
+  propre: { dot: "🟢", label: "Accepté par la majorité des sites", cls: "bg-emerald-500/90 text-white" },
+  mixte: { dot: "🟡", label: "Validation requise", cls: "bg-amber-500/90 text-white" },
+  contamine: { dot: "🔴", label: "Site spécialisé", cls: "bg-rose-600/90 text-white" },
+} as const;
+
+const BADGE_HELP =
+  "Certains remblais (béton, asphalte, matériaux mixtes) contiennent des matières qui ne peuvent pas être reçues partout : les sites doivent être autorisés à les accepter. Les matériaux propres, eux, sont acceptés par la majorité des sites.";
+
+function groupAcceptance(g: MaterialGroup) {
+  const ranks: Record<string, number> = { propre: 0, mixte: 1, contamine: 2 };
+  const levels = g.subtypes
+    .map((st) => MATERIALS.find((m) => m.id === st.id))
+    .filter((m): m is MaterialProfile => !!m && m.main !== "autre")
+    .map((m) => m.cleanliness);
+  if (!levels.length) return null;
+  const worst = levels.reduce((a, b) => (ranks[b] > ranks[a] ? b : a));
+  return ACCEPTANCE_BADGES[worst];
+}
+
+const STEP_LABELS = [
   { n: 1, label: "Remblai", icon: "📦" },
   { n: 2, label: "Chantier", icon: "📍" },
   { n: 3, label: "Quantité", icon: "⚖️" },
