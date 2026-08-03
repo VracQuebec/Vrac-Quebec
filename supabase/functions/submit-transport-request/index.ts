@@ -41,6 +41,7 @@ type Payload = {
   source?: string | null;
   user_id?: string | null;
   client_notes?: string | null;
+  alternative_dumps?: unknown;
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -94,6 +95,7 @@ function validate(p: Partial<Payload>): { ok: true; data: Payload } | { ok: fals
       source: sanitize(p.source, 60) ?? "wizard_public",
       user_id: typeof p.user_id === "string" ? p.user_id : null,
       client_notes: sanitize(p.client_notes, 2000),
+      alternative_dumps: Array.isArray(p.alternative_dumps) ? p.alternative_dumps.slice(0, 3) : null,
     },
   };
 }
@@ -152,6 +154,23 @@ Deno.serve(async (req) => {
       if (typeof sub === "string" && sub.length > 0) authenticatedUserId = sub;
     } catch {
       // Bad/expired JWT is fine — treat as anonymous.
+    }
+  }
+
+  // Fallback: resolve the owner from the e-mail address when no JWT reached us.
+  async function resolveUserIdByEmail(email: string | null): Promise<string | null> {
+    if (!email) return null;
+    try {
+      const { data } = await admin
+        .from("entrepreneurs")
+        .select("user_id")
+        .ilike("email", email)
+        .not("user_id", "is", null)
+        .maybeSingle();
+      const uid = (data as { user_id?: string } | null)?.user_id;
+      return typeof uid === "string" ? uid : null;
+    } catch {
+      return null;
     }
   }
 
@@ -242,6 +261,7 @@ Deno.serve(async (req) => {
         desired_time: data.desired_time,
         source: data.source,
         client_notes: data.client_notes,
+        alternative_dumps: data.alternative_dumps,
       })
       .select("id, request_number")
       .single();
@@ -283,11 +303,12 @@ Deno.serve(async (req) => {
     // The BEFORE INSERT trigger unconditionally nulls user_id when auth.uid()
     // is NULL (which is the case under service-role). Reattach the id here so
     // authenticated users can see their own requests in the CRM.
-    if (authenticatedUserId && inserted?.id) {
+    const ownerId = authenticatedUserId ?? (await resolveUserIdByEmail(data.client_email));
+    if (ownerId && inserted?.id) {
       try {
         await admin
           .from("transport_requests")
-          .update({ user_id: authenticatedUserId })
+          .update({ user_id: ownerId })
           .eq("id", inserted.id);
       } catch (_e) {
         // best-effort — the row is already persisted
