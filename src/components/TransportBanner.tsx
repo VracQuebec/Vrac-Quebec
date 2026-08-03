@@ -4,14 +4,14 @@ const TickerContent = () => (
   <span className="inline-flex items-center gap-2 px-8 text-white text-xs sm:text-sm font-body whitespace-nowrap">
     <span className="text-primary">🚛</span>
     <span>
-      Livraison rapide assurée par{" "}
+      Livraison rapide coordonnée par{" "}
       <a
         href={FB_URL}
         target="_blank"
         rel="noopener noreferrer"
         className="text-primary font-semibold hover:underline hover:text-primary/80 transition-colors cursor-pointer"
       >
-        Transport JSC
+        Vrac Québec
       </a>{" "}
       partout dans la ville de Québec et les alentours.
     </span>

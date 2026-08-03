@@ -232,8 +232,8 @@ const Entrepreneur = () => {
           <ol className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             {[
               { n: 1, t: "Choisissez une dompe", d: "Sélectionnez la dompe qui vous intéresse parmi les sites disponibles." },
-              { n: 2, t: "Appelez Transport JSC", d: "📞 581-994-7717 ou 819-592-3495 — indiquez le n° de dompe, le matériel, la quantité, la date et votre entreprise." },
-              { n: 3, t: "Attendez la validation", d: "Transport JSC confirme avec le propriétaire la disponibilité, les matériaux et les quantités." },
+              { n: 2, t: "Contactez Vrac Québec", d: "📞 581-994-7717 ou 819-592-3495 — indiquez le n° de dompe, le matériel, la quantité, la date et votre entreprise." },
+              { n: 3, t: "Attendez la validation", d: "Vrac Québec analyse votre demande et confirme la disponibilité, les matériaux et les quantités." },
               { n: 4, t: "Recevez votre confirmation", d: "Une fois approuvé, vous recevrez l'accès et les consignes du site." },
             ].map((s) => (
               <li key={s.n} className="flex gap-3 p-3 rounded-lg bg-background border border-border">
@@ -253,7 +253,7 @@ const Entrepreneur = () => {
             <ul className="text-xs sm:text-sm text-foreground space-y-1 ml-7 list-disc">
               <li>Ne contactez <b>jamais</b> directement le propriétaire.</li>
               <li>Ne vous présentez <b>jamais</b> sur le site sans autorisation.</li>
-              <li>Toute demande doit obligatoirement passer par Transport JSC.</li>
+              <li>Toute demande est traitée par Vrac Québec.</li>
             </ul>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

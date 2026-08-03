@@ -37,7 +37,7 @@ const EntrepreneurCompte = () => {
           <Row icon={<Building2 className="w-4 h-4" />} label="Adresse de facturation" value={profile?.billing_address || "—"} />
           <Row icon={<Building2 className="w-4 h-4" />} label="TPS / TVQ" value={[profile?.tax_tps, profile?.tax_tvq].filter(Boolean).join(" · ") || "—"} />
           <p className="text-xs text-muted-foreground pt-2 border-t border-border font-body">
-            Pour modifier ces informations, contactez Transport JSC au 581-994-7717.
+            Pour modifier ces informations, contactez Vrac Québec au 581-994-7717.
           </p>
         </div>
       )}
