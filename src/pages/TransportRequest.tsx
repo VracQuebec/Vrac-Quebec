@@ -581,6 +581,17 @@ const TransportRequest = () => {
       quantity_unit: unit,
       dump_submission_id: selectedDump.id,
       dump_name: selectedDump.dompe_number || `#${selectedDump.submission_number}`,
+      material_other: materialOther.trim() || null,
+      alternative_dumps: dumps
+        .filter((d) => d.id !== selectedDump.id)
+        .slice(0, 3)
+        .map((d) => ({
+          id: d.id,
+          name: d.dompe_number || `#${d.submission_number}`,
+          distance_km: d.distance_km ?? null,
+          duration_minutes: d.duration_minutes ?? null,
+          availability_status: d.availability_status ?? null,
+        })),
       distance_km: selectedDump.distance_km ?? null,
       travel_time_minutes: selectedDump.duration_minutes ?? null,
       truck_type: truckType || null,
