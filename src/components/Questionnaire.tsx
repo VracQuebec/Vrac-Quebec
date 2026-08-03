@@ -3,6 +3,8 @@ import StepMaterials from "./StepMaterials";
 import StepDetails from "./StepDetails";
 import StepContact from "./StepContact";
 import RemblaiForm from "./RemblaiForm";
+import ServiceSelector, { type ServiceKey } from "./ServiceSelector";
+import { useNavigate } from "react-router-dom";
 import { initialFormData, MATERIAL_TYPES, detectRequestType, isRemblaiRequest, type QuestionnaireData } from "@/lib/questionnaire-data";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +19,8 @@ const STEPS = [
 
 const Questionnaire = ({ sourcePageSlug }: { sourcePageSlug?: string } = {}) => {
   const [step, setStep] = useState(0);
+  const navigate = useNavigate();
+  const [service, setService] = useState<ServiceKey | null>(null);
   const [data, setData] = useState<QuestionnaireData>(initialFormData);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -216,6 +220,8 @@ const Questionnaire = ({ sourcePageSlug }: { sourcePageSlug?: string } = {}) => 
         depth_in: data.depthIn || null,
         delivery_deadline: data.deliveryDeadline || null,
         delivery_timeframe: data.deliveryTimeframe || null,
+        // Type de service choisi par le client — pilote le pipeline CRM.
+        service_type: service ?? (isRemblai ? "remblai_disposition" : "materiel_remplissage"),
       };
 
       const { error } = await supabase
@@ -347,7 +353,10 @@ const Questionnaire = ({ sourcePageSlug }: { sourcePageSlug?: string } = {}) => 
         </div>
 
         <button
-          onClick={() => { setSubmitted(false); setStep(0); setRemblaiMode(false); setData(initialFormData); }}
+          onClick={() => {
+            setSubmitted(false); setStep(0); setRemblaiMode(false);
+            setService(null); setData(initialFormData);
+          }}
           className="text-sm text-muted-foreground hover:text-foreground underline font-display"
         >
           Nouvelle demande
@@ -357,9 +366,41 @@ const Questionnaire = ({ sourcePageSlug }: { sourcePageSlug?: string } = {}) => 
   }
 
   return (
-    <div ref={formTopRef} className="max-w-xl mx-auto px-4 scroll-mt-24">
+    <div ref={formTopRef} className={`${service ? "max-w-xl" : "max-w-5xl"} mx-auto px-4 scroll-mt-24`}>
+      {/* Étape 0 — quel service ? */}
+      {!service && (
+        <ServiceSelector
+          onSelect={(key) => {
+            if (key === "vrac_achat") {
+              // Achat de matériaux en vrac : seul parcours branché sur le moteur de calcul automatique.
+              navigate("/soumission");
+              return;
+            }
+            setService(key);
+            if (key === "remblai_disposition") {
+              setRemblaiMode(true);
+              update({ materials: [], otherMaterial: "", propertyType: "Remplissage / remblai" });
+              setStep(1);
+            } else {
+              setRemblaiMode(false);
+              setStep(0);
+            }
+          }}
+        />
+      )}
+
+      {service && (
+        <button
+          type="button"
+          onClick={() => { setService(null); setRemblaiMode(false); setStep(0); }}
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 font-display"
+        >
+          <ChevronLeft className="w-4 h-4" /> Changer de service
+        </button>
+      )}
+
       {/* Simplified Remblai flow */}
-      {step === 0 && (
+      {service && step === 0 && (
         <div className="bg-card rounded-2xl p-6 md:p-8" style={{ boxShadow: "var(--shadow-lg)" }}>
           <StepMaterials
             selected={data.materials}
@@ -387,19 +428,13 @@ const Questionnaire = ({ sourcePageSlug }: { sourcePageSlug?: string } = {}) => 
         </div>
       )}
 
-      {step > 0 && isRemblai && (
+      {service && step > 0 && isRemblai && (
         <div>
-          <button
-            onClick={() => { setRemblaiMode(false); setStep(0); }}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 font-display"
-          >
-            <ChevronLeft className="w-4 h-4" /> Changer de matériel
-          </button>
           <RemblaiForm data={data} onChange={update} onSubmit={handleSubmit} loading={loading} />
         </div>
       )}
 
-      {step > 0 && !isRemblai && (
+      {service && step > 0 && !isRemblai && (
         <>
       {/* Progress */}
       <div className="flex items-center justify-center gap-2 mb-10">
