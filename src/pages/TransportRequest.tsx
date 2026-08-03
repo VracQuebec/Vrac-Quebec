@@ -280,8 +280,6 @@ const TransportRequest = () => {
   const [desiredTime, setDesiredTime] = useState<string>("");
   const [clientNotes, setClientNotes] = useState<string>("");
   const [billingAddress, setBillingAddress] = useState("");
-  const [taxTps, setTaxTps] = useState("");
-  const [taxTvq, setTaxTvq] = useState("");
   const [contactName, setContactName] = useState("");
   const [editIdentity, setEditIdentity] = useState<boolean>(false);
   const [profileLoaded, setProfileLoaded] = useState<boolean>(false);
@@ -353,8 +351,6 @@ const TransportRequest = () => {
       if (s.desiredTime) setDesiredTime(s.desiredTime);
       if (s.clientNotes) setClientNotes(s.clientNotes);
       if (s.billingAddress) setBillingAddress(s.billingAddress);
-      if (s.taxTps) setTaxTps(s.taxTps);
-      if (s.taxTvq) setTaxTvq(s.taxTvq);
       if (s.contactName) setContactName(s.contactName);
     } catch { /* ignore */ }
     setShowResumePrompt(false);
@@ -376,7 +372,7 @@ const TransportRequest = () => {
         step, material, address, coords, city, quantity, unit,
         clientName, clientCompany, clientPhone, clientEmail,
         truckType, trips, desiredDate, desiredTime, clientNotes,
-        billingAddress, taxTps, taxTvq, contactName,
+        billingAddress, contactName,
         savedAt: Date.now(),
       };
       if (
@@ -386,7 +382,7 @@ const TransportRequest = () => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       }
     } catch { /* ignore */ }
-  }, [step, material, address, coords, city, quantity, unit, clientName, clientCompany, clientPhone, clientEmail, truckType, trips, desiredDate, desiredTime, clientNotes, billingAddress, taxTps, taxTvq, contactName]);
+  }, [step, material, address, coords, city, quantity, unit, clientName, clientCompany, clientPhone, clientEmail, truckType, trips, desiredDate, desiredTime, clientNotes, billingAddress, contactName]);
 
   // Clear saved draft after successful submission
   useEffect(() => {
@@ -424,8 +420,6 @@ const TransportRequest = () => {
     if (profile.email) setClientEmail((p) => p || profile.email);
     if (profile.billing_address || profile.address)
       setBillingAddress((p) => p || profile.billing_address || profile.address);
-    if (profile.tax_tps) setTaxTps((p) => p || profile.tax_tps);
-    if (profile.tax_tvq) setTaxTvq((p) => p || profile.tax_tvq);
     if (profile.contact_name || profile.name)
       setContactName((p) => p || profile.contact_name || profile.name);
     setProfileLoaded(true);
@@ -442,8 +436,6 @@ const TransportRequest = () => {
         phone: clientPhone.trim(),
         email: clientEmail.trim(),
         billing_address: billingAddress.trim(),
-        tax_tps: taxTps.trim(),
-        tax_tvq: taxTvq.trim(),
         contact_name: contactName.trim(),
       });
       toast({ title: "Profil mis à jour", description: "Vos informations ont été enregistrées." });
