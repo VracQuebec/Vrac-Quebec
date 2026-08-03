@@ -171,7 +171,6 @@ const MATERIAL_GROUPS: MaterialGroup[] = [
   ] },
 ];
 
-const STEP_LABELS = [
 /* Sections de présentation (UI seulement) : regroupent les catégories existantes. */
 const GROUP_SECTIONS: { title: string; keys: string[] }[] = [
   { title: "Terres", keys: ["terre", "sable"] },
