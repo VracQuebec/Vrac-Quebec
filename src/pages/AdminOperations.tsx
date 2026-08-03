@@ -256,7 +256,7 @@ function DispatchTab({ onApplied }: { onApplied: () => void }) {
               <div className="flex justify-between items-start gap-2">
                 <div>
                   <div className="font-display font-semibold text-sm text-foreground">{r.request_number || "—"} · {r.client_name || "Client"}</div>
-                  <div className="text-xs text-muted-foreground font-body mt-0.5">{r.project_city || "—"} · {(r.materials || []).join(", ") || "—"} · {r.quantity_estimate || "?"}</div>
+                  <div className="text-xs text-muted-foreground font-body mt-0.5">{r.site_city || "—"} · {r.material_type || "—"} · {r.quantity ? `${r.quantity} ${r.quantity_unit || ""}` : "?"}</div>
                   <div className="text-[11px] text-muted-foreground font-body mt-1">{r.status}</div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
