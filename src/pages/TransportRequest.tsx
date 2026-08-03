@@ -22,17 +22,46 @@ type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
 const STORAGE_KEY = "vq_transport_wizard_v1";
 
-const MATERIALS = [
-  { id: "terre", label: "Terre", icon: "🟫", desc: "Remblai, nivellement et aménagement." },
-  { id: "sable", label: "Sable", icon: "🟨", desc: "Compaction, drainage et pose de pavé." },
-  { id: "pierre_concassee", label: "Pierre concassée", icon: "⬜", desc: "Fondation, entrée et stationnement." },
-  { id: "remblai", label: "Remblai", icon: "🟩", desc: "Solution économique pour remplir rapidement." },
-  { id: "enrochement", label: "Enrochement", icon: "🪨", desc: "Stabilisation, soutènement et protection des berges." },
-  { id: "autre", label: "Autre", icon: "❓", desc: "Vous avez un besoin spécifique ? On vous guide." },
-] as const;
+// Catégories de remblai à évacuer vers une dompe. Chaque catégorie porte son
+// « profil matière » : ces attributs servent au moteur de recommandations pour
+// filtrer les dompes compatibles (sans changer son fonctionnement).
+export interface MaterialProfile {
+  id: string;
+  label: string;
+  icon: string;
+  desc: string;
+  /** Matériau principal */
+  main: string;
+  stone: boolean;
+  clay: boolean;
+  sand: boolean;
+  /** Contaminants possibles (asphalte, béton, matériaux mixtes) */
+  contaminants: boolean;
+  /** Niveau de propreté : propre | mixte | contamine */
+  cleanliness: "propre" | "mixte" | "contamine";
+  /** Mots-clés utilisés pour associer la dompe */
+  keywords: RegExp;
+}
+
+const MATERIALS: MaterialProfile[] = [
+  { id: "terre_propre", label: "Terre propre", icon: "🟫", desc: "Terre d'excavation sans pierre ni débris.", main: "terre", stone: false, clay: false, sand: false, contaminants: false, cleanliness: "propre", keywords: /terre|remblai|remplissage/ },
+  { id: "terre_gravier", label: "Terre avec gravier", icon: "🟤", desc: "Terre mélangée à du gravier ou de la petite pierre.", main: "terre", stone: true, clay: false, sand: false, contaminants: false, cleanliness: "mixte", keywords: /terre|gravier|pierre|remblai/ },
+  { id: "terre_argileuse", label: "Terre argileuse", icon: "🧱", desc: "Terre lourde et collante, peu drainante.", main: "terre", stone: false, clay: true, sand: false, contaminants: false, cleanliness: "mixte", keywords: /terre|argile|remblai/ },
+  { id: "sable", label: "Sable", icon: "🟨", desc: "Sable d'excavation ou de tranchée.", main: "sable", stone: false, clay: false, sand: true, contaminants: false, cleanliness: "propre", keywords: /sable/ },
+  { id: "gravier", label: "Gravier", icon: "⚪", desc: "Gravier récupéré de fondation ou d'entrée.", main: "gravier", stone: true, clay: false, sand: true, contaminants: false, cleanliness: "propre", keywords: /gravier|pierre|concass/ },
+  { id: "pierre", label: "Pierre", icon: "⬜", desc: "Pierre concassée ou pierre nette.", main: "pierre", stone: true, clay: false, sand: false, contaminants: false, cleanliness: "propre", keywords: /pierre|concass|roche/ },
+  { id: "roc", label: "Roc", icon: "🪨", desc: "Roc dynamité ou blocs d'excavation.", main: "roc", stone: true, clay: false, sand: false, contaminants: false, cleanliness: "propre", keywords: /roc|roche|enrochement|pierre/ },
+  { id: "asphalte", label: "Asphalte", icon: "⬛", desc: "Planage ou morceaux d'asphalte à disposer.", main: "asphalte", stone: true, clay: false, sand: false, contaminants: true, cleanliness: "contamine", keywords: /asphalte|pavage|planage/ },
+  { id: "beton", label: "Béton", icon: "🏗️", desc: "Dalles, fondations ou béton concassé.", main: "beton", stone: true, clay: false, sand: false, contaminants: true, cleanliness: "contamine", keywords: /b[ée]ton|dalle|ciment/ },
+  { id: "melange_terre_pierre", label: "Mélange terre / pierre", icon: "🟫", desc: "Excavation mixte de terre et de pierre.", main: "melange", stone: true, clay: false, sand: false, contaminants: false, cleanliness: "mixte", keywords: /terre|pierre|gravier|remblai/ },
+  { id: "materiaux_mixtes", label: "Matériaux mixtes", icon: "♻️", desc: "Excavation variée pouvant contenir des débris.", main: "mixte", stone: true, clay: true, sand: true, contaminants: true, cleanliness: "contamine", keywords: /mixte|remblai|d[ée]bris|terre/ },
+  { id: "autre", label: "Autre (description)", icon: "❓", desc: "Matériel particulier — décrivez-le, on vous guide.", main: "autre", stone: false, clay: false, sand: false, contaminants: false, cleanliness: "mixte", keywords: /.*/ },
+];
+
+const HUMIDITY_OPTIONS = ["Sec", "Humide", "Détrempé"];
 
 const STEP_LABELS = [
-  { n: 1, label: "Matériau", icon: "📦" },
+  { n: 1, label: "Remblai", icon: "📦" },
   { n: 2, label: "Chantier", icon: "📍" },
   { n: 3, label: "Quantité", icon: "⚖️" },
   { n: 4, label: "Recommandations", icon: "🗺️" },
@@ -41,14 +70,14 @@ const STEP_LABELS = [
 
 // "Je ne sais pas" project assistant → material recommendation
 const PROJECT_TYPES: { id: string; label: string; icon: string; material: string; trucks: string }[] = [
-  { id: "fondation",   label: "Fondation",           icon: "🏗️", material: "pierre_concassee", trucks: "10 ou 12 roues" },
-  { id: "entree",      label: "Entrée / stationnement", icon: "🚗", material: "pierre_concassee", trucks: "10 roues" },
-  { id: "drain",       label: "Drain français",      icon: "💧", material: "pierre_concassee", trucks: "10 roues" },
-  { id: "nivellement", label: "Nivellement",         icon: "📐", material: "terre",             trucks: "12 roues" },
-  { id: "soutenement", label: "Mur de soutènement",  icon: "🧱", material: "enrochement",       trucks: "12 roues" },
-  { id: "enrochement", label: "Enrochement / berge", icon: "🪨", material: "enrochement",       trucks: "12 roues" },
-  { id: "terrassement",label: "Terrassement",        icon: "⛏️", material: "terre",             trucks: "12 roues" },
-  { id: "autre",       label: "Autre projet",        icon: "❓", material: "autre",             trucks: "À déterminer" },
+  { id: "excavation_fondation", label: "Excavation de fondation", icon: "🏗️", material: "melange_terre_pierre", trucks: "12 roues" },
+  { id: "piscine",              label: "Creusage de piscine",     icon: "🏊", material: "terre_propre",         trucks: "12 roues" },
+  { id: "tranchee",             label: "Tranchée / services",     icon: "🕳️", material: "sable",               trucks: "10 roues" },
+  { id: "nivellement",          label: "Nivellement de terrain",  icon: "📐", material: "terre_propre",         trucks: "12 roues" },
+  { id: "demolition_asphalte",  label: "Démolition d'asphalte",   icon: "⬛", material: "asphalte",             trucks: "10 roues" },
+  { id: "demolition_beton",     label: "Démolition de béton",     icon: "🧱", material: "beton",                trucks: "10 roues" },
+  { id: "dynamitage",           label: "Roc / dynamitage",        icon: "🪨", material: "roc",                  trucks: "12 roues" },
+  { id: "autre",                label: "Autre chantier",          icon: "❓", material: "autre",                trucks: "À déterminer" },
 ];
 
 interface DumpCandidate {
@@ -82,9 +111,9 @@ const availLabel = (s: string | null | undefined) =>
 
 const matchesMaterial = (dumpMaterials: string[], selected: string): boolean => {
   const joined = (dumpMaterials || []).join("|").toLowerCase();
-  if (selected === "autre") return true;
-  if (selected === "remblai") return /remblai|remplissage|d[ée]p[ôo]t/.test(joined);
-  if (selected === "pierre_concassee") return /pierre|concass|gravier|roche/.test(joined);
+  if (!selected || selected === "autre") return true;
+  const profile = MATERIALS.find((m) => m.id === selected);
+  if (profile) return profile.keywords.test(joined);
   return joined.includes(selected);
 };
 
@@ -104,6 +133,9 @@ const TransportRequest = () => {
 
   // Step 1: material
   const [material, setMaterial] = useState<string>("");
+  const [materialOther, setMaterialOther] = useState<string>("");
+  const [humidity, setHumidity] = useState<string>("");
+  const [hasContaminants, setHasContaminants] = useState(false);
 
   // Step 2: site address
   const [address, setAddress] = useState("");
@@ -175,7 +207,7 @@ const TransportRequest = () => {
       if (!raw) return;
       const s = JSON.parse(raw);
       if (s.step) setStep(s.step);
-      if (s.material) setMaterial(s.material);
+      if (s.material && MATERIALS.some((m) => m.id === s.material)) setMaterial(s.material);
       if (s.address) setAddress(s.address);
       if (s.coords) setCoords(s.coords);
       if (s.city) setCity(s.city);
@@ -425,7 +457,20 @@ const TransportRequest = () => {
       estimated_trips: trips ? Number(trips) : null,
       desired_date: desiredDate || null,
       desired_time: desiredTime || null,
-      client_notes: clientNotes.trim() || null,
+      client_notes: [
+        clientNotes.trim(),
+        (() => {
+          const p = MATERIALS.find((m) => m.id === material);
+          if (!p) return "";
+          const traits = [
+            p.stone && "pierre",
+            p.clay && "argile",
+            p.sand && "sable",
+            (p.contaminants || hasContaminants) && "contaminants",
+          ].filter(Boolean).join(", ");
+          return `Profil du remblai : ${p.label}${materialOther.trim() ? ` (${materialOther.trim()})` : ""} — principal ${p.main}, propreté ${p.cleanliness}${traits ? `, contient ${traits}` : ""}${humidity ? `, ${humidity.toLowerCase()}` : ""}`;
+        })(),
+      ].filter(Boolean).join("\n") || null,
       source: user ? "wizard_authenticated" : "wizard_public",
     });
 
@@ -445,7 +490,7 @@ const TransportRequest = () => {
   // as soon as any identifier (name, company, phone or email) is available.
   const missingFields = useMemo(() => {
     const missing: string[] = [];
-    if (step === 1 && !material) missing.push("Type de matériau");
+    if (step === 1 && !material) missing.push("Type de remblai à disposer");
     if (step === 2) {
       if (!address.trim()) missing.push("Adresse du chantier");
       else if (!coords) missing.push("Localisation de l'adresse (sélectionnez une suggestion)");
@@ -673,10 +718,10 @@ const TransportRequest = () => {
             {/* Reassuring hero */}
             <div className="text-center mb-6">
               <h1 className="font-display font-bold text-2xl sm:text-4xl leading-tight mb-2">
-                Trouvez le meilleur matériau et le meilleur point de dépôt en quelques clics.
+                Trouvez la meilleure dompe pour disposer de votre remblai.
               </h1>
               <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
-                Nous analysons votre chantier afin de vous recommander les meilleures options disponibles près de chez vous.
+                Nous analysons votre chantier d'excavation afin de vous recommander les dompes compatibles les plus proches.
               </p>
               <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-display font-bold">
                 <Clock className="w-3.5 h-3.5" /> Temps estimé : moins de 60 secondes
@@ -684,7 +729,7 @@ const TransportRequest = () => {
             </div>
 
             <h2 className="font-display font-bold text-lg sm:text-xl mb-3 flex items-center gap-2">
-              <Package className="w-5 h-5 text-primary" /> Quel matériau cherchez-vous ?
+              <Package className="w-5 h-5 text-primary" /> Quel type de remblai devez-vous disposer ?
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -711,6 +756,61 @@ const TransportRequest = () => {
                 </button>
               ))}
             </div>
+
+            {material === "autre" && (
+              <input
+                value={materialOther}
+                onChange={(e) => setMaterialOther(e.target.value)}
+                placeholder="Décrivez le matériel à évacuer"
+                className="mt-3 w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm font-body"
+              />
+            )}
+
+            {material && (
+              <div className="mt-4 p-4 rounded-xl border border-border bg-card">
+                <p className="text-[10px] font-display font-bold uppercase tracking-wide text-muted-foreground mb-2">
+                  Précisions sur le matériel (facultatif)
+                </p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {HUMIDITY_OPTIONS.map((h) => (
+                    <button
+                      key={h}
+                      onClick={() => setHumidity(humidity === h ? "" : h)}
+                      className={`px-3 py-1.5 rounded-full border text-xs font-display font-semibold ${
+                        humidity === h ? "border-primary bg-primary/10 text-primary" : "border-border bg-background"
+                      }`}
+                    >
+                      💧 {h}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setHasContaminants((v) => !v)}
+                    className={`px-3 py-1.5 rounded-full border text-xs font-display font-semibold ${
+                      hasContaminants ? "border-primary bg-primary/10 text-primary" : "border-border bg-background"
+                    }`}
+                  >
+                    ⚠️ Présence de contaminants
+                  </button>
+                </div>
+                {(() => {
+                  const p = MATERIALS.find((m) => m.id === material);
+                  if (!p) return null;
+                  const traits = [
+                    p.stone && "pierre",
+                    p.clay && "argile",
+                    p.sand && "sable",
+                    (p.contaminants || hasContaminants) && "contaminants possibles",
+                  ].filter(Boolean) as string[];
+                  return (
+                    <p className="text-xs text-muted-foreground">
+                      Profil détecté : {p.main} • propreté {p.cleanliness}
+                      {traits.length > 0 ? ` • contient ${traits.join(", ")}` : ""}
+                      {humidity ? ` • ${humidity.toLowerCase()}` : ""}
+                    </p>
+                  );
+                })()}
+              </div>
+            )}
 
             <button
               onClick={() => { setShowMaterialHelper((v) => !v); setHelperStep(0); }}
@@ -782,7 +882,7 @@ const TransportRequest = () => {
                     <div>
                       <p className="font-display font-bold text-base mb-2 flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Notre recommandation</p>
                       <div className="bg-card rounded-lg border border-primary/30 p-3 space-y-1.5 text-sm">
-                        <p>📦 <b>Matériau :</b> {mat?.label} {mat?.icon}</p>
+                        <p>📦 <b>Remblai :</b> {mat?.label} {mat?.icon}</p>
                         {helperArea && helperDepth && <p>📏 <b>Chantier :</b> {helperArea} × {helperDepth}</p>}
                         {proj && <p>🚛 <b>Type de camion suggéré :</b> {proj.trucks}</p>}
                         <p className="text-xs text-muted-foreground pt-1">Vous ajusterez la quantité à l'étape suivante.</p>
@@ -1011,7 +1111,7 @@ const TransportRequest = () => {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 text-sm">
                 <SummaryRow icon="📍" label="Adresse" value={address} />
-                <SummaryRow icon="📦" label="Matériau recommandé" value={MATERIALS.find((m) => m.id === material)?.label || material} />
+                <SummaryRow icon="📦" label="Remblai à disposer" value={MATERIALS.find((m) => m.id === material)?.label || material} />
                 <SummaryRow icon="📏" label="Quantité estimée" value={unit === "inconnu" ? "À déterminer" : `${quantity} ${unit}`} />
                 <SummaryRow icon="🚛" label="Voyages estimés" value={trips || "À confirmer"} />
                 <SummaryRow icon="⏱️" label="Temps de trajet" value={`${selectedDump.duration_minutes} min`} />
