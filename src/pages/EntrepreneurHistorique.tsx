@@ -35,12 +35,12 @@ const EntrepreneurHistorique = () => {
   }, [user]);
 
   return (
-    <EntrepreneurShell title="Historique" description="Toutes vos demandes terminées ou annulées.">
+    <EntrepreneurShell title="Historique" description="Toutes vos demandes d'accès terminées ou annulées.">
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
       ) : requests.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
-          <p className="text-muted-foreground font-body">Aucune demande dans votre historique pour le moment.</p>
+          <p className="text-muted-foreground font-body">Aucune demande d'accès dans votre historique pour le moment.</p>
         </div>
       ) : (
         <div className="space-y-2">
