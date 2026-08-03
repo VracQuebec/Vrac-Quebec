@@ -104,7 +104,7 @@ const MATERIALS: MaterialProfile[] = [
   { id: "sable", label: "Sable", icon: "🟨", desc: "Sable d'excavation ou de tranchée.", main: "sable", stone: false, clay: false, sand: true, contaminants: false, cleanliness: "propre", keywords: /sable/ },
   { id: "gravier", label: "Gravier", icon: "⚪", desc: "Gravier récupéré de fondation ou d'entrée.", main: "gravier", stone: true, clay: false, sand: true, contaminants: false, cleanliness: "propre", keywords: /gravier|pierre|concass/ },
   { id: "pierre", label: "Pierre", icon: "⬜", desc: "Pierre concassée ou pierre nette.", main: "pierre", stone: true, clay: false, sand: false, contaminants: false, cleanliness: "propre", keywords: /pierre|concass|roche/ },
-  { id: "roc", label: "Roc", icon: "🪨", desc: "Roc dynamité ou blocs d'excavation.", main: "roc", stone: true, clay: false, sand: false, contaminants: false, cleanliness: "propre", keywords: /roc|roche|enrochement|pierre/ },
+  { id: "roc", label: "Roches", icon: "🪨", desc: "Roches dynamitées ou blocs d'excavation.", main: "roc", stone: true, clay: false, sand: false, contaminants: false, cleanliness: "propre", keywords: /roc|roche|enrochement|pierre/ },
   { id: "asphalte", label: "Asphalte", icon: "⬛", desc: "Planage ou morceaux d'asphalte à disposer.", main: "asphalte", stone: true, clay: false, sand: false, contaminants: true, cleanliness: "contamine", keywords: /asphalte|pavage|planage/ },
   { id: "beton", label: "Béton", icon: "🏗️", desc: "Dalles, fondations ou béton concassé.", main: "beton", stone: true, clay: false, sand: false, contaminants: true, cleanliness: "contamine", keywords: /b[ée]ton|dalle|ciment/ },
   { id: "melange_terre_pierre", label: "Mélange terre / pierre", icon: "🟫", desc: "Excavation mixte de terre et de pierre.", main: "melange", stone: true, clay: false, sand: false, contaminants: false, cleanliness: "mixte", keywords: /terre|pierre|gravier|remblai/ },
@@ -149,8 +149,8 @@ const MATERIAL_GROUPS: MaterialGroup[] = [
       { key: "melange_pierre", label: "Mélange pierre / terre", desc: "Excavation mixte.", id: "melange_terre_pierre" },
       { key: "pierre_autre", label: "Autre", desc: "À décrire.", id: "autre" },
   ] },
-  { key: "roc", label: "Roc", image: imgRoc, subtypes: [
-      { key: "roc", label: "Roc / dynamitage", desc: "Blocs d'excavation.", id: "roc" },
+  { key: "roc", label: "Roches", image: imgRoc, subtypes: [
+      { key: "roc", label: "Roches / dynamitage", desc: "Blocs d'excavation.", id: "roc" },
       { key: "roc_autre", label: "Autre", desc: "À décrire.", id: "autre" },
   ] },
   { key: "beton", label: "Béton", image: imgBeton, subtypes: [
@@ -190,7 +190,7 @@ const PROJECT_TYPES: { id: string; label: string; icon: string; material: string
   { id: "nivellement",          label: "Nivellement de terrain",  icon: "📐", material: "terre_propre",         trucks: "12 roues" },
   { id: "demolition_asphalte",  label: "Démolition d'asphalte",   icon: "⬛", material: "asphalte",             trucks: "10 roues" },
   { id: "demolition_beton",     label: "Démolition de béton",     icon: "🧱", material: "beton",                trucks: "10 roues" },
-  { id: "dynamitage",           label: "Roc / dynamitage",        icon: "🪨", material: "roc",                  trucks: "12 roues" },
+  { id: "dynamitage",           label: "Roches / dynamitage",        icon: "🪨", material: "roc",                  trucks: "12 roues" },
   { id: "autre",                label: "Autre chantier",          icon: "❓", material: "autre",                trucks: "À déterminer" },
 ];
 
