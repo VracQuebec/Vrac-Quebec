@@ -7,7 +7,7 @@ import { HardHat, Sparkles, Brain, MapPin, Truck, Zap } from "lucide-react";
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
-      {/* 1. Transport JSC banner — top of the page */}
+      {/* 1. Bandeau Vrac Québec — haut de page */}
       <TransportBanner />
 
       {/* 2. Navigation bar with compact entrepreneur access on the right */}
