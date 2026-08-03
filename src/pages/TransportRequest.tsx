@@ -189,6 +189,11 @@ const TransportRequest = () => {
       if (s.trips) setTrips(s.trips);
       if (s.desiredDate) setDesiredDate(s.desiredDate);
       if (s.desiredTime) setDesiredTime(s.desiredTime);
+      if (s.clientNotes) setClientNotes(s.clientNotes);
+      if (s.billingAddress) setBillingAddress(s.billingAddress);
+      if (s.taxTps) setTaxTps(s.taxTps);
+      if (s.taxTvq) setTaxTvq(s.taxTvq);
+      if (s.contactName) setContactName(s.contactName);
     } catch { /* ignore */ }
     setShowResumePrompt(false);
     hydratedRef.current = true;
@@ -208,7 +213,8 @@ const TransportRequest = () => {
       const payload = {
         step, material, address, coords, city, quantity, unit,
         clientName, clientCompany, clientPhone, clientEmail,
-        truckType, trips, desiredDate, desiredTime,
+        truckType, trips, desiredDate, desiredTime, clientNotes,
+        billingAddress, taxTps, taxTvq, contactName,
         savedAt: Date.now(),
       };
       if (
@@ -218,7 +224,7 @@ const TransportRequest = () => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       }
     } catch { /* ignore */ }
-  }, [step, material, address, coords, city, quantity, unit, clientName, clientCompany, clientPhone, clientEmail, truckType, trips, desiredDate, desiredTime]);
+  }, [step, material, address, coords, city, quantity, unit, clientName, clientCompany, clientPhone, clientEmail, truckType, trips, desiredDate, desiredTime, clientNotes, billingAddress, taxTps, taxTvq, contactName]);
 
   // Clear saved draft after successful submission
   useEffect(() => {
@@ -245,32 +251,50 @@ const TransportRequest = () => {
     if (user?.email) setClientEmail(user.email);
   }, [user]);
 
-  // Prefill full identity from the entrepreneur profile when the user is
+  // Prefill the full identity from the entrepreneur profile when the user is
   // signed in. The entrepreneur should never have to retype what we already
   // know about them — this is the whole point of the connected experience.
   useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      if (!user?.id) { setProfileLoaded(false); return; }
-      try {
-        const { data } = await supabase
-          .from("entrepreneurs")
-          .select("name, company, phone, email")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (cancelled) return;
-        if (data) {
-          if (data.name) setClientName((prev) => prev || data.name);
-          if (data.company) setClientCompany((prev) => prev || data.company);
-          if (data.phone) setClientPhone((prev) => prev || data.phone);
-          if (data.email) setClientEmail((prev) => prev || data.email);
-          setProfileLoaded(true);
-        }
-      } catch { /* ignore — user can still fill manually */ }
-    };
-    void load();
-    return () => { cancelled = true; };
-  }, [user?.id]);
+    if (!profile) { setProfileLoaded(false); return; }
+    if (profile.name) setClientName((p) => p || profile.name);
+    if (profile.company) setClientCompany((p) => p || profile.company);
+    if (profile.phone) setClientPhone((p) => p || profile.phone);
+    if (profile.email) setClientEmail((p) => p || profile.email);
+    if (profile.billing_address || profile.address)
+      setBillingAddress((p) => p || profile.billing_address || profile.address);
+    if (profile.tax_tps) setTaxTps((p) => p || profile.tax_tps);
+    if (profile.tax_tvq) setTaxTvq((p) => p || profile.tax_tvq);
+    if (profile.contact_name || profile.name)
+      setContactName((p) => p || profile.contact_name || profile.name);
+    setProfileLoaded(true);
+  }, [profile]);
+
+  // Save the (possibly edited) identity back to the CRM profile — only on an
+  // explicit user action.
+  const updateProfile = async () => {
+    setSavingProfile(true);
+    try {
+      await saveProfile({
+        name: clientName.trim(),
+        company: clientCompany.trim(),
+        phone: clientPhone.trim(),
+        email: clientEmail.trim(),
+        billing_address: billingAddress.trim(),
+        tax_tps: taxTps.trim(),
+        tax_tvq: taxTvq.trim(),
+        contact_name: contactName.trim(),
+      });
+      toast({ title: "Profil mis à jour", description: "Vos informations ont été enregistrées." });
+    } catch (e) {
+      toast({
+        title: "Mise à jour impossible",
+        description: e instanceof Error ? e.message : "Réessayez plus tard.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   // Boot the persistent submit queue once. Any pending submissions saved in
   // a previous session (page reload, crash, connection loss) are retried
