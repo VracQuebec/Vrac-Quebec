@@ -631,12 +631,10 @@ const TransportRequest = () => {
     if (step === 4 && !selectedDump) missing.push("Choix de la dompe");
     if (step === 5) {
       const hasSessionIdentity =
-        !!user &&
-        (!!clientName.trim() || !!clientCompany.trim() || !!clientEmail.trim() || !!clientPhone.trim());
-      if (!hasSessionIdentity) {
-        if (!clientName.trim()) missing.push("Nom complet");
-        if (!clientPhone.trim() && !clientEmail.trim()) missing.push("Téléphone ou courriel");
-      }
+        !!user && (!!clientName.trim() || !!clientCompany.trim() || !!clientEmail.trim());
+      if (!hasSessionIdentity && !clientName.trim()) missing.push("Nom complet");
+      // Le serveur exige toujours un numéro de téléphone.
+      if (!clientPhone.trim()) missing.push("Téléphone");
     }
     return missing;
   }, [step, material, coords, address, quantity, unit, selectedDump, user, clientName, clientCompany, clientPhone, clientEmail]);
