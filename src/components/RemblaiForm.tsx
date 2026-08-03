@@ -16,6 +16,8 @@ interface Props {
   onChange: (updates: Partial<QuestionnaireData>) => void;
   onSubmit: () => void;
   loading: boolean;
+  /** Habillage seulement : « recherche » (matériel de remplissage) ou « disposition » (site de dépôt). */
+  variant?: "recherche" | "disposition";
 }
 
 const Section = ({
@@ -50,7 +52,20 @@ const checkboxRow = (active: boolean) =>
       : "border-border bg-background text-foreground hover:border-primary/50"
   }`;
 
-const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
+const RemblaiForm = ({ data, onChange, onSubmit, loading, variant = "recherche" }: Props) => {
+  const copy = variant === "disposition"
+    ? {
+        badge: "🚛 Disposer de mon remblai",
+        title: "Trouvez un site de dépôt",
+        subtitle: "Remplissez ce formulaire en moins d'une minute",
+        type: "✅ J'ai du remblai à faire disposer",
+      }
+    : {
+        badge: "🚧 Demande de remblai",
+        title: "Recevez du remblai rapidement",
+        subtitle: "Remplissez ce formulaire en moins d'une minute",
+        type: "✅ Je cherche du remblai / remplissage",
+      };
   const [uploading, setUploading] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const selectedVisibleMaterials = (data.materials || []).filter((m): m is RemblaiMaterial =>
@@ -121,20 +136,20 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading }: Props) => {
       {/* Header */}
       <div className="text-center py-4">
         <div className="inline-flex items-center gap-2 bg-amber-500/10 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-3 font-display">
-          🚧 Demande de remblai
+          {copy.badge}
         </div>
         <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground">
-          Recevez du remblai rapidement
+          {copy.title}
         </h2>
         <p className="text-muted-foreground mt-2 text-sm md:text-base">
-          Remplissez ce formulaire en moins d'une minute
+          {copy.subtitle}
         </p>
       </div>
 
       {/* Section 1 - Type de demande */}
       <Section number={1} title="Type de demande">
         <div className="px-4 py-4 rounded-lg border-2 border-primary bg-primary/5 font-display font-semibold text-foreground flex items-center gap-2">
-          ✅ Je cherche du remblai / remplissage
+          {copy.type}
         </div>
       </Section>
 
