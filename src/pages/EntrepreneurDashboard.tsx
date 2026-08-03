@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { statusBucket } from "@/lib/access-requests/status";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import FullPageState from "@/components/FullPageState";
@@ -52,10 +53,8 @@ const EntrepreneurDashboard = () => {
       if (!active) return;
       const c: StatusCounts = { pending: 0, accepted: 0, completed: 0, refused: 0 };
       (data || []).forEach((r: { status: string }) => {
-        if (["nouvelle", "a_rappeler", "en_analyse", "soumission_envoyee"].includes(r.status)) c.pending++;
-        else if (["acceptee", "planifiee", "en_cours"].includes(r.status)) c.accepted++;
-        else if (r.status === "terminee") c.completed++;
-        else if (r.status === "annulee") c.refused++;
+        const bucket = statusBucket(r.status);
+        c[bucket]++;
       });
       setCounts(c);
       setLoadingCounts(false);
