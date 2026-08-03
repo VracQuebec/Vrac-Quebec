@@ -757,16 +757,16 @@ const TransportRequest = () => {
       {showResumePrompt && (
         <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in">
           <div className="bg-card rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-xl border border-border">
-            <h2 className="font-display font-bold text-lg sm:text-xl mb-2">Reprendre votre demande précédente ?</h2>
+            <h2 className="font-display font-bold text-lg sm:text-xl mb-2">Reprendre votre demande d'accès précédente ?</h2>
             <p className="text-sm text-muted-foreground mb-5">
-              Une demande en cours a été sauvegardée sur cet appareil.
+              Une demande d'accès en cours a été sauvegardée sur cet appareil.
             </p>
             <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
               <button
                 onClick={clearSavedAndStartNew}
                 className="px-4 py-2.5 rounded-lg border border-border font-display font-semibold text-sm hover:bg-muted"
               >
-                Commencer une nouvelle demande
+                Commencer une nouvelle demande d'accès
               </button>
               <button
                 onClick={resumeSaved}
@@ -1130,7 +1130,7 @@ const TransportRequest = () => {
                 <li className="flex items-center gap-2"><Target className="w-3.5 h-3.5 text-primary" /> Recommandations intelligentes</li>
                 <li className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-primary" /> Recherche des meilleures dompes</li>
                 <li className="flex items-center gap-2"><Zap className="w-3.5 h-3.5 text-primary" /> Gain de temps</li>
-                <li className="flex items-center gap-2"><Truck className="w-3.5 h-3.5 text-primary" /> Demande de transport simplifiée</li>
+                <li className="flex items-center gap-2"><Truck className="w-3.5 h-3.5 text-primary" /> Demande d'accès simplifiée</li>
                 <li className="flex items-center gap-2 sm:col-span-2"><Network className="w-3.5 h-3.5 text-primary" /> Réseau de partenaires au Québec</li>
               </ul>
             </div>
@@ -1605,7 +1605,7 @@ const ConfirmationView = ({
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">✅</div>
           <div>
             <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">
-              {pending ? "État" : "Numéro de demande"}
+              {pending ? "État" : "Numéro de demande d'accès"}
             </div>
             <div className="font-display font-bold text-lg text-primary">
               {pending ? "Envoi en cours…" : requestNumber}
@@ -1622,7 +1622,7 @@ const ConfirmationView = ({
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">⏱️</div>
           <div>
-            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">Suivi de votre demande</div>
+            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">Suivi de votre demande d'accès</div>
             <div className="font-display font-semibold text-sm">
               {isOpen
                 ? "Notre équipe vous contactera dès que votre demande aura été analysée."
