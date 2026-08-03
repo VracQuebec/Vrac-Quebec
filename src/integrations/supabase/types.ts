@@ -3927,6 +3927,53 @@ export type Database = {
           },
         ]
       }
+      jsc_events: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_type: string
+          id: string
+          label: string | null
+          payload: Json
+          severity: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type: string
+          id?: string
+          label?: string | null
+          payload?: Json
+          severity?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string
+          id?: string
+          label?: string | null
+          payload?: Json
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_forecasts: {
         Row: {
           company_id: string | null
@@ -5506,6 +5553,86 @@ export type Database = {
           },
         ]
       }
+      jsc_orch_rules: {
+        Row: {
+          action_config: Json
+          action_type: string
+          archived_at: string | null
+          archived_by: string | null
+          code: string
+          company_id: string | null
+          cooldown_minutes: number
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          last_triggered_at: string | null
+          last_value: number | null
+          metric: string
+          operator: string
+          severity: string
+          sort_order: number
+          threshold: number
+          trigger_count: number
+          updated_at: string
+        }
+        Insert: {
+          action_config?: Json
+          action_type?: string
+          archived_at?: string | null
+          archived_by?: string | null
+          code: string
+          company_id?: string | null
+          cooldown_minutes?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          last_triggered_at?: string | null
+          last_value?: number | null
+          metric: string
+          operator?: string
+          severity?: string
+          sort_order?: number
+          threshold?: number
+          trigger_count?: number
+          updated_at?: string
+        }
+        Update: {
+          action_config?: Json
+          action_type?: string
+          archived_at?: string | null
+          archived_by?: string | null
+          code?: string
+          company_id?: string | null
+          cooldown_minutes?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          last_triggered_at?: string | null
+          last_value?: number | null
+          metric?: string
+          operator?: string
+          severity?: string
+          sort_order?: number
+          threshold?: number
+          trigger_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_orch_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_orders: {
         Row: {
           archived_at: string | null
@@ -6344,6 +6471,71 @@ export type Database = {
           },
         ]
       }
+      jsc_risks: {
+        Row: {
+          category: string
+          code: string
+          company_id: string | null
+          created_at: string
+          detail: string | null
+          detected_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          level: string
+          metrics: Json
+          resolved_at: string | null
+          score: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          code: string
+          company_id?: string | null
+          created_at?: string
+          detail?: string | null
+          detected_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          level?: string
+          metrics?: Json
+          resolved_at?: string | null
+          score?: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          company_id?: string | null
+          created_at?: string
+          detail?: string | null
+          detected_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          level?: string
+          metrics?: Json
+          resolved_at?: string | null
+          score?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_risks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_role_permissions: {
         Row: {
           archived_at: string | null
@@ -6489,6 +6681,59 @@ export type Database = {
           },
         ]
       }
+      jsc_simulations: {
+        Row: {
+          baseline: Json
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          delta: Json
+          id: string
+          inputs: Json
+          name: string
+          notes: string | null
+          projection: Json
+          scenario_type: string
+          updated_at: string
+        }
+        Insert: {
+          baseline?: Json
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delta?: Json
+          id?: string
+          inputs?: Json
+          name: string
+          notes?: string | null
+          projection?: Json
+          scenario_type: string
+          updated_at?: string
+        }
+        Update: {
+          baseline?: Json
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delta?: Json
+          id?: string
+          inputs?: Json
+          name?: string
+          notes?: string | null
+          projection?: Json
+          scenario_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_simulations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_status_history: {
         Row: {
           actor_email: string | null
@@ -6530,6 +6775,65 @@ export type Database = {
           to_status?: string
         }
         Relationships: []
+      }
+      jsc_strategies: {
+        Row: {
+          company_id: string | null
+          confidence: number
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          evidence: Json
+          horizon: string
+          id: string
+          impact_estimate: number
+          kind: string
+          rationale: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          confidence?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          evidence?: Json
+          horizon?: string
+          id?: string
+          impact_estimate?: number
+          kind: string
+          rationale?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          confidence?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          evidence?: Json
+          horizon?: string
+          id?: string
+          impact_estimate?: number
+          kind?: string
+          rationale?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_strategies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       jsc_suppliers: {
         Row: {
@@ -10481,6 +10785,18 @@ export type Database = {
         Args: { _from?: string; _to?: string }
         Returns: Json
       }
+      jsc_emit_event: {
+        Args: {
+          _company_id: string
+          _entity_id?: string
+          _entity_type?: string
+          _event_type: string
+          _label?: string
+          _payload?: Json
+          _severity?: string
+        }
+        Returns: string
+      }
       jsc_executive_dashboard: { Args: { _company_id?: string }; Returns: Json }
       jsc_export_config: { Args: { _company_id?: string }; Returns: Json }
       jsc_flow_allowed: { Args: never; Returns: boolean }
@@ -10536,6 +10852,21 @@ export type Database = {
         Returns: string
       }
       jsc_ops_dashboard: { Args: { _company_id?: string }; Returns: Json }
+      jsc_orch_control: { Args: { _company_id?: string }; Returns: Json }
+      jsc_orch_detect_risks: { Args: { _company_id?: string }; Returns: Json }
+      jsc_orch_kpis: { Args: { _company_id?: string }; Returns: Json }
+      jsc_orch_map: { Args: { _company_id?: string }; Returns: Json }
+      jsc_orch_rules_eval: { Args: { _company_id?: string }; Returns: Json }
+      jsc_orch_simulate: {
+        Args: {
+          _company_id: string
+          _inputs: Json
+          _name: string
+          _scenario_type: string
+        }
+        Returns: Json
+      }
+      jsc_orch_twin: { Args: { _company_id?: string }; Returns: Json }
       jsc_production_guard: { Args: never; Returns: Json }
       jsc_public_catalog: {
         Args: never
