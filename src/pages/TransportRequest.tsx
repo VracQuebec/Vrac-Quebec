@@ -6,7 +6,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
 import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import {
   submitTransportRequest,
   newIdempotencyKey,
