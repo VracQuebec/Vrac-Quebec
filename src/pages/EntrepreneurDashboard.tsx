@@ -5,6 +5,7 @@ import { statusBucket } from "@/lib/access-requests/status";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import FullPageState from "@/components/FullPageState";
+import EntrepreneurNotifications from "@/components/entrepreneur/EntrepreneurNotifications";
 import TransportBanner from "@/components/TransportBanner";
 import {
   Truck,
@@ -133,6 +134,8 @@ const EntrepreneurDashboard = () => {
             </div>
           </div>
         </button>
+
+        <EntrepreneurNotifications userId={user?.id} />
 
         {/* Secondary tools */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
