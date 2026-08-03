@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Upload, X, Loader2, Truck } from "lucide-react";
 import {
   REMBLAI_MATERIAL_OPTIONS,
+  REMBLAI_MATERIAL_IMAGES,
   REMBLAI_TRUCK_OPTIONS,
   REMBLAI_MACHINERY_OPTIONS,
   REMBLAI_TIMEFRAME_OPTIONS,
