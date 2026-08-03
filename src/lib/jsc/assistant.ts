@@ -27,6 +27,16 @@ export interface AssistantRecommendation {
   reason: string | null;
 }
 
+/** Camions actifs (paramétrables dans le panneau administrateur) — utilisés
+ *  uniquement pour convertir « nombre de voyages » en tonnage. */
+export interface AssistantTruck {
+  id: string;
+  name: string;
+  truck_type: string | null;
+  capacity_tonnes: number;
+  capacity_m3: number | null;
+}
+
 export interface AssistantContact {
   name: string;
   phone: string;
@@ -51,7 +61,9 @@ async function call<T>(body: Record<string, unknown>): Promise<T> {
 }
 
 export const fetchCatalog = () =>
-  call<{ categories: AssistantCategory[]; materials: AssistantMaterial[] }>({ action: "catalog" });
+  call<{ categories: AssistantCategory[]; materials: AssistantMaterial[]; trucks?: AssistantTruck[] }>({
+    action: "catalog",
+  });
 
 export const askAdvisor = (answers: Record<string, string>) =>
   call<{ recommendations: AssistantRecommendation[] }>({ action: "advise", answers });
