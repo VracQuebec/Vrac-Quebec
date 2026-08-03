@@ -480,7 +480,7 @@ const Entrepreneur = () => {
                           onClick={() => navigate("/demande-transport")}
                           className="flex-1 rounded-xl bg-primary text-primary-foreground text-xs font-display font-semibold py-2.5 hover:opacity-90 transition-opacity"
                         >
-                          Faire une demande
+                          Faire une demande d'accès
                         </button>
                       </div>
                     </article>
@@ -535,7 +535,7 @@ const Entrepreneur = () => {
                     onClick={() => { setDetail(null); navigate("/demande-transport"); }}
                     className="flex-1 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm py-3 hover:opacity-90 transition-opacity"
                   >
-                    Faire une demande
+                    Faire une demande d'accès
                   </button>
                   <a
                     href={`tel:${PHONE_PRIMARY}`}

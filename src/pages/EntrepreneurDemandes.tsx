@@ -62,12 +62,12 @@ const EntrepreneurDemandes = () => {
   });
 
   return (
-    <EntrepreneurShell title="Mes demandes" description="Suivi complet de vos demandes de transport.">
+    <EntrepreneurShell title="Mes demandes d'accès" description="Historique et suivi de vos demandes d'accès aux dompes.">
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
       ) : requests.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
-          <p className="text-muted-foreground mb-4 font-body">Vous n'avez pas encore de demande.</p>
+          <p className="text-muted-foreground mb-4 font-body">Vous n'avez pas encore de demande d'accès.</p>
           <Link
             to="/demande-transport"
             className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-display font-bold px-5 py-3 rounded-xl hover:opacity-90"
@@ -83,7 +83,7 @@ const EntrepreneurDemandes = () => {
                 {b.label} ({grouped[b.key].length})
               </h2>
               {grouped[b.key].length === 0 ? (
-                <p className="text-xs text-muted-foreground italic font-body">Aucune demande.</p>
+                <p className="text-xs text-muted-foreground italic font-body">Aucune demande d'accès.</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {grouped[b.key].map((r) => {
@@ -124,7 +124,7 @@ const EntrepreneurDemandes = () => {
               to="/demande-transport"
               className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-display font-bold px-5 py-3 rounded-xl hover:opacity-90"
             >
-              <Sparkles className="w-4 h-4" /> Nouvelle demande <ArrowRight className="w-4 h-4" />
+              <Sparkles className="w-4 h-4" /> Nouvelle demande d'accès <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
