@@ -40,7 +40,7 @@ export function StepMaterial({
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
               />
               {active && (
-                <span className="absolute right-3 top-3 flex h-8 w-8 animate-scale-in items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
+                <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
                   <Check className="h-4 w-4" strokeWidth={3} />
                 </span>
               )}
