@@ -603,6 +603,29 @@ const TransportRequest = () => {
       )}
 
       <main className="flex-1 container mx-auto px-4 py-6 max-w-3xl w-full">
+        {/* Bloc « Mes informations » — visible dès qu'un entrepreneur est connecté */}
+        {user && profileLoaded && step < 6 && (
+          <div className="mb-5 rounded-xl border border-primary/25 bg-primary/5 p-4">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
+                <p className="text-[10px] font-display font-bold uppercase tracking-wide text-muted-foreground mb-1.5">
+                  Mes informations
+                </p>
+                <p className="text-sm font-body">✔ Connecté comme : <b>{clientCompany || clientName || "Mon entreprise"}</b></p>
+                {(contactName || clientName) && <p className="text-sm font-body">✔ Contact : {contactName || clientName}</p>}
+                {clientPhone && <p className="text-sm font-body">✔ Téléphone : {clientPhone}</p>}
+                {clientEmail && <p className="text-sm font-body truncate">✔ Courriel : {clientEmail}</p>}
+              </div>
+              <Link
+                to="/entrepreneur/compte"
+                className="text-xs font-display font-bold px-3 py-2 rounded-lg border border-primary/40 text-primary hover:bg-primary/10"
+              >
+                Modifier mon profil
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Step 1 */}
         {step === 1 && (
           <section className="animate-in fade-in duration-300">
