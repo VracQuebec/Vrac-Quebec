@@ -131,22 +131,23 @@ export const REMBLAI_MATERIAL_OPTIONS = [
   "Asphalte",
   "Souches",
   "Autre",
+  "Je ne suis pas certain",
 ] as const;
 
 /** Anciens libellés conservés pour la rétrocompatibilité des données existantes. */
 export const REMBLAI_MATERIAL_LEGACY = ["Pierre"] as const;
 
-import matTerre from "@/assets/materials/v2/terre.jpg";
-import matTerreMelangee from "@/assets/materials/v2/terre-melangee.jpg";
-import matSable from "@/assets/materials/v2/sable.jpg";
-import matPierre034 from "@/assets/materials/v2/pierre-0-34.jpg";
-import matPierre34Net from "@/assets/materials/v2/pierre-34-net.jpg";
-import matPoussiere from "@/assets/materials/v2/poussiere-pierre.jpg";
-import matGravier from "@/assets/materials/v2/gravier.jpg";
-import matRoches from "@/assets/materials/v2/roches.jpg";
-import matBeton from "@/assets/materials/v2/beton.jpg";
-import matAsphalte from "@/assets/materials/v2/asphalte.jpg";
-import matSouches from "@/assets/materials/v2/souches.jpg";
+import matTerre from "@/assets/materials/v3/terre.jpg";
+import matTerreMelangee from "@/assets/materials/v3/terre-melangee.jpg";
+import matSable from "@/assets/materials/v3/sable.jpg";
+import matPierre034 from "@/assets/materials/v3/pierre-0-34.jpg";
+import matPierre34Net from "@/assets/materials/v3/pierre-34-net.jpg";
+import matPoussiere from "@/assets/materials/v3/poussiere-pierre.jpg";
+import matGravier from "@/assets/materials/v3/gravier.jpg";
+import matRoches from "@/assets/materials/v3/roches.jpg";
+import matBeton from "@/assets/materials/v3/beton.jpg";
+import matAsphalte from "@/assets/materials/v3/asphalte.jpg";
+import matSouches from "@/assets/materials/v3/souches.jpg";
 import matAutre from "@/assets/materials/autre.webp";
 
 /** Photo représentative pour chaque type de matériel (affichage seulement). */
@@ -164,22 +165,25 @@ export const REMBLAI_MATERIAL_IMAGES: Record<string, string> = {
   "Asphalte": matAsphalte,
   "Souches": matSouches,
   "Autre": matAutre,
+  "Je ne suis pas certain": matAutre,
 };
 
 /** Courte description affichée sous chaque matériau. */
 export const REMBLAI_MATERIAL_DESCRIPTIONS: Record<string, string> = {
-  "Terre": "Terre végétale et nivellement.",
-  "Terre mélangée": "Terre avec pierres et sable.",
-  "Sable": "Remblai, piscine et pavé.",
-  "Pierre concassée 0-3/4": "Fondation et entrée.",
-  "Pierre concassée 3/4 net": "Drainage et fond de tranchée.",
-  "Poussière de pierre": "Lit de pose pour pavé et dalles.",
-  "Gravier": "Gravier décoratif.",
-  "Roches": "Enrochement et soutènement.",
-  "Béton": "Béton recyclé.",
-  "Asphalte": "Asphalte recyclé.",
-  "Souches": "Débris de bois et souches.",
-  "Autre": "Précisez votre besoin.",
+  "Terre": "Terre propre.",
+  "Terre mélangée": "Terre avec pierres ou sable.",
+  "Sable": "Sable propre.",
+  "Pierre concassée 0-3/4": "Résidus de pierre concassée.",
+  "Pierre concassée 3/4 net": "Résidus de pierre concassée.",
+  "Poussière de pierre": "Poussière ou fines.",
+  "Pierre": "Résidus de pierre concassée.",
+  "Gravier": "Gravier ou petits cailloux.",
+  "Roches": "Grosses roches.",
+  "Béton": "Béton à recycler.",
+  "Asphalte": "Asphalte à recycler.",
+  "Souches": "Souches et racines.",
+  "Autre": "Matériau non listé.",
+  "Je ne suis pas certain": "Nous vous aiderons à l'identifier.",
 };
 
 /** Regroupement par catégorie (ordre d'affichage). */
@@ -199,7 +203,7 @@ export const REMBLAI_MATERIAL_CATEGORIES: { title: string; materials: string[] }
   },
   { title: "Matériaux recyclés", materials: ["Béton", "Asphalte"] },
   { title: "Végétaux", materials: ["Souches"] },
-  { title: "Divers", materials: ["Autre"] },
+  { title: "Divers", materials: ["Autre", "Je ne suis pas certain"] },
 ];
 
 export const REMBLAI_TRUCK_OPTIONS = [

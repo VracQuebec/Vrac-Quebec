@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Loader2, Truck } from "lucide-react";
+import { Upload, X, Loader2, Truck, Info, Check } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   REMBLAI_MATERIAL_OPTIONS,
   REMBLAI_MATERIAL_IMAGES,
@@ -225,14 +226,36 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading, variant = "recherche" 
       </Section>
 
       {/* Section 3 - Type de matériel */}
-      <Section number={3} title="Type de matériel souhaité *">
+      <Section number={3} title="Type de matériau souhaité *">
+        <div className="flex items-center gap-2 -mt-1 mb-1">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label="Aide sur le choix du matériau"
+                className="inline-flex items-center gap-1.5 text-sm text-primary font-body rounded-md px-2 py-1 hover:bg-primary/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <Info className="w-4 h-4" />
+                Aide
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="max-w-xs text-sm font-body">
+              Sélectionnez le ou les types de matériaux que vous souhaitez faire disposer.
+              Si vous n'êtes pas certain, choisissez l'option la plus représentative ou
+              sélectionnez « Autre ».
+            </PopoverContent>
+          </Popover>
+          <span aria-live="polite" className="text-sm font-body text-muted-foreground">
+            Matériaux sélectionnés : <span className="font-bold text-foreground">{selectedVisibleMaterials.length}</span>
+          </span>
+        </div>
         <div data-error={showErrors && errors.materials} className="space-y-5">
           {REMBLAI_MATERIAL_CATEGORIES.map((cat) => (
             <div key={cat.title}>
               <p className="text-xs uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">
                 {cat.title}
               </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {cat.materials.map((m) => {
                   const active = data.materials.includes(m);
                   return (
@@ -241,10 +264,10 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading, variant = "recherche" 
                       type="button"
                       aria-pressed={active}
                       onClick={() => toggleArr("materials", m)}
-                      className={`group relative h-full flex flex-col overflow-hidden rounded-xl text-left font-body bg-card transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                      className={`group relative h-full flex flex-col overflow-hidden rounded-xl text-left font-body bg-card transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                         active
-                          ? "border-[3px] border-primary shadow-lg shadow-primary/20 -translate-y-0.5"
-                          : "border-2 border-border hover:border-primary/60 hover:shadow-md hover:-translate-y-0.5"
+                          ? "border-4 border-primary bg-primary/5 shadow-lg shadow-primary/25 -translate-y-0.5"
+                          : "border-4 border-border hover:border-primary/60 hover:shadow-md hover:-translate-y-0.5"
                       }`}
                     >
                       <div className="relative w-full aspect-square overflow-hidden bg-muted">
@@ -257,17 +280,17 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading, variant = "recherche" 
                           className="w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
                         />
                         <span
-                          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 ${
+                          className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all duration-200 ${
                             active
                               ? "bg-primary text-primary-foreground scale-100 opacity-100"
                               : "bg-background/80 text-transparent scale-75 opacity-0"
                           }`}
                         >
-                          ✓
+                          <Check className="w-5 h-5" strokeWidth={3} />
                         </span>
                       </div>
-                      <div className={`flex-1 px-3 py-2.5 ${active ? "bg-primary/5" : ""}`}>
-                        <span className={`block text-sm md:text-base leading-tight ${active ? "font-bold text-foreground" : "font-semibold text-foreground"}`}>
+                      <div className="flex flex-col justify-start flex-1 px-3 py-2.5 min-h-[4.5rem]">
+                        <span className={`block text-sm leading-tight ${active ? "font-bold text-foreground" : "font-semibold text-foreground"}`}>
                           {m}
                         </span>
                         <span className="block text-xs text-muted-foreground leading-snug mt-0.5">
@@ -281,13 +304,19 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading, variant = "recherche" 
             </div>
           ))}
         </div>
-        {data.materials.includes("Autre") && (
-          <input
-            value={data.otherMaterial}
-            onChange={(e) => onChange({ otherMaterial: e.target.value })}
-            className={inputClass}
-            placeholder="Précisez le matériel..."
-          />
+        {(data.materials.includes("Autre") || data.materials.includes("Je ne suis pas certain")) && (
+          <div>
+            <label htmlFor="remblai-autre-materiau" className="block text-sm font-semibold text-foreground mb-1.5 font-display">
+              Décrivez votre matériau
+            </label>
+            <input
+              id="remblai-autre-materiau"
+              value={data.otherMaterial}
+              onChange={(e) => onChange({ otherMaterial: e.target.value })}
+              className={inputClass}
+              placeholder="Ex : terre avec un peu de béton..."
+            />
+          </div>
         )}
         {showErrors && errors.materials && (
           <p className="text-sm text-destructive font-body">⚠ Sélectionnez au moins un matériel</p>
