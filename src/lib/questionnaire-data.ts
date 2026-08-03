@@ -195,4 +195,15 @@ export const REQUEST_TYPES = [
 ] as const;
 
 export const CONTAMINATION_OPTIONS = ["Non", "Oui", "Je ne sais pas"] as const;
+
+// Type de service choisi à l'entrée du parcours « Obtenir mon prix ».
+export const SERVICE_TYPES = [
+  { value: "remblai_disposition", label: "Départir du remblai", color: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
+  { value: "materiel_remplissage", label: "Matériel de remplissage", color: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30" },
+  { value: "vrac_achat", label: "Matériaux en vrac", color: "bg-primary/15 text-primary border-primary/30" },
+] as const;
+
+export const serviceTypeMeta = (value?: string | null) =>
+  SERVICE_TYPES.find((s) => s.value === value) ?? null;
+
 export const DELIVER_OR_REMOVE_OPTIONS = ["À livrer", "À sortir du chantier"] as const;

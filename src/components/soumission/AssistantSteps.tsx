@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import type {
-  AssistantCategory, AssistantMaterial, AssistantRecommendation,
+  AssistantCategory, AssistantMaterial, AssistantRecommendation, AssistantTruck,
 } from "@/lib/jsc/assistant";
 
 export const CARD =
@@ -141,54 +141,147 @@ export function StepMaterial({
 }
 
 /* ---------------- Étape 3 — quantité ---------------- */
+export type QuantityMode = "tonnes" | "voyages" | "volume";
+export type DimUnit = "pi" | "po" | "m" | "cm";
+
+/** Conversion géométrique pure (aucune donnée métier) : tout est ramené en mètres. */
+export const DIM_UNITS: { value: DimUnit; label: string; toMeters: number }[] = [
+  { value: "pi", label: "pieds", toMeters: 0.3048 },
+  { value: "po", label: "pouces", toMeters: 0.0254 },
+  { value: "m", label: "mètres", toMeters: 1 },
+  { value: "cm", label: "centimètres", toMeters: 0.01 },
+];
+
+export function dimsToCubicMeters(
+  dims: { length: string; width: string; depth: string },
+  units: { length: DimUnit; width: DimUnit; depth: DimUnit },
+): number {
+  const factor = (k: keyof typeof dims) =>
+    (DIM_UNITS.find((u) => u.value === units[k])?.toMeters ?? 1) * Number(dims[k] || 0);
+  const v = factor("length") * factor("width") * factor("depth");
+  return Number.isFinite(v) && v > 0 ? v : 0;
+}
+
 export function StepQuantity({
   material, mode, setMode, tonnes, setTonnes, dims, setDims,
+  dimUnits, setDimUnits, trips, setTrips, truckId, setTruckId, trucks,
 }: {
   material: AssistantMaterial | null;
-  mode: "tonnes" | "volume";
-  setMode: (m: "tonnes" | "volume") => void;
+  mode: QuantityMode;
+  setMode: (m: QuantityMode) => void;
   tonnes: string;
   setTonnes: (v: string) => void;
   dims: { length: string; width: string; depth: string };
   setDims: (d: { length: string; width: string; depth: string }) => void;
+  dimUnits: { length: DimUnit; width: DimUnit; depth: DimUnit };
+  setDimUnits: (u: { length: DimUnit; width: DimUnit; depth: DimUnit }) => void;
+  trips: string;
+  setTrips: (v: string) => void;
+  truckId: string | null;
+  setTruckId: (v: string) => void;
+  trucks: AssistantTruck[];
 }) {
-  const volume = ["length", "width", "depth"].every((k) => Number(dims[k as keyof typeof dims]) > 0)
-    ? Number(dims.length) * Number(dims.width) * Number(dims.depth)
-    : 0;
+  const volume = dimsToCubicMeters(dims, dimUnits);
+  const density = material?.density_kg_per_m3 ?? null;
+  const approxTonnes = volume > 0 && density ? (volume * density) / 1000 : 0;
+  const suggested = approxTonnes > 0
+    ? [...trucks].filter((t) => t.capacity_tonnes > 0).sort((a, b) => a.capacity_tonnes - b.capacity_tonnes)
+    : [];
+  const bestTruck = suggested.find((t) => t.capacity_tonnes >= approxTonnes) ?? suggested[suggested.length - 1];
+
+  const OPTIONS: { value: QuantityMode; label: string }[] = [
+    { value: "tonnes", label: "Je connais le nombre de tonnes" },
+    { value: "voyages", label: "Je connais le nombre de voyages" },
+    { value: "volume", label: "Je connais seulement les dimensions de mon projet" },
+  ];
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        <Button type="button" variant={mode === "tonnes" ? "default" : "outline"} onClick={() => setMode("tonnes")}>
-          Je connais le tonnage
-        </Button>
-        <Button type="button" variant={mode === "volume" ? "default" : "outline"} onClick={() => setMode("volume")}>
-          <Ruler className="mr-2 h-4 w-4" /> Calculer par dimensions
-        </Button>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {OPTIONS.map((o) => (
+          <button key={o.value} type="button" onClick={() => setMode(o.value)}
+            className={`${CARD} text-sm ${mode === o.value ? CARD_ON : ""}`}>
+            <span className="font-medium text-foreground">{o.label}</span>
+          </button>
+        ))}
       </div>
 
-      {mode === "tonnes" ? (
+      {mode === "tonnes" && (
         <div className="space-y-1.5">
           <Label htmlFor="tonnes">Quantité (tonnes métriques)</Label>
           <Input id="tonnes" type="number" min="0.5" step="0.5" inputMode="decimal"
             value={tonnes} onChange={(e) => setTonnes(e.target.value)} placeholder="ex. 20" />
         </div>
-      ) : (
+      )}
+
+      {mode === "voyages" && (
         <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-3">
-            {([["length", "Longueur (m)"], ["width", "Largeur (m)"], ["depth", "Profondeur (m)"]] as const).map(([k, label]) => (
+          <div className="space-y-1.5">
+            <Label htmlFor="voyages">Nombre de voyages</Label>
+            <Input id="voyages" type="number" min="1" step="1" inputMode="numeric" className="max-w-xs"
+              value={trips} onChange={(e) => setTrips(e.target.value)} placeholder="ex. 3" />
+          </div>
+          {trucks.length > 0 ? (
+            <div className="space-y-2">
+              <Label>Type de camion</Label>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {trucks.map((t) => (
+                  <button key={t.id} type="button" onClick={() => setTruckId(t.id)}
+                    className={`${CARD} ${truckId === t.id ? CARD_ON : ""}`}>
+                    <p className="font-semibold text-foreground">{t.name}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {t.truck_type ? `${t.truck_type} · ` : ""}{t.capacity_tonnes} t par voyage
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Aucun camion configuré pour le moment : indiquez plutôt un tonnage ou vos dimensions.
+            </p>
+          )}
+        </div>
+      )}
+
+      {mode === "volume" && (
+        <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {([["length", "Longueur"], ["width", "Largeur"], ["depth", "Profondeur"]] as const).map(([k, label]) => (
               <div key={k} className="space-y-1.5">
                 <Label htmlFor={`dim-${k}`}>{label}</Label>
-                <Input id={`dim-${k}`} type="number" min="0" step="0.1" inputMode="decimal"
-                  value={dims[k]} onChange={(e) => setDims({ ...dims, [k]: e.target.value })} />
+                <div className="flex gap-2">
+                  <Input id={`dim-${k}`} type="number" min="0" step="0.1" inputMode="decimal"
+                    value={dims[k]} onChange={(e) => setDims({ ...dims, [k]: e.target.value })} />
+                  <select
+                    aria-label={`Unité ${label}`}
+                    className="rounded-md border border-border bg-background px-2 text-sm text-foreground"
+                    value={dimUnits[k]}
+                    onChange={(e) => setDimUnits({ ...dimUnits, [k]: e.target.value as DimUnit })}
+                  >
+                    {DIM_UNITS.map((u) => (
+                      <option key={u.value} value={u.value}>{u.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             ))}
           </div>
-          <p className="text-sm text-muted-foreground">
-            {volume > 0
-              ? `Volume estimé : ${volume.toFixed(2)} m³. La conversion en tonnes est réalisée par notre moteur selon la densité du matériau${material ? ` « ${material.name} »` : ""}.`
-              : "Entrez les trois dimensions pour calculer le volume."}
-          </p>
+          <div className="rounded-xl border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+            <p className="flex items-center gap-2 text-foreground">
+              <Ruler className="h-4 w-4 text-primary" />
+              {volume > 0 ? `Volume estimé : ${volume.toFixed(2)} m³` : "Entrez les trois dimensions."}
+            </p>
+            {approxTonnes > 0 && (
+              <p className="mt-1">
+                Environ {approxTonnes.toFixed(1)} tonnes pour « {material?.name} »
+                {bestTruck ? ` — camion suggéré : ${bestTruck.name} (${bestTruck.capacity_tonnes} t).` : "."}
+              </p>
+            )}
+            <p className="mt-1">
+              La conversion officielle est réalisée par notre moteur selon la densité du matériau.
+            </p>
+          </div>
         </div>
       )}
     </div>

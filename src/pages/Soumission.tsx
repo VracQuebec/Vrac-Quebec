@@ -17,10 +17,11 @@ import { toast } from "@/hooks/use-toast";
 import {
   AdvisorPanel, StepAddress, StepCategory, StepContact, StepDate,
   StepMaterial, StepQuantity, type ContactState,
+  dimsToCubicMeters, type DimUnit, type QuantityMode,
 } from "@/components/soumission/AssistantSteps";
 import {
   confirmEstimate, fetchCatalog, requestEstimate,
-  type AssistantCategory, type AssistantMaterial,
+  type AssistantCategory, type AssistantMaterial, type AssistantTruck,
 } from "@/lib/jsc/assistant";
 import type { PublicQuote } from "@/lib/jsc/engine";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
@@ -44,9 +45,15 @@ export default function Soumission() {
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [advisor, setAdvisor] = useState(false);
   const [material, setMaterial] = useState<AssistantMaterial | null>(null);
-  const [mode, setMode] = useState<"tonnes" | "volume">("tonnes");
+  const [mode, setMode] = useState<QuantityMode>("tonnes");
   const [tonnes, setTonnes] = useState("");
   const [dims, setDims] = useState({ length: "", width: "", depth: "" });
+  const [dimUnits, setDimUnits] = useState<{ length: DimUnit; width: DimUnit; depth: DimUnit }>(
+    { length: "pi", width: "pi", depth: "po" },
+  );
+  const [trips, setTrips] = useState("");
+  const [truckId, setTruckId] = useState<string | null>(null);
+  const [trucks, setTrucks] = useState<AssistantTruck[]>([]);
   const [address, setAddress] = useState("");
   const [date, setDate] = useState("");
   const [contact, setContact] = useState<ContactState>({ name: "", phone: "", email: "", company: "", comments: "" });
@@ -64,7 +71,9 @@ export default function Soumission() {
 
   useEffect(() => {
     fetchCatalog()
-      .then(({ categories, materials }) => { setCategories(categories); setMaterials(materials); })
+      .then(({ categories, materials, trucks }) => {
+        setCategories(categories); setMaterials(materials); setTrucks(trucks ?? []);
+      })
       .catch((e) => setCatalogError(e instanceof Error ? e.message : "Catalogue indisponible."))
       .finally(() => setLoadingCatalog(false));
   }, []);
@@ -79,9 +88,17 @@ export default function Soumission() {
       const q = Number(tonnes);
       return q > 0 ? { quantity: q, unit: "tonne" as const } : null;
     }
-    const v = Number(dims.length) * Number(dims.width) * Number(dims.depth);
+    if (mode === "voyages") {
+      const n = Number(trips);
+      const truck = trucks.find((t) => t.id === truckId);
+      // La capacité vient du panneau administrateur : aucune valeur en dur.
+      return n > 0 && truck && truck.capacity_tonnes > 0
+        ? { quantity: Number((n * truck.capacity_tonnes).toFixed(3)), unit: "tonne" as const }
+        : null;
+    }
+    const v = dimsToCubicMeters(dims, dimUnits);
     return v > 0 ? { quantity: Number(v.toFixed(3)), unit: "m3" as const } : null;
-  }, [mode, tonnes, dims]);
+  }, [mode, tonnes, dims, dimUnits, trips, truckId, trucks]);
 
   const canContinue = [
     Boolean(categoryId) || Boolean(material),
@@ -207,7 +224,10 @@ export default function Soumission() {
 
               {step === 2 && (
                 <StepQuantity material={material} mode={mode} setMode={setMode}
-                  tonnes={tonnes} setTonnes={setTonnes} dims={dims} setDims={setDims} />
+                  tonnes={tonnes} setTonnes={setTonnes} dims={dims} setDims={setDims}
+                  dimUnits={dimUnits} setDimUnits={setDimUnits}
+                  trips={trips} setTrips={setTrips}
+                  truckId={truckId} setTruckId={setTruckId} trucks={trucks} />
               )}
 
               {step === 3 && <StepAddress address={address} setAddress={setAddress} />}

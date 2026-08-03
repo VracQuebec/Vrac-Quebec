@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES } from "@/lib/questionnaire-data";
+import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES, serviceTypeMeta } from "@/lib/questionnaire-data";
 import { CONTAMINATION_OPTIONS, DELIVER_OR_REMOVE_OPTIONS, PROJECT_TYPES, TRUCK_ACCESS_OPTIONS } from "@/lib/questionnaire-data";
 import InlineField from "@/components/InlineField";
 import { useLeadStatuses, findStatus, type LeadStatus } from "@/hooks/useLeadStatuses";
@@ -1095,6 +1095,14 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               else if (v === "vrac") updates.visible_to_entrepreneur = false;
               onUpdate(updates);
             }} />
+            {(() => {
+              const svc = serviceTypeMeta((sub as unknown as { service_type?: string | null }).service_type);
+              return svc ? (
+                <span className={`px-2 py-0.5 rounded text-[11px] font-display font-bold border ${svc.color}`}>
+                  {svc.label}
+                </span>
+              ) : null;
+            })()}
             {(() => {
               const trips = parseEstimatedTrips(sub.quantity);
               return trips != null ? (

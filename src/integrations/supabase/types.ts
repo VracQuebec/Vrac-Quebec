@@ -9449,6 +9449,7 @@ export type Database = {
           quantity: string
           remaining_capacity: string | null
           request_type: string
+          service_type: string | null
           show_on_admin_map: boolean
           status: string
           submission_number: number
@@ -9513,6 +9514,7 @@ export type Database = {
           quantity: string
           remaining_capacity?: string | null
           request_type?: string
+          service_type?: string | null
           show_on_admin_map?: boolean
           status?: string
           submission_number?: number
@@ -9577,6 +9579,7 @@ export type Database = {
           quantity?: string
           remaining_capacity?: string | null
           request_type?: string
+          service_type?: string | null
           show_on_admin_map?: boolean
           status?: string
           submission_number?: number
