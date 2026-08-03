@@ -6,7 +6,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
 import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 import {
   submitTransportRequest,
   newIdempotencyKey,
@@ -172,36 +172,6 @@ const MATERIAL_GROUPS: MaterialGroup[] = [
   ] },
 ];
 
-/* Sections de présentation (UI seulement) : regroupent les catégories existantes. */
-const GROUP_SECTIONS: { title: string; keys: string[] }[] = [
-  { title: "Terres", keys: ["terre", "sable"] },
-  { title: "Granulaires", keys: ["gravier", "pierre"] },
-  { title: "Matériaux de démolition", keys: ["beton", "asphalte"] },
-  { title: "Excavation lourde", keys: ["roc"] },
-  { title: "Cas particuliers", keys: ["mixtes", "autre"] },
-];
-
-/* Badge d'acceptation : dérivé du champ `cleanliness` déjà présent dans MATERIALS.
-   Aucune nouvelle règle métier — si l'info n'existe pas, aucun badge. */
-const ACCEPTANCE_BADGES = {
-  propre: { dot: "🟢", label: "Accepté par la majorité des sites", cls: "bg-emerald-500/90 text-white" },
-  mixte: { dot: "🟡", label: "Validation requise", cls: "bg-amber-500/90 text-white" },
-  contamine: { dot: "🔴", label: "Site spécialisé", cls: "bg-rose-600/90 text-white" },
-} as const;
-
-const BADGE_HELP =
-  "Certains remblais (béton, asphalte, matériaux mixtes) contiennent des matières qui ne peuvent pas être reçues partout : les sites doivent être autorisés à les accepter. Les matériaux propres, eux, sont acceptés par la majorité des sites.";
-
-function groupAcceptance(g: MaterialGroup) {
-  const ranks: Record<string, number> = { propre: 0, mixte: 1, contamine: 2 };
-  const levels = g.subtypes
-    .map((st) => MATERIALS.find((m) => m.id === st.id))
-    .filter((m): m is MaterialProfile => !!m && m.main !== "autre")
-    .map((m) => m.cleanliness);
-  if (!levels.length) return null;
-  const worst = levels.reduce((a, b) => (ranks[b] > ranks[a] ? b : a));
-  return ACCEPTANCE_BADGES[worst];
-}
 
 const STEP_LABELS = [
   { n: 1, label: "Remblai", icon: "📦" },
@@ -885,95 +855,54 @@ const TransportRequest = () => {
               const group = MATERIAL_GROUPS.find((g) => g.key === materialGroup) || null;
               if (!group) {
                 return (
-                  <>
-                    <h2 className="font-display font-bold text-lg sm:text-xl mb-1.5 flex items-center gap-2">
-                      <Package className="w-5 h-5 text-primary" /> Quel type de remblai devez-vous disposer ?
-                    </h2>
-                    <p className="text-sm text-muted-foreground max-w-2xl mb-5">
-                      Sélectionnez le matériau principal provenant de votre excavation. Cette information nous permet de recommander uniquement les sites de disposition compatibles avec votre remblai.
-                    </p>
-                    <TooltipProvider delayDuration={150}>
-                    <div className="space-y-7">
-                    {GROUP_SECTIONS.map((section) => (
-                      <div key={section.title}>
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className="text-[11px] font-display font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                            {section.title}
-                          </span>
-                          <span className="h-px flex-1 bg-border" />
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5">
-                      {section.keys
-                        .map((k) => MATERIAL_GROUPS.find((g) => g.key === k))
-                        .filter((g): g is MaterialGroup => !!g)
-                        .map((g) => {
-                        const isSelected = !!material && g.subtypes.some((st) => st.id === material);
-                        const dimmed = !!material && !isSelected;
-                        const badge = groupAcceptance(g);
-                        return (
-                          <button
-                            key={g.key}
-                            onClick={() => { setMaterialGroup(g.key); if (g.subtypes.length === 1) { setMaterial(g.subtypes[0].id); setMaterialSubKey(g.subtypes[0].key); } }}
-                            className={`group relative overflow-hidden rounded-2xl border-2 bg-card text-left transition-all duration-200 ease-out hover:-translate-y-1.5 hover:shadow-2xl hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                              isSelected
-                                ? "border-primary ring-2 ring-primary/40 shadow-xl -translate-y-0.5"
-                                : "border-border/60 shadow-md"
-                            } ${dimmed ? "opacity-60 hover:opacity-100" : "opacity-100"}`}
-                          >
-                            <div className="relative aspect-[4/3] overflow-hidden">
-                              <img
-                                src={GROUP_PHOTOS[g.key] ?? g.image}
-                                alt={`Remblai — ${g.label}`}
-                                loading="lazy"
-                                decoding="async"
-                                width={560}
-                                height={420}
-                                className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
-                              />
-                              <span className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/45 via-black/20 to-transparent" />
-                              {badge && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span
-                                      role="button"
-                                      tabIndex={0}
-                                      onClick={(e) => e.stopPropagation()}
-                                      onKeyDown={(e) => e.stopPropagation()}
-                                      className={`absolute top-2 left-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur-sm shadow-sm cursor-help ${badge.cls}`}
-                                    >
-                                      <span aria-hidden>{badge.dot}</span>
-                                      <span className="hidden sm:inline">{badge.label}</span>
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-[260px] text-xs leading-relaxed">
-                                    <p className="font-semibold mb-1">{badge.label}</p>
-                                    <p>{BADGE_HELP}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                              {isSelected && (
-                                <span className="absolute top-2 right-2 rounded-full bg-background/95 p-0.5 shadow-lg animate-scale-in">
-                                  <CheckCircle2 className="w-5 h-5 text-primary" />
-                                </span>
-                              )}
-                              <div className="absolute inset-x-0 bottom-0 p-3">
-                                <div className="font-display font-bold text-white text-sm sm:text-base leading-tight [text-shadow:0_1px_4px_rgba(0,0,0,0.7)]">
-                                  {g.label}
-                                </div>
-                                <div className="text-[11px] font-medium text-white/85 mt-0.5 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
-                                  {g.subtypes.length} type{g.subtypes.length > 1 ? "s" : ""} disponible{g.subtypes.length > 1 ? "s" : ""}
-                                </div>
+                <>
+                  <h2 className="font-display font-bold text-lg sm:text-2xl mb-1.5 flex items-center gap-2">
+                    <Package className="w-5 h-5 text-primary" /> Quel type de remblai devez-vous disposer ?
+                  </h2>
+                  <p className="text-sm text-muted-foreground max-w-2xl mb-6">
+                    Choisissez le matériau que vous devez évacuer. Nous nous occupons de trouver les sites compatibles en arrière-plan.
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5">
+                    {MATERIAL_GROUPS.map((g) => {
+                      const isSelected = !!material && g.subtypes.some((st) => st.id === material);
+                      return (
+                        <button
+                          key={g.key}
+                          onClick={() => { setMaterialGroup(g.key); if (g.subtypes.length === 1) { setMaterial(g.subtypes[0].id); setMaterialSubKey(g.subtypes[0].key); } }}
+                          className={`group relative overflow-hidden rounded-2xl border-2 bg-card text-left transition-all duration-200 ease-out hover:-translate-y-1.5 hover:shadow-2xl hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                            isSelected
+                              ? "border-primary ring-2 ring-primary/40 shadow-xl -translate-y-0.5"
+                              : "border-border/60 shadow-md"
+                          }`}
+                        >
+                          <div className="relative aspect-[4/3] overflow-hidden">
+                            <img
+                              src={GROUP_PHOTOS[g.key] ?? g.image}
+                              alt={`Remblai — ${g.label}`}
+                              loading="lazy"
+                              decoding="async"
+                              width={560}
+                              height={420}
+                              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
+                            />
+                            <span className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/55 via-black/20 to-transparent" />
+                            {isSelected && (
+                              <span className="absolute top-2 right-2 rounded-full bg-background/95 p-0.5 shadow-lg animate-scale-in">
+                                <CheckCircle2 className="w-5 h-5 text-primary" />
+                              </span>
+                            )}
+                            <div className="absolute inset-x-0 bottom-0 p-3">
+                              <div className="font-display font-bold text-white text-base sm:text-lg leading-tight [text-shadow:0_1px_4px_rgba(0,0,0,0.7)]">
+                                {g.label}
                               </div>
                             </div>
-                          </button>
-                        );
-                      })}
-                        </div>
-                      </div>
-                    ))}
-                    </div>
-                    </TooltipProvider>
-                  </>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+
                 );
               }
               return (
