@@ -766,22 +766,40 @@ const TransportRequest = () => {
                 <button
                   key={m.id}
                   onClick={() => setMaterial(m.id)}
-                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  aria-pressed={material === m.id}
+                  className={`group relative overflow-hidden p-3 rounded-2xl border-2 text-left transition-all duration-300 ease-out ${
                     material === m.id
-                      ? "border-primary bg-primary/5 shadow-md"
-                      : "border-border bg-card hover:border-primary/40 hover:shadow-sm"
+                      ? "border-primary bg-primary/5 shadow-lg -translate-y-0.5"
+                      : "border-border bg-card hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5"
                   }`}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="text-3xl flex-shrink-0">{m.icon}</div>
-                    <div className="min-w-0">
+                  <div className="flex items-center gap-3.5">
+                    <div
+                      className={`relative flex-shrink-0 w-[88px] h-[88px] rounded-xl overflow-hidden ring-1 transition-all duration-300 ${
+                        material === m.id ? "ring-2 ring-primary" : "ring-border"
+                      }`}
+                    >
+                      <img
+                        src={MATERIAL_IMAGES[m.id]}
+                        alt={`Remblai — ${m.label}`}
+                        loading="lazy"
+                        decoding="async"
+                        width={256}
+                        height={256}
+                        className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                      />
+                      <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
+                    </div>
+                    <div className="min-w-0 pr-6">
                       <div className="font-display font-bold text-base">{m.label}</div>
                       <div className="text-xs text-muted-foreground mt-0.5">{m.desc}</div>
                     </div>
-                    {material === m.id && (
-                      <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 ml-auto" />
-                    )}
                   </div>
+                  <CheckCircle2
+                    className={`absolute top-2.5 right-2.5 w-5 h-5 text-primary transition-all duration-300 ${
+                      material === m.id ? "opacity-100 scale-100" : "opacity-0 scale-75"
+                    }`}
+                  />
                 </button>
               ))}
             </div>
