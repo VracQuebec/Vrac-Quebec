@@ -34,7 +34,7 @@ function db() {
 
 // ---------- 1. Catalogue (100 % paramètres administrateur) ----------
 async function catalog(sb: any) {
-  const [cats, mats] = await Promise.all([
+  const [cats, mats, trucks] = await Promise.all([
     sb.from('jsc_material_categories').select('id,name,code,description,sort_order')
       .eq('is_active', true).is('archived_at', null)
       .order('sort_order', { ascending: true }).order('name', { ascending: true }),
@@ -42,6 +42,10 @@ async function catalog(sb: any) {
       .select('id,name,code,category_id,category,unit,density_kg_per_m3,public_description,sort_order')
       .eq('is_active', true).is('archived_at', null)
       .order('sort_order', { ascending: true }).order('name', { ascending: true }),
+    sb.from('jsc_trucks')
+      .select('id,name,truck_type,capacity_tonnes,capacity_m3,sort_order')
+      .eq('is_active', true).is('archived_at', null)
+      .order('capacity_tonnes', { ascending: true }),
   ]);
   if (cats.error) throw new Error(cats.error.message);
   if (mats.error) throw new Error(mats.error.message);
@@ -52,7 +56,7 @@ async function catalog(sb: any) {
     (m: any) => !EXCLUDED.test(`${m.name} ${m.code ?? ''} ${m.category ?? ''}`) &&
       (!m.category_id || allowed.has(m.category_id)),
   );
-  return { ok: true, categories, materials };
+  return { ok: true, categories, materials, trucks: trucks.error ? [] : (trucks.data ?? []) };
 }
 
 // ---------- 2. Conseiller « Je ne sais pas quel matériau choisir » ----------
