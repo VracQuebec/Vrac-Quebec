@@ -117,7 +117,7 @@ const Index = () => {
               Il analyse automatiquement votre chantier et vous recommande les meilleurs sites disponibles selon le matériau à transporter, la distance, le temps de trajet, la disponibilité et le type de camion.
             </p>
             <p className="mt-3 text-sm sm:text-base text-muted-foreground font-body max-w-xl mx-auto leading-relaxed">
-              Une fois la meilleure option trouvée, votre demande est transmise à Transport JSC qui coordonne l’accès avec le propriétaire de la dompe.
+              Une fois la meilleure option trouvée, votre demande est prise en charge par Vrac Québec, qui analyse, valide et coordonne l’accès au site.
             </p>
 
             {/* Avantages */}
@@ -154,8 +154,8 @@ const Index = () => {
                   <Zap className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="font-display font-semibold text-foreground text-sm">Demande transmise à Transport JSC</p>
-                  <p className="text-xs text-muted-foreground">Transport JSC coordonne l’accès au site.</p>
+                  <p className="font-display font-semibold text-foreground text-sm">Demande traitée par Vrac Québec</p>
+                  <p className="text-xs text-muted-foreground">Vrac Québec coordonne l’accès au site.</p>
                 </div>
               </div>
             </div>
