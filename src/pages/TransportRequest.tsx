@@ -126,59 +126,36 @@ const MATERIAL_GROUPS: MaterialGroup[] = [
     key: "terre", label: "Terre", image: imgTerrePropre,
     subtypes: [
       { key: "terre_propre", label: "Terre propre", desc: "Sans pierre ni débris.", id: "terre_propre" },
-      { key: "terre_gravier", label: "Terre avec gravier", desc: "Mélangée à de la petite pierre.", id: "terre_gravier" },
-      { key: "terre_argileuse", label: "Terre argileuse", desc: "Lourde, collante, peu drainante.", id: "terre_argileuse" },
       { key: "terre_vegetale", label: "Terre végétale", desc: "Couche de surface organique.", id: "terre_propre" },
-      { key: "terre_noire", label: "Terre noire", desc: "Terre riche, foncée.", id: "terre_propre" },
-      { key: "terre_autre", label: "Autre type de terre", desc: "Décrivez-la, on vous guide.", id: "autre" },
+      { key: "terre_argileuse", label: "Terre argileuse", desc: "Lourde, collante, peu drainante.", id: "terre_argileuse" },
+      { key: "terre_gravier", label: "Terre avec gravier", desc: "Mélangée à de la petite pierre.", id: "terre_gravier" },
+      { key: "terre_contaminee", label: "Terre contaminée", desc: "Débris ou contaminants possibles.", id: "materiaux_mixtes" },
+      { key: "terre_humide", label: "Terre humide", desc: "Terre détrempée ou saturée.", id: "terre_propre" },
     ],
   },
   { key: "sable", label: "Sable", image: imgSable, subtypes: [
-      { key: "sable", label: "Sable", desc: "Sable d'excavation ou de tranchée.", id: "sable" },
-      { key: "sable_autre", label: "Autre", desc: "Sable particulier à décrire.", id: "autre" },
+      { key: "sable", label: "Sable propre", desc: "Sable d'excavation ou de tranchée.", id: "sable" },
+      { key: "sable_melange", label: "Sable mélangé", desc: "Sable avec terre ou pierre.", id: "melange_terre_pierre" },
   ] },
-  { key: "gravier", label: "Gravier", image: imgGravier, subtypes: [
+  { key: "pierre", label: "Pierre / Gravier", image: imgPierre, subtypes: [
       { key: "gravier", label: "Gravier", desc: "Fondation, entrée, chemin.", id: "gravier" },
-      { key: "gravier_terre", label: "Gravier mélangé de terre", desc: "Excavation mixte.", id: "melange_terre_pierre" },
-      { key: "gravier_autre", label: "Autre", desc: "À décrire.", id: "autre" },
-  ] },
-  { key: "pierre", label: "Pierre", image: imgPierre, subtypes: [
-      { key: "pierre_concassee", label: "Pierre concassée", desc: "Calibre concassé.", id: "pierre" },
       { key: "pierre_nette", label: "Pierre nette", desc: "Lavée, sans fines.", id: "pierre" },
+      { key: "pierre_concassee", label: "Pierre concassée", desc: "Calibre concassé.", id: "pierre" },
+      { key: "mg20", label: "MG-20", desc: "Granulat de fondation.", id: "gravier" },
+      { key: "zero_trois_quarts", label: "0-3/4", desc: "Calibre 0 à 3/4 de pouce.", id: "pierre" },
       { key: "melange_pierre", label: "Mélange pierre / terre", desc: "Excavation mixte.", id: "melange_terre_pierre" },
-      { key: "pierre_autre", label: "Autre", desc: "À décrire.", id: "autre" },
   ] },
-  { key: "roc", label: "Roc", image: imgRoc, subtypes: [
-      { key: "roc", label: "Roc / dynamitage", desc: "Blocs d'excavation.", id: "roc" },
-      { key: "roc_autre", label: "Autre", desc: "À décrire.", id: "autre" },
-  ] },
-  { key: "beton", label: "Béton", image: imgBeton, subtypes: [
-      { key: "beton_concasse", label: "Béton concassé", desc: "Béton broyé.", id: "beton" },
-      { key: "dalles_beton", label: "Dalles de béton", desc: "Morceaux de dalle.", id: "beton" },
-      { key: "fondation", label: "Fondation", desc: "Démolition de fondation.", id: "beton" },
-      { key: "beton_autre", label: "Autre", desc: "À décrire.", id: "autre" },
-  ] },
-  { key: "asphalte", label: "Asphalte", image: imgAsphalte, subtypes: [
-      { key: "asphalte", label: "Asphalte / planage", desc: "Morceaux ou planage.", id: "asphalte" },
-      { key: "asphalte_autre", label: "Autre", desc: "À décrire.", id: "autre" },
-  ] },
-  { key: "mixtes", label: "Matériaux mixtes", image: imgMateriauxMixtes, subtypes: [
-      { key: "materiaux_mixtes", label: "Matériaux mixtes", desc: "Excavation variée, débris possibles.", id: "materiaux_mixtes" },
-      { key: "melange_terre_pierre", label: "Mélange terre / pierre", desc: "Terre et pierre combinées.", id: "melange_terre_pierre" },
-      { key: "mixtes_autre", label: "Autre", desc: "À décrire.", id: "autre" },
+  { key: "beton", label: "Béton / Asphalte", image: imgBeton, subtypes: [
+      { key: "beton_concasse", label: "Béton", desc: "Dalles, fondation ou béton concassé.", id: "beton" },
+      { key: "beton_arme", label: "Béton armé", desc: "Béton avec acier d'armature.", id: "beton" },
+      { key: "asphalte", label: "Asphalte", desc: "Morceaux ou planage.", id: "asphalte" },
+      { key: "beton_asphalte", label: "Mélange béton / asphalte", desc: "Démolition combinée.", id: "materiaux_mixtes" },
   ] },
   { key: "autre", label: "Autre", image: imgAutre, subtypes: [
+      { key: "materiaux_mixtes", label: "Matériaux mixtes", desc: "Excavation variée, débris possibles.", id: "materiaux_mixtes" },
+      { key: "roc", label: "Roc / dynamitage", desc: "Blocs d'excavation.", id: "roc" },
       { key: "autre", label: "Autre (description)", desc: "Matériel particulier — décrivez-le.", id: "autre" },
   ] },
-];
-
-/* Sections de présentation (UI seulement) : regroupent les catégories existantes. */
-const GROUP_SECTIONS: { title: string; keys: string[] }[] = [
-  { title: "Terres", keys: ["terre", "sable"] },
-  { title: "Granulaires", keys: ["gravier", "pierre"] },
-  { title: "Matériaux de démolition", keys: ["beton", "asphalte"] },
-  { title: "Excavation lourde", keys: ["roc"] },
-  { title: "Cas particuliers", keys: ["mixtes", "autre"] },
 ];
 
 /* Badge d'acceptation : dérivé du champ `cleanliness` déjà présent dans MATERIALS.
@@ -893,20 +870,8 @@ const TransportRequest = () => {
                       Sélectionnez le matériau principal provenant de votre excavation. Cette information nous permet de recommander uniquement les sites de disposition compatibles avec votre remblai.
                     </p>
                     <TooltipProvider delayDuration={150}>
-                    <div className="space-y-7">
-                    {GROUP_SECTIONS.map((section) => (
-                      <div key={section.title}>
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className="text-[11px] font-display font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                            {section.title}
-                          </span>
-                          <span className="h-px flex-1 bg-border" />
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5">
-                      {section.keys
-                        .map((k) => MATERIAL_GROUPS.find((g) => g.key === k))
-                        .filter((g): g is MaterialGroup => !!g)
-                        .map((g) => {
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                      {MATERIAL_GROUPS.map((g) => {
                         const isSelected = !!material && g.subtypes.some((st) => st.id === material);
                         const dimmed = !!material && !isSelected;
                         const badge = groupAcceptance(g);
@@ -914,13 +879,13 @@ const TransportRequest = () => {
                           <button
                             key={g.key}
                             onClick={() => { setMaterialGroup(g.key); if (g.subtypes.length === 1) { setMaterial(g.subtypes[0].id); setMaterialSubKey(g.subtypes[0].key); } }}
-                            className={`group relative overflow-hidden rounded-2xl border-2 bg-card text-left transition-all duration-200 ease-out hover:-translate-y-1.5 hover:shadow-2xl hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                            className={`group relative overflow-hidden rounded-3xl border-2 bg-card text-left transition-all duration-200 ease-out hover:-translate-y-1.5 hover:shadow-2xl hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                               isSelected
                                 ? "border-primary ring-2 ring-primary/40 shadow-xl -translate-y-0.5"
                                 : "border-border/60 shadow-md"
                             } ${dimmed ? "opacity-60 hover:opacity-100" : "opacity-100"}`}
                           >
-                            <div className="relative aspect-[4/3] overflow-hidden">
+                            <div className="relative aspect-[16/10] overflow-hidden">
                               <img
                                 src={GROUP_PHOTOS[g.key] ?? g.image}
                                 alt={`Remblai — ${g.label}`}
@@ -930,7 +895,7 @@ const TransportRequest = () => {
                                 height={420}
                                 className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
                               />
-                              <span className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/45 via-black/20 to-transparent" />
+                              <span className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/35 to-transparent" />
                               {badge && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -939,7 +904,7 @@ const TransportRequest = () => {
                                       tabIndex={0}
                                       onClick={(e) => e.stopPropagation()}
                                       onKeyDown={(e) => e.stopPropagation()}
-                                      className={`absolute top-2 left-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur-sm shadow-sm cursor-help ${badge.cls}`}
+                                      className={`absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold backdrop-blur-sm shadow-sm cursor-help ${badge.cls}`}
                                     >
                                       <span aria-hidden>{badge.dot}</span>
                                       <span className="hidden sm:inline">{badge.label}</span>
@@ -952,25 +917,23 @@ const TransportRequest = () => {
                                 </Tooltip>
                               )}
                               {isSelected && (
-                                <span className="absolute top-2 right-2 rounded-full bg-background/95 p-0.5 shadow-lg animate-scale-in">
-                                  <CheckCircle2 className="w-5 h-5 text-primary" />
+                                <span className="absolute top-2.5 right-2.5 rounded-full bg-background/95 p-0.5 shadow-lg animate-scale-in">
+                                  <CheckCircle2 className="w-6 h-6 text-primary" />
                                 </span>
                               )}
-                              <div className="absolute inset-x-0 bottom-0 p-3">
-                                <div className="font-display font-bold text-white text-sm sm:text-base leading-tight [text-shadow:0_1px_4px_rgba(0,0,0,0.7)]">
+                            </div>
+                            <div className="flex items-center justify-between gap-3 px-4 py-3">
+                              <div className="min-w-0">
+                                <div className="font-display font-bold text-lg sm:text-xl leading-tight truncate">
                                   {g.label}
                                 </div>
-                                <div className="text-[11px] font-medium text-white/85 mt-0.5 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
-                                  {g.subtypes.length} type{g.subtypes.length > 1 ? "s" : ""} disponible{g.subtypes.length > 1 ? "s" : ""}
-                                </div>
+                                <div className="text-xs text-muted-foreground mt-0.5">Choisir</div>
                               </div>
+                              <ChevronRight className="w-6 h-6 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-1 group-hover:text-primary" />
                             </div>
                           </button>
                         );
                       })}
-                        </div>
-                      </div>
-                    ))}
                     </div>
                     </TooltipProvider>
                   </>
@@ -978,12 +941,22 @@ const TransportRequest = () => {
               }
               return (
                 <>
-                  <div className="flex items-center gap-2 mb-3">
+                  <nav aria-label="Fil d'Ariane" className="flex items-center gap-1.5 text-sm mb-3">
                     <button
                       onClick={() => { setMaterialGroup(""); setMaterialSubKey(""); setMaterial(""); }}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-display font-semibold hover:border-primary transition-colors"
+                      className="font-display font-semibold text-muted-foreground hover:text-primary transition-colors"
                     >
-                      <ChevronLeft className="w-3.5 h-3.5" /> Retour
+                      Remblai
+                    </button>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-display font-bold text-foreground">{group.label}</span>
+                  </nav>
+                  <div className="flex items-center gap-3 mb-4">
+                    <button
+                      onClick={() => { setMaterialGroup(""); setMaterialSubKey(""); setMaterial(""); }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-primary/40 bg-card text-sm font-display font-bold text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4" /> Retour
                     </button>
                     <h2 className="font-display font-bold text-lg sm:text-xl flex items-center gap-2">
                       <Package className="w-5 h-5 text-primary" /> {group.label} — précisez
