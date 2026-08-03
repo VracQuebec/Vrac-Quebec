@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
-export type AppRole = "admin" | "entrepreneur" | "user";
+// Rôles de la plateforme. Vrac Québec coordonne plusieurs acteurs :
+// aucun transporteur ni propriétaire n'est codé en dur.
+export type AppRole = "admin" | "entrepreneur" | "proprietaire" | "transporteur" | "user";
 
 export const useUserRoles = (authUser?: User | null, authReady?: boolean) => {
   const [roles, setRoles] = useState<AppRole[]>([]);
@@ -55,5 +57,7 @@ export const useUserRoles = (authUser?: User | null, authReady?: boolean) => {
     loading,
     isAdmin: roles.includes("admin"),
     isEntrepreneur: roles.includes("entrepreneur"),
+    isProprietaire: roles.includes("proprietaire"),
+    isTransporteur: roles.includes("transporteur"),
   };
 };

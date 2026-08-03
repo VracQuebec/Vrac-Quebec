@@ -432,7 +432,7 @@ export const JSC_RESOURCES: ResourceDef[] = [
     table: "jsc_zones",
     title: "Zones desservies",
     singular: "Zone",
-    description: "Territoires couverts par Transport JSC et surcharges de distance associées.",
+    description: "Territoires couverts par les transporteurs partenaires et surcharges de distance associées.",
     icon: "Globe2",
     labelField: "name",
     orderBy: [{ column: "sort_order", ascending: true }, { column: "name", ascending: true }],
@@ -503,7 +503,7 @@ export const JSC_RESOURCES: ResourceDef[] = [
 export const getResource = (id: string) => JSC_RESOURCES.find((r) => r.id === id);
 
 // Module transverse : transporteurs (architecture multi-transporteur).
-// Vrac Québec est la plateforme; chaque transporteur (Transport JSC en premier)
+// Vrac Québec est la plateforme; chaque transporteur partenaire
 // possède ses camions, tarifs, disponibilités et paramètres. Chaque
 // enregistrement de chaque module est rattaché à un transporteur.
 export const JSC_COMPANY_RESOURCE: ResourceDef = {

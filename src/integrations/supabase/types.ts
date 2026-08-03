@@ -10565,6 +10565,7 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
+      access_requests_stats: { Args: never; Returns: Json }
       ai_cache_hit: {
         Args: { _credits: number; _key: string }
         Returns: undefined
@@ -11047,7 +11048,12 @@ export type Database = {
       unaccent_string: { Args: { input: string }; Returns: string }
     }
     Enums: {
-      app_role: "admin" | "user" | "entrepreneur"
+      app_role:
+        | "admin"
+        | "user"
+        | "entrepreneur"
+        | "proprietaire"
+        | "transporteur"
       blog_post_status: "draft" | "published" | "scheduled" | "archived"
       calendar_event_status:
         | "a_planifier"
@@ -11216,7 +11222,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "entrepreneur"],
+      app_role: [
+        "admin",
+        "user",
+        "entrepreneur",
+        "proprietaire",
+        "transporteur",
+      ],
       blog_post_status: ["draft", "published", "scheduled", "archived"],
       calendar_event_status: [
         "a_planifier",
