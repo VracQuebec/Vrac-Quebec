@@ -59,14 +59,11 @@ const ServiceSelector = ({ onSelect }: { onSelect: (service: ServiceKey) => void
           onClick={() => onSelect(s.key)}
           className="group flex h-full flex-col rounded-2xl border-2 border-border bg-card p-5 text-left transition-all duration-200 hover:-translate-y-1 hover:border-primary hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <div className="flex items-center gap-3">
-            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl">
-              <span aria-hidden>{s.emoji}</span>
-            </span>
-            <s.icon className="h-5 w-5 text-primary opacity-70" aria-hidden />
-          </div>
+          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <s.icon className="h-5 w-5" aria-hidden />
+          </span>
           <h3 className="mt-4 font-display text-lg font-bold leading-snug text-foreground">
-            {s.title}
+            <span aria-hidden className="mr-1.5">{s.emoji}</span>{s.title}
           </h3>
           <p className="mt-2 flex-1 font-body text-sm leading-relaxed text-muted-foreground">
             {s.description}
