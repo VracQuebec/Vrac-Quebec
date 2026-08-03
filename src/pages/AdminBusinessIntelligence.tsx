@@ -166,7 +166,7 @@ export default function AdminBusinessIntelligence() {
       const assignedPrev = subsP.filter((s) => s.assigned_entrepreneur).length;
       const conversionRate = subs.length ? Math.round((assigned / subs.length) * 100) : 0;
 
-      // Transport JSC board
+      // Tableau de bord opérationnel (tous transporteurs)
       const trStatus = {
         pending: trReq.filter((r) => ["nouvelle", "en_attente", "pending"].includes((r.status || "").toLowerCase())).length,
         urgent: trReq.filter((r) => (r.status || "").toLowerCase() === "urgent").length,
@@ -402,9 +402,9 @@ export default function AdminBusinessIntelligence() {
               </Card>
             </section>
 
-            {/* Transport JSC */}
+            {/* Opérations */}
             <section>
-              <h2 className="text-lg font-display font-bold mb-3">Tableau de bord Transport JSC</h2>
+              <h2 className="text-lg font-display font-bold mb-3">Tableau de bord opérationnel</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 <StatusCard label="En attente" value={data.trStatus.pending} />
                 <StatusCard label="Urgentes" value={data.trStatus.urgent} tone="urgent" />
