@@ -198,7 +198,7 @@ export function RulesBoard({ companyId }: { companyId: string | null }) {
   };
   useEffect(() => { void load(); }, [companyId]);
 
-  const save = async (id: string, patch: Partial<OrchRule>) => {
+  const save = async (id: string, patch: { threshold?: number; is_active?: boolean }) => {
     const { error } = await supabase.from("jsc_orch_rules").update(patch).eq("id", id);
     if (error) return toast.error(error.message);
     void load();
