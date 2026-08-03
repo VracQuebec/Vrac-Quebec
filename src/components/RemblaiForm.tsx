@@ -224,15 +224,36 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading, variant = "recherche" 
 
       {/* Section 3 - Type de matériel */}
       <Section number={3} title="Type de matériel souhaité *">
-        <div data-error={showErrors && errors.materials} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div data-error={showErrors && errors.materials} className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {REMBLAI_MATERIAL_OPTIONS.map((m) => {
             const active = data.materials.includes(m);
             return (
-              <button key={m} type="button" onClick={() => toggleArr("materials", m)} className={checkboxRow(active)}>
-                <span className="w-5 h-5 rounded border-2 border-primary flex items-center justify-center shrink-0">
-                  {active ? "✓" : ""}
+              <button
+                key={m}
+                type="button"
+                onClick={() => toggleArr("materials", m)}
+                className={`relative overflow-hidden rounded-xl border-2 text-left transition-colors font-body ${
+                  active
+                    ? "border-primary bg-primary/5 font-semibold text-foreground"
+                    : "border-border bg-background text-foreground hover:border-primary/50"
+                }`}
+              >
+                <img
+                  src={REMBLAI_MATERIAL_IMAGES[m]}
+                  alt={`Matériau : ${m}`}
+                  loading="lazy"
+                  width={512}
+                  height={512}
+                  className="w-full aspect-square object-cover rounded-t-[0.6rem]"
+                />
+                <span
+                  className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs bg-background/90 ${
+                    active ? "border-primary text-primary" : "border-border text-transparent"
+                  }`}
+                >
+                  ✓
                 </span>
-                <span>{m}</span>
+                <span className="block px-3 py-2 text-sm md:text-base">{m}</span>
               </button>
             );
           })}
