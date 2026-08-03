@@ -122,8 +122,10 @@ export const REMBLAI_MATERIAL_OPTIONS = [
   "Terre",
   "Terre mélangée",
   "Sable",
+  "Pierre concassée 0-3/4",
+  "Pierre concassée 3/4 net",
+  "Poussière de pierre",
   "Gravier",
-  "Pierre",
   "Roches",
   "Béton",
   "Asphalte",
@@ -131,15 +133,20 @@ export const REMBLAI_MATERIAL_OPTIONS = [
   "Autre",
 ] as const;
 
-import matTerre from "@/assets/materials/terre-propre.webp";
-import matTerreMelangee from "@/assets/materials/melange-terre-pierre.webp";
-import matSable from "@/assets/materials/sable.webp";
-import matGravier from "@/assets/materials/gravier.webp";
-import matPierre from "@/assets/materials/pierre.webp";
-import matRoches from "@/assets/materials/roc.webp";
-import matBeton from "@/assets/materials/beton.webp";
-import matAsphalte from "@/assets/materials/asphalte.webp";
-import matSouches from "@/assets/materials/souches.jpg";
+/** Anciens libellés conservés pour la rétrocompatibilité des données existantes. */
+export const REMBLAI_MATERIAL_LEGACY = ["Pierre"] as const;
+
+import matTerre from "@/assets/materials/v2/terre.jpg";
+import matTerreMelangee from "@/assets/materials/v2/terre-melangee.jpg";
+import matSable from "@/assets/materials/v2/sable.jpg";
+import matPierre034 from "@/assets/materials/v2/pierre-0-34.jpg";
+import matPierre34Net from "@/assets/materials/v2/pierre-34-net.jpg";
+import matPoussiere from "@/assets/materials/v2/poussiere-pierre.jpg";
+import matGravier from "@/assets/materials/v2/gravier.jpg";
+import matRoches from "@/assets/materials/v2/roches.jpg";
+import matBeton from "@/assets/materials/v2/beton.jpg";
+import matAsphalte from "@/assets/materials/v2/asphalte.jpg";
+import matSouches from "@/assets/materials/v2/souches.jpg";
 import matAutre from "@/assets/materials/autre.webp";
 
 /** Photo représentative pour chaque type de matériel (affichage seulement). */
@@ -147,14 +154,53 @@ export const REMBLAI_MATERIAL_IMAGES: Record<string, string> = {
   "Terre": matTerre,
   "Terre mélangée": matTerreMelangee,
   "Sable": matSable,
+  "Pierre concassée 0-3/4": matPierre034,
+  "Pierre concassée 3/4 net": matPierre34Net,
+  "Poussière de pierre": matPoussiere,
+  "Pierre": matPierre034,
   "Gravier": matGravier,
-  "Pierre": matPierre,
   "Roches": matRoches,
   "Béton": matBeton,
   "Asphalte": matAsphalte,
   "Souches": matSouches,
   "Autre": matAutre,
 };
+
+/** Courte description affichée sous chaque matériau. */
+export const REMBLAI_MATERIAL_DESCRIPTIONS: Record<string, string> = {
+  "Terre": "Terre végétale et nivellement.",
+  "Terre mélangée": "Terre avec pierres et sable.",
+  "Sable": "Remblai, piscine et pavé.",
+  "Pierre concassée 0-3/4": "Fondation et entrée.",
+  "Pierre concassée 3/4 net": "Drainage et fond de tranchée.",
+  "Poussière de pierre": "Lit de pose pour pavé et dalles.",
+  "Gravier": "Gravier décoratif.",
+  "Roches": "Enrochement et soutènement.",
+  "Béton": "Béton recyclé.",
+  "Asphalte": "Asphalte recyclé.",
+  "Souches": "Débris de bois et souches.",
+  "Autre": "Précisez votre besoin.",
+};
+
+/** Regroupement par catégorie (ordre d'affichage). */
+export const REMBLAI_MATERIAL_CATEGORIES: { title: string; materials: string[] }[] = [
+  {
+    title: "Matériaux naturels",
+    materials: [
+      "Terre",
+      "Terre mélangée",
+      "Sable",
+      "Pierre concassée 0-3/4",
+      "Pierre concassée 3/4 net",
+      "Poussière de pierre",
+      "Gravier",
+      "Roches",
+    ],
+  },
+  { title: "Matériaux recyclés", materials: ["Béton", "Asphalte"] },
+  { title: "Végétaux", materials: ["Souches"] },
+  { title: "Divers", materials: ["Autre"] },
+];
 
 export const REMBLAI_TRUCK_OPTIONS = [
   "Camion 6 roues",
