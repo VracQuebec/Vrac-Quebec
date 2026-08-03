@@ -1377,6 +1377,17 @@ const TransportRequest = () => {
                       Certaines informations de votre profil sont manquantes. Complétez votre profil
                       pour poursuivre.
                     </p>
+                    {!clientPhone.trim() && (
+                      <div className="mt-3">
+                        <Field
+                          label="Téléphone *"
+                          value={clientPhone}
+                          onChange={setClientPhone}
+                          placeholder="418-555-0000"
+                          type="tel"
+                        />
+                      </div>
+                    )}
                     <Link
                       to="/entrepreneur/compte"
                       className="mt-3 inline-flex items-center rounded-lg bg-primary px-3.5 py-2 font-display font-bold text-xs text-primary-foreground"
