@@ -457,7 +457,20 @@ const TransportRequest = () => {
       estimated_trips: trips ? Number(trips) : null,
       desired_date: desiredDate || null,
       desired_time: desiredTime || null,
-      client_notes: clientNotes.trim() || null,
+      client_notes: [
+        clientNotes.trim(),
+        (() => {
+          const p = MATERIALS.find((m) => m.id === material);
+          if (!p) return "";
+          const traits = [
+            p.stone && "pierre",
+            p.clay && "argile",
+            p.sand && "sable",
+            (p.contaminants || hasContaminants) && "contaminants",
+          ].filter(Boolean).join(", ");
+          return `Profil du remblai : ${p.label}${materialOther.trim() ? ` (${materialOther.trim()})` : ""} — principal ${p.main}, propreté ${p.cleanliness}${traits ? `, contient ${traits}` : ""}${humidity ? `, ${humidity.toLowerCase()}` : ""}`;
+        })(),
+      ].filter(Boolean).join("\n") || null,
       source: user ? "wizard_authenticated" : "wizard_public",
     });
 
@@ -477,7 +490,7 @@ const TransportRequest = () => {
   // as soon as any identifier (name, company, phone or email) is available.
   const missingFields = useMemo(() => {
     const missing: string[] = [];
-    if (step === 1 && !material) missing.push("Type de matériau");
+    if (step === 1 && !material) missing.push("Type de remblai à disposer");
     if (step === 2) {
       if (!address.trim()) missing.push("Adresse du chantier");
       else if (!coords) missing.push("Localisation de l'adresse (sélectionnez une suggestion)");
@@ -1098,7 +1111,7 @@ const TransportRequest = () => {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 text-sm">
                 <SummaryRow icon="📍" label="Adresse" value={address} />
-                <SummaryRow icon="📦" label="Matériau recommandé" value={MATERIALS.find((m) => m.id === material)?.label || material} />
+                <SummaryRow icon="📦" label="Remblai à disposer" value={MATERIALS.find((m) => m.id === material)?.label || material} />
                 <SummaryRow icon="📏" label="Quantité estimée" value={unit === "inconnu" ? "À déterminer" : `${quantity} ${unit}`} />
                 <SummaryRow icon="🚛" label="Voyages estimés" value={trips || "À confirmer"} />
                 <SummaryRow icon="⏱️" label="Temps de trajet" value={`${selectedDump.duration_minutes} min`} />
