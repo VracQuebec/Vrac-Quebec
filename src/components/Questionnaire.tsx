@@ -372,8 +372,8 @@ const Questionnaire = ({ sourcePageSlug }: { sourcePageSlug?: string } = {}) => 
         <ServiceSelector
           onSelect={(key) => {
             if (key === "vrac_achat") {
-              // Achat de matériaux en vrac : seul parcours branché sur le moteur de calcul automatique.
-              navigate("/soumission");
+              // Achat de matériaux en vrac : assistant dédié (parcours guidé par étapes).
+              navigate("/acheter-materiaux");
               return;
             }
             if (key === "remblai_disposition") {
