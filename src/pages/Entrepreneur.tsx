@@ -1,13 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { Truck, LogOut, Loader2, Phone, AlertTriangle, MapPin } from "lucide-react";
+import {
+  Truck, LogOut, Loader2, Phone, MapPin, Info, Clock, ShieldCheck,
+  Mail, Maximize2, Minimize2, Search, SlidersHorizontal, X, Layers,
+} from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import TransportBanner from "@/components/TransportBanner";
 import FullPageState from "@/components/FullPageState";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   MATERIAL_COLORS,
   MATERIAL_LEGEND,
@@ -16,6 +20,7 @@ import {
 } from "@/lib/material-colors";
 
 const MARKER_COLOR = MATERIAL_COLORS.remblai.color; // green markers for all dump points
+const PHONE_PRIMARY = "5819947717";
 
 interface EntLead {
   id: string;
@@ -50,6 +55,14 @@ const AVAIL_META: Record<string, { label: string; color: string; dot: string }> 
 };
 const availMeta = (v?: string | null) => AVAIL_META[v || "available"] || AVAIL_META.available;
 
+const accessText = (l: EntLead) => (l.accessibility || []).join(" ").toLowerCase();
+const hasBigVolume = (l: EntLead) => /gros|grand|illimit|vrac|volume/.test(`${l.quantity} ${l.tonnage}`.toLowerCase());
+const has12Roues = (l: EntLead) => /12\s*roue|douze roue|camion/.test(accessText(l));
+const hasSemi = (l: EntLead) => /semi|remorque|fardier|train routier/.test(accessText(l));
+
+const dompeLabel = (l: EntLead) =>
+  (l.dompe_number && l.dompe_number.replace(/^dompe\s*/i, "").trim()) || String(l.submission_number);
+
 const Entrepreneur = () => {
   const [leads, setLeads] = useState<EntLead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +74,15 @@ const Entrepreneur = () => {
   const { user, isReady: authReady } = useAuthReady();
   const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
   const [activeFilters, setActiveFilters] = useState<Set<MaterialColorKey>>(new Set());
+  const [query, setQuery] = useState("");
+  const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const [onlyBigVolume, setOnlyBigVolume] = useState(false);
+  const [only12, setOnly12] = useState(false);
+  const [onlySemi, setOnlySemi] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [detail, setDetail] = useState<EntLead | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const toggleFilter = (k: MaterialColorKey) => {
     setActiveFilters((prev) => {
@@ -77,9 +99,30 @@ const Entrepreneur = () => {
     return Array.from(keys);
   };
 
-  const filteredLeads = activeFilters.size === 0
-    ? leads
-    : leads.filter((l) => leadMaterialKeys(l).some((k) => activeFilters.has(k)));
+  const filteredLeads = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return leads.filter((l) => {
+      if (activeFilters.size > 0 && !leadMaterialKeys(l).some((k) => activeFilters.has(k))) return false;
+      if (onlyAvailable && (l.availability_status || "available") !== "available") return false;
+      if (onlyBigVolume && !hasBigVolume(l)) return false;
+      if (only12 && !has12Roues(l)) return false;
+      if (onlySemi && !hasSemi(l)) return false;
+      if (q) {
+        const hay = `${dompeLabel(l)} ${l.postal_prefix ?? ""} ${(l.materials || []).join(" ")} ${l.request_type ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [leads, activeFilters, query, onlyAvailable, onlyBigVolume, only12, onlySemi]);
+
+  const activeCount =
+    activeFilters.size + [onlyAvailable, onlyBigVolume, only12, onlySemi].filter(Boolean).length + (query ? 1 : 0);
+
+  const resetFilters = () => {
+    setActiveFilters(new Set());
+    setOnlyAvailable(false); setOnlyBigVolume(false); setOnly12(false); setOnlySemi(false);
+    setQuery("");
+  };
 
   useEffect(() => {
     if (!authReady) return;
@@ -138,13 +181,7 @@ const Entrepreneur = () => {
           : l.availability_status === "limited"
             ? "#ca8a04"
             : MARKER_COLOR;
-        const label = (() => {
-          if (l.dompe_number) {
-            const cleaned = l.dompe_number.replace(/^dompe\s*/i, "").trim();
-            if (cleaned) return cleaned;
-          }
-          return String(l.submission_number);
-        })();
+        const label = dompeLabel(l);
         const fontSize = label.length <= 3 ? 12 : label.length <= 5 ? 10 : 9;
         const width = Math.max(30, 12 + label.length * 7);
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="30" viewBox="0 0 ${width} 30"><rect x="1" y="1" width="${width - 2}" height="28" rx="14" fill="${color}" stroke="white" stroke-width="3"/><text x="${width / 2}" y="15" dominant-baseline="central" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="800" font-size="${fontSize}" fill="white">${label.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text></svg>`;
@@ -162,8 +199,8 @@ const Entrepreneur = () => {
           },
         });
         m.addListener("click", () => {
-          infoRef.current?.setContent(buildPopupHtml(l));
-          infoRef.current?.open({ anchor: m, map: mapRef.current! });
+          setSelectedId(l.id);
+          setDetail(l);
         });
         markersRef.current[l.id] = m;
         bounds.extend(pos);
@@ -179,6 +216,7 @@ const Entrepreneur = () => {
   }, [filteredLeads]);
 
   const focusLead = (l: EntLead) => {
+    setSelectedId(l.id);
     const m = markersRef.current[l.id];
     if (m && mapRef.current) {
       const pos = m.getPosition();
@@ -207,14 +245,29 @@ const Entrepreneur = () => {
       </div>
     );
   }
+
+  const filterChip = (active: boolean, label: string, onClick: () => void) => (
+    <button
+      key={label}
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-full text-xs font-body border transition-colors ${
+        active
+          ? "bg-foreground text-background border-transparent"
+          : "bg-background text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground"
+      }`}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <nav className="sticky top-0 z-[1000] bg-card/80 backdrop-blur-md border-b border-border">
+      <nav className="sticky top-0 z-[1000] bg-background/80 backdrop-blur-xl border-b border-border/60">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Truck className="w-6 h-6 text-primary" />
             <span className="font-display font-bold text-xl text-foreground">Vrac<span className="text-primary">Québec</span></span>
-            <span className="ml-2 px-2 py-0.5 rounded text-xs bg-emerald-500/10 text-emerald-700 font-display font-semibold">Entrepreneur</span>
+            <span className="ml-2 px-2 py-0.5 rounded-full text-[11px] bg-secondary text-muted-foreground font-body">Entrepreneur</span>
           </div>
           <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
             <LogOut className="w-4 h-4" /> Déconnexion
@@ -224,195 +277,306 @@ const Entrepreneur = () => {
 
       <TransportBanner />
 
-      <main className="flex-1 container mx-auto px-4 sm:px-6 py-6">
-        <section className="mb-6 bg-card border border-border rounded-xl p-4 sm:p-5" style={{ boxShadow: "var(--shadow-sm)" }}>
-          <h2 className="font-display font-bold text-lg sm:text-xl mb-3 flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-primary" /> Comment accéder à une dompe
-          </h2>
-          <ol className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-            {[
-              { n: 1, t: "Choisissez une dompe", d: "Sélectionnez la dompe qui vous intéresse parmi les sites disponibles." },
-              { n: 2, t: "Contactez Vrac Québec", d: "📞 581-994-7717 ou 819-592-3495 — indiquez le n° de dompe, le matériel, la quantité, la date et votre entreprise." },
-              { n: 3, t: "Attendez la validation", d: "Vrac Québec analyse votre demande et confirme la disponibilité, les matériaux et les quantités." },
-              { n: 4, t: "Recevez votre confirmation", d: "Une fois approuvé, vous recevrez l'accès et les consignes du site." },
-            ].map((s) => (
-              <li key={s.n} className="flex gap-3 p-3 rounded-lg bg-background border border-border">
-                <span className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground font-display font-bold flex items-center justify-center">{s.n}</span>
-                <div>
-                  <p className="font-display font-semibold text-sm">{s.t}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{s.d}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <div className="rounded-lg border-2 border-destructive/50 bg-destructive/10 p-3 mb-4">
-            <div className="flex items-start gap-2 mb-1">
-              <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0" />
-              <p className="font-display font-bold text-sm text-destructive">Important</p>
+      <main className="flex-1 container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+        {/* En-tête + accès aux dompes */}
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 rounded-2xl border border-border/70 bg-card p-6 sm:p-8">
+            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">Accès aux dompes</p>
+            <h1 className="font-display font-bold text-2xl sm:text-3xl leading-tight mb-3">
+              Trouvez une dompe, nous nous occupons du reste.
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground font-body max-w-2xl">
+              Toutes les demandes sont traitées par Vrac Québec. Nous validons automatiquement la disponibilité
+              avant de vous transmettre votre autorisation d'accès.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => navigate("/demande-transport")}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm px-5 py-3 hover:opacity-90 transition-opacity"
+              >
+                Faire une demande d'accès
+              </button>
+              <a
+                href={`tel:${PHONE_PRIMARY}`}
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-background text-foreground font-body text-sm px-4 py-3 hover:border-foreground/30 transition-colors"
+              >
+                <Phone className="w-4 h-4" /> Téléphoner à Vrac Québec
+              </a>
+              <a
+                href="mailto:info@vracquebec.ca"
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-background text-foreground font-body text-sm px-4 py-3 hover:border-foreground/30 transition-colors"
+              >
+                <Mail className="w-4 h-4" /> Nous écrire
+              </a>
             </div>
-            <ul className="text-xs sm:text-sm text-foreground space-y-1 ml-7 list-disc">
-              <li>Ne contactez <b>jamais</b> directement le propriétaire.</li>
-              <li>Ne vous présentez <b>jamais</b> sur le site sans autorisation.</li>
-              <li>Toute demande est traitée par Vrac Québec.</li>
-            </ul>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <a
-              href="tel:5819947717"
-              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground font-display font-bold text-base sm:text-lg py-4 rounded-xl hover:opacity-90 transition-opacity"
-            >
-              <Phone className="w-5 h-5" /> 581-994-7717
-            </a>
-            <a
-              href="tel:8195923495"
-              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground font-display font-bold text-base sm:text-lg py-4 rounded-xl hover:opacity-90 transition-opacity"
-            >
-              <Phone className="w-5 h-5" /> 819-592-3495
-            </a>
+
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-border/70 bg-secondary/40 p-5">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <p className="font-display font-semibold text-sm">Temps moyen de réponse</p>
+              </div>
+              <p className="text-sm text-muted-foreground font-body">
+                Moins de 30 minutes durant les heures d'ouverture.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/70 bg-secondary/40 p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <Info className="w-4 h-4 text-muted-foreground" />
+                <p className="font-display font-semibold text-sm">À savoir</p>
+              </div>
+              <ul className="text-sm text-muted-foreground font-body space-y-1.5">
+                <li>Ne vous présentez jamais sans autorisation.</li>
+                <li>Vrac Québec coordonne votre accès.</li>
+                <li>Les consignes vous seront envoyées après validation.</li>
+              </ul>
+            </div>
           </div>
         </section>
 
-        <div className="mb-4 space-y-3">
-          <h1 className="text-xl sm:text-2xl font-display font-bold">
-            Dompes disponibles ({filteredLeads.length}{activeFilters.size > 0 ? ` / ${leads.length}` : ""})
-          </h1>
-          <div className="bg-card border border-border rounded-lg px-3 py-2">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-muted-foreground font-display font-semibold uppercase tracking-wide text-[10px]">
-                Filtrer par matériau
-              </span>
-              {activeFilters.size > 0 && (
-                <button
-                  onClick={() => setActiveFilters(new Set())}
-                  className="text-[10px] text-primary hover:underline font-display"
-                >
-                  Réinitialiser
+        {/* Filtres */}
+        <section className="sticky top-[73px] z-[900] -mx-4 sm:mx-0 px-4 sm:px-0">
+          <div className="rounded-2xl border border-border/70 bg-background/90 backdrop-blur-xl p-3 sm:p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[180px]">
+                <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Rechercher une dompe, un secteur, un matériau"
+                  className="w-full rounded-xl border border-border bg-background pl-9 pr-3 py-2.5 text-sm font-body outline-none focus:border-foreground/30"
+                />
+              </div>
+              {filterChip(onlyAvailable, "Disponible aujourd'hui", () => setOnlyAvailable((v) => !v))}
+              {filterChip(onlyBigVolume, "Gros volumes", () => setOnlyBigVolume((v) => !v))}
+              {filterChip(only12, "Accessible 12 roues", () => setOnly12((v) => !v))}
+              {filterChip(onlySemi, "Accessible semi-remorque", () => setOnlySemi((v) => !v))}
+              <button
+                onClick={() => setShowFilters((v) => !v)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-body border border-border hover:border-foreground/30"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" /> Matériaux
+              </button>
+              {activeCount > 0 && (
+                <button onClick={resetFilters} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-body">
+                  <X className="w-3.5 h-3.5" /> Réinitialiser
                 </button>
               )}
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {MATERIAL_LEGEND.map((k) => {
-                const active = activeFilters.has(k);
-                const c = MATERIAL_COLORS[k];
-                return (
-                  <button
-                    key={k}
-                    onClick={() => toggleFilter(k)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-body border transition-all ${
-                      active
-                        ? "text-white border-transparent shadow-sm"
-                        : "bg-background text-foreground border-border hover:border-primary/40"
-                    }`}
-                    style={active ? { background: c.color } : undefined}
-                  >
-                    <span
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ background: active ? "rgba(255,255,255,0.85)" : c.color }}
-                    />
-                    {c.label}
-                  </button>
-                );
-              })}
-            </div>
+            {showFilters && (
+              <div className="mt-3 pt-3 border-t border-border/60 flex flex-wrap gap-1.5">
+                {MATERIAL_LEGEND.map((k) => {
+                  const active = activeFilters.has(k);
+                  const c = MATERIAL_COLORS[k];
+                  return (
+                    <button
+                      key={k}
+                      onClick={() => toggleFilter(k)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-body border transition-all ${
+                        active ? "border-transparent text-white" : "bg-background text-foreground border-border hover:border-foreground/30"
+                      }`}
+                      style={active ? { background: c.color } : undefined}
+                    >
+                      <span className="w-2 h-2 rounded-full" style={{ background: active ? "rgba(255,255,255,0.85)" : c.color }} />
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
+        </section>
 
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 bg-card rounded-xl border border-border overflow-hidden relative isolate" style={{ boxShadow: "var(--shadow-sm)" }}>
-              <div ref={containerRef} style={{ height: "60vh", minHeight: 400, width: "100%" }} />
+          <section className={`grid gap-4 ${expanded ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-5"}`}>
+            {/* Carte */}
+            <div className={`${expanded ? "" : "lg:col-span-3"} relative isolate rounded-2xl border border-border/70 bg-card overflow-hidden`}>
+              <div
+                ref={containerRef}
+                style={{ height: expanded ? "78vh" : "64vh", minHeight: 380, width: "100%" }}
+              />
+              <button
+                onClick={() => setExpanded((v) => !v)}
+                className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 rounded-xl bg-background/95 border border-border px-3 py-2 text-xs font-body hover:border-foreground/30"
+              >
+                {expanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                {expanded ? "Réduire la carte" : "Agrandir la carte"}
+              </button>
             </div>
-            <div className="space-y-2 lg:max-h-[60vh] lg:overflow-auto">
-              {filteredLeads.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {leads.length === 0 ? "Aucune dompe pour le moment." : "Aucune dompe ne correspond aux filtres."}
-                </p>
-              )}
-              {filteredLeads.map((l) => (
-                <div key={l.id} className="p-3 bg-card rounded-lg border border-border hover:border-primary/50 transition-colors">
-                  <button onClick={() => focusLead(l)} className="w-full text-left">
-                    <div className="flex items-center justify-between mb-1.5 gap-2">
-                      <span className="font-display font-bold text-sm">#{(l.dompe_number && l.dompe_number.trim()) || l.submission_number}</span>
-                      <span className="text-[10px] text-muted-foreground font-body">{l.quantity}</span>
-                    </div>
-                    <div className="mb-1.5">
-                      <span
-                        className="inline-flex items-center gap-1 text-[10px] font-display font-bold px-2 py-0.5 rounded-full text-white"
-                        style={{ background: availMeta(l.availability_status).color }}
-                      >
-                        {availMeta(l.availability_status).dot} {availMeta(l.availability_status).label}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-1 mb-1.5">
-                      {leadMaterialKeys(l).map((k) => (
-                        <span
-                          key={k}
-                          className="text-[10px] uppercase font-display font-bold px-1.5 py-0.5 rounded text-white"
-                          style={{ background: MATERIAL_COLORS[k].color }}
+
+            {/* Liste */}
+            <div className={`${expanded ? "" : "lg:col-span-2"} space-y-3`}>
+              <div className="flex items-baseline justify-between">
+                <h2 className="font-display font-bold text-base">
+                  {filteredLeads.length} dompe{filteredLeads.length > 1 ? "s" : ""} disponible{filteredLeads.length > 1 ? "s" : ""}
+                </h2>
+                {activeCount > 0 && <span className="text-xs text-muted-foreground font-body">sur {leads.length}</span>}
+              </div>
+              <div className={`space-y-3 ${expanded ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 space-y-0" : "lg:max-h-[58vh] lg:overflow-auto lg:pr-1"}`}>
+                {filteredLeads.length === 0 && (
+                  <p className="text-sm text-muted-foreground font-body">
+                    {leads.length === 0 ? "Aucune dompe pour le moment." : "Aucune dompe ne correspond à vos filtres."}
+                  </p>
+                )}
+                {filteredLeads.map((l) => {
+                  const av = availMeta(l.availability_status);
+                  const keys = leadMaterialKeys(l);
+                  const selected = selectedId === l.id;
+                  return (
+                    <article
+                      key={l.id}
+                      onMouseEnter={() => setSelectedId(l.id)}
+                      className={`rounded-2xl border bg-card overflow-hidden transition-all ${
+                        selected ? "border-primary/60 shadow-[0_8px_24px_-16px_rgba(0,0,0,0.35)]" : "border-border/70 hover:border-foreground/20"
+                      }`}
+                    >
+                      <button onClick={() => focusLead(l)} className="w-full text-left">
+                        <div
+                          className="h-24 w-full relative"
+                          style={{ background: `linear-gradient(135deg, ${MATERIAL_COLORS[keys[0] ?? "remblai"].color}22, hsl(var(--secondary)))` }}
                         >
-                          {MATERIAL_COLORS[k].label}
-                        </span>
-                      ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-2">Secteur: {l.postal_prefix || "—"}</p>
-                  </button>
-                  <div className="grid grid-cols-1 gap-1.5">
-                    <a
-                      href={`tel:5819947717`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-full flex items-center justify-center gap-1.5 bg-primary text-primary-foreground font-display font-bold text-xs py-2.5 rounded-lg hover:opacity-90 transition-opacity"
-                      aria-label={`Demander l'accès à la dompe ${(l.dompe_number && l.dompe_number.trim()) || l.submission_number} — 581-994-7717`}
-                    >
-                      <Phone className="w-3.5 h-3.5" /> 581-994-7717
-                    </a>
-                    <a
-                      href={`tel:8195923495`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-full flex items-center justify-center gap-1.5 bg-primary text-primary-foreground font-display font-bold text-xs py-2.5 rounded-lg hover:opacity-90 transition-opacity"
-                      aria-label={`Demander l'accès à la dompe ${(l.dompe_number && l.dompe_number.trim()) || l.submission_number} — 819-592-3495`}
-                    >
-                      <Phone className="w-3.5 h-3.5" /> 819-592-3495
-                    </a>
-                  </div>
-                </div>
-              ))}
+                          <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                            <Layers className="w-10 h-10" />
+                          </div>
+                          <span
+                            className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 text-[11px] font-body px-2.5 py-1 rounded-full bg-background/90 border border-border"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: av.color }} /> {av.label}
+                          </span>
+                        </div>
+                        <div className="p-4 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-display font-bold text-sm">Dompe #{dompeLabel(l)}</h3>
+                            <span className="text-[11px] text-muted-foreground font-body whitespace-nowrap">{l.quantity || "—"}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground font-body flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5" /> Secteur {l.postal_prefix || "—"}
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {keys.slice(0, 3).map((k) => (
+                              <span key={k} className="text-[10px] font-body px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                                {MATERIAL_COLORS[k].label}
+                              </span>
+                            ))}
+                            {keys.length > 3 && (
+                              <span className="text-[10px] font-body px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                                +{keys.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                      <div className="px-4 pb-4 flex items-center gap-2">
+                        <button
+                          onClick={() => setDetail(l)}
+                          className="flex-1 rounded-xl border border-border bg-background text-xs font-body py-2.5 hover:border-foreground/30 transition-colors"
+                        >
+                          Voir la fiche complète
+                        </button>
+                        <button
+                          onClick={() => navigate("/demande-transport")}
+                          className="flex-1 rounded-xl bg-primary text-primary-foreground text-xs font-display font-semibold py-2.5 hover:opacity-90 transition-opacity"
+                        >
+                          Faire une demande
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          </section>
         )}
       </main>
+
+      {/* Fiche complète */}
+      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+        <DialogContent className="max-w-lg">
+          {detail && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-display">Dompe #{dompeLabel(detail)}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <span
+                  className="inline-flex items-center gap-1.5 text-xs font-body px-2.5 py-1 rounded-full bg-secondary"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: availMeta(detail.availability_status).color }} />
+                  {availMeta(detail.availability_status).label}
+                  {detail.availability_note ? ` — ${detail.availability_note}` : ""}
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {leadMaterialKeys(detail).map((k) => (
+                    <span key={k} className="text-[11px] font-body px-2.5 py-1 rounded-full bg-secondary text-muted-foreground">
+                      {MATERIAL_COLORS[k].label}
+                    </span>
+                  ))}
+                </div>
+                <dl className="text-sm font-body divide-y divide-border/60 rounded-xl border border-border/70">
+                  <Row label="Secteur" value={detail.postal_prefix || "—"} />
+                  <Row label="Type" value={detail.request_type || "—"} />
+                  <Row label="Volume estimé" value={detail.tonnage || detail.quantity || "—"} />
+                  <Row label="Accessibilité" value={(detail.accessibility || []).join(", ") || "—"} />
+                  <Row
+                    label="Machinerie sur place"
+                    value={detail.machinery_available ? (detail.machinery_description || "Oui") : "Non"}
+                  />
+                  <Row label="Temps de réponse moyen" value="Moins de 30 minutes" />
+                </dl>
+                <div className="rounded-xl bg-secondary/50 border border-border/60 p-3 text-xs text-muted-foreground font-body flex gap-2">
+                  <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+                  Vrac Québec coordonne votre accès et vous transmet les consignes après confirmation.
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <button
+                    onClick={() => { setDetail(null); navigate("/demande-transport"); }}
+                    className="flex-1 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm py-3 hover:opacity-90 transition-opacity"
+                  >
+                    Faire une demande
+                  </button>
+                  <a
+                    href={`tel:${PHONE_PRIMARY}`}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-border text-sm font-body py-3 hover:border-foreground/30 transition-colors"
+                  >
+                    <Phone className="w-4 h-4" /> Téléphoner
+                  </a>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
+const Row = ({ label, value }: { label: string; value: string }) => (
+  <div className="flex items-start justify-between gap-4 px-3 py-2.5">
+    <dt className="text-muted-foreground">{label}</dt>
+    <dd className="text-right text-foreground">{value}</dd>
+  </div>
+);
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 const buildPopupHtml = (l: EntLead) => {
-  const statusLabel = l.is_assigned ? "Attribué" : l.status;
   const av = availMeta(l.availability_status);
-  const acc = l.accessibility && l.accessibility.length > 0 ? escapeHtml(l.accessibility.join(", ")) : "—";
-  const mach = l.machinery_available
-    ? `Oui${l.machinery_description ? ` — ${escapeHtml(l.machinery_description)}` : ""}`
-    : "Non";
-  const voyages = escapeHtml(l.tonnage || l.quantity || "—");
   const matKeys = Array.from(new Set((l.materials || []).map(materialKeyForId)));
   const matBadges = matKeys
     .map((k) => `<span class="ent-pop-mat" style="background:${MATERIAL_COLORS[k].color}">${escapeHtml(MATERIAL_COLORS[k].label)}</span>`)
     .join("");
   return `
     <div class="ent-pop-title">
-      <span>Dompe #${escapeHtml((l.dompe_number && l.dompe_number.trim()) || String(l.submission_number))}</span>
-      <span class="ent-pop-badge" style="background:${MARKER_COLOR}">${escapeHtml(statusLabel)}</span>
+      <span>Dompe #${escapeHtml(dompeLabel(l))}</span>
+      <span class="ent-pop-badge" style="background:${av.color}">${escapeHtml(av.label)}</span>
     </div>
-    <div class="ent-pop-row"><b>Disponibilité :</b> <span style="display:inline-block;padding:2px 8px;border-radius:999px;color:#fff;background:${av.color};font-weight:700">${av.dot} ${escapeHtml(av.label)}</span>${l.availability_note ? ` <span style="color:#666">— ${escapeHtml(l.availability_note)}</span>` : ""}</div>
     <div class="ent-pop-row"><b>Matériaux :</b><div class="ent-pop-mats">${matBadges || "—"}</div></div>
-    <div class="ent-pop-row"><b>Type :</b> ${escapeHtml(l.request_type || "—")}</div>
-    <div class="ent-pop-row"><b>Nombre de voyages :</b> ${voyages}</div>
-    <div class="ent-pop-row"><b>Accessibilité :</b> ${acc}</div>
-    <div class="ent-pop-row"><b>Machinerie sur place :</b> ${mach}</div>
     <div class="ent-pop-row"><b>Secteur :</b> ${escapeHtml(l.postal_prefix || "—")}</div>
+    <div class="ent-pop-row"><b>Volume estimé :</b> ${escapeHtml(l.tonnage || l.quantity || "—")}</div>
   `;
 };
 
