@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
 import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import {
@@ -90,6 +91,8 @@ const matchesMaterial = (dumpMaterials: string[], selected: string): boolean => 
 const TransportRequest = () => {
   const navigate = useNavigate();
   const { user } = useAuthReady();
+  const { profile, saveProfile } = useEntrepreneurProfile();
+  const [savingProfile, setSavingProfile] = useState(false);
   const [step, setStep] = useState<Step>(1);
   const [showMaterialHelper, setShowMaterialHelper] = useState(false);
   const [helperStep, setHelperStep] = useState(0);
@@ -127,6 +130,10 @@ const TransportRequest = () => {
   const [desiredDate, setDesiredDate] = useState<string>("");
   const [desiredTime, setDesiredTime] = useState<string>("");
   const [clientNotes, setClientNotes] = useState<string>("");
+  const [billingAddress, setBillingAddress] = useState("");
+  const [taxTps, setTaxTps] = useState("");
+  const [taxTvq, setTaxTvq] = useState("");
+  const [contactName, setContactName] = useState("");
   const [editIdentity, setEditIdentity] = useState<boolean>(false);
   const [profileLoaded, setProfileLoaded] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState(false);
