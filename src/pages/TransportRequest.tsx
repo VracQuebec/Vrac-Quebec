@@ -207,7 +207,7 @@ const TransportRequest = () => {
       if (!raw) return;
       const s = JSON.parse(raw);
       if (s.step) setStep(s.step);
-      if (s.material) setMaterial(s.material);
+      if (s.material && MATERIALS.some((m) => m.id === s.material)) setMaterial(s.material);
       if (s.address) setAddress(s.address);
       if (s.coords) setCoords(s.coords);
       if (s.city) setCity(s.city);
