@@ -111,9 +111,9 @@ const availLabel = (s: string | null | undefined) =>
 
 const matchesMaterial = (dumpMaterials: string[], selected: string): boolean => {
   const joined = (dumpMaterials || []).join("|").toLowerCase();
-  if (selected === "autre") return true;
-  if (selected === "remblai") return /remblai|remplissage|d[ée]p[ôo]t/.test(joined);
-  if (selected === "pierre_concassee") return /pierre|concass|gravier|roche/.test(joined);
+  if (!selected || selected === "autre") return true;
+  const profile = MATERIALS.find((m) => m.id === selected);
+  if (profile) return profile.keywords.test(joined);
   return joined.includes(selected);
 };
 
