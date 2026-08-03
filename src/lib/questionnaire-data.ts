@@ -131,6 +131,31 @@ export const REMBLAI_MATERIAL_OPTIONS = [
   "Autre",
 ] as const;
 
+import matTerre from "@/assets/materials/terre-propre.webp";
+import matTerreMelangee from "@/assets/materials/melange-terre-pierre.webp";
+import matSable from "@/assets/materials/sable.webp";
+import matGravier from "@/assets/materials/gravier.webp";
+import matPierre from "@/assets/materials/pierre.webp";
+import matRoches from "@/assets/materials/roc.webp";
+import matBeton from "@/assets/materials/beton.webp";
+import matAsphalte from "@/assets/materials/asphalte.webp";
+import matSouches from "@/assets/materials/souches.jpg";
+import matAutre from "@/assets/materials/autre.webp";
+
+/** Photo représentative pour chaque type de matériel (affichage seulement). */
+export const REMBLAI_MATERIAL_IMAGES: Record<string, string> = {
+  "Terre": matTerre,
+  "Terre mélangée": matTerreMelangee,
+  "Sable": matSable,
+  "Gravier": matGravier,
+  "Pierre": matPierre,
+  "Roches": matRoches,
+  "Béton": matBeton,
+  "Asphalte": matAsphalte,
+  "Souches": matSouches,
+  "Autre": matAutre,
+};
+
 export const REMBLAI_TRUCK_OPTIONS = [
   "Camion 6 roues",
   "Camion 10 roues",
