@@ -299,6 +299,12 @@ const TransportRequest = () => {
   const hasProgress = () =>
     step > 1 || !!material || !!address || !!quantity || !!clientName || !!clientPhone;
 
+  // Signale au bandeau de navigation universel qu'une saisie est en cours.
+  useUnsavedChangesGuard(
+    step < 6 &&
+      (step > 1 || !!material || !!address || !!quantity || !!clientName || !!clientPhone),
+  );
+
   // Hydrate from localStorage on mount → offer to resume
   useEffect(() => {
     try {
