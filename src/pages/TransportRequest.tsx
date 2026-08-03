@@ -89,6 +89,65 @@ const MATERIALS: MaterialProfile[] = [
 
 const HUMIDITY_OPTIONS = ["Sec", "Humide", "Détrempé"];
 
+/* ------------------------------------------------------------------
+   Regroupement UI des catégories de remblai (présentation uniquement).
+   Chaque sous-type renvoie EXACTEMENT un identifiant MATERIALS existant :
+   le moteur de recommandations reçoit les mêmes valeurs qu'avant.
+------------------------------------------------------------------- */
+interface MaterialSubtype { key: string; label: string; desc?: string; id: string }
+interface MaterialGroup { key: string; label: string; image: string; subtypes: MaterialSubtype[] }
+
+const MATERIAL_GROUPS: MaterialGroup[] = [
+  {
+    key: "terre", label: "Terre", image: imgTerrePropre,
+    subtypes: [
+      { key: "terre_propre", label: "Terre propre", desc: "Sans pierre ni débris.", id: "terre_propre" },
+      { key: "terre_gravier", label: "Terre avec gravier", desc: "Mélangée à de la petite pierre.", id: "terre_gravier" },
+      { key: "terre_argileuse", label: "Terre argileuse", desc: "Lourde, collante, peu drainante.", id: "terre_argileuse" },
+      { key: "terre_vegetale", label: "Terre végétale", desc: "Couche de surface organique.", id: "terre_propre" },
+      { key: "terre_noire", label: "Terre noire", desc: "Terre riche, foncée.", id: "terre_propre" },
+      { key: "terre_autre", label: "Autre type de terre", desc: "Décrivez-la, on vous guide.", id: "autre" },
+    ],
+  },
+  { key: "sable", label: "Sable", image: imgSable, subtypes: [
+      { key: "sable", label: "Sable", desc: "Sable d'excavation ou de tranchée.", id: "sable" },
+      { key: "sable_autre", label: "Autre", desc: "Sable particulier à décrire.", id: "autre" },
+  ] },
+  { key: "gravier", label: "Gravier", image: imgGravier, subtypes: [
+      { key: "gravier", label: "Gravier", desc: "Fondation, entrée, chemin.", id: "gravier" },
+      { key: "gravier_terre", label: "Gravier mélangé de terre", desc: "Excavation mixte.", id: "melange_terre_pierre" },
+      { key: "gravier_autre", label: "Autre", desc: "À décrire.", id: "autre" },
+  ] },
+  { key: "pierre", label: "Pierre", image: imgPierre, subtypes: [
+      { key: "pierre_concassee", label: "Pierre concassée", desc: "Calibre concassé.", id: "pierre" },
+      { key: "pierre_nette", label: "Pierre nette", desc: "Lavée, sans fines.", id: "pierre" },
+      { key: "melange_pierre", label: "Mélange pierre / terre", desc: "Excavation mixte.", id: "melange_terre_pierre" },
+      { key: "pierre_autre", label: "Autre", desc: "À décrire.", id: "autre" },
+  ] },
+  { key: "roc", label: "Roc", image: imgRoc, subtypes: [
+      { key: "roc", label: "Roc / dynamitage", desc: "Blocs d'excavation.", id: "roc" },
+      { key: "roc_autre", label: "Autre", desc: "À décrire.", id: "autre" },
+  ] },
+  { key: "beton", label: "Béton", image: imgBeton, subtypes: [
+      { key: "beton_concasse", label: "Béton concassé", desc: "Béton broyé.", id: "beton" },
+      { key: "dalles_beton", label: "Dalles de béton", desc: "Morceaux de dalle.", id: "beton" },
+      { key: "fondation", label: "Fondation", desc: "Démolition de fondation.", id: "beton" },
+      { key: "beton_autre", label: "Autre", desc: "À décrire.", id: "autre" },
+  ] },
+  { key: "asphalte", label: "Asphalte", image: imgAsphalte, subtypes: [
+      { key: "asphalte", label: "Asphalte / planage", desc: "Morceaux ou planage.", id: "asphalte" },
+      { key: "asphalte_autre", label: "Autre", desc: "À décrire.", id: "autre" },
+  ] },
+  { key: "mixtes", label: "Matériaux mixtes", image: imgMateriauxMixtes, subtypes: [
+      { key: "materiaux_mixtes", label: "Matériaux mixtes", desc: "Excavation variée, débris possibles.", id: "materiaux_mixtes" },
+      { key: "melange_terre_pierre", label: "Mélange terre / pierre", desc: "Terre et pierre combinées.", id: "melange_terre_pierre" },
+      { key: "mixtes_autre", label: "Autre", desc: "À décrire.", id: "autre" },
+  ] },
+  { key: "autre", label: "Autre", image: imgAutre, subtypes: [
+      { key: "autre", label: "Autre (description)", desc: "Matériel particulier — décrivez-le.", id: "autre" },
+  ] },
+];
+
 const STEP_LABELS = [
   { n: 1, label: "Remblai", icon: "📦" },
   { n: 2, label: "Chantier", icon: "📍" },
