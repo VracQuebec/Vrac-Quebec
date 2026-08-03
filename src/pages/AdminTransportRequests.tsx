@@ -6,7 +6,8 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import FullPageState from "@/components/FullPageState";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Phone, Mail, MapPin, ArrowLeft, X, Clock } from "lucide-react";
-import { ACCESS_STATUSES, normalizeStatus, statusMeta } from "@/lib/access-requests/status";
+import { ACCESS_STATUSES, normalizeStatus, statusMeta, statusLabel } from "@/lib/access-requests/status";
+import AccessRequestStats from "@/components/admin/AccessRequestStats";
 
 interface TR {
   id: string;
@@ -144,6 +145,8 @@ const AdminTransportRequests = () => {
       </header>
 
       <main className="container mx-auto px-4 py-4">
+        <AccessRequestStats />
+
         {/* Status pills */}
         <div className="flex flex-wrap gap-1.5 mb-4">
           <StatusPill label={`Toutes (${counts.all})`} active={statusFilter === "all"} onClick={() => setStatusFilter("all")} />
@@ -341,12 +344,16 @@ const AdminTransportRequests = () => {
                     {history.slice(0, 20).map((h) => (
                       <li key={h.id} className="p-2 bg-muted/30 rounded border border-border">
                         <div className="flex items-center justify-between mb-0.5">
-                          <b>{h.field_key}</b>
+                          <b>{FIELD_LABELS[h.field_key] || h.field_key}</b>
                           <span className="text-muted-foreground">{new Date(h.created_at).toLocaleString("fr-CA")}</span>
                         </div>
-                        <div className="text-muted-foreground">
-                          {formatVal(h.old_value)} → <span className="text-foreground">{formatVal(h.new_value)}</span>
-                        </div>
+                        {h.field_key === "created" ? (
+                          <div className="text-muted-foreground">Demande reçue via l'assistant.</div>
+                        ) : (
+                          <div className="text-muted-foreground">
+                            {formatHistoryVal(h.field_key, h.old_value)} → <span className="text-foreground">{formatHistoryVal(h.field_key, h.new_value)}</span>
+                          </div>
+                        )}
                         {h.user_email && <div className="text-muted-foreground mt-0.5">par {h.user_email}</div>}
                       </li>
                     ))}
@@ -372,6 +379,26 @@ const StatusPill = ({ label, active, color, onClick }: { label: string; active: 
     {label}
   </button>
 );
+
+const FIELD_LABELS: Record<string, string> = {
+  created: "Demande créée",
+  status: "Statut modifié",
+  internal_notes: "Note interne",
+  owner_contacted: "Propriétaire contacté",
+  owner_contacted_at: "Date de contact du propriétaire",
+  assigned_dispatcher: "Responsable assigné",
+  driver_id: "Chauffeur assigné",
+  truck_id: "Camion assigné",
+  desired_date: "Date souhaitée",
+  desired_time: "Heure souhaitée",
+  dump_name: "Dompe sélectionnée",
+};
+
+const formatHistoryVal = (field: string, v: any) => {
+  if (field === "status") return statusLabel(formatVal(v));
+  if (field === "owner_contacted") return formatVal(v) === "true" ? "Oui" : "Non";
+  return formatVal(v);
+};
 
 const formatVal = (v: any) => {
   if (v === null || v === undefined) return "—";
