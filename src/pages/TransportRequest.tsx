@@ -1347,28 +1347,46 @@ const TransportRequest = () => {
               )}
             </div>
 
-            {/* Identity — prefilled from the entrepreneur profile when signed in */}
-            {user && profileLoaded && !editIdentity ? (
-              <div className="bg-muted/40 rounded-xl border border-border p-4 mb-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-display font-bold uppercase text-muted-foreground tracking-wide mb-1">
+            {/* Identity — prefilled (read-only) from the entrepreneur profile when signed in */}
+            {user ? (
+              <div className="mb-4">
+                <div className="bg-muted/40 rounded-xl border border-border p-4">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <p className="text-[10px] font-display font-bold uppercase text-muted-foreground tracking-wide">
                       Demande faite au nom de
                     </p>
-                    <p className="font-display font-bold text-base truncate">
-                      {clientName}{clientCompany ? ` — ${clientCompany}` : ""}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {clientPhone}{clientEmail ? ` · ${clientEmail}` : ""}
-                    </p>
+                    <Link
+                      to="/entrepreneur/compte"
+                      className="text-xs font-display font-semibold text-primary hover:underline flex-shrink-0"
+                    >
+                      Modifier mes informations
+                    </Link>
                   </div>
-                  <button
-                    onClick={() => setEditIdentity(true)}
-                    className="text-xs font-display font-semibold text-primary hover:underline flex-shrink-0"
-                  >
-                    Modifier
-                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                    <ReadOnlyRow label="Nom du contact" value={contactName || clientName} />
+                    <ReadOnlyRow label="Entreprise" value={clientCompany} />
+                    <ReadOnlyRow label="Téléphone" value={clientPhone} />
+                    <ReadOnlyRow label="Courriel" value={clientEmail} />
+                    {billingAddress && (
+                      <ReadOnlyRow label="Adresse de facturation" value={billingAddress} />
+                    )}
+                  </div>
                 </div>
+
+                {profileLoaded && (!clientPhone.trim() || !clientCompany.trim()) && (
+                  <div className="mt-3 rounded-xl border-2 border-amber-400/60 bg-amber-50 dark:bg-amber-950/30 p-4">
+                    <p className="text-sm font-body text-foreground">
+                      Certaines informations de votre profil sont manquantes. Complétez votre profil
+                      pour poursuivre.
+                    </p>
+                    <Link
+                      to="/entrepreneur/compte"
+                      className="mt-3 inline-flex items-center rounded-lg bg-primary px-3.5 py-2 font-display font-bold text-xs text-primary-foreground"
+                    >
+                      Compléter mon profil
+                    </Link>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="mb-4">
@@ -1377,30 +1395,7 @@ const TransportRequest = () => {
                   <Field label="Entreprise" value={clientCompany} onChange={setClientCompany} placeholder="Construction ABC inc." />
                   <Field label="Téléphone *" value={clientPhone} onChange={setClientPhone} placeholder="418-555-0000" type="tel" />
                   <Field label="Courriel" value={clientEmail} onChange={setClientEmail} placeholder="vous@exemple.com" type="email" />
-                  {user && (
-                    <>
-                      <Field label="Contact principal" value={contactName} onChange={setContactName} placeholder="Personne-ressource" />
-                      <Field label="Adresse de facturation" value={billingAddress} onChange={setBillingAddress} placeholder="123 rue Principale, Québec" />
-                      <Field label="Numéro TPS" value={taxTps} onChange={setTaxTps} placeholder="123456789 RT0001" />
-                      <Field label="Numéro TVQ" value={taxTvq} onChange={setTaxTvq} placeholder="1234567890 TQ0001" />
-                    </>
-                  )}
                 </div>
-                {user && (
-                  <div className="mt-3 flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={updateProfile}
-                      disabled={savingProfile}
-                      className="px-3.5 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-xs disabled:opacity-60"
-                    >
-                      {savingProfile ? "Enregistrement…" : "Mettre à jour mon profil"}
-                    </button>
-                    <span className="text-xs text-muted-foreground">
-                      Sans cette action, les modifications s'appliquent uniquement à cette demande.
-                    </span>
-                  </div>
-                )}
               </div>
             )}
 
