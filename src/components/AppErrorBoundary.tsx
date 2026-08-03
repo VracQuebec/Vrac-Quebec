@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { RefreshCcw, Truck } from "lucide-react";
+import { ArrowLeft, Home, RefreshCcw, Truck } from "lucide-react";
 
 interface Props {
   children: ReactNode;
@@ -65,14 +65,32 @@ class AppErrorBoundary extends Component<Props, State> {
           <p className="mt-2 text-sm text-muted-foreground font-body">
             Une erreur temporaire a été détectée. Rechargez la page pour reprendre votre session.
           </p>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 font-display font-bold text-primary-foreground"
-          >
-            <RefreshCcw className="w-4 h-4" />
-            Recharger
-          </button>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 font-display font-bold text-primary-foreground"
+            >
+              <RefreshCcw className="w-4 h-4" />
+              Réessayer
+            </button>
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-5 py-3 font-display font-bold text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Retour
+            </button>
+            <button
+              type="button"
+              onClick={() => { window.location.href = "/"; }}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-5 py-3 font-display font-bold text-foreground"
+            >
+              <Home className="w-4 h-4" />
+              Accueil
+            </button>
+          </div>
         </div>
       </div>
     );

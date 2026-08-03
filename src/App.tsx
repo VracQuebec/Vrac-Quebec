@@ -7,6 +7,7 @@ import { useEffect, lazy, Suspense } from "react";
 import Index from "./pages/Index";
 import SessionKeeper from "./components/SessionKeeper";
 import AppErrorBoundary from "./components/AppErrorBoundary";
+import UniversalNav from "./components/UniversalNav";
 import { trackPageView } from "./lib/analytics/ga4";
 import { useAdminNotifications } from "./hooks/useAdminNotifications";
 
@@ -104,6 +105,7 @@ const App = () => (
           <Ga4RouteTracker />
           <SessionKeeper />
           <AdminNotificationsMount />
+          <UniversalNav />
           <Suspense fallback={null}>
           <Routes>
             <Route path="/" element={<Index />} />

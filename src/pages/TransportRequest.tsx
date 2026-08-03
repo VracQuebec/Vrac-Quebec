@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
+import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
 import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 
@@ -298,6 +299,12 @@ const TransportRequest = () => {
 
   const hasProgress = () =>
     step > 1 || !!material || !!address || !!quantity || !!clientName || !!clientPhone;
+
+  // Signale au bandeau de navigation universel qu'une saisie est en cours.
+  useUnsavedChangesGuard(
+    step < 6 &&
+      (step > 1 || !!material || !!address || !!quantity || !!clientName || !!clientPhone),
+  );
 
   // Hydrate from localStorage on mount → offer to resume
   useEffect(() => {

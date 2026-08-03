@@ -23,6 +23,7 @@ import {
   type AssistantCategory, type AssistantMaterial,
 } from "@/lib/jsc/assistant";
 import type { PublicQuote } from "@/lib/jsc/engine";
+import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
 
 const STEPS = ["Matériau", "Type", "Quantité", "Livraison", "Date", "Coordonnées", "Estimation"];
 const money = (n: number) =>
@@ -55,6 +56,11 @@ export default function Soumission() {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState<{ number: string; quote: PublicQuote } | null>(null);
+
+  // Bandeau de navigation universel : prévient avant de quitter une saisie en cours.
+  useUnsavedChangesGuard(
+    !confirmation && (step > 0 || !!material || !!address || !!contact.name || !!contact.phone),
+  );
 
   useEffect(() => {
     fetchCatalog()
