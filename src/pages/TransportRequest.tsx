@@ -1143,7 +1143,13 @@ const TransportRequest = () => {
 
         {/* Navigation */}
         {step < 6 && (
-          <div className="flex justify-between mt-8 pt-4 border-t border-border">
+          <div className="mt-8 pt-4 border-t border-border">
+            {missingFields.length > 0 && (
+              <p className="mb-3 text-xs font-body text-destructive">
+                Champs à compléter : {missingFields.join(", ")}
+              </p>
+            )}
+            <div className="flex justify-between">
             <button
               onClick={back}
               disabled={step === 1}
@@ -1160,6 +1166,7 @@ const TransportRequest = () => {
               {step === 5 ? "Envoyer ma demande d'accès" : "Continuer"}
               {step !== 5 && !submitting && <ChevronRight className="w-4 h-4" />}
             </button>
+            </div>
           </div>
         )}
       </main>
