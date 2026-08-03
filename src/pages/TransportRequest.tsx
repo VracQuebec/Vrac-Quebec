@@ -1532,8 +1532,8 @@ const ConfirmationView = ({
 }) => {
   const downloadSummary = () => {
     const lines = [
-      "VRAC QUÉBEC — PLATEFORME DE DISPOSITION DE REMBLAI
-RÉSUMÉ DE LA DEMANDE D'ACCÈS À LA DOMPE",
+      "VRAC QUÉBEC — PLATEFORME DE DISPOSITION DE REMBLAI",
+      "RÉSUMÉ DE LA DEMANDE D'ACCÈS À LA DOMPE",
       "================================================",
       `Numéro de demande : ${requestNumber || "—"}`,
       `Date : ${new Date().toLocaleString("fr-CA")}`,
