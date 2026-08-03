@@ -377,14 +377,14 @@ const Questionnaire = ({ sourcePageSlug }: { sourcePageSlug?: string } = {}) => 
               return;
             }
             setService(key);
-            if (key === "remblai_disposition") {
-              setRemblaiMode(true);
-              update({ materials: [], otherMaterial: "", propertyType: "Remplissage / remblai" });
-              setStep(1);
-            } else {
-              setRemblaiMode(false);
-              setStep(0);
-            }
+            // Les deux parcours remblai partagent le même formulaire (aucun champ retiré) ;
+            // seuls l'habillage et le sens de la demande changent.
+            setRemblaiMode(true);
+            update({
+              propertyType: "Remplissage / remblai",
+              deliverOrRemove: key === "remblai_disposition" ? "À sortir du chantier" : "À livrer",
+            });
+            setStep(1);
           }}
         />
       )}
@@ -430,7 +430,13 @@ const Questionnaire = ({ sourcePageSlug }: { sourcePageSlug?: string } = {}) => 
 
       {service && step > 0 && isRemblai && (
         <div>
-          <RemblaiForm data={data} onChange={update} onSubmit={handleSubmit} loading={loading} />
+          <RemblaiForm
+            data={data}
+            onChange={update}
+            onSubmit={handleSubmit}
+            loading={loading}
+            variant={service === "remblai_disposition" ? "disposition" : "recherche"}
+          />
         </div>
       )}
 
