@@ -69,6 +69,7 @@ const AdminOperations = lazy(() => import("./pages/AdminOperations"));
 const AdminJsc = lazy(() => import("./pages/AdminJsc"));
 const OpsCenter = lazy(() => import("./pages/OpsCenter"));
 const AdminIaCenter = lazy(() => import("./pages/AdminIaCenter"));
+const AdminOrchestrator = lazy(() => import("./pages/AdminOrchestrator"));
 
 const queryClient = new QueryClient();
 
@@ -155,6 +156,7 @@ const App = () => (
             <Route path="/admin/intelligence" element={<AdminIntelligence />} />
             <Route path="/admin/direction" element={<AdminDirection />} />
             <Route path="/admin/ia" element={<AdminIaCenter />} />
+            <Route path="/admin/orchestrateur" element={<AdminOrchestrator />} />
             {/* Alias historique — redirige vers la route canonique */}
             <Route path="/admin/seo-manager" element={<Navigate to="/admin/seo" replace />} />
             <Route path="/livraison" element={<ZonesIndex />} />
