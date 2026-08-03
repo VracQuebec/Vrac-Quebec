@@ -402,9 +402,10 @@ const TransportRequest = () => {
     // a duplicate row.
     if (!idempotencyRef.current) idempotencyRef.current = newIdempotencyKey();
 
-    const result = await submitTransportRequest({
+    try {
+      const result = await submitTransportRequest({
       idempotency_key: idempotencyRef.current,
-      client_name: clientName.trim(),
+      client_name: clientName.trim() || clientCompany.trim() || clientEmail.trim() || "Entrepreneur",
       client_company: clientCompany.trim() || null,
       client_phone: clientPhone.trim(),
       client_email: clientEmail.trim() || null,
@@ -428,10 +429,15 @@ const TransportRequest = () => {
       source: user ? "wizard_authenticated" : "wizard_public",
     });
 
-    setSubmitting(false);
-    setConfirmationMode(result.status);
-    setConfirmedNumber(result.request_number ?? null);
-    setStep(6);
+      setConfirmationMode(result.status);
+      setConfirmedNumber(result.request_number ?? null);
+      setStep(6);
+    } catch (e: any) {
+      console.error("[TransportRequest] submit failed", e);
+      toast({ title: "Envoi impossible", description: e?.message ?? "Erreur inconnue", variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Validation: only real missing requirements block the button. When the user
