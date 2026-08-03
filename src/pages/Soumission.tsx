@@ -17,10 +17,11 @@ import { toast } from "@/hooks/use-toast";
 import {
   AdvisorPanel, StepAddress, StepCategory, StepContact, StepDate,
   StepMaterial, StepQuantity, type ContactState,
+  dimsToCubicMeters, type DimUnit, type QuantityMode,
 } from "@/components/soumission/AssistantSteps";
 import {
   confirmEstimate, fetchCatalog, requestEstimate,
-  type AssistantCategory, type AssistantMaterial,
+  type AssistantCategory, type AssistantMaterial, type AssistantTruck,
 } from "@/lib/jsc/assistant";
 import type { PublicQuote } from "@/lib/jsc/engine";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
