@@ -303,7 +303,7 @@ export default function AdminBusinessIntelligence() {
       { label: "Ce mois-ci", value: data.counts.month, icon: Calendar },
       { label: `Demandes (${RANGE_LABELS[range]})`, value: data.counts.rangeSubs, delta: pct(data.counts.rangeSubs, data.counts.rangeSubsPrev), icon: TrendingUp },
       { label: "Demandes transport", value: data.counts.trReq, delta: pct(data.counts.trReq, data.counts.trReqPrev), icon: Truck },
-      { label: "Transports terminés", value: data.trStatus.done, icon: Truck },
+      { label: "Demandes d'accès terminées", value: data.trStatus.done, icon: Truck },
       { label: "Assignées à un entrepreneur", value: data.counts.assigned, delta: pct(data.counts.assigned, data.counts.assignedPrev), icon: Users },
       { label: "Taux de conversion", value: `${data.counts.conversionRate}%`, icon: Target, hint: "Demandes assignées / demandes reçues" },
       { label: "Revenus facturés", value: fmtCurrency(data.counts.revenue), delta: pct(data.counts.revenue, data.counts.revenuePrev), icon: Package },

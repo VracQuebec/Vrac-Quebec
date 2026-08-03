@@ -6,18 +6,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import FullPageState from "@/components/FullPageState";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Phone, Mail, MapPin, ArrowLeft, X, Clock } from "lucide-react";
-
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  nouvelle: { label: "Nouvelle", color: "#3b82f6" },
-  a_rappeler: { label: "À rappeler", color: "#f59e0b" },
-  en_analyse: { label: "En analyse", color: "#8b5cf6" },
-  soumission_envoyee: { label: "Soumission envoyée", color: "#06b6d4" },
-  acceptee: { label: "Acceptée", color: "#10b981" },
-  planifiee: { label: "Planifiée", color: "#84cc16" },
-  en_cours: { label: "En cours", color: "#eab308" },
-  terminee: { label: "Terminée", color: "#22c55e" },
-  annulee: { label: "Annulée", color: "#ef4444" },
-};
+import { ACCESS_STATUSES, normalizeStatus, statusMeta } from "@/lib/access-requests/status";
 
 interface TR {
   id: string;
@@ -28,6 +17,14 @@ interface TR {
   client_email: string | null;
   site_address: string;
   site_city: string | null;
+  site_latitude: number | null;
+  site_longitude: number | null;
+  source: string | null;
+  client_notes: string | null;
+  material_other: string | null;
+  owner_contacted: boolean | null;
+  owner_contacted_at: string | null;
+  alternative_dumps: any;
   material_type: string;
   quantity: number | null;
   quantity_unit: string | null;
@@ -112,14 +109,22 @@ const AdminTransportRequests = () => {
     if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
   };
 
+  const updateOwnerContacted = async (id: string, contacted: boolean) => {
+    const { error } = await supabase
+      .from("transport_requests")
+      .update({ owner_contacted: contacted, owner_contacted_at: contacted ? new Date().toISOString() : null } as any)
+      .eq("id", id);
+    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+  };
+
   const filtered = useMemo(
-    () => (statusFilter === "all" ? rows : rows.filter((r) => r.status === statusFilter)),
+    () => (statusFilter === "all" ? rows : rows.filter((r) => normalizeStatus(r.status) === statusFilter)),
     [rows, statusFilter]
   );
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: rows.length };
-    Object.keys(STATUS_LABELS).forEach((k) => (c[k] = rows.filter((r) => r.status === k).length));
+    ACCESS_STATUSES.forEach((s) => (c[s.value] = rows.filter((r) => normalizeStatus(r.status) === s.value).length));
     return c;
   }, [rows]);
 
@@ -132,7 +137,7 @@ const AdminTransportRequests = () => {
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/admin" className="p-1.5 rounded hover:bg-muted"><ArrowLeft className="w-4 h-4" /></Link>
-            <h1 className="font-display font-bold text-lg">Demandes de transport</h1>
+            <h1 className="font-display font-bold text-lg">Demandes d'accès aux dompes</h1>
             <span className="text-xs text-muted-foreground font-body">({rows.length})</span>
           </div>
         </div>
@@ -142,13 +147,13 @@ const AdminTransportRequests = () => {
         {/* Status pills */}
         <div className="flex flex-wrap gap-1.5 mb-4">
           <StatusPill label={`Toutes (${counts.all})`} active={statusFilter === "all"} onClick={() => setStatusFilter("all")} />
-          {Object.entries(STATUS_LABELS).map(([k, v]) => (
+          {ACCESS_STATUSES.map((s) => (
             <StatusPill
-              key={k}
-              label={`${v.label} (${counts[k] || 0})`}
-              color={v.color}
-              active={statusFilter === k}
-              onClick={() => setStatusFilter(k)}
+              key={s.value}
+              label={`${s.label} (${counts[s.value] || 0})`}
+              color={s.color}
+              active={statusFilter === s.value}
+              onClick={() => setStatusFilter(s.value)}
             />
           ))}
         </div>
@@ -186,13 +191,13 @@ const AdminTransportRequests = () => {
                     <td className="px-3 py-2">
                       <span
                         className="inline-block px-2 py-0.5 rounded-full text-[10px] font-display font-bold text-white"
-                        style={{ background: STATUS_LABELS[r.status]?.color || "#666" }}
+                        style={{ background: statusMeta(r.status).color }}
                       >
-                        {STATUS_LABELS[r.status]?.label || r.status}
+                        {statusMeta(r.status).label}
                       </span>
                     </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground">
-                      {new Date(r.created_at).toLocaleDateString("fr-CA", { day: "2-digit", month: "short" })}
+                      {new Date(r.created_at).toLocaleString("fr-CA", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                     </td>
                   </tr>
                 ))}
@@ -222,17 +227,33 @@ const AdminTransportRequests = () => {
               <section>
                 <label className="block text-xs font-display font-bold uppercase text-muted-foreground mb-1">Statut</label>
                 <select
-                  value={selected.status}
+                  value={normalizeStatus(selected.status)}
                   onChange={(e) => {
                     updateStatus(selected.id, e.target.value);
                     setSelected({ ...selected, status: e.target.value });
                   }}
                   className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm"
                 >
-                  {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>{v.label}</option>
+                  {ACCESS_STATUSES.map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
                 </select>
+                <label className="mt-2 flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={!!selected.owner_contacted}
+                    onChange={(e) => {
+                      updateOwnerContacted(selected.id, e.target.checked);
+                      setSelected({ ...selected, owner_contacted: e.target.checked });
+                    }}
+                  />
+                  Propriétaire de la dompe contacté
+                  {selected.owner_contacted_at && (
+                    <span className="text-xs text-muted-foreground">
+                      ({new Date(selected.owner_contacted_at).toLocaleDateString("fr-CA")})
+                    </span>
+                  )}
+                </label>
               </section>
 
               <section className="bg-card rounded-lg border border-border p-3">
@@ -249,10 +270,22 @@ const AdminTransportRequests = () => {
               <section className="bg-card rounded-lg border border-border p-3">
                 <h3 className="font-display font-bold text-sm mb-2">Chantier</h3>
                 <div className="flex items-start gap-1.5 text-sm"><MapPin className="w-3.5 h-3.5 mt-0.5 text-muted-foreground" />{selected.site_address}</div>
+                {selected.site_city && <div className="text-xs text-muted-foreground mt-1">{selected.site_city}</div>}
+                {selected.site_latitude != null && selected.site_longitude != null && (
+                  <a
+                    className="text-xs text-primary"
+                    href={`https://www.google.com/maps/search/?api=1&query=${selected.site_latitude},${selected.site_longitude}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    GPS {selected.site_latitude.toFixed(5)}, {selected.site_longitude.toFixed(5)}
+                  </a>
+                )}
               </section>
 
               <section className="bg-card rounded-lg border border-border p-3 grid grid-cols-2 gap-2 text-sm">
                 <div><b>Matériau :</b> {selected.material_type}</div>
+                <div><b>Sous-type :</b> {selected.material_other || "—"}</div>
                 <div><b>Quantité :</b> {selected.quantity ? `${selected.quantity} ${selected.quantity_unit}` : "—"}</div>
                 <div><b>Dompe :</b> {selected.dump_name || "—"}</div>
                 <div><b>Distance :</b> {selected.distance_km ? `${selected.distance_km} km` : "—"}</div>
@@ -260,7 +293,33 @@ const AdminTransportRequests = () => {
                 <div><b>Voyages :</b> {selected.estimated_trips || "—"}</div>
                 <div><b>Date :</b> {selected.desired_date || "—"}</div>
                 <div><b>Heure :</b> {selected.desired_time || "—"}</div>
+                <div><b>Temps estimé :</b> {selected.travel_time_minutes ? `${selected.travel_time_minutes} min` : "—"}</div>
+                <div><b>Source :</b> {selected.source || "—"}</div>
+                <div className="col-span-2"><b>Reçue le :</b> {new Date(selected.created_at).toLocaleString("fr-CA")}</div>
               </section>
+
+              {Array.isArray(selected.alternative_dumps) && selected.alternative_dumps.length > 0 && (
+                <section className="bg-card rounded-lg border border-border p-3">
+                  <h3 className="font-display font-bold text-sm mb-2">Dompes alternatives</h3>
+                  <ul className="space-y-1 text-xs">
+                    {selected.alternative_dumps.map((d: any, i: number) => (
+                      <li key={i} className="flex justify-between gap-2">
+                        <span>{d.name || d.dump_name || "Dompe"}</span>
+                        <span className="text-muted-foreground">
+                          {d.distance_km ? `${d.distance_km} km` : ""}{d.duration_minutes ? ` • ${d.duration_minutes} min` : ""}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {selected.client_notes && (
+                <section className="bg-card rounded-lg border border-border p-3">
+                  <h3 className="font-display font-bold text-sm mb-2">Notes de l'entrepreneur</h3>
+                  <p className="text-xs whitespace-pre-line text-muted-foreground">{selected.client_notes}</p>
+                </section>
+              )}
 
               <section>
                 <label className="block text-xs font-display font-bold uppercase text-muted-foreground mb-1">Notes internes</label>

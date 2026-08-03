@@ -212,8 +212,8 @@ function DispatchTab({ onApplied }: { onApplied: () => void }) {
     setLoading(true);
     const { data } = await supabase
       .from("transport_requests" as any)
-      .select("id, request_number, client_name, project_city, materials, quantity_estimate, status, created_at")
-      .in("status", ["nouvelle","a_rappeler","en_analyse","soumission_envoyee","acceptee"])
+      .select("id, request_number, client_name, site_city, material_type, quantity, quantity_unit, status, created_at")
+      .in("status", ["nouvelle","a_rappeler","en_analyse","soumission_envoyee","en_attente_proprietaire","acceptee"])
       .order("created_at", { ascending: false })
       .limit(50);
     setRequests((data as any) ?? []);
@@ -256,7 +256,7 @@ function DispatchTab({ onApplied }: { onApplied: () => void }) {
               <div className="flex justify-between items-start gap-2">
                 <div>
                   <div className="font-display font-semibold text-sm text-foreground">{r.request_number || "—"} · {r.client_name || "Client"}</div>
-                  <div className="text-xs text-muted-foreground font-body mt-0.5">{r.project_city || "—"} · {(r.materials || []).join(", ") || "—"} · {r.quantity_estimate || "?"}</div>
+                  <div className="text-xs text-muted-foreground font-body mt-0.5">{r.site_city || "—"} · {r.material_type || "—"} · {r.quantity ? `${r.quantity} ${r.quantity_unit || ""}` : "?"}</div>
                   <div className="text-[11px] text-muted-foreground font-body mt-1">{r.status}</div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
@@ -540,7 +540,7 @@ function TripDetail({ trip, onAdvance }: { trip: Trip; onAdvance: (s: TripStatus
       </div>
 
       {trip.transport_request_id && (
-        <Link to={`/admin/demandes-transport`} className="block text-xs text-primary hover:underline font-body">→ Voir la demande de transport</Link>
+        <Link to={`/admin/demandes-acces`} className="block text-xs text-primary hover:underline font-body">→ Voir la demande d'accès</Link>
       )}
     </div>
   );
@@ -594,7 +594,7 @@ function AutomationsTab() {
         <h3 className="font-display font-bold text-foreground mb-2">Chaînage automatique</h3>
         <ul className="text-sm font-body text-muted-foreground space-y-1">
           <li>• Changement de statut → historique + activité CRM + timestamps auto.</li>
-          <li>• Statut voyage → mise à jour de la demande de transport (mapping intelligent).</li>
+          <li>• Statut voyage → mise à jour de la demande d'accès (mapping intelligent).</li>
           <li>• Client, transporteur, dompe → mise à jour de « Dernière activité ».</li>
           <li>• Temps réel diffusé sur tous les postes admin connectés.</li>
           <li>• Prochaines intégrations : notifications email/SMS, facturation, signature, app chauffeur.</li>

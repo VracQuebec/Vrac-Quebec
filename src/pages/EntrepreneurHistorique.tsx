@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { statusMeta } from "@/lib/access-requests/status";
 import EntrepreneurShell from "@/components/EntrepreneurShell";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { Loader2, MapPin } from "lucide-react";
@@ -27,7 +28,7 @@ const EntrepreneurHistorique = () => {
         .from("transport_requests")
         .select("id, request_number, status, material_type, site_city, site_address, created_at")
         .eq("user_id", user.id)
-        .in("status", ["terminee", "annulee"])
+        .in("status", ["terminee", "annulee", "refusee"])
         .order("created_at", { ascending: false });
       setRequests((data as any) || []);
       setLoading(false);
@@ -49,8 +50,8 @@ const EntrepreneurHistorique = () => {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-display font-bold text-sm">{r.request_number || `#${r.id.slice(0, 8)}`}</span>
-                  <span className="text-[10px] uppercase font-display font-bold px-2 py-0.5 rounded-full text-white" style={{ background: r.status === "terminee" ? "#3b82f6" : "#ef4444" }}>
-                    {r.status === "terminee" ? "Terminée" : "Annulée"}
+                  <span className="text-[10px] uppercase font-display font-bold px-2 py-0.5 rounded-full text-white" style={{ background: statusMeta(r.status).color }}>
+                    {statusMeta(r.status).label}
                   </span>
                 </div>
                 <p className="text-sm truncate">{r.material_type}</p>

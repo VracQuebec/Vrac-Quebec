@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import EntrepreneurShell from "@/components/EntrepreneurShell";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { Loader2, Sparkles, ArrowRight, MapPin } from "lucide-react";
+import { statusMeta } from "@/lib/access-requests/status";
 
 interface Req {
   id: string;
@@ -17,17 +18,6 @@ interface Req {
   desired_date: string | null;
 }
 
-const STATUS_META: Record<string, { label: string; color: string; bucket: "pending" | "accepted" | "completed" | "refused" }> = {
-  nouvelle: { label: "Nouvelle", color: "#f59e0b", bucket: "pending" },
-  a_rappeler: { label: "À rappeler", color: "#f59e0b", bucket: "pending" },
-  en_analyse: { label: "En analyse", color: "#f59e0b", bucket: "pending" },
-  soumission_envoyee: { label: "Soumission envoyée", color: "#f59e0b", bucket: "pending" },
-  acceptee: { label: "Acceptée", color: "#10b981", bucket: "accepted" },
-  planifiee: { label: "Planifiée", color: "#10b981", bucket: "accepted" },
-  en_cours: { label: "En cours", color: "#10b981", bucket: "accepted" },
-  terminee: { label: "Terminée", color: "#3b82f6", bucket: "completed" },
-  annulee: { label: "Refusée / Annulée", color: "#ef4444", bucket: "refused" },
-};
 
 const BUCKETS: { key: "pending" | "accepted" | "completed" | "refused"; label: string }[] = [
   { key: "pending", label: "En attente" },
@@ -57,7 +47,7 @@ const EntrepreneurDemandes = () => {
 
   const grouped: Record<string, Req[]> = { pending: [], accepted: [], completed: [], refused: [] };
   requests.forEach((r) => {
-    const b = STATUS_META[r.status]?.bucket || "pending";
+    const b = statusMeta(r.status).bucket;
     grouped[b].push(r);
   });
 
@@ -87,7 +77,7 @@ const EntrepreneurDemandes = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {grouped[b.key].map((r) => {
-                    const meta = STATUS_META[r.status];
+                    const meta = statusMeta(r.status);
                     return (
                       <div key={r.id} className="p-4 rounded-lg border border-border bg-card">
                         <div className="flex items-center justify-between mb-2">

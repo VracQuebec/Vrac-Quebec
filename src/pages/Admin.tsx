@@ -585,8 +585,8 @@ const Admin = () => {
             <Link to="/admin/calendrier" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <CalendarDays className="w-4 h-4" /> Calendrier
             </Link>
-            <Link to="/admin/demandes-transport" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <Truck className="w-4 h-4" /> Transports
+            <Link to="/admin/demandes-acces" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
+              <Truck className="w-4 h-4" /> Demandes d'accès
             </Link>
             <Link to="/admin/blogue" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <BookOpenIcon className="w-4 h-4" /> Blogue
@@ -634,8 +634,8 @@ const Admin = () => {
                 <Link to="/admin/business-intelligence" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-primary font-semibold hover:bg-secondary">
                   <TrendingUp className="w-4 h-4" /> Business Intelligence
                 </Link>
-                <Link to="/admin/demandes-transport" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
-                  <Truck className="w-4 h-4" /> Demandes de transport
+                <Link to="/admin/demandes-acces" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
+                  <Truck className="w-4 h-4" /> Demandes d'accès aux dompes
                 </Link>
                 <Link to="/admin/blogue" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
                   <BookOpenIcon className="w-4 h-4" /> Blogue

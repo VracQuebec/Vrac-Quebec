@@ -9779,6 +9779,7 @@ export type Database = {
       }
       transport_requests: {
         Row: {
+          alternative_dumps: Json | null
           assigned_dispatcher: string | null
           client_company: string | null
           client_email: string | null
@@ -9800,6 +9801,8 @@ export type Database = {
           jsc_request_id: string | null
           material_other: string | null
           material_type: string
+          owner_contacted: boolean
+          owner_contacted_at: string | null
           quantity: number | null
           quantity_unit: string | null
           request_number: string | null
@@ -9816,6 +9819,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          alternative_dumps?: Json | null
           assigned_dispatcher?: string | null
           client_company?: string | null
           client_email?: string | null
@@ -9837,6 +9841,8 @@ export type Database = {
           jsc_request_id?: string | null
           material_other?: string | null
           material_type: string
+          owner_contacted?: boolean
+          owner_contacted_at?: string | null
           quantity?: number | null
           quantity_unit?: string | null
           request_number?: string | null
@@ -9853,6 +9859,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          alternative_dumps?: Json | null
           assigned_dispatcher?: string | null
           client_company?: string | null
           client_email?: string | null
@@ -9874,6 +9881,8 @@ export type Database = {
           jsc_request_id?: string | null
           material_other?: string | null
           material_type?: string
+          owner_contacted?: boolean
+          owner_contacted_at?: string | null
           quantity?: number | null
           quantity_unit?: string | null
           request_number?: string | null
@@ -11058,6 +11067,8 @@ export type Database = {
         | "en_cours"
         | "terminee"
         | "annulee"
+        | "en_attente_proprietaire"
+        | "refusee"
       trip_status:
         | "demande"
         | "soumission_envoyee"
@@ -11226,6 +11237,8 @@ export const Constants = {
         "en_cours",
         "terminee",
         "annulee",
+        "en_attente_proprietaire",
+        "refusee",
       ],
       trip_status: [
         "demande",

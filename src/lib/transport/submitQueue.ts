@@ -44,6 +44,7 @@ export interface TransportSubmitPayload {
   source?: string | null;
   user_id?: string | null;
   client_notes?: string | null;
+  alternative_dumps?: unknown;
 }
 
 interface QueueItem {

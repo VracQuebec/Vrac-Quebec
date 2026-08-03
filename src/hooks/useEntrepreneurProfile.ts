@@ -9,14 +9,12 @@ export interface EntrepreneurProfile {
   email: string;
   address: string;
   billing_address: string;
-  tax_tps: string;
-  tax_tvq: string;
   contact_name: string;
 }
 
 const EMPTY: EntrepreneurProfile = {
   name: "", company: "", phone: "", email: "",
-  address: "", billing_address: "", tax_tps: "", tax_tvq: "", contact_name: "",
+  address: "", billing_address: "", contact_name: "",
 };
 
 const clean = (row: Record<string, unknown> | null): EntrepreneurProfile => ({
@@ -42,7 +40,7 @@ export const useEntrepreneurProfile = () => {
     void (async () => {
       const { data } = await supabase
         .from("entrepreneurs")
-        .select("name, company, phone, email, address, billing_address, tax_tps, tax_tvq, contact_name")
+        .select("name, company, phone, email, address, billing_address, contact_name")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;

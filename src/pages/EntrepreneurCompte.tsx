@@ -15,7 +15,7 @@ const EntrepreneurCompte = () => {
       setLoading(true);
       const { data } = await supabase
         .from("entrepreneurs")
-        .select("name, company, phone, email, contact_name, billing_address, tax_tps, tax_tvq")
+        .select("name, company, phone, email, contact_name, billing_address")
         .eq("user_id", user.id)
         .maybeSingle();
       setProfile(data);
@@ -35,7 +35,6 @@ const EntrepreneurCompte = () => {
           <Row icon={<Phone className="w-4 h-4" />} label="Téléphone" value={profile?.phone || "—"} />
           <Row icon={<UserIcon className="w-4 h-4" />} label="Contact principal" value={profile?.contact_name || "—"} />
           <Row icon={<Building2 className="w-4 h-4" />} label="Adresse de facturation" value={profile?.billing_address || "—"} />
-          <Row icon={<Building2 className="w-4 h-4" />} label="TPS / TVQ" value={[profile?.tax_tps, profile?.tax_tvq].filter(Boolean).join(" · ") || "—"} />
           <p className="text-xs text-muted-foreground pt-2 border-t border-border font-body">
             Pour modifier ces informations, contactez Vrac Québec au 581-994-7717.
           </p>
