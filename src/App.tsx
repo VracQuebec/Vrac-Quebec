@@ -146,7 +146,8 @@ const App = () => (
             <Route path="/reseau" element={<Reseau />} />
             <Route path="/reseau/:slug" element={<ReseauProfil />} />
             <Route path="/place-de-marche" element={<PlaceDeMarche />} />
-            <Route path="/admin/demandes-transport" element={<AdminTransportRequests />} />
+            <Route path="/admin/demandes-acces" element={<AdminTransportRequests />} />
+            <Route path="/admin/demandes-transport" element={<Navigate to="/admin/demandes-acces" replace />} />
             <Route path="/admin/business-intelligence" element={<AdminBusinessIntelligence />} />
             <Route path="/admin/ai-economy" element={<AdminAiEconomy />} />
             <Route path="/admin/integrations-google" element={<AdminGoogleIntegrations />} />
