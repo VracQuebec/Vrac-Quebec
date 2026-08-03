@@ -434,16 +434,51 @@ const TransportRequest = () => {
     setStep(6);
   };
 
-  const canNext = useMemo(() => {
-    if (step === 1) return !!material;
-    if (step === 2) return !!coords && !!address.trim();
-    if (step === 3) return unit === "inconnu" || (!!quantity && Number(quantity) > 0);
-    if (step === 4) return !!selectedDump;
-    if (step === 5) return !!clientName.trim() && !!clientPhone.trim();
-    return false;
-  }, [step, material, coords, address, quantity, unit, selectedDump, clientName, clientPhone]);
+  // Validation: only real missing requirements block the button. When the user
+  // is signed in, identity comes from the CRM profile and is considered valid
+  // as soon as any identifier (name, company, phone or email) is available.
+  const missingFields = useMemo(() => {
+    const missing: string[] = [];
+    if (step === 1 && !material) missing.push("Type de matériau");
+    if (step === 2) {
+      if (!address.trim()) missing.push("Adresse du chantier");
+      else if (!coords) missing.push("Localisation de l'adresse (sélectionnez une suggestion)");
+    }
+    if (step === 3 && unit !== "inconnu" && !(quantity && Number(quantity) > 0)) {
+      missing.push("Quantité estimée");
+    }
+    if (step === 4 && !selectedDump) missing.push("Choix de la dompe");
+    if (step === 5) {
+      const hasSessionIdentity =
+        !!user &&
+        (!!clientName.trim() || !!clientCompany.trim() || !!clientEmail.trim() || !!clientPhone.trim());
+      if (!hasSessionIdentity) {
+        if (!clientName.trim()) missing.push("Nom complet");
+        if (!clientPhone.trim() && !clientEmail.trim()) missing.push("Téléphone ou courriel");
+      }
+    }
+    return missing;
+  }, [step, material, coords, address, quantity, unit, selectedDump, user, clientName, clientCompany, clientPhone, clientEmail]);
+
+  const canNext = missingFields.length === 0;
+
+  useEffect(() => {
+    if (step !== 5) return;
+    // Temporary validation diagnostics
+    console.info("[TransportRequest] validation step 5", {
+      signedIn: !!user,
+      profileLoaded,
+      clientName,
+      clientCompany,
+      clientPhone,
+      clientEmail,
+      missingFields,
+      canNext,
+    });
+  }, [step, user, profileLoaded, clientName, clientCompany, clientPhone, clientEmail, missingFields, canNext]);
 
   const next = async () => {
+    if (!canNext) return;
     if (step === 3) {
       setStep(4);
       await loadDumps();
