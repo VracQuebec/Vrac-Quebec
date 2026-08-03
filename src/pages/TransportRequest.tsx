@@ -882,7 +882,7 @@ const TransportRequest = () => {
                     <div>
                       <p className="font-display font-bold text-base mb-2 flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Notre recommandation</p>
                       <div className="bg-card rounded-lg border border-primary/30 p-3 space-y-1.5 text-sm">
-                        <p>📦 <b>Matériau :</b> {mat?.label} {mat?.icon}</p>
+                        <p>📦 <b>Remblai :</b> {mat?.label} {mat?.icon}</p>
                         {helperArea && helperDepth && <p>📏 <b>Chantier :</b> {helperArea} × {helperDepth}</p>}
                         {proj && <p>🚛 <b>Type de camion suggéré :</b> {proj.trucks}</p>}
                         <p className="text-xs text-muted-foreground pt-1">Vous ajusterez la quantité à l'étape suivante.</p>
