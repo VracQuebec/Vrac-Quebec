@@ -222,6 +222,9 @@ const TransportRequest = () => {
   // Step 1: material
   const [material, setMaterial] = useState<string>("");
   const [materialOther, setMaterialOther] = useState<string>("");
+  // Navigation UI de l'étape 1 (présentation seulement)
+  const [materialGroup, setMaterialGroup] = useState<string>("");
+  const [materialSubKey, setMaterialSubKey] = useState<string>("");
   const [humidity, setHumidity] = useState<string>("");
   const [hasContaminants, setHasContaminants] = useState(false);
 
