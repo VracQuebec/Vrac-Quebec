@@ -1014,11 +1014,36 @@ const TransportRequest = () => {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                <Field label="Nom complet *" value={clientName} onChange={setClientName} placeholder="Jean Tremblay" />
-                <Field label="Entreprise" value={clientCompany} onChange={setClientCompany} placeholder="Construction ABC inc." />
-                <Field label="Téléphone *" value={clientPhone} onChange={setClientPhone} placeholder="418-555-0000" type="tel" />
-                <Field label="Courriel" value={clientEmail} onChange={setClientEmail} placeholder="vous@exemple.com" type="email" />
+              <div className="mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field label="Nom complet *" value={clientName} onChange={setClientName} placeholder="Jean Tremblay" />
+                  <Field label="Entreprise" value={clientCompany} onChange={setClientCompany} placeholder="Construction ABC inc." />
+                  <Field label="Téléphone *" value={clientPhone} onChange={setClientPhone} placeholder="418-555-0000" type="tel" />
+                  <Field label="Courriel" value={clientEmail} onChange={setClientEmail} placeholder="vous@exemple.com" type="email" />
+                  {user && (
+                    <>
+                      <Field label="Contact principal" value={contactName} onChange={setContactName} placeholder="Personne-ressource" />
+                      <Field label="Adresse de facturation" value={billingAddress} onChange={setBillingAddress} placeholder="123 rue Principale, Québec" />
+                      <Field label="Numéro TPS" value={taxTps} onChange={setTaxTps} placeholder="123456789 RT0001" />
+                      <Field label="Numéro TVQ" value={taxTvq} onChange={setTaxTvq} placeholder="1234567890 TQ0001" />
+                    </>
+                  )}
+                </div>
+                {user && (
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={updateProfile}
+                      disabled={savingProfile}
+                      className="px-3.5 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-xs disabled:opacity-60"
+                    >
+                      {savingProfile ? "Enregistrement…" : "Mettre à jour mon profil"}
+                    </button>
+                    <span className="text-xs text-muted-foreground">
+                      Sans cette action, les modifications s'appliquent uniquement à cette demande.
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
