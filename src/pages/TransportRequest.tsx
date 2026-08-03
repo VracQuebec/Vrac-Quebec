@@ -1502,6 +1502,13 @@ const Field = ({
   </label>
 );
 
+const ReadOnlyRow = ({ label, value }: { label: string; value: string }) => (
+  <div className="min-w-0">
+    <p className="text-[10px] font-display font-bold uppercase text-muted-foreground tracking-wide">{label}</p>
+    <p className="font-body text-sm text-foreground break-words">{value || "—"}</p>
+  </div>
+);
+
 const SummaryRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => (
   <div className="flex items-start gap-2">
     <span className="text-base leading-none pt-0.5">{icon}</span>
