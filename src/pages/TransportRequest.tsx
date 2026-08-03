@@ -857,40 +857,43 @@ const TransportRequest = () => {
                     <h2 className="font-display font-bold text-lg sm:text-xl mb-3 flex items-center gap-2">
                       <Package className="w-5 h-5 text-primary" /> Quel type de remblai devez-vous disposer ?
                     </h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5">
                       {MATERIAL_GROUPS.map((g) => {
                         const isSelected = !!material && g.subtypes.some((st) => st.id === material);
+                        const dimmed = !!material && !isSelected;
                         return (
                           <button
                             key={g.key}
                             onClick={() => { setMaterialGroup(g.key); if (g.subtypes.length === 1) { setMaterial(g.subtypes[0].id); setMaterialSubKey(g.subtypes[0].key); } }}
-                            className={`group relative overflow-hidden rounded-xl border-2 bg-card text-left transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                            className={`group relative overflow-hidden rounded-2xl border-2 bg-card text-left transition-all duration-200 ease-out hover:-translate-y-1.5 hover:shadow-2xl hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                               isSelected
-                                ? "border-primary ring-2 ring-primary/30 shadow-lg"
-                                : "border-border shadow-sm hover:border-primary/60"
-                            }`}
+                                ? "border-primary ring-2 ring-primary/40 shadow-xl -translate-y-0.5"
+                                : "border-border/60 shadow-md"
+                            } ${dimmed ? "opacity-60 hover:opacity-100" : "opacity-100"}`}
                           >
-                            <div className="relative aspect-[16/9] overflow-hidden">
+                            <div className="relative aspect-[4/3] overflow-hidden">
                               <img
                                 src={GROUP_PHOTOS[g.key] ?? g.image}
                                 alt={`Remblai — ${g.label}`}
                                 loading="lazy"
                                 decoding="async"
-                                width={480}
-                                height={360}
-                                className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                                width={560}
+                                height={420}
+                                className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
                               />
-                              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
+                              <span className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
                               {isSelected && (
-                                <span className="absolute top-1.5 right-1.5 rounded-full bg-background/90 p-0.5 animate-scale-in">
+                                <span className="absolute top-2 right-2 rounded-full bg-background/95 p-0.5 shadow-lg animate-scale-in">
                                   <CheckCircle2 className="w-5 h-5 text-primary" />
                                 </span>
                               )}
-                            </div>
-                            <div className="px-2.5 py-2">
-                              <div className="font-display font-bold text-sm leading-tight truncate">{g.label}</div>
-                              <div className="text-[11px] text-muted-foreground mt-0.5">
-                                {g.subtypes.length} type{g.subtypes.length > 1 ? "s" : ""} disponible{g.subtypes.length > 1 ? "s" : ""}
+                              <div className="absolute inset-x-0 bottom-0 p-3">
+                                <div className="font-display font-bold text-white text-sm sm:text-base leading-tight drop-shadow-sm">
+                                  {g.label}
+                                </div>
+                                <div className="text-[11px] font-medium text-white/75 mt-0.5">
+                                  {g.subtypes.length} type{g.subtypes.length > 1 ? "s" : ""} disponible{g.subtypes.length > 1 ? "s" : ""}
+                                </div>
                               </div>
                             </div>
                           </button>
