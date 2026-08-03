@@ -22,6 +22,35 @@ type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
 const STORAGE_KEY = "vq_transport_wizard_v1";
 
+// Vignettes photoréalistes des catégories de remblai (WebP optimisé, 256px).
+import imgTerrePropre from "@/assets/materials/terre-propre.webp";
+import imgTerreGravier from "@/assets/materials/terre-gravier.webp";
+import imgTerreArgileuse from "@/assets/materials/terre-argileuse.webp";
+import imgSable from "@/assets/materials/sable.webp";
+import imgGravier from "@/assets/materials/gravier.webp";
+import imgPierre from "@/assets/materials/pierre.webp";
+import imgRoc from "@/assets/materials/roc.webp";
+import imgAsphalte from "@/assets/materials/asphalte.webp";
+import imgBeton from "@/assets/materials/beton.webp";
+import imgMelangeTerrePierre from "@/assets/materials/melange-terre-pierre.webp";
+import imgMateriauxMixtes from "@/assets/materials/materiaux-mixtes.webp";
+import imgAutre from "@/assets/materials/autre.webp";
+
+const MATERIAL_IMAGES: Record<string, string> = {
+  terre_propre: imgTerrePropre,
+  terre_gravier: imgTerreGravier,
+  terre_argileuse: imgTerreArgileuse,
+  sable: imgSable,
+  gravier: imgGravier,
+  pierre: imgPierre,
+  roc: imgRoc,
+  asphalte: imgAsphalte,
+  beton: imgBeton,
+  melange_terre_pierre: imgMelangeTerrePierre,
+  materiaux_mixtes: imgMateriauxMixtes,
+  autre: imgAutre,
+};
+
 // Catégories de remblai à évacuer vers une dompe. Chaque catégorie porte son
 // « profil matière » : ces attributs servent au moteur de recommandations pour
 // filtrer les dompes compatibles (sans changer son fonctionnement).
