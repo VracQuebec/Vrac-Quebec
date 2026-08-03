@@ -148,8 +148,8 @@ const EntrepreneurDashboard = () => {
               </div>
               <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
             </div>
-            <h3 className="font-display font-bold text-lg">Mes demandes</h3>
-            <p className="text-xs text-muted-foreground mb-3 font-body">Suivi de vos demandes de transport.</p>
+            <h3 className="font-display font-bold text-lg">Mes demandes d'accès</h3>
+            <p className="text-xs text-muted-foreground mb-3 font-body">Suivez l'état de vos demandes d'accès aux dompes.</p>
             {loadingCounts ? (
               <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
             ) : (
@@ -180,7 +180,7 @@ const EntrepreneurDashboard = () => {
             to="/entrepreneur/historique"
             icon={<History className="w-5 h-5" />}
             title="Historique"
-            description="Toutes vos anciennes demandes en un coup d'œil."
+            description="Toutes vos anciennes demandes d'accès en un coup d'œil."
           />
 
           <ActionCard
