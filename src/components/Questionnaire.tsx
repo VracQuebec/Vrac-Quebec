@@ -376,6 +376,11 @@ const Questionnaire = ({ sourcePageSlug }: { sourcePageSlug?: string } = {}) => 
               navigate("/soumission");
               return;
             }
+            if (key === "remblai_disposition") {
+              // Disposition de remblai : présentation de la plateforme puis connexion/inscription.
+              navigate("/espace-entrepreneur");
+              return;
+            }
             setService(key);
             // Les deux parcours remblai partagent le même formulaire (aucun champ retiré) ;
             // seuls l'habillage et le sens de la demande changent.
