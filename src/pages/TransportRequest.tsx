@@ -89,6 +89,65 @@ const MATERIALS: MaterialProfile[] = [
 
 const HUMIDITY_OPTIONS = ["Sec", "Humide", "Détrempé"];
 
+/* ------------------------------------------------------------------
+   Regroupement UI des catégories de remblai (présentation uniquement).
+   Chaque sous-type renvoie EXACTEMENT un identifiant MATERIALS existant :
+   le moteur de recommandations reçoit les mêmes valeurs qu'avant.
+------------------------------------------------------------------- */
+interface MaterialSubtype { key: string; label: string; desc?: string; id: string }
+interface MaterialGroup { key: string; label: string; image: string; subtypes: MaterialSubtype[] }
+
+const MATERIAL_GROUPS: MaterialGroup[] = [
+  {
+    key: "terre", label: "Terre", image: imgTerrePropre,
+    subtypes: [
+      { key: "terre_propre", label: "Terre propre", desc: "Sans pierre ni débris.", id: "terre_propre" },
+      { key: "terre_gravier", label: "Terre avec gravier", desc: "Mélangée à de la petite pierre.", id: "terre_gravier" },
+      { key: "terre_argileuse", label: "Terre argileuse", desc: "Lourde, collante, peu drainante.", id: "terre_argileuse" },
+      { key: "terre_vegetale", label: "Terre végétale", desc: "Couche de surface organique.", id: "terre_propre" },
+      { key: "terre_noire", label: "Terre noire", desc: "Terre riche, foncée.", id: "terre_propre" },
+      { key: "terre_autre", label: "Autre type de terre", desc: "Décrivez-la, on vous guide.", id: "autre" },
+    ],
+  },
+  { key: "sable", label: "Sable", image: imgSable, subtypes: [
+      { key: "sable", label: "Sable", desc: "Sable d'excavation ou de tranchée.", id: "sable" },
+      { key: "sable_autre", label: "Autre", desc: "Sable particulier à décrire.", id: "autre" },
+  ] },
+  { key: "gravier", label: "Gravier", image: imgGravier, subtypes: [
+      { key: "gravier", label: "Gravier", desc: "Fondation, entrée, chemin.", id: "gravier" },
+      { key: "gravier_terre", label: "Gravier mélangé de terre", desc: "Excavation mixte.", id: "melange_terre_pierre" },
+      { key: "gravier_autre", label: "Autre", desc: "À décrire.", id: "autre" },
+  ] },
+  { key: "pierre", label: "Pierre", image: imgPierre, subtypes: [
+      { key: "pierre_concassee", label: "Pierre concassée", desc: "Calibre concassé.", id: "pierre" },
+      { key: "pierre_nette", label: "Pierre nette", desc: "Lavée, sans fines.", id: "pierre" },
+      { key: "melange_pierre", label: "Mélange pierre / terre", desc: "Excavation mixte.", id: "melange_terre_pierre" },
+      { key: "pierre_autre", label: "Autre", desc: "À décrire.", id: "autre" },
+  ] },
+  { key: "roc", label: "Roc", image: imgRoc, subtypes: [
+      { key: "roc", label: "Roc / dynamitage", desc: "Blocs d'excavation.", id: "roc" },
+      { key: "roc_autre", label: "Autre", desc: "À décrire.", id: "autre" },
+  ] },
+  { key: "beton", label: "Béton", image: imgBeton, subtypes: [
+      { key: "beton_concasse", label: "Béton concassé", desc: "Béton broyé.", id: "beton" },
+      { key: "dalles_beton", label: "Dalles de béton", desc: "Morceaux de dalle.", id: "beton" },
+      { key: "fondation", label: "Fondation", desc: "Démolition de fondation.", id: "beton" },
+      { key: "beton_autre", label: "Autre", desc: "À décrire.", id: "autre" },
+  ] },
+  { key: "asphalte", label: "Asphalte", image: imgAsphalte, subtypes: [
+      { key: "asphalte", label: "Asphalte / planage", desc: "Morceaux ou planage.", id: "asphalte" },
+      { key: "asphalte_autre", label: "Autre", desc: "À décrire.", id: "autre" },
+  ] },
+  { key: "mixtes", label: "Matériaux mixtes", image: imgMateriauxMixtes, subtypes: [
+      { key: "materiaux_mixtes", label: "Matériaux mixtes", desc: "Excavation variée, débris possibles.", id: "materiaux_mixtes" },
+      { key: "melange_terre_pierre", label: "Mélange terre / pierre", desc: "Terre et pierre combinées.", id: "melange_terre_pierre" },
+      { key: "mixtes_autre", label: "Autre", desc: "À décrire.", id: "autre" },
+  ] },
+  { key: "autre", label: "Autre", image: imgAutre, subtypes: [
+      { key: "autre", label: "Autre (description)", desc: "Matériel particulier — décrivez-le.", id: "autre" },
+  ] },
+];
+
 const STEP_LABELS = [
   { n: 1, label: "Remblai", icon: "📦" },
   { n: 2, label: "Chantier", icon: "📍" },
@@ -163,6 +222,9 @@ const TransportRequest = () => {
   // Step 1: material
   const [material, setMaterial] = useState<string>("");
   const [materialOther, setMaterialOther] = useState<string>("");
+  // Navigation UI de l'étape 1 (présentation seulement)
+  const [materialGroup, setMaterialGroup] = useState<string>("");
+  const [materialSubKey, setMaterialSubKey] = useState<string>("");
   const [humidity, setHumidity] = useState<string>("");
   const [hasContaminants, setHasContaminants] = useState(false);
 
@@ -236,7 +298,14 @@ const TransportRequest = () => {
       if (!raw) return;
       const s = JSON.parse(raw);
       if (s.step) setStep(s.step);
-      if (s.material && MATERIALS.some((m) => m.id === s.material)) setMaterial(s.material);
+      if (s.material && MATERIALS.some((m) => m.id === s.material)) {
+        setMaterial(s.material);
+        const g = MATERIAL_GROUPS.find((gr) => gr.subtypes.some((st) => st.id === s.material));
+        if (g) {
+          setMaterialGroup(g.key);
+          setMaterialSubKey(g.subtypes.find((st) => st.id === s.material)?.key || "");
+        }
+      }
       if (s.address) setAddress(s.address);
       if (s.coords) setCoords(s.coords);
       if (s.city) setCity(s.city);
@@ -757,52 +826,100 @@ const TransportRequest = () => {
               </div>
             </div>
 
-            <h2 className="font-display font-bold text-lg sm:text-xl mb-3 flex items-center gap-2">
-              <Package className="w-5 h-5 text-primary" /> Quel type de remblai devez-vous disposer ?
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {MATERIALS.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => setMaterial(m.id)}
-                  aria-pressed={material === m.id}
-                  className={`group relative overflow-hidden p-3 rounded-2xl border-2 text-left transition-all duration-300 ease-out ${
-                    material === m.id
-                      ? "border-primary bg-primary/5 shadow-lg -translate-y-0.5"
-                      : "border-border bg-card hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5"
-                  }`}
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div
-                      className={`relative flex-shrink-0 w-[88px] h-[88px] rounded-xl overflow-hidden ring-1 transition-all duration-300 ${
-                        material === m.id ? "ring-2 ring-primary" : "ring-border"
-                      }`}
+            {(() => {
+              const group = MATERIAL_GROUPS.find((g) => g.key === materialGroup) || null;
+              if (!group) {
+                return (
+                  <>
+                    <h2 className="font-display font-bold text-lg sm:text-xl mb-3 flex items-center gap-2">
+                      <Package className="w-5 h-5 text-primary" /> Quel type de remblai devez-vous disposer ?
+                    </h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                      {MATERIAL_GROUPS.map((g) => (
+                        <button
+                          key={g.key}
+                          onClick={() => { setMaterialGroup(g.key); if (g.subtypes.length === 1) { setMaterial(g.subtypes[0].id); setMaterialSubKey(g.subtypes[0].key); } }}
+                          className="group relative overflow-hidden rounded-2xl border-2 border-border bg-card text-left shadow-sm transition-all duration-300 ease-out hover:border-primary/50 hover:shadow-xl hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <div className="relative aspect-[4/3] overflow-hidden">
+                            <img
+                              src={g.image}
+                              alt={`Remblai — ${g.label}`}
+                              loading="lazy"
+                              decoding="async"
+                              width={256}
+                              height={256}
+                              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                            />
+                            <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/85 via-background/10 to-transparent" />
+                          </div>
+                          <div className="p-3">
+                            <div className="font-display font-bold text-sm sm:text-base leading-tight">{g.label}</div>
+                            <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                              Choisir <ChevronRight className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-0.5" />
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                );
+              }
+              return (
+                <>
+                  <div className="flex items-center gap-2 mb-3">
+                    <button
+                      onClick={() => { setMaterialGroup(""); setMaterialSubKey(""); setMaterial(""); }}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-display font-semibold hover:border-primary transition-colors"
                     >
-                      <img
-                        src={MATERIAL_IMAGES[m.id]}
-                        alt={`Remblai — ${m.label}`}
-                        loading="lazy"
-                        decoding="async"
-                        width={256}
-                        height={256}
-                        className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-                      />
-                      <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
-                    </div>
-                    <div className="min-w-0 pr-6">
-                      <div className="font-display font-bold text-base">{m.label}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{m.desc}</div>
-                    </div>
+                      <ChevronLeft className="w-3.5 h-3.5" /> Retour
+                    </button>
+                    <h2 className="font-display font-bold text-lg sm:text-xl flex items-center gap-2">
+                      <Package className="w-5 h-5 text-primary" /> {group.label} — précisez
+                    </h2>
                   </div>
-                  <CheckCircle2
-                    className={`absolute top-2.5 right-2.5 w-5 h-5 text-primary transition-all duration-300 ${
-                      material === m.id ? "opacity-100 scale-100" : "opacity-0 scale-75"
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {group.subtypes.map((st) => {
+                      const active = materialSubKey === st.key && material === st.id;
+                      return (
+                        <button
+                          key={st.key}
+                          onClick={() => { setMaterial(st.id); setMaterialSubKey(st.key); }}
+                          aria-pressed={active}
+                          className={`group relative overflow-hidden p-3 rounded-2xl border-2 text-left transition-all duration-300 ease-out ${
+                            active
+                              ? "border-primary bg-gradient-to-br from-primary/10 to-transparent shadow-lg -translate-y-0.5"
+                              : "border-border bg-card hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3.5">
+                            <div className={`relative flex-shrink-0 w-[88px] h-[88px] rounded-xl overflow-hidden ring-1 transition-all duration-300 ${active ? "ring-2 ring-primary" : "ring-border"}`}>
+                              <img
+                                src={MATERIAL_IMAGES[st.id] || group.image}
+                                alt={`Remblai — ${st.label}`}
+                                loading="lazy"
+                                decoding="async"
+                                width={256}
+                                height={256}
+                                className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                              />
+                              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
+                            </div>
+                            <div className="min-w-0 pr-6">
+                              <div className="font-display font-bold text-base">{st.label}</div>
+                              {st.desc && <div className="text-xs text-muted-foreground mt-0.5">{st.desc}</div>}
+                            </div>
+                          </div>
+                          <CheckCircle2
+                            className={`absolute top-2.5 right-2.5 w-5 h-5 text-primary transition-all duration-300 ${active ? "opacity-100 scale-100" : "opacity-0 scale-75"}`}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()}
 
             {material === "autre" && (
               <input
@@ -912,6 +1029,11 @@ const TransportRequest = () => {
                         const proj = PROJECT_TYPES.find((p) => p.id === helperProject);
                         if (proj) {
                           setMaterial(proj.material);
+                          {
+                            const g = MATERIAL_GROUPS.find((gr) => gr.subtypes.some((st) => st.id === proj.material));
+                            setMaterialGroup(g?.key || "");
+                            setMaterialSubKey(g?.subtypes.find((st) => st.id === proj.material)?.key || "");
+                          }
                           setSuggestedTruck(proj.trucks);
                         }
                         setHelperStep(2);
