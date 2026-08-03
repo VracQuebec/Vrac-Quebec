@@ -1849,7 +1849,9 @@ export type Database = {
       entrepreneurs: {
         Row: {
           address: string | null
+          billing_address: string | null
           company: string | null
+          contact_name: string | null
           created_at: string
           email: string | null
           id: string
@@ -1857,13 +1859,17 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          tax_tps: string | null
+          tax_tvq: string | null
           truck_count: string | null
           truck_types: string[] | null
           user_id: string | null
         }
         Insert: {
           address?: string | null
+          billing_address?: string | null
           company?: string | null
+          contact_name?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -1871,13 +1877,17 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          tax_tps?: string | null
+          tax_tvq?: string | null
           truck_count?: string | null
           truck_types?: string[] | null
           user_id?: string | null
         }
         Update: {
           address?: string | null
+          billing_address?: string | null
           company?: string | null
+          contact_name?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -1885,6 +1895,8 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          tax_tps?: string | null
+          tax_tvq?: string | null
           truck_count?: string | null
           truck_types?: string[] | null
           user_id?: string | null
