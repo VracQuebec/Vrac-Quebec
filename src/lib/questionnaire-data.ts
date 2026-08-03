@@ -137,17 +137,17 @@ export const REMBLAI_MATERIAL_OPTIONS = [
 /** Anciens libellés conservés pour la rétrocompatibilité des données existantes. */
 export const REMBLAI_MATERIAL_LEGACY = ["Pierre"] as const;
 
-import matTerre from "@/assets/materials/v3/terre.jpg";
-import matTerreMelangee from "@/assets/materials/v3/terre-melangee.jpg";
-import matSable from "@/assets/materials/v3/sable.jpg";
-import matPierre034 from "@/assets/materials/v3/pierre-0-34.jpg";
-import matPierre34Net from "@/assets/materials/v3/pierre-34-net.jpg";
-import matPoussiere from "@/assets/materials/v3/poussiere-pierre.jpg";
-import matGravier from "@/assets/materials/v3/gravier.jpg";
-import matRoches from "@/assets/materials/v3/roches.jpg";
-import matBeton from "@/assets/materials/v3/beton.jpg";
-import matAsphalte from "@/assets/materials/v3/asphalte.jpg";
-import matSouches from "@/assets/materials/v3/souches.jpg";
+import matTerre from "@/assets/materials/v4/terre.jpg";
+import matTerreMelangee from "@/assets/materials/v4/terre-melangee.jpg";
+import matSable from "@/assets/materials/v4/sable.jpg";
+import matPierre034 from "@/assets/materials/v4/pierre-0-34.jpg";
+import matPierre34Net from "@/assets/materials/v4/pierre-34-net.jpg";
+import matPoussiere from "@/assets/materials/v4/poussiere-pierre.jpg";
+import matGravier from "@/assets/materials/v4/gravier.jpg";
+import matRoches from "@/assets/materials/v4/roches.jpg";
+import matBeton from "@/assets/materials/v4/beton.jpg";
+import matAsphalte from "@/assets/materials/v4/asphalte.jpg";
+import matSouches from "@/assets/materials/v4/souches.jpg";
 import matAutre from "@/assets/materials/autre.webp";
 
 /** Photo représentative pour chaque type de matériel (affichage seulement). */
