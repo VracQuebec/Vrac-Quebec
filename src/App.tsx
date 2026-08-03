@@ -51,6 +51,7 @@ const AdminSeoManager = lazy(() => import("./pages/AdminSeoManager"));
 const SeoLandingPage = lazy(() => import("./pages/SeoLandingPage"));
 const TransportRequest = lazy(() => import("./pages/TransportRequest"));
 const Soumission = lazy(() => import("./pages/Soumission"));
+const AchatVrac = lazy(() => import("./pages/AchatVrac"));
 const ClientPortal = lazy(() => import("./pages/ClientPortal"));
 const DriverPortal = lazy(() => import("./pages/DriverPortal"));
 
@@ -143,6 +144,7 @@ const App = () => (
             <Route path="/portail/client" element={<ClientPortal />} />
             <Route path="/portail/chauffeur" element={<DriverPortal />} />
             <Route path="/soumission" element={<Soumission />} />
+            <Route path="/acheter-materiaux" element={<AchatVrac />} />
             <Route path="/materiaux" element={<Catalogue />} />
             <Route path="/materiaux/:slug" element={<CatalogueMateriau />} />
             <Route path="/reseau" element={<Reseau />} />
