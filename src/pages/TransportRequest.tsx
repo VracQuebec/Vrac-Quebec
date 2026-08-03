@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
 import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import {
@@ -90,6 +91,8 @@ const matchesMaterial = (dumpMaterials: string[], selected: string): boolean => 
 const TransportRequest = () => {
   const navigate = useNavigate();
   const { user } = useAuthReady();
+  const { profile, saveProfile } = useEntrepreneurProfile();
+  const [savingProfile, setSavingProfile] = useState(false);
   const [step, setStep] = useState<Step>(1);
   const [showMaterialHelper, setShowMaterialHelper] = useState(false);
   const [helperStep, setHelperStep] = useState(0);
@@ -127,6 +130,10 @@ const TransportRequest = () => {
   const [desiredDate, setDesiredDate] = useState<string>("");
   const [desiredTime, setDesiredTime] = useState<string>("");
   const [clientNotes, setClientNotes] = useState<string>("");
+  const [billingAddress, setBillingAddress] = useState("");
+  const [taxTps, setTaxTps] = useState("");
+  const [taxTvq, setTaxTvq] = useState("");
+  const [contactName, setContactName] = useState("");
   const [editIdentity, setEditIdentity] = useState<boolean>(false);
   const [profileLoaded, setProfileLoaded] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState(false);
@@ -182,6 +189,11 @@ const TransportRequest = () => {
       if (s.trips) setTrips(s.trips);
       if (s.desiredDate) setDesiredDate(s.desiredDate);
       if (s.desiredTime) setDesiredTime(s.desiredTime);
+      if (s.clientNotes) setClientNotes(s.clientNotes);
+      if (s.billingAddress) setBillingAddress(s.billingAddress);
+      if (s.taxTps) setTaxTps(s.taxTps);
+      if (s.taxTvq) setTaxTvq(s.taxTvq);
+      if (s.contactName) setContactName(s.contactName);
     } catch { /* ignore */ }
     setShowResumePrompt(false);
     hydratedRef.current = true;
@@ -201,7 +213,8 @@ const TransportRequest = () => {
       const payload = {
         step, material, address, coords, city, quantity, unit,
         clientName, clientCompany, clientPhone, clientEmail,
-        truckType, trips, desiredDate, desiredTime,
+        truckType, trips, desiredDate, desiredTime, clientNotes,
+        billingAddress, taxTps, taxTvq, contactName,
         savedAt: Date.now(),
       };
       if (
@@ -211,7 +224,7 @@ const TransportRequest = () => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       }
     } catch { /* ignore */ }
-  }, [step, material, address, coords, city, quantity, unit, clientName, clientCompany, clientPhone, clientEmail, truckType, trips, desiredDate, desiredTime]);
+  }, [step, material, address, coords, city, quantity, unit, clientName, clientCompany, clientPhone, clientEmail, truckType, trips, desiredDate, desiredTime, clientNotes, billingAddress, taxTps, taxTvq, contactName]);
 
   // Clear saved draft after successful submission
   useEffect(() => {
@@ -238,32 +251,50 @@ const TransportRequest = () => {
     if (user?.email) setClientEmail(user.email);
   }, [user]);
 
-  // Prefill full identity from the entrepreneur profile when the user is
+  // Prefill the full identity from the entrepreneur profile when the user is
   // signed in. The entrepreneur should never have to retype what we already
   // know about them — this is the whole point of the connected experience.
   useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      if (!user?.id) { setProfileLoaded(false); return; }
-      try {
-        const { data } = await supabase
-          .from("entrepreneurs")
-          .select("name, company, phone, email")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (cancelled) return;
-        if (data) {
-          if (data.name) setClientName((prev) => prev || data.name);
-          if (data.company) setClientCompany((prev) => prev || data.company);
-          if (data.phone) setClientPhone((prev) => prev || data.phone);
-          if (data.email) setClientEmail((prev) => prev || data.email);
-          setProfileLoaded(true);
-        }
-      } catch { /* ignore — user can still fill manually */ }
-    };
-    void load();
-    return () => { cancelled = true; };
-  }, [user?.id]);
+    if (!profile) { setProfileLoaded(false); return; }
+    if (profile.name) setClientName((p) => p || profile.name);
+    if (profile.company) setClientCompany((p) => p || profile.company);
+    if (profile.phone) setClientPhone((p) => p || profile.phone);
+    if (profile.email) setClientEmail((p) => p || profile.email);
+    if (profile.billing_address || profile.address)
+      setBillingAddress((p) => p || profile.billing_address || profile.address);
+    if (profile.tax_tps) setTaxTps((p) => p || profile.tax_tps);
+    if (profile.tax_tvq) setTaxTvq((p) => p || profile.tax_tvq);
+    if (profile.contact_name || profile.name)
+      setContactName((p) => p || profile.contact_name || profile.name);
+    setProfileLoaded(true);
+  }, [profile]);
+
+  // Save the (possibly edited) identity back to the CRM profile — only on an
+  // explicit user action.
+  const updateProfile = async () => {
+    setSavingProfile(true);
+    try {
+      await saveProfile({
+        name: clientName.trim(),
+        company: clientCompany.trim(),
+        phone: clientPhone.trim(),
+        email: clientEmail.trim(),
+        billing_address: billingAddress.trim(),
+        tax_tps: taxTps.trim(),
+        tax_tvq: taxTvq.trim(),
+        contact_name: contactName.trim(),
+      });
+      toast({ title: "Profil mis à jour", description: "Vos informations ont été enregistrées." });
+    } catch (e) {
+      toast({
+        title: "Mise à jour impossible",
+        description: e instanceof Error ? e.message : "Réessayez plus tard.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   // Boot the persistent submit queue once. Any pending submissions saved in
   // a previous session (page reload, crash, connection loss) are retried
@@ -572,6 +603,29 @@ const TransportRequest = () => {
       )}
 
       <main className="flex-1 container mx-auto px-4 py-6 max-w-3xl w-full">
+        {/* Bloc « Mes informations » — visible dès qu'un entrepreneur est connecté */}
+        {user && profileLoaded && step < 6 && (
+          <div className="mb-5 rounded-xl border border-primary/25 bg-primary/5 p-4">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
+                <p className="text-[10px] font-display font-bold uppercase tracking-wide text-muted-foreground mb-1.5">
+                  Mes informations
+                </p>
+                <p className="text-sm font-body">✔ Connecté comme : <b>{clientCompany || clientName || "Mon entreprise"}</b></p>
+                {(contactName || clientName) && <p className="text-sm font-body">✔ Contact : {contactName || clientName}</p>}
+                {clientPhone && <p className="text-sm font-body">✔ Téléphone : {clientPhone}</p>}
+                {clientEmail && <p className="text-sm font-body truncate">✔ Courriel : {clientEmail}</p>}
+              </div>
+              <Link
+                to="/entrepreneur/compte"
+                className="text-xs font-display font-bold px-3 py-2 rounded-lg border border-primary/40 text-primary hover:bg-primary/10"
+              >
+                Modifier mon profil
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Step 1 */}
         {step === 1 && (
           <section className="animate-in fade-in duration-300">
@@ -960,11 +1014,36 @@ const TransportRequest = () => {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                <Field label="Nom complet *" value={clientName} onChange={setClientName} placeholder="Jean Tremblay" />
-                <Field label="Entreprise" value={clientCompany} onChange={setClientCompany} placeholder="Construction ABC inc." />
-                <Field label="Téléphone *" value={clientPhone} onChange={setClientPhone} placeholder="418-555-0000" type="tel" />
-                <Field label="Courriel" value={clientEmail} onChange={setClientEmail} placeholder="vous@exemple.com" type="email" />
+              <div className="mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field label="Nom complet *" value={clientName} onChange={setClientName} placeholder="Jean Tremblay" />
+                  <Field label="Entreprise" value={clientCompany} onChange={setClientCompany} placeholder="Construction ABC inc." />
+                  <Field label="Téléphone *" value={clientPhone} onChange={setClientPhone} placeholder="418-555-0000" type="tel" />
+                  <Field label="Courriel" value={clientEmail} onChange={setClientEmail} placeholder="vous@exemple.com" type="email" />
+                  {user && (
+                    <>
+                      <Field label="Contact principal" value={contactName} onChange={setContactName} placeholder="Personne-ressource" />
+                      <Field label="Adresse de facturation" value={billingAddress} onChange={setBillingAddress} placeholder="123 rue Principale, Québec" />
+                      <Field label="Numéro TPS" value={taxTps} onChange={setTaxTps} placeholder="123456789 RT0001" />
+                      <Field label="Numéro TVQ" value={taxTvq} onChange={setTaxTvq} placeholder="1234567890 TQ0001" />
+                    </>
+                  )}
+                </div>
+                {user && (
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={updateProfile}
+                      disabled={savingProfile}
+                      className="px-3.5 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-xs disabled:opacity-60"
+                    >
+                      {savingProfile ? "Enregistrement…" : "Mettre à jour mon profil"}
+                    </button>
+                    <span className="text-xs text-muted-foreground">
+                      Sans cette action, les modifications s'appliquent uniquement à cette demande.
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
