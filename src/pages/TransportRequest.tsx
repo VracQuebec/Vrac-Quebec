@@ -1229,7 +1229,7 @@ const TransportRequest = () => {
               </div>
             ) : (
               <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg text-sm">
-                Aucun souci — Transport JSC vous aidera à estimer la quantité lors de l'appel.
+                Aucun souci — l'équipe Vrac Québec vous aidera à estimer la quantité lors de l'appel.
               </div>
             )}
           </section>
@@ -1253,7 +1253,7 @@ const TransportRequest = () => {
             ) : dumps.length === 0 ? (
               <div className="p-6 bg-card border border-border rounded-lg text-center">
                 <p className="text-sm text-muted-foreground mb-2">Aucune dompe compatible pour l'instant.</p>
-                <p className="text-xs text-muted-foreground">Essayez un autre matériau ou contactez Transport JSC directement.</p>
+                <p className="text-xs text-muted-foreground">Essayez un autre matériau ou contactez Vrac Québec directement.</p>
                 <a href="tel:5819947717" className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
                   <Phone className="w-4 h-4" /> 581-994-7717
                 </a>
@@ -1426,7 +1426,7 @@ const TransportRequest = () => {
             <div className="mt-5 p-3.5 rounded-xl bg-primary/5 border border-primary/20 text-sm text-foreground/90 flex items-start gap-2.5">
               <ShieldCheck className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
               <p>
-                Votre demande sera transmise à <b>Transport JSC</b> qui validera la disponibilité de la dompe et communiquera avec vous rapidement.
+                Votre demande est prise en charge par <b>Vrac Québec</b>, qui l'achemine automatiquement vers la dompe ou le partenaire le plus approprié et communique avec vous rapidement.
               </p>
             </div>
           </section>
@@ -1532,7 +1532,8 @@ const ConfirmationView = ({
 }) => {
   const downloadSummary = () => {
     const lines = [
-      "VRAC QUÉBEC — RÉSUMÉ DE LA DEMANDE D'ACCÈS À LA DOMPE",
+      "VRAC QUÉBEC — PLATEFORME DE DISPOSITION DE REMBLAI
+RÉSUMÉ DE LA DEMANDE D'ACCÈS À LA DOMPE",
       "================================================",
       `Numéro de demande : ${requestNumber || "—"}`,
       `Date : ${new Date().toLocaleString("fr-CA")}`,
@@ -1554,7 +1555,7 @@ const ConfirmationView = ({
       `Dompe          : ${dump || "—"}`,
       "",
       "SUIVI",
-      "Transport JSC — 581-994-7717 / 819-592-3495",
+      "Vrac Québec — 581-994-7717",
     ];
     const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -1586,7 +1587,7 @@ const ConfirmationView = ({
         <p className="text-muted-foreground text-sm mb-6">
           {pending
             ? "Nous terminons son envoi automatiquement. Vous pouvez fermer cette page en toute tranquillité."
-            : `Merci ${clientName ? clientName.split(" ")[0] : ""} — Transport JSC valide la disponibilité de la dompe et vous recontacte rapidement.`}
+            : `Merci ${clientName ? clientName.split(" ")[0] : ""} — votre demande a bien été reçue par Vrac Québec. Notre équipe l'analyse et l'achemine automatiquement vers la dompe ou le partenaire le plus approprié selon votre remblai, votre localisation et les disponibilités.`}
         </p>
       </div>
 
@@ -1605,16 +1606,18 @@ const ConfirmationView = ({
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">👤</div>
           <div>
-            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">Votre conseiller</div>
-            <div className="font-display font-semibold text-sm">Équipe Transport JSC</div>
+            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">Prise en charge par</div>
+            <div className="font-display font-semibold text-sm">Équipe Vrac Québec</div>
           </div>
         </div>
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">⏱️</div>
           <div>
-            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">Délai estimé</div>
+            <div className="text-[10px] font-display font-bold uppercase text-muted-foreground">Suivi de votre demande</div>
             <div className="font-display font-semibold text-sm">
-              {isOpen ? "Moins de 30 minutes (heures d'ouverture)" : "Réponse dès l'ouverture (7h)"}
+              {isOpen
+                ? "Notre équipe vous contactera dès que votre demande aura été analysée."
+                : "Une confirmation vous sera envoyée dès qu'une dompe compatible aura accepté votre demande."}
             </div>
           </div>
         </div>
@@ -1625,7 +1628,7 @@ const ConfirmationView = ({
           <Phone className="w-4 h-4" /> Appeler maintenant
         </a>
         <a
-          href="https://wa.me/15819947717?text=Bonjour%2C%20je%20fais%20suite%20%C3%A0%20ma%20demande%20de%20transport."
+          href="https://wa.me/15819947717?text=Bonjour%2C%20je%20fais%20suite%20%C3%A0%20ma%20demande%20sur%20Vrac%20Qu%C3%A9bec."
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[#25D366] text-white font-display font-bold text-sm"
