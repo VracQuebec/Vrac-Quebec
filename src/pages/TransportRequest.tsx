@@ -36,6 +36,29 @@ import imgMelangeTerrePierre from "@/assets/materials/melange-terre-pierre.webp"
 import imgMateriauxMixtes from "@/assets/materials/materiaux-mixtes.webp";
 import imgAutre from "@/assets/materials/autre.webp";
 
+// Photos réalistes des grandes catégories (présentation uniquement).
+import photoTerre from "@/assets/materials/photos/terre.webp";
+import photoSable from "@/assets/materials/photos/sable.webp";
+import photoGravier from "@/assets/materials/photos/gravier.webp";
+import photoPierre from "@/assets/materials/photos/pierre.webp";
+import photoRoc from "@/assets/materials/photos/roc.webp";
+import photoBeton from "@/assets/materials/photos/beton.webp";
+import photoAsphalte from "@/assets/materials/photos/asphalte.webp";
+import photoMixtes from "@/assets/materials/photos/mixtes.webp";
+import photoAutre from "@/assets/materials/photos/autre.webp";
+
+const GROUP_PHOTOS: Record<string, string> = {
+  terre: photoTerre,
+  sable: photoSable,
+  gravier: photoGravier,
+  pierre: photoPierre,
+  roc: photoRoc,
+  beton: photoBeton,
+  asphalte: photoAsphalte,
+  mixtes: photoMixtes,
+  autre: photoAutre,
+};
+
 const MATERIAL_IMAGES: Record<string, string> = {
   terre_propre: imgTerrePropre,
   terre_gravier: imgTerreGravier,
