@@ -133,6 +133,9 @@ const TransportRequest = () => {
 
   // Step 1: material
   const [material, setMaterial] = useState<string>("");
+  const [materialOther, setMaterialOther] = useState<string>("");
+  const [humidity, setHumidity] = useState<string>("");
+  const [hasContaminants, setHasContaminants] = useState(false);
 
   // Step 2: site address
   const [address, setAddress] = useState("");
@@ -702,10 +705,10 @@ const TransportRequest = () => {
             {/* Reassuring hero */}
             <div className="text-center mb-6">
               <h1 className="font-display font-bold text-2xl sm:text-4xl leading-tight mb-2">
-                Trouvez le meilleur matériau et le meilleur point de dépôt en quelques clics.
+                Trouvez la meilleure dompe pour disposer de votre remblai.
               </h1>
               <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
-                Nous analysons votre chantier afin de vous recommander les meilleures options disponibles près de chez vous.
+                Nous analysons votre chantier d'excavation afin de vous recommander les dompes compatibles les plus proches.
               </p>
               <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-display font-bold">
                 <Clock className="w-3.5 h-3.5" /> Temps estimé : moins de 60 secondes
@@ -713,7 +716,7 @@ const TransportRequest = () => {
             </div>
 
             <h2 className="font-display font-bold text-lg sm:text-xl mb-3 flex items-center gap-2">
-              <Package className="w-5 h-5 text-primary" /> Quel matériau cherchez-vous ?
+              <Package className="w-5 h-5 text-primary" /> Quel type de remblai devez-vous disposer ?
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -740,6 +743,61 @@ const TransportRequest = () => {
                 </button>
               ))}
             </div>
+
+            {material === "autre" && (
+              <input
+                value={materialOther}
+                onChange={(e) => setMaterialOther(e.target.value)}
+                placeholder="Décrivez le matériel à évacuer"
+                className="mt-3 w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm font-body"
+              />
+            )}
+
+            {material && (
+              <div className="mt-4 p-4 rounded-xl border border-border bg-card">
+                <p className="text-[10px] font-display font-bold uppercase tracking-wide text-muted-foreground mb-2">
+                  Précisions sur le matériel (facultatif)
+                </p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {HUMIDITY_OPTIONS.map((h) => (
+                    <button
+                      key={h}
+                      onClick={() => setHumidity(humidity === h ? "" : h)}
+                      className={`px-3 py-1.5 rounded-full border text-xs font-display font-semibold ${
+                        humidity === h ? "border-primary bg-primary/10 text-primary" : "border-border bg-background"
+                      }`}
+                    >
+                      💧 {h}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setHasContaminants((v) => !v)}
+                    className={`px-3 py-1.5 rounded-full border text-xs font-display font-semibold ${
+                      hasContaminants ? "border-primary bg-primary/10 text-primary" : "border-border bg-background"
+                    }`}
+                  >
+                    ⚠️ Présence de contaminants
+                  </button>
+                </div>
+                {(() => {
+                  const p = MATERIALS.find((m) => m.id === material);
+                  if (!p) return null;
+                  const traits = [
+                    p.stone && "pierre",
+                    p.clay && "argile",
+                    p.sand && "sable",
+                    (p.contaminants || hasContaminants) && "contaminants possibles",
+                  ].filter(Boolean) as string[];
+                  return (
+                    <p className="text-xs text-muted-foreground">
+                      Profil détecté : {p.main} • propreté {p.cleanliness}
+                      {traits.length > 0 ? ` • contient ${traits.join(", ")}` : ""}
+                      {humidity ? ` • ${humidity.toLowerCase()}` : ""}
+                    </p>
+                  );
+                })()}
+              </div>
+            )}
 
             <button
               onClick={() => { setShowMaterialHelper((v) => !v); setHelperStep(0); }}
