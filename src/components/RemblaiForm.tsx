@@ -241,7 +241,7 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading, variant = "recherche" 
                       type="button"
                       aria-pressed={active}
                       onClick={() => toggleArr("materials", m)}
-                      className={`group relative overflow-hidden rounded-xl text-left font-body bg-card transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                      className={`group relative h-full flex flex-col overflow-hidden rounded-xl text-left font-body bg-card transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                         active
                           ? "border-[3px] border-primary shadow-lg shadow-primary/20 -translate-y-0.5"
                           : "border-2 border-border hover:border-primary/60 hover:shadow-md hover:-translate-y-0.5"
@@ -266,7 +266,7 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading, variant = "recherche" 
                           ✓
                         </span>
                       </div>
-                      <div className={`px-3 py-2.5 min-h-[4.25rem] ${active ? "bg-primary/5" : ""}`}>
+                      <div className={`flex-1 px-3 py-2.5 ${active ? "bg-primary/5" : ""}`}>
                         <span className={`block text-sm md:text-base leading-tight ${active ? "font-bold text-foreground" : "font-semibold text-foreground"}`}>
                           {m}
                         </span>
