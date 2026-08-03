@@ -402,9 +402,10 @@ const TransportRequest = () => {
     // a duplicate row.
     if (!idempotencyRef.current) idempotencyRef.current = newIdempotencyKey();
 
-    const result = await submitTransportRequest({
+    try {
+      const result = await submitTransportRequest({
       idempotency_key: idempotencyRef.current,
-      client_name: clientName.trim(),
+      client_name: clientName.trim() || clientCompany.trim() || clientEmail.trim() || "Entrepreneur",
       client_company: clientCompany.trim() || null,
       client_phone: clientPhone.trim(),
       client_email: clientEmail.trim() || null,
@@ -428,22 +429,62 @@ const TransportRequest = () => {
       source: user ? "wizard_authenticated" : "wizard_public",
     });
 
-    setSubmitting(false);
-    setConfirmationMode(result.status);
-    setConfirmedNumber(result.request_number ?? null);
-    setStep(6);
+      setConfirmationMode(result.status);
+      setConfirmedNumber(result.request_number ?? null);
+      setStep(6);
+    } catch (e: any) {
+      console.error("[TransportRequest] submit failed", e);
+      toast({ title: "Envoi impossible", description: e?.message ?? "Erreur inconnue", variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const canNext = useMemo(() => {
-    if (step === 1) return !!material;
-    if (step === 2) return !!coords && !!address.trim();
-    if (step === 3) return unit === "inconnu" || (!!quantity && Number(quantity) > 0);
-    if (step === 4) return !!selectedDump;
-    if (step === 5) return !!clientName.trim() && !!clientPhone.trim();
-    return false;
-  }, [step, material, coords, address, quantity, unit, selectedDump, clientName, clientPhone]);
+  // Validation: only real missing requirements block the button. When the user
+  // is signed in, identity comes from the CRM profile and is considered valid
+  // as soon as any identifier (name, company, phone or email) is available.
+  const missingFields = useMemo(() => {
+    const missing: string[] = [];
+    if (step === 1 && !material) missing.push("Type de matériau");
+    if (step === 2) {
+      if (!address.trim()) missing.push("Adresse du chantier");
+      else if (!coords) missing.push("Localisation de l'adresse (sélectionnez une suggestion)");
+    }
+    if (step === 3 && unit !== "inconnu" && !(quantity && Number(quantity) > 0)) {
+      missing.push("Quantité estimée");
+    }
+    if (step === 4 && !selectedDump) missing.push("Choix de la dompe");
+    if (step === 5) {
+      const hasSessionIdentity =
+        !!user &&
+        (!!clientName.trim() || !!clientCompany.trim() || !!clientEmail.trim() || !!clientPhone.trim());
+      if (!hasSessionIdentity) {
+        if (!clientName.trim()) missing.push("Nom complet");
+        if (!clientPhone.trim() && !clientEmail.trim()) missing.push("Téléphone ou courriel");
+      }
+    }
+    return missing;
+  }, [step, material, coords, address, quantity, unit, selectedDump, user, clientName, clientCompany, clientPhone, clientEmail]);
+
+  const canNext = missingFields.length === 0;
+
+  useEffect(() => {
+    if (step !== 5) return;
+    // Temporary validation diagnostics
+    console.info("[TransportRequest] validation step 5", {
+      signedIn: !!user,
+      profileLoaded,
+      clientName,
+      clientCompany,
+      clientPhone,
+      clientEmail,
+      missingFields,
+      canNext,
+    });
+  }, [step, user, profileLoaded, clientName, clientCompany, clientPhone, clientEmail, missingFields, canNext]);
 
   const next = async () => {
+    if (!canNext) return;
     if (step === 3) {
       setStep(4);
       await loadDumps();
@@ -1102,7 +1143,13 @@ const TransportRequest = () => {
 
         {/* Navigation */}
         {step < 6 && (
-          <div className="flex justify-between mt-8 pt-4 border-t border-border">
+          <div className="mt-8 pt-4 border-t border-border">
+            {missingFields.length > 0 && (
+              <p className="mb-3 text-xs font-body text-destructive">
+                Champs à compléter : {missingFields.join(", ")}
+              </p>
+            )}
+            <div className="flex justify-between">
             <button
               onClick={back}
               disabled={step === 1}
@@ -1119,6 +1166,7 @@ const TransportRequest = () => {
               {step === 5 ? "Envoyer ma demande d'accès" : "Continuer"}
               {step !== 5 && !submitting && <ChevronRight className="w-4 h-4" />}
             </button>
+            </div>
           </div>
         )}
       </main>
