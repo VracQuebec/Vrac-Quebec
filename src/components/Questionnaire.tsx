@@ -387,7 +387,7 @@ const Questionnaire = ({ sourcePageSlug }: { sourcePageSlug?: string } = {}) => 
             setRemblaiMode(true);
             update({
               propertyType: "Remplissage / remblai",
-              deliverOrRemove: key === "remblai_disposition" ? "À sortir du chantier" : "À livrer",
+              deliverOrRemove: "À livrer",
             });
             setStep(1);
           }}
