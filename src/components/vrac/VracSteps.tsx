@@ -15,23 +15,23 @@ export function StepMaterial({
   materials, value, onSelect,
 }: { materials: VracMaterial[]; value: string | null; onSelect: (id: string) => void }) {
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       {materials.map((m) => {
         const active = value === m.id;
-        const tagline = m.uses.slice(0, 3).join(" • ");
+        const tagline = m.uses.slice(0, 2).join(" • ");
         return (
           <button
             key={m.id}
             type="button"
             aria-pressed={active}
             onClick={() => onSelect(m.id)}
-            className={`group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border-2 bg-card p-3 text-left transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+            className={`group relative flex h-[84px] w-full items-center gap-4 overflow-hidden rounded-2xl border bg-card p-4 text-left transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
               active
-                ? "border-primary bg-primary/[0.10] shadow-[0_10px_28px_-14px_hsl(var(--primary)/0.55)] ring-1 ring-primary/40"
-                : "border-border hover:border-primary/50 hover:shadow-md"
+                ? "border-[3px] border-primary bg-primary/[0.05] shadow-sm"
+                : "border-border hover:border-primary/40 hover:shadow-sm"
             }`}
           >
-            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-16 sm:w-16">
+            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
               <img
                 src={m.image}
                 alt={m.name}
@@ -43,17 +43,15 @@ export function StepMaterial({
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="truncate text-[15px] font-semibold leading-tight tracking-tight text-foreground">{m.name}</h3>
-              <p className="mt-0.5 truncate text-xs leading-snug text-muted-foreground">{tagline}</p>
+              <p className="mt-1 truncate text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{tagline}</p>
             </div>
             <span
               aria-hidden
-              className={`absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300 ${
-                active
-                  ? "scale-100 bg-primary text-primary-foreground opacity-100"
-                  : "scale-75 border border-border bg-transparent text-transparent opacity-0 group-hover:opacity-60"
+              className={`absolute right-3.5 top-3.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-300 ${
+                active ? "scale-100 opacity-100" : "scale-75 opacity-0"
               }`}
             >
-              <Check className="h-3.5 w-3.5" strokeWidth={3} />
+              <Check className="h-3 w-3" strokeWidth={2.5} />
             </span>
           </button>
         );

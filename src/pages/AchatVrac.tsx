@@ -75,13 +75,10 @@ export default function AchatVrac() {
 
         <Progress step={step} />
 
-        <section className="mt-6 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">
-          <div className="mb-6">
-            <p className="text-xs font-medium uppercase tracking-wide text-primary">
-              Étape {step + 1} sur {STEPS.length}
-            </p>
-            <h2 className="mt-1 text-xl font-semibold text-foreground">{stepTitle(step)}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{stepHint(step)}</p>
+        <section className="mt-8 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">
+          <div className="mb-8 space-y-4">
+            <h2 className="text-xl font-semibold text-foreground">{stepTitle(step)}</h2>
+            <p className="text-sm text-muted-foreground">{stepHint(step)}</p>
           </div>
 
           {step === 0 && (
@@ -141,7 +138,7 @@ function stepTitle(step: number) {
 
 function stepHint(step: number) {
   return [
-    "Sélectionnez le matériau dont vous avez besoin. Nous vous guiderons ensuite pour déterminer la quantité et le coût de livraison.",
+    "Choisissez le matériau qui correspond le mieux à votre projet. Nous vous guiderons ensuite pour calculer automatiquement la quantité, le transport et votre estimation.",
     "Une approximation suffit, nous validerons avec vous.",
     "L'adresse nous permet de planifier la livraison.",
     "Une date précise ou une plage flexible, à votre choix.",
