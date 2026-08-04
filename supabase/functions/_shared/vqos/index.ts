@@ -28,6 +28,14 @@ export interface QuoteResult {
     trips: number;
     estimated_duration_minutes: number;
     delivery_address: string | null;
+    /** Logistique affichable : décidée par le moteur, jamais choisie par le client. */
+    pickup: { name: string | null };
+    truck: { name: string | null; type: string | null; capacity_tonnes: number | null };
+    distance_km: number;
+    round_trip_km: number;
+    /** Ventilation client : matériau et transport (marge déjà répartie, aucun coût interne). */
+    material_amount: number;
+    transport_amount: number;
     subtotal: number;
     taxes: Array<{ name: string; code: string | null; rate_percent: number; amount: number }>;
     tax_total: number;
@@ -62,6 +70,15 @@ export async function runQuote(
   // 3. Décision finale — coût total livré minimal.
   const { best, ranked } = selectBest(calculated, (c) => c.cost.total);
 
+  // Ventilation affichable : la marge est répartie au prorata pour que
+  // « matériau + transport » corresponde exactement au sous-total affiché.
+  const decimals = settings.price_rounding_decimals;
+  const factor = 10 ** Math.max(0, decimals);
+  const rawBase = best.cost.material_cost + best.cost.transport_cost + best.cost.surcharges_total;
+  const materialShare = rawBase > 0 ? best.cost.material_cost / rawBase : 0;
+  const materialAmount = Math.round(best.cost.subtotal * materialShare * factor) / factor;
+  const transportAmount = Math.round((best.cost.subtotal - materialAmount) * factor) / factor;
+
   return {
     public: {
       material: { id: best.plan.material.id, name: best.plan.material.name },
@@ -71,6 +88,16 @@ export async function runQuote(
       trips: best.plan.trips,
       estimated_duration_minutes: best.time.total_minutes_rounded,
       delivery_address: input.delivery.address ?? null,
+      pickup: { name: best.plan.pickup.name ?? null },
+      truck: {
+        name: best.plan.truck.name ?? null,
+        type: best.plan.truck.truck_type ?? null,
+        capacity_tonnes: best.plan.truck.capacity_tonnes ?? null,
+      },
+      distance_km: best.plan.distance_km,
+      round_trip_km: best.time.total_distance_km,
+      material_amount: materialAmount,
+      transport_amount: transportAmount,
       subtotal: best.cost.subtotal,
       taxes: best.cost.taxes.map((t) => ({ name: t.name, code: t.code, rate_percent: t.rate_percent, amount: t.amount })),
       tax_total: best.cost.tax_total,
