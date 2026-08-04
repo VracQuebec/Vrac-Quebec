@@ -216,12 +216,21 @@ function Recap({ draft, quote, loading, error }: {
   const truckLabel = quote?.truck.name
     ?? (quote?.truck.type ? quote.truck.type.replace(/_/g, " ") : null);
   const estimateRows: [string, string][] = [
-    ["Matériel", quote ? formatMoney(quote.material_amount) : pending],
-    ["Transport", quote ? formatMoney(quote.transport_amount) : pending],
+    ["Matériau", quote?.material.name ?? material?.name ?? pending],
     ["Carrière sélectionnée", quote?.pickup.name ?? pending],
     ["Distance calculée", quote ? formatKm(quote.distance_km) : pending],
+    [
+      "Temps facturable",
+      quote?.billable_minutes != null
+        ? formatDuration(quote.billable_minutes)
+        : quote
+          ? formatDuration(quote.estimated_duration_minutes)
+          : pending,
+    ],
     ["Camion recommandé", truckLabel ?? pending],
     ["Nombre de voyages", quote ? String(quote.trips) : pending],
+    ["Prix du matériau", quote ? formatMoney(quote.material_amount) : pending],
+    ["Prix du transport", quote ? formatMoney(quote.transport_amount) : pending],
   ];
   const totalRows: [string, string][] = [
     ["Sous-total", quote ? formatMoney(quote.subtotal) : pending],
