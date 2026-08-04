@@ -28,6 +28,7 @@ export const JSC_REQUIRED_SETTINGS = [
   "time_rounding_minutes",
   "rounding_method",
   "price_rounding_decimals",
+  "base_location_id",
 ] as const;
 
 export type RoundingMethod = "superieur" | "inferieur" | "proche";
