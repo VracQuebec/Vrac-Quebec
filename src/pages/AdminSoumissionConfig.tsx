@@ -3,11 +3,12 @@
 // Aucun calcul, aucun prix affiché au client : uniquement la saisie.
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Layers, MapPin, Truck, Percent, SlidersHorizontal, ShieldCheck, Loader2 } from "lucide-react";
+import { ArrowLeft, Layers, MapPin, Truck, Percent, SlidersHorizontal, ShieldCheck, Loader2, ClipboardCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import ResourceManager from "@/components/jsc/ResourceManager";
+import QuoteValidation from "@/components/jsc/QuoteValidation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +27,7 @@ const TABS = [
   { id: "trucks", label: "Camions", icon: Truck },
   { id: "taxes", label: "Taxes", icon: Percent },
   { id: "settings", label: "Paramètres généraux", icon: SlidersHorizontal },
+  { id: "validation", label: "Validation", icon: ClipboardCheck },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -219,6 +221,7 @@ export default function AdminSoumissionConfig() {
           {tab === "trucks" && <ResourceManager resource={SOUMISSION_TRUCKS} companyId={companyId} />}
           {tab === "taxes" && <ResourceManager resource={SOUMISSION_TAXES} companyId={companyId} />}
           {tab === "settings" && <GeneralSettings companyId={companyId} />}
+          {tab === "validation" && <QuoteValidation companyId={companyId} />}
         </main>
       </div>
     </div>
