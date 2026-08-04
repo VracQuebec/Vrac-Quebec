@@ -73,3 +73,12 @@ export function useVracEstimate() {
 const money = new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" });
 export const formatMoney = (value: number) => money.format(value);
 export const formatKm = (value: number) => `${value.toLocaleString("fr-CA", { maximumFractionDigits: 1 })} km`;
+
+/** Temps facturable affiché en heures et minutes (ex. « 2 h 15 »). */
+export const formatDuration = (minutes: number) => {
+  const total = Math.max(0, Math.round(minutes));
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, "0")}`;
+};
