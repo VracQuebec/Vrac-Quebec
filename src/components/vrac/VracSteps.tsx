@@ -15,47 +15,46 @@ export function StepMaterial({
   materials, value, onSelect,
 }: { materials: VracMaterial[]; value: string | null; onSelect: (id: string) => void }) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {materials.map((m) => {
         const active = value === m.id;
+        const tagline = m.uses.slice(0, 3).join(" • ");
         return (
           <button
             key={m.id}
             type="button"
             aria-pressed={active}
             onClick={() => onSelect(m.id)}
-            className={`group flex h-full flex-col overflow-hidden rounded-2xl border bg-card text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+            className={`group relative flex min-h-[88px] w-full items-center gap-4 overflow-hidden rounded-2xl border bg-card p-3 text-left transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
               active
-                ? "border-[3px] border-primary shadow-lg -translate-y-0.5"
-                : "border-border hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                ? "border-primary bg-primary/5 shadow-[0_8px_24px_-12px_hsl(var(--primary)/0.55)] ring-1 ring-primary"
+                : "border-border hover:border-primary/40 hover:shadow-md"
             }`}
           >
-            <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-[68px] sm:w-[68px]">
               <img
                 src={m.image}
                 alt={m.name}
                 loading="lazy"
-                width={1024}
-                height={1024}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                width={256}
+                height={256}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
               />
-              {active && (
-                <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
-                  <Check className="h-4 w-4" strokeWidth={3} />
-                </span>
-              )}
             </div>
-            <div className="flex flex-1 flex-col gap-2 p-4">
-              <h3 className="font-semibold leading-tight text-foreground">{m.name}</h3>
-              <p className="text-sm leading-snug text-muted-foreground">{m.description}</p>
-              <div className="mt-auto flex flex-wrap gap-1.5 pt-2">
-                {m.uses.map((u) => (
-                  <span key={u} className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                    {u}
-                  </span>
-                ))}
-              </div>
+            <div className="min-w-0 flex-1 pr-7">
+              <h3 className="truncate text-[15px] font-semibold leading-tight tracking-tight text-foreground">{m.name}</h3>
+              <p className="mt-1 truncate text-[13px] leading-snug text-muted-foreground">{tagline}</p>
             </div>
+            <span
+              aria-hidden
+              className={`absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full transition-all duration-300 ${
+                active
+                  ? "scale-100 bg-primary text-primary-foreground opacity-100"
+                  : "scale-75 border border-border bg-transparent text-transparent opacity-0 group-hover:opacity-60"
+              }`}
+            >
+              <Check className="h-3.5 w-3.5" strokeWidth={3} />
+            </span>
           </button>
         );
       })}
