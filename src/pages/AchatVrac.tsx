@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, Phone, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calculator, Check, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TransportBanner from "@/components/TransportBanner";
 import {
@@ -18,7 +18,7 @@ import {
 } from "@/lib/vrac/catalog";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
 
-const STEPS = ["Matériau", "Quantité", "Livraison", "Date", "Coordonnées", "Estimation"] as const;
+const STEPS = ["Matériau", "Quantité", "Livraison", "Date", "Coordonnées", "Résumé et estimation"] as const;
 
 export default function AchatVrac() {
   const materials = useMemo(() => getActiveVracMaterials(), []);
@@ -109,8 +109,12 @@ export default function AchatVrac() {
               Continuer <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             ) : (
-              <Button size="lg" asChild>
-                <a href="tel:15819947717"><Phone className="mr-2 h-4 w-4" /> Parler à un conseiller</a>
+              <Button
+                size="lg"
+                asChild
+                className="bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_16px_40px_-12px_hsl(var(--primary)/0.65)] active:scale-[0.98]"
+              >
+                <a href="tel:15819947717"><Calculator className="mr-2 h-4 w-4" /> Calculer mon estimation</a>
               </Button>
             )}
           </div>
@@ -143,7 +147,7 @@ function stepHint(step: number) {
     "L'adresse nous permet de planifier la livraison.",
     "Une date précise ou une plage flexible, à votre choix.",
     "Pour vous transmettre votre estimation.",
-    "Vérifiez vos informations avant l'envoi.",
+    "Vérifiez les informations ci-dessous avant de calculer votre prix.",
   ][step];
 }
 
@@ -167,7 +171,7 @@ function Progress({ step }: { step: number }) {
   );
 }
 
-/** Résumé du parcours. Le calcul de l'estimation sera branché à l'étape suivante du projet. */
+/** Résumé du parcours + structure visuelle prête à recevoir le moteur de calcul. */
 function Recap({ draft }: { draft: VracDraft }) {
   const material = findVracMaterial(draft.materialId);
   const quantity =
@@ -179,32 +183,75 @@ function Recap({ draft }: { draft: VracDraft }) {
   const when = draft.dateMode === "precise" ? draft.date || "—"
     : draft.dateMode === "flexible" ? "Flexible" : "Le plus tôt possible";
 
-  const rows: [string, string][] = [
+  const summary: [string, string][] = [
     ["Matériau", material?.name ?? "—"],
     ["Quantité", quantity],
-    ["Livraison", draft.address || "—"],
-    ["Date", when],
-    ["Contact", draft.contact.name || "—"],
+    ["Adresse de livraison", draft.address || "—"],
+    ["Date souhaitée", when],
+    ["Nom", draft.contact.name || "—"],
     ["Téléphone", draft.contact.phone || "—"],
     ["Courriel", draft.contact.email || "—"],
   ];
 
+  // Emplacements réservés au futur moteur de calcul (aucun calcul effectué).
+  const pending = "—";
+  const estimateRows: [string, string][] = [
+    ["Matériel", pending],
+    ["Transport", pending],
+    ["Carrière sélectionnée", pending],
+    ["Distance calculée", pending],
+    ["Camion recommandé", pending],
+    ["Nombre de voyages", pending],
+  ];
+  const totalRows: [string, string][] = [
+    ["Sous-total", pending],
+    ["TPS", pending],
+    ["TVQ", pending],
+  ];
+
   return (
-    <div className="space-y-5">
-      <div className="rounded-2xl border border-border bg-muted/30 p-5">
-        <dl className="space-y-2 text-sm">
-          {rows.map(([k, v]) => (
-            <div key={k} className="flex items-start justify-between gap-4">
+    <div className="space-y-6">
+      <div className="grid gap-3 sm:grid-cols-2">
+        {summary.map(([k, v]) => (
+          <div key={k} className="rounded-2xl border border-border bg-muted/30 p-4">
+            <dt className="text-xs uppercase tracking-wide text-muted-foreground">{k}</dt>
+            <dd className="mt-1 break-words text-base font-semibold text-foreground">{v}</dd>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-primary/30 bg-card p-5 shadow-sm">
+        <div className="flex items-center gap-2">
+          <Calculator className="h-4 w-4 text-primary" />
+          <h3 className="text-base font-semibold text-foreground">Estimation automatique</h3>
+        </div>
+
+        <dl className="mt-4 divide-y divide-border text-sm">
+          {estimateRows.map(([k, v]) => (
+            <div key={k} className="flex items-center justify-between gap-4 py-2.5">
               <dt className="text-muted-foreground">{k}</dt>
-              <dd className="text-right font-medium text-foreground">{v}</dd>
+              <dd className="font-medium text-muted-foreground/70">{v}</dd>
+            </div>
+          ))}
+          {totalRows.map(([k, v]) => (
+            <div key={k} className="flex items-center justify-between gap-4 py-2.5">
+              <dt className="text-muted-foreground">{k}</dt>
+              <dd className="font-medium text-muted-foreground/70">{v}</dd>
             </div>
           ))}
         </dl>
+
+        <div className="mt-3 flex items-center justify-between gap-4 border-t border-border pt-4">
+          <span className="font-semibold text-foreground">Total estimé</span>
+          <span className="text-2xl font-bold text-primary">{pending}</span>
+        </div>
       </div>
+
       <p className="rounded-2xl bg-primary/5 p-4 text-sm text-muted-foreground">
-        Le calcul automatique du prix livré (matériau, transport et taxes) sera activé prochainement.
-        D'ici là, un conseiller Vrac Québec confirme votre estimation directement avec vous.
+        Notre assistant analyse actuellement votre demande afin de calculer automatiquement le meilleur prix
+        selon le matériau choisi, la quantité, la distance de livraison et le camion requis.
       </p>
+
       <Button variant="outline" asChild className="w-full sm:w-auto">
         <Link to="/">Retour à l'accueil</Link>
       </Button>
