@@ -240,6 +240,11 @@ export async function runJscQuote(
 
   // 12. Coût du transport (tarif horaire du camion retenu).
   const hourlyRate = Number((truck as { hourly_rate?: number }).hourly_rate ?? 0);
+  if (!(hourlyRate > 0)) {
+    throw new Error(
+      `Tarif horaire manquant pour le camion « ${truck.name} ». Ajoutez-le dans Configuration des soumissions › Camions.`,
+    );
+  }
   const transportAmount = roundMoney(billableHours * hourlyRate, decimals);
 
   // 13-15. Sous-total, taxes, total livré estimé.
@@ -260,13 +265,16 @@ export async function runJscQuote(
       billable_hours: billableHours,
       delivery_address: input.delivery.address ?? null,
       pickup: { name: pickup.name },
+      base: { name: base.name },
       truck: {
         name: truck.name ?? null,
         type: truck.truck_type ?? null,
         capacity_tonnes: capacity,
       },
       distance_km: leg.distance_km,
-      round_trip_km: Number((leg.distance_km * 2 * trips).toFixed(2)),
+      round_trip_km: Number(
+        ((legBaseToPickup.distance_km + leg.distance_km + legClientToBase.distance_km) * trips).toFixed(2),
+      ),
       material_amount: materialAmount,
       transport_amount: transportAmount,
       subtotal,
@@ -279,8 +287,10 @@ export async function runJscQuote(
         carrier_profile: "transport_jsc",
         material: { id: material.id, name: material.name, unit_price: unitPrice, is_taxable: material.is_taxable },
         pickup: { id: pickup.id, name: pickup.name },
+        base: { id: base.id, name: base.name },
         truck: { id: truck.id, name: truck.name, capacity_tonnes: capacity, hourly_rate: hourlyRate },
         time: {
+          travel_base_to_pickup_minutes: travelBaseToPickup,
           travel_to_minutes: travelTo,
           travel_back_minutes: travelBack,
           loading_minutes: loading,
@@ -303,7 +313,9 @@ export async function runJscQuote(
       })),
       decision_trace: {
         rule_set: "transport_jsc",
+        cycle: "garage -> carriere -> client -> garage",
         pickup_source: "materiau.carriere_associee",
+        base_source: "parametres.base_location_id",
         truck_rule: "plus_petit_camion_couvrant_la_quantite",
         distance_source: "google_maps_routes",
       },
