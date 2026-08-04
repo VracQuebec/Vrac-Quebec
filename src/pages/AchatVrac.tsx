@@ -1,12 +1,13 @@
 // ============================================================
 // ASSISTANT D'ACHAT DE MATÉRIAUX EN VRAC — Vrac Québec
-// Étape 1 du développement : architecture et parcours utilisateur seulement.
-// Aucun moteur de calcul, aucun prix, aucune règle de transport ni fournisseur.
+// Parcours utilisateur + branchement du moteur de calcul unique.
+// Aucun prix, aucune carrière, aucun camion, aucun tarif ici :
+// tout provient des paramètres administrateur via quote-engine.
 // ============================================================
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Calculator, Check, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calculator, Check, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TransportBanner from "@/components/TransportBanner";
 import {
@@ -16,6 +17,8 @@ import {
   EMPTY_VRAC_DRAFT, findVracMaterial, getActiveVracMaterials, loadVracDraft,
   saveVracDraft, type VracDraft,
 } from "@/lib/vrac/catalog";
+import { formatKm, formatMoney, useVracEstimate } from "@/lib/vrac/estimate";
+import type { PublicQuote } from "@/lib/jsc/engine";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
 
 const STEPS = ["Matériau", "Quantité", "Livraison", "Date", "Coordonnées", "Résumé et estimation"] as const;
@@ -24,6 +27,7 @@ export default function AchatVrac() {
   const materials = useMemo(() => getActiveVracMaterials(), []);
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<VracDraft>(EMPTY_VRAC_DRAFT);
+  const estimate = useVracEstimate();
 
   // Sauvegarde automatique : on peut revenir en arrière sans rien reperdre.
   useEffect(() => { setDraft(loadVracDraft()); }, []);
@@ -89,7 +93,9 @@ export default function AchatVrac() {
           {step === 2 && <StepDelivery draft={draft} set={set} />}
           {step === 3 && <StepDate draft={draft} set={set} />}
           {step === 4 && <StepContact draft={draft} set={set} />}
-          {step === 5 && <Recap draft={draft} />}
+          {step === 5 && (
+            <Recap draft={draft} quote={estimate.quote} loading={estimate.loading} error={estimate.error} />
+          )}
 
           <div className="mt-8 flex items-center justify-between gap-3">
             <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
@@ -111,10 +117,13 @@ export default function AchatVrac() {
             ) : (
               <Button
                 size="lg"
-                asChild
+                onClick={() => estimate.calculate(draft)}
+                disabled={estimate.loading}
                 className="bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_16px_40px_-12px_hsl(var(--primary)/0.65)] active:scale-[0.98]"
               >
-                <a href="tel:15819947717"><Calculator className="mr-2 h-4 w-4" /> Calculer mon estimation</a>
+                {estimate.loading
+                  ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Calcul en cours…</>
+                  : <><Calculator className="mr-2 h-4 w-4" /> Calculer mon estimation</>}
               </Button>
             )}
           </div>
