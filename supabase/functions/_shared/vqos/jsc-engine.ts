@@ -17,7 +17,7 @@ import {
   type TruckRow, readNumberSetting, roundMoney, toTonnes,
 } from "./core.ts";
 
-export const JSC_ENGINE_VERSION = "jsc-1.1.0";
+export const JSC_ENGINE_VERSION = "jsc-1.2.0";
 
 /** Paramètres administrateur exigés par le moteur JSC. */
 export const JSC_REQUIRED_SETTINGS = [
@@ -31,7 +31,7 @@ export const JSC_REQUIRED_SETTINGS = [
   "base_location_id",
 ] as const;
 
-export type RoundingMethod = "superieur" | "inferieur" | "proche";
+export type RoundingMethod = "superieur" | "inferieur" | "proche" | "superieur_strict";
 
 export interface JscSettings {
   min_trip_minutes: number;
@@ -50,7 +50,7 @@ export function resolveJscSettings(settings: Record<string, string>): JscSetting
       "Paramètre administrateur manquant : « rounding_method ». Configurez-le dans Configuration des soumissions.",
     );
   }
-  if (!["superieur", "inferieur", "proche"].includes(method)) {
+  if (!["superieur", "inferieur", "proche", "superieur_strict"].includes(method)) {
     throw new Error(`Méthode d'arrondissement inconnue : ${method}`);
   }
   return {
@@ -68,6 +68,11 @@ export function resolveJscSettings(settings: Record<string, string>): JscSetting
 export function roundTime(minutes: number, step: number, method: RoundingMethod): number {
   if (!(step > 0)) return minutes;
   const ratio = minutes / step;
+  // Méthode officielle Transport JSC : toujours au palier supérieur suivant
+  // (15 -> 20, 23 -> 25, 28 -> 30, ... 58 -> 60).
+  if (method === "superieur_strict") {
+    return (Math.floor(minutes / step) + 1) * step;
+  }
   const units =
     method === "superieur" ? Math.ceil(ratio)
       : method === "inferieur" ? Math.floor(ratio)
@@ -192,16 +197,19 @@ export async function runJscQuote(
     throw new Error(`Coordonnées GPS manquantes pour le point de départ « ${base.name} ».`);
   }
 
-  // 3. Distances et durées routières (Google Maps), cycle Transport JSC :
-  //    garage -> carrière -> client -> garage.
-  const [toPickupMatrix, toClientMatrix, backToBaseMatrix] = await Promise.all([
+  // 3. Distances et durées routières (Google Maps), cycles Transport JSC :
+  //    1er voyage : garage -> carrière -> client -> garage.
+  //    voyages suivants : carrière -> client -> carrière.
+  const [toPickupMatrix, toClientMatrix, backToBaseMatrix, backToPickupMatrix] = await Promise.all([
     distance([{ id: base.id, lat: base.latitude, lng: base.longitude }], { lat: pickup.latitude, lng: pickup.longitude }),
     distance([{ id: pickup.id, lat: pickup.latitude, lng: pickup.longitude }], { lat: input.delivery.lat, lng: input.delivery.lng }),
     distance([{ id: "client", lat: input.delivery.lat, lng: input.delivery.lng }], { lat: base.latitude, lng: base.longitude }),
+    distance([{ id: "client", lat: input.delivery.lat, lng: input.delivery.lng }], { lat: pickup.latitude, lng: pickup.longitude }),
   ]);
   const legBaseToPickup = toPickupMatrix[base.id];
   const leg = toClientMatrix[pickup.id];
   const legClientToBase = backToBaseMatrix["client"];
+  const legClientToPickup = backToPickupMatrix["client"];
   if (!legBaseToPickup) {
     throw new Error(`Aucun trajet routier trouvé entre « ${base.name} » et la carrière « ${pickup.name} ».`);
   }
@@ -211,28 +219,41 @@ export async function runJscQuote(
   if (!legClientToBase) {
     throw new Error(`Aucun trajet routier trouvé entre l'adresse de livraison et « ${base.name} ».`);
   }
+  if (!legClientToPickup) {
+    throw new Error(`Aucun trajet routier trouvé entre l'adresse de livraison et la carrière « ${pickup.name} ».`);
+  }
 
   // 4-5. Temps de déplacement du cycle : garage->carrière, carrière->client, client->garage.
   const travelBaseToPickup = legBaseToPickup.duration_minutes;
   const travelTo = leg.duration_minutes;
   const travelBack = legClientToBase.duration_minutes;
+  const travelBackToPickup = legClientToPickup.duration_minutes;
 
   // 6. Temps fixes ajoutés automatiquement à chaque voyage.
   const loading = pickup.loading_time_minutes ?? s.loading_time_minutes;
   const unloading = s.unloading_time_minutes;
   const buffer = s.buffer_time_minutes;
 
-  // 7-8. Temps par voyage, plancher facturable, puis arrondi administrable.
-  const rawTripMinutes = travelBaseToPickup + loading + travelTo + unloading + travelBack + buffer;
-  const flooredTripMinutes = Math.max(rawTripMinutes, s.min_trip_minutes);
-  const billableTripMinutes = roundTime(flooredTripMinutes, s.time_rounding_minutes, s.rounding_method);
-
   // 9-10. Camion recommandé et nombre de voyages (toujours au supérieur).
   const truck = pickTruck(config.trucks, tonnage);
   const capacity = Number(truck.capacity_tonnes);
   const trips = Math.max(1, Math.ceil(tonnage / capacity));
 
-  const billableMinutes = billableTripMinutes * trips;
+  // 7-8. Temps par voyage (méthode officielle JSC) :
+  //  - 1er voyage  : garage -> carrière -> client -> garage
+  //  - voyages 2+  : carrière -> client -> carrière (jamais de retour au garage)
+  //  Chaque voyage est arrondi selon la méthode configurée, puis le total
+  //  est soumis au temps minimum facturable.
+  const rawFirstTripMinutes = travelBaseToPickup + loading + travelTo + unloading + travelBack + buffer;
+  const rawNextTripMinutes = loading + travelTo + unloading + travelBackToPickup + buffer;
+  const billableFirstTripMinutes = roundTime(rawFirstTripMinutes, s.time_rounding_minutes, s.rounding_method);
+  const billableNextTripMinutes = roundTime(rawNextTripMinutes, s.time_rounding_minutes, s.rounding_method);
+
+  const rawTripMinutes = rawFirstTripMinutes;
+  const billableTripMinutes = billableFirstTripMinutes;
+  const rawTotalMinutes = billableFirstTripMinutes + billableNextTripMinutes * (trips - 1);
+  const flooredTripMinutes = Math.max(rawTotalMinutes, s.min_trip_minutes);
+  const billableMinutes = flooredTripMinutes;
   const billableHours = Number((billableMinutes / 60).toFixed(3));
 
   // 11. Coût du matériau.
@@ -273,7 +294,10 @@ export async function runJscQuote(
       },
       distance_km: leg.distance_km,
       round_trip_km: Number(
-        ((legBaseToPickup.distance_km + leg.distance_km + legClientToBase.distance_km) * trips).toFixed(2),
+        (
+          legBaseToPickup.distance_km + leg.distance_km + legClientToBase.distance_km +
+          (leg.distance_km + legClientToPickup.distance_km) * (trips - 1)
+        ).toFixed(2),
       ),
       material_amount: materialAmount,
       transport_amount: transportAmount,
@@ -293,15 +317,22 @@ export async function runJscQuote(
           base_to_pickup_km: legBaseToPickup.distance_km,
           pickup_to_client_km: leg.distance_km,
           client_to_base_km: legClientToBase.distance_km,
+          client_to_pickup_km: legClientToPickup.distance_km,
         },
         time: {
           travel_base_to_pickup_minutes: travelBaseToPickup,
           travel_to_minutes: travelTo,
           travel_back_minutes: travelBack,
+          travel_back_to_pickup_minutes: travelBackToPickup,
           loading_minutes: loading,
           unloading_minutes: unloading,
           buffer_minutes: buffer,
+          raw_first_trip_minutes: rawFirstTripMinutes,
+          raw_next_trip_minutes: rawNextTripMinutes,
+          billable_first_trip_minutes: billableFirstTripMinutes,
+          billable_next_trip_minutes: billableNextTripMinutes,
           raw_trip_minutes: rawTripMinutes,
+          raw_total_minutes: rawTotalMinutes,
           floored_trip_minutes: flooredTripMinutes,
           billable_trip_minutes: billableTripMinutes,
           trips,
@@ -318,7 +349,8 @@ export async function runJscQuote(
       })),
       decision_trace: {
         rule_set: "transport_jsc",
-        cycle: "garage -> carriere -> client -> garage",
+        cycle: "1er voyage: garage -> carriere -> client -> garage | voyages suivants: carriere -> client -> carriere",
+        minimum_rule: "temps minimum facturable applique au total",
         pickup_source: "materiau.carriere_associee",
         base_source: "parametres.base_location_id",
         truck_rule: "plus_petit_camion_couvrant_la_quantite",
