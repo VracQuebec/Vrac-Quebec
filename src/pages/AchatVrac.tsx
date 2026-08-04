@@ -100,9 +100,9 @@ export default function AchatVrac() {
               size="lg"
               onClick={() => setStep((s) => s + 1)}
               disabled={!canContinue}
-              className={`transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] ${
+              className={`transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] ${
                 canContinue
-                  ? "bg-primary text-primary-foreground shadow-[0_8px_24px_-12px_hsl(var(--primary)/0.45)] hover:bg-primary/90"
+                  ? "bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/90 hover:shadow-[0_16px_40px_-12px_hsl(var(--primary)/0.65)]"
                   : ""
               }`}
             >
