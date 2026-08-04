@@ -17,7 +17,7 @@ import {
   EMPTY_VRAC_DRAFT, findVracMaterial, getActiveVracMaterials, loadVracDraft,
   saveVracDraft, type VracDraft,
 } from "@/lib/vrac/catalog";
-import { formatKm, formatMoney, useVracEstimate } from "@/lib/vrac/estimate";
+import { formatDuration, formatKm, formatMoney, useVracEstimate } from "@/lib/vrac/estimate";
 import type { PublicQuote } from "@/lib/jsc/engine";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
 
