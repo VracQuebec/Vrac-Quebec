@@ -289,6 +289,11 @@ export async function runJscQuote(
         pickup: { id: pickup.id, name: pickup.name },
         base: { id: base.id, name: base.name },
         truck: { id: truck.id, name: truck.name, capacity_tonnes: capacity, hourly_rate: hourlyRate },
+        distance: {
+          base_to_pickup_km: legBaseToPickup.distance_km,
+          pickup_to_client_km: leg.distance_km,
+          client_to_base_km: legClientToBase.distance_km,
+        },
         time: {
           travel_base_to_pickup_minutes: travelBaseToPickup,
           travel_to_minutes: travelTo,
