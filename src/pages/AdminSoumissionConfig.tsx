@@ -1,0 +1,207 @@
+// Configuration des soumissions — structure de données administrable
+// qui alimentera le moteur de calcul de Transport JSC.
+// Aucun calcul, aucun prix affiché au client : uniquement la saisie.
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, Layers, MapPin, Truck, Percent, SlidersHorizontal, ShieldCheck, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useUserRoles } from "@/hooks/useUserRole";
+import ResourceManager from "@/components/jsc/ResourceManager";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import {
+  SOUMISSION_MATERIALS, SOUMISSION_QUARRIES, SOUMISSION_TRUCKS, SOUMISSION_TAXES,
+  SOUMISSION_SETTINGS,
+} from "@/lib/jsc/soumission-config";
+
+const TABS = [
+  { id: "materials", label: "Matériaux", icon: Layers },
+  { id: "quarries", label: "Carrières", icon: MapPin },
+  { id: "trucks", label: "Camions", icon: Truck },
+  { id: "taxes", label: "Taxes", icon: Percent },
+  { id: "settings", label: "Paramètres généraux", icon: SlidersHorizontal },
+] as const;
+
+type TabId = (typeof TABS)[number]["id"];
+
+function GeneralSettings({ companyId }: { companyId: string | null }) {
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("jsc_settings")
+      .select("key,value")
+      .in("key", SOUMISSION_SETTINGS.map((s) => s.key));
+    const next: Record<string, string> = {};
+    for (const row of data ?? []) next[row.key] = row.value ?? "";
+    setValues(next);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const save = async () => {
+    setSaving(true);
+    for (const def of SOUMISSION_SETTINGS) {
+      const value = values[def.key] ?? "";
+      const { data: existing } = await supabase
+        .from("jsc_settings").select("id").eq("key", def.key).limit(1).maybeSingle();
+      const res = existing
+        ? await supabase.from("jsc_settings").update({ value }).eq("id", existing.id)
+        : await supabase.from("jsc_settings").insert({
+            key: def.key, label: def.label, category: "moteur_de_calcul",
+            value_type: def.type === "number" ? "number" : "text",
+            value, unit: def.unit ?? null, description: def.help,
+            ...(companyId ? { company_id: companyId } : {}),
+          });
+      if (res.error) { toast.error(res.error.message); setSaving(false); return; }
+    }
+    setSaving(false);
+    toast.success("Paramètres enregistrés.");
+    void load();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-muted-foreground">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Chargement…
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-xl font-semibold">Paramètres généraux</h2>
+        <p className="text-sm text-muted-foreground">
+          Valeurs de référence qui seront utilisées plus tard par le moteur de calcul.
+        </p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {SOUMISSION_SETTINGS.map((def) => (
+          <div key={def.key} className="space-y-1.5 rounded-lg border p-4">
+            <Label>{def.label}</Label>
+            {def.type === "select" ? (
+              <Select
+                value={values[def.key] ?? ""}
+                onValueChange={(v) => setValues((s) => ({ ...s, [def.key]: v }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
+                <SelectContent>
+                  {def.options?.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  step="any"
+                  value={values[def.key] ?? ""}
+                  onChange={(e) => setValues((s) => ({ ...s, [def.key]: e.target.value }))}
+                />
+                {def.unit && <span className="text-sm text-muted-foreground">{def.unit}</span>}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">{def.help}</p>
+          </div>
+        ))}
+      </div>
+      <Button onClick={save} disabled={saving}>
+        {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Enregistrer les paramètres
+      </Button>
+    </div>
+  );
+}
+
+export default function AdminSoumissionConfig() {
+  const { isReady, user } = useAuthReady();
+  const { isAdmin, loading: rolesLoading } = useUserRoles(user, isReady);
+  const [tab, setTab] = useState<TabId>("materials");
+  const [companyId, setCompanyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    void (async () => {
+      const { data } = await supabase
+        .from("jsc_companies").select("id,is_default").is("archived_at", null).order("created_at");
+      const list = data ?? [];
+      setCompanyId(list.find((c) => c.is_default)?.id ?? list[0]?.id ?? null);
+    })();
+  }, [isAdmin]);
+
+  if (!isReady || rolesLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Vérification des permissions…
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
+        <ShieldCheck className="h-8 w-8 text-muted-foreground" />
+        <h1 className="text-xl font-semibold">Accès réservé</h1>
+        <p className="max-w-md text-sm text-muted-foreground">
+          La configuration des soumissions est accessible uniquement aux administrateurs.
+        </p>
+        <Link to="/" className="text-sm text-primary hover:underline">Retour à l'accueil</Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-card">
+        <div className="mx-auto max-w-7xl px-4 py-5">
+          <Link to="/admin" className="mb-2 inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="mr-1.5 h-4 w-4" /> Retour à l'administration
+          </Link>
+          <h1 className="text-2xl font-bold">Configuration des soumissions</h1>
+          <p className="text-sm text-muted-foreground">
+            Matériaux, carrières, camions, taxes et paramètres. Toutes les valeurs sont administrables ici.
+          </p>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-7xl gap-6 px-4 py-6 lg:flex">
+        <nav className="mb-4 flex gap-2 overflow-x-auto lg:mb-0 lg:w-64 lg:flex-col">
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`flex w-full shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                tab === id
+                  ? "border-primary bg-primary/10 font-medium text-foreground"
+                  : "border-transparent text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              <span className="whitespace-nowrap">{label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <main className="min-w-0 flex-1">
+          {tab === "materials" && <ResourceManager resource={SOUMISSION_MATERIALS} companyId={companyId} />}
+          {tab === "quarries" && <ResourceManager resource={SOUMISSION_QUARRIES} companyId={companyId} />}
+          {tab === "trucks" && <ResourceManager resource={SOUMISSION_TRUCKS} companyId={companyId} />}
+          {tab === "taxes" && <ResourceManager resource={SOUMISSION_TAXES} companyId={companyId} />}
+          {tab === "settings" && <GeneralSettings companyId={companyId} />}
+        </main>
+      </div>
+    </div>
+  );
+}
