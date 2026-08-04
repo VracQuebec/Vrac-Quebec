@@ -177,19 +177,45 @@ export async function runJscQuote(
     throw new Error(`Coordonnées GPS manquantes pour la carrière « ${pickup.name} ».`);
   }
 
-  // 3. Distance et durée routières (Google Maps) : carrière -> livraison.
-  const matrix = await distance(
-    [{ id: pickup.id, lat: pickup.latitude, lng: pickup.longitude }],
-    { lat: input.delivery.lat, lng: input.delivery.lng },
-  );
-  const leg = matrix[pickup.id];
+  // 2b. Point de départ des camions (garage / Logipark) — configuré en administration.
+  const baseId = (config.settings["base_location_id"] ?? "").trim();
+  if (!baseId) {
+    throw new Error(
+      "Aucun point de départ configuré (garage). Sélectionnez-le dans Configuration des soumissions › Paramètres généraux.",
+    );
+  }
+  const base = config.pickups.find((p) => p.id === baseId);
+  if (!base) {
+    throw new Error("Le point de départ configuré est introuvable ou inactif. Vérifiez la configuration des soumissions.");
+  }
+  if (base.latitude == null || base.longitude == null) {
+    throw new Error(`Coordonnées GPS manquantes pour le point de départ « ${base.name} ».`);
+  }
+
+  // 3. Distances et durées routières (Google Maps), cycle Transport JSC :
+  //    garage -> carrière -> client -> garage.
+  const [toPickupMatrix, toClientMatrix, backToBaseMatrix] = await Promise.all([
+    distance([{ id: base.id, lat: base.latitude, lng: base.longitude }], { lat: pickup.latitude, lng: pickup.longitude }),
+    distance([{ id: pickup.id, lat: pickup.latitude, lng: pickup.longitude }], { lat: input.delivery.lat, lng: input.delivery.lng }),
+    distance([{ id: "client", lat: input.delivery.lat, lng: input.delivery.lng }], { lat: base.latitude, lng: base.longitude }),
+  ]);
+  const legBaseToPickup = toPickupMatrix[base.id];
+  const leg = toClientMatrix[pickup.id];
+  const legClientToBase = backToBaseMatrix["client"];
+  if (!legBaseToPickup) {
+    throw new Error(`Aucun trajet routier trouvé entre « ${base.name} » et la carrière « ${pickup.name} ».`);
+  }
   if (!leg) {
     throw new Error(`Aucun trajet routier trouvé entre la carrière « ${pickup.name} » et l'adresse de livraison.`);
   }
+  if (!legClientToBase) {
+    throw new Error(`Aucun trajet routier trouvé entre l'adresse de livraison et « ${base.name} ».`);
+  }
 
-  // 4-5. Temps aller et retour (même trajet).
+  // 4-5. Temps de déplacement du cycle : garage->carrière, carrière->client, client->garage.
+  const travelBaseToPickup = legBaseToPickup.duration_minutes;
   const travelTo = leg.duration_minutes;
-  const travelBack = leg.duration_minutes;
+  const travelBack = legClientToBase.duration_minutes;
 
   // 6. Temps fixes ajoutés automatiquement à chaque voyage.
   const loading = pickup.loading_time_minutes ?? s.loading_time_minutes;
@@ -197,7 +223,7 @@ export async function runJscQuote(
   const buffer = s.buffer_time_minutes;
 
   // 7-8. Temps par voyage, plancher facturable, puis arrondi administrable.
-  const rawTripMinutes = travelTo + travelBack + loading + unloading + buffer;
+  const rawTripMinutes = travelBaseToPickup + loading + travelTo + unloading + travelBack + buffer;
   const flooredTripMinutes = Math.max(rawTripMinutes, s.min_trip_minutes);
   const billableTripMinutes = roundTime(flooredTripMinutes, s.time_rounding_minutes, s.rounding_method);
 
