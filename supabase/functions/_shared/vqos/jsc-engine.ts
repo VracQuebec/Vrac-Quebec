@@ -17,7 +17,7 @@ import {
   type TruckRow, readNumberSetting, roundMoney, toTonnes,
 } from "./core.ts";
 
-export const JSC_ENGINE_VERSION = "jsc-1.1.0";
+export const JSC_ENGINE_VERSION = "jsc-1.2.0";
 
 /** Paramètres administrateur exigés par le moteur JSC. */
 export const JSC_REQUIRED_SETTINGS = [
@@ -31,7 +31,7 @@ export const JSC_REQUIRED_SETTINGS = [
   "base_location_id",
 ] as const;
 
-export type RoundingMethod = "superieur" | "inferieur" | "proche";
+export type RoundingMethod = "superieur" | "inferieur" | "proche" | "superieur_strict";
 
 export interface JscSettings {
   min_trip_minutes: number;
@@ -50,7 +50,7 @@ export function resolveJscSettings(settings: Record<string, string>): JscSetting
       "Paramètre administrateur manquant : « rounding_method ». Configurez-le dans Configuration des soumissions.",
     );
   }
-  if (!["superieur", "inferieur", "proche"].includes(method)) {
+  if (!["superieur", "inferieur", "proche", "superieur_strict"].includes(method)) {
     throw new Error(`Méthode d'arrondissement inconnue : ${method}`);
   }
   return {
@@ -68,6 +68,11 @@ export function resolveJscSettings(settings: Record<string, string>): JscSetting
 export function roundTime(minutes: number, step: number, method: RoundingMethod): number {
   if (!(step > 0)) return minutes;
   const ratio = minutes / step;
+  // Méthode officielle Transport JSC : toujours au palier supérieur suivant
+  // (15 -> 20, 23 -> 25, 28 -> 30, ... 58 -> 60).
+  if (method === "superieur_strict") {
+    return (Math.floor(minutes / step) + 1) * step;
+  }
   const units =
     method === "superieur" ? Math.ceil(ratio)
       : method === "inferieur" ? Math.floor(ratio)
