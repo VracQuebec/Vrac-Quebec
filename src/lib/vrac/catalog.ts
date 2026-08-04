@@ -15,6 +15,8 @@ import poussierePierre from "@/assets/materials/v4/poussiere-pierre.jpg";
 export type VracMaterial = {
   /** Identifiant technique stable (ne jamais renommer). */
   id: string;
+  /** Clé de correspondance avec le matériau administrable (jsc_materials.slug). */
+  slug: string;
   name: string;
   description: string;
   /** Principales utilisations affichées sur la carte. */
@@ -32,6 +34,7 @@ export type VracMaterial = {
 export const VRAC_MATERIALS: VracMaterial[] = [
   {
     id: "terre_tamisee",
+    slug: "terre-tamisee",
     name: "Terre tamisée",
     description: "Idéale pour la préparation de pelouses et de jardins.",
     uses: ["Pelouse", "Jardin"],
@@ -41,6 +44,7 @@ export const VRAC_MATERIALS: VracMaterial[] = [
   },
   {
     id: "sable",
+    slug: "sable",
     name: "Sable",
     description: "Pour la piscine et divers aménagements.",
     uses: ["Piscine", "Aménagement"],
@@ -50,6 +54,7 @@ export const VRAC_MATERIALS: VracMaterial[] = [
   },
   {
     id: "sable_compaction",
+    slug: "sable-compaction",
     name: "Sable à compaction",
     description: "Idéal pour les bases de pavé uni et les travaux nécessitant une excellente compaction.",
     uses: ["Pavé uni", "Base compactée"],
@@ -59,6 +64,7 @@ export const VRAC_MATERIALS: VracMaterial[] = [
   },
   {
     id: "pierre_0_34",
+    slug: "pierre-concassee-0-34",
     name: "Pierre concassée 0-3/4",
     description: "Parfaite pour les entrées et les fondations.",
     uses: ["Entrée", "Fondation"],
@@ -68,6 +74,7 @@ export const VRAC_MATERIALS: VracMaterial[] = [
   },
   {
     id: "pierre_34_net",
+    slug: "pierre-concassee-34-net",
     name: "Pierre concassée 3/4 net",
     description: "Idéale pour le drainage et les drains français.",
     uses: ["Drainage", "Drain français"],
@@ -77,6 +84,7 @@ export const VRAC_MATERIALS: VracMaterial[] = [
   },
   {
     id: "poussiere_pierre",
+    slug: "poussiere-de-pierre",
     name: "Poussière de pierre",
     description: "Parfaite comme lit de pose pour le pavé uni et les dalles.",
     uses: ["Pavé uni", "Dalles"],

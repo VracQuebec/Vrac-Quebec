@@ -40,7 +40,22 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => null);
-    const materialId = body?.material_id;
+    let materialId = body?.material_id;
+
+    // Le parcours public identifie le matériau par son identifiant lisible (slug).
+    if (typeof materialId !== 'string' && typeof body?.material_slug === 'string') {
+      const slug = body.material_slug.trim().slice(0, 120);
+      const { data: found } = await db
+        .from('jsc_materials')
+        .select('id')
+        .eq('slug', slug)
+        .eq('is_active', true)
+        .is('archived_at', null)
+        .maybeSingle();
+      if (!found) return json({ error: `Matériau « ${slug} » non configuré dans l'administration.` }, 404);
+      materialId = found.id;
+    }
+
     const quantity = Number(body?.quantity);
     const unit: Unit = body?.unit ?? 'tonne';
 

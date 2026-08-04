@@ -6,7 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 export type QuoteUnit = "tonne" | "verge" | "m3";
 
 export interface QuoteRequest {
-  material_id: string;
+  material_id?: string;
+  /** Identifiant lisible du matériau (parcours public) : résolu par le moteur. */
+  material_slug?: string;
   quantity: number;
   unit?: QuoteUnit;
   /** Adresse texte (géocodée par le moteur) ou coordonnées déjà connues */
@@ -29,6 +31,12 @@ export interface PublicQuote {
   trips: number;
   estimated_duration_minutes: number;
   delivery_address: string | null;
+  pickup: { name: string | null };
+  truck: { name: string | null; type: string | null; capacity_tonnes: number | null };
+  distance_km: number;
+  round_trip_km: number;
+  material_amount: number;
+  transport_amount: number;
   subtotal: number;
   taxes: TaxLine[];
   tax_total: number;
