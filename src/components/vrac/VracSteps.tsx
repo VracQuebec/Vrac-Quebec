@@ -15,7 +15,7 @@ export function StepMaterial({
   materials, value, onSelect,
 }: { materials: VracMaterial[]; value: string | null; onSelect: (id: string) => void }) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
       {materials.map((m) => {
         const active = value === m.id;
         const tagline = m.uses.slice(0, 3).join(" • ");
@@ -41,9 +41,9 @@ export function StepMaterial({
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
               />
             </div>
-            <div className="min-w-0 flex-1 pr-8">
+            <div className="min-w-0 flex-1">
               <h3 className="truncate text-[15px] font-semibold leading-tight tracking-tight text-foreground">{m.name}</h3>
-              <p className="mt-0.5 truncate text-[13px] leading-snug text-muted-foreground">{tagline}</p>
+              <p className="mt-0.5 truncate text-xs leading-snug text-muted-foreground">{tagline}</p>
             </div>
             <span
               aria-hidden
