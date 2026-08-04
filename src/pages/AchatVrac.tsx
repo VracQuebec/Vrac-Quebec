@@ -187,8 +187,10 @@ function Progress({ step }: { step: number }) {
   );
 }
 
-/** Résumé du parcours + structure visuelle prête à recevoir le moteur de calcul. */
-function Recap({ draft }: { draft: VracDraft }) {
+/** Résumé du parcours + estimation produite par le moteur de calcul unique. */
+function Recap({ draft, quote, loading, error }: {
+  draft: VracDraft; quote: PublicQuote | null; loading: boolean; error: string | null;
+}) {
   const material = findVracMaterial(draft.materialId);
   const quantity =
     draft.quantityMode === "tonnes" ? `${draft.tonnes} tonnes`
@@ -209,20 +211,25 @@ function Recap({ draft }: { draft: VracDraft }) {
     ["Courriel", draft.contact.email || "—"],
   ];
 
-  // Emplacements réservés au futur moteur de calcul (aucun calcul effectué).
+  // Valeurs produites par le moteur (aucune donnée codée ici).
   const pending = "—";
+  const truckLabel = quote?.truck.name
+    ?? (quote?.truck.type ? quote.truck.type.replace(/_/g, " ") : null);
   const estimateRows: [string, string][] = [
-    ["Matériel", pending],
-    ["Transport", pending],
-    ["Carrière sélectionnée", pending],
-    ["Distance calculée", pending],
-    ["Camion recommandé", pending],
-    ["Nombre de voyages", pending],
+    ["Matériel", quote ? formatMoney(quote.material_amount) : pending],
+    ["Transport", quote ? formatMoney(quote.transport_amount) : pending],
+    ["Carrière sélectionnée", quote?.pickup.name ?? pending],
+    ["Distance calculée", quote ? formatKm(quote.distance_km) : pending],
+    ["Camion recommandé", truckLabel ?? pending],
+    ["Nombre de voyages", quote ? String(quote.trips) : pending],
   ];
   const totalRows: [string, string][] = [
-    ["Sous-total", pending],
-    ["TPS", pending],
-    ["TVQ", pending],
+    ["Sous-total", quote ? formatMoney(quote.subtotal) : pending],
+    ...(quote
+      ? quote.taxes.map((t) => [
+          `${t.code ?? t.name} (${t.rate_percent} %)`, formatMoney(t.amount),
+        ] as [string, string])
+      : ([["TPS", pending], ["TVQ", pending]] as [string, string][])),
   ];
 
   return (
@@ -246,26 +253,33 @@ function Recap({ draft }: { draft: VracDraft }) {
           {estimateRows.map(([k, v]) => (
             <div key={k} className="flex items-center justify-between gap-4 py-2.5">
               <dt className="text-muted-foreground">{k}</dt>
-              <dd className="font-medium text-muted-foreground/70">{v}</dd>
+              <dd className={`font-medium ${quote ? "text-foreground" : "text-muted-foreground/70"}`}>{v}</dd>
             </div>
           ))}
           {totalRows.map(([k, v]) => (
             <div key={k} className="flex items-center justify-between gap-4 py-2.5">
               <dt className="text-muted-foreground">{k}</dt>
-              <dd className="font-medium text-muted-foreground/70">{v}</dd>
+              <dd className={`font-medium ${quote ? "text-foreground" : "text-muted-foreground/70"}`}>{v}</dd>
             </div>
           ))}
         </dl>
 
         <div className="mt-3 flex items-center justify-between gap-4 border-t border-border pt-4">
-          <span className="font-semibold text-foreground">Total estimé</span>
-          <span className="text-2xl font-bold text-primary">{pending}</span>
+          <span className="font-semibold text-foreground">Total livré estimé</span>
+          <span className="text-2xl font-bold text-primary">
+            {loading ? "…" : quote ? formatMoney(quote.total) : pending}
+          </span>
         </div>
+
+        {error && (
+          <p className="mt-4 rounded-xl bg-muted/50 p-3 text-sm text-muted-foreground">{error}</p>
+        )}
       </div>
 
       <p className="rounded-2xl bg-primary/5 p-4 text-sm text-muted-foreground">
-        Notre assistant analyse actuellement votre demande afin de calculer automatiquement le meilleur prix
-        selon le matériau choisi, la quantité, la distance de livraison et le camion requis.
+        {quote
+          ? "Estimation calculée automatiquement selon le matériau choisi, la carrière la plus avantageuse, la distance de livraison et le camion requis."
+          : "Notre assistant analyse votre demande afin de calculer automatiquement le meilleur prix selon le matériau choisi, la quantité, la distance de livraison et le camion requis."}
       </p>
 
       <Button variant="outline" asChild className="w-full sm:w-auto">
