@@ -99,9 +99,18 @@ export default function AchatVrac() {
               <ArrowLeft className="mr-2 h-4 w-4" /> Retour
             </Button>
             {step < STEPS.length - 1 ? (
-              <Button size="lg" onClick={() => setStep((s) => s + 1)} disabled={!canContinue}>
-                Continuer <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+            <Button
+              size="lg"
+              onClick={() => setStep((s) => s + 1)}
+              disabled={!canContinue}
+              className={`transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] ${
+                canContinue
+                  ? "bg-primary text-primary-foreground shadow-[0_8px_24px_-12px_hsl(var(--primary)/0.45)] hover:bg-primary/90"
+                  : ""
+              }`}
+            >
+              Continuer <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
             ) : (
               <Button size="lg" asChild>
                 <a href="tel:15819947717"><Phone className="mr-2 h-4 w-4" /> Parler à un conseiller</a>
@@ -121,7 +130,7 @@ export default function AchatVrac() {
 
 function stepTitle(step: number) {
   return [
-    "Choisissez votre matériau",
+    "Quel matériau souhaitez-vous faire livrer ?",
     "De quelle quantité avez-vous besoin ?",
     "Où doit-on livrer ?",
     "Quand souhaitez-vous la livraison ?",
@@ -132,7 +141,7 @@ function stepTitle(step: number) {
 
 function stepHint(step: number) {
   return [
-    "Sélectionnez le matériau qui correspond à vos travaux.",
+    "Sélectionnez le matériau dont vous avez besoin. Nous vous guiderons ensuite pour déterminer la quantité et le coût de livraison.",
     "Une approximation suffit, nous validerons avec vous.",
     "L'adresse nous permet de planifier la livraison.",
     "Une date précise ou une plage flexible, à votre choix.",

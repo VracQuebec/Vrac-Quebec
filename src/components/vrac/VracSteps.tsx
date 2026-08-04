@@ -15,7 +15,7 @@ export function StepMaterial({
   materials, value, onSelect,
 }: { materials: VracMaterial[]; value: string | null; onSelect: (id: string) => void }) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
       {materials.map((m) => {
         const active = value === m.id;
         const tagline = m.uses.slice(0, 3).join(" • ");
@@ -25,13 +25,13 @@ export function StepMaterial({
             type="button"
             aria-pressed={active}
             onClick={() => onSelect(m.id)}
-            className={`group relative flex min-h-[88px] w-full items-center gap-4 overflow-hidden rounded-2xl border bg-card p-3 text-left transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+            className={`group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border-2 bg-card p-3 text-left transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
               active
-                ? "border-primary bg-primary/5 shadow-[0_8px_24px_-12px_hsl(var(--primary)/0.55)] ring-1 ring-primary"
-                : "border-border hover:border-primary/40 hover:shadow-md"
+                ? "border-primary bg-primary/[0.10] shadow-[0_10px_28px_-14px_hsl(var(--primary)/0.55)] ring-1 ring-primary/40"
+                : "border-border hover:border-primary/50 hover:shadow-md"
             }`}
           >
-            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-[68px] sm:w-[68px]">
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-16 sm:w-16">
               <img
                 src={m.image}
                 alt={m.name}
@@ -41,13 +41,13 @@ export function StepMaterial({
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
               />
             </div>
-            <div className="min-w-0 flex-1 pr-7">
+            <div className="min-w-0 flex-1">
               <h3 className="truncate text-[15px] font-semibold leading-tight tracking-tight text-foreground">{m.name}</h3>
-              <p className="mt-1 truncate text-[13px] leading-snug text-muted-foreground">{tagline}</p>
+              <p className="mt-0.5 truncate text-xs leading-snug text-muted-foreground">{tagline}</p>
             </div>
             <span
               aria-hidden
-              className={`absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full transition-all duration-300 ${
+              className={`absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300 ${
                 active
                   ? "scale-100 bg-primary text-primary-foreground opacity-100"
                   : "scale-75 border border-border bg-transparent text-transparent opacity-0 group-hover:opacity-60"
