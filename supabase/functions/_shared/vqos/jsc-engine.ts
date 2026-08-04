@@ -119,6 +119,7 @@ export interface JscQuoteResult {
     billable_hours: number;
     delivery_address: string | null;
     pickup: { name: string | null };
+    base: { name: string | null };
     truck: { name: string | null; type: string | null; capacity_tonnes: number | null };
     distance_km: number;
     round_trip_km: number;
