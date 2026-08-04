@@ -17,7 +17,7 @@ import {
   type TruckRow, readNumberSetting, roundMoney, toTonnes,
 } from "./core.ts";
 
-export const JSC_ENGINE_VERSION = "jsc-1.0.0";
+export const JSC_ENGINE_VERSION = "jsc-1.1.0";
 
 /** Paramètres administrateur exigés par le moteur JSC. */
 export const JSC_REQUIRED_SETTINGS = [
