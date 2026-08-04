@@ -192,6 +192,7 @@ export const SOUMISSION_SETTINGS: SettingDef[] = [
     help: "Façon dont les temps et les voyages seront arrondis par le moteur.",
     type: "select",
     options: [
+      { value: "superieur_strict", label: "Palier supérieur suivant (méthode JSC)" },
       { value: "superieur", label: "Toujours au supérieur" },
       { value: "inferieur", label: "Toujours à l'inférieur" },
       { value: "proche", label: "Au plus proche" },
