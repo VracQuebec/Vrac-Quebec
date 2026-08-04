@@ -9,7 +9,8 @@
 // ============================================================
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { runQuote, type Unit } from '../_shared/vqos/index.ts';
+import { type Unit } from '../_shared/vqos/index.ts';
+import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
@@ -82,7 +83,8 @@ Deno.serve(async (req) => {
       }, 409);
     }
 
-    const result = await runQuote(
+    // Moteur Transport JSC (profil transporteur unique pour l'instant).
+    const result = await runCarrierQuote(
       {
         material_id: materialId, quantity, unit, delivery,
         carrier_id: body?.carrier_id ?? null,

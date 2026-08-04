@@ -30,6 +30,9 @@ export interface PublicQuote {
   tonnage: number;
   trips: number;
   estimated_duration_minutes: number;
+  /** Temps réellement facturé par Transport JSC (tous voyages inclus). */
+  billable_minutes?: number;
+  billable_hours?: number;
   delivery_address: string | null;
   pickup: { name: string | null };
   truck: { name: string | null; type: string | null; capacity_tonnes: number | null };
