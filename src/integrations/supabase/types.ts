@@ -5258,6 +5258,7 @@ export type Database = {
           is_taxable: boolean
           margin_percent: number | null
           name: string
+          pickup_location_id: string | null
           promo_ends_on: string | null
           promo_price: number | null
           promo_starts_on: string | null
@@ -5294,6 +5295,7 @@ export type Database = {
           is_taxable?: boolean
           margin_percent?: number | null
           name: string
+          pickup_location_id?: string | null
           promo_ends_on?: string | null
           promo_price?: number | null
           promo_starts_on?: string | null
@@ -5330,6 +5332,7 @@ export type Database = {
           is_taxable?: boolean
           margin_percent?: number | null
           name?: string
+          pickup_location_id?: string | null
           promo_ends_on?: string | null
           promo_price?: number | null
           promo_starts_on?: string | null
@@ -5360,6 +5363,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_materials_pickup_location_id_fkey"
+            columns: ["pickup_location_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_pickup_locations"
             referencedColumns: ["id"]
           },
         ]
