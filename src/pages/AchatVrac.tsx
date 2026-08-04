@@ -118,6 +118,13 @@ export default function AchatVrac() {
               </Button>
             )}
           </div>
+
+          {step === STEPS.length - 1 && (
+            <p className="mt-3 text-right text-xs text-muted-foreground">
+              Les prix sont calculés automatiquement selon nos tarifs, les matériaux sélectionnés,
+              la distance de transport et le camion recommandé.
+            </p>
+          )}
         </section>
 
         <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-muted-foreground">
