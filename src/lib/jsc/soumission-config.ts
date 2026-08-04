@@ -123,13 +123,25 @@ export type SettingDef = {
   key: string;
   label: string;
   help: string;
-  type: "number" | "select";
+  type: "number" | "select" | "reference";
   unit?: string;
   options?: { value: string; label: string }[];
+  /** Table source pour un paramètre de type « reference » (liste déroulante). */
+  refTable?: string;
+  refLabel?: string;
 };
 
 /** Section 5 — Paramètres généraux (stockés dans jsc_settings) */
 export const SOUMISSION_SETTINGS: SettingDef[] = [
+  {
+    key: "base_location_id",
+    label: "Point de départ des camions (garage)",
+    help:
+      "Lieu d'où partent et où reviennent les camions (ex. Logipark). Le moteur calcule le cycle garage → carrière → client → garage.",
+    type: "reference",
+    refTable: "jsc_pickup_locations",
+    refLabel: "name",
+  },
   {
     key: "min_trip_minutes",
     label: "Temps minimum facturable",

@@ -13,8 +13,22 @@ Toutes les valeurs proviennent du module **Administration → Configuration des 
 | Camions (capacité, tarif horaire) | Section 3 — Camions |
 | TPS / TVQ | Section 4 — Taxes |
 | Temps minimum facturable, chargement, déchargement, tampon, arrondis | Section 5 — Paramètres généraux |
+| Point de départ des camions (garage / Logipark) | Section 5 — Paramètres généraux (`base_location_id`) |
 
 Un paramètre manquant ne produit jamais de valeur par défaut : le moteur retourne une erreur explicite.
+
+## 1.b Cycle d'un voyage (V1 officielle)
+
+1. Départ du garage configuré (ex. Logipark)
+2. Déplacement jusqu'à la carrière associée au matériau
+3. Chargement
+4. Déplacement jusqu'au client
+5. Déchargement
+6. Retour au garage
+7. Temps tampon
+
+Le temps du cycle est ensuite plancherisé au temps minimum facturable, arrondi
+selon la méthode configurée, puis multiplié par le nombre de voyages.
 
 ## 2. Ordre de calcul officiel
 

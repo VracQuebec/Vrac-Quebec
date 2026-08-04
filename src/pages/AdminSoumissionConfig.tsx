@@ -32,6 +32,7 @@ type TabId = (typeof TABS)[number]["id"];
 
 function GeneralSettings({ companyId }: { companyId: string | null }) {
   const [values, setValues] = useState<Record<string, string>>({});
+  const [refOptions, setRefOptions] = useState<Record<string, { value: string; label: string }[]>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -48,6 +49,24 @@ function GeneralSettings({ companyId }: { companyId: string | null }) {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Options des paramètres de type « reference » (ex. point de départ des camions).
+  useEffect(() => {
+    void (async () => {
+      const next: Record<string, { value: string; label: string }[]> = {};
+      for (const def of SOUMISSION_SETTINGS) {
+        if (def.type !== "reference" || !def.refTable) continue;
+        const { data } = await supabase
+          .from(def.refTable as "jsc_pickup_locations")
+          .select("id,name")
+          .eq("is_active", true)
+          .is("archived_at", null)
+          .order("name");
+        next[def.key] = (data ?? []).map((r) => ({ value: r.id, label: r.name }));
+      }
+      setRefOptions(next);
+    })();
+  }, []);
 
   const save = async () => {
     setSaving(true);
@@ -90,14 +109,14 @@ function GeneralSettings({ companyId }: { companyId: string | null }) {
         {SOUMISSION_SETTINGS.map((def) => (
           <div key={def.key} className="space-y-1.5 rounded-lg border p-4">
             <Label>{def.label}</Label>
-            {def.type === "select" ? (
+            {def.type === "select" || def.type === "reference" ? (
               <Select
                 value={values[def.key] ?? ""}
                 onValueChange={(v) => setValues((s) => ({ ...s, [def.key]: v }))}
               >
                 <SelectTrigger><SelectValue placeholder="Choisir…" /></SelectTrigger>
                 <SelectContent>
-                  {def.options?.map((o) => (
+                  {(def.type === "reference" ? refOptions[def.key] ?? [] : def.options ?? []).map((o) => (
                     <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                   ))}
                 </SelectContent>

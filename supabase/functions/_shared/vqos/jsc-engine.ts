@@ -17,7 +17,7 @@ import {
   type TruckRow, readNumberSetting, roundMoney, toTonnes,
 } from "./core.ts";
 
-export const JSC_ENGINE_VERSION = "jsc-1.0.0";
+export const JSC_ENGINE_VERSION = "jsc-1.1.0";
 
 /** Paramètres administrateur exigés par le moteur JSC. */
 export const JSC_REQUIRED_SETTINGS = [
@@ -28,6 +28,7 @@ export const JSC_REQUIRED_SETTINGS = [
   "time_rounding_minutes",
   "rounding_method",
   "price_rounding_decimals",
+  "base_location_id",
 ] as const;
 
 export type RoundingMethod = "superieur" | "inferieur" | "proche";
@@ -118,6 +119,7 @@ export interface JscQuoteResult {
     billable_hours: number;
     delivery_address: string | null;
     pickup: { name: string | null };
+    base: { name: string | null };
     truck: { name: string | null; type: string | null; capacity_tonnes: number | null };
     distance_km: number;
     round_trip_km: number;
@@ -175,19 +177,45 @@ export async function runJscQuote(
     throw new Error(`Coordonnées GPS manquantes pour la carrière « ${pickup.name} ».`);
   }
 
-  // 3. Distance et durée routières (Google Maps) : carrière -> livraison.
-  const matrix = await distance(
-    [{ id: pickup.id, lat: pickup.latitude, lng: pickup.longitude }],
-    { lat: input.delivery.lat, lng: input.delivery.lng },
-  );
-  const leg = matrix[pickup.id];
+  // 2b. Point de départ des camions (garage / Logipark) — configuré en administration.
+  const baseId = (config.settings["base_location_id"] ?? "").trim();
+  if (!baseId) {
+    throw new Error(
+      "Aucun point de départ configuré (garage). Sélectionnez-le dans Configuration des soumissions › Paramètres généraux.",
+    );
+  }
+  const base = config.pickups.find((p) => p.id === baseId);
+  if (!base) {
+    throw new Error("Le point de départ configuré est introuvable ou inactif. Vérifiez la configuration des soumissions.");
+  }
+  if (base.latitude == null || base.longitude == null) {
+    throw new Error(`Coordonnées GPS manquantes pour le point de départ « ${base.name} ».`);
+  }
+
+  // 3. Distances et durées routières (Google Maps), cycle Transport JSC :
+  //    garage -> carrière -> client -> garage.
+  const [toPickupMatrix, toClientMatrix, backToBaseMatrix] = await Promise.all([
+    distance([{ id: base.id, lat: base.latitude, lng: base.longitude }], { lat: pickup.latitude, lng: pickup.longitude }),
+    distance([{ id: pickup.id, lat: pickup.latitude, lng: pickup.longitude }], { lat: input.delivery.lat, lng: input.delivery.lng }),
+    distance([{ id: "client", lat: input.delivery.lat, lng: input.delivery.lng }], { lat: base.latitude, lng: base.longitude }),
+  ]);
+  const legBaseToPickup = toPickupMatrix[base.id];
+  const leg = toClientMatrix[pickup.id];
+  const legClientToBase = backToBaseMatrix["client"];
+  if (!legBaseToPickup) {
+    throw new Error(`Aucun trajet routier trouvé entre « ${base.name} » et la carrière « ${pickup.name} ».`);
+  }
   if (!leg) {
     throw new Error(`Aucun trajet routier trouvé entre la carrière « ${pickup.name} » et l'adresse de livraison.`);
   }
+  if (!legClientToBase) {
+    throw new Error(`Aucun trajet routier trouvé entre l'adresse de livraison et « ${base.name} ».`);
+  }
 
-  // 4-5. Temps aller et retour (même trajet).
+  // 4-5. Temps de déplacement du cycle : garage->carrière, carrière->client, client->garage.
+  const travelBaseToPickup = legBaseToPickup.duration_minutes;
   const travelTo = leg.duration_minutes;
-  const travelBack = leg.duration_minutes;
+  const travelBack = legClientToBase.duration_minutes;
 
   // 6. Temps fixes ajoutés automatiquement à chaque voyage.
   const loading = pickup.loading_time_minutes ?? s.loading_time_minutes;
@@ -195,7 +223,7 @@ export async function runJscQuote(
   const buffer = s.buffer_time_minutes;
 
   // 7-8. Temps par voyage, plancher facturable, puis arrondi administrable.
-  const rawTripMinutes = travelTo + travelBack + loading + unloading + buffer;
+  const rawTripMinutes = travelBaseToPickup + loading + travelTo + unloading + travelBack + buffer;
   const flooredTripMinutes = Math.max(rawTripMinutes, s.min_trip_minutes);
   const billableTripMinutes = roundTime(flooredTripMinutes, s.time_rounding_minutes, s.rounding_method);
 
@@ -212,6 +240,11 @@ export async function runJscQuote(
 
   // 12. Coût du transport (tarif horaire du camion retenu).
   const hourlyRate = Number((truck as { hourly_rate?: number }).hourly_rate ?? 0);
+  if (!(hourlyRate > 0)) {
+    throw new Error(
+      `Tarif horaire manquant pour le camion « ${truck.name} ». Ajoutez-le dans Configuration des soumissions › Camions.`,
+    );
+  }
   const transportAmount = roundMoney(billableHours * hourlyRate, decimals);
 
   // 13-15. Sous-total, taxes, total livré estimé.
@@ -232,13 +265,16 @@ export async function runJscQuote(
       billable_hours: billableHours,
       delivery_address: input.delivery.address ?? null,
       pickup: { name: pickup.name },
+      base: { name: base.name },
       truck: {
         name: truck.name ?? null,
         type: truck.truck_type ?? null,
         capacity_tonnes: capacity,
       },
       distance_km: leg.distance_km,
-      round_trip_km: Number((leg.distance_km * 2 * trips).toFixed(2)),
+      round_trip_km: Number(
+        ((legBaseToPickup.distance_km + leg.distance_km + legClientToBase.distance_km) * trips).toFixed(2),
+      ),
       material_amount: materialAmount,
       transport_amount: transportAmount,
       subtotal,
@@ -251,8 +287,10 @@ export async function runJscQuote(
         carrier_profile: "transport_jsc",
         material: { id: material.id, name: material.name, unit_price: unitPrice, is_taxable: material.is_taxable },
         pickup: { id: pickup.id, name: pickup.name },
+        base: { id: base.id, name: base.name },
         truck: { id: truck.id, name: truck.name, capacity_tonnes: capacity, hourly_rate: hourlyRate },
         time: {
+          travel_base_to_pickup_minutes: travelBaseToPickup,
           travel_to_minutes: travelTo,
           travel_back_minutes: travelBack,
           loading_minutes: loading,
@@ -275,7 +313,9 @@ export async function runJscQuote(
       })),
       decision_trace: {
         rule_set: "transport_jsc",
+        cycle: "garage -> carriere -> client -> garage",
         pickup_source: "materiau.carriere_associee",
+        base_source: "parametres.base_location_id",
         truck_rule: "plus_petit_camion_couvrant_la_quantite",
         distance_source: "google_maps_routes",
       },
