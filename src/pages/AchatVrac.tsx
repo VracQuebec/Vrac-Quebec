@@ -121,7 +121,7 @@ export default function AchatVrac() {
 
 function stepTitle(step: number) {
   return [
-    "Choisissez votre matériau",
+    "Quel matériau souhaitez-vous faire livrer ?",
     "De quelle quantité avez-vous besoin ?",
     "Où doit-on livrer ?",
     "Quand souhaitez-vous la livraison ?",
@@ -132,7 +132,7 @@ function stepTitle(step: number) {
 
 function stepHint(step: number) {
   return [
-    "Sélectionnez le matériau qui correspond à vos travaux.",
+    "Sélectionnez le matériau dont vous avez besoin. Nous vous guiderons ensuite pour déterminer la quantité et le coût de livraison.",
     "Une approximation suffit, nous validerons avec vous.",
     "L'adresse nous permet de planifier la livraison.",
     "Une date précise ou une plage flexible, à votre choix.",
