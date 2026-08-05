@@ -27,7 +27,7 @@ import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
 import { Search, CalendarDays, Menu, BookOpen as BookOpenIcon, TrendingUp } from "lucide-react";
-import { Ban } from "lucide-react";
+import { Ban, Activity } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import TransportBanner from "@/components/TransportBanner";
 
@@ -764,6 +764,9 @@ const Admin = () => {
             </Link>
             <Link to="/admin/direction" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90">
               <TrendingUp className="w-4 h-4" /> Direction
+            </Link>
+            <Link to="/admin/supervision" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
+              <Activity className="w-4 h-4" /> Supervision
             </Link>
             <button onClick={fetchSubmissions} className="text-sm text-primary hover:underline font-body">Actualiser</button>
             <button onClick={() => setShowStatusManager(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">

@@ -2,6 +2,7 @@ import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
+import { logEvent, logEventAsync } from '../_shared/observability.ts'
 
 // Configuration baked in at scaffold time — do NOT change these manually.
 // To update, re-run the email domain setup flow.
@@ -432,10 +433,13 @@ Deno.serve(async (req) => {
   })
 
   if (enqueueError) {
-    console.error('Failed to enqueue email', {
-      error: enqueueError,
-      templateName,
-      effectiveRecipient,
+    await logEvent({
+      source: 'email',
+      event: 'enqueue.failed',
+      level: 'critical',
+      message: enqueueError.message ?? 'Failed to enqueue email',
+      refId: idempotencyKey ?? messageId,
+      context: { template: templateName },
     })
 
     await supabase.from('email_send_log').insert({
@@ -452,7 +456,12 @@ Deno.serve(async (req) => {
     })
   }
 
-  console.log('Transactional email enqueued', { templateName, effectiveRecipient })
+  logEventAsync({
+    source: 'email',
+    event: 'enqueue.ok',
+    refId: idempotencyKey ?? messageId,
+    context: { template: templateName },
+  })
 
   return new Response(
     JSON.stringify({ success: true, queued: true }),

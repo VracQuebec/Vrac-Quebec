@@ -7698,6 +7698,90 @@ export type Database = {
           },
         ]
       }
+      platform_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          details: Json
+          id: string
+          last_seen_at: string
+          occurrences: number
+          severity: string
+          source: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          last_seen_at?: string
+          occurrences?: number
+          severity?: string
+          source: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          last_seen_at?: string
+          occurrences?: number
+          severity?: string
+          source?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_logs: {
+        Row: {
+          context: Json
+          created_at: string
+          duration_ms: number | null
+          event: string
+          id: number
+          level: string
+          message: string | null
+          ref_id: string | null
+          source: string
+          status_code: number | null
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          duration_ms?: number | null
+          event: string
+          id?: number
+          level?: string
+          message?: string | null
+          ref_id?: string | null
+          source: string
+          status_code?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          duration_ms?: number | null
+          event?: string
+          id?: number
+          level?: string
+          message?: string | null
+          ref_id?: string | null
+          source?: string
+          status_code?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       public_request_guard: {
         Row: {
           created_at: string
@@ -7722,6 +7806,36 @@ export type Database = {
           identity?: string
           payload?: Json
           scope?: string
+        }
+        Relationships: []
+      }
+      route_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          distance_km: number | null
+          duration_minutes: number | null
+          hits: number
+          last_used_at: string
+          route_exists: boolean
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          distance_km?: number | null
+          duration_minutes?: number | null
+          hits?: number
+          last_used_at?: string
+          route_exists?: boolean
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          distance_km?: number | null
+          duration_minutes?: number | null
+          hits?: number
+          last_used_at?: string
+          route_exists?: boolean
         }
         Relationships: []
       }
@@ -11250,6 +11364,21 @@ export type Database = {
       ops_planning_range: {
         Args: { _from: string; _to: string }
         Returns: Json
+      }
+      platform_cleanup: { Args: never; Returns: Json }
+      platform_health: { Args: never; Returns: Json }
+      platform_log_event: {
+        Args: {
+          _context?: Json
+          _duration_ms?: number
+          _event: string
+          _level?: string
+          _message?: string
+          _ref_id?: string
+          _source: string
+          _status_code?: number
+        }
+        Returns: number
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
