@@ -40,7 +40,7 @@ interface QuoteRow {
 }
 
 export default function AdminSoumissions() {
-  const { ready, session } = useAuthReady();
+  const { isReady, isAuthenticated } = useAuthReady();
   const { isAdmin, loading: rolesLoading } = useUserRoles();
   const [rows, setRows] = useState<QuoteRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,10 +87,10 @@ export default function AdminSoumissions() {
     void load();
   };
 
-  if (!ready || rolesLoading) {
+  if (!isReady || rolesLoading) {
     return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   }
-  if (!session || !isAdmin) {
+  if (!isAuthenticated || !isAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center p-6 text-center text-muted-foreground">
         Accès réservé aux administrateurs.
