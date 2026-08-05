@@ -16,15 +16,20 @@ const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
  * erreurs temporaires (5xx) sont réessayées avec un délai croissant plutôt
  * que de faire échouer une soumission client.
  */
-async function fetchGoogle(url: string, init: RequestInit, attempts = 4): Promise<Response> {
+async function fetchGoogle(url: string, init: RequestInit, attempts = 6): Promise<Response> {
   for (let i = 0; i < attempts; i++) {
     const res = await fetch(url, init);
     if (res.ok || (res.status !== 429 && res.status < 500)) return res;
     const body = await res.text().catch(() => '');
     if (i === attempts - 1) {
+      logEventAsync({
+        source: 'google_maps', event: 'saturated', level: 'critical',
+        statusCode: res.status,
+        message: 'Google Maps sature : toutes les tentatives ont échoué.',
+      });
       return new Response(body, { status: res.status, headers: { 'Content-Type': 'application/json' } });
     }
-    const wait = Math.min(4000, 300 * 2 ** i) + Math.floor(Math.random() * 250);
+    const wait = Math.min(12_000, 400 * 2 ** i) + Math.floor(Math.random() * 400);
     logEventAsync({
       source: 'google_maps', event: 'retry', level: 'warn',
       statusCode: res.status, message: `Nouvelle tentative dans ${wait} ms`,
