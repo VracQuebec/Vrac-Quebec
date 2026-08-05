@@ -108,7 +108,7 @@ describe("moteur unique Transport JSC", () => {
     // Cycle : 20 + 20 (chargement) + 20 + 15 (déchargement) + 20 + 10 = 105 min
     // arrondi au palier de 5 min supérieur suivant = 110 min (> minimum de 90).
     expect(r.public.billable_minutes).toBe(110);
-    expect(r.public.transport_amount).toBeCloseTo(274.95, 2); // 1,833 h x 150 $
+    expect(r.public.transport_amount).toBeCloseTo(275, 2); // 110 min x 150 $/h
   });
 
   it("calcule plusieurs voyages avec le cycle carrière -> client -> carrière", async () => {
@@ -129,8 +129,16 @@ describe("moteur unique Transport JSC", () => {
     );
   });
 
-  it("n'applique aucune taxe sur un matériau non taxable", async () => {
+  it("ne taxe pas le matériau non taxable mais taxe le transport", async () => {
     const config = makeConfig();
+    (config.material as any).is_taxable = false;
+    const r = await runCarrierQuote(input, config, distance as any);
+    const base = Number((r.public.subtotal - r.public.material_amount).toFixed(2));
+    expect(r.public.tax_total).toBeCloseTo(base * 0.05 + base * 0.09975, 1);
+  });
+
+  it("n'applique aucune taxe si transport_is_taxable est désactivé", async () => {
+    const config = makeConfig({ settings: { ...SETTINGS, transport_is_taxable: "false" } } as any);
     (config.material as any).is_taxable = false;
     const r = await runCarrierQuote(input, config, distance as any);
     expect(r.public.tax_total).toBe(0);

@@ -21,7 +21,7 @@ import { prepareQuoteContext } from "./supply.ts";
 // La sélection du camion vit désormais dans le module d'approvisionnement.
 export { pickTruck } from "./supply.ts";
 
-export const JSC_ENGINE_VERSION = "jsc-1.4.0";
+export const JSC_ENGINE_VERSION = "jsc-1.4.1";
 
 /**
  * Paramètres financiers optionnels : s'ils ne sont pas configurés,
@@ -192,7 +192,11 @@ export async function runJscQuote(
     distance([{ id: base.id, lat: base.latitude, lng: base.longitude }], { lat: pickup.latitude, lng: pickup.longitude }),
     distance([{ id: pickup.id, lat: pickup.latitude, lng: pickup.longitude }], { lat: input.delivery.lat, lng: input.delivery.lng }),
     distance([{ id: "client", lat: input.delivery.lat, lng: input.delivery.lng }], { lat: base.latitude, lng: base.longitude }),
-    distance([{ id: "client", lat: input.delivery.lat, lng: input.delivery.lng }], { lat: pickup.latitude, lng: pickup.longitude }),
+    // Le retour client -> carrière ne sert qu'aux voyages 2+ : aucun appel
+    // Google (ni coût) lorsqu'un seul voyage est nécessaire.
+    trips > 1
+      ? distance([{ id: "client", lat: input.delivery.lat, lng: input.delivery.lng }], { lat: pickup.latitude, lng: pickup.longitude })
+      : Promise.resolve({ client: { distance_km: 0, duration_minutes: 0 } }),
   ]);
   const legBaseToPickup = toPickupMatrix[base.id];
   const leg = toClientMatrix[pickup.id];
@@ -207,7 +211,7 @@ export async function runJscQuote(
   if (!legClientToBase) {
     throw new Error(`Aucun trajet routier trouvé entre l'adresse de livraison et « ${base.name} ».`);
   }
-  if (!legClientToPickup) {
+  if (trips > 1 && !legClientToPickup) {
     throw new Error(`Aucun trajet routier trouvé entre l'adresse de livraison et la carrière « ${pickup.name} ».`);
   }
 
@@ -215,7 +219,7 @@ export async function runJscQuote(
   const travelBaseToPickup = legBaseToPickup.duration_minutes;
   const travelTo = leg.duration_minutes;
   const travelBack = legClientToBase.duration_minutes;
-  const travelBackToPickup = legClientToPickup.duration_minutes;
+  const travelBackToPickup = legClientToPickup?.duration_minutes ?? 0;
 
   // 6. Temps fixes ajoutés automatiquement à chaque voyage.
   const loading = pickup.loading_time_minutes ?? s.loading_time_minutes;
@@ -244,13 +248,15 @@ export async function runJscQuote(
 
   // 12. Coût du transport (tarif horaire du camion retenu par la préparation).
   const hourlyRate = truck.hourly_rate;
-  const transportAmount = roundMoney(billableHours * hourlyRate, decimals);
+  // Le montant est calculé sur les minutes exactes : arrondir les heures à
+  // 3 décimales avant de multiplier perdait quelques cents (200 min -> 499,95 $).
+  const transportAmount = roundMoney((billableMinutes / 60) * hourlyRate, decimals);
 
   // 12b. Charges et marge administrables (0 si non configurées).
   const roundTripKm = Number(
     (
       legBaseToPickup.distance_km + leg.distance_km + legClientToBase.distance_km +
-      (leg.distance_km + legClientToPickup.distance_km) * (trips - 1)
+      (leg.distance_km + (legClientToPickup?.distance_km ?? 0)) * (trips - 1)
     ).toFixed(2),
   );
   const charges: Array<{ code: string; label: string; amount: number }> = [];
@@ -271,8 +277,15 @@ export async function runJscQuote(
 
   // 13-15. Sous-total, taxes, total livré estimé.
   const subtotal = roundMoney(materialAmount + transportAmount + chargesTotal + marginAmount, decimals);
-  const applicable = material.is_taxable ? config.taxes : [];
-  const { lines, total: taxTotal } = applyTaxes(subtotal, applicable, decimals);
+  // Règle fiscale Québec : le transport et les frais restent taxables même
+  // lorsque le matériau ne l'est pas (paramètre « transport_is_taxable »).
+  const transportIsTaxable = String(config.settings["transport_is_taxable"] ?? "true").trim() !== "false";
+  const taxableBase = material.is_taxable
+    ? subtotal
+    : transportIsTaxable
+      ? roundMoney(Math.max(subtotal - materialAmount, 0), decimals)
+      : 0;
+  const { lines, total: taxTotal } = applyTaxes(taxableBase, taxableBase > 0 ? config.taxes : [], decimals);
   const total = roundMoney(subtotal + taxTotal, decimals);
 
   return {
@@ -320,7 +333,7 @@ export async function runJscQuote(
           base_to_pickup_km: legBaseToPickup.distance_km,
           pickup_to_client_km: leg.distance_km,
           client_to_base_km: legClientToBase.distance_km,
-          client_to_pickup_km: legClientToPickup.distance_km,
+          client_to_pickup_km: legClientToPickup?.distance_km ?? 0,
         },
         time: {
           travel_base_to_pickup_minutes: travelBaseToPickup,

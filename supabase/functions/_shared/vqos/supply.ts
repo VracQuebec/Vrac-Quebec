@@ -16,6 +16,19 @@ import { toTonnes } from "./core.ts";
 
 export const SUPPLY_MODULE_VERSION = "supply-1.0.0";
 
+/**
+ * Tolérance de calcul (1 kg). Les conversions volume -> tonnes produisent des
+ * flottants du type 15.000000000000002 : sans tolérance, une quantité qui tient
+ * exactement dans un camion déclencherait un second voyage.
+ */
+export const TONNAGE_EPSILON = 0.001;
+
+/** Nombre de voyages : capacité du camion, avec tolérance de 1 kg. */
+export function computeTrips(tonnage: number, capacity: number): number {
+  if (!(capacity > 0)) throw new Error("Capacité du camion invalide.");
+  return Math.max(1, Math.ceil((tonnage - TONNAGE_EPSILON) / capacity));
+}
+
 /** Point d'approvisionnement (carrière, sablière, dépôt) ou garage de départ. */
 export interface SupplyPoint {
   id: string;
@@ -135,7 +148,8 @@ export function pickTruck(trucks: TruckRow[], tonnage: number): TruckRow {
       "Aucun camion configuré avec une capacité et un tarif horaire. Complétez la section Camions de la configuration des soumissions.",
     );
   }
-  return usable.find((t) => Number(t.capacity_tonnes) >= tonnage) ?? usable[usable.length - 1];
+  return usable.find((t) => Number(t.capacity_tonnes) >= tonnage - TONNAGE_EPSILON)
+    ?? usable[usable.length - 1];
 }
 
 /**
@@ -146,11 +160,13 @@ export function pickTruck(trucks: TruckRow[], tonnage: number): TruckRow {
  */
 export function resolveMaterialPrice(config: EngineConfig): number {
   const material = config.material;
+  const assignedPickup = (material as { pickup_location_id?: string | null }).pickup_location_id ?? null;
   const rows = (config.prices ?? []).filter((p: any) =>
     p.material_id === material.id && Number(p.selling_price) > 0
   );
   const chosen =
     rows.find((p: any) => p.is_preferred) ??
+    rows.find((p: any) => assignedPickup && p.pickup_location_id === assignedPickup) ??
     rows[0];
   const price = Number(chosen?.selling_price ?? 0);
   if (!(price > 0)) {
@@ -169,8 +185,11 @@ export function resolveMaterialPrice(config: EngineConfig): number {
 export function prepareQuoteContext(input: QuoteInput, config: EngineConfig): PreparedQuoteContext {
   const material = config.material;
   const unitPrice = resolveMaterialPrice(config);
+  if (!Number.isFinite(input.quantity) || input.quantity <= 0) {
+    throw new Error("Quantité invalide.");
+  }
   const tonnage = toTonnes(input.quantity, input.unit, material.density_kg_per_m3);
-  if (!(tonnage > 0)) throw new Error("Quantité invalide.");
+  if (!Number.isFinite(tonnage) || tonnage <= 0) throw new Error("Quantité invalide.");
 
   if (!Number.isFinite(input.delivery?.lat) || !Number.isFinite(input.delivery?.lng)) {
     throw new Error("Adresse de livraison invalide : coordonnées manquantes.");
@@ -216,7 +235,7 @@ export function prepareQuoteContext(input: QuoteInput, config: EngineConfig): Pr
       capacity_tonnes: capacity,
       hourly_rate: hourlyRate,
     },
-    trips: Math.max(1, Math.ceil(tonnage / capacity)),
+    trips: computeTrips(Number(tonnage.toFixed(3)), capacity),
     prepared_at: new Date().toISOString(),
     module_version: SUPPLY_MODULE_VERSION,
   };
