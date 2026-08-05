@@ -185,8 +185,11 @@ export function resolveMaterialPrice(config: EngineConfig): number {
 export function prepareQuoteContext(input: QuoteInput, config: EngineConfig): PreparedQuoteContext {
   const material = config.material;
   const unitPrice = resolveMaterialPrice(config);
+  if (!Number.isFinite(input.quantity) || input.quantity <= 0) {
+    throw new Error("Quantité invalide.");
+  }
   const tonnage = toTonnes(input.quantity, input.unit, material.density_kg_per_m3);
-  if (!(tonnage > 0)) throw new Error("Quantité invalide.");
+  if (!Number.isFinite(tonnage) || tonnage <= 0) throw new Error("Quantité invalide.");
 
   if (!Number.isFinite(input.delivery?.lat) || !Number.isFinite(input.delivery?.lng)) {
     throw new Error("Adresse de livraison invalide : coordonnées manquantes.");
@@ -232,7 +235,7 @@ export function prepareQuoteContext(input: QuoteInput, config: EngineConfig): Pr
       capacity_tonnes: capacity,
       hourly_rate: hourlyRate,
     },
-    trips: Math.max(1, Math.ceil(tonnage / capacity)),
+    trips: computeTrips(Number(tonnage.toFixed(3)), capacity),
     prepared_at: new Date().toISOString(),
     module_version: SUPPLY_MODULE_VERSION,
   };
