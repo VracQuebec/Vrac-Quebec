@@ -11,6 +11,14 @@ import type { SubmitAction, SubmitResult } from "@/lib/vrac/submit";
 
 const PHONE = "581-994-7717";
 
+/** Camion recommandé, sans jamais exposer d'information interne. */
+function truckLabel(quote: PublicQuote): string {
+  const name = quote.truck?.name ?? quote.truck?.type;
+  const capacity = quote.truck?.capacity_tonnes;
+  if (name && capacity) return `${name} (${capacity} tonnes)`;
+  return name ?? (capacity ? `${capacity} tonnes` : "Déterminé par notre équipe");
+}
+
 interface Props {
   quote: PublicQuote;
   address: string;
@@ -34,7 +42,7 @@ export default function QuoteCard({
   ];
 
   const included = [
-    "Le matériau選".replace("選", ""),
+    "Le matériau",
     "Le transport et la livraison à votre adresse",
     "Le chargement et le déchargement",
     "Les taxes (TPS et TVQ)",
