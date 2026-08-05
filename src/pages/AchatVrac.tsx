@@ -18,8 +18,7 @@ import {
   saveVracDraft, type VracDraft,
 } from "@/lib/vrac/catalog";
 import QuoteCard from "@/components/vrac/QuoteCard";
-import { useVracEstimate } from "@/lib/vrac/estimate";
-import { buildQuoteRequest } from "@/lib/vrac/estimate";
+import { buildQuoteRequest, useVracEstimate } from "@/lib/vrac/estimate";
 import { useQuoteSubmit } from "@/lib/vrac/submit";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
 
@@ -214,7 +213,7 @@ function Progress({ step }: { step: number }) {
       {STEPS.map((label, i) => {
         const done = i < step, active = i === step;
         return (
-          <li key={label}
+          <li key={label} aria-current={active ? "step" : undefined}
             className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               active ? "bg-primary text-primary-foreground"
                 : done ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
