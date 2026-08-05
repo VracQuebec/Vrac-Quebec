@@ -129,8 +129,16 @@ describe("moteur unique Transport JSC", () => {
     );
   });
 
-  it("n'applique aucune taxe sur un matériau non taxable", async () => {
+  it("ne taxe pas le matériau non taxable mais taxe le transport", async () => {
     const config = makeConfig();
+    (config.material as any).is_taxable = false;
+    const r = await runCarrierQuote(input, config, distance as any);
+    const base = Number((r.public.subtotal - r.public.material_amount).toFixed(2));
+    expect(r.public.tax_total).toBeCloseTo(base * 0.05 + base * 0.09975, 1);
+  });
+
+  it("n'applique aucune taxe si transport_is_taxable est désactivé", async () => {
+    const config = makeConfig({ settings: { ...SETTINGS, transport_is_taxable: "false" } } as any);
     (config.material as any).is_taxable = false;
     const r = await runCarrierQuote(input, config, distance as any);
     expect(r.public.tax_total).toBe(0);
