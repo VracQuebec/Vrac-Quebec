@@ -7,6 +7,7 @@
 // Aucune règle métier ici : uniquement l'accès aux données.
 // ============================================================
 import type { DistanceProvider, EngineConfig } from './index.ts';
+import { logEvent, logEventAsync } from '../observability.ts';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
 
@@ -27,18 +28,36 @@ export interface GeocodedAddress {
 
 export async function geocode(address: string): Promise<GeocodedAddress> {
   const params = new URLSearchParams({ address, region: 'ca', language: 'fr' });
+  const started = Date.now();
   const res = await fetch(`${GATEWAY_URL}/maps/api/geocode/json?${params}`, { headers: mapsHeaders() });
   const data = await res.json();
-  if (!res.ok) throw new Error(`Geocoding failed [${res.status}]: ${JSON.stringify(data)}`);
+  if (!res.ok) {
+    await logEvent({
+      source: 'google_maps', event: 'geocode', level: 'critical',
+      message: `Geocoding failed [${res.status}]: ${JSON.stringify(data)}`,
+      statusCode: res.status, durationMs: Date.now() - started,
+    });
+    throw new Error(`Geocoding failed [${res.status}]: ${JSON.stringify(data)}`);
+  }
   const result = data?.results?.[0];
   const loc = result?.geometry?.location;
   if (!loc) {
-    console.error('geocode empty', JSON.stringify({ status: data?.status, error: data?.error_message }));
     if (data?.status && data.status !== 'ZERO_RESULTS') {
+      await logEvent({
+        source: 'google_maps', event: 'geocode', level: 'critical',
+        message: `Statut Google inattendu: ${data.status}`,
+        durationMs: Date.now() - started,
+        context: { status: data?.status, error: data?.error_message },
+      });
       throw new Error("Le service de validation d'adresse est momentanément indisponible. Notre équipe peut préparer votre estimation par téléphone.");
     }
+    logEventAsync({
+      source: 'google_maps', event: 'geocode.zero_results', level: 'warn',
+      durationMs: Date.now() - started,
+    });
     throw new Error("Adresse de livraison introuvable. Précisez le numéro civique, la ville et le code postal.");
   }
+  logEventAsync({ source: 'google_maps', event: 'geocode', durationMs: Date.now() - started });
   const comp = (type: string) =>
     result.address_components?.find((c: { types: string[] }) => c.types?.includes(type))?.long_name ?? null;
   return {
@@ -52,6 +71,7 @@ export async function geocode(address: string): Promise<GeocodedAddress> {
 
 export const distanceProvider: DistanceProvider = async (origins, destination) => {
   const out: Record<string, { distance_km: number; duration_minutes: number } | null> = {};
+  const startedAll = Date.now();
   for (let i = 0; i < origins.length; i += 25) {
     const chunk = origins.slice(i, i + 25);
     const res = await fetch(`${GATEWAY_URL}/routes/distanceMatrix/v2:computeRouteMatrix`, {
@@ -69,7 +89,11 @@ export const distanceProvider: DistanceProvider = async (origins, destination) =
       }),
     });
     if (!res.ok) {
-      console.error('Routes matrix error', res.status, await res.text());
+      await logEvent({
+        source: 'google_maps', event: 'route_matrix', level: 'critical',
+        message: `Routes matrix error: ${await res.text()}`,
+        statusCode: res.status, context: { origins: chunk.length },
+      });
       chunk.forEach((o) => { out[o.id] = null; });
       continue;
     }
@@ -85,6 +109,10 @@ export const distanceProvider: DistanceProvider = async (origins, destination) =
     }
     chunk.forEach((o) => { if (!(o.id in out)) out[o.id] = null; });
   }
+  logEventAsync({
+    source: 'google_maps', event: 'route_matrix',
+    durationMs: Date.now() - startedAll, context: { origins: origins.length },
+  });
   return out;
 };
 

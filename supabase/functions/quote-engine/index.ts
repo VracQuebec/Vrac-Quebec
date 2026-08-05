@@ -12,6 +12,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { type Unit } from '../_shared/vqos/index.ts';
 import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
+import { logEvent, logEventAsync } from '../_shared/observability.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
 
@@ -22,6 +23,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Méthode non supportée' }, 405);
 
+  const started = Date.now();
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
@@ -94,6 +96,12 @@ Deno.serve(async (req) => {
       distanceProvider,
     );
 
+    logEventAsync({
+      source: 'quote_engine', event: 'quote.computed',
+      durationMs: Date.now() - started,
+      context: { material_id: materialId, quantity, unit, engine_version: result.engine_version },
+    });
+
     // Le moteur retourne les données ; l'exposition dépend uniquement du rôle.
     if (isAdmin) {
       return json({
@@ -107,7 +115,10 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Erreur inconnue';
-    console.error('quote-engine failed:', message);
+    await logEvent({
+      source: 'quote_engine', event: 'quote.failed', level: 'error',
+      message, durationMs: Date.now() - started,
+    });
     return json({ error: message }, 400);
   }
 });
