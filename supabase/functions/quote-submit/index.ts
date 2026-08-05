@@ -11,7 +11,8 @@
 // ============================================================
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { runQuote, type Unit } from '../_shared/vqos/index.ts';
+import { type Unit } from '../_shared/vqos/index.ts';
+import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
@@ -90,9 +91,13 @@ Deno.serve(async (req) => {
     // ---------- Recalcul serveur (source unique de vérité) ----------
     const delivery = await geocode(address);
     const config = await loadConfig(sb, materialId);
-    const result = await runQuote({ material_id: materialId, quantity, unit, delivery }, config, distanceProvider);
-    const best = result.technical.selected;
+    const result = await runCarrierQuote(
+      { material_id: materialId, quantity, unit, delivery },
+      config,
+      distanceProvider,
+    );
     const pub = result.public;
+    const sel = result.technical.selected as Record<string, any>;
 
     // ---------- CRM : client ----------
     const { data: client, error: clientError } = await sb.from('jsc_clients').insert({
@@ -121,7 +126,6 @@ Deno.serve(async (req) => {
       postal_code: delivery.postal_code,
       latitude: delivery.lat,
       longitude: delivery.lng,
-      zone_id: best.plan.zone?.id ?? null,
       notes: action === 'callback' ? `Rappel demandé. ${comments ?? ''}`.trim() : comments,
     }).select('id,request_number').single();
     if (requestError) throw new Error(requestError.message);
@@ -130,24 +134,20 @@ Deno.serve(async (req) => {
     const { data: estimate, error: estimateError } = await sb.from('jsc_estimates').insert({
       request_id: request.id,
       engine_version: result.engine_version,
-      carrier_id: best.plan.carrier?.id ?? null,
-      truck_id: best.plan.truck?.id ?? null,
-      supplier_id: best.plan.supplier?.id ?? null,
-      pickup_location_id: best.plan.pickup?.id ?? null,
-      material_id: best.plan.material.id,
-      transport_rate_id: best.plan.rate?.id ?? null,
-      trips: best.plan.trips,
-      distance_km: best.plan.distance_km,
-      billed_hours: best.time.total_hours_billed,
-      material_cost: best.cost.material_cost,
-      transport_cost: best.cost.transport_cost,
-      surcharges: best.cost.surcharges_total,
-      margin: best.cost.margin_amount,
-      subtotal: best.cost.subtotal,
-      tax_total: best.cost.tax_total,
-      total: best.cost.total,
+      truck_id: sel?.truck?.id ?? null,
+      supplier_id: sel?.pickup?.supplier_id ?? null,
+      pickup_location_id: sel?.pickup?.id ?? null,
+      material_id: pub.material.id,
+      trips: pub.trips,
+      distance_km: pub.distance_km,
+      billed_hours: pub.billable_hours,
+      material_cost: pub.material_amount,
+      transport_cost: pub.transport_amount,
+      subtotal: pub.subtotal,
+      tax_total: pub.tax_total,
+      total: pub.total,
       decision: result.technical.decision_trace as unknown as Record<string, unknown>,
-      calculation: { public: pub, selected: best, options: result.technical.options },
+      calculation: { public: pub, selected: sel, options: result.technical.options },
       settings_snapshot: result.technical.settings_used as unknown as Record<string, unknown>,
       is_selected: true,
     }).select('id').single();
