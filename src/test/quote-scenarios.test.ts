@@ -106,9 +106,11 @@ describe("scénarios réels — configuration Vrac Québec", () => {
     );
   });
 
-  it("S5 · grande quantité (500 t) : 10 roues, 34 voyages", async () => {
+  it("S5 · grande quantité (500 t) : plus gros camion, 28 voyages", async () => {
     const r = await runCarrierQuote(at(500), config(), dist(25, 30));
-    expect(r.public.trips).toBe(34); // ceil(500/15)
+    // Au-delà de la flotte : le plus gros camion disponible (18 t) est retenu.
+    expect(r.public.truck.capacity_tonnes).toBe(18);
+    expect(r.public.trips).toBe(28); // ceil(500/18)
     expect(r.public.material_amount).toBe(7500);
   });
 
