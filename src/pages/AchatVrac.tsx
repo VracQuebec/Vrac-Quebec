@@ -11,14 +11,14 @@ import { ArrowLeft, ArrowRight, Calculator, Check, Loader2, ShieldCheck, Sparkle
 import { Button } from "@/components/ui/button";
 import TransportBanner from "@/components/TransportBanner";
 import {
-  DeliveryDateNotice, StepContact, StepDelivery, StepMaterial, StepQuantity,
+  DeliveryDateNotice, Notice, StepContact, StepDelivery, StepMaterial, StepQuantity,
 } from "@/components/vrac/VracSteps";
 import {
   EMPTY_VRAC_DRAFT, findVracMaterial, getActiveVracMaterials, loadVracDraft,
   saveVracDraft, type VracDraft,
 } from "@/lib/vrac/catalog";
 import QuoteCard from "@/components/vrac/QuoteCard";
-import { useVracEstimate } from "@/lib/vrac/estimate";
+import { buildQuoteRequest, useVracEstimate } from "@/lib/vrac/estimate";
 import { useQuoteSubmit } from "@/lib/vrac/submit";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
 
@@ -55,6 +55,18 @@ export default function AchatVrac() {
       && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(draft.contact.email.trim()),
     true,
   ][step];
+
+  const blockingMessage = [
+    "Choisissez un matériau pour continuer.",
+    "Indiquez la quantité approximative pour continuer.",
+    "Indiquez l'adresse de livraison pour continuer.",
+    "Complétez votre nom, votre téléphone (10 chiffres) et votre courriel pour continuer.",
+    "",
+  ][step];
+
+  // Certaines quantités (voyages, quantité inconnue) sont confirmées par notre équipe.
+  const estimateBlocked = step === 4 ? buildQuoteRequest(draft) : null;
+  const manualReview = !!estimateBlocked && "unsupported" in estimateBlocked;
 
   return (
     <div className="min-h-screen bg-background">
@@ -112,12 +124,17 @@ export default function AchatVrac() {
                 error={submission.error}
               />
             ) : (
-              <Recap draft={draft} loading={estimate.loading} error={estimate.error} />
+              <Recap draft={draft} loading={estimate.loading} error={estimate.error} manualReview={manualReview} />
             )
           )}
 
-          <div className="mt-8 flex items-center justify-between gap-3">
-            <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
+          <div className="mt-8 flex flex-col-reverse items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+            <Button
+              variant="ghost"
+              className="w-full sm:w-auto"
+              onClick={() => setStep((s) => Math.max(0, s - 1))}
+              disabled={step === 0}
+            >
               <ArrowLeft className="mr-2 h-4 w-4" /> Retour
             </Button>
             {step < STEPS.length - 1 ? (
@@ -125,7 +142,7 @@ export default function AchatVrac() {
               size="lg"
               onClick={() => setStep((s) => s + 1)}
               disabled={!canContinue}
-              className={`transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] ${
+              className={`w-full transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] sm:w-auto ${
                 canContinue
                   ? "bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] hover:bg-primary/90 hover:shadow-[0_16px_40px_-12px_hsl(var(--primary)/0.65)]"
                   : ""
@@ -133,12 +150,12 @@ export default function AchatVrac() {
             >
               Continuer <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            ) : estimate.quote ? null : (
+            ) : estimate.quote || manualReview ? null : (
               <Button
                 size="lg"
                 onClick={() => estimate.calculate(draft)}
                 disabled={estimate.loading}
-                className="bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_16px_40px_-12px_hsl(var(--primary)/0.65)] active:scale-[0.98]"
+                className="w-full bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_16px_40px_-12px_hsl(var(--primary)/0.65)] active:scale-[0.98] sm:w-auto"
               >
                 {estimate.loading
                   ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Calcul en cours…</>
@@ -147,10 +164,16 @@ export default function AchatVrac() {
             )}
           </div>
 
+          {!canContinue && blockingMessage && (
+            <p role="status" className="mt-3 text-center text-xs text-muted-foreground sm:text-right">
+              {blockingMessage}
+            </p>
+          )}
+
           {step === STEPS.length - 1 && (
             <p className="mt-3 text-right text-xs text-muted-foreground">
-              Les prix sont calculés automatiquement selon nos tarifs, les matériaux sélectionnés,
-              la distance de transport et le camion recommandé.
+              Les prix sont calculés automatiquement selon nos tarifs, le matériau choisi,
+              la distance de livraison et le camion recommandé.
             </p>
           )}
         </section>
@@ -190,7 +213,7 @@ function Progress({ step }: { step: number }) {
       {STEPS.map((label, i) => {
         const done = i < step, active = i === step;
         return (
-          <li key={label}
+          <li key={label} aria-current={active ? "step" : undefined}
             className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               active ? "bg-primary text-primary-foreground"
                 : done ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
@@ -205,8 +228,8 @@ function Progress({ step }: { step: number }) {
 }
 
 /** Résumé du parcours avant le calcul. Aucune donnée interne n'est affichée. */
-function Recap({ draft, loading, error }: {
-  draft: VracDraft; loading: boolean; error: string | null;
+function Recap({ draft, loading, error, manualReview }: {
+  draft: VracDraft; loading: boolean; error: string | null; manualReview?: boolean;
 }) {
   const material = findVracMaterial(draft.materialId);
   const quantity =
@@ -238,6 +261,13 @@ function Recap({ draft, loading, error }: {
 
       <DeliveryDateNotice />
 
+      {manualReview ? (
+        <Notice>
+          Pour ce type de quantité, notre équipe confirme d'abord le tonnage exact avant de vous
+          transmettre votre estimation. Revenez à l'étape « Quantité » pour indiquer un tonnage ou
+          des dimensions, ou appelez-nous au 581-994-7717.
+        </Notice>
+      ) : (
       <div className="rounded-2xl border border-primary/30 bg-card p-5 shadow-sm">
         <div className="flex items-center gap-2">
           <Calculator className="h-4 w-4 text-primary" />
@@ -253,11 +283,14 @@ function Recap({ draft, loading, error }: {
           <p className="mt-4 rounded-xl bg-muted/50 p-3 text-sm text-muted-foreground">{error}</p>
         )}
       </div>
+      )}
 
-      <p className="rounded-2xl bg-primary/5 p-4 text-sm text-muted-foreground">
-        Notre assistant analyse votre demande afin de calculer automatiquement le meilleur prix
-        selon le matériau choisi, la quantité et l'adresse de livraison.
-      </p>
+      {!manualReview && (
+        <p className="rounded-2xl bg-primary/5 p-4 text-sm text-muted-foreground">
+          Notre assistant analyse votre demande afin de calculer automatiquement le meilleur prix
+          selon le matériau choisi, la quantité et l'adresse de livraison.
+        </p>
+      )}
 
       <Button variant="outline" asChild className="w-full sm:w-auto">
         <Link to="/">Retour à l'accueil</Link>
