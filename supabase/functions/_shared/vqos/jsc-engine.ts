@@ -331,7 +331,7 @@ export async function runJscQuote(
           base_to_pickup_km: legBaseToPickup.distance_km,
           pickup_to_client_km: leg.distance_km,
           client_to_base_km: legClientToBase.distance_km,
-          client_to_pickup_km: legClientToPickup.distance_km,
+          client_to_pickup_km: legClientToPickup?.distance_km ?? 0,
         },
         time: {
           travel_base_to_pickup_minutes: travelBaseToPickup,
