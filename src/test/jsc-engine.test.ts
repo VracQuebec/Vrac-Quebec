@@ -105,8 +105,10 @@ describe("moteur unique Transport JSC", () => {
 
   it("applique le temps minimum facturable", async () => {
     const r = await runCarrierQuote(input, makeConfig(), distance as any);
-    expect(r.public.billable_minutes).toBe(90);
-    expect(r.public.transport_amount).toBe(225); // 1,5 h x 150 $
+    // Cycle : 20 + 20 (chargement) + 20 + 15 (déchargement) + 20 + 10 = 105 min
+    // arrondi au palier de 5 min supérieur suivant = 110 min (> minimum de 90).
+    expect(r.public.billable_minutes).toBe(110);
+    expect(r.public.transport_amount).toBeCloseTo(275, 2); // 110/60 h x 150 $
   });
 
   it("calcule plusieurs voyages avec le cycle carrière -> client -> carrière", async () => {
@@ -135,7 +137,7 @@ describe("moteur unique Transport JSC", () => {
     expect(r.public.total).toBe(r.public.subtotal);
   });
 
-  it("refuse un profil transporteur non configuré", async () => {
-    await expect(runCarrierQuote(input, makeConfig(), distance as any, "autre")).rejects.toThrow(/non configuré/);
+  it("refuse un profil transporteur non configuré", () => {
+    expect(() => runCarrierQuote(input, makeConfig(), distance as any, "autre")).toThrow(/non configuré/);
   });
 });
