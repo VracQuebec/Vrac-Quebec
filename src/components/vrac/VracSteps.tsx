@@ -70,9 +70,12 @@ const MODES = [
 ] as const;
 
 export function StepQuantity({ draft, set }: { draft: VracDraft; set: Setter }) {
+  const tonnesValue = Number(draft.tonnes);
+  const tripsValue = Number(draft.trips);
+  const dimError = (v: string) => (v.trim() !== "" && !(Number(v) > 0) ? "Entrez un nombre supérieur à 0." : undefined);
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {MODES.map(({ key, label, hint, icon: Icon }) => {
           const active = draft.quantityMode === key;
           return (
@@ -81,7 +84,7 @@ export function StepQuantity({ draft, set }: { draft: VracDraft; set: Setter }) 
               type="button"
               aria-pressed={active}
               onClick={() => set({ quantityMode: key })}
-              className={`rounded-2xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+              className={`min-h-11 rounded-2xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                 active ? "border-[3px] border-primary bg-primary/5 shadow-sm" : "border-border hover:border-primary/40 hover:shadow-sm"
               }`}
             >
@@ -94,40 +97,57 @@ export function StepQuantity({ draft, set }: { draft: VracDraft; set: Setter }) 
       </div>
 
       {draft.quantityMode === "tonnes" && (
-        <Field label="Quantité approximative (tonnes)">
+        <Field
+          label="Quantité approximative (tonnes)"
+          hint="Une approximation suffit : notre équipe valide la quantité avec vous."
+          error={draft.tonnes.trim() !== "" && !(tonnesValue > 0) ? "Entrez un nombre de tonnes supérieur à 0." : undefined}
+        >
           <Input inputMode="decimal" placeholder="ex. 12" value={draft.tonnes}
             onChange={(e) => set({ tonnes: e.target.value })} />
         </Field>
       )}
 
       {draft.quantityMode === "voyages" && (
-        <Field label="Nombre de voyages souhaités">
-          <Input inputMode="numeric" placeholder="ex. 2" value={draft.trips}
-            onChange={(e) => set({ trips: e.target.value })} />
-        </Field>
+        <div className="space-y-4">
+          <Field
+            label="Nombre de voyages souhaités"
+            error={draft.trips.trim() !== "" && !(tripsValue > 0) ? "Entrez un nombre de voyages supérieur à 0." : undefined}
+          >
+            <Input inputMode="numeric" placeholder="ex. 2" value={draft.trips}
+              onChange={(e) => set({ trips: e.target.value })} />
+          </Field>
+          <Notice>
+            Le nombre de tonnes dépend du camion retenu. Nous confirmons la quantité exacte avec vous;
+            votre demande est transmise à notre équipe sans estimation automatique.
+          </Notice>
+        </div>
       )}
 
       {draft.quantityMode === "dimensions" && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label="Longueur (pi)">
-            <Input inputMode="decimal" placeholder="ex. 30" value={draft.dims.length}
-              onChange={(e) => set({ dims: { ...draft.dims, length: e.target.value } })} />
-          </Field>
-          <Field label="Largeur (pi)">
-            <Input inputMode="decimal" placeholder="ex. 20" value={draft.dims.width}
-              onChange={(e) => set({ dims: { ...draft.dims, width: e.target.value } })} />
-          </Field>
-          <Field label="Épaisseur (po)">
-            <Input inputMode="decimal" placeholder="ex. 4" value={draft.dims.depth}
-              onChange={(e) => set({ dims: { ...draft.dims, depth: e.target.value } })} />
-          </Field>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Field label="Longueur (pi)" error={dimError(draft.dims.length)}>
+              <Input inputMode="decimal" placeholder="ex. 30" value={draft.dims.length}
+                onChange={(e) => set({ dims: { ...draft.dims, length: e.target.value } })} />
+            </Field>
+            <Field label="Largeur (pi)" error={dimError(draft.dims.width)}>
+              <Input inputMode="decimal" placeholder="ex. 20" value={draft.dims.width}
+                onChange={(e) => set({ dims: { ...draft.dims, width: e.target.value } })} />
+            </Field>
+            <Field label="Épaisseur (po)" error={dimError(draft.dims.depth)}>
+              <Input inputMode="decimal" placeholder="ex. 4" value={draft.dims.depth}
+                onChange={(e) => set({ dims: { ...draft.dims, depth: e.target.value } })} />
+            </Field>
+          </div>
+          <Notice>Nous convertissons ces dimensions en tonnes pour vous : aucun calcul de votre part.</Notice>
         </div>
       )}
 
       {draft.quantityMode === "inconnu" && (
-        <p className="rounded-2xl bg-muted/50 p-4 text-sm text-muted-foreground">
-          Aucun souci : décrivez simplement votre projet à l'étape des coordonnées, nous déterminerons la quantité exacte pour vous.
-        </p>
+        <Notice>
+          Aucun souci : décrivez simplement votre projet à l'étape des coordonnées. Notre équipe
+          détermine la quantité exacte, puis vous transmet votre estimation.
+        </Notice>
       )}
     </div>
   );
