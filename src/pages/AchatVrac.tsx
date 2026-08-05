@@ -11,7 +11,7 @@ import { ArrowLeft, ArrowRight, Calculator, Check, Loader2, ShieldCheck, Sparkle
 import { Button } from "@/components/ui/button";
 import TransportBanner from "@/components/TransportBanner";
 import {
-  StepContact, StepDate, StepDelivery, StepMaterial, StepQuantity,
+  DeliveryDateNotice, StepContact, StepDelivery, StepMaterial, StepQuantity,
 } from "@/components/vrac/VracSteps";
 import {
   EMPTY_VRAC_DRAFT, findVracMaterial, getActiveVracMaterials, loadVracDraft,
@@ -21,7 +21,7 @@ import { formatDuration, formatKm, formatMoney, useVracEstimate } from "@/lib/vr
 import type { PublicQuote } from "@/lib/jsc/engine";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
 
-const STEPS = ["Matériau", "Quantité", "Livraison", "Date", "Coordonnées", "Résumé et estimation"] as const;
+const STEPS = ["Matériau", "Quantité", "Livraison", "Coordonnées", "Résumé et estimation"] as const;
 
 export default function AchatVrac() {
   const materials = useMemo(() => getActiveVracMaterials(), []);
@@ -48,7 +48,6 @@ export default function AchatVrac() {
       || (draft.quantityMode === "dimensions"
         && Number(draft.dims.length) > 0 && Number(draft.dims.width) > 0 && Number(draft.dims.depth) > 0),
     draft.address.trim().length > 5,
-    draft.dateMode !== "precise" || !!draft.date,
     draft.contact.name.trim().length > 1
       && draft.contact.phone.replace(/\D/g, "").length >= 10
       && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(draft.contact.email.trim()),
@@ -91,9 +90,8 @@ export default function AchatVrac() {
           )}
           {step === 1 && <StepQuantity draft={draft} set={set} />}
           {step === 2 && <StepDelivery draft={draft} set={set} />}
-          {step === 3 && <StepDate draft={draft} set={set} />}
-          {step === 4 && <StepContact draft={draft} set={set} />}
-          {step === 5 && (
+          {step === 3 && <StepContact draft={draft} set={set} />}
+          {step === 4 && (
             <Recap draft={draft} quote={estimate.quote} loading={estimate.loading} error={estimate.error} />
           )}
 
@@ -150,7 +148,6 @@ function stepTitle(step: number) {
     "Quel matériau souhaitez-vous faire livrer ?",
     "De quelle quantité avez-vous besoin ?",
     "Où doit-on livrer ?",
-    "Quand souhaitez-vous la livraison ?",
     "Vos coordonnées",
     "Résumé de votre demande",
   ][step];
@@ -161,7 +158,6 @@ function stepHint(step: number) {
     "Choisissez le matériau qui correspond le mieux à votre projet. Nous vous guiderons ensuite pour calculer automatiquement la quantité, le transport et votre estimation.",
     "Une approximation suffit, nous validerons avec vous.",
     "L'adresse nous permet de planifier la livraison.",
-    "Une date précise ou une plage flexible, à votre choix.",
     "Pour vous transmettre votre estimation.",
     "Vérifiez les informations ci-dessous avant de calculer votre prix.",
   ][step];
@@ -198,14 +194,11 @@ function Recap({ draft, quote, loading, error }: {
         : draft.quantityMode === "dimensions"
           ? `${draft.dims.length} pi × ${draft.dims.width} pi × ${draft.dims.depth} po`
           : "À déterminer avec notre équipe";
-  const when = draft.dateMode === "precise" ? draft.date || "—"
-    : draft.dateMode === "flexible" ? "Flexible" : "Le plus tôt possible";
-
   const summary: [string, string][] = [
     ["Matériau", material?.name ?? "—"],
     ["Quantité", quantity],
     ["Adresse de livraison", draft.address || "—"],
-    ["Date souhaitée", when],
+    ["Date de livraison", "À confirmer avec notre équipe"],
     ["Nom", draft.contact.name || "—"],
     ["Téléphone", draft.contact.phone || "—"],
     ["Courriel", draft.contact.email || "—"],
@@ -251,6 +244,8 @@ function Recap({ draft, quote, loading, error }: {
           </div>
         ))}
       </div>
+
+      <DeliveryDateNotice />
 
       <div className="rounded-2xl border border-primary/30 bg-card p-5 shadow-sm">
         <div className="flex items-center gap-2">
