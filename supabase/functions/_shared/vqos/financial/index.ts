@@ -187,7 +187,9 @@ export function computeFinancials(
 
   // --- Transport --------------------------------------------------------
   const hourlyRate = ctx.truck.hourly_rate;
-  const transportAmount = roundMoney(time.billable_hours * hourlyRate, d);
+  // Toujours calculé à partir des minutes exactes : l'affichage des heures
+  // est arrondi, jamais la base de facturation.
+  const transportAmount = roundMoney((time.billable_minutes / 60) * hourlyRate, d);
   const transport: TransportCharge = {
     truck_id: ctx.truck.id,
     truck_name: ctx.truck.name,
