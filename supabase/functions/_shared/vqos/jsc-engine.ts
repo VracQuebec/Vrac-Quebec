@@ -254,7 +254,7 @@ export async function runJscQuote(
   const roundTripKm = Number(
     (
       legBaseToPickup.distance_km + leg.distance_km + legClientToBase.distance_km +
-      (leg.distance_km + legClientToPickup.distance_km) * (trips - 1)
+      (leg.distance_km + (legClientToPickup?.distance_km ?? 0)) * (trips - 1)
     ).toFixed(2),
   );
   const charges: Array<{ code: string; label: string; amount: number }> = [];
@@ -275,8 +275,15 @@ export async function runJscQuote(
 
   // 13-15. Sous-total, taxes, total livré estimé.
   const subtotal = roundMoney(materialAmount + transportAmount + chargesTotal + marginAmount, decimals);
-  const applicable = material.is_taxable ? config.taxes : [];
-  const { lines, total: taxTotal } = applyTaxes(subtotal, applicable, decimals);
+  // Règle fiscale Québec : le transport et les frais restent taxables même
+  // lorsque le matériau ne l'est pas (paramètre « transport_is_taxable »).
+  const transportIsTaxable = String(config.settings["transport_is_taxable"] ?? "true").trim() !== "false";
+  const taxableBase = material.is_taxable
+    ? subtotal
+    : transportIsTaxable
+      ? roundMoney(Math.max(subtotal - materialAmount, 0), decimals)
+      : 0;
+  const { lines, total: taxTotal } = applyTaxes(taxableBase, taxableBase > 0 ? config.taxes : [], decimals);
   const total = roundMoney(subtotal + taxTotal, decimals);
 
   return {
