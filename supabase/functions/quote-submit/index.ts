@@ -15,6 +15,7 @@ import { type Unit } from '../_shared/vqos/index.ts';
 import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
 import { clientIp, GuardError, guardPublicRequest, rememberResult } from '../_shared/public-guard.ts';
+import { logEvent, logEventAsync } from '../_shared/observability.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
 const VALIDITY_SETTING = 'quote_validity_days';
@@ -70,14 +71,27 @@ async function sendEmail(payload: Record<string, unknown>): Promise<{ ok: true }
     });
     const text = await res.text();
     if (!res.ok) {
-      console.error(`[quote-submit] courriel refusé [${res.status}] ${payload.templateName}: ${text}`);
+      await logEvent({
+        source: 'email', event: 'send.failed', level: 'error',
+        message: `Courriel refusé (${payload.templateName}): ${text}`,
+        statusCode: res.status, refId: String(payload.idempotencyKey ?? ''),
+        context: { template: payload.templateName },
+      });
       return { ok: false, error: `Envoi du courriel impossible (${res.status}).` };
     }
-    console.log(`[quote-submit] courriel envoyé: ${payload.templateName} -> ${payload.recipientEmail}`);
+    logEventAsync({
+      source: 'email', event: 'send.ok',
+      refId: String(payload.idempotencyKey ?? ''),
+      context: { template: payload.templateName },
+    });
     return { ok: true };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    console.error(`[quote-submit] courriel en échec ${payload.templateName}: ${message}`);
+    await logEvent({
+      source: 'email', event: 'send.failed', level: 'error',
+      message: `${payload.templateName}: ${message}`,
+      context: { template: payload.templateName },
+    });
     return { ok: false, error: message };
   }
 }
@@ -86,6 +100,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Méthode non supportée' }, 405);
 
+  const startedAt = Date.now();
   try {
     const sb = db();
     const body = await req.json().catch(() => null);
@@ -126,7 +141,7 @@ Deno.serve(async (req) => {
     if (guard.duplicate) {
       // Demande identique déjà traitée : on renvoie la soumission existante
       // sans recalculer, sans créer de doublon CRM et sans réexpédier de courriel.
-      console.log('[quote-submit] doublon ignoré', { email, fingerprint });
+      logEventAsync({ source: 'quote_submit', event: 'submission.duplicate', level: 'warn' });
       return json({
         ok: true,
         duplicate: true,
@@ -288,6 +303,16 @@ Deno.serve(async (req) => {
     });
     if (logged.error) console.error('audit log failed', logged.error.message);
 
+    logEventAsync({
+      source: 'quote_submit', event: action === 'callback' ? 'callback.created' : 'submission.created',
+      durationMs: Date.now() - startedAt,
+      refId: quote.quote_number ?? quote.id,
+      context: {
+        request_number: request.request_number, total: pub.total,
+        engine_version: result.engine_version, material: pub.material?.name,
+      },
+    });
+
     // La soumission est enregistrée : on mémorise le résultat pour que
     // tout renvoi du même formulaire soit reconnu comme un doublon.
     await rememberResult(sb, 'quote-submit', fingerprint, {
@@ -298,8 +323,9 @@ Deno.serve(async (req) => {
 
     // Un échec d'envoi n'est jamais masqué par un ok:true.
     if (!clientMail.ok) {
-      console.error('[quote-submit] soumission enregistrée mais courriel client en échec', {
-        quote_number: quote.quote_number, error: clientMail.error,
+      await logEvent({
+        source: 'email', event: 'submission.email_failed', level: 'critical',
+        message: clientMail.error, refId: quote.quote_number ?? quote.id,
       });
       return json({
         ok: false,
@@ -319,11 +345,17 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     if (e instanceof GuardError) {
-      console.warn(`[quote-submit] bloqué (${e.code}): ${e.message}`);
+      logEventAsync({
+        source: 'quote_submit', event: `guard.${e.code}`, level: 'warn',
+        message: e.message, statusCode: e.status,
+      });
       return json({ ok: false, code: e.code, error: e.message }, e.status);
     }
     const message = e instanceof Error ? e.message : 'Erreur inconnue';
-    console.error('[quote-submit] échec:', message, e instanceof Error ? e.stack : '');
+    await logEvent({
+      source: 'quote_submit', event: 'submission.failed', level: 'error',
+      message, durationMs: Date.now() - startedAt,
+    });
     return json({ ok: false, error: message }, 400);
   }
 });
