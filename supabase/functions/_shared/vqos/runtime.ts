@@ -72,8 +72,20 @@ export async function geocode(address: string): Promise<GeocodedAddress> {
 export const distanceProvider: DistanceProvider = async (origins, destination) => {
   const out: Record<string, { distance_km: number; duration_minutes: number } | null> = {};
   const startedAll = Date.now();
-  for (let i = 0; i < origins.length; i += 25) {
-    const chunk = origins.slice(i, i + 25);
+
+  // Cache court des trajets : une même paire origine/destination (grille ~100 m)
+  // n'est demandée qu'une fois à Google pendant DISTANCE_TTL_MS.
+  const pending: typeof origins = [];
+  const keyOf = (o: { lat: number; lng: number }) =>
+    `${o.lat.toFixed(3)},${o.lng.toFixed(3)}>${destination.lat.toFixed(3)},${destination.lng.toFixed(3)}`;
+  for (const o of origins) {
+    const cached = distanceCache.get(keyOf(o));
+    if (cached && cached.expires > Date.now()) out[o.id] = cached.value;
+    else pending.push(o);
+  }
+
+  for (let i = 0; i < pending.length; i += 25) {
+    const chunk = pending.slice(i, i + 25);
     const res = await fetch(`${GATEWAY_URL}/routes/distanceMatrix/v2:computeRouteMatrix`, {
       method: 'POST',
       headers: {
@@ -106,20 +118,35 @@ export const distanceProvider: DistanceProvider = async (origins, destination) =
         distance_km: Number(((row.distanceMeters ?? 0) / 1000).toFixed(2)),
         duration_minutes: Math.round(Number(String(row.duration ?? '0s').replace('s', '')) / 60),
       };
+      distanceCache.set(keyOf(origin), { value: out[origin.id], expires: Date.now() + DISTANCE_TTL_MS });
     }
     chunk.forEach((o) => { if (!(o.id in out)) out[o.id] = null; });
   }
   logEventAsync({
     source: 'google_maps', event: 'route_matrix',
-    durationMs: Date.now() - startedAll, context: { origins: origins.length },
+    durationMs: Date.now() - startedAll,
+    context: { origins: origins.length, from_cache: origins.length - pending.length },
   });
   return out;
 };
 
 const live = (q: any) => q.eq('is_active', true).is('archived_at', null);
 
+// ------------------------------------------------------------
+// Caches mémoire (durée de vie de l'isolat edge). Ils réduisent
+// la charge Supabase et les appels Google sans jamais figer une
+// modification administrateur plus de quelques dizaines de secondes.
+// ------------------------------------------------------------
+const CONFIG_TTL_MS = 60_000;
+const DISTANCE_TTL_MS = 5 * 60_000;
+const configCache = new Map<string, { value: EngineConfig; expires: number }>();
+const distanceCache = new Map<string, { value: { distance_km: number; duration_minutes: number } | null; expires: number }>();
+
 /** Charge l'intégralité des paramètres administrateur nécessaires aux moteurs. */
 export async function loadConfig(db: any, materialId: string): Promise<EngineConfig> {
+  const cached = configCache.get(materialId);
+  if (cached && cached.expires > Date.now()) return cached.value;
+
   const [material, prices, pickups, suppliers, carriers, trucks, rates, zones, taxes, settings] = await Promise.all([
     db.from('jsc_materials').select('*').eq('id', materialId).is('archived_at', null).maybeSingle(),
     live(db.from('jsc_material_prices').select('*')).eq('material_id', materialId),
@@ -139,7 +166,7 @@ export async function loadConfig(db: any, materialId: string): Promise<EngineCon
   const settingsMap: Record<string, string> = {};
   for (const row of settings.data ?? []) settingsMap[row.key] = row.value;
 
-  return {
+  const config: EngineConfig = {
     material: material.data,
     prices: prices.data ?? [],
     pickups: pickups.data ?? [],
@@ -151,4 +178,8 @@ export async function loadConfig(db: any, materialId: string): Promise<EngineCon
     taxes: taxes.data ?? [],
     settings: settingsMap,
   };
+
+  if (configCache.size > 200) configCache.clear();
+  configCache.set(materialId, { value: config, expires: Date.now() + CONFIG_TTL_MS });
+  return config;
 }
