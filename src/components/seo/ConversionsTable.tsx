@@ -17,6 +17,7 @@ export default function ConversionsTable() {
   const [pages, setPages] = useState<PageRow[]>([]);
   const [events, setEvents] = useState<Map<string, EventCounts>>(new Map());
   const [gsc, setGsc] = useState<Map<string, Metrics>>(new Map());
+  const [ga4, setGa4] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState<Period>(28);
   const [sort, setSort] = useState<"submissions" | "views" | "calls">("submissions");
@@ -27,10 +28,11 @@ export default function ConversionsTable() {
       setLoading(true);
       const since = new Date(Date.now() - days * 86400 * 1000).toISOString();
       const period = days === 7 ? "7d" : days === 28 ? "28d" : "90d";
-      const [pagesRes, eventsRes, gscRes] = await Promise.all([
+      const [pagesRes, eventsRes, gscRes, ga4Res] = await Promise.all([
         supabase.from("seo_pages").select("id,slug,title,status").eq("status", "published").limit(2000),
         supabase.from("seo_page_events").select("page_slug,event_type").gte("occurred_at", since).limit(50000),
         supabase.from("seo_gsc_metrics").select("page_id,impressions,clicks,position,ctr").eq("period", period),
+        supabase.from("ga4_page_metrics").select("page_path,page_views").eq("period", period),
       ]);
       const pgs = (pagesRes.data ?? []) as PageRow[];
       const evMap = new Map<string, EventCounts>();
@@ -50,6 +52,12 @@ export default function ConversionsTable() {
       setPages(pgs);
       setEvents(evMap);
       setGsc(gMap);
+      const aMap = new Map<string, number>();
+      for (const g of (ga4Res.data ?? []) as { page_path: string; page_views: number }[]) {
+        const key = (g.page_path || "").replace(/^\/+|\/+$/g, "").toLowerCase();
+        aMap.set(key, (aMap.get(key) ?? 0) + (g.page_views ?? 0));
+      }
+      setGa4(aMap);
       setLoading(false);
     })();
   }, [days]);
@@ -59,6 +67,8 @@ export default function ConversionsTable() {
     const all = pages.map((p) => {
       const ev = events.get(p.slug) ?? { view: 0, phone: 0, whatsapp: 0, submission: 0, cta: 0 };
       const g = gsc.get(p.id) ?? { impressions: 0, clicks: 0, position: 0, ctr: 0 };
+      // Si aucun évènement interne, on affiche les vues réelles remontées par GA4.
+      if (!ev.view) ev.view = ga4.get(p.slug.toLowerCase()) ?? 0;
       const contacts = ev.phone + ev.whatsapp + ev.submission;
       return { ...p, ev, g, contacts };
     });
@@ -70,7 +80,7 @@ export default function ConversionsTable() {
       if (sort === "calls") return (b.ev.phone + b.ev.whatsapp) - (a.ev.phone + a.ev.whatsapp);
       return b.ev.view - a.ev.view;
     });
-  }, [pages, events, gsc, sort, q]);
+  }, [pages, events, gsc, ga4, sort, q]);
 
   const totals = useMemo(() => rows.reduce(
     (acc, r) => {
