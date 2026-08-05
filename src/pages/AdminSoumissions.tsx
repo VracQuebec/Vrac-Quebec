@@ -40,8 +40,8 @@ interface QuoteRow {
 }
 
 export default function AdminSoumissions() {
-  const { isReady, isAuthenticated } = useAuthReady();
-  const { isAdmin, loading: rolesLoading } = useUserRoles();
+  const { user, isReady, isAuthenticated } = useAuthReady();
+  const { isAdmin, loading: rolesLoading } = useUserRoles(user, isReady);
   const [rows, setRows] = useState<QuoteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("all");
