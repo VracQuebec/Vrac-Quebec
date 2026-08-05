@@ -7809,6 +7809,36 @@ export type Database = {
         }
         Relationships: []
       }
+      route_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          distance_km: number | null
+          duration_minutes: number | null
+          hits: number
+          last_used_at: string
+          route_exists: boolean
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          distance_km?: number | null
+          duration_minutes?: number | null
+          hits?: number
+          last_used_at?: string
+          route_exists?: boolean
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          distance_km?: number | null
+          duration_minutes?: number | null
+          hits?: number
+          last_used_at?: string
+          route_exists?: boolean
+        }
+        Relationships: []
+      }
       seo_advisor_reports: {
         Row: {
           created_at: string
