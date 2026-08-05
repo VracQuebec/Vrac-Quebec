@@ -11,6 +11,29 @@ import { logEvent, logEventAsync } from '../observability.ts';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
 
+/**
+ * Appel Google avec reprise automatique : les limites de débit (429) et les
+ * erreurs temporaires (5xx) sont réessayées avec un délai croissant plutôt
+ * que de faire échouer une soumission client.
+ */
+async function fetchGoogle(url: string, init: RequestInit, attempts = 4): Promise<Response> {
+  let last: Response | null = null;
+  for (let i = 0; i < attempts; i++) {
+    const res = await fetch(url, init);
+    if (res.ok || (res.status !== 429 && res.status < 500)) return res;
+    last = res;
+    await res.body?.cancel().catch(() => {});
+    const wait = Math.min(4000, 300 * 2 ** i) + Math.floor(Math.random() * 250);
+    logEventAsync({
+      source: 'google_maps', event: 'retry', level: 'warn',
+      statusCode: res.status, message: `Nouvelle tentative dans ${wait} ms`,
+      context: { attempt: i + 1 },
+    });
+    await new Promise((r) => setTimeout(r, wait));
+  }
+  return last!;
+}
+
 export function mapsHeaders() {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
@@ -29,7 +52,7 @@ export interface GeocodedAddress {
 export async function geocode(address: string): Promise<GeocodedAddress> {
   const params = new URLSearchParams({ address, region: 'ca', language: 'fr' });
   const started = Date.now();
-  const res = await fetch(`${GATEWAY_URL}/maps/api/geocode/json?${params}`, { headers: mapsHeaders() });
+  const res = await fetchGoogle(`${GATEWAY_URL}/maps/api/geocode/json?${params}`, { headers: mapsHeaders() });
   const data = await res.json();
   if (!res.ok) {
     await logEvent({
@@ -86,7 +109,7 @@ export const distanceProvider: DistanceProvider = async (origins, destination) =
 
   for (let i = 0; i < pending.length; i += 25) {
     const chunk = pending.slice(i, i + 25);
-    const res = await fetch(`${GATEWAY_URL}/routes/distanceMatrix/v2:computeRouteMatrix`, {
+    const res = await fetchGoogle(`${GATEWAY_URL}/routes/distanceMatrix/v2:computeRouteMatrix`, {
       method: 'POST',
       headers: {
         ...mapsHeaders(),
