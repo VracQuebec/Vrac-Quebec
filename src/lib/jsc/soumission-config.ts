@@ -168,6 +168,59 @@ export type SettingDef = {
   /** Table source pour un paramètre de type « reference » (liste déroulante). */
   refTable?: string;
   refLabel?: string;
+  /** Regroupement dans l'écran des paramètres. */
+  group?: "operation" | "financier";
+};
+
+/** Section 3 — Catégories de matériaux */
+export const SOUMISSION_CATEGORIES: ResourceDef = {
+  id: "soum_categories",
+  table: "jsc_material_categories",
+  title: "Catégories",
+  singular: "Catégorie",
+  description: "Familles de matériaux (terre, sable, pierre, remblai…) utilisées par le catalogue et les filtres.",
+  icon: "Layers",
+  labelField: "name",
+  orderBy: [{ column: "sort_order", ascending: true }, { column: "name", ascending: true }],
+  companyScoped: true,
+  fields: [
+    { key: "name", label: "Nom", type: "text", inList: true, required: true },
+    { key: "code", label: "Code", type: "text", inList: true },
+    { key: "description", label: "Description", type: "textarea" },
+    sortField,
+    activeField,
+  ],
+};
+
+/** Section 4 — Fournisseurs */
+export const SOUMISSION_SUPPLIERS: ResourceDef = {
+  id: "soum_suppliers",
+  table: "jsc_suppliers",
+  title: "Fournisseurs",
+  singular: "Fournisseur",
+  description: "Entreprises qui approvisionnent les matériaux. Chaque carrière peut être rattachée à un fournisseur.",
+  icon: "Building2",
+  labelField: "name",
+  orderBy: [{ column: "sort_order", ascending: true }, { column: "name", ascending: true }],
+  companyScoped: true,
+  fields: [
+    { key: "name", label: "Nom", type: "text", inList: true, required: true },
+    { key: "contact_name", label: "Personne-ressource", type: "text", inList: true },
+    { key: "phone", label: "Téléphone", type: "text", inList: true },
+    { key: "email", label: "Courriel", type: "text", inList: true },
+    { key: "address", label: "Adresse", type: "text" },
+    { key: "city", label: "Ville", type: "text", inList: true },
+    { key: "postal_code", label: "Code postal", type: "text" },
+    { key: "website", label: "Site web", type: "text" },
+    { key: "opening_hours", label: "Heures d'ouverture", type: "text" },
+    { key: "payment_terms", label: "Conditions de paiement", type: "text", confidential: true },
+    {
+      key: "internal_notes", label: "Notes internes", type: "textarea", confidential: true,
+      help: "Matériaux fournis, ententes, particularités. Jamais visible du client.",
+    },
+    sortField,
+    activeField,
+  ],
 };
 
 /** Section 5 — Paramètres généraux (stockés dans jsc_settings) */
