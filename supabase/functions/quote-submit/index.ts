@@ -14,6 +14,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { type Unit } from '../_shared/vqos/index.ts';
 import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
+import { clientIp, GuardError, guardPublicRequest, rememberResult } from '../_shared/public-guard.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
 const VALIDITY_SETTING = 'quote_validity_days';
@@ -52,7 +53,12 @@ async function resolveMaterialId(sb: any, body: any): Promise<string> {
   return data.id;
 }
 
-async function sendEmail(_sb: any, payload: Record<string, unknown>) {
+/**
+ * Envoi courriel : la fonction retourne l'erreur réelle. L'appelant
+ * décide de la suite ; aucun succès n'est simulé.
+ * `idempotencyKey` empêche tout envoi multiple du même courriel.
+ */
+async function sendEmail(payload: Record<string, unknown>): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
       method: 'POST',
@@ -63,9 +69,16 @@ async function sendEmail(_sb: any, payload: Record<string, unknown>) {
       body: JSON.stringify(payload),
     });
     const text = await res.text();
-    if (!res.ok) console.error(`email failed [${res.status}]: ${text}`);
+    if (!res.ok) {
+      console.error(`[quote-submit] courriel refusé [${res.status}] ${payload.templateName}: ${text}`);
+      return { ok: false, error: `Envoi du courriel impossible (${res.status}).` };
+    }
+    console.log(`[quote-submit] courriel envoyé: ${payload.templateName} -> ${payload.recipientEmail}`);
+    return { ok: true };
   } catch (e) {
-    console.error('email failed', e instanceof Error ? e.message : e);
+    const message = e instanceof Error ? e.message : String(e);
+    console.error(`[quote-submit] courriel en échec ${payload.templateName}: ${message}`);
+    return { ok: false, error: message };
   }
 }
 
@@ -95,6 +108,34 @@ Deno.serve(async (req) => {
     if (!Number.isFinite(quantity) || quantity <= 0 || quantity > 100000) throw new Error('Quantité invalide.');
     if (!UNITS.includes(unit)) throw new Error('Unité invalide.');
     if (!address || address.length < 5) throw new Error('Adresse de livraison requise.');
+
+    // ---------- Protection : robots, pourriel, débit, doublons ----------
+    const fingerprint = [
+      email.toLowerCase(), body?.material_slug ?? body?.material_id ?? '',
+      quantity, unit, address.toLowerCase(), action,
+    ].join('|');
+    const guard = await guardPublicRequest(sb, {
+      scope: 'quote-submit',
+      identity: email.toLowerCase(),
+      fingerprint,
+      honeypot: body?.website,
+      formStartedAt: body?.form_started_at,
+      freeText: [comments, name, company].filter(Boolean).join(' '),
+      ip: clientIp(req),
+    });
+    if (guard.duplicate) {
+      // Demande identique déjà traitée : on renvoie la soumission existante
+      // sans recalculer, sans créer de doublon CRM et sans réexpédier de courriel.
+      console.log('[quote-submit] doublon ignoré', { email, fingerprint });
+      return json({
+        ok: true,
+        duplicate: true,
+        quote_number: (guard.previous as any)?.quote_number ?? null,
+        request_number: (guard.previous as any)?.request_number ?? null,
+        valid_until: (guard.previous as any)?.valid_until ?? null,
+        emailed_to: email,
+      });
+    }
 
     // ---------- Recalcul serveur (source unique de vérité) ----------
     const delivery = await geocode(address);
@@ -205,7 +246,7 @@ Deno.serve(async (req) => {
       address: publicPayload.delivery_address, total: money(pub.total), validUntil: validLabel,
     };
 
-    await sendEmail(sb, {
+    const clientMail = await sendEmail({
       templateName: 'soumission-client',
       recipientEmail: email,
       idempotencyKey: `soumission-client-${quote.id}`,
@@ -214,7 +255,7 @@ Deno.serve(async (req) => {
 
     const adminEmail = await readSetting(sb, 'admin_notification_email');
     if (adminEmail) {
-      await sendEmail(sb, {
+      await sendEmail({
         templateName: 'soumission-interne',
         recipientEmail: adminEmail,
         idempotencyKey: `soumission-interne-${quote.id}`,
@@ -247,6 +288,28 @@ Deno.serve(async (req) => {
     });
     if (logged.error) console.error('audit log failed', logged.error.message);
 
+    // La soumission est enregistrée : on mémorise le résultat pour que
+    // tout renvoi du même formulaire soit reconnu comme un doublon.
+    await rememberResult(sb, 'quote-submit', fingerprint, {
+      quote_number: quote.quote_number,
+      request_number: request.request_number,
+      valid_until: quote.valid_until,
+    });
+
+    // Un échec d'envoi n'est jamais masqué par un ok:true.
+    if (!clientMail.ok) {
+      console.error('[quote-submit] soumission enregistrée mais courriel client en échec', {
+        quote_number: quote.quote_number, error: clientMail.error,
+      });
+      return json({
+        ok: false,
+        error: "Votre soumission a été enregistrée, mais l'envoi du courriel a échoué. Notre équipe vous contactera.",
+        email_error: clientMail.error,
+        quote_number: quote.quote_number,
+        request_number: request.request_number,
+      }, 502);
+    }
+
     return json({
       ok: true,
       quote_number: quote.quote_number,
@@ -255,8 +318,12 @@ Deno.serve(async (req) => {
       emailed_to: email,
     });
   } catch (e) {
+    if (e instanceof GuardError) {
+      console.warn(`[quote-submit] bloqué (${e.code}): ${e.message}`);
+      return json({ ok: false, code: e.code, error: e.message }, e.status);
+    }
     const message = e instanceof Error ? e.message : 'Erreur inconnue';
-    console.error('quote-submit failed:', message);
-    return json({ error: message }, 400);
+    console.error('[quote-submit] échec:', message, e instanceof Error ? e.stack : '');
+    return json({ ok: false, error: message }, 400);
   }
 });

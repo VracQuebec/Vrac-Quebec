@@ -7698,6 +7698,33 @@ export type Database = {
           },
         ]
       }
+      public_request_guard: {
+        Row: {
+          created_at: string
+          fingerprint: string | null
+          id: string
+          identity: string
+          payload: Json
+          scope: string
+        }
+        Insert: {
+          created_at?: string
+          fingerprint?: string | null
+          id?: string
+          identity: string
+          payload?: Json
+          scope: string
+        }
+        Update: {
+          created_at?: string
+          fingerprint?: string | null
+          id?: string
+          identity?: string
+          payload?: Json
+          scope?: string
+        }
+        Relationships: []
+      }
       seo_advisor_reports: {
         Row: {
           created_at: string

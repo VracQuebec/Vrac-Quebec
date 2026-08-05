@@ -12,7 +12,8 @@
 // ============================================================
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { runQuote, type QuoteResult, type Unit } from '../_shared/vqos/index.ts';
+import { type Unit } from '../_shared/vqos/index.ts';
+import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
@@ -137,7 +138,7 @@ function readQuoteArgs(body: any): QuoteArgs {
 async function computeQuote(sb: any, args: QuoteArgs) {
   const delivery = await geocode(args.address);
   const config = await loadConfig(sb, args.material_id);
-  const result = await runQuote(
+  const result = await runCarrierQuote(
     { material_id: args.material_id, quantity: args.quantity, unit: args.unit, delivery },
     config,
     distanceProvider,
@@ -162,7 +163,7 @@ async function submit(sb: any, body: any) {
 
   // Recalcul serveur : la valeur affichée au client n'est jamais celle enregistrée sans vérification.
   const { result, delivery } = await computeQuote(sb, args);
-  const best = result.technical.selected;
+  const best = result.technical.selected as Record<string, any>;
 
   const { data: client, error: clientError } = await sb.from('jsc_clients').insert({
     client_type: company ? 'entreprise' : 'particulier',
@@ -189,7 +190,6 @@ async function submit(sb: any, body: any) {
     postal_code: delivery.postal_code,
     latitude: delivery.lat,
     longitude: delivery.lng,
-    zone_id: best.plan.zone.id,
     desired_date: desiredDate,
     notes: comments,
   }).select('id,request_number').single();
@@ -198,22 +198,18 @@ async function submit(sb: any, body: any) {
   const { error: estimateError } = await sb.from('jsc_estimates').insert({
     request_id: request.id,
     engine_version: result.engine_version,
-    carrier_id: best.plan.carrier.id,
-    truck_id: best.plan.truck?.id ?? null,
-    supplier_id: best.plan.supplier.id,
-    pickup_location_id: best.plan.pickup.id,
-    material_id: best.plan.material.id,
-    transport_rate_id: best.plan.rate?.id ?? null,
-    trips: best.plan.trips,
-    distance_km: best.plan.distance_km,
-    billed_hours: best.time.total_hours_billed,
-    material_cost: best.cost.material_cost,
-    transport_cost: best.cost.transport_cost,
-    surcharges: best.cost.surcharges_total,
-    margin: best.cost.margin_amount,
-    subtotal: best.cost.subtotal,
-    tax_total: best.cost.tax_total,
-    total: best.cost.total,
+    truck_id: best?.truck?.id ?? null,
+    supplier_id: best?.pickup?.supplier_id ?? null,
+    pickup_location_id: best?.pickup?.id ?? null,
+    material_id: result.public.material.id,
+    trips: result.public.trips,
+    distance_km: result.public.distance_km,
+    billed_hours: result.public.billable_hours,
+    material_cost: result.public.material_amount,
+    transport_cost: result.public.transport_amount,
+    subtotal: result.public.subtotal,
+    tax_total: result.public.tax_total,
+    total: result.public.total,
     decision: result.technical.decision_trace as unknown as Record<string, unknown>,
     calculation: { public: result.public, selected: best, options: result.technical.options },
     settings_snapshot: result.technical.settings_used as unknown as Record<string, unknown>,

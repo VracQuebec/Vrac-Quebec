@@ -401,7 +401,9 @@ Deno.serve(async (req) => {
       await sleep(50);
     }
   } finally {
-    await sb.rpc("seo_orchestrator_unlock" as any).catch(() => {});
+    // NOTE: PostgrestBuilder is a thenable but exposes no `.catch`.
+    // Always go through `.then(onOk, onErr)` here.
+    await sb.rpc("seo_orchestrator_unlock" as any).then(() => {}, () => {});
   }
   return json({ ok: true, ticks: results, elapsed_ms: Date.now() - startedAt });
 });
