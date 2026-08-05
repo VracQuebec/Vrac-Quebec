@@ -2879,8 +2879,22 @@ export type Database = {
             foreignKeyName: "jsc_availability_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "jsc_availability_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "jsc_materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_availability_pickup_location_id_fkey"
+            columns: ["pickup_location_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["pickup_location_id"]
           },
           {
             foreignKeyName: "jsc_availability_pickup_location_id_fkey"
@@ -2895,6 +2909,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "jsc_marketplace_profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_availability_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["supplier_id"]
           },
           {
             foreignKeyName: "jsc_availability_supplier_id_fkey"
@@ -3338,6 +3359,13 @@ export type Database = {
             foreignKeyName: "jsc_contracts_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "jsc_contracts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "jsc_suppliers"
             referencedColumns: ["id"]
           },
@@ -3594,6 +3622,13 @@ export type Database = {
             foreignKeyName: "jsc_deliveries_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "jsc_deliveries_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "jsc_materials"
             referencedColumns: ["id"]
           },
@@ -3608,6 +3643,13 @@ export type Database = {
             foreignKeyName: "jsc_deliveries_pickup_location_id_fkey"
             columns: ["pickup_location_id"]
             isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["pickup_location_id"]
+          },
+          {
+            foreignKeyName: "jsc_deliveries_pickup_location_id_fkey"
+            columns: ["pickup_location_id"]
+            isOneToOne: false
             referencedRelation: "jsc_pickup_locations"
             referencedColumns: ["id"]
           },
@@ -3617,6 +3659,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "jsc_projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_deliveries_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["supplier_id"]
           },
           {
             foreignKeyName: "jsc_deliveries_supplier_id_fkey"
@@ -3899,8 +3948,22 @@ export type Database = {
             foreignKeyName: "jsc_estimates_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "jsc_estimates_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "jsc_materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_estimates_pickup_location_id_fkey"
+            columns: ["pickup_location_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["pickup_location_id"]
           },
           {
             foreignKeyName: "jsc_estimates_pickup_location_id_fkey"
@@ -3915,6 +3978,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "jsc_requests"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_estimates_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["supplier_id"]
           },
           {
             foreignKeyName: "jsc_estimates_supplier_id_fkey"
@@ -4822,6 +4892,13 @@ export type Database = {
             foreignKeyName: "jsc_listings_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "jsc_listings_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "jsc_materials"
             referencedColumns: ["id"]
           },
@@ -4981,6 +5058,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_marketplace_profiles_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["supplier_id"]
           },
           {
             foreignKeyName: "jsc_marketplace_profiles_supplier_id_fkey"
@@ -5152,6 +5236,13 @@ export type Database = {
             foreignKeyName: "jsc_material_prices_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "jsc_material_prices_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "jsc_materials"
             referencedColumns: ["id"]
           },
@@ -5159,8 +5250,22 @@ export type Database = {
             foreignKeyName: "jsc_material_prices_pickup_location_id_fkey"
             columns: ["pickup_location_id"]
             isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["pickup_location_id"]
+          },
+          {
+            foreignKeyName: "jsc_material_prices_pickup_location_id_fkey"
+            columns: ["pickup_location_id"]
+            isOneToOne: false
             referencedRelation: "jsc_pickup_locations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_material_prices_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["supplier_id"]
           },
           {
             foreignKeyName: "jsc_material_prices_supplier_id_fkey"
@@ -5226,8 +5331,22 @@ export type Database = {
             foreignKeyName: "jsc_material_recommendations_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "jsc_material_recommendations_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "jsc_materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_material_recommendations_related_material_id_fkey"
+            columns: ["related_material_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "jsc_material_recommendations_related_material_id_fkey"
@@ -5364,6 +5483,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_materials_pickup_location_id_fkey"
+            columns: ["pickup_location_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["pickup_location_id"]
           },
           {
             foreignKeyName: "jsc_materials_pickup_location_id_fkey"
@@ -5794,8 +5920,22 @@ export type Database = {
             foreignKeyName: "jsc_orders_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "jsc_orders_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "jsc_materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_orders_pickup_location_id_fkey"
+            columns: ["pickup_location_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["pickup_location_id"]
           },
           {
             foreignKeyName: "jsc_orders_pickup_location_id_fkey"
@@ -5829,6 +5969,13 @@ export type Database = {
             foreignKeyName: "jsc_orders_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "jsc_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "jsc_suppliers"
             referencedColumns: ["id"]
           },
@@ -5852,8 +5999,10 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          is_base: boolean
           latitude: number | null
           loading_time_minutes: number
+          location_type: string
           longitude: number | null
           name: string
           opening_hours: string | null
@@ -5873,8 +6022,10 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          is_base?: boolean
           latitude?: number | null
           loading_time_minutes?: number
+          location_type?: string
           longitude?: number | null
           name: string
           opening_hours?: string | null
@@ -5894,8 +6045,10 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          is_base?: boolean
           latitude?: number | null
           loading_time_minutes?: number
+          location_type?: string
           longitude?: number | null
           name?: string
           opening_hours?: string | null
@@ -5912,6 +6065,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_pickup_locations_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["supplier_id"]
           },
           {
             foreignKeyName: "jsc_pickup_locations_supplier_id_fkey"
@@ -6103,6 +6263,13 @@ export type Database = {
             foreignKeyName: "jsc_public_offers_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "jsc_public_offers_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "jsc_suppliers"
             referencedColumns: ["id"]
           },
@@ -6204,6 +6371,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_public_requests_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "jsc_public_requests_material_id_fkey"
@@ -6469,6 +6643,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_requests_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "jsc_requests_material_id_fkey"
@@ -6878,6 +7059,7 @@ export type Database = {
           phone: string | null
           postal_code: string | null
           sort_order: number
+          supplier_type: string
           updated_at: string
           website: string | null
           zone_id: string | null
@@ -6902,6 +7084,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           sort_order?: number
+          supplier_type?: string
           updated_at?: string
           website?: string | null
           zone_id?: string | null
@@ -6926,6 +7109,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           sort_order?: number
+          supplier_type?: string
           updated_at?: string
           website?: string | null
           zone_id?: string | null
@@ -10478,6 +10662,44 @@ export type Database = {
           },
         ]
       }
+      jsc_material_supply_v: {
+        Row: {
+          company_id: string | null
+          cost_per_tonne: number | null
+          density_kg_per_m3: number | null
+          is_ready: boolean | null
+          is_taxable: boolean | null
+          material_archived_at: string | null
+          material_id: string | null
+          material_is_active: boolean | null
+          material_name: string | null
+          material_slug: string | null
+          material_unit: string | null
+          pickup_address: string | null
+          pickup_city: string | null
+          pickup_is_active: boolean | null
+          pickup_latitude: number | null
+          pickup_loading_time_minutes: number | null
+          pickup_location_id: string | null
+          pickup_longitude: number | null
+          pickup_name: string | null
+          pickup_postal_code: string | null
+          pickup_type: string | null
+          price_per_tonne: number | null
+          supplier_id: string | null
+          supplier_name: string | null
+          supplier_type: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_materials_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_gsc_deltas_28d: {
         Row: {
           clicks: number | null
@@ -10867,6 +11089,42 @@ export type Database = {
         Returns: string
       }
       jsc_material_slugify: { Args: { _text: string }; Returns: string }
+      jsc_material_supply: {
+        Args: { _material_id?: string; _slug?: string }
+        Returns: {
+          company_id: string | null
+          cost_per_tonne: number | null
+          density_kg_per_m3: number | null
+          is_ready: boolean | null
+          is_taxable: boolean | null
+          material_archived_at: string | null
+          material_id: string | null
+          material_is_active: boolean | null
+          material_name: string | null
+          material_slug: string | null
+          material_unit: string | null
+          pickup_address: string | null
+          pickup_city: string | null
+          pickup_is_active: boolean | null
+          pickup_latitude: number | null
+          pickup_loading_time_minutes: number | null
+          pickup_location_id: string | null
+          pickup_longitude: number | null
+          pickup_name: string | null
+          pickup_postal_code: string | null
+          pickup_type: string | null
+          price_per_tonne: number | null
+          supplier_id: string | null
+          supplier_name: string | null
+          supplier_type: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "jsc_material_supply_v"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       jsc_my_client_ids: { Args: never; Returns: string[] }
       jsc_my_driver_ids: { Args: never; Returns: string[] }
       jsc_next_number: {
@@ -10928,6 +11186,20 @@ export type Database = {
         Returns: number
       }
       jsc_select_estimate: { Args: { _estimate_id: string }; Returns: string }
+      jsc_supply_readiness: {
+        Args: never
+        Returns: {
+          is_ready: boolean
+          issues: string[]
+          material_id: string
+          material_name: string
+          material_slug: string
+          pickup_name: string
+          price_per_tonne: number
+          supplier_name: string
+          supplier_type: string
+        }[]
+      }
       list_users_with_roles: {
         Args: never
         Returns: {
