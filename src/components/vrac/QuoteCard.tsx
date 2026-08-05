@@ -57,7 +57,11 @@ export default function QuoteCard({
       </div>
 
       <div className="space-y-2 px-6 pb-6 text-sm text-muted-foreground">
-        <p>Cette estimation est valide pendant 7 jours.</p>
+        <p>
+          {result?.valid_until
+            ? `Cette estimation est valide jusqu'au ${new Date(`${result.valid_until}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })}.`
+            : "Cette estimation vous est confirmée par courriel avec sa date de validité."}
+        </p>
         <p>
           Notre équipe communiquera avec vous rapidement afin de confirmer la disponibilité
           et planifier votre livraison.
