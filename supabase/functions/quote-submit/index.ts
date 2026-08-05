@@ -52,15 +52,18 @@ async function resolveMaterialId(sb: any, body: any): Promise<string> {
   return data.id;
 }
 
-async function sendEmail(sb: any, payload: Record<string, unknown>) {
+async function sendEmail(_sb: any, payload: Record<string, unknown>) {
   try {
-    const { data, error } = await sb.functions.invoke('send-transactional-email', { body: payload });
-    console.log('email response', JSON.stringify(data));
-    if (error) {
-      const ctx = (error as { context?: { text?: () => Promise<string> } }).context;
-      const details = typeof ctx?.text === 'function' ? await ctx.text() : error.message;
-      console.error('email failed', details);
-    }
+    const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const text = await res.text();
+    if (!res.ok) console.error(`email failed [${res.status}]: ${text}`);
   } catch (e) {
     console.error('email failed', e instanceof Error ? e.message : e);
   }
