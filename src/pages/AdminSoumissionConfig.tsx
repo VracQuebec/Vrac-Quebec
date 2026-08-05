@@ -169,7 +169,7 @@ function GeneralSettings({ companyId }: { companyId: string | null }) {
 export default function AdminSoumissionConfig() {
   const { isReady, user } = useAuthReady();
   const { isAdmin, loading: rolesLoading } = useUserRoles(user, isReady);
-  const [tab, setTab] = useState<TabId>("materials");
+  const [tab, setTab] = useState<TabId>("overview");
   const [companyId, setCompanyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -210,9 +210,10 @@ export default function AdminSoumissionConfig() {
           <Link to="/admin" className="mb-2 inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="mr-1.5 h-4 w-4" /> Retour à l'administration
           </Link>
-          <h1 className="text-2xl font-bold">Configuration des soumissions</h1>
+          <h1 className="text-2xl font-bold">Panneau d'administration</h1>
           <p className="text-sm text-muted-foreground">
-            Matériaux, carrières, camions, taxes et paramètres. Toutes les valeurs sont administrables ici.
+            Matériaux, catégories, carrières, fournisseurs, camions, taxes, paramètres financiers et demandes.
+            Toute l'entreprise se gère ici, sans modifier le code.
           </p>
         </div>
       </header>
@@ -236,8 +237,12 @@ export default function AdminSoumissionConfig() {
         </nav>
 
         <main className="min-w-0 flex-1">
+          {tab === "overview" && <AdminOverview />}
+          {tab === "requests" && <QuotesBoard />}
           {tab === "materials" && <ResourceManager resource={SOUMISSION_MATERIALS} companyId={companyId} />}
+          {tab === "categories" && <ResourceManager resource={SOUMISSION_CATEGORIES} companyId={companyId} />}
           {tab === "quarries" && <ResourceManager resource={SOUMISSION_QUARRIES} companyId={companyId} />}
+          {tab === "suppliers" && <ResourceManager resource={SOUMISSION_SUPPLIERS} companyId={companyId} />}
           {tab === "supply" && <SupplyMatrix />}
           {tab === "trucks" && <ResourceManager resource={SOUMISSION_TRUCKS} companyId={companyId} />}
           {tab === "taxes" && <ResourceManager resource={SOUMISSION_TAXES} companyId={companyId} />}
