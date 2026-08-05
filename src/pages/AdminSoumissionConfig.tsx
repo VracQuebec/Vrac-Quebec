@@ -3,12 +3,13 @@
 // Aucun calcul, aucun prix affiché au client : uniquement la saisie.
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Layers, MapPin, Truck, Percent, SlidersHorizontal, ShieldCheck, Loader2, ClipboardCheck } from "lucide-react";
+import { ArrowLeft, Layers, MapPin, Truck, Percent, SlidersHorizontal, ShieldCheck, Loader2, ClipboardCheck, Network } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import ResourceManager from "@/components/jsc/ResourceManager";
 import QuoteValidation from "@/components/jsc/QuoteValidation";
+import SupplyMatrix from "@/components/jsc/SupplyMatrix";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,7 @@ import {
 const TABS = [
   { id: "materials", label: "Matériaux", icon: Layers },
   { id: "quarries", label: "Carrières", icon: MapPin },
+  { id: "supply", label: "Approvisionnement", icon: Network },
   { id: "trucks", label: "Camions", icon: Truck },
   { id: "taxes", label: "Taxes", icon: Percent },
   { id: "settings", label: "Paramètres généraux", icon: SlidersHorizontal },
@@ -218,6 +220,7 @@ export default function AdminSoumissionConfig() {
         <main className="min-w-0 flex-1">
           {tab === "materials" && <ResourceManager resource={SOUMISSION_MATERIALS} companyId={companyId} />}
           {tab === "quarries" && <ResourceManager resource={SOUMISSION_QUARRIES} companyId={companyId} />}
+          {tab === "supply" && <SupplyMatrix />}
           {tab === "trucks" && <ResourceManager resource={SOUMISSION_TRUCKS} companyId={companyId} />}
           {tab === "taxes" && <ResourceManager resource={SOUMISSION_TAXES} companyId={companyId} />}
           {tab === "settings" && <GeneralSettings companyId={companyId} />}

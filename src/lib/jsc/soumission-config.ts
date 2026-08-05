@@ -71,6 +71,24 @@ export const SOUMISSION_QUARRIES: ResourceDef = {
   companyScoped: true,
   fields: [
     { key: "name", label: "Nom", type: "text", inList: true, required: true },
+    {
+      key: "location_type", label: "Type de fournisseur", type: "select", inList: true,
+      defaultValue: "carriere",
+      options: [
+        { value: "carriere", label: "Carrière" },
+        { value: "sabliere", label: "Sablière" },
+        { value: "depot", label: "Dépôt" },
+        { value: "recyclage", label: "Centre de recyclage" },
+        { value: "garage", label: "Garage / point de départ" },
+        { value: "autre", label: "Autre" },
+      ],
+      help: "Nature du site d'approvisionnement. « Garage » désigne le point de départ des camions.",
+    },
+    {
+      key: "supplier_id", label: "Fournisseur", type: "reference",
+      refTable: "jsc_suppliers", refLabel: "name",
+      help: "Entreprise propriétaire du site. Optionnel si le site appartient à Transport JSC.",
+    },
     { key: "address", label: "Adresse complète", type: "text", inList: true },
     { key: "city", label: "Ville", type: "text", inList: true },
     { key: "postal_code", label: "Code postal", type: "text" },

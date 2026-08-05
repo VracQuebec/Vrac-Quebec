@@ -15,6 +15,7 @@ import { decide, selectBest, type DecisionTrace, type TransportPlan } from "./de
 import { calculatePlan, type CalculatedPlan } from "./calculation-engine.ts";
 
 export * from "./core.ts";
+export * from "./supply.ts";
 export * from "./decision-engine.ts";
 export * from "./calculation-engine.ts";
 

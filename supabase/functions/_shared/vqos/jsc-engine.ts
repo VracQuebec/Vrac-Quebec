@@ -14,10 +14,14 @@
 // ============================================================
 import {
   type DistanceProvider, type EngineConfig, type QuoteInput, type TaxRow,
-  type TruckRow, readNumberSetting, roundMoney, toTonnes,
+  readNumberSetting, roundMoney,
 } from "./core.ts";
+import { prepareQuoteContext } from "./supply.ts";
 
-export const JSC_ENGINE_VERSION = "jsc-1.2.0";
+// La sélection du camion vit désormais dans le module d'approvisionnement.
+export { pickTruck } from "./supply.ts";
+
+export const JSC_ENGINE_VERSION = "jsc-1.3.0";
 
 /** Paramètres administrateur exigés par le moteur JSC. */
 export const JSC_REQUIRED_SETTINGS = [
@@ -78,23 +82,6 @@ export function roundTime(minutes: number, step: number, method: RoundingMethod)
       : method === "inferieur" ? Math.floor(ratio)
         : Math.round(ratio);
   return Math.max(units, 0) * step;
-}
-
-/**
- * Camion recommandé selon la quantité demandée (règle JSC) :
- * le plus petit camion capable de tout livrer en un voyage ;
- * si la quantité dépasse la flotte, le plus gros camion disponible.
- */
-export function pickTruck(trucks: TruckRow[], tonnage: number): TruckRow {
-  const usable = trucks
-    .filter((t) => Number(t.capacity_tonnes) > 0 && Number((t as { hourly_rate?: number }).hourly_rate ?? 0) > 0)
-    .sort((a, b) => Number(a.capacity_tonnes) - Number(b.capacity_tonnes));
-  if (usable.length === 0) {
-    throw new Error(
-      "Aucun camion configuré avec une capacité et un tarif horaire. Complétez la section Camions de la configuration des soumissions.",
-    );
-  }
-  return usable.find((t) => Number(t.capacity_tonnes) >= tonnage) ?? usable[usable.length - 1];
 }
 
 /** Taxes configurées, dans l'ordre, avec support des taxes composées. */
@@ -159,43 +146,17 @@ export async function runJscQuote(
   const s = resolveJscSettings(config.settings);
   const decimals = s.price_rounding_decimals;
 
-  // 1. Matériau choisi.
+  // 1-2-3. Module d'approvisionnement : matériau, carrière assignée,
+  // garage de départ, tonnage, camion et voyages (aucun montant ici).
+  const context = prepareQuoteContext(input, config);
   const material = config.material;
-  const unitPrice = Number(material.selling_price ?? 0);
-  if (!(unitPrice > 0)) {
-    throw new Error(
-      `Aucun prix à la tonne configuré pour « ${material.name} ». Ajoutez-le dans Configuration des soumissions.`,
-    );
-  }
-  const tonnage = toTonnes(input.quantity, input.unit, material.density_kg_per_m3);
-  if (!(tonnage > 0)) throw new Error("Quantité invalide.");
-
-  // 2. Carrière associée au matériau.
-  const pickupId = (material as { pickup_location_id?: string | null }).pickup_location_id ?? null;
-  const pickup = config.pickups.find((p) => p.id === pickupId);
-  if (!pickup) {
-    throw new Error(
-      `Aucune carrière associée à « ${material.name} ». Associez-la dans Configuration des soumissions.`,
-    );
-  }
-  if (pickup.latitude == null || pickup.longitude == null) {
-    throw new Error(`Coordonnées GPS manquantes pour la carrière « ${pickup.name} ».`);
-  }
-
-  // 2b. Point de départ des camions (garage / Logipark) — configuré en administration.
-  const baseId = (config.settings["base_location_id"] ?? "").trim();
-  if (!baseId) {
-    throw new Error(
-      "Aucun point de départ configuré (garage). Sélectionnez-le dans Configuration des soumissions › Paramètres généraux.",
-    );
-  }
-  const base = config.pickups.find((p) => p.id === baseId);
-  if (!base) {
-    throw new Error("Le point de départ configuré est introuvable ou inactif. Vérifiez la configuration des soumissions.");
-  }
-  if (base.latitude == null || base.longitude == null) {
-    throw new Error(`Coordonnées GPS manquantes pour le point de départ « ${base.name} ».`);
-  }
+  const unitPrice = context.material.price_per_tonne;
+  const tonnage = context.quantity.tonnage;
+  const pickup = context.supply;
+  const base = context.base;
+  const truck = context.truck;
+  const capacity = truck.capacity_tonnes;
+  const trips = context.trips;
 
   // 3. Distances et durées routières (Google Maps), cycles Transport JSC :
   //    1er voyage : garage -> carrière -> client -> garage.
@@ -234,11 +195,6 @@ export async function runJscQuote(
   const unloading = s.unloading_time_minutes;
   const buffer = s.buffer_time_minutes;
 
-  // 9-10. Camion recommandé et nombre de voyages (toujours au supérieur).
-  const truck = pickTruck(config.trucks, tonnage);
-  const capacity = Number(truck.capacity_tonnes);
-  const trips = Math.max(1, Math.ceil(tonnage / capacity));
-
   // 7-8. Temps par voyage (méthode officielle JSC) :
   //  - 1er voyage  : garage -> carrière -> client -> garage
   //  - voyages 2+  : carrière -> client -> carrière (jamais de retour au garage)
@@ -259,13 +215,8 @@ export async function runJscQuote(
   // 11. Coût du matériau.
   const materialAmount = roundMoney(tonnage * unitPrice, decimals);
 
-  // 12. Coût du transport (tarif horaire du camion retenu).
-  const hourlyRate = Number((truck as { hourly_rate?: number }).hourly_rate ?? 0);
-  if (!(hourlyRate > 0)) {
-    throw new Error(
-      `Tarif horaire manquant pour le camion « ${truck.name} ». Ajoutez-le dans Configuration des soumissions › Camions.`,
-    );
-  }
+  // 12. Coût du transport (tarif horaire du camion retenu par la préparation).
+  const hourlyRate = truck.hourly_rate;
   const transportAmount = roundMoney(billableHours * hourlyRate, decimals);
 
   // 13-15. Sous-total, taxes, total livré estimé.
@@ -289,7 +240,7 @@ export async function runJscQuote(
       base: { name: base.name },
       truck: {
         name: truck.name ?? null,
-        type: truck.truck_type ?? null,
+        type: truck.type ?? null,
         capacity_tonnes: capacity,
       },
       distance_km: leg.distance_km,
@@ -310,8 +261,12 @@ export async function runJscQuote(
       selected: {
         carrier_profile: "transport_jsc",
         material: { id: material.id, name: material.name, unit_price: unitPrice, is_taxable: material.is_taxable },
-        pickup: { id: pickup.id, name: pickup.name },
-        base: { id: base.id, name: base.name },
+        pickup: {
+          id: pickup.id, name: pickup.name, type: pickup.type,
+          supplier_id: pickup.supplier_id, supplier_name: pickup.supplier_name,
+          address: pickup.address,
+        },
+        base: { id: base.id, name: base.name, type: base.type, address: base.address },
         truck: { id: truck.id, name: truck.name, capacity_tonnes: capacity, hourly_rate: hourlyRate },
         distance: {
           base_to_pickup_km: legBaseToPickup.distance_km,
