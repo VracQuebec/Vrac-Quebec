@@ -3,13 +3,18 @@
 // Aucun calcul, aucun prix affiché au client : uniquement la saisie.
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Layers, MapPin, Truck, Percent, SlidersHorizontal, ShieldCheck, Loader2, ClipboardCheck, Network } from "lucide-react";
+import {
+  ArrowLeft, Layers, MapPin, Truck, Percent, SlidersHorizontal, ShieldCheck, Loader2,
+  ClipboardCheck, Network, LayoutDashboard, Building2, FileText, Tags,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import ResourceManager from "@/components/jsc/ResourceManager";
 import QuoteValidation from "@/components/jsc/QuoteValidation";
 import SupplyMatrix from "@/components/jsc/SupplyMatrix";
+import AdminOverview from "@/components/jsc/AdminOverview";
+import QuotesBoard from "@/components/jsc/QuotesBoard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,16 +24,20 @@ import {
 import { toast } from "sonner";
 import {
   SOUMISSION_MATERIALS, SOUMISSION_QUARRIES, SOUMISSION_TRUCKS, SOUMISSION_TAXES,
-  SOUMISSION_SETTINGS,
+  SOUMISSION_SETTINGS, SOUMISSION_SUPPLIERS, SOUMISSION_CATEGORIES,
 } from "@/lib/jsc/soumission-config";
 
 const TABS = [
+  { id: "overview", label: "Tableau de bord", icon: LayoutDashboard },
+  { id: "requests", label: "Demandes", icon: FileText },
   { id: "materials", label: "Matériaux", icon: Layers },
+  { id: "categories", label: "Catégories", icon: Tags },
   { id: "quarries", label: "Carrières", icon: MapPin },
+  { id: "suppliers", label: "Fournisseurs", icon: Building2 },
   { id: "supply", label: "Approvisionnement", icon: Network },
   { id: "trucks", label: "Camions", icon: Truck },
   { id: "taxes", label: "Taxes", icon: Percent },
-  { id: "settings", label: "Paramètres généraux", icon: SlidersHorizontal },
+  { id: "settings", label: "Paramètres", icon: SlidersHorizontal },
   { id: "validation", label: "Validation", icon: ClipboardCheck },
 ] as const;
 
