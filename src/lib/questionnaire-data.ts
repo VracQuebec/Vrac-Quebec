@@ -263,11 +263,26 @@ export const LEAD_PRIORITIES = [
 
 export const REQUEST_TYPES = [
   { value: "vrac", label: "Vrac", color: "bg-primary/15 text-primary border-primary/30" },
-  { value: "livraison", label: "Livraison", color: "bg-sky-500/15 text-sky-700 border-sky-500/30" },
-  { value: "remblai", label: "Remblai / Dépôt", color: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
-  { value: "depot", label: "Matériel à sortir", color: "bg-purple-500/15 text-purple-700 border-purple-500/30" },
-  { value: "entrepreneur", label: "Entrepreneur", color: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30" },
+  { value: "remblai", label: "Remblai", color: "bg-amber-500/15 text-amber-700 border-amber-500/30" },
 ] as const;
+
+/**
+ * Le type d'une demande découle uniquement du formulaire d'origine :
+ * formulaire de remblai → « Remblai », calculateur de vrac → « Vrac ».
+ * Les anciennes valeurs (livraison, dépôt, entrepreneur…) sont ramenées
+ * sur ces deux catégories pour l'affichage et les filtres.
+ */
+export const normalizeRequestType = (value?: string | null): "vrac" | "remblai" => {
+  const v = (value ?? "").toString().trim().toLowerCase();
+  return ["remblai", "depot", "dépôt", "remblai / dépôt", "remblai / depot", "remblai_disposition"].includes(v)
+    ? "remblai"
+    : "vrac";
+};
+
+export const requestTypeMeta = (value?: string | null) => {
+  const key = normalizeRequestType(value);
+  return REQUEST_TYPES.find((t) => t.value === key) ?? REQUEST_TYPES[0];
+};
 
 export const CONTAMINATION_OPTIONS = ["Non", "Oui", "Je ne sais pas"] as const;
 
