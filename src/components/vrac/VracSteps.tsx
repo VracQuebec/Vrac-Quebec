@@ -2,7 +2,7 @@
 // Étapes du parcours « Acheter du matériel en vrac » — interface seulement.
 // Aucun calcul de prix, aucune règle de transport, aucun fournisseur.
 // ============================================================
-import { useId } from "react";
+import { cloneElement, isValidElement, useId } from "react";
 import { Check, CalendarDays, HelpCircle, Info, MapPin, Ruler, Truck, Weight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -155,10 +155,17 @@ export function StepQuantity({ draft, set }: { draft: VracDraft; set: Setter }) 
 
 /* ---------------------- Étape 3 — Livraison ---------------------- */
 export function StepDelivery({ draft, set }: { draft: VracDraft; set: Setter }) {
+  const address = draft.address.trim();
   return (
     <div className="space-y-5">
-      <Field label="Adresse de livraison" icon={<MapPin className="h-4 w-4 text-primary" />}>
+      <Field
+        label="Adresse de livraison"
+        icon={<MapPin className="h-4 w-4 text-primary" aria-hidden />}
+        hint="Numéro civique, rue et ville : nous calculons la distance automatiquement."
+        error={address.length > 0 && address.length <= 5 ? "Indiquez une adresse complète (rue, ville)." : undefined}
+      >
         <Input placeholder="123 rue Principale, Québec, QC" value={draft.address}
+          autoComplete="street-address"
           onChange={(e) => set({ address: e.target.value })} />
       </Field>
       <Field label="Précisions d'accès (optionnel)">
@@ -190,12 +197,33 @@ export function DeliveryDateNotice() {
 export function StepContact({ draft, set }: { draft: VracDraft; set: Setter }) {
   const c = draft.contact;
   const patch = (p: Partial<VracDraft["contact"]>) => set({ contact: { ...c, ...p } });
+  const phoneDigits = c.phone.replace(/\D/g, "");
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(c.email.trim());
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <Field label="Nom complet"><Input value={c.name} onChange={(e) => patch({ name: e.target.value })} placeholder="Votre nom" /></Field>
-      <Field label="Téléphone"><Input value={c.phone} onChange={(e) => patch({ phone: e.target.value })} placeholder="(581) 000-0000" inputMode="tel" /></Field>
-      <Field label="Courriel"><Input value={c.email} onChange={(e) => patch({ email: e.target.value })} placeholder="vous@exemple.com" inputMode="email" /></Field>
-      <Field label="Entreprise (optionnel)"><Input value={c.company} onChange={(e) => patch({ company: e.target.value })} placeholder="Nom de l'entreprise" /></Field>
+      <Field
+        label="Nom complet"
+        error={c.name.trim().length > 0 && c.name.trim().length < 2 ? "Entrez votre nom complet." : undefined}
+      >
+        <Input value={c.name} onChange={(e) => patch({ name: e.target.value })} placeholder="Votre nom" autoComplete="name" />
+      </Field>
+      <Field
+        label="Téléphone"
+        hint="Pour confirmer la livraison avec vous."
+        error={phoneDigits.length > 0 && phoneDigits.length < 10 ? "Entrez un numéro à 10 chiffres." : undefined}
+      >
+        <Input value={c.phone} onChange={(e) => patch({ phone: e.target.value })} placeholder="(581) 000-0000" inputMode="tel" autoComplete="tel" />
+      </Field>
+      <Field
+        label="Courriel"
+        hint="Votre soumission vous est envoyée à cette adresse."
+        error={c.email.trim().length > 0 && !emailOk ? "Entrez une adresse courriel valide." : undefined}
+      >
+        <Input value={c.email} onChange={(e) => patch({ email: e.target.value })} placeholder="vous@exemple.com" inputMode="email" type="email" autoComplete="email" />
+      </Field>
+      <Field label="Entreprise (optionnel)">
+        <Input value={c.company} onChange={(e) => patch({ company: e.target.value })} placeholder="Nom de l'entreprise" autoComplete="organization" />
+      </Field>
       <div className="sm:col-span-2">
         <Field label="Détails de votre projet (optionnel)">
           <Textarea rows={3} value={c.comments} onChange={(e) => patch({ comments: e.target.value })}
@@ -206,11 +234,41 @@ export function StepContact({ draft, set }: { draft: VracDraft; set: Setter }) {
   );
 }
 
-function Field({ label, icon, children }: { label: string; icon?: React.ReactNode; children: React.ReactNode }) {
+/** Encadré informatif neutre, ton Vrac Québec. */
+export function Notice({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex gap-3 rounded-2xl border border-border bg-muted/40 p-4">
+      <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+      <p className="text-sm text-muted-foreground">{children}</p>
+    </div>
+  );
+}
+
+function Field({
+  label, icon, hint, error, children,
+}: {
+  label: string; icon?: React.ReactNode; hint?: string; error?: string; children: React.ReactNode;
+}) {
+  const id = useId();
+  const hintId = `${id}-hint`;
+  const errorId = `${id}-error`;
+  const describedBy = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(" ") || undefined;
+  const control = isValidElement(children)
+    ? cloneElement(children as React.ReactElement<Record<string, unknown>>, {
+        id,
+        "aria-describedby": describedBy,
+        "aria-invalid": error ? true : undefined,
+        className: `${(children.props as { className?: string }).className ?? ""} ${
+          error ? "border-destructive focus-visible:ring-destructive" : ""
+        }`.trim() || undefined,
+      })
+    : children;
   return (
     <div className="space-y-2">
-      <Label className="flex items-center gap-2 text-sm font-medium text-foreground">{icon}{label}</Label>
-      {children}
+      <Label htmlFor={id} className="flex items-center gap-2 text-sm font-medium text-foreground">{icon}{label}</Label>
+      {control}
+      {hint && !error && <p id={hintId} className="text-xs text-muted-foreground">{hint}</p>}
+      {error && <p id={errorId} role="alert" className="text-xs font-medium text-destructive">{error}</p>}
     </div>
   );
 }
