@@ -139,18 +139,36 @@ export function pickTruck(trucks: TruckRow[], tonnage: number): TruckRow {
 }
 
 /**
+ * SOURCE UNIQUE DES PRIX — `jsc_material_prices`.
+ * Aucun autre endroit du projet ne fournit un tarif matériau au moteur.
+ * Priorité : tarif marqué préféré, puis tarif rattaché à la carrière
+ * assignée, puis le premier tarif actif configuré.
+ */
+export function resolveMaterialPrice(config: EngineConfig): number {
+  const material = config.material;
+  const rows = (config.prices ?? []).filter((p: any) =>
+    p.material_id === material.id && Number(p.selling_price) > 0
+  );
+  const chosen =
+    rows.find((p: any) => p.is_preferred) ??
+    rows[0];
+  const price = Number(chosen?.selling_price ?? 0);
+  if (!(price > 0)) {
+    throw new Error(
+      `Aucun prix à la tonne configuré pour « ${material.name} » dans la grille de prix. Ajoutez-le dans Configuration des soumissions › Matériaux.`,
+    );
+  }
+  return price;
+}
+
+/**
  * ÉTAPE 3 — Préparation du calcul.
  * Rassemble : départ (Logipark), carrière assignée, adresse client,
  * quantité convertie en tonnes, camion et capacité. Aucun montant.
  */
 export function prepareQuoteContext(input: QuoteInput, config: EngineConfig): PreparedQuoteContext {
   const material = config.material;
-  const unitPrice = Number(material.selling_price ?? 0);
-  if (!(unitPrice > 0)) {
-    throw new Error(
-      `Aucun prix à la tonne configuré pour « ${material.name} ». Ajoutez-le dans Configuration des soumissions.`,
-    );
-  }
+  const unitPrice = resolveMaterialPrice(config);
   const tonnage = toTonnes(input.quantity, input.unit, material.density_kg_per_m3);
   if (!(tonnage > 0)) throw new Error("Quantité invalide.");
 

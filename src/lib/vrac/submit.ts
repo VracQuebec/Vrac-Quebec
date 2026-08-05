@@ -22,6 +22,9 @@ export function useQuoteSubmit() {
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [pending, setPending] = useState<SubmitAction | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Horodatage d'ouverture : sert de contrôle anti-robot côté serveur.
+  const [formStartedAt] = useState(() => Date.now());
+  const [honeypot, setHoneypot] = useState("");
 
   const send = useCallback(async (draft: VracDraft, action: SubmitAction) => {
     const request = buildQuoteRequest(draft);
@@ -34,6 +37,8 @@ export function useQuoteSubmit() {
         body: {
           action,
           ...request,
+          website: honeypot,
+          form_started_at: formStartedAt,
           contact: {
             name: draft.contact.name,
             phone: draft.contact.phone,
@@ -41,6 +46,9 @@ export function useQuoteSubmit() {
           },
         },
       });
+      if (data && data.ok === false) {
+        throw new Error(data.error || "Envoi impossible pour le moment.");
+      }
       if (fnError) {
         const details = typeof (fnError as { context?: { text?: () => Promise<string> } }).context?.text === "function"
           ? await (fnError as { context: { text: () => Promise<string> } }).context.text()
@@ -61,7 +69,7 @@ export function useQuoteSubmit() {
     } finally {
       setPending(null);
     }
-  }, []);
+  }, [formStartedAt, honeypot]);
 
-  return { result, pending, error, send };
+  return { result, pending, error, send, honeypot, setHoneypot };
 }

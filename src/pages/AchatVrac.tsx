@@ -93,6 +93,12 @@ export default function AchatVrac() {
           {step === 1 && <StepQuantity draft={draft} set={set} />}
           {step === 2 && <StepDelivery draft={draft} set={set} />}
           {step === 3 && <StepContact draft={draft} set={set} />}
+          {/* Champ piège anti-robot : invisible et jamais rempli par un humain. */}
+          <input
+            type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"
+            value={submission.honeypot} onChange={(e) => submission.setHoneypot(e.target.value)}
+            className="absolute left-[-9999px] h-0 w-0 opacity-0"
+          />
           {step === 4 && (
             estimate.quote ? (
               <QuoteCard

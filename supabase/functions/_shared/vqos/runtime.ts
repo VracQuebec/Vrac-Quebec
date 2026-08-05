@@ -7,7 +7,6 @@
 // Aucune règle métier ici : uniquement l'accès aux données.
 // ============================================================
 import type { DistanceProvider, EngineConfig } from './index.ts';
-import type { RouteProvider } from './routing/segments.ts';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
 
@@ -90,49 +89,6 @@ export const distanceProvider: DistanceProvider = async (origins, destination) =
 };
 
 const live = (q: any) => q.eq('is_active', true).is('archived_at', null);
-
-/**
- * MODULE 3 — fournisseur de routes point à point (Google Routes API).
- * Chaque segment est calculé indépendamment afin de garantir des
- * distances et des durées réelles, sans approximation ni repli.
- */
-export const routeProvider: RouteProvider = async (requests) => {
-  const out: Record<string, { distance_km: number; duration_minutes: number } | null> = {};
-  const results = await Promise.all(requests.map(async (r) => {
-    try {
-      const res = await fetch(`${GATEWAY_URL}/routes/distanceMatrix/v2:computeRouteMatrix`, {
-        method: 'POST',
-        headers: {
-          ...mapsHeaders(),
-          'Content-Type': 'application/json',
-          'X-Goog-FieldMask': 'originIndex,destinationIndex,distanceMeters,duration,condition',
-        },
-        body: JSON.stringify({
-          origins: [{ waypoint: { location: { latLng: { latitude: r.origin.lat, longitude: r.origin.lng } } } }],
-          destinations: [{ waypoint: { location: { latLng: { latitude: r.destination.lat, longitude: r.destination.lng } } } }],
-          travelMode: 'DRIVE',
-          routingPreference: 'TRAFFIC_UNAWARE',
-        }),
-      });
-      if (!res.ok) {
-        console.error('routeProvider error', r.id, res.status, await res.text());
-        return [r.id, null] as const;
-      }
-      const rows = await res.json();
-      const row = Array.isArray(rows) ? rows[0] : null;
-      if (!row || (row.condition && row.condition !== 'ROUTE_EXISTS')) return [r.id, null] as const;
-      return [r.id, {
-        distance_km: Number(((row.distanceMeters ?? 0) / 1000).toFixed(2)),
-        duration_minutes: Math.round(Number(String(row.duration ?? '0s').replace('s', '')) / 60),
-      }] as const;
-    } catch (e) {
-      console.error('routeProvider failed', r.id, (e as Error).message);
-      return [r.id, null] as const;
-    }
-  }));
-  for (const [id, value] of results) out[id] = value;
-  return out;
-};
 
 /** Charge l'intégralité des paramètres administrateur nécessaires aux moteurs. */
 export async function loadConfig(db: any, materialId: string): Promise<EngineConfig> {
