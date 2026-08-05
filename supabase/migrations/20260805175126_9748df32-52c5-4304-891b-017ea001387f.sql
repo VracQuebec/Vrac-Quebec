@@ -1,0 +1,1 @@
+ALTER TABLE public.jsc_quotes ADD COLUMN IF NOT EXISTS internal_notes text;

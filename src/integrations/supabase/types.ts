@@ -6407,6 +6407,7 @@ export type Database = {
           currency: string
           estimate_id: string | null
           id: string
+          internal_notes: string | null
           public_payload: Json | null
           quote_number: string | null
           refusal_reason: string | null
@@ -6431,6 +6432,7 @@ export type Database = {
           currency?: string
           estimate_id?: string | null
           id?: string
+          internal_notes?: string | null
           public_payload?: Json | null
           quote_number?: string | null
           refusal_reason?: string | null
@@ -6455,6 +6457,7 @@ export type Database = {
           currency?: string
           estimate_id?: string | null
           id?: string
+          internal_notes?: string | null
           public_payload?: Json | null
           quote_number?: string | null
           refusal_reason?: string | null

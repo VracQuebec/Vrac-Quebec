@@ -1,0 +1,1 @@
+- [Panneau d'administration](mem://features/panneau-administration) — Console admin complète (référentiel, paramètres financiers, demandes, tableau de bord).

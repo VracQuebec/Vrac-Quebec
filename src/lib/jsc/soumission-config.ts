@@ -39,6 +39,11 @@ export const SOUMISSION_MATERIALS: ResourceDef = {
   companyScoped: true,
   fields: [
     { key: "name", label: "Nom du matériau", type: "text", inList: true, required: true },
+    {
+      key: "category_id", label: "Catégorie", type: "reference", inList: true,
+      refTable: "jsc_material_categories", refLabel: "name",
+      help: "Regroupement utilisé dans le catalogue et les filtres.",
+    },
     { key: "selling_price", label: "Prix à la tonne", type: "number", inList: true, suffix: "$", defaultValue: 0 },
     {
       key: "pickup_location_id",
@@ -163,6 +168,59 @@ export type SettingDef = {
   /** Table source pour un paramètre de type « reference » (liste déroulante). */
   refTable?: string;
   refLabel?: string;
+  /** Regroupement dans l'écran des paramètres. */
+  group?: "operation" | "financier";
+};
+
+/** Section 3 — Catégories de matériaux */
+export const SOUMISSION_CATEGORIES: ResourceDef = {
+  id: "soum_categories",
+  table: "jsc_material_categories",
+  title: "Catégories",
+  singular: "Catégorie",
+  description: "Familles de matériaux (terre, sable, pierre, remblai…) utilisées par le catalogue et les filtres.",
+  icon: "Layers",
+  labelField: "name",
+  orderBy: [{ column: "sort_order", ascending: true }, { column: "name", ascending: true }],
+  companyScoped: true,
+  fields: [
+    { key: "name", label: "Nom", type: "text", inList: true, required: true },
+    { key: "code", label: "Code", type: "text", inList: true },
+    { key: "description", label: "Description", type: "textarea" },
+    sortField,
+    activeField,
+  ],
+};
+
+/** Section 4 — Fournisseurs */
+export const SOUMISSION_SUPPLIERS: ResourceDef = {
+  id: "soum_suppliers",
+  table: "jsc_suppliers",
+  title: "Fournisseurs",
+  singular: "Fournisseur",
+  description: "Entreprises qui approvisionnent les matériaux. Chaque carrière peut être rattachée à un fournisseur.",
+  icon: "Building2",
+  labelField: "name",
+  orderBy: [{ column: "sort_order", ascending: true }, { column: "name", ascending: true }],
+  companyScoped: true,
+  fields: [
+    { key: "name", label: "Nom", type: "text", inList: true, required: true },
+    { key: "contact_name", label: "Personne-ressource", type: "text", inList: true },
+    { key: "phone", label: "Téléphone", type: "text", inList: true },
+    { key: "email", label: "Courriel", type: "text", inList: true },
+    { key: "address", label: "Adresse", type: "text" },
+    { key: "city", label: "Ville", type: "text", inList: true },
+    { key: "postal_code", label: "Code postal", type: "text" },
+    { key: "website", label: "Site web", type: "text" },
+    { key: "opening_hours", label: "Heures d'ouverture", type: "text" },
+    { key: "payment_terms", label: "Conditions de paiement", type: "text", confidential: true },
+    {
+      key: "internal_notes", label: "Notes internes", type: "textarea", confidential: true,
+      help: "Matériaux fournis, ententes, particularités. Jamais visible du client.",
+    },
+    sortField,
+    activeField,
+  ],
 };
 
 /** Section 5 — Paramètres généraux (stockés dans jsc_settings) */
@@ -175,6 +233,7 @@ export const SOUMISSION_SETTINGS: SettingDef[] = [
     type: "reference",
     refTable: "jsc_pickup_locations",
     refLabel: "name",
+    group: "operation",
   },
   {
     key: "min_trip_minutes",
@@ -182,6 +241,7 @@ export const SOUMISSION_SETTINGS: SettingDef[] = [
     help: "Durée plancher facturée pour un voyage, peu importe la distance.",
     type: "number",
     unit: "min",
+    group: "operation",
   },
   {
     key: "loading_time_minutes",
@@ -189,6 +249,7 @@ export const SOUMISSION_SETTINGS: SettingDef[] = [
     help: "Temps immobilisé à la carrière, par voyage.",
     type: "number",
     unit: "min",
+    group: "operation",
   },
   {
     key: "unloading_time_minutes",
@@ -196,6 +257,7 @@ export const SOUMISSION_SETTINGS: SettingDef[] = [
     help: "Temps immobilisé au chantier, par voyage.",
     type: "number",
     unit: "min",
+    group: "operation",
   },
   {
     key: "buffer_time_minutes",
@@ -203,12 +265,14 @@ export const SOUMISSION_SETTINGS: SettingDef[] = [
     help: "Marge ajoutée à chaque voyage (circulation, attente, manœuvres).",
     type: "number",
     unit: "min",
+    group: "operation",
   },
   {
     key: "rounding_method",
     label: "Méthode d'arrondissement",
     help: "Façon dont les temps et les voyages seront arrondis par le moteur.",
     type: "select",
+    group: "operation",
     options: [
       { value: "superieur_strict", label: "Palier supérieur suivant (méthode JSC)" },
       { value: "superieur", label: "Toujours au supérieur" },
@@ -222,12 +286,78 @@ export const SOUMISSION_SETTINGS: SettingDef[] = [
     help: "Incrément utilisé pour arrondir la durée d'un voyage (ex. 15 minutes).",
     type: "number",
     unit: "min",
+    group: "operation",
+  },
+  {
+    key: "price_rounding_decimals",
+    label: "Décimales des montants",
+    help: "Nombre de décimales conservées sur tous les montants calculés.",
+    type: "number",
+    group: "financier",
+  },
+  {
+    key: "margin_percent",
+    label: "Marge",
+    help: "Marge appliquée sur (matériau + transport + frais). 0 = aucune marge.",
+    type: "number",
+    unit: "%",
+    group: "financier",
+  },
+  {
+    key: "administration_fee_amount",
+    label: "Frais administratifs",
+    help: "Montant fixe ajouté à chaque soumission.",
+    type: "number",
+    unit: "$",
+    group: "financier",
+  },
+  {
+    key: "environmental_fee_per_tonne",
+    label: "Frais environnementaux",
+    help: "Montant facturé par tonne transportée.",
+    type: "number",
+    unit: "$/t",
+    group: "financier",
+  },
+  {
+    key: "fuel_surcharge_percent",
+    label: "Supplément carburant",
+    help: "Pourcentage appliqué sur le coût de transport.",
+    type: "number",
+    unit: "%",
+    group: "financier",
+  },
+  {
+    key: "distance_surcharge_per_km",
+    label: "Supplément kilométrique",
+    help: "Montant facturé par kilomètre du cycle complet.",
+    type: "number",
+    unit: "$/km",
+    group: "financier",
+  },
+  {
+    key: "trip_fee_amount",
+    label: "Frais par voyage",
+    help: "Montant fixe facturé pour chaque voyage planifié.",
+    type: "number",
+    unit: "$",
+    group: "financier",
+  },
+  {
+    key: "quote_validity_days",
+    label: "Validité des soumissions",
+    help: "Nombre de jours durant lesquels une soumission demeure valide.",
+    type: "number",
+    unit: "jours",
+    group: "financier",
   },
 ];
 
 export const SOUMISSION_SECTIONS: ResourceDef[] = [
   SOUMISSION_MATERIALS,
+  SOUMISSION_CATEGORIES,
   SOUMISSION_QUARRIES,
+  SOUMISSION_SUPPLIERS,
   SOUMISSION_TRUCKS,
   SOUMISSION_TAXES,
 ];

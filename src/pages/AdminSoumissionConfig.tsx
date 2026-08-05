@@ -3,13 +3,18 @@
 // Aucun calcul, aucun prix affiché au client : uniquement la saisie.
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Layers, MapPin, Truck, Percent, SlidersHorizontal, ShieldCheck, Loader2, ClipboardCheck, Network } from "lucide-react";
+import {
+  ArrowLeft, Layers, MapPin, Truck, Percent, SlidersHorizontal, ShieldCheck, Loader2,
+  ClipboardCheck, Network, LayoutDashboard, Building2, FileText, Tags,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import ResourceManager from "@/components/jsc/ResourceManager";
 import QuoteValidation from "@/components/jsc/QuoteValidation";
 import SupplyMatrix from "@/components/jsc/SupplyMatrix";
+import AdminOverview from "@/components/jsc/AdminOverview";
+import QuotesBoard from "@/components/jsc/QuotesBoard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,16 +24,20 @@ import {
 import { toast } from "sonner";
 import {
   SOUMISSION_MATERIALS, SOUMISSION_QUARRIES, SOUMISSION_TRUCKS, SOUMISSION_TAXES,
-  SOUMISSION_SETTINGS,
+  SOUMISSION_SETTINGS, SOUMISSION_SUPPLIERS, SOUMISSION_CATEGORIES,
 } from "@/lib/jsc/soumission-config";
 
 const TABS = [
+  { id: "overview", label: "Tableau de bord", icon: LayoutDashboard },
+  { id: "requests", label: "Demandes", icon: FileText },
   { id: "materials", label: "Matériaux", icon: Layers },
+  { id: "categories", label: "Catégories", icon: Tags },
   { id: "quarries", label: "Carrières", icon: MapPin },
+  { id: "suppliers", label: "Fournisseurs", icon: Building2 },
   { id: "supply", label: "Approvisionnement", icon: Network },
   { id: "trucks", label: "Camions", icon: Truck },
   { id: "taxes", label: "Taxes", icon: Percent },
-  { id: "settings", label: "Paramètres généraux", icon: SlidersHorizontal },
+  { id: "settings", label: "Paramètres", icon: SlidersHorizontal },
   { id: "validation", label: "Validation", icon: ClipboardCheck },
 ] as const;
 
@@ -104,13 +113,20 @@ function GeneralSettings({ companyId }: { companyId: string | null }) {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold">Paramètres généraux</h2>
+        <h2 className="text-xl font-semibold">Paramètres du moteur</h2>
         <p className="text-sm text-muted-foreground">
-          Valeurs de référence qui seront utilisées plus tard par le moteur de calcul.
+          Toutes les valeurs utilisées par le moteur de soumission. Chaque modification est appliquée
+          immédiatement au prochain calcul — aucune intervention dans le code n'est requise.
         </p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {SOUMISSION_SETTINGS.map((def) => (
+      {([
+        ["operation", "Opérations et temps"],
+        ["financier", "Paramètres financiers"],
+      ] as const).map(([group, title]) => (
+        <section key={group} className="space-y-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+        {SOUMISSION_SETTINGS.filter((d) => (d.group ?? "operation") === group).map((def) => (
           <div key={def.key} className="space-y-1.5 rounded-lg border p-4">
             <Label>{def.label}</Label>
             {def.type === "select" || def.type === "reference" ? (
@@ -139,7 +155,9 @@ function GeneralSettings({ companyId }: { companyId: string | null }) {
             <p className="text-xs text-muted-foreground">{def.help}</p>
           </div>
         ))}
-      </div>
+          </div>
+        </section>
+      ))}
       <Button onClick={save} disabled={saving}>
         {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Enregistrer les paramètres
@@ -151,7 +169,7 @@ function GeneralSettings({ companyId }: { companyId: string | null }) {
 export default function AdminSoumissionConfig() {
   const { isReady, user } = useAuthReady();
   const { isAdmin, loading: rolesLoading } = useUserRoles(user, isReady);
-  const [tab, setTab] = useState<TabId>("materials");
+  const [tab, setTab] = useState<TabId>("overview");
   const [companyId, setCompanyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -192,9 +210,10 @@ export default function AdminSoumissionConfig() {
           <Link to="/admin" className="mb-2 inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="mr-1.5 h-4 w-4" /> Retour à l'administration
           </Link>
-          <h1 className="text-2xl font-bold">Configuration des soumissions</h1>
+          <h1 className="text-2xl font-bold">Panneau d'administration</h1>
           <p className="text-sm text-muted-foreground">
-            Matériaux, carrières, camions, taxes et paramètres. Toutes les valeurs sont administrables ici.
+            Matériaux, catégories, carrières, fournisseurs, camions, taxes, paramètres financiers et demandes.
+            Toute l'entreprise se gère ici, sans modifier le code.
           </p>
         </div>
       </header>
@@ -218,8 +237,12 @@ export default function AdminSoumissionConfig() {
         </nav>
 
         <main className="min-w-0 flex-1">
+          {tab === "overview" && <AdminOverview />}
+          {tab === "requests" && <QuotesBoard />}
           {tab === "materials" && <ResourceManager resource={SOUMISSION_MATERIALS} companyId={companyId} />}
+          {tab === "categories" && <ResourceManager resource={SOUMISSION_CATEGORIES} companyId={companyId} />}
           {tab === "quarries" && <ResourceManager resource={SOUMISSION_QUARRIES} companyId={companyId} />}
+          {tab === "suppliers" && <ResourceManager resource={SOUMISSION_SUPPLIERS} companyId={companyId} />}
           {tab === "supply" && <SupplyMatrix />}
           {tab === "trucks" && <ResourceManager resource={SOUMISSION_TRUCKS} companyId={companyId} />}
           {tab === "taxes" && <ResourceManager resource={SOUMISSION_TAXES} companyId={companyId} />}

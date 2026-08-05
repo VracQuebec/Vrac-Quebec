@@ -21,7 +21,18 @@ import { prepareQuoteContext } from "./supply.ts";
 // La sélection du camion vit désormais dans le module d'approvisionnement.
 export { pickTruck } from "./supply.ts";
 
-export const JSC_ENGINE_VERSION = "jsc-1.3.0";
+export const JSC_ENGINE_VERSION = "jsc-1.4.0";
+
+/**
+ * Paramètres financiers optionnels : s'ils ne sont pas configurés,
+ * la charge vaut zéro (aucun impact sur le calcul existant).
+ */
+function optionalNumber(settings: Record<string, string>, key: string): number {
+  const raw = settings[key];
+  if (raw === undefined || raw === null || String(raw).trim() === "") return 0;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 0;
+}
 
 /** Paramètres administrateur exigés par le moteur JSC. */
 export const JSC_REQUIRED_SETTINGS = [
@@ -45,6 +56,13 @@ export interface JscSettings {
   time_rounding_minutes: number;
   price_rounding_decimals: number;
   rounding_method: RoundingMethod;
+  /** Charges financières administrables (0 si non configurées). */
+  margin_percent: number;
+  administration_fee_amount: number;
+  environmental_fee_per_tonne: number;
+  fuel_surcharge_percent: number;
+  distance_surcharge_per_km: number;
+  trip_fee_amount: number;
 }
 
 export function resolveJscSettings(settings: Record<string, string>): JscSettings {
@@ -65,6 +83,12 @@ export function resolveJscSettings(settings: Record<string, string>): JscSetting
     time_rounding_minutes: readNumberSetting(settings, "time_rounding_minutes"),
     price_rounding_decimals: readNumberSetting(settings, "price_rounding_decimals"),
     rounding_method: method as RoundingMethod,
+    margin_percent: optionalNumber(settings, "margin_percent"),
+    administration_fee_amount: optionalNumber(settings, "administration_fee_amount"),
+    environmental_fee_per_tonne: optionalNumber(settings, "environmental_fee_per_tonne"),
+    fuel_surcharge_percent: optionalNumber(settings, "fuel_surcharge_percent"),
+    distance_surcharge_per_km: optionalNumber(settings, "distance_surcharge_per_km"),
+    trip_fee_amount: optionalNumber(settings, "trip_fee_amount"),
   };
 }
 
@@ -117,6 +141,9 @@ export interface JscQuoteResult {
     round_trip_km: number;
     material_amount: number;
     transport_amount: number;
+    charges: Array<{ code: string; label: string; amount: number }>;
+    charges_total: number;
+    margin_amount: number;
     subtotal: number;
     taxes: Array<{ name: string; code: string | null; rate_percent: number; amount: number }>;
     tax_total: number;
@@ -219,8 +246,31 @@ export async function runJscQuote(
   const hourlyRate = truck.hourly_rate;
   const transportAmount = roundMoney(billableHours * hourlyRate, decimals);
 
+  // 12b. Charges et marge administrables (0 si non configurées).
+  const roundTripKm = Number(
+    (
+      legBaseToPickup.distance_km + leg.distance_km + legClientToBase.distance_km +
+      (leg.distance_km + legClientToPickup.distance_km) * (trips - 1)
+    ).toFixed(2),
+  );
+  const charges: Array<{ code: string; label: string; amount: number }> = [];
+  const addCharge = (code: string, label: string, amount: number) => {
+    const value = roundMoney(amount, decimals);
+    if (value !== 0) charges.push({ code, label, amount: value });
+  };
+  addCharge("fuel_surcharge", "Supplément carburant", transportAmount * (s.fuel_surcharge_percent / 100));
+  addCharge("distance_surcharge", "Supplément kilométrique", roundTripKm * s.distance_surcharge_per_km);
+  addCharge("trip_fee", "Frais par voyage", trips * s.trip_fee_amount);
+  addCharge("environmental_fee", "Frais environnementaux", tonnage * s.environmental_fee_per_tonne);
+  addCharge("administration_fee", "Frais administratifs", s.administration_fee_amount);
+  const chargesTotal = roundMoney(charges.reduce((sum, c) => sum + c.amount, 0), decimals);
+  const marginAmount = roundMoney(
+    (materialAmount + transportAmount + chargesTotal) * (s.margin_percent / 100),
+    decimals,
+  );
+
   // 13-15. Sous-total, taxes, total livré estimé.
-  const subtotal = roundMoney(materialAmount + transportAmount, decimals);
+  const subtotal = roundMoney(materialAmount + transportAmount + chargesTotal + marginAmount, decimals);
   const applicable = material.is_taxable ? config.taxes : [];
   const { lines, total: taxTotal } = applyTaxes(subtotal, applicable, decimals);
   const total = roundMoney(subtotal + taxTotal, decimals);
@@ -244,14 +294,12 @@ export async function runJscQuote(
         capacity_tonnes: capacity,
       },
       distance_km: leg.distance_km,
-      round_trip_km: Number(
-        (
-          legBaseToPickup.distance_km + leg.distance_km + legClientToBase.distance_km +
-          (leg.distance_km + legClientToPickup.distance_km) * (trips - 1)
-        ).toFixed(2),
-      ),
+      round_trip_km: roundTripKm,
       material_amount: materialAmount,
       transport_amount: transportAmount,
+      charges,
+      charges_total: chargesTotal,
+      margin_amount: marginAmount,
       subtotal,
       taxes: lines,
       tax_total: taxTotal,
@@ -294,7 +342,11 @@ export async function runJscQuote(
           billable_minutes: billableMinutes,
           billable_hours: billableHours,
         },
-        cost: { material_amount: materialAmount, transport_amount: transportAmount, subtotal, tax_total: taxTotal, total },
+        cost: {
+          material_amount: materialAmount, transport_amount: transportAmount,
+          charges, charges_total: chargesTotal, margin_amount: marginAmount,
+          subtotal, tax_total: taxTotal, total,
+        },
       },
       options: config.trucks.map((t) => ({
         id: t.id, name: t.name, capacity_tonnes: t.capacity_tonnes,
