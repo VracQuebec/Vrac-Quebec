@@ -2,7 +2,7 @@
 // Étapes du parcours « Acheter du matériel en vrac » — interface seulement.
 // Aucun calcul de prix, aucune règle de transport, aucun fournisseur.
 // ============================================================
-import { Check, CalendarDays, Clock, HelpCircle, MapPin, Ruler, Truck, Weight } from "lucide-react";
+import { Check, CalendarDays, HelpCircle, MapPin, Ruler, Truck, Weight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -144,40 +144,23 @@ export function StepDelivery({ draft, set }: { draft: VracDraft; set: Setter }) 
         <Textarea rows={3} placeholder="Accès par la cour arrière, portail étroit, etc."
           value={draft.addressNotes} onChange={(e) => set({ addressNotes: e.target.value })} />
       </Field>
+      <DeliveryDateNotice />
     </div>
   );
 }
 
-/* ---------------------- Étape 4 — Date ---------------------- */
-const DATE_MODES = [
-  { key: "precise", label: "Date précise", icon: CalendarDays },
-  { key: "flexible", label: "Je suis flexible", icon: Clock },
-  { key: "urgent", label: "Le plus tôt possible", icon: Truck },
-] as const;
-
-export function StepDate({ draft, set }: { draft: VracDraft; set: Setter }) {
+/* ------------- Encadré informatif — date de livraison ------------- */
+export function DeliveryDateNotice() {
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {DATE_MODES.map(({ key, label, icon: Icon }) => {
-          const active = draft.dateMode === key;
-          return (
-            <button key={key} type="button" aria-pressed={active}
-              onClick={() => set({ dateMode: key, date: key === "precise" ? draft.date : "" })}
-              className={`flex items-center gap-2 rounded-2xl border p-4 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                active ? "border-[3px] border-primary bg-primary/5" : "border-border hover:border-primary/40"
-              }`}>
-              <Icon className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
-              {label}
-            </button>
-          );
-        })}
+    <div className="flex gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+      <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+      <div>
+        <p className="text-sm font-semibold text-foreground">Date de livraison</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          La date de livraison sera confirmée avec vous par notre équipe après réception de votre demande.
+          Nous communiquerons avec vous rapidement afin de planifier la livraison selon nos disponibilités.
+        </p>
       </div>
-      {draft.dateMode === "precise" && (
-        <Field label="Date souhaitée">
-          <Input type="date" value={draft.date} onChange={(e) => set({ date: e.target.value })} />
-        </Field>
-      )}
     </div>
   );
 }
