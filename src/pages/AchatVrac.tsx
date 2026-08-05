@@ -17,7 +17,9 @@ import {
   EMPTY_VRAC_DRAFT, findVracMaterial, getActiveVracMaterials, loadVracDraft,
   saveVracDraft, type VracDraft,
 } from "@/lib/vrac/catalog";
-import { formatDuration, formatKm, formatMoney, useVracEstimate } from "@/lib/vrac/estimate";
+import QuoteCard from "@/components/vrac/QuoteCard";
+import { useVracEstimate } from "@/lib/vrac/estimate";
+import { useQuoteSubmit } from "@/lib/vrac/submit";
 import type { PublicQuote } from "@/lib/jsc/engine";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
 
@@ -28,6 +30,7 @@ export default function AchatVrac() {
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<VracDraft>(EMPTY_VRAC_DRAFT);
   const estimate = useVracEstimate();
+  const submission = useQuoteSubmit();
 
   // Sauvegarde automatique : on peut revenir en arrière sans rien reperdre.
   useEffect(() => { setDraft(loadVracDraft()); }, []);
@@ -92,7 +95,20 @@ export default function AchatVrac() {
           {step === 2 && <StepDelivery draft={draft} set={set} />}
           {step === 3 && <StepContact draft={draft} set={set} />}
           {step === 4 && (
-            <Recap draft={draft} quote={estimate.quote} loading={estimate.loading} error={estimate.error} />
+            estimate.quote ? (
+              <QuoteCard
+                quote={estimate.quote}
+                address={draft.address}
+                onEmail={() => submission.send(draft, "submit")}
+                onCallback={() => submission.send(draft, "callback")}
+                onEdit={() => setStep(0)}
+                pending={submission.pending}
+                result={submission.result}
+                error={submission.error}
+              />
+            ) : (
+              <Recap draft={draft} loading={estimate.loading} error={estimate.error} />
+            )
           )}
 
           <div className="mt-8 flex items-center justify-between gap-3">
@@ -112,7 +128,7 @@ export default function AchatVrac() {
             >
               Continuer <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            ) : (
+            ) : estimate.quote ? null : (
               <Button
                 size="lg"
                 onClick={() => estimate.calculate(draft)}
