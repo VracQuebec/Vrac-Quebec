@@ -3,7 +3,7 @@
 // Aucun calcul interne visible : matériau, quantité, transport,
 // adresse et estimation toutes taxes incluses.
 // ============================================================
-import { CheckCircle2, Loader2, Mail, Pencil, Phone, PhoneCall } from "lucide-react";
+import { CalendarDays, Check, CheckCircle2, Loader2, Mail, Pencil, Phone, PhoneCall } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/vrac/estimate";
 import type { PublicQuote } from "@/lib/jsc/engine";
@@ -28,8 +28,16 @@ export default function QuoteCard({
   const rows: [string, string][] = [
     ["Matériau", quote.material.name],
     ["Quantité", `${quote.tonnage} tonnes`],
-    ["Transport", `${quote.trips} voyage${quote.trips > 1 ? "s" : ""}`],
-    ["Adresse", quote.delivery_address ?? address ?? "—"],
+    ["Nombre de voyages", `${quote.trips} voyage${quote.trips > 1 ? "s" : ""}`],
+    ["Camion utilisé", truckLabel(quote)],
+    ["Adresse de livraison", quote.delivery_address ?? address ?? "—"],
+  ];
+
+  const included = [
+    "Le matériau選".replace("選", ""),
+    "Le transport et la livraison à votre adresse",
+    "Le chargement et le déchargement",
+    "Les taxes (TPS et TVQ)",
   ];
 
   return (
@@ -54,6 +62,28 @@ export default function QuoteCard({
         <p className="text-xs uppercase tracking-wide text-muted-foreground">Estimation</p>
         <p className="mt-1 text-4xl font-bold text-foreground">{formatMoney(quote.total)}</p>
         <p className="mt-1 text-sm text-muted-foreground">(TPS/TVQ incluses)</p>
+      </div>
+
+      <div className="mx-6 mb-6 rounded-2xl border border-border bg-muted/30 p-5">
+        <p className="text-sm font-semibold text-foreground">Ce qui est inclus</p>
+        <ul className="mt-3 space-y-2">
+          {included.map((item) => (
+            <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mx-6 mb-6 flex gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+        <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+        <div>
+          <p className="text-sm font-semibold text-foreground">Date de livraison</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            La date sera confirmée avec vous par notre équipe, selon nos disponibilités.
+          </p>
+        </div>
       </div>
 
       <div className="space-y-2 px-6 pb-6 text-sm text-muted-foreground">
