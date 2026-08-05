@@ -2,7 +2,8 @@
 // Étapes du parcours « Acheter du matériel en vrac » — interface seulement.
 // Aucun calcul de prix, aucune règle de transport, aucun fournisseur.
 // ============================================================
-import { Check, CalendarDays, HelpCircle, MapPin, Ruler, Truck, Weight } from "lucide-react";
+import { useId } from "react";
+import { Check, CalendarDays, HelpCircle, Info, MapPin, Ruler, Truck, Weight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,7 +26,7 @@ export function StepMaterial({
             type="button"
             aria-pressed={active}
             onClick={() => onSelect(m.id)}
-            className={`group relative flex h-[84px] w-full items-center gap-4 overflow-hidden rounded-2xl border bg-card p-4 text-left transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+            className={`group relative flex min-h-[84px] w-full items-center gap-4 overflow-hidden rounded-2xl border bg-card p-4 text-left transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
               active
                 ? "border-[3px] border-primary bg-primary/[0.05] shadow-sm"
                 : "border-border hover:border-primary/40 hover:shadow-sm"
@@ -41,7 +42,7 @@ export function StepMaterial({
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
               />
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 pr-7">
               <h3 className="truncate text-[15px] font-semibold leading-tight tracking-tight text-foreground">{m.name}</h3>
               <p className="mt-1 truncate text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{tagline}</p>
             </div>
