@@ -113,13 +113,20 @@ function GeneralSettings({ companyId }: { companyId: string | null }) {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold">Paramètres généraux</h2>
+        <h2 className="text-xl font-semibold">Paramètres du moteur</h2>
         <p className="text-sm text-muted-foreground">
-          Valeurs de référence qui seront utilisées plus tard par le moteur de calcul.
+          Toutes les valeurs utilisées par le moteur de soumission. Chaque modification est appliquée
+          immédiatement au prochain calcul — aucune intervention dans le code n'est requise.
         </p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {SOUMISSION_SETTINGS.map((def) => (
+      {([
+        ["operation", "Opérations et temps"],
+        ["financier", "Paramètres financiers"],
+      ] as const).map(([group, title]) => (
+        <section key={group} className="space-y-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+        {SOUMISSION_SETTINGS.filter((d) => (d.group ?? "operation") === group).map((def) => (
           <div key={def.key} className="space-y-1.5 rounded-lg border p-4">
             <Label>{def.label}</Label>
             {def.type === "select" || def.type === "reference" ? (
@@ -148,7 +155,9 @@ function GeneralSettings({ companyId }: { companyId: string | null }) {
             <p className="text-xs text-muted-foreground">{def.help}</p>
           </div>
         ))}
-      </div>
+          </div>
+        </section>
+      ))}
       <Button onClick={save} disabled={saving}>
         {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Enregistrer les paramètres
