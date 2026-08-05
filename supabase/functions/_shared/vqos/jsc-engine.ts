@@ -21,7 +21,18 @@ import { prepareQuoteContext } from "./supply.ts";
 // La sélection du camion vit désormais dans le module d'approvisionnement.
 export { pickTruck } from "./supply.ts";
 
-export const JSC_ENGINE_VERSION = "jsc-1.3.0";
+export const JSC_ENGINE_VERSION = "jsc-1.4.0";
+
+/**
+ * Paramètres financiers optionnels : s'ils ne sont pas configurés,
+ * la charge vaut zéro (aucun impact sur le calcul existant).
+ */
+function optionalNumber(settings: Record<string, string>, key: string): number {
+  const raw = settings[key];
+  if (raw === undefined || raw === null || String(raw).trim() === "") return 0;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 0;
+}
 
 /** Paramètres administrateur exigés par le moteur JSC. */
 export const JSC_REQUIRED_SETTINGS = [
@@ -45,6 +56,13 @@ export interface JscSettings {
   time_rounding_minutes: number;
   price_rounding_decimals: number;
   rounding_method: RoundingMethod;
+  /** Charges financières administrables (0 si non configurées). */
+  margin_percent: number;
+  administration_fee_amount: number;
+  environmental_fee_per_tonne: number;
+  fuel_surcharge_percent: number;
+  distance_surcharge_per_km: number;
+  trip_fee_amount: number;
 }
 
 export function resolveJscSettings(settings: Record<string, string>): JscSettings {
@@ -65,6 +83,12 @@ export function resolveJscSettings(settings: Record<string, string>): JscSetting
     time_rounding_minutes: readNumberSetting(settings, "time_rounding_minutes"),
     price_rounding_decimals: readNumberSetting(settings, "price_rounding_decimals"),
     rounding_method: method as RoundingMethod,
+    margin_percent: optionalNumber(settings, "margin_percent"),
+    administration_fee_amount: optionalNumber(settings, "administration_fee_amount"),
+    environmental_fee_per_tonne: optionalNumber(settings, "environmental_fee_per_tonne"),
+    fuel_surcharge_percent: optionalNumber(settings, "fuel_surcharge_percent"),
+    distance_surcharge_per_km: optionalNumber(settings, "distance_surcharge_per_km"),
+    trip_fee_amount: optionalNumber(settings, "trip_fee_amount"),
   };
 }
 
