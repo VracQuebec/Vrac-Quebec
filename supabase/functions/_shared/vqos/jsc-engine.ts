@@ -248,7 +248,9 @@ export async function runJscQuote(
 
   // 12. Coût du transport (tarif horaire du camion retenu par la préparation).
   const hourlyRate = truck.hourly_rate;
-  const transportAmount = roundMoney(billableHours * hourlyRate, decimals);
+  // Le montant est calculé sur les minutes exactes : arrondir les heures à
+  // 3 décimales avant de multiplier perdait quelques cents (200 min -> 499,95 $).
+  const transportAmount = roundMoney((billableMinutes / 60) * hourlyRate, decimals);
 
   // 12b. Charges et marge administrables (0 si non configurées).
   const roundTripKm = Number(
