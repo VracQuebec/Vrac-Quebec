@@ -54,7 +54,8 @@ async function resolveMaterialId(sb: any, body: any): Promise<string> {
 
 async function sendEmail(sb: any, payload: Record<string, unknown>) {
   try {
-    const { error } = await sb.functions.invoke('send-transactional-email', { body: payload });
+    const { data, error } = await sb.functions.invoke('send-transactional-email', { body: payload });
+    console.log('email response', JSON.stringify(data));
     if (error) {
       const ctx = (error as { context?: { text?: () => Promise<string> } }).context;
       const details = typeof ctx?.text === 'function' ? await ctx.text() : error.message;
