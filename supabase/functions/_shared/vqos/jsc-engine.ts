@@ -192,7 +192,11 @@ export async function runJscQuote(
     distance([{ id: base.id, lat: base.latitude, lng: base.longitude }], { lat: pickup.latitude, lng: pickup.longitude }),
     distance([{ id: pickup.id, lat: pickup.latitude, lng: pickup.longitude }], { lat: input.delivery.lat, lng: input.delivery.lng }),
     distance([{ id: "client", lat: input.delivery.lat, lng: input.delivery.lng }], { lat: base.latitude, lng: base.longitude }),
-    distance([{ id: "client", lat: input.delivery.lat, lng: input.delivery.lng }], { lat: pickup.latitude, lng: pickup.longitude }),
+    // Le retour client -> carrière ne sert qu'aux voyages 2+ : aucun appel
+    // Google (ni coût) lorsqu'un seul voyage est nécessaire.
+    trips > 1
+      ? distance([{ id: "client", lat: input.delivery.lat, lng: input.delivery.lng }], { lat: pickup.latitude, lng: pickup.longitude })
+      : Promise.resolve({ client: { distance_km: 0, duration_minutes: 0 } }),
   ]);
   const legBaseToPickup = toPickupMatrix[base.id];
   const leg = toClientMatrix[pickup.id];
@@ -207,7 +211,7 @@ export async function runJscQuote(
   if (!legClientToBase) {
     throw new Error(`Aucun trajet routier trouvé entre l'adresse de livraison et « ${base.name} ».`);
   }
-  if (!legClientToPickup) {
+  if (trips > 1 && !legClientToPickup) {
     throw new Error(`Aucun trajet routier trouvé entre l'adresse de livraison et la carrière « ${pickup.name} ».`);
   }
 
@@ -215,7 +219,7 @@ export async function runJscQuote(
   const travelBaseToPickup = legBaseToPickup.duration_minutes;
   const travelTo = leg.duration_minutes;
   const travelBack = legClientToBase.duration_minutes;
-  const travelBackToPickup = legClientToPickup.duration_minutes;
+  const travelBackToPickup = legClientToPickup?.duration_minutes ?? 0;
 
   // 6. Temps fixes ajoutés automatiquement à chaque voyage.
   const loading = pickup.loading_time_minutes ?? s.loading_time_minutes;
