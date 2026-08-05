@@ -141,6 +141,9 @@ export interface JscQuoteResult {
     round_trip_km: number;
     material_amount: number;
     transport_amount: number;
+    charges: Array<{ code: string; label: string; amount: number }>;
+    charges_total: number;
+    margin_amount: number;
     subtotal: number;
     taxes: Array<{ name: string; code: string | null; rate_percent: number; amount: number }>;
     tax_total: number;
