@@ -17,12 +17,13 @@ const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
  * que de faire échouer une soumission client.
  */
 async function fetchGoogle(url: string, init: RequestInit, attempts = 4): Promise<Response> {
-  let last: Response | null = null;
   for (let i = 0; i < attempts; i++) {
     const res = await fetch(url, init);
     if (res.ok || (res.status !== 429 && res.status < 500)) return res;
-    last = res;
-    await res.body?.cancel().catch(() => {});
+    const body = await res.text().catch(() => '');
+    if (i === attempts - 1) {
+      return new Response(body, { status: res.status, headers: { 'Content-Type': 'application/json' } });
+    }
     const wait = Math.min(4000, 300 * 2 ** i) + Math.floor(Math.random() * 250);
     logEventAsync({
       source: 'google_maps', event: 'retry', level: 'warn',
@@ -31,7 +32,7 @@ async function fetchGoogle(url: string, init: RequestInit, attempts = 4): Promis
     });
     await new Promise((r) => setTimeout(r, wait));
   }
-  return last!;
+  return new Response('{}', { status: 503, headers: { 'Content-Type': 'application/json' } });
 }
 
 export function mapsHeaders() {
