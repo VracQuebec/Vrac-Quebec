@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { trackEvent } from "@/lib/analytics/ga4";
 
 export type SeoPageEventType =
   | "view"
@@ -30,12 +31,21 @@ export function logSeoEvent(pageSlug: string, eventType: SeoPageEventType): void
   const clean = pageSlug.replace(/^\/+|\/+$/g, "").toLowerCase();
   if (!clean) return;
   try {
-    void supabase.from("seo_page_events").insert({
+    void supabase
+      .from("seo_page_events")
+      .insert({
       page_slug: clean,
       event_type: eventType,
       session_id: getSessionId(),
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 500) : null,
-    });
+      })
+      .then(({ error }) => {
+        if (error) console.warn("[seo-tracking] insert failed:", error.message);
+      });
+    // Miroir GA4 : page_view / phone_click / whatsapp_click / form_submit
+    const ga4Name =
+      eventType === "view" ? "page_view" : eventType === "submission" ? "form_submit" : eventType;
+    trackEvent(ga4Name, { page_slug: clean });
   } catch {
     // ignore
   }
