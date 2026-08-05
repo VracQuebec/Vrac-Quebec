@@ -39,6 +39,11 @@ export const SOUMISSION_MATERIALS: ResourceDef = {
   companyScoped: true,
   fields: [
     { key: "name", label: "Nom du matériau", type: "text", inList: true, required: true },
+    {
+      key: "category_id", label: "Catégorie", type: "reference", inList: true,
+      refTable: "jsc_material_categories", refLabel: "name",
+      help: "Regroupement utilisé dans le catalogue et les filtres.",
+    },
     { key: "selling_price", label: "Prix à la tonne", type: "number", inList: true, suffix: "$", defaultValue: 0 },
     {
       key: "pickup_location_id",
