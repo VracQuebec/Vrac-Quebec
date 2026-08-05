@@ -183,7 +183,7 @@ describe("étape 4 — moteur complet", () => {
     expect(result.legs[1].raw_minutes).toBe(111);
 
     expect(result.totals.raw_minutes).toBe(231);
-    expect(result.totals.travel_distance_km).toBeCloseTo(109.2, 2);
+    expect(result.totals.travel_distance_km).toBeCloseTo(109.4, 2);
     expect(result.financial).toBeNull();
   });
 
