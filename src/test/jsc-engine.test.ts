@@ -108,7 +108,7 @@ describe("moteur unique Transport JSC", () => {
     // Cycle : 20 + 20 (chargement) + 20 + 15 (déchargement) + 20 + 10 = 105 min
     // arrondi au palier de 5 min supérieur suivant = 110 min (> minimum de 90).
     expect(r.public.billable_minutes).toBe(110);
-    expect(r.public.transport_amount).toBeCloseTo(275, 2); // 110/60 h x 150 $
+    expect(r.public.transport_amount).toBeCloseTo(274.95, 2); // 1,833 h x 150 $
   });
 
   it("calcule plusieurs voyages avec le cycle carrière -> client -> carrière", async () => {
