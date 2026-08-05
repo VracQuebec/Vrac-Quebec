@@ -229,8 +229,8 @@ function Progress({ step }: { step: number }) {
 }
 
 /** Résumé du parcours avant le calcul. Aucune donnée interne n'est affichée. */
-function Recap({ draft, loading, error }: {
-  draft: VracDraft; loading: boolean; error: string | null;
+function Recap({ draft, loading, error, manualReview }: {
+  draft: VracDraft; loading: boolean; error: string | null; manualReview?: boolean;
 }) {
   const material = findVracMaterial(draft.materialId);
   const quantity =
@@ -262,6 +262,13 @@ function Recap({ draft, loading, error }: {
 
       <DeliveryDateNotice />
 
+      {manualReview ? (
+        <Notice>
+          Pour ce type de quantité, notre équipe confirme d'abord le tonnage exact avant de vous
+          transmettre votre estimation. Revenez à l'étape « Quantité » pour indiquer un tonnage ou
+          des dimensions, ou appelez-nous au 581-994-7717.
+        </Notice>
+      ) : (
       <div className="rounded-2xl border border-primary/30 bg-card p-5 shadow-sm">
         <div className="flex items-center gap-2">
           <Calculator className="h-4 w-4 text-primary" />
@@ -277,11 +284,14 @@ function Recap({ draft, loading, error }: {
           <p className="mt-4 rounded-xl bg-muted/50 p-3 text-sm text-muted-foreground">{error}</p>
         )}
       </div>
+      )}
 
-      <p className="rounded-2xl bg-primary/5 p-4 text-sm text-muted-foreground">
-        Notre assistant analyse votre demande afin de calculer automatiquement le meilleur prix
-        selon le matériau choisi, la quantité et l'adresse de livraison.
-      </p>
+      {!manualReview && (
+        <p className="rounded-2xl bg-primary/5 p-4 text-sm text-muted-foreground">
+          Notre assistant analyse votre demande afin de calculer automatiquement le meilleur prix
+          selon le matériau choisi, la quantité et l'adresse de livraison.
+        </p>
+      )}
 
       <Button variant="outline" asChild className="w-full sm:w-auto">
         <Link to="/">Retour à l'accueil</Link>
