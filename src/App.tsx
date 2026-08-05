@@ -55,6 +55,7 @@ const AchatVrac = lazy(() => import("./pages/AchatVrac"));
 const ClientPortal = lazy(() => import("./pages/ClientPortal"));
 const DriverPortal = lazy(() => import("./pages/DriverPortal"));
 const AdminSoumissionConfig = lazy(() => import("./pages/AdminSoumissionConfig"));
+const AdminSoumissions = lazy(() => import("./pages/AdminSoumissions"));
 
 const Catalogue = lazy(() => import("./pages/Catalogue"));
 const CatalogueMateriau = lazy(() => import("./pages/CatalogueMateriau"));
@@ -161,6 +162,7 @@ const App = () => (
             <Route path="/admin/operations" element={<AdminOperations />} />
             <Route path="/admin/jsc" element={<AdminJsc />} />
             <Route path="/admin/configuration-soumissions" element={<AdminSoumissionConfig />} />
+            <Route path="/admin/soumissions" element={<AdminSoumissions />} />
             <Route path="/admin/centre-operations" element={<OpsCenter />} />
             <Route path="/admin/intelligence" element={<AdminIntelligence />} />
             <Route path="/admin/direction" element={<AdminDirection />} />

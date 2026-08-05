@@ -34,3 +34,6 @@ verify_jwt = false
 
 [functions.api-v1]
 verify_jwt = false
+
+[functions.quote-submit]
+verify_jwt = false
