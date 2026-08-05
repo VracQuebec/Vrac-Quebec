@@ -243,8 +243,31 @@ export async function runJscQuote(
   const hourlyRate = truck.hourly_rate;
   const transportAmount = roundMoney(billableHours * hourlyRate, decimals);
 
+  // 12b. Charges et marge administrables (0 si non configurées).
+  const roundTripKm = Number(
+    (
+      legBaseToPickup.distance_km + leg.distance_km + legClientToBase.distance_km +
+      (leg.distance_km + legClientToPickup.distance_km) * (trips - 1)
+    ).toFixed(2),
+  );
+  const charges: Array<{ code: string; label: string; amount: number }> = [];
+  const addCharge = (code: string, label: string, amount: number) => {
+    const value = roundMoney(amount, decimals);
+    if (value !== 0) charges.push({ code, label, amount: value });
+  };
+  addCharge("fuel_surcharge", "Supplément carburant", transportAmount * (s.fuel_surcharge_percent / 100));
+  addCharge("distance_surcharge", "Supplément kilométrique", roundTripKm * s.distance_surcharge_per_km);
+  addCharge("trip_fee", "Frais par voyage", trips * s.trip_fee_amount);
+  addCharge("environmental_fee", "Frais environnementaux", tonnage * s.environmental_fee_per_tonne);
+  addCharge("administration_fee", "Frais administratifs", s.administration_fee_amount);
+  const chargesTotal = roundMoney(charges.reduce((sum, c) => sum + c.amount, 0), decimals);
+  const marginAmount = roundMoney(
+    (materialAmount + transportAmount + chargesTotal) * (s.margin_percent / 100),
+    decimals,
+  );
+
   // 13-15. Sous-total, taxes, total livré estimé.
-  const subtotal = roundMoney(materialAmount + transportAmount, decimals);
+  const subtotal = roundMoney(materialAmount + transportAmount + chargesTotal + marginAmount, decimals);
   const applicable = material.is_taxable ? config.taxes : [];
   const { lines, total: taxTotal } = applyTaxes(subtotal, applicable, decimals);
   const total = roundMoney(subtotal + taxTotal, decimals);
@@ -268,14 +291,12 @@ export async function runJscQuote(
         capacity_tonnes: capacity,
       },
       distance_km: leg.distance_km,
-      round_trip_km: Number(
-        (
-          legBaseToPickup.distance_km + leg.distance_km + legClientToBase.distance_km +
-          (leg.distance_km + legClientToPickup.distance_km) * (trips - 1)
-        ).toFixed(2),
-      ),
+      round_trip_km: roundTripKm,
       material_amount: materialAmount,
       transport_amount: transportAmount,
+      charges,
+      charges_total: chargesTotal,
+      margin_amount: marginAmount,
       subtotal,
       taxes: lines,
       tax_total: taxTotal,
@@ -318,7 +339,11 @@ export async function runJscQuote(
           billable_minutes: billableMinutes,
           billable_hours: billableHours,
         },
-        cost: { material_amount: materialAmount, transport_amount: transportAmount, subtotal, tax_total: taxTotal, total },
+        cost: {
+          material_amount: materialAmount, transport_amount: transportAmount,
+          charges, charges_total: chargesTotal, margin_amount: marginAmount,
+          subtotal, tax_total: taxTotal, total,
+        },
       },
       options: config.trucks.map((t) => ({
         id: t.id, name: t.name, capacity_tonnes: t.capacity_tonnes,
