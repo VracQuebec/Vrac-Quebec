@@ -9,7 +9,6 @@ function fakeDb(opts: { count?: number; duplicate?: boolean } = {}) {
   return {
     from() {
       const chain: any = {
-        select: () => chain,
         eq: () => chain,
         in: () => chain,
         gte: () => chain,
@@ -18,10 +17,10 @@ function fakeDb(opts: { count?: number; duplicate?: boolean } = {}) {
         maybeSingle: async () => ({ data: opts.duplicate ? { payload: { quote_number: "SOU-1" } } : null }),
         insert: async () => ({ error: null }),
         update: () => chain,
-        then: undefined,
+        // Le compteur est résolu quand la requête est attendue (head: true).
+        then: (res: any) => res({ count: opts.count ?? 0, error: null }),
       };
-      chain.select = (_c?: string, o?: { head?: boolean }) =>
-        o?.head ? Promise.resolve({ count: opts.count ?? 0, error: null }) as any : chain;
+      chain.select = () => chain;
       return chain;
     },
   };
