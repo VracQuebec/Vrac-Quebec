@@ -97,19 +97,32 @@ export const distanceProvider: DistanceProvider = async (origins, destination) =
   const out: Record<string, { distance_km: number; duration_minutes: number } | null> = {};
   const startedAll = Date.now();
 
-  // Cache court des trajets : une même paire origine/destination (grille ~100 m)
-  // n'est demandée qu'une fois à Google pendant DISTANCE_TTL_MS.
   const pending: typeof origins = [];
   const keyOf = (o: { lat: number; lng: number }) =>
     `${o.lat.toFixed(3)},${o.lng.toFixed(3)}>${destination.lat.toFixed(3)},${destination.lng.toFixed(3)}`;
+
+  // 1) Cache mémoire (isolat courant).
   for (const o of origins) {
     const cached = distanceCache.get(keyOf(o));
     if (cached && cached.expires > Date.now()) out[o.id] = cached.value;
     else pending.push(o);
   }
 
-  for (let i = 0; i < pending.length; i += 25) {
-    const chunk = pending.slice(i, i + 25);
+  // 2) Cache partagé en base : les trajets fixes (garage ↔ carrières) ne sont
+  //    demandés à Google qu'une seule fois pour toute la plateforme.
+  const stillPending: typeof origins = [];
+  const shared = await readRouteCache(pending.map(keyOf));
+  for (const o of pending) {
+    const hit = shared.get(keyOf(o));
+    if (hit !== undefined) {
+      out[o.id] = hit;
+      distanceCache.set(keyOf(o), { value: hit, expires: Date.now() + DISTANCE_TTL_MS });
+    } else stillPending.push(o);
+  }
+
+  const fresh: Array<{ key: string; value: { distance_km: number; duration_minutes: number } | null }> = [];
+  for (let i = 0; i < stillPending.length; i += 25) {
+    const chunk = stillPending.slice(i, i + 25);
     const res = await fetchGoogle(`${GATEWAY_URL}/routes/distanceMatrix/v2:computeRouteMatrix`, {
       method: 'POST',
       headers: {
@@ -143,16 +156,70 @@ export const distanceProvider: DistanceProvider = async (origins, destination) =
         duration_minutes: Math.round(Number(String(row.duration ?? '0s').replace('s', '')) / 60),
       };
       distanceCache.set(keyOf(origin), { value: out[origin.id], expires: Date.now() + DISTANCE_TTL_MS });
+      fresh.push({ key: keyOf(origin), value: out[origin.id] });
     }
     chunk.forEach((o) => { if (!(o.id in out)) out[o.id] = null; });
   }
+  if (fresh.length) writeRouteCache(fresh);
+
   logEventAsync({
     source: 'google_maps', event: 'route_matrix',
     durationMs: Date.now() - startedAll,
-    context: { origins: origins.length, from_cache: origins.length - pending.length },
+    context: { origins: origins.length, from_cache: origins.length - stillPending.length },
   });
   return out;
 };
+
+// ------------------------------------------------------------
+// Cache partagé des trajets (table public.route_cache)
+// ------------------------------------------------------------
+function restEnv() {
+  const url = Deno.env.get('SUPABASE_URL');
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  return url && key ? { url, key } : null;
+}
+
+async function readRouteCache(keys: string[]) {
+  const map = new Map<string, { distance_km: number; duration_minutes: number } | null>();
+  const env = restEnv();
+  if (!env || keys.length === 0) return map;
+  try {
+    const list = [...new Set(keys)].map((k) => `"${k}"`).join(',');
+    const res = await fetch(
+      `${env.url}/rest/v1/route_cache?select=cache_key,distance_km,duration_minutes,route_exists&cache_key=in.(${encodeURIComponent(list)})`,
+      { headers: { apikey: env.key, Authorization: `Bearer ${env.key}` } },
+    );
+    if (!res.ok) { await res.text(); return map; }
+    for (const row of await res.json()) {
+      map.set(row.cache_key, row.route_exists
+        ? { distance_km: Number(row.distance_km), duration_minutes: Number(row.duration_minutes) }
+        : null);
+    }
+  } catch { /* le cache ne doit jamais bloquer un calcul */ }
+  return map;
+}
+
+function writeRouteCache(rows: Array<{ key: string; value: { distance_km: number; duration_minutes: number } | null }>) {
+  const env = restEnv();
+  if (!env) return;
+  const payload = rows.map((r) => ({
+    cache_key: r.key,
+    distance_km: r.value?.distance_km ?? null,
+    duration_minutes: r.value?.duration_minutes ?? null,
+    route_exists: r.value !== null,
+    last_used_at: new Date().toISOString(),
+  }));
+  void fetch(`${env.url}/rest/v1/route_cache?on_conflict=cache_key`, {
+    method: 'POST',
+    headers: {
+      apikey: env.key,
+      Authorization: `Bearer ${env.key}`,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates,return=minimal',
+    },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+}
 
 const live = (q: any) => q.eq('is_active', true).is('archived_at', null);
 
