@@ -687,9 +687,22 @@ const Admin = () => {
         ) : (
         <>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
-            Demandes ({filtered.length})
-          </h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
+              Demandes ({filtered.length})
+            </h1>
+            {REQUEST_TYPES.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setFilterType(filterType === t.value ? "all" : t.value)}
+                title={`Afficher uniquement les demandes ${t.label}`}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-display font-bold border transition-all ${filterType === t.value ? t.color : "bg-card text-muted-foreground border-border hover:border-foreground/30"}`}
+              >
+                {t.label} : {filtered.filter((s) => normalizeRequestType(s.request_type) === t.value).length}
+              </button>
+            ))}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex bg-secondary rounded-lg p-0.5">
               <button onClick={() => setView("list")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-display font-semibold ${view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
