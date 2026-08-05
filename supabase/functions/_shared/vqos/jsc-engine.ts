@@ -21,7 +21,7 @@ import { prepareQuoteContext } from "./supply.ts";
 // La sélection du camion vit désormais dans le module d'approvisionnement.
 export { pickTruck } from "./supply.ts";
 
-export const JSC_ENGINE_VERSION = "jsc-1.4.0";
+export const JSC_ENGINE_VERSION = "jsc-1.4.1";
 
 /**
  * Paramètres financiers optionnels : s'ils ne sont pas configurés,
