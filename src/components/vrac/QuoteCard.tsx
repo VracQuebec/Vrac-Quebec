@@ -19,6 +19,15 @@ function truckLabel(quote: PublicQuote): string {
   return name ?? (capacity ? `${capacity} tonnes` : "Déterminé par notre équipe");
 }
 
+const UNIT_LABEL: Record<string, string> = { tonne: "tonnes", m3: "m³", verge: "verges³" };
+
+/** Quantité affichée : ce que le client a demandé, converti en tonnes si nécessaire. */
+function quantityLabel(quote: PublicQuote): string {
+  const unit = quote.unit ?? "tonne";
+  const asked = `${quote.quantity} ${UNIT_LABEL[unit] ?? "tonnes"}`;
+  return unit === "tonne" ? `${quote.tonnage} tonnes` : `${asked} (≈ ${quote.tonnage} tonnes)`;
+}
+
 interface Props {
   quote: PublicQuote;
   address: string;
@@ -35,7 +44,7 @@ export default function QuoteCard({
 }: Props) {
   const rows: [string, string][] = [
     ["Matériau", quote.material.name],
-    ["Quantité", `${quote.tonnage} tonnes`],
+    ["Quantité", quantityLabel(quote)],
     ["Nombre de voyages", `${quote.trips} voyage${quote.trips > 1 ? "s" : ""}`],
     ["Camion utilisé", truckLabel(quote)],
     ["Adresse de livraison", quote.delivery_address ?? address ?? "—"],
@@ -116,10 +125,6 @@ export default function QuoteCard({
             ? `Cette estimation est valide jusqu'au ${new Date(`${result.valid_until}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })}.`
             : "Vous recevrez cette estimation par courriel. Notre équipe communiquera ensuite avec vous afin de confirmer les détails de votre commande ainsi que le montant final avant la livraison."}
         </p>
-        <p>
-          Notre équipe communiquera avec vous rapidement afin de confirmer la disponibilité
-          et planifier votre livraison.
-        </p>
       </div>
 
       {result && (
@@ -148,22 +153,22 @@ export default function QuoteCard({
         className="grid gap-3 border-t border-border bg-muted/20 p-6 sm:grid-cols-2 animate-fade-in [animation-fill-mode:both]"
         style={{ animationDelay: "300ms", animationDuration: "400ms" }}
       >
-        <Button asChild variant="outline" className="w-full">
+        <Button asChild variant="outline" className="h-auto w-full whitespace-normal py-3 text-center">
           <a href={`tel:${PHONE.replace(/\D/g, "")}`}>
             <Phone className="mr-2 h-4 w-4" /> Appeler maintenant
           </a>
         </Button>
-        <Button onClick={onEmail} disabled={pending !== null} className="w-full">
+        <Button onClick={onEmail} disabled={pending !== null} className="h-auto w-full whitespace-normal py-3 text-center">
           {pending === "submit"
             ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Envoi…</>
             : <><Mail className="mr-2 h-4 w-4" /> Recevoir ma soumission par courriel</>}
         </Button>
-        <Button onClick={onCallback} variant="outline" disabled={pending !== null} className="w-full">
+        <Button onClick={onCallback} variant="outline" disabled={pending !== null} className="h-auto w-full whitespace-normal py-3 text-center">
           {pending === "callback"
             ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Envoi…</>
             : <><PhoneCall className="mr-2 h-4 w-4" /> Demander un rappel</>}
         </Button>
-        <Button onClick={onEdit} variant="ghost" className="w-full">
+        <Button onClick={onEdit} variant="ghost" className="h-auto w-full whitespace-normal py-3 text-center">
           <Pencil className="mr-2 h-4 w-4" /> Modifier ma demande
         </Button>
       </div>
