@@ -17,11 +17,16 @@ export function buildQuoteRequest(draft: VracDraft): QuoteRequest | { unsupporte
   if (!material) return { unsupported: "Sélectionnez d'abord un matériau." };
   const address = draft.address.trim();
   if (address.length < 5) return { unsupported: "Adresse de livraison requise." };
+  const hasCoords = draft.addressLat != null && draft.addressLng != null;
+  if (!hasCoords) {
+    return { unsupported: "Sélectionnez une adresse proposée par Google pour calculer votre estimation." };
+  }
+  const delivery = { lat: draft.addressLat as number, lng: draft.addressLng as number, address };
 
   if (draft.quantityMode === "tonnes") {
     const tonnes = Number(draft.tonnes);
     if (!(tonnes > 0)) return { unsupported: "Quantité invalide." };
-    return { material_slug: material.slug, quantity: tonnes, unit: "tonne", address };
+    return { material_slug: material.slug, quantity: tonnes, unit: "tonne", address, delivery };
   }
 
   if (draft.quantityMode === "dimensions") {
@@ -30,7 +35,7 @@ export function buildQuoteRequest(draft: VracDraft): QuoteRequest | { unsupporte
     const d = Number(draft.dims.depth) * IN_TO_M;
     const m3 = l * w * d;
     if (!(m3 > 0)) return { unsupported: "Dimensions invalides." };
-    return { material_slug: material.slug, quantity: Number(m3.toFixed(3)), unit: "m3", address };
+    return { material_slug: material.slug, quantity: Number(m3.toFixed(3)), unit: "m3", address, delivery };
   }
 
   // Voyages / quantité inconnue : le nombre de tonnes dépend du camion retenu,
