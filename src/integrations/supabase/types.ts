@@ -9788,6 +9788,17 @@ export type Database = {
           property_type: string
           province: string | null
           quantity: string
+          quote_distance_km: number | null
+          quote_duration_minutes: number | null
+          quote_id: string | null
+          quote_material: string | null
+          quote_number: string | null
+          quote_quantity: number | null
+          quote_tonnage: number | null
+          quote_total: number | null
+          quote_trips: number | null
+          quote_truck: string | null
+          quote_unit: string | null
           remaining_capacity: string | null
           request_type: string
           service_type: string | null
@@ -9853,6 +9864,17 @@ export type Database = {
           property_type: string
           province?: string | null
           quantity: string
+          quote_distance_km?: number | null
+          quote_duration_minutes?: number | null
+          quote_id?: string | null
+          quote_material?: string | null
+          quote_number?: string | null
+          quote_quantity?: number | null
+          quote_tonnage?: number | null
+          quote_total?: number | null
+          quote_trips?: number | null
+          quote_truck?: string | null
+          quote_unit?: string | null
           remaining_capacity?: string | null
           request_type?: string
           service_type?: string | null
@@ -9918,6 +9940,17 @@ export type Database = {
           property_type?: string
           province?: string | null
           quantity?: string
+          quote_distance_km?: number | null
+          quote_duration_minutes?: number | null
+          quote_id?: string | null
+          quote_material?: string | null
+          quote_number?: string | null
+          quote_quantity?: number | null
+          quote_tonnage?: number | null
+          quote_total?: number | null
+          quote_trips?: number | null
+          quote_truck?: string | null
+          quote_unit?: string | null
           remaining_capacity?: string | null
           request_type?: string
           service_type?: string | null
