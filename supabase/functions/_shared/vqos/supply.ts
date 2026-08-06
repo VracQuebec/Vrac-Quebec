@@ -23,6 +23,14 @@ export const SUPPLY_MODULE_VERSION = "supply-1.0.0";
  */
 export const TONNAGE_EPSILON = 0.001;
 
+/** Libellés lisibles des unités de commande. */
+export const UNIT_LABELS: Record<string, string> = {
+  tonne: "tonnes",
+  m3: "mètres cubes (m³)",
+  verge: "verges cubes (vg³)",
+  voyage: "voyages",
+};
+
 /** Nombre de voyages : capacité du camion, avec tolérance de 1 kg. */
 export function computeTrips(tonnage: number, capacity: number): number {
   if (!(capacity > 0)) throw new Error("Capacité du camion invalide.");
@@ -187,6 +195,24 @@ export function prepareQuoteContext(input: QuoteInput, config: EngineConfig): Pr
   const unitPrice = resolveMaterialPrice(config);
   if (!Number.isFinite(input.quantity) || input.quantity <= 0) {
     throw new Error("Quantité invalide.");
+  }
+  // Unités permises par matériau (administrable). Vide => tonnes seulement.
+  const allowed = (material.allowed_units ?? ["tonne", "m3", "verge"]).filter(Boolean);
+  const requested = input.unit === "voyage" ? "tonne" : input.unit;
+  if (allowed.length > 0 && !allowed.includes(requested)) {
+    throw new Error(
+      `« ${material.name} » ne peut pas être commandé en ${UNIT_LABELS[requested] ?? requested}. Unités permises : ${
+        allowed.map((u) => UNIT_LABELS[u] ?? u).join(", ")
+      }.`,
+    );
+  }
+  const density = Number(material.density_kg_per_m3 ?? 0);
+  if (requested !== "tonne" && !(density > 0)) {
+    throw new Error(
+      `Densité manquante pour « ${material.name} » : impossible de convertir ${
+        UNIT_LABELS[requested] ?? requested
+      } en tonnes. Configurez la densité (kg/m³) dans Administration › Matériaux.`,
+    );
   }
   const tonnage = toTonnes(input.quantity, input.unit, material.density_kg_per_m3);
   if (!Number.isFinite(tonnage) || tonnage <= 0) throw new Error("Quantité invalide.");

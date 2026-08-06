@@ -56,7 +56,14 @@ export const SOUMISSION_MATERIALS: ResourceDef = {
     },
     { key: "cover_image_url", label: "Image (URL)", type: "text", help: "Photo du matériau utilisée dans les parcours publics." },
     { key: "public_description", label: "Description", type: "textarea" },
-    { key: "density_kg_per_m3", label: "Densité", type: "number", suffix: "kg/m³", help: "Sert à convertir verges/m³ en tonnes." },
+    {
+      key: "density_kg_per_m3", label: "Densité", type: "number", inList: true, suffix: "kg/m³",
+      help: "Obligatoire pour commander en m³ ou en verges³ : sert à convertir le volume en tonnes.",
+    },
+    {
+      key: "allowed_units", label: "Unités de commande permises", type: "list", inList: true,
+      help: "Une unité par ligne : tonne, m3, verge. Les unités de volume exigent une densité configurée.",
+    },
     { key: "is_taxable", label: "Taxable (TPS/TVQ)", type: "boolean", defaultValue: true },
     sortField,
     activeField,
