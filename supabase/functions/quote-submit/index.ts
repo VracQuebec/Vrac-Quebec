@@ -253,11 +253,18 @@ Deno.serve(async (req) => {
     if (quoteError) throw new Error(quoteError.message);
 
     // ---------- Courriels : client + administration ----------
-    const quantityLabel = `${pub.tonnage} tonnes`;
+    // Le courriel doit afficher exactement la même information que la page.
+    const UNIT_LABEL: Record<string, string> = { tonne: 'tonnes', m3: 'm³', verge: 'verges³' };
+    const quantityLabel = pub.unit && pub.unit !== 'tonne'
+      ? `${pub.quantity} ${UNIT_LABEL[pub.unit] ?? pub.unit} (≈ ${pub.tonnage} tonnes)`
+      : `${pub.tonnage} tonnes`;
+    const truckLabel = pub.truck?.name
+      ? (pub.truck?.capacity_tonnes ? `${pub.truck.name} (${pub.truck.capacity_tonnes} tonnes)` : pub.truck.name)
+      : null;
     const validLabel = validUntilDate.toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' });
     const clientData = {
       quoteNumber: quote.quote_number, name, material: pub.material.name,
-      quantity: quantityLabel, trips: pub.trips,
+      quantity: quantityLabel, trips: pub.trips, truck: truckLabel,
       address: publicPayload.delivery_address, total: money(pub.total), validUntil: validLabel,
     };
 
