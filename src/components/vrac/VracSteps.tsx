@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import type { VracDraft, VracMaterial } from "@/lib/vrac/catalog";
+import { UNIT_OPTIONS, type OrderUnit } from "@/lib/vrac/units";
 
 type Setter = (patch: Partial<VracDraft>) => void;
 
@@ -64,15 +65,19 @@ export function StepMaterial({
 
 /* ---------------------- Étape 2 — Quantité ---------------------- */
 const MODES = [
-  { key: "tonnes", label: "En tonnes", hint: "Je connais le tonnage", icon: Weight },
+  { key: "tonnes", label: "Par quantité", hint: "Tonnes, m³ ou verges³", icon: Weight },
   { key: "voyages", label: "En voyages", hint: "Je connais le nombre de voyages", icon: Truck },
   { key: "dimensions", label: "Par dimensions", hint: "Longueur × largeur × épaisseur", icon: Ruler },
   { key: "inconnu", label: "Je ne sais pas", hint: "Notre équipe évalue pour vous", icon: HelpCircle },
 ] as const;
 
-export function StepQuantity({ draft, set }: { draft: VracDraft; set: Setter }) {
+export function StepQuantity({
+  draft, set, availableUnits = ["tonne"],
+}: { draft: VracDraft; set: Setter; availableUnits?: OrderUnit[] }) {
   const tonnesValue = Number(draft.tonnes);
   const tripsValue = Number(draft.trips);
+  const units = UNIT_OPTIONS.filter((o) => availableUnits.includes(o.value));
+  const activeUnit = availableUnits.includes(draft.quantityUnit) ? draft.quantityUnit : "tonne";
   const dimError = (v: string) => (v.trim() !== "" && !(Number(v) > 0) ? "Entrez un nombre supérieur à 0." : undefined);
   return (
     <div className="space-y-6">
@@ -98,14 +103,40 @@ export function StepQuantity({ draft, set }: { draft: VracDraft; set: Setter }) 
       </div>
 
       {draft.quantityMode === "tonnes" && (
-        <Field
-          label="Quantité approximative (tonnes)"
-          hint="Une approximation suffit : notre équipe valide la quantité avec vous."
-          error={draft.tonnes.trim() !== "" && !(tonnesValue > 0) ? "Entrez un nombre de tonnes supérieur à 0." : undefined}
-        >
-          <Input inputMode="decimal" placeholder="ex. 12" value={draft.tonnes}
-            onChange={(e) => set({ tonnes: e.target.value })} />
-        </Field>
+        <div className="space-y-4">
+          {units.length > 1 && (
+            <Field label="Unité de mesure" hint="Nous convertissons automatiquement votre volume en tonnes.">
+              <div className="flex flex-wrap gap-2">
+                {units.map((o) => {
+                  const active = activeUnit === o.value;
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => set({ quantityUnit: o.value })}
+                      className={`min-h-11 rounded-xl border px-4 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                        active
+                          ? "border-[2px] border-primary bg-primary/5 text-foreground"
+                          : "border-border text-muted-foreground hover:border-primary/40"
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+          )}
+          <Field
+            label={`Quantité approximative (${UNIT_OPTIONS.find((o) => o.value === activeUnit)?.short ?? "t"})`}
+            hint="Une approximation suffit : notre équipe valide la quantité avec vous."
+            error={draft.tonnes.trim() !== "" && !(tonnesValue > 0) ? "Entrez une quantité supérieure à 0." : undefined}
+          >
+            <Input inputMode="decimal" placeholder="ex. 12" value={draft.tonnes}
+              onChange={(e) => set({ tonnes: e.target.value })} />
+          </Field>
+        </div>
       )}
 
       {draft.quantityMode === "voyages" && (

@@ -21,6 +21,7 @@ import QuoteCard from "@/components/vrac/QuoteCard";
 import { buildQuoteRequest, useVracEstimate } from "@/lib/vrac/estimate";
 import { useQuoteSubmit } from "@/lib/vrac/submit";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
+import { unitLabel, unitsForSlug, useMaterialUnits } from "@/lib/vrac/units";
 
 const STEPS = ["Matériau", "Quantité", "Livraison", "Coordonnées", "Résumé et estimation"] as const;
 
@@ -37,6 +38,14 @@ export default function AchatVrac() {
 
   const set = (patch: Partial<VracDraft>) => setDraft((d) => ({ ...d, ...patch }));
   const material = findVracMaterial(draft.materialId);
+  const unitsMap = useMaterialUnits();
+  const availableUnits = unitsForSlug(unitsMap, material?.slug ?? null);
+
+  // Si le matériau choisi n'accepte pas l'unité en mémoire, on revient aux tonnes.
+  useEffect(() => {
+    if (!availableUnits.includes(draft.quantityUnit)) set({ quantityUnit: "tonne" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.materialId, availableUnits.join(",")]);
 
   useUnsavedChangesGuard(step > 0 || !!draft.materialId);
 
@@ -102,7 +111,7 @@ export default function AchatVrac() {
             <StepMaterial materials={materials} value={draft.materialId}
               onSelect={(id) => { set({ materialId: id }); setStep(1); }} />
           )}
-          {step === 1 && <StepQuantity draft={draft} set={set} />}
+          {step === 1 && <StepQuantity draft={draft} set={set} availableUnits={availableUnits} />}
           {step === 2 && <StepDelivery draft={draft} set={set} />}
           {step === 3 && <StepContact draft={draft} set={set} />}
           {/* Champ piège anti-robot : invisible et jamais rempli par un humain. */}
@@ -233,7 +242,7 @@ function Recap({ draft, loading, error, manualReview }: {
 }) {
   const material = findVracMaterial(draft.materialId);
   const quantity =
-    draft.quantityMode === "tonnes" ? `${draft.tonnes} tonnes`
+    draft.quantityMode === "tonnes" ? `${draft.tonnes} ${unitLabel(draft.quantityUnit)}`
       : draft.quantityMode === "voyages" ? `${draft.trips} voyage(s)`
         : draft.quantityMode === "dimensions"
           ? `${draft.dims.length} pi × ${draft.dims.width} pi × ${draft.dims.depth} po`

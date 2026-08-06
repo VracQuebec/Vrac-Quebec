@@ -192,3 +192,64 @@ describe("données absentes ou invalides", () => {
     await expect(runCarrierQuote(at(10), config(), none)).rejects.toThrow(/trajet routier/);
   });
 });
+
+// ============================================================
+// CONVERSIONS D'UNITÉS — tonnes ↔ m³ ↔ verges³
+// La densité est administrable par matériau : même quantité réelle
+// exprimée dans trois unités => soumission strictement identique.
+// ============================================================
+const M3_PER_YD3 = 0.764554857984;
+const D2 = dist(20, 25);
+
+describe("conversions d'unités (densité administrable)", () => {
+  it("20 t = son équivalent en m³ = son équivalent en verges³", async () => {
+    const density = 1600; // kg/m³ configuré pour ce matériau
+    const m3 = (20 * 1000) / density;
+    const yd3 = m3 / M3_PER_YD3;
+    const [a, b, c] = await Promise.all([
+      runCarrierQuote(at(20), config(), D2),
+      runCarrierQuote(at(m3, "m3"), config(), D2),
+      runCarrierQuote(at(yd3, "verge"), config(), D2),
+    ]);
+    expect(b.public.tonnage).toBeCloseTo(a.public.tonnage, 3);
+    expect(c.public.tonnage).toBeCloseTo(a.public.tonnage, 3);
+    expect(b.public.trips).toBe(a.public.trips);
+    expect(c.public.trips).toBe(a.public.trips);
+    expect(b.public.total).toBeCloseTo(a.public.total, 2);
+    expect(c.public.total).toBeCloseTo(a.public.total, 2);
+  });
+
+  it("respecte la densité propre au matériau", async () => {
+    const light = config(); (light.material as any).density_kg_per_m3 = 1300;
+    const r = await runCarrierQuote(at(10, "m3"), light, D2);
+    expect(r.public.tonnage).toBeCloseTo(13, 3);
+  });
+
+  it("refuse une unité non permise pour le matériau", async () => {
+    const c = config(); (c.material as any).allowed_units = ["tonne"];
+    await expect(runCarrierQuote(at(10, "m3"), c, D2)).rejects.toThrow(/ne peut pas être commandé/);
+  });
+});
+
+describe("balayage des tonnages (aucun voyage fantôme, aucun prix négatif)", () => {
+  const SCENARIOS = [5, 10, 12, 15, 16, 18, 20, 25, 40, 60];
+  for (const t of SCENARIOS) {
+    it(`${t} t — camion, voyages, taxes et total cohérents`, async () => {
+      const r = await runCarrierQuote(at(t), config(), D2);
+      const capacity = r.public.truck.capacity_tonnes as number;
+      expect(r.public.tonnage).toBeCloseTo(t, 3);
+      expect(r.public.trips).toBe(Math.max(1, Math.ceil((t - 0.001) / capacity)));
+      expect(r.public.trips * capacity).toBeGreaterThanOrEqual(t - 0.001);
+      expect((r.public.trips - 1) * capacity).toBeLessThan(t);
+      expect(r.public.billable_minutes).toBeGreaterThanOrEqual(90);
+      expect(r.public.billable_minutes % 5).toBe(0);
+      expect(r.public.material_amount).toBeCloseTo(t * 15, 2);
+      expect(r.public.transport_amount).toBeGreaterThan(0);
+      expect(r.public.tax_total).toBeCloseTo(
+        Number((r.public.subtotal * 0.14975).toFixed(2)), 1,
+      );
+      expect(r.public.total).toBeCloseTo(r.public.subtotal + r.public.tax_total, 2);
+      expect(r.public.total).toBeGreaterThan(0);
+    });
+  }
+});

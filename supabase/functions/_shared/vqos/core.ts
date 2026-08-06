@@ -104,6 +104,8 @@ export interface MaterialRow {
   id: string; name: string; unit: string; density_kg_per_m3: number | null; is_taxable: boolean;
   selling_price: number | null; purchase_price: number | null; category?: string | null;
   public_description?: string | null;
+  /** Unités de commande permises pour ce matériau (paramètre administrateur). */
+  allowed_units?: string[] | null;
 }
 
 export interface MaterialPriceRow {

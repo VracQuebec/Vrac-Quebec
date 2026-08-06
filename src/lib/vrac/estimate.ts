@@ -24,9 +24,11 @@ export function buildQuoteRequest(draft: VracDraft): QuoteRequest | { unsupporte
   const delivery = { lat: draft.addressLat as number, lng: draft.addressLng as number, address };
 
   if (draft.quantityMode === "tonnes") {
-    const tonnes = Number(draft.tonnes);
-    if (!(tonnes > 0)) return { unsupported: "Quantité invalide." };
-    return { material_slug: material.slug, quantity: tonnes, unit: "tonne", address, delivery };
+    const quantity = Number(draft.tonnes);
+    if (!(quantity > 0)) return { unsupported: "Quantité invalide." };
+    // Le moteur convertit lui-même m³ / verges³ en tonnes selon la densité du matériau.
+    const unit = draft.quantityUnit === "verge" ? "verge" : draft.quantityUnit === "m3" ? "m3" : "tonne";
+    return { material_slug: material.slug, quantity, unit, address, delivery };
   }
 
   if (draft.quantityMode === "dimensions") {

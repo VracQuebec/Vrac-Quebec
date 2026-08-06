@@ -110,6 +110,8 @@ export type VracDraft = {
   materialId: string | null;
   quantityMode: "tonnes" | "voyages" | "dimensions" | "inconnu";
   tonnes: string;
+  /** Unité choisie par le client pour la quantité saisie. */
+  quantityUnit: "tonne" | "m3" | "verge";
   trips: string;
   dims: { length: string; width: string; depth: string };
   address: string;
@@ -127,6 +129,7 @@ export const EMPTY_VRAC_DRAFT: VracDraft = {
   materialId: null,
   quantityMode: "tonnes",
   tonnes: "",
+  quantityUnit: "tonne",
   trips: "",
   dims: { length: "", width: "", depth: "" },
   address: "",

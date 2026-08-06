@@ -5359,6 +5359,7 @@ export type Database = {
       }
       jsc_materials: {
         Row: {
+          allowed_units: string[]
           archived_at: string | null
           archived_by: string | null
           availability: string
@@ -5396,6 +5397,7 @@ export type Database = {
           uses: string[]
         }
         Insert: {
+          allowed_units?: string[]
           archived_at?: string | null
           archived_by?: string | null
           availability?: string
@@ -5433,6 +5435,7 @@ export type Database = {
           uses?: string[]
         }
         Update: {
+          allowed_units?: string[]
           archived_at?: string | null
           archived_by?: string | null
           availability?: string
@@ -11324,6 +11327,14 @@ export type Database = {
         }[]
       }
       jsc_public_material: { Args: { _slug: string }; Returns: Json }
+      jsc_public_material_units: {
+        Args: never
+        Returns: {
+          allowed_units: string[]
+          has_density: boolean
+          slug: string
+        }[]
+      }
       jsc_readiness: { Args: { _company_id?: string }; Returns: Json }
       jsc_seed_role_permissions: {
         Args: { _company_id: string }
