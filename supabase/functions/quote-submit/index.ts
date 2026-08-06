@@ -262,6 +262,78 @@ Deno.serve(async (req) => {
       ? (pub.truck?.capacity_tonnes ? `${pub.truck.name} (${pub.truck.capacity_tonnes} tonnes)` : pub.truck.name)
       : null;
     const validLabel = validUntilDate.toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    // ---------- CRM existant : la demande rejoint la liste des leads ----------
+    // Même table, même workflow et mêmes déclencheurs que les autres
+    // formulaires publics (`submissions`). Aucun nouveau pipeline.
+    try {
+      const durationMinutes = Number((pub as any).estimated_duration_minutes) || null;
+      const deliveryAddress = publicPayload.delivery_address ?? delivery.address;
+      const description = [
+        `Soumission automatique ${quote.quote_number ?? ''}`.trim(),
+        `Matériau : ${pub.material.name}`,
+        `Quantité : ${quantityLabel}`,
+        `Voyages : ${pub.trips}`,
+        truckLabel ? `Camion recommandé : ${truckLabel}` : '',
+        pub.distance_km != null ? `Distance : ${pub.distance_km} km` : '',
+        durationMinutes ? `Temps estimé : ${durationMinutes} min` : '',
+        `Prix estimé : ${money(pub.total)}`,
+        action === 'callback' ? 'Rappel demandé par le client.' : '',
+        comments ? `Notes : ${comments}` : '',
+      ].filter(Boolean).join('\n');
+
+      const { data: lead, error: leadError } = await sb.from('submissions').insert({
+        materials: [pub.material.name],
+        property_type: 'Non spécifié',
+        quantity: quantityLabel,
+        tonnage: String(pub.tonnage ?? ''),
+        address: deliveryAddress,
+        postal_code: delivery.postal_code ?? '',
+        city: delivery.city ?? null,
+        name,
+        email,
+        phone: phone ?? '',
+        company: company ?? null,
+        description,
+        request_type: 'vrac',
+        service_type: 'vrac_achat',
+        client_id: null,
+        desired_date: null,
+        quote_number: quote.quote_number ?? null,
+        quote_id: quote.id,
+        quote_material: pub.material.name,
+        quote_quantity: pub.quantity,
+        quote_unit: pub.unit,
+        quote_tonnage: pub.tonnage,
+        quote_trips: pub.trips,
+        quote_truck: truckLabel,
+        quote_distance_km: pub.distance_km ?? null,
+        quote_duration_minutes: durationMinutes,
+        quote_total: pub.total,
+      }).select('id').single();
+      if (leadError) throw new Error(leadError.message);
+
+      // Les coordonnées GPS sont neutralisées à l'insertion publique :
+      // on les réapplique aussitôt (adresse déjà validée par Google).
+      if (lead?.id && delivery.lat != null && delivery.lng != null) {
+        await sb.from('submissions').update({
+          latitude: delivery.lat,
+          longitude: delivery.lng,
+          formatted_address: deliveryAddress,
+          geocoding_status: 'ok',
+          geocoding_provider: 'google',
+        }).eq('id', lead.id);
+      }
+      logEventAsync({ source: 'quote_submit', event: 'crm.lead_created', refId: String(lead?.id ?? '') });
+    } catch (e) {
+      // Le CRM ne doit jamais bloquer la soumission client : on journalise.
+      await logEvent({
+        source: 'quote_submit', event: 'crm.lead_failed', level: 'error',
+        message: e instanceof Error ? e.message : String(e),
+        refId: quote.quote_number ?? quote.id,
+      });
+    }
+
     const clientData = {
       quoteNumber: quote.quote_number, name, material: pub.material.name,
       quantity: quantityLabel, trips: pub.trips, truck: truckLabel,
