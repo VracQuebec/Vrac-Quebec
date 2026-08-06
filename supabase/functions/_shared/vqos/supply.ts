@@ -73,6 +73,8 @@ export interface PreparedQuoteContext {
     type: string | null;
     capacity_tonnes: number;
     hourly_rate: number;
+    selected_by_client?: boolean;
+    recommended_id?: string;
   };
   trips: number;
   prepared_at: string;
@@ -147,7 +149,7 @@ export function resolveBaseLocation(config: EngineConfig): SupplyPoint {
  * le plus petit camion capable de tout livrer en un voyage ;
  * si la quantité dépasse la flotte, le plus gros camion disponible.
  */
-export function pickTruck(trucks: TruckRow[], tonnage: number): TruckRow {
+export function pickTruck(trucks: TruckRow[], tonnage: number, preferredTruckId?: string | null): TruckRow {
   const usable = trucks
     .filter((t) => Number(t.capacity_tonnes) > 0 && Number((t as { hourly_rate?: number }).hourly_rate ?? 0) > 0)
     .sort((a, b) => Number(a.capacity_tonnes) - Number(b.capacity_tonnes));
@@ -155,6 +157,11 @@ export function pickTruck(trucks: TruckRow[], tonnage: number): TruckRow {
     throw new Error(
       "Aucun camion configuré avec une capacité et un tarif horaire. Complétez la section Camions de la configuration des soumissions.",
     );
+  }
+  // Choix explicite du client : il prime toujours sur la recommandation.
+  if (preferredTruckId) {
+    const chosen = usable.find((t) => t.id === preferredTruckId);
+    if (chosen) return chosen;
   }
   return usable.find((t) => Number(t.capacity_tonnes) >= tonnage - TONNAGE_EPSILON)
     ?? usable[usable.length - 1];
@@ -224,7 +231,8 @@ export function prepareQuoteContext(input: QuoteInput, config: EngineConfig): Pr
   const supply = resolveAssignedSupply(config);
   const base = resolveBaseLocation(config);
 
-  const truck = pickTruck(config.trucks, tonnage);
+  const truck = pickTruck(config.trucks, tonnage, input.truck_id ?? null);
+  const recommended = pickTruck(config.trucks, tonnage);
   const capacity = Number(truck.capacity_tonnes);
   const hourlyRate = Number((truck as { hourly_rate?: number }).hourly_rate ?? 0);
   if (!(hourlyRate > 0)) {
@@ -260,6 +268,8 @@ export function prepareQuoteContext(input: QuoteInput, config: EngineConfig): Pr
       type: truck.truck_type ?? null,
       capacity_tonnes: capacity,
       hourly_rate: hourlyRate,
+      selected_by_client: !!input.truck_id && truck.id === input.truck_id,
+      recommended_id: recommended.id,
     },
     trips: computeTrips(Number(tonnage.toFixed(3)), capacity),
     prepared_at: new Date().toISOString(),

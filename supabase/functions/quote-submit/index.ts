@@ -156,7 +156,10 @@ Deno.serve(async (req) => {
     const delivery = await geocode(address);
     const config = await loadConfig(sb, materialId);
     const result = await runCarrierQuote(
-      { material_id: materialId, quantity, unit, delivery },
+      {
+        material_id: materialId, quantity, unit, delivery,
+        truck_id: typeof body?.truck_id === 'string' && body.truck_id.length >= 10 ? body.truck_id : null,
+      },
       config,
       distanceProvider,
     );
@@ -274,7 +277,7 @@ Deno.serve(async (req) => {
         `Matériau : ${pub.material.name}`,
         `Quantité : ${quantityLabel}`,
         `Voyages : ${pub.trips}`,
-        truckLabel ? `Camion recommandé : ${truckLabel}` : '',
+        truckLabel ? `Camion : ${truckLabel}` : '',
         pub.distance_km != null ? `Distance : ${pub.distance_km} km` : '',
         durationMinutes ? `Temps estimé : ${durationMinutes} min` : '',
         `Prix estimé : ${money(pub.total)}`,
