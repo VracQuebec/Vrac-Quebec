@@ -63,5 +63,35 @@ export function useTruckCapacity() {
   return capacity;
 }
 
+/** Camions offerts au client (administrables : jsc_trucks actifs et tarifés). */
+export type PublicTruck = { id: string; name: string; truck_type: string | null; capacity_tonnes: number };
+
+export function usePublicTrucks() {
+  const [trucks, setTrucks] = useState<PublicTruck[]>([]);
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.rpc("jsc_public_trucks");
+      const rows = (data ?? []) as Array<{ id: string; name: string; truck_type: string | null; capacity_tonnes: number | string }>;
+      setTrucks(
+        rows
+          .map((r) => ({ ...r, capacity_tonnes: Number(r.capacity_tonnes) }))
+          .filter((r) => r.capacity_tonnes > 0)
+          .sort((a, b) => a.capacity_tonnes - b.capacity_tonnes),
+      );
+    })();
+  }, []);
+  return trucks;
+}
+
+/**
+ * Camion suggéré (jamais imposé) : le plus petit camion couvrant la quantité,
+ * sinon le plus gros disponible (moins de voyages).
+ */
+export function recommendedTruckId(trucks: PublicTruck[], tonnage: number | null): string | null {
+  if (!trucks.length) return null;
+  if (!tonnage || !(tonnage > 0)) return trucks[trucks.length - 1].id;
+  return (trucks.find((t) => t.capacity_tonnes >= tonnage - 0.001) ?? trucks[trucks.length - 1]).id;
+}
+
 export const unitLabel = (unit: OrderUnit) =>
   UNIT_OPTIONS.find((o) => o.value === unit)?.short ?? unit;

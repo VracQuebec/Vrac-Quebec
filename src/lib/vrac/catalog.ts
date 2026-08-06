@@ -114,6 +114,8 @@ export type VracDraft = {
   quantityUnit: "tonne" | "m3" | "verge";
   trips: string;
   dims: { length: string; width: string; depth: string };
+  /** Camion choisi par le client (jsc_trucks.id). Null = camion recommandé. */
+  truckId: string | null;
   address: string;
   addressNotes: string;
   /** Coordonnées GPS issues d'une adresse validée par Google Places. */
@@ -132,6 +134,7 @@ export const EMPTY_VRAC_DRAFT: VracDraft = {
   quantityUnit: "tonne",
   trips: "",
   dims: { length: "", width: "", depth: "" },
+  truckId: null,
   address: "",
   addressNotes: "",
   addressLat: null,
