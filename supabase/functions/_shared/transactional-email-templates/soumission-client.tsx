@@ -10,6 +10,7 @@ interface QuoteProps {
   material?: string
   quantity?: string
   trips?: string | number
+  truck?: string
   address?: string
   total?: string
   validUntil?: string
@@ -23,7 +24,7 @@ const Line = ({ label, value }: { label: string; value?: string | number }) => (
 )
 
 const QuoteEmail = ({
-  quoteNumber, name, material, quantity, trips, address, total, validUntil,
+  quoteNumber, name, material, quantity, trips, truck, address, total, validUntil,
 }: QuoteProps) => (
   <Html lang="fr" dir="ltr">
     <Head />
@@ -43,6 +44,7 @@ const QuoteEmail = ({
               <Line label="Matériau" value={material} />
               <Line label="Quantité" value={quantity} />
               <Line label="Transport" value={trips ? `${trips} voyage${Number(trips) > 1 ? 's' : ''}` : undefined} />
+              <Line label="Camion" value={truck} />
               <Line label="Adresse" value={address} />
             </tbody>
           </table>
@@ -58,6 +60,17 @@ const QuoteEmail = ({
             Notre équipe communiquera avec vous rapidement afin de confirmer la disponibilité
             et planifier votre livraison.
           </Text>
+
+          <Section style={noticeBox}>
+            <Text style={noticeTitle}>Information importante</Text>
+            <Text style={noticeText}>
+              Cette soumission est une estimation automatique basée sur les informations fournies.
+              Si des modifications sont apportées à la commande (quantité, adresse, matériau,
+              conditions d'accès ou tout autre élément pouvant influencer la livraison), le prix
+              pourrait être ajusté. Notre équipe confirmera toujours le montant final avant la livraison.
+            </Text>
+            <Text style={noticeText}>Aucune facturation avant la confirmation de votre commande.</Text>
+          </Section>
 
           <Hr style={hr} />
           <Text style={footer}>
@@ -77,7 +90,7 @@ export const template = {
   displayName: 'Soumission client',
   previewData: {
     quoteNumber: 'SOU-000123', name: 'Jean Tremblay', material: 'Pierre 0-3/4',
-    quantity: '30 tonnes', trips: 2, address: '123 rue Principale, Québec',
+    quantity: '30 tonnes', trips: 2, truck: '12 roues (18 tonnes)', address: '123 rue Principale, Québec',
     total: '1 248,50 $', validUntil: '12 août 2026',
   },
 } satisfies TemplateEntry
@@ -97,4 +110,7 @@ const totalLabel = { fontSize: '13px', color: '#4b5563', margin: '0', textTransf
 const totalValue = { fontSize: '30px', fontWeight: 'bold' as const, color: '#111111', margin: '6px 0 0' }
 const totalHint = { fontSize: '12px', color: '#6b7280', margin: '4px 0 0' }
 const hr = { borderColor: '#e5e7eb', margin: '24px 0' }
+const noticeBox = { backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px', margin: '0 0 16px' }
+const noticeTitle = { fontSize: '14px', fontWeight: 'bold' as const, color: '#111111', margin: '0 0 6px' }
+const noticeText = { fontSize: '13px', color: '#4b5563', lineHeight: '1.6', margin: '0 0 8px' }
 const footer = { fontSize: '12px', color: '#6b7280', textAlign: 'center' as const, margin: '0' }
