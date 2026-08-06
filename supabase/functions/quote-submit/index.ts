@@ -277,7 +277,7 @@ Deno.serve(async (req) => {
         `Matériau : ${pub.material.name}`,
         `Quantité : ${quantityLabel}`,
         `Voyages : ${pub.trips}`,
-        truckLabel ? `Camion recommandé : ${truckLabel}` : '',
+        truckLabel ? `Camion : ${truckLabel}` : '',
         pub.distance_km != null ? `Distance : ${pub.distance_km} km` : '',
         durationMinutes ? `Temps estimé : ${durationMinutes} min` : '',
         `Prix estimé : ${money(pub.total)}`,
