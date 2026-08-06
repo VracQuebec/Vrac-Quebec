@@ -83,6 +83,16 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false } },
   );
 
+  // Admin-or-cron guard (same pattern as sibling SEO automation functions)
+  const isCron = req.headers.get("Lovable-Context") === "cron";
+  if (!isCron) {
+    const jwt = (req.headers.get("Authorization") || "").replace("Bearer ", "");
+    const { data: u } = await supa.auth.getUser(jwt);
+    if (!u?.user?.id) return json({ error: "Non autorisé" }, 401);
+    const { data: isAdmin } = await supa.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
+    if (!isAdmin) return json({ error: "Réservé aux administrateurs" }, 403);
+  }
+
   const stats = { diagnosed: 0, meta_flagged: 0, boost_flagged: 0, errors: 0 };
 
   try {
