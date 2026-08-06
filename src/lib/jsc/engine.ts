@@ -18,6 +18,8 @@ export interface QuoteRequest {
   carrier_id?: string | null;
   /** Restreindre à un fournisseur précis (usage interne) */
   supplier_id?: string | null;
+  /** Camion choisi par le client (jsc_trucks.id). Absent = camion recommandé. */
+  truck_id?: string | null;
 }
 
 export interface TaxLine { name: string; code: string | null; rate_percent: number; amount: number }

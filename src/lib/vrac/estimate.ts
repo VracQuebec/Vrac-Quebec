@@ -42,7 +42,8 @@ export function buildQuoteRequest(draft: VracDraft, ctx: QuoteContext = {}): Quo
     };
   }
   const delivery = { lat: draft.addressLat, lng: draft.addressLng, address };
-  const base = { material_slug: material.slug, address, delivery };
+  // Le camion choisi par le client prime sur le camion recommandé.
+  const base = { material_slug: material.slug, address, delivery, truck_id: draft.truckId ?? null };
 
   if (draft.quantityMode === "tonnes") {
     const quantity = Number(draft.tonnes);
