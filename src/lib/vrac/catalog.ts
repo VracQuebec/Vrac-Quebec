@@ -114,6 +114,10 @@ export type VracDraft = {
   dims: { length: string; width: string; depth: string };
   address: string;
   addressNotes: string;
+  /** Coordonnées GPS issues d'une adresse validée par Google Places. */
+  addressLat: number | null;
+  addressLng: number | null;
+  addressPlaceId: string | null;
   dateMode: "precise" | "flexible" | "urgent";
   date: string;
   contact: { name: string; phone: string; email: string; company: string; comments: string };
@@ -127,6 +131,9 @@ export const EMPTY_VRAC_DRAFT: VracDraft = {
   dims: { length: "", width: "", depth: "" },
   address: "",
   addressNotes: "",
+  addressLat: null,
+  addressLng: null,
+  addressPlaceId: null,
   dateMode: "precise",
   date: "",
   contact: { name: "", phone: "", email: "", company: "", comments: "" },
