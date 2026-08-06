@@ -47,5 +47,21 @@ export function unitsForSlug(map: Record<string, MaterialUnits>, slug: string | 
   return map[slug]?.allowed ?? ["tonne"];
 }
 
+/**
+ * Capacité du camion de référence (administrable). Permet de convertir une
+ * demande exprimée « en voyages » vers un tonnage calculable par le moteur.
+ */
+export function useTruckCapacity() {
+  const [capacity, setCapacity] = useState<number | null>(null);
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.rpc("jsc_public_truck_capacity");
+      const value = Number(data);
+      setCapacity(Number.isFinite(value) && value > 0 ? value : null);
+    })();
+  }, []);
+  return capacity;
+}
+
 export const unitLabel = (unit: OrderUnit) =>
   UNIT_OPTIONS.find((o) => o.value === unit)?.short ?? unit;
