@@ -110,7 +110,9 @@ Deno.serve(async (req) => {
       });
     }
     // Confidentialité : le client ne doit jamais recevoir l'identité du lieu de chargement.
-    const { pickup: _pickup, base: _base, ...clientPublic } = result.public as Record<string, unknown>;
+    const {
+      pickup: _pickup, base: _base, margin_amount: _margin, ...clientPublic
+    } = result.public as Record<string, unknown>;
     return json({
       ok: true, scope: 'client', mode: guard?.mode ?? 'test', engine_version: result.engine_version,
       computed_at: result.computed_at, quote: { public: clientPublic },
