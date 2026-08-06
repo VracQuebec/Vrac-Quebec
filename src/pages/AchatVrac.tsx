@@ -49,7 +49,7 @@ export default function AchatVrac() {
       || (draft.quantityMode === "voyages" && Number(draft.trips) > 0)
       || (draft.quantityMode === "dimensions"
         && Number(draft.dims.length) > 0 && Number(draft.dims.width) > 0 && Number(draft.dims.depth) > 0),
-    draft.address.trim().length > 5,
+    draft.address.trim().length > 5 && draft.addressLat != null && draft.addressLng != null,
     draft.contact.name.trim().length > 1
       && draft.contact.phone.replace(/\D/g, "").length >= 10
       && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(draft.contact.email.trim()),
@@ -59,7 +59,7 @@ export default function AchatVrac() {
   const blockingMessage = [
     "Choisissez un matériau pour continuer.",
     "Indiquez la quantité approximative pour continuer.",
-    "Indiquez l'adresse de livraison pour continuer.",
+    "Choisissez une adresse proposée par Google pour continuer.",
     "Complétez votre nom, votre téléphone (10 chiffres) et votre courriel pour continuer.",
     "",
   ][step];
