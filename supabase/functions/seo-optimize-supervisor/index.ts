@@ -5,11 +5,25 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const CORS = { "Access-Control-Allow-Origin": "*" };
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   const supaUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supaUrl, serviceKey, { auth: { persistSession: false } });
   try {
+    // Admin-or-cron guard
+    const isCron = req.headers.get("Lovable-Context") === "cron";
+    if (!isCron) {
+      const jwt = (req.headers.get("Authorization") || "").replace("Bearer ", "");
+      const { data: u } = await supabase.auth.getUser(jwt);
+      if (!u?.user?.id) {
+        return new Response(JSON.stringify({ error: "Non autorisé" }), { status: 401, headers: { ...CORS, "Content-Type": "application/json" } });
+      }
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Réservé aux administrateurs" }), { status: 403, headers: { ...CORS, "Content-Type": "application/json" } });
+      }
+    }
     const { data: requeued } = await supabase.rpc("seo_optimization_watchdog");
 
     // 1) Kick the currently running run if stale.

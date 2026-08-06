@@ -1,4 +1,4 @@
-import { corsHeaders, getConfigWithToken, gapi, jsonRes, errRes } from "../_shared/gbp.ts";
+import { corsHeaders, getConfigWithToken, gapi, jsonRes, errRes, requireAdmin } from "../_shared/gbp.ts";
 
 const METRICS = [
   "CALL_CLICKS",
@@ -19,6 +19,14 @@ function ymd(d: Date) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
+    // Admin-or-cron guard
+    if (req.headers.get("Lovable-Context") !== "cron") {
+      try {
+        await requireAdmin(req);
+      } catch {
+        return jsonRes({ error: "Réservé aux administrateurs" }, 403);
+      }
+    }
     const { svc, cfg, accessToken } = await getConfigWithToken();
     if (!cfg.location_name) throw new Error("Aucune fiche sélectionnée");
 
