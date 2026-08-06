@@ -11369,6 +11369,15 @@ export type Database = {
         }[]
       }
       jsc_public_truck_capacity: { Args: never; Returns: number }
+      jsc_public_trucks: {
+        Args: never
+        Returns: {
+          capacity_tonnes: number
+          id: string
+          name: string
+          truck_type: string
+        }[]
+      }
       jsc_readiness: { Args: { _company_id?: string }; Returns: Json }
       jsc_seed_role_permissions: {
         Args: { _company_id: string }
