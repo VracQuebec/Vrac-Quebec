@@ -149,8 +149,8 @@ export function StepQuantity({
               onChange={(e) => set({ trips: e.target.value })} />
           </Field>
           <Notice>
-            Le nombre de tonnes dépend du camion retenu. Nous confirmons la quantité exacte avec vous;
-            votre demande est transmise à notre équipe sans estimation automatique.
+            Nous convertissons automatiquement vos voyages en tonnes selon le camion de référence :
+            votre estimation reste instantanée.
           </Notice>
         </div>
       )}

@@ -11335,6 +11335,7 @@ export type Database = {
           slug: string
         }[]
       }
+      jsc_public_truck_capacity: { Args: never; Returns: number }
       jsc_readiness: { Args: { _company_id?: string }; Returns: Json }
       jsc_seed_role_permissions: {
         Args: { _company_id: string }

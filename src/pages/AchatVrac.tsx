@@ -21,7 +21,7 @@ import QuoteCard from "@/components/vrac/QuoteCard";
 import { buildQuoteRequest, useVracEstimate } from "@/lib/vrac/estimate";
 import { useQuoteSubmit } from "@/lib/vrac/submit";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
-import { unitLabel, unitsForSlug, useMaterialUnits } from "@/lib/vrac/units";
+import { unitLabel, unitsForSlug, useMaterialUnits, useTruckCapacity } from "@/lib/vrac/units";
 
 const STEPS = ["Matériau", "Quantité", "Livraison", "Coordonnées", "Résumé et estimation"] as const;
 
@@ -40,6 +40,11 @@ export default function AchatVrac() {
   const material = findVracMaterial(draft.materialId);
   const unitsMap = useMaterialUnits();
   const availableUnits = unitsForSlug(unitsMap, material?.slug ?? null);
+  const truckCapacity = useTruckCapacity();
+  const quoteContext = {
+    truckCapacityTonnes: truckCapacity,
+    hasDensity: material ? unitsMap[material.slug]?.hasDensity : undefined,
+  };
 
   // Si le matériau choisi n'accepte pas l'unité en mémoire, on revient aux tonnes.
   useEffect(() => {
@@ -74,8 +79,10 @@ export default function AchatVrac() {
   ][step];
 
   // Certaines quantités (voyages, quantité inconnue) sont confirmées par notre équipe.
-  const estimateBlocked = step === 4 ? buildQuoteRequest(draft) : null;
+  const estimateBlocked = step === 4 ? buildQuoteRequest(draft, quoteContext) : null;
   const manualReview = !!estimateBlocked && "unsupported" in estimateBlocked;
+  const blockedReason = estimateBlocked && "unsupported" in estimateBlocked ? estimateBlocked.unsupported : null;
+  const blockedStep = estimateBlocked && "unsupported" in estimateBlocked ? estimateBlocked.fixStep ?? 0 : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -125,15 +132,22 @@ export default function AchatVrac() {
               <QuoteCard
                 quote={estimate.quote}
                 address={draft.address}
-                onEmail={() => submission.send(draft, "submit")}
-                onCallback={() => submission.send(draft, "callback")}
+                onEmail={() => submission.send(draft, "submit", quoteContext)}
+                onCallback={() => submission.send(draft, "callback", quoteContext)}
                 onEdit={() => setStep(0)}
                 pending={submission.pending}
                 result={submission.result}
                 error={submission.error}
               />
             ) : (
-              <Recap draft={draft} loading={estimate.loading} error={estimate.error} manualReview={manualReview} />
+              <Recap
+                draft={draft}
+                loading={estimate.loading}
+                error={estimate.error}
+                manualReview={manualReview}
+                blockedReason={blockedReason}
+                onFix={() => setStep(blockedStep)}
+              />
             )
           )}
 
@@ -162,7 +176,7 @@ export default function AchatVrac() {
             ) : estimate.quote || manualReview ? null : (
               <Button
                 size="lg"
-                onClick={() => estimate.calculate(draft)}
+                onClick={() => estimate.calculate(draft, quoteContext)}
                 disabled={estimate.loading}
                 className="w-full bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_hsl(var(--primary)/0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_16px_40px_-12px_hsl(var(--primary)/0.65)] active:scale-[0.98] sm:w-auto"
               >
@@ -237,8 +251,9 @@ function Progress({ step }: { step: number }) {
 }
 
 /** Résumé du parcours avant le calcul. Aucune donnée interne n'est affichée. */
-function Recap({ draft, loading, error, manualReview }: {
+function Recap({ draft, loading, error, manualReview, blockedReason, onFix }: {
   draft: VracDraft; loading: boolean; error: string | null; manualReview?: boolean;
+  blockedReason?: string | null; onFix?: () => void;
 }) {
   const material = findVracMaterial(draft.materialId);
   const quantity =
@@ -271,11 +286,20 @@ function Recap({ draft, loading, error, manualReview }: {
       <DeliveryDateNotice />
 
       {manualReview ? (
-        <Notice>
-          Pour ce type de quantité, notre équipe confirme d'abord le tonnage exact avant de vous
-          transmettre votre estimation. Revenez à l'étape « Quantité » pour indiquer un tonnage ou
-          des dimensions, ou appelez-nous au 581-994-7717.
-        </Notice>
+        <div className="space-y-3">
+          <Notice>
+            <strong className="font-semibold text-foreground">Estimation impossible pour le moment.</strong>
+            <br />
+            {blockedReason ?? "Une information essentielle est manquante."}
+            <br />
+            Corrigez cette information pour obtenir votre prix instantané, ou appelez-nous au 581-994-7717.
+          </Notice>
+          {onFix && (
+            <Button onClick={onFix} className="w-full sm:w-auto">
+              Corriger cette information
+            </Button>
+          )}
+        </div>
       ) : (
       <div className="rounded-2xl border border-primary/30 bg-card p-5 shadow-sm">
         <div className="flex items-center gap-2">

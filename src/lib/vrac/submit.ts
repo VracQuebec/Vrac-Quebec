@@ -5,7 +5,7 @@
 // ============================================================
 import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { buildQuoteRequest } from "@/lib/vrac/estimate";
+import { buildQuoteRequest, type QuoteContext } from "@/lib/vrac/estimate";
 import type { VracDraft } from "@/lib/vrac/catalog";
 
 export type SubmitAction = "submit" | "callback";
@@ -26,8 +26,8 @@ export function useQuoteSubmit() {
   const [formStartedAt] = useState(() => Date.now());
   const [honeypot, setHoneypot] = useState("");
 
-  const send = useCallback(async (draft: VracDraft, action: SubmitAction) => {
-    const request = buildQuoteRequest(draft);
+  const send = useCallback(async (draft: VracDraft, action: SubmitAction, ctx: QuoteContext = {}) => {
+    const request = buildQuoteRequest(draft, ctx);
     if ("unsupported" in request) { setError(request.unsupported); return; }
 
     setPending(action);

@@ -11,24 +11,53 @@ import { findVracMaterial, type VracDraft } from "@/lib/vrac/catalog";
 const FT_TO_M = 0.3048;
 const IN_TO_M = 0.0254;
 
+/**
+ * Contexte administrable nécessaire à certaines conversions.
+ * `truckCapacityTonnes` : capacité du camion de référence (voyages → tonnes).
+ * `hasDensity` : densité configurée pour le matériau (volume → tonnes).
+ */
+export type QuoteContext = {
+  truckCapacityTonnes?: number | null;
+  hasDensity?: boolean;
+};
+
+/** Raison exacte pour laquelle le calcul est impossible (jamais de message générique). */
+export type QuoteBlock = { unsupported: string; fixStep?: number };
+
+const needsDensity = (unit: string) => unit === "m3" || unit === "verge";
+
 /** Convertit la quantité saisie en une entrée compréhensible par le moteur. */
-export function buildQuoteRequest(draft: VracDraft): QuoteRequest | { unsupported: string } {
+export function buildQuoteRequest(draft: VracDraft, ctx: QuoteContext = {}): QuoteRequest | QuoteBlock {
   const material = findVracMaterial(draft.materialId);
-  if (!material) return { unsupported: "Sélectionnez d'abord un matériau." };
+  if (!material) return { unsupported: "Matériau non sélectionné : choisissez un matériau à l'étape 1.", fixStep: 0 };
+
   const address = draft.address.trim();
-  if (address.length < 5) return { unsupported: "Adresse de livraison requise." };
-  const hasCoords = draft.addressLat != null && draft.addressLng != null;
-  if (!hasCoords) {
-    return { unsupported: "Sélectionnez une adresse proposée par Google pour calculer votre estimation." };
+  if (address.length < 5) {
+    return { unsupported: "Adresse de livraison manquante : indiquez l'adresse où livrer.", fixStep: 2 };
   }
-  const delivery = { lat: draft.addressLat as number, lng: draft.addressLng as number, address };
+  if (draft.addressLat == null || draft.addressLng == null) {
+    return {
+      unsupported: "Adresse de livraison invalide : sélectionnez une adresse proposée par Google pour obtenir la distance exacte.",
+      fixStep: 2,
+    };
+  }
+  const delivery = { lat: draft.addressLat, lng: draft.addressLng, address };
+  const base = { material_slug: material.slug, address, delivery };
 
   if (draft.quantityMode === "tonnes") {
     const quantity = Number(draft.tonnes);
-    if (!(quantity > 0)) return { unsupported: "Quantité invalide." };
-    // Le moteur convertit lui-même m³ / verges³ en tonnes selon la densité du matériau.
+    if (!(quantity > 0)) {
+      return { unsupported: "Quantité invalide : entrez une quantité supérieure à 0.", fixStep: 1 };
+    }
     const unit = draft.quantityUnit === "verge" ? "verge" : draft.quantityUnit === "m3" ? "m3" : "tonne";
-    return { material_slug: material.slug, quantity, unit, address, delivery };
+    if (needsDensity(unit) && ctx.hasDensity === false) {
+      return {
+        unsupported: `Densité du matériau non configurée : impossible de convertir des ${unit === "m3" ? "m³" : "verges³"} en tonnes pour « ${material.name} ». Saisissez plutôt la quantité en tonnes.`,
+        fixStep: 1,
+      };
+    }
+    // Le moteur convertit lui-même m³ / verges³ en tonnes selon la densité du matériau.
+    return { ...base, quantity, unit };
   }
 
   if (draft.quantityMode === "dimensions") {
@@ -36,17 +65,38 @@ export function buildQuoteRequest(draft: VracDraft): QuoteRequest | { unsupporte
     const w = Number(draft.dims.width) * FT_TO_M;
     const d = Number(draft.dims.depth) * IN_TO_M;
     const m3 = l * w * d;
-    if (!(m3 > 0)) return { unsupported: "Dimensions invalides." };
-    return { material_slug: material.slug, quantity: Number(m3.toFixed(3)), unit: "m3", address, delivery };
+    if (!(m3 > 0)) {
+      return { unsupported: "Dimensions invalides : longueur, largeur et épaisseur doivent être supérieures à 0.", fixStep: 1 };
+    }
+    if (ctx.hasDensity === false) {
+      return {
+        unsupported: `Densité du matériau non configurée : impossible de convertir un volume en tonnes pour « ${material.name} ». Saisissez plutôt la quantité en tonnes.`,
+        fixStep: 1,
+      };
+    }
+    return { ...base, quantity: Number(m3.toFixed(3)), unit: "m3" };
   }
 
-  // Voyages / quantité inconnue : le nombre de tonnes dépend du camion retenu,
-  // c'est notre équipe qui confirme la quantité avant l'estimation officielle.
+  if (draft.quantityMode === "voyages") {
+    const trips = Number(draft.trips);
+    if (!(trips > 0)) {
+      return { unsupported: "Nombre de voyages invalide : entrez un nombre supérieur à 0.", fixStep: 1 };
+    }
+    const capacity = Number(ctx.truckCapacityTonnes);
+    if (!(capacity > 0)) {
+      return {
+        unsupported: "Capacité de camion non configurée : impossible de convertir des voyages en tonnes. Indiquez plutôt une quantité.",
+        fixStep: 1,
+      };
+    }
+    // Un voyage = la capacité du camion de référence configuré en administration.
+    return { ...base, quantity: Number((trips * capacity).toFixed(3)), unit: "tonne" };
+  }
+
+  // Quantité réellement inconnue : aucune donnée à calculer.
   return {
-    unsupported:
-      draft.quantityMode === "voyages"
-        ? "Indiquez un tonnage ou des dimensions pour obtenir une estimation automatique."
-        : "Nous confirmerons la quantité avec vous avant de calculer l'estimation.",
+    unsupported: "Quantité non précisée : indiquez une quantité, des dimensions ou un nombre de voyages pour obtenir votre prix instantané.",
+    fixStep: 1,
   };
 }
 
@@ -55,8 +105,8 @@ export function useVracEstimate() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const calculate = useCallback(async (draft: VracDraft) => {
-    const request = buildQuoteRequest(draft);
+  const calculate = useCallback(async (draft: VracDraft, ctx: QuoteContext = {}) => {
+    const request = buildQuoteRequest(draft, ctx);
     if ("unsupported" in request) {
       setQuote(null);
       setError(request.unsupported);
