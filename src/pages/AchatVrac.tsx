@@ -251,8 +251,9 @@ function Progress({ step }: { step: number }) {
 }
 
 /** Résumé du parcours avant le calcul. Aucune donnée interne n'est affichée. */
-function Recap({ draft, loading, error, manualReview }: {
+function Recap({ draft, loading, error, manualReview, blockedReason, onFix }: {
   draft: VracDraft; loading: boolean; error: string | null; manualReview?: boolean;
+  blockedReason?: string | null; onFix?: () => void;
 }) {
   const material = findVracMaterial(draft.materialId);
   const quantity =
@@ -285,11 +286,20 @@ function Recap({ draft, loading, error, manualReview }: {
       <DeliveryDateNotice />
 
       {manualReview ? (
-        <Notice>
-          Pour ce type de quantité, notre équipe confirme d'abord le tonnage exact avant de vous
-          transmettre votre estimation. Revenez à l'étape « Quantité » pour indiquer un tonnage ou
-          des dimensions, ou appelez-nous au 581-994-7717.
-        </Notice>
+        <div className="space-y-3">
+          <Notice>
+            <strong className="font-semibold text-foreground">Estimation impossible pour le moment.</strong>
+            <br />
+            {blockedReason ?? "Une information essentielle est manquante."}
+            <br />
+            Corrigez cette information pour obtenir votre prix instantané, ou appelez-nous au 581-994-7717.
+          </Notice>
+          {onFix && (
+            <Button onClick={onFix} className="w-full sm:w-auto">
+              Corriger cette information
+            </Button>
+          )}
+        </div>
       ) : (
       <div className="rounded-2xl border border-primary/30 bg-card p-5 shadow-sm">
         <div className="flex items-center gap-2">
