@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import type { VracDraft, VracMaterial } from "@/lib/vrac/catalog";
-import { UNIT_OPTIONS, type OrderUnit } from "@/lib/vrac/units";
+import { UNIT_OPTIONS, type OrderUnit, type PublicTruck } from "@/lib/vrac/units";
 
 type Setter = (patch: Partial<VracDraft>) => void;
 
@@ -72,8 +72,11 @@ const MODES = [
 ] as const;
 
 export function StepQuantity({
-  draft, set, availableUnits = ["tonne"],
-}: { draft: VracDraft; set: Setter; availableUnits?: OrderUnit[] }) {
+  draft, set, availableUnits = ["tonne"], trucks = [], recommendedId = null, tonnage = null,
+}: {
+  draft: VracDraft; set: Setter; availableUnits?: OrderUnit[];
+  trucks?: PublicTruck[]; recommendedId?: string | null; tonnage?: number | null;
+}) {
   const tonnesValue = Number(draft.tonnes);
   const tripsValue = Number(draft.trips);
   const units = UNIT_OPTIONS.filter((o) => availableUnits.includes(o.value));
@@ -181,7 +184,74 @@ export function StepQuantity({
           détermine la quantité exacte, puis vous transmet votre estimation.
         </Notice>
       )}
+
+      {draft.quantityMode !== "inconnu" && trucks.length > 0 && (
+        <TruckPicker
+          trucks={trucks}
+          value={draft.truckId}
+          recommendedId={recommendedId}
+          tonnage={tonnage}
+          onSelect={(id) => set({ truckId: id })}
+        />
+      )}
     </div>
+  );
+}
+
+/* ------------- Choix du camion (le client décide) ------------- */
+function TruckPicker({
+  trucks, value, recommendedId, tonnage, onSelect,
+}: {
+  trucks: PublicTruck[]; value: string | null; recommendedId: string | null;
+  tonnage: number | null; onSelect: (id: string) => void;
+}) {
+  const recommended = trucks.find((t) => t.id === recommendedId);
+  return (
+    <Field
+      label="Choisissez votre camion"
+      icon={<Truck className="h-4 w-4 text-primary" aria-hidden />}
+      hint="Le prix, le nombre de voyages et le temps sont recalculés instantanément."
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {trucks.map((t) => {
+          const active = (value ?? recommendedId) === t.id;
+          const trips = tonnage && tonnage > 0 ? Math.ceil(tonnage / t.capacity_tonnes) : null;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onSelect(t.id)}
+              className={`relative min-h-11 rounded-2xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                active
+                  ? "border-[3px] border-primary bg-primary/5 shadow-sm"
+                  : "border-border hover:border-primary/40 hover:shadow-sm"
+              }`}
+            >
+              <p className="text-sm font-semibold text-foreground">🚛 {t.name}</p>
+              <p className="text-xs text-muted-foreground">
+                Jusqu'à {t.capacity_tonnes} tonnes par voyage
+              </p>
+              {trips !== null && (
+                <p className="mt-1 text-xs font-medium text-primary">
+                  {trips} voyage{trips > 1 ? "s" : ""} estimé{trips > 1 ? "s" : ""}
+                </p>
+              )}
+              {t.id === recommendedId && (
+                <span className="absolute right-3 top-3 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                  ⭐ Recommandé
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {recommended && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Suggestion : {recommended.name} ({recommended.capacity_tonnes} tonnes). Vous restez libre de choisir l'autre camion.
+        </p>
+      )}
+    </Field>
   );
 }
 
