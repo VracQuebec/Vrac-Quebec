@@ -21,7 +21,9 @@ import QuoteCard from "@/components/vrac/QuoteCard";
 import { buildQuoteRequest, useVracEstimate } from "@/lib/vrac/estimate";
 import { useQuoteSubmit } from "@/lib/vrac/submit";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
-import { unitLabel, unitsForSlug, useMaterialUnits, useTruckCapacity } from "@/lib/vrac/units";
+import {
+  recommendedTruckId, unitLabel, unitsForSlug, useMaterialUnits, usePublicTrucks, useTruckCapacity,
+} from "@/lib/vrac/units";
 
 const STEPS = ["Matériau", "Quantité", "Livraison", "Coordonnées", "Résumé et estimation"] as const;
 
@@ -41,8 +43,17 @@ export default function AchatVrac() {
   const unitsMap = useMaterialUnits();
   const availableUnits = unitsForSlug(unitsMap, material?.slug ?? null);
   const truckCapacity = useTruckCapacity();
+  const trucks = usePublicTrucks();
+  // Tonnage connu côté client (sert uniquement à suggérer un camion).
+  const knownTonnage =
+    draft.quantityMode === "tonnes" && draft.quantityUnit === "tonne" && Number(draft.tonnes) > 0
+      ? Number(draft.tonnes)
+      : null;
+  const recommendedId = recommendedTruckId(trucks, knownTonnage);
+  const selectedTruck = trucks.find((t) => t.id === (draft.truckId ?? recommendedId)) ?? null;
   const quoteContext = {
-    truckCapacityTonnes: truckCapacity,
+    // Un « voyage » correspond à la capacité du camion choisi par le client.
+    truckCapacityTonnes: selectedTruck?.capacity_tonnes ?? truckCapacity,
     hasDensity: material ? unitsMap[material.slug]?.hasDensity : undefined,
   };
 
@@ -53,6 +64,13 @@ export default function AchatVrac() {
   }, [draft.materialId, availableUnits.join(",")]);
 
   useUnsavedChangesGuard(step > 0 || !!draft.materialId);
+
+  // Changement de camion : le prix, les voyages et le temps sont recalculés
+  // immédiatement, sans recharger la page.
+  useEffect(() => {
+    if (estimate.quote) void estimate.calculate(draft, quoteContext);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.truckId]);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [step]);
 
@@ -118,7 +136,12 @@ export default function AchatVrac() {
             <StepMaterial materials={materials} value={draft.materialId}
               onSelect={(id) => { set({ materialId: id }); setStep(1); }} />
           )}
-          {step === 1 && <StepQuantity draft={draft} set={set} availableUnits={availableUnits} />}
+          {step === 1 && (
+            <StepQuantity
+              draft={draft} set={set} availableUnits={availableUnits}
+              trucks={trucks} recommendedId={recommendedId} tonnage={knownTonnage}
+            />
+          )}
           {step === 2 && <StepDelivery draft={draft} set={set} />}
           {step === 3 && <StepContact draft={draft} set={set} />}
           {/* Champ piège anti-robot : invisible et jamais rempli par un humain. */}
