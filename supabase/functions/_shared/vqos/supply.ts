@@ -73,6 +73,8 @@ export interface PreparedQuoteContext {
     type: string | null;
     capacity_tonnes: number;
     hourly_rate: number;
+    selected_by_client?: boolean;
+    recommended_id?: string;
   };
   trips: number;
   prepared_at: string;

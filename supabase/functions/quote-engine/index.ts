@@ -91,6 +91,7 @@ Deno.serve(async (req) => {
         material_id: materialId, quantity, unit, delivery,
         carrier_id: body?.carrier_id ?? null,
         supplier_id: body?.supplier_id ?? null,
+        truck_id: typeof body?.truck_id === 'string' && body.truck_id.length >= 10 ? body.truck_id : null,
       },
       config,
       distanceProvider,
