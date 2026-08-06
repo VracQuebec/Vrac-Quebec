@@ -25,6 +25,8 @@ export interface QuoteInput {
   carrier_id?: string | null;
   /** Restreindre à un fournisseur précis (optionnel, usage interne) */
   supplier_id?: string | null;
+  /** Camion choisi par le client (optionnel) : sinon camion recommandé. */
+  truck_id?: string | null;
 }
 
 export type SettingsMap = Record<string, string>;
