@@ -3,7 +3,7 @@
 // Aucun calcul interne visible : matériau, quantité, transport,
 // adresse et estimation toutes taxes incluses.
 // ============================================================
-import { CalendarDays, Check, CheckCircle2, Loader2, Mail, Pencil, Phone, PhoneCall } from "lucide-react";
+import { CalendarDays, Check, CheckCircle2, Info, Loader2, Mail, Pencil, Phone, PhoneCall } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/vrac/estimate";
 import type { PublicQuote } from "@/lib/jsc/engine";
