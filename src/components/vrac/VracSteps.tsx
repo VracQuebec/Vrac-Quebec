@@ -3,10 +3,11 @@
 // Aucun calcul de prix, aucune règle de transport, aucun fournisseur.
 // ============================================================
 import { cloneElement, isValidElement, useId } from "react";
-import { Check, CalendarDays, HelpCircle, Info, MapPin, Ruler, Truck, Weight } from "lucide-react";
+import { Check, CalendarDays, CheckCircle2, HelpCircle, Info, MapPin, Ruler, Truck, Weight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import type { VracDraft, VracMaterial } from "@/lib/vrac/catalog";
 
 type Setter = (patch: Partial<VracDraft>) => void;
@@ -156,18 +157,35 @@ export function StepQuantity({ draft, set }: { draft: VracDraft; set: Setter }) 
 /* ---------------------- Étape 3 — Livraison ---------------------- */
 export function StepDelivery({ draft, set }: { draft: VracDraft; set: Setter }) {
   const address = draft.address.trim();
+  const validated = draft.addressLat != null && draft.addressLng != null;
   return (
     <div className="space-y-5">
       <Field
         label="Adresse de livraison"
         icon={<MapPin className="h-4 w-4 text-primary" aria-hidden />}
-        hint="Numéro civique, rue et ville : nous calculons la distance automatiquement."
-        error={address.length > 0 && address.length <= 5 ? "Indiquez une adresse complète (rue, ville)." : undefined}
+        hint={validated ? undefined : "Commencez à écrire, puis choisissez une adresse proposée par Google."}
+        error={!validated && address.length > 2 ? "Sélectionnez une adresse proposée par Google pour valider la localisation." : undefined}
       >
-        <Input placeholder="123 rue Principale, Québec, QC" value={draft.address}
-          autoComplete="street-address"
-          onChange={(e) => set({ address: e.target.value })} />
+        <GooglePlaceAutocomplete
+          value={draft.address}
+          placeholder="123 rue Principale, Québec, QC"
+          className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          onChange={(val) => set({ address: val, addressLat: null, addressLng: null, addressPlaceId: null })}
+          onSelect={(p) =>
+            set({
+              address: p.formattedAddress,
+              addressLat: p.lat ?? null,
+              addressLng: p.lng ?? null,
+              addressPlaceId: p.placeId || null,
+            })
+          }
+        />
       </Field>
+      {validated && (
+        <p className="-mt-3 flex items-center gap-2 text-sm font-medium text-primary" role="status">
+          <CheckCircle2 className="h-4 w-4" aria-hidden /> Adresse validée
+        </p>
+      )}
       <Field label="Précisions d'accès (optionnel)">
         <Textarea rows={3} placeholder="Accès par la cour arrière, portail étroit, etc."
           value={draft.addressNotes} onChange={(e) => set({ addressNotes: e.target.value })} />
