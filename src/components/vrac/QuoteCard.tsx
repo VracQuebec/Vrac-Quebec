@@ -72,6 +72,18 @@ export default function QuoteCard({
         <p className="mt-1 text-sm text-muted-foreground">(TPS/TVQ incluses)</p>
       </div>
 
+      <div className="mx-6 mb-6 animate-fade-in">
+        <div className="flex gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+          <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Cette soumission est une estimation automatique basée sur les informations fournies.
+            Si des modifications sont apportées à la commande (quantité, adresse, matériau,
+            conditions d’accès ou tout autre élément pouvant influencer la livraison), le prix
+            pourrait être ajusté. Notre équipe confirmera toujours le montant final avant la livraison.
+          </p>
+        </div>
+      </div>
+
       <div className="mx-6 mb-6 rounded-2xl border border-border bg-muted/30 p-5">
         <p className="text-sm font-semibold text-foreground">Ce qui est inclus</p>
         <ul className="mt-3 space-y-2">
