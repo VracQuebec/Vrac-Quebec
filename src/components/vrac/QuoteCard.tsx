@@ -3,7 +3,7 @@
 // Aucun calcul interne visible : matériau, quantité, transport,
 // adresse et estimation toutes taxes incluses.
 // ============================================================
-import { CalendarDays, Check, CheckCircle2, Info, Loader2, Mail, Pencil, Phone, PhoneCall } from "lucide-react";
+import { CalendarDays, Check, CheckCircle2, Loader2, Lock, Mail, Pencil, Phone, PhoneCall, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/vrac/estimate";
 import type { PublicQuote } from "@/lib/jsc/engine";
@@ -66,16 +66,20 @@ export default function QuoteCard({
         ))}
       </dl>
 
-      <div className="mx-6 mb-6 rounded-2xl border border-primary/40 bg-primary/5 p-6 text-center">
+      <div className="mx-6 mb-6 animate-fade-in rounded-2xl border border-primary/40 bg-primary/5 p-6 text-center">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">Estimation</p>
         <p className="mt-1 text-4xl font-bold text-foreground">{formatMoney(quote.total)}</p>
         <p className="mt-1 text-sm text-muted-foreground">(TPS/TVQ incluses)</p>
       </div>
 
-      <div className="mx-6 mb-6 animate-fade-in">
-        <div className="flex gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
-          <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
-          <p className="text-sm leading-relaxed text-muted-foreground">
+      <div
+        className="mx-6 mb-6 flex gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 animate-fade-in [animation-fill-mode:both]"
+        style={{ animationDelay: "150ms", animationDuration: "400ms" }}
+      >
+        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+        <div>
+          <p className="text-sm font-semibold text-foreground">Information importante</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             Cette soumission est une estimation automatique basée sur les informations fournies.
             Si des modifications sont apportées à la commande (quantité, adresse, matériau,
             conditions d’accès ou tout autre élément pouvant influencer la livraison), le prix
@@ -110,7 +114,7 @@ export default function QuoteCard({
         <p>
           {result?.valid_until
             ? `Cette estimation est valide jusqu'au ${new Date(`${result.valid_until}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })}.`
-            : "Cette estimation vous est confirmée par courriel avec sa date de validité."}
+            : "Vous recevrez cette estimation par courriel. Notre équipe communiquera ensuite avec vous afin de confirmer les détails de votre commande ainsi que le montant final avant la livraison."}
         </p>
         <p>
           Notre équipe communiquera avec vous rapidement afin de confirmer la disponibilité
@@ -133,16 +137,26 @@ export default function QuoteCard({
         <p className="mx-6 mb-6 rounded-2xl bg-muted/60 p-4 text-sm text-muted-foreground">{error}</p>
       )}
 
-      <div className="grid gap-3 border-t border-border bg-muted/20 p-6 sm:grid-cols-2">
+      <div className="mx-6 mb-6 flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4">
+        <Check className="h-5 w-5 shrink-0 text-primary" aria-hidden />
+        <p className="text-sm font-medium text-foreground">
+          Aucune facturation avant la confirmation de votre commande.
+        </p>
+      </div>
+
+      <div
+        className="grid gap-3 border-t border-border bg-muted/20 p-6 sm:grid-cols-2 animate-fade-in [animation-fill-mode:both]"
+        style={{ animationDelay: "300ms", animationDuration: "400ms" }}
+      >
         <Button asChild variant="outline" className="w-full">
           <a href={`tel:${PHONE.replace(/\D/g, "")}`}>
-            <Phone className="mr-2 h-4 w-4" /> Appeler
+            <Phone className="mr-2 h-4 w-4" /> Appeler maintenant
           </a>
         </Button>
         <Button onClick={onEmail} disabled={pending !== null} className="w-full">
           {pending === "submit"
             ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Envoi…</>
-            : <><Mail className="mr-2 h-4 w-4" /> Recevoir par courriel</>}
+            : <><Mail className="mr-2 h-4 w-4" /> Recevoir ma soumission par courriel</>}
         </Button>
         <Button onClick={onCallback} variant="outline" disabled={pending !== null} className="w-full">
           {pending === "callback"
@@ -150,8 +164,16 @@ export default function QuoteCard({
             : <><PhoneCall className="mr-2 h-4 w-4" /> Demander un rappel</>}
         </Button>
         <Button onClick={onEdit} variant="ghost" className="w-full">
-          <Pencil className="mr-2 h-4 w-4" /> Modifier la demande
+          <Pencil className="mr-2 h-4 w-4" /> Modifier ma demande
         </Button>
+      </div>
+
+      <div className="flex items-start gap-2 border-t border-border px-6 py-4 text-xs leading-relaxed text-muted-foreground">
+        <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+        <span>
+          Vos informations demeurent confidentielles et sont utilisées uniquement afin de traiter
+          votre demande de soumission.
+        </span>
       </div>
     </div>
   );
