@@ -59,6 +59,8 @@ const AdminSoumissions = lazy(() => import("./pages/AdminSoumissions"));
 const AdminMonitoring = lazy(() => import("./pages/AdminMonitoring"));
 
 const Catalogue = lazy(() => import("./pages/Catalogue"));
+const Remblai = lazy(() => import("./pages/Remblai"));
+const DepotMateriaux = lazy(() => import("./pages/DepotMateriaux"));
 const CatalogueMateriau = lazy(() => import("./pages/CatalogueMateriau"));
 const Reseau = lazy(() => import("./pages/Reseau"));
 const ReseauProfil = lazy(() => import("./pages/ReseauProfil"));
@@ -149,6 +151,8 @@ const App = () => (
             <Route path="/soumission" element={<Soumission />} />
             <Route path="/acheter-materiaux" element={<AchatVrac />} />
             <Route path="/materiaux" element={<Catalogue />} />
+            <Route path="/remblai" element={<Remblai />} />
+            <Route path="/depot-materiaux" element={<DepotMateriaux />} />
             <Route path="/materiaux/:slug" element={<CatalogueMateriau />} />
             <Route path="/reseau" element={<Reseau />} />
             <Route path="/reseau/:slug" element={<ReseauProfil />} />
