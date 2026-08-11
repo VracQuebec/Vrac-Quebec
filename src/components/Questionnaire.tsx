@@ -220,6 +220,10 @@ const Questionnaire = ({ sourcePageSlug }: { sourcePageSlug?: string } = {}) => 
         depth_in: data.depthIn || null,
         delivery_deadline: data.deliveryDeadline || null,
         delivery_timeframe: data.deliveryTimeframe || null,
+        // Point 30 — vérification d'accès au chantier.
+        access_heavy_truck: data.accessHeavyTruck || null,
+        access_details:
+          data.accessDetails && data.accessDetails.length > 0 ? { criteres: data.accessDetails } : null,
         // Type de service choisi par le client — pilote le pipeline CRM.
         service_type: service ?? (isRemblai ? "remblai_disposition" : "materiel_remplissage"),
       };
