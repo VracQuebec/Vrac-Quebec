@@ -46,7 +46,18 @@ interface EntLead {
   is_assigned: boolean;
   availability_status?: string | null;
   availability_note?: string | null;
+  availability_updated_at?: string | null;
 }
+
+/** Point 42 — fraîcheur de la donnée de disponibilité (jamais inventée). */
+const freshnessLabel = (iso?: string | null) => {
+  if (!iso) return "Disponibilité à confirmer";
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days <= 0) return "Mis à jour aujourd'hui";
+  if (days === 1) return "Mis à jour hier";
+  if (days <= 7) return `Mis à jour il y a ${days} jours`;
+  return "À confirmer";
+};
 
 const AVAIL_META: Record<string, { label: string; color: string; dot: string }> = {
   available: { label: "Disponible", color: "#16a34a", dot: "🟢" },
