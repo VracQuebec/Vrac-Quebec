@@ -63,6 +63,7 @@ const Remblai = lazy(() => import("./pages/Remblai"));
 const DepotMateriaux = lazy(() => import("./pages/DepotMateriaux"));
 const Calculateur = lazy(() => import("./pages/Calculateur"));
 const TypesCamions = lazy(() => import("./pages/TypesCamions"));
+const EntrepreneurComparateur = lazy(() => import("./pages/EntrepreneurComparateur"));
 const CatalogueMateriau = lazy(() => import("./pages/CatalogueMateriau"));
 const Reseau = lazy(() => import("./pages/Reseau"));
 const ReseauProfil = lazy(() => import("./pages/ReseauProfil"));
@@ -157,6 +158,7 @@ const App = () => (
             <Route path="/depot-materiaux" element={<DepotMateriaux />} />
             <Route path="/calculateur" element={<Calculateur />} />
             <Route path="/types-de-camions" element={<TypesCamions />} />
+            <Route path="/entrepreneur/comparateur" element={<EntrepreneurComparateur />} />
             <Route path="/materiaux/:slug" element={<CatalogueMateriau />} />
             <Route path="/reseau" element={<Reseau />} />
             <Route path="/reseau/:slug" element={<ReseauProfil />} />
