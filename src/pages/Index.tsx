@@ -2,6 +2,11 @@ import Questionnaire from "@/components/Questionnaire";
 import heroBanner from "@/assets/hero-banner.webp";
 import heroBannerMobile from "@/assets/hero-banner-mobile.webp";
 import TransportBanner from "@/components/TransportBanner";
+import PrimaryCtas from "@/components/home/PrimaryCtas";
+import ClienteleUniverses from "@/components/home/ClienteleUniverses";
+import DompeShowcase from "@/components/home/DompeShowcase";
+import HowItWorks from "@/components/home/HowItWorks";
+import IntentSelector from "@/components/home/IntentSelector";
 import { HardHat, Sparkles, Brain, MapPin, Truck, Zap } from "lucide-react";
 
 const Index = () => {
@@ -53,18 +58,13 @@ const Index = () => {
 
           <div className="relative z-10 container mx-auto px-6 pb-10 lg:pb-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
             <h1 className="text-3xl md:text-4xl lg:text-[2.75rem] font-display font-extrabold text-white leading-[1.2] max-w-[44rem] mx-auto drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
-              Commandez votre vrac{" "}
-              <span className="text-primary">rapidement au Québec</span>
+              Terre à sortir ou terrain à remplir&nbsp;?{" "}
+              <span className="text-primary">On trouve la meilleure solution près de votre chantier.</span>
             </h1>
-            <p className="text-white/85 mt-10 max-w-lg mx-auto font-body text-base lg:text-lg leading-relaxed">
-              Terre, sable, pierre concassée, remblai — livraison rapide partout dans la région de Québec et Lévis.
+            <p className="text-white/85 mt-6 max-w-2xl mx-auto font-body text-base lg:text-lg leading-relaxed">
+              Terre • Sable • Pierre • Remblai • Transport • Sites de dépôt
             </p>
-            <a
-              href="#questionnaire"
-              className="inline-block mt-12 px-9 py-3.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base lg:text-lg shadow-[0_10px_30px_-8px_hsl(89_74%_48%/0.7)] hover:scale-[1.03] hover:shadow-[0_14px_40px_-8px_hsl(89_74%_48%/0.85)] transition-all"
-            >
-              Obtenir mon prix →
-            </a>
+            <PrimaryCtas variant="hero" className="mt-8 max-w-4xl mx-auto" />
           </div>
         </div>
       </header>
@@ -76,23 +76,26 @@ const Index = () => {
           {/* Mobile-only intro (desktop has hero text above) */}
           <div className="md:hidden text-center mb-10">
             <h1 className="text-2xl font-display font-extrabold text-foreground leading-tight">
-              Commandez votre vrac{" "}
-              <span className="text-primary">rapidement au Québec</span>
+              Terre à sortir ou terrain à remplir&nbsp;?{" "}
+              <span className="text-primary">On trouve la solution près de votre chantier.</span>
             </h1>
             <p className="text-muted-foreground mt-3 max-w-md mx-auto font-body text-sm">
-              Terre, sable, pierre concassée, remblai — livraison rapide
+              Terre • Sable • Pierre • Remblai • Transport • Sites de dépôt
             </p>
-            <a
-              href="#questionnaire"
-              className="inline-block mt-5 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 transition-opacity"
-            >
-              Obtenir mon prix →
-            </a>
+            <PrimaryCtas className="mt-5 text-left" />
+          </div>
+
+          <div className="mb-12">
+            <IntentSelector />
           </div>
 
           <div id="questionnaire">
             <Questionnaire />
           </div>
+
+          <ClienteleUniverses />
+          <DompeShowcase />
+          <HowItWorks />
 
           {/* Espace entrepreneur — site public reste vitrine; les outils avancés vivent derrière la connexion */}
           <section
