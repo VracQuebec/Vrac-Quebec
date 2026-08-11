@@ -7,7 +7,7 @@ import ClienteleUniverses from "@/components/home/ClienteleUniverses";
 import DompeShowcase from "@/components/home/DompeShowcase";
 import HowItWorks from "@/components/home/HowItWorks";
 import IntentSelector from "@/components/home/IntentSelector";
-import { HardHat, Sparkles, Brain, MapPin, Truck, Zap } from "lucide-react";
+import { HardHat, Sparkles } from "lucide-react";
 
 const Index = () => {
   return (
