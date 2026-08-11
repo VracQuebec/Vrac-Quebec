@@ -116,6 +116,8 @@ export const initialFormData: QuestionnaireData = {
   deliveryDeadline: "",
   deliveryTimeframe: "",
   machineryList: [],
+  accessHeavyTruck: "",
+  accessDetails: [],
   deliveryFlexibility: "",
   materialQuantities: {},
 };
