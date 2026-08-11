@@ -519,6 +519,9 @@ const Entrepreneur = () => {
                   {availMeta(detail.availability_status).label}
                   {detail.availability_note ? ` — ${detail.availability_note}` : ""}
                 </span>
+                <span className="ml-2 text-[11px] font-body text-muted-foreground">
+                  {freshnessLabel(detail.availability_updated_at)}
+                </span>
                 <div className="flex flex-wrap gap-1.5">
                   {leadMaterialKeys(detail).map((k) => (
                     <span key={k} className="text-[11px] font-body px-2.5 py-1 rounded-full bg-secondary text-muted-foreground">
@@ -531,6 +534,10 @@ const Entrepreneur = () => {
                   <Row label="Type" value={detail.request_type || "—"} />
                   <Row label="Volume estimé" value={detail.tonnage || detail.quantity || "—"} />
                   <Row label="Accessibilité" value={(detail.accessibility || []).join(", ") || "—"} />
+                  <Row
+                    label="Accès camion lourd"
+                    value={(detail as { access_heavy_truck?: string | null }).access_heavy_truck || "À confirmer"}
+                  />
                   <Row
                     label="Machinerie sur place"
                     value={detail.machinery_available ? (detail.machinery_description || "Oui") : "Non"}
