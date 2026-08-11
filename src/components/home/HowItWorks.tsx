@@ -6,7 +6,7 @@ const STEPS = [
   { n: "1", t: "Vous indiquez votre besoin", d: "Matériau, quantité, chantier — en quelques clics." },
   { n: "2", t: "Vrac Québec cherche les solutions compatibles", d: "Sites, fournisseurs et transporteurs du réseau." },
   { n: "3", t: "Une solution à proximité est identifiée", d: "La plus proche et la plus compatible de votre chantier." },
-  { n: "4", t: "Le transport peut être coordonné", d: "Lorsque nécessaire, le transport est organisé pour vous." },
+  { n: "4", t: "Le transport peut être coordonné", d: "Lorsque c'est pertinent, le transport est assuré ou coordonné par Transport JSC." },
 ];
 
 const HowItWorks = () => (
@@ -79,7 +79,7 @@ const HowItWorks = () => (
       </div>
 
       <ul className="mx-auto mt-6 grid max-w-2xl gap-2 sm:grid-cols-2">
-        {["Moins de transport", "Meilleure utilisation des matériaux", "Réduction des coûts potentiels", "Solutions locales"].map((b) => (
+        {["Moins de transport", "Meilleure utilisation des matériaux", "Possibilité de réduire les coûts de transport et de disposition", "Solutions locales"].map((b) => (
           <li key={b} className="rounded-xl border border-border bg-card px-3 py-2 font-body text-sm text-foreground">
             {b}
           </li>
@@ -87,17 +87,17 @@ const HowItWorks = () => (
       </ul>
     </div>
 
-    {/* Pourquoi Vrac Québec */}
-    <div className="mt-6 rounded-2xl border border-border bg-card p-6 sm:p-8">
+    {/* Pourquoi Vrac Québec — cartes courtes */}
+    <div className="mt-6">
       <h3 className="font-display text-xl font-extrabold text-foreground">Pourquoi Vrac Québec&nbsp;?</h3>
-      <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+      <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ["Pourquoi ne pas simplement appeler une carrière?", "Une carrière offre ses propres matériaux. Vrac Québec compare plusieurs possibilités du réseau et cherche la plus proche et la plus compatible avec votre chantier."],
-          ["Pourquoi utiliser Vrac Québec pour du remblai?", "Des surplus provenant de chantiers peuvent être disponibles près de chez vous, souvent plus économiques qu'un matériau neuf."],
-          ["Pourquoi passer par Vrac Québec pour sortir de la terre?", "Nous cherchons un site receveur compatible avec votre matériau et votre camion, le plus près possible du chantier."],
-          ["Pourquoi utiliser Vrac Québec pour trouver une dompe?", "Parce que chaque kilomètre évité compte : la plateforme compare les sites disponibles et affiche distance et temps de trajet."],
+          ["Plutôt qu'une seule carrière", "Plusieurs sources comparées, pas une seule."],
+          ["Pour du remblai", "Des surplus de chantiers près de chez vous."],
+          ["Pour sortir de la terre", "Un site receveur compatible, au plus près."],
+          ["Pour trouver une dompe", "Distance et temps de trajet affichés."],
         ].map(([q, a]) => (
-          <div key={q}>
+          <div key={q} className="rounded-2xl border border-border bg-card p-4">
             <dt className="font-display text-sm font-bold text-foreground">{q}</dt>
             <dd className="mt-1 font-body text-sm text-muted-foreground">{a}</dd>
           </div>

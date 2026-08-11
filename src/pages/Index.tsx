@@ -7,7 +7,7 @@ import ClienteleUniverses from "@/components/home/ClienteleUniverses";
 import DompeShowcase from "@/components/home/DompeShowcase";
 import HowItWorks from "@/components/home/HowItWorks";
 import IntentSelector from "@/components/home/IntentSelector";
-import { HardHat, Sparkles, Brain, MapPin, Truck, Zap } from "lucide-react";
+import { HardHat, Sparkles } from "lucide-react";
 
 const Index = () => {
   return (
@@ -102,68 +102,22 @@ const Index = () => {
             aria-labelledby="espace-entrepreneur-title"
             className="mt-14 max-w-3xl mx-auto rounded-2xl border border-border bg-card p-6 sm:p-8 text-center"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-display font-bold uppercase tracking-wide">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted text-foreground text-xs font-display font-bold uppercase tracking-wide">
               <Sparkles className="w-3.5 h-3.5" />
               Espace entrepreneur
             </div>
             <h2
               id="espace-entrepreneur-title"
-              className="mt-4 text-2xl sm:text-3xl font-display font-extrabold text-foreground leading-tight"
+              className="mt-4 text-xl sm:text-2xl font-display font-extrabold text-foreground leading-tight"
             >
-              Trouvez la meilleure dompe{" "}
-              <span className="text-primary">en moins de 60 secondes</span>.
+              Déjà entrepreneur&nbsp;? Accédez à votre assistant.
             </h2>
-            <p className="mt-4 text-sm sm:text-base text-muted-foreground font-body max-w-xl mx-auto leading-relaxed">
-              Connectez-vous à votre espace entrepreneur pour accéder à notre assistant intelligent.
-            </p>
             <p className="mt-3 text-sm sm:text-base text-muted-foreground font-body max-w-xl mx-auto leading-relaxed">
-              Il analyse automatiquement votre chantier et vous recommande les meilleurs sites disponibles selon le matériau à transporter, la distance, le temps de trajet, la disponibilité et le type de camion.
-            </p>
-            <p className="mt-3 text-sm sm:text-base text-muted-foreground font-body max-w-xl mx-auto leading-relaxed">
-              Une fois la meilleure option trouvée, votre demande est prise en charge par Vrac Québec, qui analyse, valide et coordonne l’accès au site.
+              L’assistant intelligent de recherche de dompes est réservé aux entrepreneurs connectés. Votre demande est
+              ensuite prise en charge et coordonnée par Vrac Québec.
             </p>
 
-            {/* Avantages */}
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left max-w-xl mx-auto">
-              <div className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
-                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary shrink-0">
-                  <Brain className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="font-display font-semibold text-foreground text-sm">Recommandation intelligente</p>
-                  <p className="text-xs text-muted-foreground">Un site suggéré selon votre chantier.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
-                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary shrink-0">
-                  <MapPin className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="font-display font-semibold text-foreground text-sm">Distance et temps de trajet</p>
-                  <p className="text-xs text-muted-foreground">Calculs automatisés en temps réel.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
-                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary shrink-0">
-                  <Truck className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="font-display font-semibold text-foreground text-sm">Compatible avec votre camion</p>
-                  <p className="text-xs text-muted-foreground">Seuls les sites adaptés sont affichés.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
-                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary shrink-0">
-                  <Zap className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="font-display font-semibold text-foreground text-sm">Demande traitée par Vrac Québec</p>
-                  <p className="text-xs text-muted-foreground">Vrac Québec coordonne l’accès au site.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
               <a
                 href="/login"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-base shadow-lg hover:opacity-90 transition-opacity"
