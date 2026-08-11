@@ -187,26 +187,35 @@ const Index = () => {
           ensures only the buttons themselves capture taps — the surrounding gaps
           let the user interact with the questionnaire underneath. */}
       <div className="md:hidden fixed bottom-2 left-2 right-2 z-50 flex flex-col gap-1.5 pointer-events-none">
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-3 gap-1.5">
           <a
             href="tel:5819947717"
-            className="pointer-events-auto flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-primary text-primary-foreground font-display font-semibold text-xs shadow-lg"
+            className="pointer-events-auto flex flex-col items-center justify-center px-2 py-1.5 rounded-full bg-primary text-primary-foreground font-display font-semibold text-[11px] leading-tight shadow-lg"
           >
-            📞 581-994-7717
+            <span>📞 Appeler</span>
+            <span className="text-[9px] opacity-90">Québec / Lévis</span>
           </a>
           <a
-            href="tel:8195923495"
-            className="pointer-events-auto flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-primary text-primary-foreground font-display font-semibold text-xs shadow-lg"
+            href="sms:15819947717?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
+            className="pointer-events-auto flex flex-col items-center justify-center px-2 py-1.5 rounded-full bg-foreground text-background font-display font-semibold text-[11px] leading-tight shadow-lg"
           >
-            📞 819-592-3495
+            <span>💬 Texto</span>
+            <span className="text-[9px] opacity-80">Réponse rapide</span>
+          </a>
+          <a
+            href="#questionnaire"
+            className="pointer-events-auto flex flex-col items-center justify-center px-2 py-1.5 rounded-full bg-primary text-primary-foreground font-display font-semibold text-[11px] leading-tight shadow-lg"
+          >
+            <span>📝 Demande</span>
+            <span className="text-[9px] opacity-90">En 60 secondes</span>
           </a>
         </div>
         <div className="grid grid-cols-2 gap-1.5">
         <a
-          href="sms:15819947717?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
-          className="pointer-events-auto flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-foreground text-background font-display font-semibold text-xs shadow-lg"
+          href="tel:8195923495"
+          className="pointer-events-auto flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-card border border-border text-foreground font-display font-semibold text-[11px] shadow-lg"
         >
-          💬 Texto
+          📞 Répartition · 819-592-3495
         </a>
         <a
           href="https://wa.me/15819947717?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
