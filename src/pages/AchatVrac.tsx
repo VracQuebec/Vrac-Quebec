@@ -6,7 +6,7 @@
 // ============================================================
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Calculator, Check, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TransportBanner from "@/components/TransportBanner";
@@ -31,11 +31,30 @@ export default function AchatVrac() {
   const materials = useMemo(() => getActiveVracMaterials(), []);
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<VracDraft>(EMPTY_VRAC_DRAFT);
+  const [searchParams] = useSearchParams();
   const estimate = useVracEstimate();
   const submission = useQuoteSubmit();
 
-  // Sauvegarde automatique : on peut revenir en arrière sans rien reperdre.
-  useEffect(() => { setDraft(loadVracDraft()); }, []);
+  // Sauvegarde automatique + pré-remplissage depuis le calculateur
+  // (?material=<slug>&qty=<nombre>&unit=tonne|m3|verge).
+  useEffect(() => {
+    const saved = loadVracDraft();
+    const slug = searchParams.get("material");
+    const qty = Number(searchParams.get("qty"));
+    const unit = searchParams.get("unit");
+    const preset = slug ? getActiveVracMaterials().find((m) => m.slug === slug) : null;
+    if (!preset) { setDraft(saved); return; }
+    const validUnit = unit === "m3" || unit === "verge" ? unit : "tonne";
+    setDraft({
+      ...saved,
+      materialId: preset.id,
+      quantityMode: qty > 0 ? "tonnes" : saved.quantityMode,
+      quantityUnit: qty > 0 ? validUnit : saved.quantityUnit,
+      tonnes: qty > 0 ? String(qty) : saved.tonnes,
+    });
+    setStep(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => { saveVracDraft(draft); }, [draft]);
 
   const set = (patch: Partial<VracDraft>) => setDraft((d) => ({ ...d, ...patch }));

@@ -83,6 +83,9 @@ export interface QuestionnaireData {
   machineryList: string[];
   deliveryFlexibility: string;
   materialQuantities: Record<string, string>;
+  /** Point 30 — vérification d'accès au chantier (optionnel). */
+  accessHeavyTruck: string;
+  accessDetails: string[];
 }
 
 export const initialFormData: QuestionnaireData = {
@@ -113,6 +116,8 @@ export const initialFormData: QuestionnaireData = {
   deliveryDeadline: "",
   deliveryTimeframe: "",
   machineryList: [],
+  accessHeavyTruck: "",
+  accessDetails: [],
   deliveryFlexibility: "",
   materialQuantities: {},
 };
@@ -230,6 +235,25 @@ export const REMBLAI_TIMEFRAME_OPTIONS = [
   "Dans les prochaines semaines",
   "Flexible",
   "Je ne sais pas",
+] as const;
+
+// ---- Point 30 — vérification d'accès au chantier ----
+export const ACCESS_HEAVY_TRUCK_OPTIONS = [
+  "Oui, un camion lourd peut entrer",
+  "Probablement, à valider",
+  "Non, accès restreint",
+  "Je ne sais pas",
+] as const;
+
+export const ACCESS_DETAIL_OPTIONS = [
+  "Pente prononcée",
+  "Fils électriques bas",
+  "Branches d'arbres basses",
+  "Sol mou ou boueux",
+  "Espace de recul limité",
+  "Demi-tour possible sur le terrain",
+  "Entrée asphaltée ou pavée",
+  "Voisinage rapproché",
 ] as const;
 
 // Materials that trigger the "remblai / dépôt / matériel à sortir" special form

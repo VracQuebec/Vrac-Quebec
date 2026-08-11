@@ -7289,6 +7289,7 @@ export type Database = {
       }
       jsc_trucks: {
         Row: {
+          access_requirements: string[] | null
           archived_at: string | null
           archived_by: string | null
           availability: string
@@ -7303,18 +7304,24 @@ export type Database = {
           id: string
           internal_notes: string | null
           is_active: boolean
+          is_public: boolean
           is_subcontracted: boolean
+          limitations: string[] | null
           loading_time_minutes: number
           name: string
           operational_status: string
           per_km_rate: number | null
           per_trip_rate: number | null
+          public_description: string | null
+          public_image_url: string | null
+          public_uses: string[] | null
           sort_order: number
           truck_type: string | null
           unloading_time_minutes: number
           updated_at: string
         }
         Insert: {
+          access_requirements?: string[] | null
           archived_at?: string | null
           archived_by?: string | null
           availability?: string
@@ -7329,18 +7336,24 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           is_active?: boolean
+          is_public?: boolean
           is_subcontracted?: boolean
+          limitations?: string[] | null
           loading_time_minutes?: number
           name: string
           operational_status?: string
           per_km_rate?: number | null
           per_trip_rate?: number | null
+          public_description?: string | null
+          public_image_url?: string | null
+          public_uses?: string[] | null
           sort_order?: number
           truck_type?: string | null
           unloading_time_minutes?: number
           updated_at?: string
         }
         Update: {
+          access_requirements?: string[] | null
           archived_at?: string | null
           archived_by?: string | null
           availability?: string
@@ -7355,12 +7368,17 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           is_active?: boolean
+          is_public?: boolean
           is_subcontracted?: boolean
+          limitations?: string[] | null
           loading_time_minutes?: number
           name?: string
           operational_status?: string
           per_km_rate?: number | null
           per_trip_rate?: number | null
+          public_description?: string | null
+          public_image_url?: string | null
+          public_uses?: string[] | null
           sort_order?: number
           truck_type?: string | null
           unloading_time_minutes?: number
@@ -9735,11 +9753,14 @@ export type Database = {
       }
       submissions: {
         Row: {
+          access_details: Json | null
+          access_heavy_truck: string | null
           accessibility: string[] | null
           address: string
           assigned_entrepreneur: string | null
           availability_note: string | null
           availability_status: string
+          availability_updated_at: string | null
           budget_max: string | null
           budget_unit: string | null
           city: string | null
@@ -9811,11 +9832,14 @@ export type Database = {
           width_ft: string | null
         }
         Insert: {
+          access_details?: Json | null
+          access_heavy_truck?: string | null
           accessibility?: string[] | null
           address: string
           assigned_entrepreneur?: string | null
           availability_note?: string | null
           availability_status?: string
+          availability_updated_at?: string | null
           budget_max?: string | null
           budget_unit?: string | null
           city?: string | null
@@ -9887,11 +9911,14 @@ export type Database = {
           width_ft?: string | null
         }
         Update: {
+          access_details?: Json | null
+          access_heavy_truck?: string | null
           accessibility?: string[] | null
           address?: string
           assigned_entrepreneur?: string | null
           availability_note?: string | null
           availability_status?: string
+          availability_updated_at?: string | null
           budget_max?: string | null
           budget_unit?: string | null
           city?: string | null
@@ -11083,9 +11110,11 @@ export type Database = {
       get_entrepreneur_leads: {
         Args: never
         Returns: {
+          access_heavy_truck: string
           accessibility: string[]
           availability_note: string
           availability_status: string
+          availability_updated_at: string
           contamination: string
           created_at: string
           deliver_or_remove: string
@@ -11368,7 +11397,32 @@ export type Database = {
           slug: string
         }[]
       }
+      jsc_public_materials_calc: {
+        Args: never
+        Returns: {
+          allowed_units: string[]
+          density_kg_per_m3: number
+          name: string
+          slug: string
+        }[]
+      }
       jsc_public_truck_capacity: { Args: never; Returns: number }
+      jsc_public_truck_profiles: {
+        Args: never
+        Returns: {
+          access_requirements: string[]
+          axle_count: number
+          capacity_m3: number
+          capacity_tonnes: number
+          id: string
+          limitations: string[]
+          name: string
+          public_description: string
+          public_image_url: string
+          public_uses: string[]
+          truck_type: string
+        }[]
+      }
       jsc_public_trucks: {
         Args: never
         Returns: {

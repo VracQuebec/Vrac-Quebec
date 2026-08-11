@@ -65,6 +65,8 @@ async function build(): Promise<Entry[]> {
     { path: "/blog/guides", changefreq: "weekly", priority: "0.8" },
     { path: "/blog/faq", changefreq: "weekly", priority: "0.8" },
     { path: "/livraison", changefreq: "weekly", priority: "0.8" },
+    { path: "/calculateur", changefreq: "monthly", priority: "0.8" },
+    { path: "/types-de-camions", changefreq: "monthly", priority: "0.7" },
   ];
 
   // /livraison/:citySlug — only cities that actually have visible dumps.

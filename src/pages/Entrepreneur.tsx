@@ -46,7 +46,18 @@ interface EntLead {
   is_assigned: boolean;
   availability_status?: string | null;
   availability_note?: string | null;
+  availability_updated_at?: string | null;
 }
+
+/** Point 42 — fraîcheur de la donnée de disponibilité (jamais inventée). */
+const freshnessLabel = (iso?: string | null) => {
+  if (!iso) return "Disponibilité à confirmer";
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days <= 0) return "Mis à jour aujourd'hui";
+  if (days === 1) return "Mis à jour hier";
+  if (days <= 7) return `Mis à jour il y a ${days} jours`;
+  return "À confirmer";
+};
 
 const AVAIL_META: Record<string, { label: string; color: string; dot: string }> = {
   available: { label: "Disponible", color: "#16a34a", dot: "🟢" },
@@ -269,9 +280,17 @@ const Entrepreneur = () => {
             <span className="font-display font-bold text-xl text-foreground">Vrac<span className="text-primary">Québec</span></span>
             <span className="ml-2 px-2 py-0.5 rounded-full text-[11px] bg-secondary text-muted-foreground font-body">Entrepreneur</span>
           </div>
-          <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-            <LogOut className="w-4 h-4" /> Déconnexion
-          </button>
+          <div className="flex items-center gap-4">
+            <a
+              href="/entrepreneur/comparateur"
+              className="text-sm font-body text-muted-foreground hover:text-foreground"
+            >
+              Comparateur de dompes
+            </a>
+            <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
+              <LogOut className="w-4 h-4" /> Déconnexion
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -508,6 +527,9 @@ const Entrepreneur = () => {
                   {availMeta(detail.availability_status).label}
                   {detail.availability_note ? ` — ${detail.availability_note}` : ""}
                 </span>
+                <span className="ml-2 text-[11px] font-body text-muted-foreground">
+                  {freshnessLabel(detail.availability_updated_at)}
+                </span>
                 <div className="flex flex-wrap gap-1.5">
                   {leadMaterialKeys(detail).map((k) => (
                     <span key={k} className="text-[11px] font-body px-2.5 py-1 rounded-full bg-secondary text-muted-foreground">
@@ -520,6 +542,10 @@ const Entrepreneur = () => {
                   <Row label="Type" value={detail.request_type || "—"} />
                   <Row label="Volume estimé" value={detail.tonnage || detail.quantity || "—"} />
                   <Row label="Accessibilité" value={(detail.accessibility || []).join(", ") || "—"} />
+                  <Row
+                    label="Accès camion lourd"
+                    value={(detail as { access_heavy_truck?: string | null }).access_heavy_truck || "À confirmer"}
+                  />
                   <Row
                     label="Machinerie sur place"
                     value={detail.machinery_available ? (detail.machinery_description || "Oui") : "Non"}

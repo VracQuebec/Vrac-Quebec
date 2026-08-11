@@ -10,6 +10,8 @@ import {
   REMBLAI_TRUCK_OPTIONS,
   REMBLAI_MACHINERY_OPTIONS,
   REMBLAI_TIMEFRAME_OPTIONS,
+  ACCESS_HEAVY_TRUCK_OPTIONS,
+  ACCESS_DETAIL_OPTIONS,
   type QuestionnaireData,
 } from "@/lib/questionnaire-data";
 
@@ -76,7 +78,7 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading, variant = "recherche" 
     (REMBLAI_MATERIAL_OPTIONS as readonly string[]).includes(m)
   );
 
-  const toggleArr = (key: "materials" | "accessibility" | "machineryList", v: string) => {
+  const toggleArr = (key: "materials" | "accessibility" | "machineryList" | "accessDetails", v: string) => {
     const arr = (data[key] as string[] | undefined) || [];
     onChange({
       [key]: arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v],
@@ -459,6 +461,10 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading, variant = "recherche" 
 
       {/* Section 9 - Photos */}
       <Section number={9} title="Photos de l'emplacement (optionnel)">
+        <p className="text-sm text-muted-foreground mb-2">
+          Les photos les plus utiles : l'entrée du terrain, le chemin d'accès, l'espace de recul et
+          la zone de chargement ou de déchargement.
+        </p>
         <label className="flex items-center justify-center gap-2 px-4 py-5 rounded-lg border-2 border-dashed border-border bg-background cursor-pointer hover:border-primary/50 transition-colors">
           {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
           <span className="text-sm font-body font-semibold">
@@ -490,8 +496,44 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading, variant = "recherche" 
         )}
       </Section>
 
-      {/* Section 10 - Commentaires */}
-      <Section number={10} title="Commentaires / précisions (optionnel)">
+      {/* Section 10 - Accès au chantier */}
+      <Section number={10} title="Accès au chantier (optionnel)">
+        <p className="text-sm text-muted-foreground mb-2">
+          Ces précisions évitent un déplacement inutile et aident à choisir le bon camion.
+        </p>
+        <div className="grid grid-cols-1 gap-2">
+          {ACCESS_HEAVY_TRUCK_OPTIONS.map((o) => {
+            const active = data.accessHeavyTruck === o;
+            return (
+              <button key={o} type="button" onClick={() => onChange({ accessHeavyTruck: active ? "" : o })}
+                className={checkboxRow(active)}>
+                <span className="w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center shrink-0">
+                  {active ? "•" : ""}
+                </span>
+                <span>{o}</span>
+              </button>
+            );
+          })}
+        </div>
+        {data.accessHeavyTruck && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+            {ACCESS_DETAIL_OPTIONS.map((o) => {
+              const active = (data.accessDetails || []).includes(o);
+              return (
+                <button key={o} type="button" onClick={() => toggleArr("accessDetails", o)} className={checkboxRow(active)}>
+                  <span className="w-5 h-5 rounded border-2 border-primary flex items-center justify-center shrink-0">
+                    {active ? "✓" : ""}
+                  </span>
+                  <span>{o}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </Section>
+
+      {/* Section 11 - Commentaires */}
+      <Section number={11} title="Commentaires / précisions (optionnel)">
         <textarea
           value={data.description}
           onChange={(e) => onChange({ description: e.target.value })}
