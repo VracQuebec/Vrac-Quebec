@@ -43,8 +43,8 @@ const DompeShowcase = () => (
       </div>
 
       <div className="rounded-2xl border border-border bg-background p-5">
-        <p className="font-display text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-          Exemple d'utilisation (illustration)
+        <p className="inline-flex rounded-full bg-muted px-2.5 py-1 font-display text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          Exemple fictif — illustration seulement
         </p>
         <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
           {[
@@ -53,23 +53,23 @@ const DompeShowcase = () => (
             { icon: Truck, k: "Camion", v: "12 roues" },
           ].map(({ icon: Icon, k, v }) => (
             <div key={k} className="rounded-xl border border-border bg-card p-3">
-              <Icon className="mx-auto h-4 w-4 text-primary" aria-hidden />
+              <Icon className="mx-auto h-4 w-4 text-muted-foreground" aria-hidden />
               <dt className="mt-1.5 font-display text-[10px] uppercase tracking-wide text-muted-foreground">{k}</dt>
               <dd className="font-display text-sm font-bold text-foreground">{v}</dd>
             </div>
           ))}
         </dl>
-        <div className="mt-4 rounded-xl bg-primary/10 p-4">
+        <div className="mt-4 rounded-xl border border-border bg-muted/60 p-4">
           <p className="font-display text-sm font-bold text-foreground">3 sites compatibles</p>
           <p className="mt-1 font-body text-xs text-muted-foreground">Site recommandé</p>
-          <div className="mt-2 flex items-center gap-4 font-display text-lg font-extrabold text-primary">
+          <div className="mt-2 flex items-center gap-4 font-display text-lg font-extrabold text-foreground">
             <span className="inline-flex items-center gap-1.5"><Clock className="h-4 w-4" aria-hidden /> 14 min</span>
             <span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4" aria-hidden /> 9,8 km</span>
           </div>
         </div>
         <p className="mt-3 font-body text-[11px] leading-relaxed text-muted-foreground">
-          Exemple seulement. Les sites, distances et disponibilités réels sont calculés à partir de
-          votre chantier dans l'espace entrepreneur.
+          Ces valeurs (3 sites, 14 min, 9,8 km) sont un exemple, pas des résultats réels. Les sites, distances et
+          disponibilités réels sont calculés à partir de votre chantier dans l'espace entrepreneur.
         </p>
       </div>
     </div>
