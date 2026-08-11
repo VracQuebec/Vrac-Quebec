@@ -83,6 +83,9 @@ export interface QuestionnaireData {
   machineryList: string[];
   deliveryFlexibility: string;
   materialQuantities: Record<string, string>;
+  /** Point 30 — vérification d'accès au chantier (optionnel). */
+  accessHeavyTruck: string;
+  accessDetails: string[];
 }
 
 export const initialFormData: QuestionnaireData = {
