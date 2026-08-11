@@ -8,12 +8,12 @@ const UNIVERSES = [
     tag: "Particulier",
     title: "J'ai besoin de matériaux",
     items: ["Terre", "Sable", "Pierre", "Gravier", "Remblai", "Enrochement", "Nivellement", "Entrées", "Terrains"],
-    cta: "Obtenir un prix",
+    cta: "Trouver mes matériaux",
     to: "/acheter-materiaux",
   },
   {
     icon: Truck,
-    tag: "Chantier",
+    tag: "Matériaux à sortir",
     title: "J'ai des matériaux à sortir",
     items: ["Terre", "Argile", "Sable", "Pierre", "Béton", "Asphalte", "Autres matériaux"],
     cta: "Trouver une solution",
@@ -30,7 +30,8 @@ const UNIVERSES = [
   {
     icon: HardHat,
     tag: "Professionnel",
-    title: "Entrepreneur, transporteur ou partenaire",
+    title: "Je suis un professionnel",
+    subtitle: "Entrepreneur • Transporteur • Partenaire",
     items: ["Espace professionnel", "Réseau Vrac Québec", "Coordination du transport"],
     cta: "Accéder à l'espace pro",
     to: "/login",
@@ -46,17 +47,20 @@ const ClienteleUniverses = () => (
       Chaque besoin a son parcours — choisissez le vôtre.
     </p>
     <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {UNIVERSES.map(({ icon: Icon, tag, title, items, cta, to }) => (
+      {UNIVERSES.map(({ icon: Icon, tag, title, items, cta, to, ...rest }) => (
         <Link
           key={title}
           to={to}
           className="group flex h-full flex-col rounded-2xl border border-border bg-card p-5 transition-all hover:-translate-y-1 hover:border-primary hover:shadow-lg"
         >
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-foreground">
             <Icon className="h-5 w-5" aria-hidden />
           </span>
-          <span className="mt-4 font-display text-[11px] font-bold uppercase tracking-wider text-primary">{tag}</span>
+          <span className="mt-4 font-display text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{tag}</span>
           <h3 className="mt-1 font-display text-lg font-bold leading-snug text-foreground">{title}</h3>
+          {"subtitle" in rest && rest.subtitle ? (
+            <p className="mt-1 font-body text-xs text-muted-foreground">{rest.subtitle}</p>
+          ) : null}
           <ul className="mt-3 flex flex-1 flex-wrap gap-1.5">
             {items.map((it) => (
               <li key={it} className="rounded-full bg-muted px-2.5 py-1 font-body text-[11px] text-muted-foreground">
