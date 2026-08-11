@@ -280,9 +280,17 @@ const Entrepreneur = () => {
             <span className="font-display font-bold text-xl text-foreground">Vrac<span className="text-primary">Québec</span></span>
             <span className="ml-2 px-2 py-0.5 rounded-full text-[11px] bg-secondary text-muted-foreground font-body">Entrepreneur</span>
           </div>
-          <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-            <LogOut className="w-4 h-4" /> Déconnexion
-          </button>
+          <div className="flex items-center gap-4">
+            <a
+              href="/entrepreneur/comparateur"
+              className="text-sm font-body text-muted-foreground hover:text-foreground"
+            >
+              Comparateur de dompes
+            </a>
+            <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
+              <LogOut className="w-4 h-4" /> Déconnexion
+            </button>
+          </div>
         </div>
       </nav>
 
