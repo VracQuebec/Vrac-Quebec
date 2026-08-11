@@ -122,9 +122,15 @@ export default function EntrepreneurComparateur() {
   const best = withDistance[0] ?? null;
   const worst = withDistance.length > 1 ? withDistance[withDistance.length - 1] : null;
 
-  if (!isReady || roleLoading || loading) return <FullPageState variant="loading" title="Chargement…" />;
+  if (!isReady || roleLoading || loading) return <FullPageState title="Chargement des sites" />;
   if (!isEntrepreneur && !isAdmin)
-    return <FullPageState variant="error" title="Accès réservé" description="Cet outil est réservé aux entrepreneurs approuvés." />;
+    return (
+      <FullPageState
+        showSpinner={false}
+        title="Accès réservé"
+        message="Cet outil est réservé aux entrepreneurs approuvés."
+      />
+    );
 
   return (
     <div className="min-h-screen bg-background">
