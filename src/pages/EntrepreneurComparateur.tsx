@@ -574,7 +574,57 @@ export default function EntrepreneurComparateur() {
           )}
         </section>
 
-        {best && worst && best.distance_km != null && worst.distance_km != null && (
+        {selection && (
+          <section className="mt-6 rounded-2xl border-2 border-primary bg-primary/5 p-4 sm:p-5">
+            <p className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-foreground">
+              <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden /> Site sélectionné
+            </p>
+            <dl className="mt-3 grid gap-1.5 font-body text-sm text-foreground sm:grid-cols-2">
+              <div><dt className="inline font-semibold">Référence de la demande : </dt>
+                <dd className="inline">{selection.submissionId ? selection.submissionId.slice(0, 8) : "Non rattachée"}</dd></div>
+              <div><dt className="inline font-semibold">Site : </dt><dd className="inline">{selection.siteLabel}</dd></div>
+              <div><dt className="inline font-semibold">Matériau : </dt>
+                <dd className="inline">{selection.materialLabel || "À compléter"}</dd></div>
+              <div><dt className="inline font-semibold">Quantité : </dt>
+                <dd className="inline">
+                  {selection.quantityValue
+                    ? `${selection.quantityValue} ${QUANTITY_UNIT_OPTIONS.find((u) => u.value === selection.quantityUnit)?.label ?? selection.quantityUnit}`
+                    : "À compléter"}
+                </dd></div>
+              <div><dt className="inline font-semibold">Camion : </dt>
+                <dd className="inline">{selection.truckLabel || "À compléter"}</dd></div>
+              <div><dt className="inline font-semibold">Voyages : </dt>
+                <dd className="inline">{selection.trips != null ? selection.trips : "Non calculable"}</dd></div>
+              <div><dt className="inline font-semibold">Distance : </dt>
+                <dd className="inline">{selection.distanceKm != null ? `${selection.distanceKm.toFixed(1)} km` : "À confirmer"}</dd></div>
+              <div><dt className="inline font-semibold">Durée : </dt>
+                <dd className="inline">{selection.durationMinutes != null ? `${Math.round(selection.durationMinutes)} min` : "À confirmer"}</dd></div>
+              <div className="sm:col-span-2"><dt className="inline font-semibold">Adresse : </dt>
+                <dd className="inline">{selection.address || "À compléter"}</dd></div>
+              {(selection.desiredDate || selection.timeframe) && (
+                <div className="sm:col-span-2"><dt className="inline font-semibold">Date / délai : </dt>
+                  <dd className="inline">{[selection.desiredDate, selection.timeframe].filter(Boolean).join(" • ")}</dd></div>
+              )}
+              {selection.accessDetails.length > 0 && (
+                <div className="sm:col-span-2"><dt className="inline font-semibold">Contraintes d'accès : </dt>
+                  <dd className="inline">{selection.accessDetails.join(" • ")}</dd></div>
+              )}
+            </dl>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <Button onClick={() => continueToRequest(selection)}
+                className="h-12 flex-1 font-display text-sm font-bold uppercase tracking-wide">
+                Poursuivre la demande de transport
+                <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+              </Button>
+              <Button variant="outline" onClick={() => { clearSelection(); setSelection(null); }}
+                className="h-12 font-display text-sm font-bold uppercase tracking-wide">
+                Changer de site
+              </Button>
+            </div>
+          </section>
+        )}
+
+        {best && worst && tripCount != null && best.distance_km != null && worst.distance_km != null && (
           <div className="mt-6 rounded-2xl border-2 border-primary/40 bg-primary/5 p-4 sm:p-5">
             <p className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-foreground">
               <TrendingDown className="h-4 w-4 text-primary" aria-hidden /> Économie potentielle
