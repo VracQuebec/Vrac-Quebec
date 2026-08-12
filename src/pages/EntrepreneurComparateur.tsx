@@ -29,6 +29,9 @@ import {
   loadHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff,
   saveSelection, loadSelection, clearSelection, type ComparateurSelection,
 } from "@/lib/parcours/handoff";
+import {
+  persistSelection, fetchPersistedSelection, type PersistedSelection,
+} from "@/lib/parcours/selection";
 import { usePublicTrucks } from "@/lib/vrac/units";
 import { useCalcMaterials } from "@/lib/vrac/calculator";
 import { computeBesoin } from "@/lib/parcours/besoin";
@@ -83,6 +86,9 @@ export default function EntrepreneurComparateur() {
   const [showIncompatible, setShowIncompatible] = useState(false);
   const [request, setRequest] = useState<ParcoursHandoff | null>(null);
   const [selection, setSelection] = useState<ComparateurSelection | null>(null);
+  const [persisted, setPersisted] = useState<PersistedSelection | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Référentiel administré (aucune valeur en dur) : capacités de camions
   // et densités de matériaux servent au calcul du nombre de voyages.
@@ -140,6 +146,17 @@ export default function EntrepreneurComparateur() {
     const s = loadSelection();
     if (s) setSelection(s);
   }, []);
+
+  // Source de vérité après sélection : la demande existante (CRM).
+  // Au rechargement, on relit la sélection réellement enregistrée.
+  useEffect(() => {
+    const id = request?.submissionId;
+    if (!id || !isReady || roleLoading || (!isEntrepreneur && !isAdmin)) return;
+    void (async () => {
+      const p = await fetchPersistedSelection(id);
+      if (p) setPersisted(p);
+    })();
+  }, [request?.submissionId, isReady, roleLoading, isEntrepreneur, isAdmin]);
 
   useEffect(() => {
     if (isReady && !user) navigate("/login", { replace: true });
@@ -250,7 +267,8 @@ export default function EntrepreneurComparateur() {
 
   // Sélection : rattachée à la demande existante et persistée.
   // Aucune écriture en base ici → aucune nouvelle demande créée.
-  const selectSite = (r: Ranked) => {
+  const selectSite = async (r: Ranked) => {
+    if (saving) return; // anti double-clic : aucune double écriture
     const sel: ComparateurSelection = {
       submissionId: request?.submissionId ?? null,
       siteId: r.id,
@@ -273,8 +291,29 @@ export default function EntrepreneurComparateur() {
       accessDetails: request?.accessDetails ?? [],
       createdAt: Date.now(),
     };
+    // Le brouillon local est toujours conservé : même en cas d'échec
+    // d'écriture, l'entrepreneur ne perd pas son choix.
     saveSelection(sel);
     setSelection(sel);
+    setSaveError(null);
+
+    if (!sel.submissionId) {
+      // Aucune demande existante : rien n'est écrit au CRM (pas de doublon).
+      setPersisted(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    setSaving(true);
+    const res = await persistSelection(sel);
+    setSaving(false);
+    if (res.ok) {
+      setPersisted(res.saved);
+    } else {
+      setPersisted(null);
+      setSaveError(res.message);
+      toast({ title: "Enregistrement impossible", description: res.message, variant: "destructive" });
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
