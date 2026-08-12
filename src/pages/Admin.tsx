@@ -10,6 +10,11 @@ import { Switch } from "@/components/ui/switch";
 import StatusManagerModal from "@/components/StatusManagerModal";
 import FullPageState from "@/components/FullPageState";
 import {
+  validateSelectedSite,
+  buildTransportPrefill,
+  type TransportPrefillSource,
+} from "@/lib/parcours/validation";
+import {
   Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List,
   Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings,
 } from "lucide-react";
