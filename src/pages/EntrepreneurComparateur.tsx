@@ -27,7 +27,12 @@ import {
 } from "@/lib/entrepreneur/site-match";
 import {
   loadHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff,
+  saveSelection, loadSelection, clearSelection, type ComparateurSelection,
 } from "@/lib/parcours/handoff";
+import { usePublicTrucks } from "@/lib/vrac/units";
+import { useCalcMaterials } from "@/lib/vrac/calculator";
+import { computeBesoin } from "@/lib/parcours/besoin";
+import { QUANTITY_UNIT_OPTIONS } from "@/lib/questionnaire-data";
 
 type Lead = SiteLike & {
   id: string;
@@ -71,11 +76,18 @@ export default function EntrepreneurComparateur() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [material, setMaterial] = useState<MaterialKey | "">("");
   const [truck, setTruck] = useState<TruckKey | "">("");
-  const [trips, setTrips] = useState("1");
+  const [quantityValue, setQuantityValue] = useState("");
+  const [quantityUnit, setQuantityUnit] = useState<string>("voyages");
   const [ranked, setRanked] = useState<Ranked[] | null>(null);
   const [computing, setComputing] = useState(false);
   const [showIncompatible, setShowIncompatible] = useState(false);
   const [request, setRequest] = useState<ParcoursHandoff | null>(null);
+  const [selection, setSelection] = useState<ComparateurSelection | null>(null);
+
+  // Référentiel administré (aucune valeur en dur) : capacités de camions
+  // et densités de matériaux servent au calcul du nombre de voyages.
+  const publicTrucks = usePublicTrucks();
+  const { materials: calcMaterials } = useCalcMaterials();
 
   useEffect(() => {
     document.title = "Comparateur de sites de dépôt | Vrac Québec";
@@ -113,8 +125,21 @@ export default function EntrepreneurComparateur() {
       typeof pf.trips === "string" && pf.trips.trim()
         ? pf.trips.trim()
         : tripsFromHandoff(pf as unknown as ParcoursHandoff);
-    if (tripsValue) setTrips(tripsValue);
+    // Quantité reprise telle quelle (valeur + unité), sans conversion.
+    if (typeof pf.quantityValue === "string" && pf.quantityValue.trim()) {
+      setQuantityValue(pf.quantityValue.trim());
+      if (typeof pf.quantityUnit === "string" && pf.quantityUnit) setQuantityUnit(pf.quantityUnit);
+    } else if (tripsValue) {
+      setQuantityValue(tripsValue);
+      setQuantityUnit("voyages");
+    }
   }, [location.state]);
+
+  // Sélection déjà effectuée : restaurée au retour arrière ou au rechargement.
+  useEffect(() => {
+    const s = loadSelection();
+    if (s) setSelection(s);
+  }, []);
 
   useEffect(() => {
     if (isReady && !user) navigate("/login", { replace: true });
@@ -131,10 +156,46 @@ export default function EntrepreneurComparateur() {
   }, [isReady, roleLoading, isEntrepreneur, isAdmin]);
 
   const geoLeads = useMemo(() => leads.filter((l) => l.latitude && l.longitude), [leads]);
-  const tripCount = Math.max(1, Math.floor(Number(trips) || 1));
+
+  // Capacité du camion choisi : administrée (jsc_trucks), jamais inventée.
+  const capacityTonnes = useMemo(() => {
+    if (!truck) return null;
+    const match = publicTrucks.filter((t) => t.truck_type === truck);
+    if (!match.length) return null;
+    return Math.max(...match.map((t) => t.capacity_tonnes));
+  }, [truck, publicTrucks]);
+
+  // Densité du matériau : administrée (jsc_materials), jamais inventée.
+  const densityKgPerM3 = useMemo(() => {
+    if (!material) return null;
+    const m = calcMaterials.find((c) => normalizeMaterial(c.name) === material);
+    return m?.density_kg_per_m3 ?? null;
+  }, [material, calcMaterials]);
+
+  const besoin = useMemo(
+    () => computeBesoin({ quantityValue, quantityUnit, densityKgPerM3, capacityTonnes }),
+    [quantityValue, quantityUnit, densityKgPerM3, capacityTonnes],
+  );
+  const tripCount = besoin.trips;
+
+  const truckLabel = truck ? TRUCK_OPTIONS.find((t) => t.key === truck)?.label ?? "" : "";
+  const materialLabel = material ? MATERIAL_OPTIONS.find((m) => m.key === material)?.label ?? "" : "";
+  const unitLabelFr =
+    QUANTITY_UNIT_OPTIONS.find((u) => u.value === quantityUnit)?.label ?? quantityUnit;
+
+  /** Ce qui empêche encore de comparer, en langage clair. */
+  const blockers = useMemo(() => {
+    const out: string[] = [];
+    if (!address.trim()) out.push("Indiquez l'adresse du chantier.");
+    else if (!coords) out.push("Sélectionnez une suggestion d'adresse Google : les coordonnées sont nécessaires au calcul des trajets.");
+    if (!material) out.push("Choisissez le matériau à disposer.");
+    if (!truck) out.push("Choisissez le type de camion.");
+    if (!quantityValue.trim()) out.push("Indiquez la quantité à évacuer.");
+    return out;
+  }, [address, coords, material, truck, quantityValue]);
 
   const compare = async () => {
-    if (!coords) return;
+    if (!coords || blockers.length > 0) return;
     setComputing(true);
     setRanked(null);
     try {
