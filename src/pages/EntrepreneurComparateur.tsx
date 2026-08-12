@@ -154,7 +154,31 @@ export default function EntrepreneurComparateur() {
     if (!id || !isReady || roleLoading || (!isEntrepreneur && !isAdmin)) return;
     void (async () => {
       const p = await fetchPersistedSelection(id);
-      if (p) setPersisted(p);
+      if (!p) return;
+      setPersisted(p);
+      // Reload sans brouillon local : la demande existante fait foi.
+      setSelection((cur) => cur ?? {
+        submissionId: p.submissionId,
+        siteId: p.siteId ?? "",
+        siteLabel: p.siteLabel ?? "Site sélectionné",
+        distanceKm: p.distanceKm,
+        durationMinutes: p.durationMinutes,
+        trips: p.trips,
+        tonnes: p.tonnes,
+        quantityValue: p.quantity != null ? String(p.quantity) : "",
+        quantityUnit: p.unit ?? "",
+        materialKey: null,
+        materialLabel: p.material ?? "",
+        truckKey: null,
+        truckLabel: p.truck ?? "",
+        capacityTonnes: null,
+        address: "",
+        coords: null,
+        desiredDate: p.desiredDate ?? "",
+        timeframe: p.timeframe ?? "",
+        accessDetails: Array.isArray(p.accessDetails) ? (p.accessDetails as string[]) : [],
+        createdAt: Date.now(),
+      });
     })();
   }, [request?.submissionId, isReady, roleLoading, isEntrepreneur, isAdmin]);
 
