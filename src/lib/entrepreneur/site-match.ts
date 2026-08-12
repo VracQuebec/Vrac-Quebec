@@ -201,13 +201,30 @@ export const STATUS_META: Record<Compat, { label: string; cls: string; dot: stri
 };
 
 /** Contraintes d'accès lisibles (jamais de notes internes/admin). */
+export const ACCESS_RESTRICTION_OPTIONS: { key: string; label: string }[] = [
+  { key: "acces_etroit", label: "Accès étroit" },
+  { key: "pente", label: "Pente" },
+  { key: "sol_mou", label: "Sol mou" },
+  { key: "virage_limite", label: "Espace de virage limité" },
+  { key: "marche_arriere", label: "Marche arrière requise" },
+  { key: "camion_lourd_restreint", label: "Restriction camion lourd" },
+  { key: "hauteur_limitee", label: "Hauteur limitée" },
+  { key: "largeur_limitee", label: "Largeur limitée" },
+];
+
+const RESTRICTION_LABELS: Record<string, string> = Object.fromEntries(
+  ACCESS_RESTRICTION_OPTIONS.map((o) => [o.key, o.label]),
+);
+
+const restrictionLabel = (k: string) => RESTRICTION_LABELS[k] ?? k.replace(/_/g, " ");
+
 export const accessConstraints = (s: SiteLike): string[] => {
   const out: string[] = [];
   const d = s.access_details;
   if (d && typeof d === "object") {
     Object.entries(d).forEach(([k, v]) => {
-      if (v === true) out.push(k.replace(/_/g, " "));
-      else if (typeof v === "string" && v.trim() && !/^non?$/i.test(v.trim())) out.push(`${k.replace(/_/g, " ")} : ${v}`);
+      if (v === true) out.push(restrictionLabel(k));
+      else if (typeof v === "string" && v.trim() && !/^non?$/i.test(v.trim())) out.push(`${restrictionLabel(k)} : ${v}`);
     });
   }
   const ht = strip(s.access_heavy_truck ?? "");
