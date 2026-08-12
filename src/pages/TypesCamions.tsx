@@ -45,7 +45,7 @@ const TypesCamions = () => {
       .querySelector('meta[name="description"]')
       ?.setAttribute(
         "content",
-        "10 roues, 12 roues, semi-remorque : capacités, usages et contraintes d'accès de chaque type de camion utilisé pour le transport de matériaux en vrac au Québec.",
+        "Camion 10 roues, 12 roues, semi-dompeur et fardier : à quoi sert chaque véhicule, usages typiques et contraintes d'accès pour le transport en vrac au Québec.",
       );
   }, []);
 
