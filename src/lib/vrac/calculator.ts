@@ -31,6 +31,27 @@ export const DEPTH_UNITS: { value: DepthUnit; label: string }[] = [
 export const toMeters = (value: number, unit: LengthUnit | DepthUnit) =>
   unit === "m" ? value : unit === "pi" ? value * FT_TO_M : unit === "po" ? value * IN_TO_M : value * CM_TO_M;
 
+/** Garde-fou : dimension plausible d'un chantier (mètres). Aucune règle métier. */
+export const MAX_DIMENSION_M = 10_000;
+
+/** Valeur numérique saisie valide : finie, strictement positive, non absurde. */
+export const isValidDimension = (value: number, unit: LengthUnit | DepthUnit) =>
+  Number.isFinite(value) && value > 0 && toMeters(value, unit) <= MAX_DIMENSION_M;
+
+/**
+ * Nombre de voyages : toujours l'entier supérieur.
+ * `capacityTonnes` provient exclusivement de l'administration (jsc_trucks).
+ * Epsilon pour éviter qu'une quantité exactement égale à la capacité
+ * (18.0000000001 en virgule flottante) ne crée un voyage de trop.
+ */
+export const TONNAGE_EPSILON = 1e-6;
+
+export const tripsFor = (tonnes: number, capacityTonnes: number): number | null => {
+  if (!Number.isFinite(tonnes) || tonnes <= 0) return null;
+  if (!Number.isFinite(capacityTonnes) || capacityTonnes <= 0) return null;
+  return Math.max(1, Math.ceil((tonnes - TONNAGE_EPSILON) / capacityTonnes));
+};
+
 export type CalcMaterial = {
   slug: string;
   name: string;
@@ -80,7 +101,9 @@ export function computeVolume(
   depth: number, depthUnit: DepthUnit,
   densityKgPerM3: number | null,
 ): VolumeResult | null {
-  if (!(length > 0) || !(width > 0) || !(depth > 0)) return null;
+  if (!isValidDimension(length, lengthUnit)) return null;
+  if (!isValidDimension(width, widthUnit)) return null;
+  if (!isValidDimension(depth, depthUnit)) return null;
   const m3 = toMeters(length, lengthUnit) * toMeters(width, widthUnit) * toMeters(depth, depthUnit);
   if (!Number.isFinite(m3) || m3 <= 0) return null;
   return {

@@ -7,9 +7,8 @@
 import { useCallback, useState } from "react";
 import { getPublicQuote, type PublicQuote, type QuoteRequest } from "@/lib/jsc/engine";
 import { findVracMaterial, type VracDraft } from "@/lib/vrac/catalog";
-
-const FT_TO_M = 0.3048;
-const IN_TO_M = 0.0254;
+// Facteurs de conversion : source unique (aucune duplication).
+import { FT_TO_M, IN_TO_M } from "@/lib/vrac/calculator";
 
 /**
  * Contexte administrable nécessaire à certaines conversions.
