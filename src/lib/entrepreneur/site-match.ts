@@ -6,6 +6,9 @@
 // `submissions.materials` et les types de camions de l'énum
 // `public.truck_type`.
 // ============================================================
+import {
+  TRUCK_TYPES, normalizeTruckType, type TruckTypeKey,
+} from "@/lib/trucks/catalog";
 
 export type MaterialKey =
   | "terre" | "terre_vegetale" | "sable" | "gravier" | "pierre"
