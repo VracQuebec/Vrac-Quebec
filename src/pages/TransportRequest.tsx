@@ -233,6 +233,7 @@ const matchesMaterial = (dumpMaterials: string[], selected: string): boolean => 
 
 const TransportRequest = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthReady();
   const { profile, saveProfile } = useEntrepreneurProfile();
   const [savingProfile, setSavingProfile] = useState(false);
