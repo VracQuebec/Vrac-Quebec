@@ -7,6 +7,7 @@ import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
 import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
+import { BULK_TRUCK_OPTIONS } from "@/lib/entrepreneur/site-match";
 
 import {
   submitTransportRequest,
