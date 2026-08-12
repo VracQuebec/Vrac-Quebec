@@ -1564,7 +1564,12 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
             </div>
 
             {/* Sélection du comparateur — rattachée à cette demande (lecture seule) */}
-            {sub.selected_site_id && (
+            {!sub.selected_site_id ? (
+              <div className="mb-3 rounded-lg border border-border bg-muted/30 p-3 text-xs font-body text-muted-foreground">
+                <span className="font-display font-bold uppercase tracking-wide text-[10px]">Site non sélectionné</span>
+                <div className="mt-1">L'entrepreneur n'a pas encore choisi de site pour cette demande. La validation du site est indisponible.</div>
+              </div>
+            ) : (
               <div className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs font-body text-foreground">
                 <div className="mb-1.5 font-display text-[10px] font-bold uppercase tracking-wide text-primary">
                   Site sélectionné par l'entrepreneur
@@ -1587,6 +1592,30 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                     {sub.quote_duration_minutes != null ? `${sub.quote_duration_minutes} min` : "—"}</div>
                   <div><span className="font-semibold">Mise à jour : </span>
                     {sub.selection_updated_at ? formatDate(sub.selection_updated_at) : "—"}</div>
+                </div>
+
+                {/* Action admin : valider le site puis poursuivre vers la demande de transport */}
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-primary/20 pt-2">
+                  {validatedAt ? (
+                    <span className="inline-flex items-center rounded border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[11px] font-display font-semibold text-emerald-800">
+                      Site validé le {formatDate(validatedAt)}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={onValidateSite}
+                      disabled={validating}
+                      className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-display font-semibold text-primary-foreground disabled:opacity-60"
+                    >
+                      {validating ? "Validation…" : "Valider le site"}
+                    </button>
+                  )}
+                  <button
+                    onClick={goToTransportRequest}
+                    disabled={!validatedAt}
+                    className="rounded-lg border border-primary/40 px-3 py-1.5 text-[11px] font-display font-semibold text-primary disabled:opacity-50"
+                  >
+                    Poursuivre la demande de transport
+                  </button>
                 </div>
               </div>
             )}
