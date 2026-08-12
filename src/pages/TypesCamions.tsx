@@ -1,9 +1,13 @@
-// Point 29 — Page informative « Types de camions » (contenu administrable : jsc_trucks).
+// Point 29 — Page informative « Types de camions ».
+// Nomenclature = source de vérité unique (@/lib/trucks/catalog).
+// Capacités / photos / usages = données administrables (jsc_trucks) uniquement :
+// aucune capacité n'est inventée ici.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Truck } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import { supabase } from "@/integrations/supabase/client";
+import { TRUCK_TYPES, type TruckTypeDef } from "@/lib/trucks/catalog";
 
 type TruckProfile = {
   id: string;
@@ -32,7 +36,7 @@ const List = ({ title, items }: { title: string; items: string[] }) =>
   );
 
 const TypesCamions = () => {
-  const [trucks, setTrucks] = useState<TruckProfile[]>([]);
+  const [profiles, setProfiles] = useState<TruckProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,17 +45,21 @@ const TypesCamions = () => {
       .querySelector('meta[name="description"]')
       ?.setAttribute(
         "content",
-        "10 roues, 12 roues, semi-remorque : capacités, usages et contraintes d'accès de chaque type de camion utilisé pour le transport de matériaux en vrac au Québec.",
+        "Camion 10 roues, 12 roues, semi-dompeur et fardier : à quoi sert chaque véhicule, usages typiques et contraintes d'accès pour le transport en vrac au Québec.",
       );
   }, []);
 
   useEffect(() => {
     void (async () => {
       const { data } = await supabase.rpc("jsc_public_truck_profiles" as never);
-      setTrucks((data ?? []) as TruckProfile[]);
+      setProfiles((data ?? []) as TruckProfile[]);
       setLoading(false);
     })();
   }, []);
+
+  const types = TRUCK_TYPES.filter((t) => t.key !== "autre");
+  const profileFor = (t: TruckTypeDef) =>
+    profiles.find((p) => p.truck_type === t.key) ?? null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -67,41 +75,49 @@ const TypesCamions = () => {
           </p>
         </header>
 
-        {loading ? (
-          <p className="mt-10 text-center font-body text-sm text-muted-foreground">Chargement…</p>
-        ) : trucks.length === 0 ? (
-          <p className="mt-10 rounded-2xl border border-border bg-muted/40 p-5 text-center font-body text-sm text-muted-foreground">
-            Les fiches de camions sont en cours de préparation. Contactez-nous pour valider le type
-            de camion adapté à votre terrain.
-          </p>
-        ) : (
-          <section className="mt-8 space-y-4">
-            {trucks.map((t) => (
-              <article key={t.id} className="overflow-hidden rounded-2xl border border-border bg-card">
-                {t.public_image_url && (
-                  <img src={t.public_image_url} alt={`Camion ${t.name}`} loading="lazy"
+        <section className="mt-8 space-y-4">
+          {types.map((t) => {
+            const p = profileFor(t);
+            const capacity = p?.capacity_tonnes
+              ? `Jusqu'à ${p.capacity_tonnes} tonnes par voyage${p.capacity_m3 ? ` • environ ${p.capacity_m3} m³` : ""}`
+              : null;
+            return (
+              <article key={t.key} className="overflow-hidden rounded-2xl border border-border bg-card">
+                {p?.public_image_url && (
+                  <img src={p.public_image_url} alt={`Camion ${t.label}`} loading="lazy"
                     className="h-44 w-full object-cover sm:h-56" />
                 )}
                 <div className="p-5">
-                  <h2 className="flex items-center gap-2 font-display text-lg font-extrabold text-foreground">
-                    <Truck className="h-5 w-5 text-primary" aria-hidden /> {t.name}
+                  <h2 className="flex flex-wrap items-center gap-2 font-display text-lg font-extrabold text-foreground">
+                    <Truck className="h-5 w-5 shrink-0 text-primary" aria-hidden /> {t.label}
+                    {t.usage === "machinerie" && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 font-body text-xs font-medium text-muted-foreground">
+                        Machinerie lourde
+                      </span>
+                    )}
                   </h2>
-                  <p className="mt-1 font-body text-sm text-muted-foreground">
-                    {t.capacity_tonnes ? `Jusqu'à ${t.capacity_tonnes} tonnes par voyage` : "Capacité à confirmer"}
-                    {t.capacity_m3 ? ` • environ ${t.capacity_m3} m³` : ""}
-                    {t.axle_count ? ` • ${t.axle_count} essieux` : ""}
+                  <p className="mt-2 font-body text-sm leading-relaxed text-foreground">
+                    {p?.public_description ?? t.description}
                   </p>
-                  {t.public_description && (
-                    <p className="mt-3 font-body text-sm leading-relaxed text-foreground">{t.public_description}</p>
-                  )}
-                  <List title="Usages courants" items={t.public_uses ?? []} />
-                  <List title="Accès requis" items={t.access_requirements ?? []} />
-                  <List title="Limitations" items={t.limitations ?? []} />
+                  <p className="mt-2 font-body text-sm text-muted-foreground">
+                    {loading
+                      ? "Chargement de la capacité…"
+                      : capacity ??
+                        "La capacité dépend du matériau transporté et de la configuration du véhicule."}
+                  </p>
+                  <p className="mt-2 font-body text-sm text-muted-foreground">
+                    {t.usage === "machinerie"
+                      ? "Utilisation typique : déplacement de machinerie et d'équipement lourd (pas de transport de matériaux en vrac)."
+                      : "Utilisation typique : transport de terre, sable, gravier, pierre et remblai."}
+                  </p>
+                  <List title="Usages courants" items={p?.public_uses ?? []} />
+                  <List title="Accès requis" items={p?.access_requirements ?? []} />
+                  <List title="Limitations" items={p?.limitations ?? []} />
                 </div>
               </article>
-            ))}
-          </section>
-        )}
+            );
+          })}
+        </section>
 
         <Link
           to="/calculateur"

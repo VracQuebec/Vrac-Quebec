@@ -12,6 +12,7 @@ import {
   type DepthUnit, type LengthUnit,
 } from "@/lib/vrac/calculator";
 import { usePublicTrucks } from "@/lib/vrac/units";
+import { truckTypeDef } from "@/lib/trucks/catalog";
 
 const chip = (active: boolean) =>
   `min-h-11 rounded-xl border px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
@@ -20,7 +21,10 @@ const chip = (active: boolean) =>
 
 const MaterialCalculator = () => {
   const { materials, loading } = useCalcMaterials();
-  const trucks = usePublicTrucks();
+  const allTrucks = usePublicTrucks();
+  // Seuls les camions dompeurs servent au calcul de voyages de matériaux
+  // en vrac : le fardier (machinerie) est exclu.
+  const trucks = allTrucks.filter((t) => truckTypeDef(t.truck_type)?.bulk !== false);
 
   const [slug, setSlug] = useState<string>("");
   const [length, setLength] = useState("");

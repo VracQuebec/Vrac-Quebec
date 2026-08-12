@@ -6,6 +6,9 @@
 // `submissions.materials` et les types de camions de l'énum
 // `public.truck_type`.
 // ============================================================
+import {
+  TRUCK_TYPES, normalizeTruckType, type TruckTypeKey,
+} from "@/lib/trucks/catalog";
 
 export type MaterialKey =
   | "terre" | "terre_vegetale" | "sable" | "gravier" | "pierre"
@@ -23,16 +26,17 @@ export const MATERIAL_OPTIONS: { key: MaterialKey; label: string }[] = [
   { key: "remblai", label: "Remblai / remplissage" },
 ];
 
-/** Types de camions = énum `public.truck_type` (aucun doublon créé). */
-export type TruckKey = "6_roues" | "10_roues" | "12_roues" | "semi_remorque" | "fardier";
+/** Types de camions : source de vérité unique `@/lib/trucks/catalog`. */
+export type TruckKey = Exclude<TruckTypeKey, "autre">;
 
-export const TRUCK_OPTIONS: { key: TruckKey; label: string; heavy: boolean }[] = [
-  { key: "6_roues", label: "6 roues", heavy: false },
-  { key: "10_roues", label: "10 roues", heavy: true },
-  { key: "12_roues", label: "12 roues", heavy: true },
-  { key: "semi_remorque", label: "Semi-dompeur / semi-remorque", heavy: true },
-  { key: "fardier", label: "Fardier", heavy: true },
-];
+export const TRUCK_OPTIONS: { key: TruckKey; label: string; heavy: boolean; bulk: boolean }[] =
+  TRUCK_TYPES.filter((t) => t.key !== "autre").map((t) => ({
+    key: t.key as TruckKey, label: t.label, heavy: t.heavy, bulk: t.bulk,
+  }));
+
+/** Camions pertinents pour choisir un site de dépôt de matériaux en vrac.
+ *  Le fardier (machinerie) n'intervient que si le parcours le concerne. */
+export const BULK_TRUCK_OPTIONS = TRUCK_OPTIONS.filter((t) => t.bulk);
 
 const strip = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -53,14 +57,8 @@ export const normalizeMaterial = (raw: string): MaterialKey | null => {
 };
 
 export const normalizeTruck = (raw: string): TruckKey | null => {
-  const s = strip(raw || "");
-  if (!s) return null;
-  if (/fardier|lowbed|plateforme/.test(s)) return "fardier";
-  if (/semi|remorque|train routier/.test(s)) return "semi_remorque";
-  if (/\b12\b|douze/.test(s)) return "12_roues";
-  if (/\b10\b|dix/.test(s)) return "10_roues";
-  if (/\b6\b|six/.test(s)) return "6_roues";
-  return null;
+  const k = normalizeTruckType(raw);
+  return k && k !== "autre" ? (k as TruckKey) : null;
 };
 
 export type Compat = "compatible" | "unknown" | "incompatible";

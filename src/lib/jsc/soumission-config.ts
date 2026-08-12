@@ -8,6 +8,7 @@
 // base (tables jsc_*) et se modifie depuis l'administration.
 // ============================================================
 import type { FieldDef, ResourceDef } from "@/lib/jsc/config";
+import { TRUCK_TYPES } from "@/lib/trucks/catalog";
 
 const activeField: FieldDef = {
   key: "is_active",
@@ -128,14 +129,8 @@ export const SOUMISSION_TRUCKS: ResourceDef = {
     { key: "name", label: "Nom", type: "text", inList: true, required: true },
     {
       key: "truck_type", label: "Type", type: "select", inList: true,
-      options: [
-        { value: "6_roues", label: "6 roues" },
-        { value: "10_roues", label: "10 roues" },
-        { value: "12_roues", label: "12 roues" },
-        { value: "semi_remorque", label: "Semi-remorque" },
-        { value: "fardier", label: "Fardier" },
-        { value: "autre", label: "Autre" },
-      ],
+      // Nomenclature centrale unique (@/lib/trucks/catalog)
+      options: TRUCK_TYPES.map((t) => ({ value: t.key, label: t.label })),
     },
     { key: "capacity_tonnes", label: "Capacité maximale", type: "number", inList: true, suffix: "t" },
     { key: "hourly_rate", label: "Tarif horaire", type: "number", inList: true, suffix: "$/h" },
