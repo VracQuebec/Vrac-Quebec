@@ -203,9 +203,12 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
       // Continuité : on conserve l'ID RÉEL retourné par `submissions`.
       const ho = buildHandoff({
         submissionId: res?.submission_id ? String(res.submission_id) : null,
-        address: data.address,
-        lat: data.lat,
-        lng: data.lng,
+        // Valeurs réellement enregistrées dans `submissions` : l'adresse
+        // normalisée et les coordonnées géocodées côté serveur priment sur
+        // la saisie locale. Rien n'est inventé si le géocodage a échoué.
+        address: (res?.formatted_address as string | null) || data.address,
+        lat: typeof res?.latitude === "number" ? res.latitude : data.lat,
+        lng: typeof res?.longitude === "number" ? res.longitude : data.lng,
         materials: data.materials,
         quantityValue: data.quantityValue,
         quantityUnit: data.quantityUnit,
