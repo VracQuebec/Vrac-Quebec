@@ -248,21 +248,50 @@ export default function EntrepreneurComparateur() {
   const best = withDistance[0]?.row ?? null;
   const worst = withDistance.length > 1 ? withDistance[withDistance.length - 1].row : null;
 
+  // Sélection : rattachée à la demande existante et persistée.
+  // Aucune écriture en base ici → aucune nouvelle demande créée.
   const selectSite = (r: Ranked) => {
+    const sel: ComparateurSelection = {
+      submissionId: request?.submissionId ?? null,
+      siteId: r.id,
+      siteLabel: `Dompe ${label(r)}`,
+      distanceKm: r.distance_km,
+      durationMinutes: r.duration_minutes,
+      trips: tripCount,
+      tonnes: besoin.tonnes,
+      quantityValue: quantityValue.trim(),
+      quantityUnit,
+      materialKey: material || null,
+      materialLabel,
+      truckKey: truck || null,
+      truckLabel,
+      capacityTonnes,
+      address,
+      coords,
+      desiredDate: request?.desiredDate ?? "",
+      timeframe: request?.timeframe ?? "",
+      accessDetails: request?.accessDetails ?? [],
+      createdAt: Date.now(),
+    };
+    saveSelection(sel);
+    setSelection(sel);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const continueToRequest = (sel: ComparateurSelection) => {
     navigate("/demande-transport", {
       state: {
         vqPrefill: {
-          submissionId: request?.submissionId ?? null,
-          dumpId: r.id,
-          dumpName: r.dompe_number || `#${r.submission_number}`,
-          dumpSubmissionNumber: r.submission_number,
-          material: material ? MATERIAL_TO_WIZARD[material] : "",
-          truckType: truck ? TRUCK_OPTIONS.find((t) => t.key === truck)?.label ?? "" : "",
-          address,
-          coords,
-          distance_km: r.distance_km,
-          duration_minutes: r.duration_minutes,
-          trips: String(tripCount),
+          submissionId: sel.submissionId,
+          dumpId: sel.siteId,
+          dumpName: sel.siteLabel,
+          material: sel.materialKey ? MATERIAL_TO_WIZARD[sel.materialKey as MaterialKey] : "",
+          truckType: sel.truckLabel,
+          address: sel.address,
+          coords: sel.coords,
+          distance_km: sel.distanceKm,
+          duration_minutes: sel.durationMinutes,
+          trips: sel.trips != null ? String(sel.trips) : "",
         },
       },
     });
@@ -309,7 +338,7 @@ export default function EntrepreneurComparateur() {
             <Clock className="h-4 w-4 text-muted-foreground" aria-hidden />
             {r.duration_minutes != null ? `${Math.round(r.duration_minutes)} min` : "—"}
           </span>
-          {r.distance_km != null && (
+          {r.distance_km != null && tripCount != null && (
             <span className="flex items-center gap-1.5">
               <Route className="h-4 w-4 text-muted-foreground" aria-hidden />
               {Math.round(r.distance_km * 2 * tripCount)} km au total
