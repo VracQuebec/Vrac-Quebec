@@ -27,7 +27,12 @@ import {
 } from "@/lib/entrepreneur/site-match";
 import {
   loadHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff,
+  saveSelection, loadSelection, clearSelection, type ComparateurSelection,
 } from "@/lib/parcours/handoff";
+import { usePublicTrucks } from "@/lib/vrac/units";
+import { useCalcMaterials } from "@/lib/vrac/calculator";
+import { computeBesoin } from "@/lib/parcours/besoin";
+import { QUANTITY_UNIT_OPTIONS } from "@/lib/questionnaire-data";
 
 type Lead = SiteLike & {
   id: string;
@@ -71,11 +76,18 @@ export default function EntrepreneurComparateur() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [material, setMaterial] = useState<MaterialKey | "">("");
   const [truck, setTruck] = useState<TruckKey | "">("");
-  const [trips, setTrips] = useState("1");
+  const [quantityValue, setQuantityValue] = useState("");
+  const [quantityUnit, setQuantityUnit] = useState<string>("voyages");
   const [ranked, setRanked] = useState<Ranked[] | null>(null);
   const [computing, setComputing] = useState(false);
   const [showIncompatible, setShowIncompatible] = useState(false);
   const [request, setRequest] = useState<ParcoursHandoff | null>(null);
+  const [selection, setSelection] = useState<ComparateurSelection | null>(null);
+
+  // Référentiel administré (aucune valeur en dur) : capacités de camions
+  // et densités de matériaux servent au calcul du nombre de voyages.
+  const publicTrucks = usePublicTrucks();
+  const { materials: calcMaterials } = useCalcMaterials();
 
   useEffect(() => {
     document.title = "Comparateur de sites de dépôt | Vrac Québec";
@@ -113,8 +125,21 @@ export default function EntrepreneurComparateur() {
       typeof pf.trips === "string" && pf.trips.trim()
         ? pf.trips.trim()
         : tripsFromHandoff(pf as unknown as ParcoursHandoff);
-    if (tripsValue) setTrips(tripsValue);
+    // Quantité reprise telle quelle (valeur + unité), sans conversion.
+    if (typeof pf.quantityValue === "string" && pf.quantityValue.trim()) {
+      setQuantityValue(pf.quantityValue.trim());
+      if (typeof pf.quantityUnit === "string" && pf.quantityUnit) setQuantityUnit(pf.quantityUnit);
+    } else if (tripsValue) {
+      setQuantityValue(tripsValue);
+      setQuantityUnit("voyages");
+    }
   }, [location.state]);
+
+  // Sélection déjà effectuée : restaurée au retour arrière ou au rechargement.
+  useEffect(() => {
+    const s = loadSelection();
+    if (s) setSelection(s);
+  }, []);
 
   useEffect(() => {
     if (isReady && !user) navigate("/login", { replace: true });
@@ -131,10 +156,46 @@ export default function EntrepreneurComparateur() {
   }, [isReady, roleLoading, isEntrepreneur, isAdmin]);
 
   const geoLeads = useMemo(() => leads.filter((l) => l.latitude && l.longitude), [leads]);
-  const tripCount = Math.max(1, Math.floor(Number(trips) || 1));
+
+  // Capacité du camion choisi : administrée (jsc_trucks), jamais inventée.
+  const capacityTonnes = useMemo(() => {
+    if (!truck) return null;
+    const match = publicTrucks.filter((t) => t.truck_type === truck);
+    if (!match.length) return null;
+    return Math.max(...match.map((t) => t.capacity_tonnes));
+  }, [truck, publicTrucks]);
+
+  // Densité du matériau : administrée (jsc_materials), jamais inventée.
+  const densityKgPerM3 = useMemo(() => {
+    if (!material) return null;
+    const m = calcMaterials.find((c) => normalizeMaterial(c.name) === material);
+    return m?.density_kg_per_m3 ?? null;
+  }, [material, calcMaterials]);
+
+  const besoin = useMemo(
+    () => computeBesoin({ quantityValue, quantityUnit, densityKgPerM3, capacityTonnes }),
+    [quantityValue, quantityUnit, densityKgPerM3, capacityTonnes],
+  );
+  const tripCount = besoin.trips;
+
+  const truckLabel = truck ? TRUCK_OPTIONS.find((t) => t.key === truck)?.label ?? "" : "";
+  const materialLabel = material ? MATERIAL_OPTIONS.find((m) => m.key === material)?.label ?? "" : "";
+  const unitLabelFr =
+    QUANTITY_UNIT_OPTIONS.find((u) => u.value === quantityUnit)?.label ?? quantityUnit;
+
+  /** Ce qui empêche encore de comparer, en langage clair. */
+  const blockers = useMemo(() => {
+    const out: string[] = [];
+    if (!address.trim()) out.push("Indiquez l'adresse du chantier.");
+    else if (!coords) out.push("Sélectionnez une suggestion d'adresse Google : les coordonnées sont nécessaires au calcul des trajets.");
+    if (!material) out.push("Choisissez le matériau à disposer.");
+    if (!truck) out.push("Choisissez le type de camion.");
+    if (!quantityValue.trim()) out.push("Indiquez la quantité à évacuer.");
+    return out;
+  }, [address, coords, material, truck, quantityValue]);
 
   const compare = async () => {
-    if (!coords) return;
+    if (!coords || blockers.length > 0) return;
     setComputing(true);
     setRanked(null);
     try {
@@ -187,21 +248,50 @@ export default function EntrepreneurComparateur() {
   const best = withDistance[0]?.row ?? null;
   const worst = withDistance.length > 1 ? withDistance[withDistance.length - 1].row : null;
 
+  // Sélection : rattachée à la demande existante et persistée.
+  // Aucune écriture en base ici → aucune nouvelle demande créée.
   const selectSite = (r: Ranked) => {
+    const sel: ComparateurSelection = {
+      submissionId: request?.submissionId ?? null,
+      siteId: r.id,
+      siteLabel: `Dompe ${label(r)}`,
+      distanceKm: r.distance_km,
+      durationMinutes: r.duration_minutes,
+      trips: tripCount,
+      tonnes: besoin.tonnes,
+      quantityValue: quantityValue.trim(),
+      quantityUnit,
+      materialKey: material || null,
+      materialLabel,
+      truckKey: truck || null,
+      truckLabel,
+      capacityTonnes,
+      address,
+      coords,
+      desiredDate: request?.desiredDate ?? "",
+      timeframe: request?.timeframe ?? "",
+      accessDetails: request?.accessDetails ?? [],
+      createdAt: Date.now(),
+    };
+    saveSelection(sel);
+    setSelection(sel);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const continueToRequest = (sel: ComparateurSelection) => {
     navigate("/demande-transport", {
       state: {
         vqPrefill: {
-          submissionId: request?.submissionId ?? null,
-          dumpId: r.id,
-          dumpName: r.dompe_number || `#${r.submission_number}`,
-          dumpSubmissionNumber: r.submission_number,
-          material: material ? MATERIAL_TO_WIZARD[material] : "",
-          truckType: truck ? TRUCK_OPTIONS.find((t) => t.key === truck)?.label ?? "" : "",
-          address,
-          coords,
-          distance_km: r.distance_km,
-          duration_minutes: r.duration_minutes,
-          trips: String(tripCount),
+          submissionId: sel.submissionId,
+          dumpId: sel.siteId,
+          dumpName: sel.siteLabel,
+          material: sel.materialKey ? MATERIAL_TO_WIZARD[sel.materialKey as MaterialKey] : "",
+          truckType: sel.truckLabel,
+          address: sel.address,
+          coords: sel.coords,
+          distance_km: sel.distanceKm,
+          duration_minutes: sel.durationMinutes,
+          trips: sel.trips != null ? String(sel.trips) : "",
         },
       },
     });
@@ -248,7 +338,7 @@ export default function EntrepreneurComparateur() {
             <Clock className="h-4 w-4 text-muted-foreground" aria-hidden />
             {r.duration_minutes != null ? `${Math.round(r.duration_minutes)} min` : "—"}
           </span>
-          {r.distance_km != null && (
+          {r.distance_km != null && tripCount != null && (
             <span className="flex items-center gap-1.5">
               <Route className="h-4 w-4 text-muted-foreground" aria-hidden />
               {Math.round(r.distance_km * 2 * tripCount)} km au total
@@ -414,9 +504,57 @@ export default function EntrepreneurComparateur() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="cmp-trips">Nombre de voyages prévus</Label>
-            <Input id="cmp-trips" inputMode="numeric" value={trips} onChange={(e) => setTrips(e.target.value)}
-              className="h-12 text-base" />
+            <Label htmlFor="cmp-qty">Quantité à évacuer</Label>
+            <div className="flex gap-2">
+              <Input
+                id="cmp-qty"
+                inputMode="decimal"
+                value={quantityValue}
+                placeholder="Ex. 25"
+                onChange={(e) => setQuantityValue(e.target.value)}
+                className="h-12 flex-1 text-base"
+              />
+              <select
+                aria-label="Unité de quantité"
+                value={quantityUnit}
+                onChange={(e) => setQuantityUnit(e.target.value)}
+                className="h-12 rounded-md border border-input bg-background px-3 font-body text-base"
+              >
+                {QUANTITY_UNIT_OPTIONS.map((u) => (
+                  <option key={u.value} value={u.value}>{u.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Calcul du besoin — réutilise le calculateur existant. */}
+          <div className="rounded-xl border border-border bg-background p-3">
+            <p className="font-display text-xs font-bold uppercase tracking-wide text-foreground">
+              Besoin en transport
+            </p>
+            <dl className="mt-2 space-y-1 font-body text-sm text-foreground">
+              <div><dt className="inline font-semibold">Quantité : </dt>
+                <dd className="inline">{quantityValue.trim() ? `${quantityValue.trim()} ${unitLabelFr}` : "À compléter"}</dd></div>
+              <div><dt className="inline font-semibold">Camion : </dt>
+                <dd className="inline">{truckLabel || "À sélectionner"}</dd></div>
+              <div><dt className="inline font-semibold">Capacité applicable : </dt>
+                <dd className="inline">
+                  {capacityTonnes != null ? `${capacityTonnes} t par voyage` : "Non configurée"}
+                </dd></div>
+              {besoin.tonnes != null && (
+                <div><dt className="inline font-semibold">Tonnage estimé : </dt>
+                  <dd className="inline">{besoin.tonnes.toFixed(1)} t</dd></div>
+              )}
+              <div><dt className="inline font-semibold">Voyages calculés : </dt>
+                <dd className="inline">
+                  {tripCount != null ? `${tripCount} voyage${tripCount > 1 ? "s" : ""}` : "Non calculable"}
+                </dd></div>
+            </dl>
+            {tripCount == null && besoin.missing.length > 0 && (
+              <p className="mt-2 font-body text-xs text-amber-700">
+                Pour calculer le nombre de voyages, il manque : {besoin.missing.join(", ")}.
+              </p>
+            )}
           </div>
 
           <Button onClick={compare} disabled={!coords || computing || geoLeads.length === 0}
@@ -424,10 +562,10 @@ export default function EntrepreneurComparateur() {
             {computing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
             {computing ? "Calcul des trajets Google…" : "Comparer les sites"}
           </Button>
-          {!coords && address && (
-            <p className="font-body text-xs text-muted-foreground">
-              Sélectionnez une suggestion d'adresse pour obtenir la localisation exacte.
-            </p>
+          {blockers.length > 0 && (
+            <ul className="list-disc space-y-1 pl-5 font-body text-xs text-muted-foreground">
+              {blockers.map((b) => <li key={b}>{b}</li>)}
+            </ul>
           )}
           {geoLeads.length === 0 && (
             <p className="font-body text-sm text-muted-foreground">
@@ -436,7 +574,57 @@ export default function EntrepreneurComparateur() {
           )}
         </section>
 
-        {best && worst && best.distance_km != null && worst.distance_km != null && (
+        {selection && (
+          <section className="mt-6 rounded-2xl border-2 border-primary bg-primary/5 p-4 sm:p-5">
+            <p className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-foreground">
+              <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden /> Site sélectionné
+            </p>
+            <dl className="mt-3 grid gap-1.5 font-body text-sm text-foreground sm:grid-cols-2">
+              <div><dt className="inline font-semibold">Référence de la demande : </dt>
+                <dd className="inline">{selection.submissionId ? selection.submissionId.slice(0, 8) : "Non rattachée"}</dd></div>
+              <div><dt className="inline font-semibold">Site : </dt><dd className="inline">{selection.siteLabel}</dd></div>
+              <div><dt className="inline font-semibold">Matériau : </dt>
+                <dd className="inline">{selection.materialLabel || "À compléter"}</dd></div>
+              <div><dt className="inline font-semibold">Quantité : </dt>
+                <dd className="inline">
+                  {selection.quantityValue
+                    ? `${selection.quantityValue} ${QUANTITY_UNIT_OPTIONS.find((u) => u.value === selection.quantityUnit)?.label ?? selection.quantityUnit}`
+                    : "À compléter"}
+                </dd></div>
+              <div><dt className="inline font-semibold">Camion : </dt>
+                <dd className="inline">{selection.truckLabel || "À compléter"}</dd></div>
+              <div><dt className="inline font-semibold">Voyages : </dt>
+                <dd className="inline">{selection.trips != null ? selection.trips : "Non calculable"}</dd></div>
+              <div><dt className="inline font-semibold">Distance : </dt>
+                <dd className="inline">{selection.distanceKm != null ? `${selection.distanceKm.toFixed(1)} km` : "À confirmer"}</dd></div>
+              <div><dt className="inline font-semibold">Durée : </dt>
+                <dd className="inline">{selection.durationMinutes != null ? `${Math.round(selection.durationMinutes)} min` : "À confirmer"}</dd></div>
+              <div className="sm:col-span-2"><dt className="inline font-semibold">Adresse : </dt>
+                <dd className="inline">{selection.address || "À compléter"}</dd></div>
+              {(selection.desiredDate || selection.timeframe) && (
+                <div className="sm:col-span-2"><dt className="inline font-semibold">Date / délai : </dt>
+                  <dd className="inline">{[selection.desiredDate, selection.timeframe].filter(Boolean).join(" • ")}</dd></div>
+              )}
+              {selection.accessDetails.length > 0 && (
+                <div className="sm:col-span-2"><dt className="inline font-semibold">Contraintes d'accès : </dt>
+                  <dd className="inline">{selection.accessDetails.join(" • ")}</dd></div>
+              )}
+            </dl>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <Button onClick={() => continueToRequest(selection)}
+                className="h-12 flex-1 font-display text-sm font-bold uppercase tracking-wide">
+                Poursuivre la demande de transport
+                <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+              </Button>
+              <Button variant="outline" onClick={() => { clearSelection(); setSelection(null); }}
+                className="h-12 font-display text-sm font-bold uppercase tracking-wide">
+                Changer de site
+              </Button>
+            </div>
+          </section>
+        )}
+
+        {best && worst && tripCount != null && best.distance_km != null && worst.distance_km != null && (
           <div className="mt-6 rounded-2xl border-2 border-primary/40 bg-primary/5 p-4 sm:p-5">
             <p className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-foreground">
               <TrendingDown className="h-4 w-4 text-primary" aria-hidden /> Économie potentielle
