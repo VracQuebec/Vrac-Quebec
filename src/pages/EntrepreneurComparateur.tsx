@@ -113,10 +113,14 @@ export default function EntrepreneurComparateur() {
         duration_minutes: results[l.id]?.duration_minutes ?? null,
       }));
       const rank = { compatible: 0, unknown: 1, incompatible: 2 } as const;
+      const fit = (l: Ranked) => {
+        const ev = evaluateSite(l, material || null, truck || null);
+        return rank[ev.status] * 10 + (ev.material === "compatible" ? 0 : ev.material === "unknown" ? 2 : 4)
+          + (ev.truck === "compatible" ? 0 : ev.truck === "unknown" ? 1 : 3);
+      };
       rows.sort((a, b) => {
-        const ra = rank[evaluateSite(a, material || null, truck || null).status];
-        const rb = rank[evaluateSite(b, material || null, truck || null).status];
-        if (ra !== rb) return ra - rb;
+        const fa = fit(a), fb = fit(b);
+        if (fa !== fb) return fa - fb;
         return (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity);
       });
       setRanked(rows);
@@ -181,7 +185,7 @@ export default function EntrepreneurComparateur() {
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="font-display text-base font-extrabold text-foreground">
-              {index === 0 && ev.status === "compatible" && r.distance_km != null ? "⭐ " : ""}
+              {index === 0 && ev.material === "compatible" && ev.truck === "compatible" && r.distance_km != null ? "⭐ " : ""}
               Dompe {label(r)}
             </p>
             <p className="mt-0.5 font-body text-xs text-muted-foreground">
