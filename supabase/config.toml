@@ -37,3 +37,6 @@ verify_jwt = false
 
 [functions.quote-submit]
 verify_jwt = false
+
+[functions.submit-parcours]
+verify_jwt = false

@@ -256,6 +256,46 @@ export const ACCESS_DETAIL_OPTIONS = [
   "Voisinage rapproché",
 ] as const;
 
+// ---- Parcours /remblai et /depot-materiaux ----
+/** Usage du matériel — source unique pour les parcours publics. */
+export const PROJECT_USAGE_OPTIONS = [
+  "Remplir un trou",
+  "Monter mon terrain",
+  "Faire une entrée",
+  "Faire du nivellement",
+  "Faire une pelouse",
+  "Faire du drainage",
+  "Faire une fondation",
+  "Installer ou préparer une piscine",
+  "Autre",
+  "Je ne sais pas",
+] as const;
+
+/** Unités acceptées pour une quantité approximative. */
+export const QUANTITY_UNIT_OPTIONS = [
+  { value: "voyages", label: "voyages de camion" },
+  { value: "tonnes", label: "tonnes" },
+  { value: "verges", label: "verges³" },
+  { value: "m3", label: "m³" },
+] as const;
+
+/** Catégories de photos guidées (aucune n'est obligatoire). */
+export const PHOTO_CATEGORIES = [
+  "Entrée du terrain",
+  "Chemin / voie d'accès",
+  "Zone de recul ou de manœuvre",
+  "Zone de déchargement",
+  "Autre photo",
+] as const;
+
+/** Réponse simple sur l'accès d'un camion lourd. */
+export const ACCESS_TRUCK_SIMPLE_OPTIONS = [
+  "Oui",
+  "Probablement",
+  "Je ne sais pas",
+  "Accès difficile / non",
+] as const;
+
 // Materials that trigger the "remblai / dépôt / matériel à sortir" special form
 export const REMBLAI_MATERIAL_IDS = ["remplissage"];
 export const REMBLAI_PROJECT_TYPES = ["Remplissage / remblai"];
