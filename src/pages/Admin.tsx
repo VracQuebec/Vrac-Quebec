@@ -10,6 +10,11 @@ import { Switch } from "@/components/ui/switch";
 import StatusManagerModal from "@/components/StatusManagerModal";
 import FullPageState from "@/components/FullPageState";
 import {
+  validateSelectedSite,
+  buildTransportPrefill,
+  type TransportPrefillSource,
+} from "@/lib/parcours/validation";
+import {
   Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List,
   Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings,
 } from "lucide-react";
@@ -116,6 +121,7 @@ interface Submission {
   selected_site_latitude?: number | null;
   selected_site_longitude?: number | null;
   selection_updated_at?: string | null;
+  site_validated_at?: string | null;
   quote_material?: string | null;
   quote_quantity?: number | null;
   quote_unit?: string | null;
@@ -1098,7 +1104,29 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
   const [savingNote, setSavingNote] = useState(false);
   const [internalDraft, setInternalDraft] = useState(sub.internal_notes || "");
   const [entrepreneurs, setEntrepreneurs] = useState<{ user_id: string; email: string }[]>([]);
+  const cardNavigate = useNavigate();
+  const [validating, setValidating] = useState(false);
+  const [validatedAt, setValidatedAt] = useState<string | null>(sub.site_validated_at ?? null);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Validation admin du site sélectionné : UPDATE idempotent sur CETTE demande.
+  const onValidateSite = async () => {
+    if (validating) return; // double clic → une seule validation
+    setValidating(true);
+    const res = await validateSelectedSite(sub.id, { hasSelection: !!sub.selected_site_id });
+    setValidating(false);
+    if (res.ok !== true) {
+      toast({ title: "Validation impossible", description: res.message, variant: "destructive" });
+      return;
+    }
+    setValidatedAt(res.validated.validatedAt);
+    toast({ title: "Site validé", description: res.validated.siteLabel || "Site confirmé pour cette demande." });
+  };
+
+  const goToTransportRequest = () => {
+    const prefill = buildTransportPrefill(sub as unknown as TransportPrefillSource);
+    cardNavigate("/demande-transport", { state: { vqPrefill: prefill } });
+  };
 
   useEffect(() => {
     if (expanded && cardRef.current) {
@@ -1536,7 +1564,12 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
             </div>
 
             {/* Sélection du comparateur — rattachée à cette demande (lecture seule) */}
-            {sub.selected_site_id && (
+            {!sub.selected_site_id ? (
+              <div className="mb-3 rounded-lg border border-border bg-muted/30 p-3 text-xs font-body text-muted-foreground">
+                <span className="font-display font-bold uppercase tracking-wide text-[10px]">Site non sélectionné</span>
+                <div className="mt-1">L'entrepreneur n'a pas encore choisi de site pour cette demande. La validation du site est indisponible.</div>
+              </div>
+            ) : (
               <div className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs font-body text-foreground">
                 <div className="mb-1.5 font-display text-[10px] font-bold uppercase tracking-wide text-primary">
                   Site sélectionné par l'entrepreneur
@@ -1559,6 +1592,30 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                     {sub.quote_duration_minutes != null ? `${sub.quote_duration_minutes} min` : "—"}</div>
                   <div><span className="font-semibold">Mise à jour : </span>
                     {sub.selection_updated_at ? formatDate(sub.selection_updated_at) : "—"}</div>
+                </div>
+
+                {/* Action admin : valider le site puis poursuivre vers la demande de transport */}
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-primary/20 pt-2">
+                  {validatedAt ? (
+                    <span className="inline-flex items-center rounded border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[11px] font-display font-semibold text-emerald-800">
+                      Site validé le {formatDate(validatedAt)}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={onValidateSite}
+                      disabled={validating}
+                      className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-display font-semibold text-primary-foreground disabled:opacity-60"
+                    >
+                      {validating ? "Validation…" : "Valider le site"}
+                    </button>
+                  )}
+                  <button
+                    onClick={goToTransportRequest}
+                    disabled={!validatedAt}
+                    className="rounded-lg border border-primary/40 px-3 py-1.5 text-[11px] font-display font-semibold text-primary disabled:opacity-50"
+                  >
+                    Poursuivre la demande de transport
+                  </button>
                 </div>
               </div>
             )}

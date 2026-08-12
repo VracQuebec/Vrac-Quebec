@@ -9830,6 +9830,8 @@ export type Database = {
           selection_updated_at: string | null
           service_type: string | null
           show_on_admin_map: boolean
+          site_validated_at: string | null
+          site_validated_by: string | null
           status: string
           submission_number: number
           tonnage: string
@@ -9915,6 +9917,8 @@ export type Database = {
           selection_updated_at?: string | null
           service_type?: string | null
           show_on_admin_map?: boolean
+          site_validated_at?: string | null
+          site_validated_by?: string | null
           status?: string
           submission_number?: number
           tonnage: string
@@ -10000,6 +10004,8 @@ export type Database = {
           selection_updated_at?: string | null
           service_type?: string | null
           show_on_admin_map?: boolean
+          site_validated_at?: string | null
+          site_validated_by?: string | null
           status?: string
           submission_number?: number
           tonnage?: string
@@ -11647,6 +11653,10 @@ export type Database = {
       }
       unaccent_immutable: { Args: { _text: string }; Returns: string }
       unaccent_string: { Args: { input: string }; Returns: string }
+      validate_selected_site: {
+        Args: { p_submission_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role:
