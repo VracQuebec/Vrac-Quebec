@@ -1,8 +1,8 @@
-// Point 34 — landing « sortir de la terre / des matériaux ».
-import { useEffect } from "react";
-import { Link } from "react-router-dom";
+// Point 34 — parcours « sortir de la terre / des matériaux » (dompe / site receveur).
+import { useEffect, useRef } from "react";
 import { ArrowRight, MapPin, ShieldCheck, Truck } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
+import ParcoursForm from "@/components/parcours/ParcoursForm";
 
 const STEPS = [
   "Le matériau à sortir (terre, argile, sable, pierre, béton, asphalte…).",
@@ -12,6 +12,7 @@ const STEPS = [
 ];
 
 const DepotMateriaux = () => {
+  const formRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     document.title = "Trouver une dompe (site de dépôt) au Québec | Vrac Québec";
     document
@@ -32,27 +33,24 @@ const DepotMateriaux = () => {
             <Truck className="h-3.5 w-3.5" aria-hidden /> Dompe · site de dépôt · site receveur
           </span>
           <h1 className="mt-4 font-display text-3xl sm:text-4xl font-extrabold leading-tight text-foreground">
-            Besoin de vous débarrasser de terre ou de matériaux&nbsp;?
+            Besoin de sortir de la terre ou des matériaux&nbsp;?
           </h1>
           <p className="mt-4 font-body text-base leading-relaxed text-muted-foreground">
-            Vrac Québec cherche un site de dépôt compatible avec votre matériau, votre camion et
-            votre secteur — le plus près possible de votre chantier.
+            Vrac Québec recherche un site de dépôt (dompe) ou un site receveur compatible avec
+            votre matériau, votre camion et votre secteur — le plus près possible de votre chantier.
           </p>
-          <div className="mt-6 flex flex-col sm:flex-row justify-center gap-2.5">
-            <Link
-              to="/espace-entrepreneur"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 font-display text-base font-bold uppercase tracking-wide text-primary-foreground shadow-lg"
-            >
-              Trouver une dompe <ArrowRight className="h-5 w-5" />
-            </Link>
-            <a
-              href="/#questionnaire"
-              className="inline-flex items-center justify-center rounded-xl border-2 border-primary px-6 py-4 font-display text-base font-bold uppercase tracking-wide text-primary hover:bg-primary/10"
-            >
-              Trouver une solution pour mon matériel
-            </a>
-          </div>
+          <button
+            type="button"
+            onClick={() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="mt-6 inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 font-display text-base font-bold uppercase tracking-wide text-primary-foreground shadow-lg"
+          >
+            Faire ma demande <ArrowRight className="h-5 w-5" />
+          </button>
         </header>
+
+        <section ref={formRef} id="demande" className="mt-8 scroll-mt-20">
+          <ParcoursForm variant="evacuation" />
+        </section>
 
         <section className="mt-10 rounded-2xl border border-border bg-card p-6">
           <h2 className="font-display text-lg font-bold text-foreground">Ce qu'on vous demandera</h2>

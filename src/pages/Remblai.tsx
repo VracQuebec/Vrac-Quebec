@@ -1,8 +1,10 @@
-// Points 6 & 33 — landing remblai économique (trafic Marketplace, mobile d'abord).
-import { useEffect } from "react";
+// Points 6 & 33 — landing remblai économique (trafic Marketplace, mobile d'abord)
+// avec le parcours de demande intégré directement dans la page.
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Coins, MapPin, Recycle, ShieldCheck } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
+import ParcoursForm from "@/components/parcours/ParcoursForm";
 
 const BENEFITS = [
   { icon: Coins, t: "Économisez", d: "Le matériau provenant de surplus de chantier peut être beaucoup plus économique qu'un matériau neuf." },
@@ -11,6 +13,7 @@ const BENEFITS = [
 ];
 
 const Remblai = () => {
+  const formRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     document.title = "Remblai économique près de chez vous | Vrac Québec";
     document
@@ -37,13 +40,22 @@ const Remblai = () => {
             Des surplus de terre, sable ou remblai provenant de chantiers peuvent être disponibles
             dans votre secteur. Vrac Québec cherche la solution compatible la plus proche.
           </p>
-          <Link
-            to="/acheter-materiaux"
+          <button
+            type="button"
+            onClick={() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
             className="mt-6 inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 font-display text-base font-bold uppercase tracking-wide text-primary-foreground shadow-lg"
           >
-            Voir ce qui est disponible dans mon secteur <ArrowRight className="h-5 w-5" />
-          </Link>
+            Voir les possibilités dans mon secteur <ArrowRight className="h-5 w-5" />
+          </button>
+          <p className="mt-3 font-body text-xs text-muted-foreground">
+            Le matériau dépend des disponibilités du moment. Aucun matériau gratuit n'est garanti.
+          </p>
         </header>
+
+        {/* Parcours de demande — accessible très haut dans la page (Marketplace / mobile). */}
+        <section ref={formRef} id="demande" className="mt-8 scroll-mt-20">
+          <ParcoursForm variant="reception" />
+        </section>
 
         <section className="mt-10 grid gap-4 sm:grid-cols-3">
           {BENEFITS.map(({ icon: Icon, t, d }) => (

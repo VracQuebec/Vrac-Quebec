@@ -6,7 +6,7 @@
 // Aucune donnée simulée : information absente = « à confirmer ».
 // ============================================================
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRight, CheckCircle2, Clock, Loader2, MapPin, Route, Search, TrendingDown, Truck,
 } from "lucide-react";
@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   MATERIAL_OPTIONS, TRUCK_OPTIONS, BULK_TRUCK_OPTIONS, STATUS_META, evaluateSite, accessConstraints,
+  normalizeMaterial, normalizeTruck,
   siteMaterialKeys, siteTruckKeys, type MaterialKey, type TruckKey, type SiteLike,
 } from "@/lib/entrepreneur/site-match";
 
@@ -57,6 +58,7 @@ const MATERIAL_TO_WIZARD: Record<MaterialKey, string> = {
 
 export default function EntrepreneurComparateur() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isReady } = useAuthReady();
   const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, isReady);
 
@@ -74,6 +76,25 @@ export default function EntrepreneurComparateur() {
   useEffect(() => {
     document.title = "Comparateur de sites de dépôt | Vrac Québec";
   }, []);
+
+  // Préremplissage depuis un parcours déjà complété (/depot-materiaux) :
+  // aucune information n'est redemandée.
+  useEffect(() => {
+    const pf = (location.state as { vqPrefill?: Record<string, unknown> } | null)?.vqPrefill;
+    if (!pf) return;
+    if (typeof pf.address === "string" && pf.address) setAddress(pf.address);
+    const c = pf.coords as { lat?: number; lng?: number } | null | undefined;
+    if (c && typeof c.lat === "number" && typeof c.lng === "number") setCoords({ lat: c.lat, lng: c.lng });
+    if (typeof pf.material === "string" && pf.material) {
+      const key = normalizeMaterial(pf.material);
+      if (key) setMaterial(key);
+    }
+    if (typeof pf.truckType === "string" && pf.truckType) {
+      const tk = normalizeTruck(pf.truckType);
+      if (tk) setTruck(tk);
+    }
+    if (typeof pf.trips === "string" && pf.trips.trim()) setTrips(pf.trips.trim());
+  }, [location.state]);
 
   useEffect(() => {
     if (isReady && !user) navigate("/login", { replace: true });
