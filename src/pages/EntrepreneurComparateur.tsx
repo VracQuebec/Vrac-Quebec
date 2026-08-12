@@ -475,9 +475,57 @@ export default function EntrepreneurComparateur() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="cmp-trips">Nombre de voyages prévus</Label>
-            <Input id="cmp-trips" inputMode="numeric" value={trips} onChange={(e) => setTrips(e.target.value)}
-              className="h-12 text-base" />
+            <Label htmlFor="cmp-qty">Quantité à évacuer</Label>
+            <div className="flex gap-2">
+              <Input
+                id="cmp-qty"
+                inputMode="decimal"
+                value={quantityValue}
+                placeholder="Ex. 25"
+                onChange={(e) => setQuantityValue(e.target.value)}
+                className="h-12 flex-1 text-base"
+              />
+              <select
+                aria-label="Unité de quantité"
+                value={quantityUnit}
+                onChange={(e) => setQuantityUnit(e.target.value)}
+                className="h-12 rounded-md border border-input bg-background px-3 font-body text-base"
+              >
+                {QUANTITY_UNIT_OPTIONS.map((u) => (
+                  <option key={u.value} value={u.value}>{u.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Calcul du besoin — réutilise le calculateur existant. */}
+          <div className="rounded-xl border border-border bg-background p-3">
+            <p className="font-display text-xs font-bold uppercase tracking-wide text-foreground">
+              Besoin en transport
+            </p>
+            <dl className="mt-2 space-y-1 font-body text-sm text-foreground">
+              <div><dt className="inline font-semibold">Quantité : </dt>
+                <dd className="inline">{quantityValue.trim() ? `${quantityValue.trim()} ${unitLabelFr}` : "À compléter"}</dd></div>
+              <div><dt className="inline font-semibold">Camion : </dt>
+                <dd className="inline">{truckLabel || "À sélectionner"}</dd></div>
+              <div><dt className="inline font-semibold">Capacité applicable : </dt>
+                <dd className="inline">
+                  {capacityTonnes != null ? `${capacityTonnes} t par voyage` : "Non configurée"}
+                </dd></div>
+              {besoin.tonnes != null && (
+                <div><dt className="inline font-semibold">Tonnage estimé : </dt>
+                  <dd className="inline">{besoin.tonnes.toFixed(1)} t</dd></div>
+              )}
+              <div><dt className="inline font-semibold">Voyages calculés : </dt>
+                <dd className="inline">
+                  {tripCount != null ? `${tripCount} voyage${tripCount > 1 ? "s" : ""}` : "Non calculable"}
+                </dd></div>
+            </dl>
+            {tripCount == null && besoin.missing.length > 0 && (
+              <p className="mt-2 font-body text-xs text-amber-700">
+                Pour calculer le nombre de voyages, il manque : {besoin.missing.join(", ")}.
+              </p>
+            )}
           </div>
 
           <Button onClick={compare} disabled={!coords || computing || geoLeads.length === 0}
@@ -485,10 +533,10 @@ export default function EntrepreneurComparateur() {
             {computing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
             {computing ? "Calcul des trajets Google…" : "Comparer les sites"}
           </Button>
-          {!coords && address && (
-            <p className="font-body text-xs text-muted-foreground">
-              Sélectionnez une suggestion d'adresse pour obtenir la localisation exacte.
-            </p>
+          {blockers.length > 0 && (
+            <ul className="list-disc space-y-1 pl-5 font-body text-xs text-muted-foreground">
+              {blockers.map((b) => <li key={b}>{b}</li>)}
+            </ul>
           )}
           {geoLeads.length === 0 && (
             <p className="font-body text-sm text-muted-foreground">
