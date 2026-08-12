@@ -79,7 +79,7 @@ describe("sélection comparateur → CRM", () => {
     const { client, rows, calls } = makeClient();
     const res = await persistSelection(sel(), client);
     expect(res.ok).toBe(true);
-    if (res.ok) {
+    if (res.ok === true) {
       expect(res.saved.submissionId).toBe(SUB);
       expect(res.saved.siteId).toBe(SITE_A);
       expect(res.saved.trips).toBe(3);
@@ -94,7 +94,7 @@ describe("sélection comparateur → CRM", () => {
     const { client, calls } = makeClient();
     const res = await persistSelection(sel({ submissionId: null }), client);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.code).toBe("missing_submission");
+    if (res.ok === false) expect(res.code).toBe("missing_submission");
     expect(calls).toHaveLength(0);
   });
 
@@ -102,7 +102,7 @@ describe("sélection comparateur → CRM", () => {
     const { client, calls } = makeClient();
     const res = await persistSelection(null, client);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.code).toBe("missing_selection");
+    if (res.ok === false) expect(res.code).toBe("missing_selection");
     const res2 = await persistSelection(sel({ siteId: "" }), client);
     expect(res2.ok).toBe(false);
     expect(calls).toHaveLength(0);
@@ -112,7 +112,7 @@ describe("sélection comparateur → CRM", () => {
     const client: RpcClient = { rpc: async () => ({ data: null, error: { message: "not_authorized" } }) };
     const res = await persistSelection(sel(), client);
     expect(res.ok).toBe(false);
-    if (!res.ok) {
+    if (res.ok === false) {
       expect(res.code).toBe("save_failed");
       expect(res.message).toBe("not_authorized");
     }

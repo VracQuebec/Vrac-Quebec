@@ -47,6 +47,7 @@ export interface RpcClient {
 
 const numOrNull = (v: string | number | null | undefined): number | null => {
   if (v == null) return null;
+  if (typeof v === "string" && !v.trim()) return null;
   const n = typeof v === "number" ? v : Number(String(v).replace(",", ".").trim());
   return Number.isFinite(n) ? n : null;
 };
