@@ -90,7 +90,7 @@ export default function EntrepreneurComparateur() {
     const stored = loadHandoff();
     const pf = (fromState ?? stored ?? null) as Record<string, unknown> | null;
     if (!pf) return;
-    if (fromState && (fromState as ParcoursHandoff).submissionId !== undefined) {
+    if (fromState && fromState.submissionId !== undefined) {
       saveHandoff(fromState as unknown as ParcoursHandoff);
     }
     if (typeof pf.submissionId === "string" || pf.quantityLabel || pf.desiredDate) {
