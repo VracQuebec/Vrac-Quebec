@@ -1,4 +1,5 @@
 import type { Database } from "@/integrations/supabase/types";
+import { TRUCK_TYPES as TRUCK_CATALOG, truckTypeLabel } from "@/lib/trucks/catalog";
 
 export type CalendarEvent = Database["public"]["Tables"]["calendar_events"]["Row"];
 export type Truck = Database["public"]["Tables"]["trucks"]["Row"];
@@ -29,14 +30,10 @@ export const statusBg = (s: EventStatus) => `hsl(var(${STATUS_VAR[s]}))`;
 export const statusBgSoft = (s: EventStatus) => `hsl(var(${STATUS_VAR[s]}) / 0.15)`;
 export const statusBorder = (s: EventStatus) => `hsl(var(${STATUS_VAR[s]}) / 0.5)`;
 
-export const TRUCK_TYPE_LABELS: Record<TruckType, string> = {
-  "6_roues": "6 roues",
-  "10_roues": "10 roues",
-  "12_roues": "12 roues",
-  semi_remorque: "Semi-remorque",
-  fardier: "Fardier",
-  autre: "Autre",
-};
+/** Libellés issus de la nomenclature centrale (`@/lib/trucks/catalog`). */
+export const TRUCK_TYPE_LABELS = Object.fromEntries(
+  TRUCK_CATALOG.map((t) => [t.key, truckTypeLabel(t.key)]),
+) as Record<TruckType, string>;
 
 export const DRIVER_STATUS_LABELS: Record<DriverStatus, string> = {
   disponible: "Disponible",
@@ -48,9 +45,7 @@ export const EVENT_STATUSES: EventStatus[] = [
   "a_planifier", "planifie", "en_cours", "termine", "reporte", "annule",
 ];
 
-export const TRUCK_TYPES: TruckType[] = [
-  "6_roues", "10_roues", "12_roues", "semi_remorque", "fardier", "autre",
-];
+export const TRUCK_TYPES: TruckType[] = TRUCK_CATALOG.map((t) => t.key as TruckType);
 
 export const DRIVER_STATUSES: DriverStatus[] = ["disponible", "occupe", "inactif"];
 
