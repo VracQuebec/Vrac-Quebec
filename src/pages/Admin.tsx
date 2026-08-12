@@ -1163,6 +1163,15 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                 </span>
               ) : null;
             })()}
+            {(() => {
+              if (normalizeRequestType(sub.request_type) !== "remblai") return null;
+              const n = siteGaps(sub).length;
+              return n > 0 ? (
+                <span className="text-[10px] font-display font-bold px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 border border-amber-500/30">
+                  Fiche site incomplète ({n})
+                </span>
+              ) : null;
+            })()}
           </div>
           <p className="text-xs text-muted-foreground font-body truncate">
             {formatDate(sub.created_at)} • {getMaterialLabels(sub.materials)} • {sub.address}
