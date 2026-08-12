@@ -110,6 +110,19 @@ interface Submission {
   truck_types_allowed?: string[] | null;
   access_details?: Record<string, unknown> | null;
   access_heavy_truck?: string | null;
+  selected_site_id?: string | null;
+  selected_site_label?: string | null;
+  selected_site_address?: string | null;
+  selected_site_latitude?: number | null;
+  selected_site_longitude?: number | null;
+  selection_updated_at?: string | null;
+  quote_material?: string | null;
+  quote_quantity?: number | null;
+  quote_unit?: string | null;
+  quote_trips?: number | null;
+  quote_truck?: string | null;
+  quote_distance_km?: number | null;
+  quote_duration_minutes?: number | null;
 }
 
 interface LeadNote {
