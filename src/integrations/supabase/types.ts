@@ -11110,6 +11110,7 @@ export type Database = {
       get_entrepreneur_leads: {
         Args: never
         Returns: {
+          access_details: Json
           access_heavy_truck: string
           accessibility: string[]
           availability_note: string
