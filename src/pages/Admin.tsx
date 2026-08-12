@@ -76,6 +76,14 @@ interface Submission {
   lead_category?: string | null;
   creation_origin?: string | null;
   company?: string | null;
+  availability_status?: string | null;
+  availability_note?: string | null;
+  availability_updated_at?: string | null;
+  remaining_capacity?: string | null;
+  opening_hours?: string | null;
+  truck_types_allowed?: string[] | null;
+  access_details?: Record<string, unknown> | null;
+  access_heavy_truck?: string | null;
 }
 
 interface LeadNote {
