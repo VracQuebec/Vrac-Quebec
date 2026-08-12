@@ -96,7 +96,14 @@ function Result({ children }: { children: React.ReactNode }) {
   );
 }
 
-function MaterialSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function MaterialSelect({
+  value, onChange, materials, loading,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  materials: { slug: string; name: string; density_kg_per_m3: number }[];
+  loading: boolean;
+}) {
   return (
     <label className="block">
       <span className="block text-xs uppercase tracking-wider font-display font-bold text-muted-foreground mb-2">Type de matériau</span>
@@ -105,8 +112,11 @@ function MaterialSelect({ value, onChange }: { value: string; onChange: (v: stri
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2 rounded-lg border border-border bg-background font-body text-base"
       >
-        {Object.entries(DENSITIES).map(([k, v]) => (
-          <option key={k} value={k}>{v.label} (~{v.t_per_m3} t/m³)</option>
+        <option value="">{loading ? "Chargement…" : "Choisir un matériau"}</option>
+        {materials.map((m) => (
+          <option key={m.slug} value={m.slug}>
+            {m.name} ({(m.density_kg_per_m3 / 1000).toFixed(2)} t/m³)
+          </option>
         ))}
       </select>
     </label>
