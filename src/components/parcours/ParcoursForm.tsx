@@ -28,6 +28,7 @@ import {
   PHOTO_CATEGORIES,
 } from "@/lib/questionnaire-data";
 import { BULK_TRUCK_TYPES } from "@/lib/trucks/catalog";
+import { buildHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff } from "@/lib/parcours/handoff";
 
 export type ParcoursVariant = "reception" | "evacuation";
 
@@ -109,6 +110,7 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
   const [photoCategory, setPhotoCategory] = useState<string>(PHOTO_CATEGORIES[0]);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [handoff, setHandoff] = useState<ParcoursHandoff | null>(null);
   const [error, setError] = useState<string | null>(null);
   const startedAt = useRef(Date.now());
   const topRef = useRef<HTMLDivElement>(null);
@@ -198,6 +200,26 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
       });
       if (fnError) throw fnError;
       if (!res?.ok) throw new Error(res?.message || "Envoi impossible.");
+      // Continuité : on conserve l'ID RÉEL retourné par `submissions`.
+      const ho = buildHandoff({
+        submissionId: res?.submission_id ? String(res.submission_id) : null,
+        address: data.address,
+        lat: data.lat,
+        lng: data.lng,
+        materials: data.materials,
+        quantityValue: data.quantityValue,
+        quantityUnit: data.quantityUnit,
+        quantityLabel: quantityLabel,
+        truckType: data.truckType,
+        desiredDate: data.desiredDate,
+        timeframe: data.timeframe,
+        accessHeavyTruck: data.accessHeavyTruck,
+        accessDetails: data.accessDetails,
+      });
+      if (variant === "evacuation") {
+        setHandoff(ho);
+        saveHandoff(ho);
+      }
       setDone(true);
       try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
     } catch (e) {
@@ -228,13 +250,13 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
             onClick={() =>
               navigate("/entrepreneur/comparateur", {
                 state: {
-                  vqPrefill: {
-                    address: data.address,
-                    coords: data.lat != null && data.lng != null ? { lat: data.lat, lng: data.lng } : null,
-                    material: data.materials[0] ?? "",
-                    truckType: data.truckType,
-                    trips: data.quantityUnit === "voyages" ? data.quantityValue : "",
-                  },
+                  vqPrefill: handoff
+                    ? {
+                        ...handoff,
+                        submissionId: handoff.submissionId,
+                        trips: tripsFromHandoff(handoff),
+                      }
+                    : undefined,
                 },
               })
             }
