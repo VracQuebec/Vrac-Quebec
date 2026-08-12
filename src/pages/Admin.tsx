@@ -1115,12 +1115,11 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
       return;
     }
     setValidatedAt(res.validated.validatedAt);
-    onUpdate({ site_validated_at: res.validated.validatedAt } as Partial<Submission>);
     toast({ title: "Site validé", description: res.validated.siteLabel || "Site confirmé pour cette demande." });
   };
 
   const goToTransportRequest = () => {
-    const prefill = buildTransportPrefill(sub as unknown as Record<string, unknown>);
+    const prefill = buildTransportPrefill(sub as unknown as TransportPrefillSource);
     cardNavigate("/demande-transport", { state: { vqPrefill: prefill } });
   };
 
