@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
-  MATERIAL_OPTIONS, TRUCK_OPTIONS, STATUS_META, evaluateSite, accessConstraints,
+  MATERIAL_OPTIONS, TRUCK_OPTIONS, BULK_TRUCK_OPTIONS, STATUS_META, evaluateSite, accessConstraints,
   siteMaterialKeys, siteTruckKeys, type MaterialKey, type TruckKey, type SiteLike,
 } from "@/lib/entrepreneur/site-match";
 
@@ -308,7 +308,8 @@ export default function EntrepreneurComparateur() {
           <div className="space-y-1.5">
             <Label>Type de camion</Label>
             <div className="flex flex-wrap gap-2">
-              {TRUCK_OPTIONS.map((t) => (
+              {/* Sites de dépôt de matériaux : le fardier (machinerie) est hors périmètre */}
+              {BULK_TRUCK_OPTIONS.map((t) => (
                 <button
                   key={t.key}
                   type="button"
