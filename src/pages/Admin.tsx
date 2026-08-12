@@ -1115,7 +1115,7 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
     setValidating(true);
     const res = await validateSelectedSite(sub.id, { hasSelection: !!sub.selected_site_id });
     setValidating(false);
-    if (!res.ok) {
+    if (res.ok !== true) {
       toast({ title: "Validation impossible", description: res.message, variant: "destructive" });
       return;
     }
