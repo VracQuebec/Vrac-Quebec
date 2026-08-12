@@ -1,0 +1,1 @@
+DELETE FROM public.submissions WHERE email IN ('qa-depot-e2e@example.com','qa-remblai-e2e@example.com','qa-remblai-e2e2@example.com');
