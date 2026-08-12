@@ -37,7 +37,7 @@ describe("validation admin du site sélectionné", () => {
     const client = okClient();
     const res = await validateSelectedSite(SUB, { hasSelection: false }, client);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.code).toBe("missing_selection");
+    if (res.ok === false) expect(res.code).toBe("missing_selection");
     expect(client.rpc).not.toHaveBeenCalled();
   });
 
@@ -45,7 +45,7 @@ describe("validation admin du site sélectionné", () => {
     const client = okClient();
     const res = await validateSelectedSite(null, {}, client);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.code).toBe("missing_submission");
+    if (res.ok === false) expect(res.code).toBe("missing_submission");
     expect(client.rpc).not.toHaveBeenCalled();
   });
 
@@ -53,14 +53,14 @@ describe("validation admin du site sélectionné", () => {
     const client = { rpc: vi.fn(async () => ({ data: null, error: { message: "not_authorized" } })) };
     const res = await validateSelectedSite(SUB, { hasSelection: true }, client);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.code).toBe("not_authorized");
+    if (res.ok === false) expect(res.code).toBe("not_authorized");
   });
 
   it("ne confirme jamais en cas d'erreur DB", async () => {
     const client = { rpc: vi.fn(async () => ({ data: null, error: { message: "deadlock detected" } })) };
     const res = await validateSelectedSite(SUB, { hasSelection: true }, client);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.code).toBe("save_failed");
+    if (res.ok === false) expect(res.code).toBe("save_failed");
   });
 
   it("est idempotente : deux appels renvoient la même date de validation", async () => {
