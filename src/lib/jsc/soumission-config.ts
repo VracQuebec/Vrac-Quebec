@@ -8,6 +8,7 @@
 // base (tables jsc_*) et se modifie depuis l'administration.
 // ============================================================
 import type { FieldDef, ResourceDef } from "@/lib/jsc/config";
+import { TRUCK_TYPES } from "@/lib/trucks/catalog";
 
 const activeField: FieldDef = {
   key: "is_active",
