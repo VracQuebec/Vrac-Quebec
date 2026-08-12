@@ -8,6 +8,7 @@ import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
 import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import { BULK_TRUCK_OPTIONS } from "@/lib/entrepreneur/site-match";
+import { buildTransportPrefill, type TransportPrefillSource } from "@/lib/parcours/validation";
 
 import {
   submitTransportRequest,
