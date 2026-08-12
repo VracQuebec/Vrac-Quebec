@@ -307,12 +307,13 @@ export default function EntrepreneurComparateur() {
     setSaving(true);
     const res = await persistSelection(sel);
     setSaving(false);
-    if (res.ok) {
+    if (res.ok === true) {
       setPersisted(res.saved);
     } else {
+      const msg = res.message;
       setPersisted(null);
-      setSaveError(res.message);
-      toast({ title: "Enregistrement impossible", description: res.message, variant: "destructive" });
+      setSaveError(msg);
+      toast({ title: "Enregistrement impossible", description: msg, variant: "destructive" });
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
