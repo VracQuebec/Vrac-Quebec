@@ -110,6 +110,19 @@ interface Submission {
   truck_types_allowed?: string[] | null;
   access_details?: Record<string, unknown> | null;
   access_heavy_truck?: string | null;
+  selected_site_id?: string | null;
+  selected_site_label?: string | null;
+  selected_site_address?: string | null;
+  selected_site_latitude?: number | null;
+  selected_site_longitude?: number | null;
+  selection_updated_at?: string | null;
+  quote_material?: string | null;
+  quote_quantity?: number | null;
+  quote_unit?: string | null;
+  quote_trips?: number | null;
+  quote_truck?: string | null;
+  quote_distance_km?: number | null;
+  quote_duration_minutes?: number | null;
 }
 
 interface LeadNote {
@@ -1521,6 +1534,34 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                 onSave={(v) => onUpdate({ description: v || null })}
               />
             </div>
+
+            {/* Sélection du comparateur — rattachée à cette demande (lecture seule) */}
+            {sub.selected_site_id && (
+              <div className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs font-body text-foreground">
+                <div className="mb-1.5 font-display text-[10px] font-bold uppercase tracking-wide text-primary">
+                  Site sélectionné par l'entrepreneur
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  <div><span className="font-semibold">Site : </span>{sub.selected_site_label || "—"}</div>
+                  <div><span className="font-semibold">Adresse du site : </span>{sub.selected_site_address || "—"}</div>
+                  <div><span className="font-semibold">GPS du site : </span>
+                    {sub.selected_site_latitude != null && sub.selected_site_longitude != null
+                      ? `${sub.selected_site_latitude.toFixed(4)}, ${sub.selected_site_longitude.toFixed(4)}`
+                      : "—"}</div>
+                  <div><span className="font-semibold">Matériau : </span>{sub.quote_material || "—"}</div>
+                  <div><span className="font-semibold">Quantité : </span>
+                    {sub.quote_quantity != null ? `${sub.quote_quantity} ${sub.quote_unit || ""}`.trim() : "—"}</div>
+                  <div><span className="font-semibold">Voyages : </span>{sub.quote_trips ?? "—"}</div>
+                  <div><span className="font-semibold">Camion : </span>{sub.quote_truck || "—"}</div>
+                  <div><span className="font-semibold">Distance : </span>
+                    {sub.quote_distance_km != null ? `${sub.quote_distance_km} km` : "—"}</div>
+                  <div><span className="font-semibold">Durée : </span>
+                    {sub.quote_duration_minutes != null ? `${sub.quote_duration_minutes} min` : "—"}</div>
+                  <div><span className="font-semibold">Mise à jour : </span>
+                    {sub.selection_updated_at ? formatDate(sub.selection_updated_at) : "—"}</div>
+                </div>
+              </div>
+            )}
 
             {/* Lecture seule */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground font-body bg-muted/30 rounded-lg p-3">

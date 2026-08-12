@@ -9822,6 +9822,12 @@ export type Database = {
           quote_unit: string | null
           remaining_capacity: string | null
           request_type: string
+          selected_site_address: string | null
+          selected_site_id: string | null
+          selected_site_label: string | null
+          selected_site_latitude: number | null
+          selected_site_longitude: number | null
+          selection_updated_at: string | null
           service_type: string | null
           show_on_admin_map: boolean
           status: string
@@ -9901,6 +9907,12 @@ export type Database = {
           quote_unit?: string | null
           remaining_capacity?: string | null
           request_type?: string
+          selected_site_address?: string | null
+          selected_site_id?: string | null
+          selected_site_label?: string | null
+          selected_site_latitude?: number | null
+          selected_site_longitude?: number | null
+          selection_updated_at?: string | null
           service_type?: string | null
           show_on_admin_map?: boolean
           status?: string
@@ -9980,6 +9992,12 @@ export type Database = {
           quote_unit?: string | null
           remaining_capacity?: string | null
           request_type?: string
+          selected_site_address?: string | null
+          selected_site_id?: string | null
+          selected_site_label?: string | null
+          selected_site_latitude?: number | null
+          selected_site_longitude?: number | null
+          selection_updated_at?: string | null
           service_type?: string | null
           show_on_admin_map?: boolean
           status?: string
@@ -10002,6 +10020,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "crm_clients_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_selected_site_id_fkey"
+            columns: ["selected_site_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
         ]
@@ -11107,6 +11132,10 @@ export type Database = {
           qa_before: number
         }[]
       }
+      get_comparateur_selection: {
+        Args: { p_submission_id: string }
+        Returns: Json
+      }
       get_entrepreneur_leads: {
         Args: never
         Returns: {
@@ -11499,6 +11528,25 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      save_comparateur_selection: {
+        Args: {
+          p_access_details?: Json
+          p_desired_date?: string
+          p_distance_km?: number
+          p_duration_minutes?: number
+          p_material?: string
+          p_quantity?: number
+          p_site_id: string
+          p_site_label?: string
+          p_submission_id: string
+          p_timeframe?: string
+          p_tonnage?: number
+          p_trips?: number
+          p_truck?: string
+          p_unit?: string
+        }
+        Returns: Json
       }
       seo_dashboard_stats: { Args: never; Returns: Json }
       seo_executive_dashboard: { Args: never; Returns: Json }

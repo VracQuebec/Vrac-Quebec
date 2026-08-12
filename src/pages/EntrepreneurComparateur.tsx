@@ -29,6 +29,9 @@ import {
   loadHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff,
   saveSelection, loadSelection, clearSelection, type ComparateurSelection,
 } from "@/lib/parcours/handoff";
+import {
+  persistSelection, fetchPersistedSelection, type PersistedSelection,
+} from "@/lib/parcours/selection";
 import { usePublicTrucks } from "@/lib/vrac/units";
 import { useCalcMaterials } from "@/lib/vrac/calculator";
 import { computeBesoin } from "@/lib/parcours/besoin";
@@ -83,6 +86,9 @@ export default function EntrepreneurComparateur() {
   const [showIncompatible, setShowIncompatible] = useState(false);
   const [request, setRequest] = useState<ParcoursHandoff | null>(null);
   const [selection, setSelection] = useState<ComparateurSelection | null>(null);
+  const [persisted, setPersisted] = useState<PersistedSelection | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Référentiel administré (aucune valeur en dur) : capacités de camions
   // et densités de matériaux servent au calcul du nombre de voyages.
@@ -140,6 +146,41 @@ export default function EntrepreneurComparateur() {
     const s = loadSelection();
     if (s) setSelection(s);
   }, []);
+
+  // Source de vérité après sélection : la demande existante (CRM).
+  // Au rechargement, on relit la sélection réellement enregistrée.
+  useEffect(() => {
+    const id = request?.submissionId;
+    if (!id || !isReady || roleLoading || (!isEntrepreneur && !isAdmin)) return;
+    void (async () => {
+      const p = await fetchPersistedSelection(id);
+      if (!p) return;
+      setPersisted(p);
+      // Reload sans brouillon local : la demande existante fait foi.
+      setSelection((cur) => cur ?? {
+        submissionId: p.submissionId,
+        siteId: p.siteId ?? "",
+        siteLabel: p.siteLabel ?? "Site sélectionné",
+        distanceKm: p.distanceKm,
+        durationMinutes: p.durationMinutes,
+        trips: p.trips,
+        tonnes: p.tonnes,
+        quantityValue: p.quantity != null ? String(p.quantity) : "",
+        quantityUnit: p.unit ?? "",
+        materialKey: null,
+        materialLabel: p.material ?? "",
+        truckKey: null,
+        truckLabel: p.truck ?? "",
+        capacityTonnes: null,
+        address: "",
+        coords: null,
+        desiredDate: p.desiredDate ?? "",
+        timeframe: p.timeframe ?? "",
+        accessDetails: Array.isArray(p.accessDetails) ? (p.accessDetails as string[]) : [],
+        createdAt: Date.now(),
+      });
+    })();
+  }, [request?.submissionId, isReady, roleLoading, isEntrepreneur, isAdmin]);
 
   useEffect(() => {
     if (isReady && !user) navigate("/login", { replace: true });
@@ -250,7 +291,8 @@ export default function EntrepreneurComparateur() {
 
   // Sélection : rattachée à la demande existante et persistée.
   // Aucune écriture en base ici → aucune nouvelle demande créée.
-  const selectSite = (r: Ranked) => {
+  const selectSite = async (r: Ranked) => {
+    if (saving) return; // anti double-clic : aucune double écriture
     const sel: ComparateurSelection = {
       submissionId: request?.submissionId ?? null,
       siteId: r.id,
@@ -273,8 +315,30 @@ export default function EntrepreneurComparateur() {
       accessDetails: request?.accessDetails ?? [],
       createdAt: Date.now(),
     };
+    // Le brouillon local est toujours conservé : même en cas d'échec
+    // d'écriture, l'entrepreneur ne perd pas son choix.
     saveSelection(sel);
     setSelection(sel);
+    setSaveError(null);
+
+    if (!sel.submissionId) {
+      // Aucune demande existante : rien n'est écrit au CRM (pas de doublon).
+      setPersisted(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    setSaving(true);
+    const res = await persistSelection(sel);
+    setSaving(false);
+    if (res.ok === true) {
+      setPersisted(res.saved);
+    } else {
+      const msg = res.message;
+      setPersisted(null);
+      setSaveError(msg);
+      toast({ title: "Enregistrement impossible", description: msg, variant: "destructive" });
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -377,11 +441,12 @@ export default function EntrepreneurComparateur() {
 
         {ev.status !== "incompatible" && (
           <Button
-            onClick={() => selectSite(r)}
+            onClick={() => void selectSite(r)}
+            disabled={saving}
             className="mt-4 h-12 w-full font-display text-sm font-bold uppercase tracking-wide"
           >
-            <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden />
-            Sélectionner ce site
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden />}
+            {saving ? "Enregistrement…" : "Sélectionner ce site"}
             <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
           </Button>
         )}
@@ -577,12 +642,36 @@ export default function EntrepreneurComparateur() {
         {selection && (
           <section className="mt-6 rounded-2xl border-2 border-primary bg-primary/5 p-4 sm:p-5">
             <p className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-foreground">
-              <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden /> Site sélectionné
+              <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden />
+              {persisted ? "Votre demande est enregistrée" : "Site sélectionné"}
             </p>
+            {persisted ? (
+              <p className="mt-1 font-body text-xs text-muted-foreground">
+                Choix rattaché à la demande #{persisted.submissionNumber ?? "—"} · enregistré le{" "}
+                {persisted.updatedAt ? new Date(persisted.updatedAt).toLocaleString("fr-CA") : "—"}.
+              </p>
+            ) : saveError ? (
+              <p className="mt-1 font-body text-xs font-semibold text-destructive">
+                {saveError} Votre choix est conservé localement : réessayez la sélection.
+              </p>
+            ) : (
+              <p className="mt-1 font-body text-xs text-muted-foreground">
+                Choix conservé sur cet appareil : aucune demande existante à mettre à jour.
+              </p>
+            )}
             <dl className="mt-3 grid gap-1.5 font-body text-sm text-foreground sm:grid-cols-2">
               <div><dt className="inline font-semibold">Référence de la demande : </dt>
-                <dd className="inline">{selection.submissionId ? selection.submissionId.slice(0, 8) : "Non rattachée"}</dd></div>
-              <div><dt className="inline font-semibold">Site : </dt><dd className="inline">{selection.siteLabel}</dd></div>
+                <dd className="inline">
+                  {persisted?.submissionNumber != null
+                    ? `#${persisted.submissionNumber}`
+                    : selection.submissionId ? selection.submissionId.slice(0, 8) : "Non rattachée"}
+                </dd></div>
+              <div><dt className="inline font-semibold">Site : </dt>
+                <dd className="inline">{persisted?.siteLabel ?? selection.siteLabel}</dd></div>
+              {persisted?.siteAddress && (
+                <div className="sm:col-span-2"><dt className="inline font-semibold">Adresse du site : </dt>
+                  <dd className="inline">{persisted.siteAddress}</dd></div>
+              )}
               <div><dt className="inline font-semibold">Matériau : </dt>
                 <dd className="inline">{selection.materialLabel || "À compléter"}</dd></div>
               <div><dt className="inline font-semibold">Quantité : </dt>
@@ -594,7 +683,7 @@ export default function EntrepreneurComparateur() {
               <div><dt className="inline font-semibold">Camion : </dt>
                 <dd className="inline">{selection.truckLabel || "À compléter"}</dd></div>
               <div><dt className="inline font-semibold">Voyages : </dt>
-                <dd className="inline">{selection.trips != null ? selection.trips : "Non calculable"}</dd></div>
+                <dd className="inline">{(persisted?.trips ?? selection.trips) != null ? (persisted?.trips ?? selection.trips) : "Non calculable"}</dd></div>
               <div><dt className="inline font-semibold">Distance : </dt>
                 <dd className="inline">{selection.distanceKm != null ? `${selection.distanceKm.toFixed(1)} km` : "À confirmer"}</dd></div>
               <div><dt className="inline font-semibold">Durée : </dt>
@@ -616,7 +705,7 @@ export default function EntrepreneurComparateur() {
                 Poursuivre la demande de transport
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
               </Button>
-              <Button variant="outline" onClick={() => { clearSelection(); setSelection(null); }}
+              <Button variant="outline" onClick={() => { clearSelection(); setSelection(null); setSaveError(null); }}
                 className="h-12 font-display text-sm font-bold uppercase tracking-wide">
                 Changer de site
               </Button>
