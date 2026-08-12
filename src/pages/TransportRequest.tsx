@@ -1455,7 +1455,25 @@ const TransportRequest = () => {
               Informations sur ce chantier
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Type de camion" value={truckType} onChange={setTruckType} placeholder={suggestedTruck || "Ex. 12 roues"} />
+              <label className="block">
+                <span className="block text-xs font-display font-bold uppercase text-muted-foreground mb-1.5">
+                  Type de camion
+                </span>
+                <select
+                  value={truckType}
+                  onChange={(e) => setTruckType(e.target.value)}
+                  className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground"
+                >
+                  <option value="">{suggestedTruck ? `Suggéré : ${suggestedTruck}` : "À déterminer avec nous"}</option>
+                  {BULK_TRUCK_OPTIONS.map((t) => (
+                    <option key={t.key} value={t.label}>{t.label}</option>
+                  ))}
+                  {/* Valeur historique ou préremplie hors nomenclature : conservée */}
+                  {truckType && !BULK_TRUCK_OPTIONS.some((t) => t.label === truckType) && (
+                    <option value={truckType}>{truckType}</option>
+                  )}
+                </select>
+              </label>
               <Field label="Date souhaitée" value={desiredDate} onChange={setDesiredDate} type="date" />
               <Field label="Heure souhaitée" value={desiredTime} onChange={setDesiredTime} type="time" />
               <Field label="Voyages estimés (facultatif)" value={trips} onChange={setTrips} placeholder="Ex. 3" type="number" />
