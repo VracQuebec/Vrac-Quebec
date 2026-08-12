@@ -116,6 +116,7 @@ interface Submission {
   selected_site_latitude?: number | null;
   selected_site_longitude?: number | null;
   selection_updated_at?: string | null;
+  site_validated_at?: string | null;
   quote_material?: string | null;
   quote_quantity?: number | null;
   quote_unit?: string | null;
@@ -1098,7 +1099,30 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
   const [savingNote, setSavingNote] = useState(false);
   const [internalDraft, setInternalDraft] = useState(sub.internal_notes || "");
   const [entrepreneurs, setEntrepreneurs] = useState<{ user_id: string; email: string }[]>([]);
+  const cardNavigate = useNavigate();
+  const [validating, setValidating] = useState(false);
+  const [validatedAt, setValidatedAt] = useState<string | null>(sub.site_validated_at ?? null);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Validation admin du site sélectionné : UPDATE idempotent sur CETTE demande.
+  const onValidateSite = async () => {
+    if (validating) return; // double clic → une seule validation
+    setValidating(true);
+    const res = await validateSelectedSite(sub.id, { hasSelection: !!sub.selected_site_id });
+    setValidating(false);
+    if (!res.ok) {
+      toast({ title: "Validation impossible", description: res.message, variant: "destructive" });
+      return;
+    }
+    setValidatedAt(res.validated.validatedAt);
+    onUpdate({ site_validated_at: res.validated.validatedAt } as Partial<Submission>);
+    toast({ title: "Site validé", description: res.validated.siteLabel || "Site confirmé pour cette demande." });
+  };
+
+  const goToTransportRequest = () => {
+    const prefill = buildTransportPrefill(sub as unknown as Record<string, unknown>);
+    cardNavigate("/demande-transport", { state: { vqPrefill: prefill } });
+  };
 
   useEffect(() => {
     if (expanded && cardRef.current) {
