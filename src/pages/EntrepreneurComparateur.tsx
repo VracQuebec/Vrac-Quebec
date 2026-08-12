@@ -311,6 +311,51 @@ export default function EntrepreneurComparateur() {
           compatibles selon la distance routière réelle (Google Routes).
         </p>
 
+        {request && (
+          <section className="mt-5 rounded-2xl border-2 border-primary/40 bg-primary/5 p-4">
+            <p className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
+              Demande déjà enregistrée
+              {request.submissionId ? ` · réf. ${request.submissionId.slice(0, 8)}` : ""}
+            </p>
+            <p className="mt-1 font-body text-xs text-muted-foreground">
+              Les informations ci-dessous proviennent de votre demande. Aucune nouvelle demande
+              n'est créée ici.
+            </p>
+            <dl className="mt-3 grid gap-1.5 font-body text-sm text-foreground sm:grid-cols-2">
+              {request.address && (
+                <div><dt className="inline font-semibold">Adresse : </dt><dd className="inline">{request.address}</dd></div>
+              )}
+              {request.materials?.length > 0 && (
+                <div><dt className="inline font-semibold">Matériaux : </dt><dd className="inline">{request.materials.join(", ")}</dd></div>
+              )}
+              {request.quantityLabel && (
+                <div><dt className="inline font-semibold">Quantité : </dt><dd className="inline">{request.quantityLabel}</dd></div>
+              )}
+              {request.truckType && (
+                <div><dt className="inline font-semibold">Camion : </dt><dd className="inline">{request.truckType}</dd></div>
+              )}
+              {request.desiredDate && (
+                <div><dt className="inline font-semibold">Date souhaitée : </dt><dd className="inline">{request.desiredDate}</dd></div>
+              )}
+              {request.timeframe && (
+                <div><dt className="inline font-semibold">Délai : </dt><dd className="inline">{request.timeframe}</dd></div>
+              )}
+              {request.accessHeavyTruck && (
+                <div><dt className="inline font-semibold">Accès camion lourd : </dt><dd className="inline">{request.accessHeavyTruck}</dd></div>
+              )}
+              {request.accessDetails?.length > 0 && (
+                <div className="sm:col-span-2"><dt className="inline font-semibold">Restrictions : </dt><dd className="inline">{request.accessDetails.join(" • ")}</dd></div>
+              )}
+            </dl>
+            {!request.coords && request.address && (
+              <p className="mt-2 font-body text-xs text-amber-700">
+                Aucune coordonnée GPS n'a été validée pour cette adresse : sélectionnez une
+                suggestion Google ci-dessous pour lancer la comparaison.
+              </p>
+            )}
+          </section>
+        )}
+
         <section className="mt-6 space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-5">
           <div className="space-y-1.5">
             <Label>Adresse du chantier</Label>
