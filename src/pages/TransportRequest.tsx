@@ -298,6 +298,8 @@ const TransportRequest = () => {
   const hydratedRef = useRef(false);
   // Site pré-sélectionné depuis le comparateur (aucune ressaisie demandée).
   const preselectDumpRef = useRef<string | null>(null);
+  // Demande existante (source de vérité) transmise par le CRM ou le parcours.
+  const submissionIdRef = useRef<string | null>(null);
 
   const hasProgress = () =>
     step > 1 || !!material || !!address || !!quantity || !!clientName || !!clientPhone;
@@ -315,24 +317,7 @@ const TransportRequest = () => {
       // éventuel brouillon local (le parcours vient d'être choisi).
       const pf = (location.state as { vqPrefill?: Record<string, unknown> } | null)?.vqPrefill;
       if (pf) {
-        const p = pf as {
-          dumpId?: string; material?: string; truckType?: string; address?: string;
-          coords?: { lat: number; lng: number } | null; trips?: string;
-        };
-        if (p.material && MATERIALS.some((m) => m.id === p.material)) {
-          setMaterial(p.material);
-          const g = MATERIAL_GROUPS.find((gr) => gr.subtypes.some((st) => st.id === p.material));
-          if (g) {
-            setMaterialGroup(g.key);
-            setMaterialSubKey(g.subtypes.find((st) => st.id === p.material)?.key || "");
-          }
-        }
-        if (p.address) setAddress(p.address);
-        if (p.coords) setCoords(p.coords);
-        if (p.truckType) setTruckType(p.truckType);
-        if (p.trips) setTrips(p.trips);
-        if (p.dumpId) preselectDumpRef.current = p.dumpId;
-        setStep(3);
+        applyPrefill(pf as Record<string, unknown>);
         hydratedRef.current = true;
         return;
       }
@@ -350,6 +335,59 @@ const TransportRequest = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /** Applique un préremplissage (CRM ou comparateur) sans rien inventer. */
+  function applyPrefill(pf: Record<string, unknown>) {
+    const p = pf as {
+      submissionId?: string | null; dumpId?: string; material?: string; truckType?: string;
+      address?: string; coords?: { lat: number; lng: number } | null; trips?: string;
+      quantity?: string; unit?: string; desiredDate?: string;
+      clientName?: string; clientCompany?: string; clientPhone?: string; clientEmail?: string;
+    };
+    if (p.submissionId) submissionIdRef.current = p.submissionId;
+    if (p.material && MATERIALS.some((m) => m.id === p.material)) {
+      setMaterial(p.material);
+      const g = MATERIAL_GROUPS.find((gr) => gr.subtypes.some((st) => st.id === p.material));
+      if (g) {
+        setMaterialGroup(g.key);
+        setMaterialSubKey(g.subtypes.find((st) => st.id === p.material)?.key || "");
+      }
+    }
+    if (p.address) setAddress(p.address);
+    if (p.coords) setCoords(p.coords);
+    if (p.truckType) setTruckType(p.truckType);
+    if (p.trips) setTrips(p.trips);
+    if (p.quantity) setQuantity(String(p.quantity));
+    const u = (p.unit || "").toLowerCase();
+    if (u.startsWith("tonne")) setUnit("tonnes");
+    else if (u.includes("verge")) setUnit("verges");
+    if (p.desiredDate) setDesiredDate(p.desiredDate);
+    if (p.clientName) setClientName(p.clientName);
+    if (p.clientCompany) setClientCompany(p.clientCompany);
+    if (p.clientPhone) setClientPhone(p.clientPhone);
+    if (p.clientEmail) setClientEmail(p.clientEmail);
+    if (p.dumpId) preselectDumpRef.current = p.dumpId;
+    setStep(3);
+  }
+
+  // Arrivée avec ?submission=<id> : la DEMANDE reste la source de vérité,
+  // on relit la sélection réellement enregistrée (jamais le sessionStorage seul).
+  useEffect(() => {
+    const id = new URLSearchParams(location.search).get("submission");
+    if (!id || submissionIdRef.current) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.rpc("get_comparateur_selection", {
+        p_submission_id: id,
+      });
+      if (cancelled || error || !data) return;
+      const prefill = buildTransportPrefill(data as unknown as TransportPrefillSource);
+      if (prefill) applyPrefill(prefill as unknown as Record<string, unknown>);
+      hydratedRef.current = true;
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   const resumeSaved = () => {
     try {
