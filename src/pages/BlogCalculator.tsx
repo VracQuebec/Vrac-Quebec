@@ -6,19 +6,11 @@ import BlogFooterCTA from "@/components/blog/BlogFooterCTA";
 import Breadcrumbs from "@/components/blog/Breadcrumbs";
 import { SITE_URL } from "@/lib/blog/utils";
 import { Calculator } from "lucide-react";
-
-// Densités approximatives (tonnes / m³) — sources: guides construction Québec
-const DENSITIES: Record<string, { label: string; t_per_m3: number }> = {
-  terre: { label: "Terre végétale", t_per_m3: 1.4 },
-  remblai: { label: "Remblai / matériau de remplissage", t_per_m3: 1.7 },
-  sable: { label: "Sable", t_per_m3: 1.6 },
-  gravier: { label: "Gravier concassé (0-3/4 po)", t_per_m3: 1.8 },
-  pierre: { label: "Pierre nette", t_per_m3: 1.55 },
-  asphalte: { label: "Asphalte", t_per_m3: 2.3 },
-  beton: { label: "Béton concassé", t_per_m3: 1.9 },
-};
-
-const M3_TO_YD3 = 1.30795;
+// Densités et capacités : uniquement les données réelles de l'administration
+// (jsc_materials / jsc_trucks). Aucune valeur inventée ici.
+import { M3_TO_YD3, tripsFor, useCalcMaterials } from "@/lib/vrac/calculator";
+import { usePublicTrucks } from "@/lib/vrac/units";
+import { truckTypeDef } from "@/lib/trucks/catalog";
 
 type Tool = "tonnage" | "verges-cubes" | "volume" | "voyages-camion" | "cout-transport";
 
