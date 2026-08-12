@@ -25,6 +25,9 @@ import {
   normalizeMaterial, normalizeTruck,
   siteMaterialKeys, siteTruckKeys, type MaterialKey, type TruckKey, type SiteLike,
 } from "@/lib/entrepreneur/site-match";
+import {
+  loadHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff,
+} from "@/lib/parcours/handoff";
 
 type Lead = SiteLike & {
   id: string;
@@ -72,16 +75,27 @@ export default function EntrepreneurComparateur() {
   const [ranked, setRanked] = useState<Ranked[] | null>(null);
   const [computing, setComputing] = useState(false);
   const [showIncompatible, setShowIncompatible] = useState(false);
+  const [request, setRequest] = useState<ParcoursHandoff | null>(null);
 
   useEffect(() => {
     document.title = "Comparateur de sites de dépôt | Vrac Québec";
   }, []);
 
   // Préremplissage depuis un parcours déjà complété (/depot-materiaux) :
-  // aucune information n'est redemandée.
+  // aucune information n'est redemandée. La demande existante est reprise
+  // par `location.state.vqPrefill` puis conservée (sessionStorage) afin de
+  // survivre à un rechargement. Aucune nouvelle demande n'est créée ici.
   useEffect(() => {
-    const pf = (location.state as { vqPrefill?: Record<string, unknown> } | null)?.vqPrefill;
+    const fromState = (location.state as { vqPrefill?: Record<string, unknown> } | null)?.vqPrefill;
+    const stored = loadHandoff();
+    const pf = (fromState ?? stored ?? null) as Record<string, unknown> | null;
     if (!pf) return;
+    if (fromState && (fromState as ParcoursHandoff).submissionId !== undefined) {
+      saveHandoff(fromState as unknown as ParcoursHandoff);
+    }
+    if (typeof pf.submissionId === "string" || pf.quantityLabel || pf.desiredDate) {
+      setRequest(pf as unknown as ParcoursHandoff);
+    }
     if (typeof pf.address === "string" && pf.address) setAddress(pf.address);
     const c = pf.coords as { lat?: number; lng?: number } | null | undefined;
     if (c && typeof c.lat === "number" && typeof c.lng === "number") setCoords({ lat: c.lat, lng: c.lng });
@@ -89,11 +103,17 @@ export default function EntrepreneurComparateur() {
       const key = normalizeMaterial(pf.material);
       if (key) setMaterial(key);
     }
+    if (typeof pf.materialKey === "string" && pf.materialKey) setMaterial(pf.materialKey as MaterialKey);
     if (typeof pf.truckType === "string" && pf.truckType) {
       const tk = normalizeTruck(pf.truckType);
       if (tk) setTruck(tk);
     }
-    if (typeof pf.trips === "string" && pf.trips.trim()) setTrips(pf.trips.trim());
+    if (typeof pf.truckKey === "string" && pf.truckKey) setTruck(pf.truckKey as TruckKey);
+    const tripsValue =
+      typeof pf.trips === "string" && pf.trips.trim()
+        ? pf.trips.trim()
+        : tripsFromHandoff(pf as unknown as ParcoursHandoff);
+    if (tripsValue) setTrips(tripsValue);
   }, [location.state]);
 
   useEffect(() => {
@@ -171,6 +191,7 @@ export default function EntrepreneurComparateur() {
     navigate("/demande-transport", {
       state: {
         vqPrefill: {
+          submissionId: request?.submissionId ?? null,
           dumpId: r.id,
           dumpName: r.dompe_number || `#${r.submission_number}`,
           dumpSubmissionNumber: r.submission_number,
