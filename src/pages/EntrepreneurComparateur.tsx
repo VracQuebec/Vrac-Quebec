@@ -417,11 +417,12 @@ export default function EntrepreneurComparateur() {
 
         {ev.status !== "incompatible" && (
           <Button
-            onClick={() => selectSite(r)}
+            onClick={() => void selectSite(r)}
+            disabled={saving}
             className="mt-4 h-12 w-full font-display text-sm font-bold uppercase tracking-wide"
           >
-            <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden />
-            Sélectionner ce site
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden />}
+            {saving ? "Enregistrement…" : "Sélectionner ce site"}
             <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
           </Button>
         )}
@@ -617,12 +618,36 @@ export default function EntrepreneurComparateur() {
         {selection && (
           <section className="mt-6 rounded-2xl border-2 border-primary bg-primary/5 p-4 sm:p-5">
             <p className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-foreground">
-              <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden /> Site sélectionné
+              <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden />
+              {persisted ? "Votre demande est enregistrée" : "Site sélectionné"}
             </p>
+            {persisted ? (
+              <p className="mt-1 font-body text-xs text-muted-foreground">
+                Choix rattaché à la demande #{persisted.submissionNumber ?? "—"} · enregistré le{" "}
+                {persisted.updatedAt ? new Date(persisted.updatedAt).toLocaleString("fr-CA") : "—"}.
+              </p>
+            ) : saveError ? (
+              <p className="mt-1 font-body text-xs font-semibold text-destructive">
+                {saveError} Votre choix est conservé localement : réessayez la sélection.
+              </p>
+            ) : (
+              <p className="mt-1 font-body text-xs text-muted-foreground">
+                Choix conservé sur cet appareil : aucune demande existante à mettre à jour.
+              </p>
+            )}
             <dl className="mt-3 grid gap-1.5 font-body text-sm text-foreground sm:grid-cols-2">
               <div><dt className="inline font-semibold">Référence de la demande : </dt>
-                <dd className="inline">{selection.submissionId ? selection.submissionId.slice(0, 8) : "Non rattachée"}</dd></div>
-              <div><dt className="inline font-semibold">Site : </dt><dd className="inline">{selection.siteLabel}</dd></div>
+                <dd className="inline">
+                  {persisted?.submissionNumber != null
+                    ? `#${persisted.submissionNumber}`
+                    : selection.submissionId ? selection.submissionId.slice(0, 8) : "Non rattachée"}
+                </dd></div>
+              <div><dt className="inline font-semibold">Site : </dt>
+                <dd className="inline">{persisted?.siteLabel ?? selection.siteLabel}</dd></div>
+              {persisted?.siteAddress && (
+                <div className="sm:col-span-2"><dt className="inline font-semibold">Adresse du site : </dt>
+                  <dd className="inline">{persisted.siteAddress}</dd></div>
+              )}
               <div><dt className="inline font-semibold">Matériau : </dt>
                 <dd className="inline">{selection.materialLabel || "À compléter"}</dd></div>
               <div><dt className="inline font-semibold">Quantité : </dt>
@@ -634,7 +659,7 @@ export default function EntrepreneurComparateur() {
               <div><dt className="inline font-semibold">Camion : </dt>
                 <dd className="inline">{selection.truckLabel || "À compléter"}</dd></div>
               <div><dt className="inline font-semibold">Voyages : </dt>
-                <dd className="inline">{selection.trips != null ? selection.trips : "Non calculable"}</dd></div>
+                <dd className="inline">{(persisted?.trips ?? selection.trips) != null ? (persisted?.trips ?? selection.trips) : "Non calculable"}</dd></div>
               <div><dt className="inline font-semibold">Distance : </dt>
                 <dd className="inline">{selection.distanceKm != null ? `${selection.distanceKm.toFixed(1)} km` : "À confirmer"}</dd></div>
               <div><dt className="inline font-semibold">Durée : </dt>
@@ -656,7 +681,7 @@ export default function EntrepreneurComparateur() {
                 Poursuivre la demande de transport
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
               </Button>
-              <Button variant="outline" onClick={() => { clearSelection(); setSelection(null); }}
+              <Button variant="outline" onClick={() => { clearSelection(); setSelection(null); setSaveError(null); }}
                 className="h-12 font-display text-sm font-bold uppercase tracking-wide">
                 Changer de site
               </Button>
