@@ -6,19 +6,11 @@ import BlogFooterCTA from "@/components/blog/BlogFooterCTA";
 import Breadcrumbs from "@/components/blog/Breadcrumbs";
 import { SITE_URL } from "@/lib/blog/utils";
 import { Calculator } from "lucide-react";
-
-// Densités approximatives (tonnes / m³) — sources: guides construction Québec
-const DENSITIES: Record<string, { label: string; t_per_m3: number }> = {
-  terre: { label: "Terre végétale", t_per_m3: 1.4 },
-  remblai: { label: "Remblai / matériau de remplissage", t_per_m3: 1.7 },
-  sable: { label: "Sable", t_per_m3: 1.6 },
-  gravier: { label: "Gravier concassé (0-3/4 po)", t_per_m3: 1.8 },
-  pierre: { label: "Pierre nette", t_per_m3: 1.55 },
-  asphalte: { label: "Asphalte", t_per_m3: 2.3 },
-  beton: { label: "Béton concassé", t_per_m3: 1.9 },
-};
-
-const M3_TO_YD3 = 1.30795;
+// Densités et capacités : uniquement les données réelles de l'administration
+// (jsc_materials / jsc_trucks). Aucune valeur inventée ici.
+import { M3_TO_YD3, tripsFor, useCalcMaterials } from "@/lib/vrac/calculator";
+import { usePublicTrucks } from "@/lib/vrac/units";
+import { truckTypeDef } from "@/lib/trucks/catalog";
 
 type Tool = "tonnage" | "verges-cubes" | "volume" | "voyages-camion" | "cout-transport";
 
@@ -104,7 +96,14 @@ function Result({ children }: { children: React.ReactNode }) {
   );
 }
 
-function MaterialSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function MaterialSelect({
+  value, onChange, materials, loading,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  materials: { slug: string; name: string; density_kg_per_m3: number }[];
+  loading: boolean;
+}) {
   return (
     <label className="block">
       <span className="block text-xs uppercase tracking-wider font-display font-bold text-muted-foreground mb-2">Type de matériau</span>
@@ -113,8 +112,11 @@ function MaterialSelect({ value, onChange }: { value: string; onChange: (v: stri
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2 rounded-lg border border-border bg-background font-body text-base"
       >
-        {Object.entries(DENSITIES).map(([k, v]) => (
-          <option key={k} value={k}>{v.label} (~{v.t_per_m3} t/m³)</option>
+        <option value="">{loading ? "Chargement…" : "Choisir un matériau"}</option>
+        {materials.map((m) => (
+          <option key={m.slug} value={m.slug}>
+            {m.name} ({(m.density_kg_per_m3 / 1000).toFixed(2)} t/m³)
+          </option>
         ))}
       </select>
     </label>
@@ -160,56 +162,113 @@ function Tonnage() {
   const [l, setL] = useState("10");
   const [w, setW] = useState("5");
   const [d, setD] = useState("0.3");
-  const [mat, setMat] = useState("gravier");
+  const [mat, setMat] = useState("");
+  const { materials, loading } = useCalcMaterials();
   const m3 = Number(l) * Number(w) * Number(d);
-  const tonnes = m3 * (DENSITIES[mat]?.t_per_m3 ?? 1.6);
+  const density = materials.find((m) => m.slug === mat)?.density_kg_per_m3 ?? null;
+  const tonnes = density ? (m3 * density) / 1000 : null;
   return (
     <div className="grid gap-4">
-      <MaterialSelect value={mat} onChange={setMat} />
+      <MaterialSelect value={mat} onChange={setMat} materials={materials} loading={loading} />
       <div className="grid sm:grid-cols-3 gap-4">
         <NumberField label="Longueur" unit="m" value={l} onChange={setL} />
         <NumberField label="Largeur" unit="m" value={w} onChange={setW} />
         <NumberField label="Profondeur" unit="m" value={d} onChange={setD} step={0.05} />
       </div>
-      <Result>{isFinite(tonnes) ? tonnes.toFixed(2) : "—"} tonnes &nbsp;<span className="text-base text-muted-foreground font-body">({m3.toFixed(2)} m³)</span></Result>
+      <Result>
+        {tonnes && isFinite(tonnes) ? `${tonnes.toFixed(2)} tonnes` : "—"} &nbsp;
+        <span className="text-base text-muted-foreground font-body">({isFinite(m3) ? m3.toFixed(2) : "—"} m³)</span>
+      </Result>
+      <p className="text-xs text-muted-foreground font-body">
+        {density
+          ? "Poids estimatif : le poids réel varie selon la granulométrie, l'humidité et la compaction du matériau."
+          : "Choisissez un matériau pour convertir le volume calculé en poids estimatif."}
+      </p>
     </div>
   );
 }
 
+/** Camions réellement configurés en administration, hors machinerie (fardier). */
+function useBulkTrucks() {
+  return usePublicTrucks().filter((t) => truckTypeDef(t.truck_type)?.bulk !== false);
+}
+
 function Trips() {
-  const [m3, setM3] = useState("30");
-  const [cap, setCap] = useState("12");
-  const trips = Math.ceil(Number(m3) / Math.max(0.1, Number(cap)));
+  const [tonnes, setTonnes] = useState("30");
+  const trucks = useBulkTrucks();
+  const qty = Number(tonnes);
   return (
     <div className="grid gap-4">
-      <div className="grid sm:grid-cols-2 gap-4">
-        <NumberField label="Volume total à transporter" unit="m³" value={m3} onChange={setM3} />
-        <NumberField label="Capacité par camion" unit="m³" value={cap} onChange={setCap} />
-      </div>
-      <Result>{isFinite(trips) ? trips : "—"} voyages</Result>
-      <p className="text-xs text-muted-foreground font-body">Capacité type — 6 roues : 6-8 m³, 10 roues : 10-14 m³, semi-remorque : 20-25 m³.</p>
+      <NumberField label="Quantité totale à transporter" unit="tonnes" value={tonnes} onChange={setTonnes} />
+      {trucks.length > 0 ? (
+        <div className="rounded-xl bg-primary/10 border border-primary/30 p-5 grid gap-2">
+          <div className="text-xs uppercase tracking-wider font-display font-bold text-primary">Voyages estimés</div>
+          {trucks.map((t) => {
+            const trips = tripsFor(qty, t.capacity_tonnes);
+            return (
+              <div key={t.id} className="flex items-center justify-between gap-3 font-body text-sm text-foreground">
+                <span>{t.name} <span className="text-muted-foreground">({t.capacity_tonnes} t max / voyage)</span></span>
+                <strong className="font-display">{trips ?? "—"} voyage{(trips ?? 0) > 1 ? "s" : ""}</strong>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground font-body">
+          Les capacités de camion ne sont pas encore publiées. Notre équipe confirme le nombre de voyages avec vous.
+        </p>
+      )}
+      <p className="text-xs text-muted-foreground font-body">
+        Estimation arrondie au voyage supérieur, selon les capacités réelles en tonnes de notre flotte.
+      </p>
     </div>
   );
 }
 
 function Cost() {
-  const [m3, setM3] = useState("30");
-  const [cap, setCap] = useState("12");
-  const [rate, setRate] = useState("140");
+  const [tonnes, setTonnes] = useState("30");
+  const [rate, setRate] = useState("");
   const [distance, setDistance] = useState("25");
-  const trips = Math.ceil(Number(m3) / Math.max(0.1, Number(cap)));
-  const hoursPerTrip = (Number(distance) * 2) / 45 + 0.5; // ~45 km/h aller-retour + 30 min chargement
-  const cost = trips * hoursPerTrip * Number(rate);
+  const [speed, setSpeed] = useState("45");
+  const [loadMin, setLoadMin] = useState("30");
+  const trucks = useBulkTrucks();
+  const [truckId, setTruckId] = useState("");
+  const truck = trucks.find((t) => t.id === truckId) ?? trucks[0] ?? null;
+  const trips = truck ? tripsFor(Number(tonnes), truck.capacity_tonnes) : null;
+  const kmh = Number(speed);
+  const hoursPerTrip = kmh > 0 ? (Number(distance) * 2) / kmh + Number(loadMin) / 60 : NaN;
+  const cost = trips && Number(rate) > 0 && isFinite(hoursPerTrip) ? trips * hoursPerTrip * Number(rate) : null;
   return (
     <div className="grid gap-4">
+      <label className="block">
+        <span className="block text-xs uppercase tracking-wider font-display font-bold text-muted-foreground mb-2">Camion</span>
+        <select
+          value={truck?.id ?? ""}
+          onChange={(e) => setTruckId(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg border border-border bg-background font-body text-base"
+        >
+          {trucks.length === 0 && <option value="">Capacités non publiées</option>}
+          {trucks.map((t) => (
+            <option key={t.id} value={t.id}>{t.name} — {t.capacity_tonnes} t / voyage</option>
+          ))}
+        </select>
+      </label>
       <div className="grid sm:grid-cols-2 gap-4">
-        <NumberField label="Volume à transporter" unit="m³" value={m3} onChange={setM3} />
-        <NumberField label="Capacité par camion" unit="m³" value={cap} onChange={setCap} />
+        <NumberField label="Quantité à transporter" unit="tonnes" value={tonnes} onChange={setTonnes} />
         <NumberField label="Distance (aller simple)" unit="km" value={distance} onChange={setDistance} />
+        <NumberField label="Vitesse moyenne estimée" unit="km/h" value={speed} onChange={setSpeed} step={5} />
+        <NumberField label="Temps de chargement / déchargement" unit="min" value={loadMin} onChange={setLoadMin} step={5} />
         <NumberField label="Taux horaire du camion" unit="$/h" value={rate} onChange={setRate} step={5} />
       </div>
-      <Result>~ {isFinite(cost) ? cost.toFixed(0) : "—"} $ &nbsp;<span className="text-base text-muted-foreground font-body">({trips} voyages)</span></Result>
-      <p className="text-xs text-muted-foreground font-body">Estimation indicative. Le coût réel dépend du type de camion, du carburant, des accès et de la région.</p>
+      <Result>
+        {cost !== null ? `~ ${cost.toFixed(0)} $` : "—"} &nbsp;
+        <span className="text-base text-muted-foreground font-body">({trips ?? "—"} voyages)</span>
+      </Result>
+      <p className="text-xs text-muted-foreground font-body">
+        {Number(rate) > 0
+          ? "Estimation indicative uniquement, calculée à partir des valeurs que vous saisissez : ce n'est pas un prix confirmé. Le coût réel dépend du camion disponible, du trafic, des accès et de la région."
+          : "Entrez le taux horaire de votre transporteur pour obtenir une estimation. Vrac Québec ne publie pas de taux horaire générique."}
+      </p>
     </div>
   );
 }

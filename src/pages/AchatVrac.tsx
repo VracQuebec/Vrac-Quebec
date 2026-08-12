@@ -42,6 +42,7 @@ export default function AchatVrac() {
     const slug = searchParams.get("material");
     const qty = Number(searchParams.get("qty"));
     const unit = searchParams.get("unit");
+    const truck = searchParams.get("truck");
     const preset = slug ? getActiveVracMaterials().find((m) => m.slug === slug) : null;
     if (!preset) { setDraft(saved); return; }
     const validUnit = unit === "m3" || unit === "verge" ? unit : "tonne";
@@ -51,6 +52,8 @@ export default function AchatVrac() {
       quantityMode: qty > 0 ? "tonnes" : saved.quantityMode,
       quantityUnit: qty > 0 ? validUnit : saved.quantityUnit,
       tonnes: qty > 0 ? String(qty) : saved.tonnes,
+      // Camion choisi dans le calculateur : évite une seconde saisie.
+      truckId: truck || saved.truckId,
     });
     setStep(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps

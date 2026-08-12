@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   DEPTH_UNITS, LENGTH_UNITS, computeVolume, fmt, roundTo, useCalcMaterials,
+  tripsFor,
   type DepthUnit, type LengthUnit,
 } from "@/lib/vrac/calculator";
 import { usePublicTrucks } from "@/lib/vrac/units";
@@ -32,6 +33,7 @@ const MaterialCalculator = () => {
   const [depth, setDepth] = useState("");
   const [lengthUnit, setLengthUnit] = useState<LengthUnit>("pi");
   const [depthUnit, setDepthUnit] = useState<DepthUnit>("po");
+  const [truckId, setTruckId] = useState<string>("");
 
   const material = materials.find((m) => m.slug === slug) ?? null;
 
@@ -55,8 +57,10 @@ const MaterialCalculator = () => {
       qty: String(roundTo(tonnes, 1)),
       unit: "tonne",
     });
+    // Point 15 — on transmet aussi le camion choisi pour éviter une double saisie.
+    if (truckId) params.set("truck", truckId);
     return `/acheter-materiaux?${params.toString()}`;
-  }, [material, tonnes]);
+  }, [material, tonnes, truckId]);
 
   return (
     <div className="space-y-6">
@@ -155,14 +159,34 @@ const MaterialCalculator = () => {
               <p className="flex items-center gap-2 font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 <Truck className="h-4 w-4" aria-hidden /> Nombre de voyages estimé
               </p>
-              {trucks.map((t) => {
-                const trips = Math.ceil(tonnes / t.capacity_tonnes);
-                return (
-                  <p key={t.id} className="font-body text-sm text-foreground">
-                    {t.name} ({t.capacity_tonnes} t) : <strong>{trips} voyage{trips > 1 ? "s" : ""}</strong>
-                  </p>
-                );
-              })}
+              <div className="flex flex-col gap-2">
+                {trucks.map((t) => {
+                  const trips = tripsFor(tonnes, t.capacity_tonnes);
+                  const active = truckId === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setTruckId(active ? "" : t.id)}
+                      className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition-all ${
+                        active ? "border-[2px] border-primary bg-primary/10" : "border-border bg-background hover:border-primary/40"
+                      }`}
+                    >
+                      <span className="font-body text-sm text-foreground">
+                        {t.name} <span className="text-muted-foreground">({t.capacity_tonnes} t max / voyage)</span>
+                      </span>
+                      <span className="shrink-0 font-display text-sm font-extrabold text-foreground">
+                        {trips} voyage{(trips ?? 0) > 1 ? "s" : ""}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="font-body text-xs text-muted-foreground">
+                Estimation du nombre de chargements (arrondi au voyage supérieur). Sélectionnez un
+                camion pour le transmettre à votre demande de prix.
+              </p>
             </div>
           )}
 
