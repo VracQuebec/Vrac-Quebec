@@ -30,6 +30,32 @@ import { Search, CalendarDays, Menu, BookOpen as BookOpenIcon, TrendingUp } from
 import { Ban, Activity } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import TransportBanner from "@/components/TransportBanner";
+import {
+  ACCESS_RESTRICTION_OPTIONS,
+  TRUCK_OPTIONS,
+  availabilityInfo,
+  type SiteLike,
+} from "@/lib/entrepreneur/site-match";
+
+/** Champs « site de dépôt » exposés aux entrepreneurs (remblai uniquement). */
+const SITE_AVAILABILITY_OPTIONS = [
+  { value: "available", label: "Disponible" },
+  { value: "limited", label: "Disponibilité limitée" },
+  { value: "approval", label: "Sur approbation" },
+  { value: "unavailable", label: "Indisponible" },
+];
+
+const siteGaps = (sub: Submission): string[] => {
+  const gaps: string[] = [];
+  if (!sub.availability_updated_at) gaps.push("Disponibilité jamais confirmée");
+  if (!(sub.truck_types_allowed?.length)) gaps.push("Camions acceptés non renseignés");
+  if (!sub.access_details || Object.keys(sub.access_details).length === 0)
+    gaps.push("Restrictions d'accès non renseignées");
+  if (!(sub.materials?.length)) gaps.push("Matériaux non renseignés");
+  if (!sub.remaining_capacity) gaps.push("Capacité restante non renseignée");
+  if (!sub.opening_hours) gaps.push("Heures d'ouverture non renseignées");
+  return gaps;
+};
 
 interface Submission {
   id: string;
