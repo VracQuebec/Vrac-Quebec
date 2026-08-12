@@ -30,6 +30,32 @@ import { Search, CalendarDays, Menu, BookOpen as BookOpenIcon, TrendingUp } from
 import { Ban, Activity } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import TransportBanner from "@/components/TransportBanner";
+import {
+  ACCESS_RESTRICTION_OPTIONS,
+  TRUCK_OPTIONS,
+  availabilityInfo,
+  type SiteLike,
+} from "@/lib/entrepreneur/site-match";
+
+/** Champs « site de dépôt » exposés aux entrepreneurs (remblai uniquement). */
+const SITE_AVAILABILITY_OPTIONS = [
+  { value: "available", label: "Disponible" },
+  { value: "limited", label: "Disponibilité limitée" },
+  { value: "approval", label: "Sur approbation" },
+  { value: "unavailable", label: "Indisponible" },
+];
+
+const siteGaps = (sub: Submission): string[] => {
+  const gaps: string[] = [];
+  if (!sub.availability_updated_at) gaps.push("Disponibilité jamais confirmée");
+  if (!(sub.truck_types_allowed?.length)) gaps.push("Camions acceptés non renseignés");
+  if (!sub.access_details || Object.keys(sub.access_details).length === 0)
+    gaps.push("Restrictions d'accès non renseignées");
+  if (!(sub.materials?.length)) gaps.push("Matériaux non renseignés");
+  if (!sub.remaining_capacity) gaps.push("Capacité restante non renseignée");
+  if (!sub.opening_hours) gaps.push("Heures d'ouverture non renseignées");
+  return gaps;
+};
 
 interface Submission {
   id: string;
@@ -76,6 +102,14 @@ interface Submission {
   lead_category?: string | null;
   creation_origin?: string | null;
   company?: string | null;
+  availability_status?: string | null;
+  availability_note?: string | null;
+  availability_updated_at?: string | null;
+  remaining_capacity?: string | null;
+  opening_hours?: string | null;
+  truck_types_allowed?: string[] | null;
+  access_details?: Record<string, unknown> | null;
+  access_heavy_truck?: string | null;
 }
 
 interface LeadNote {
@@ -1129,6 +1163,15 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                 </span>
               ) : null;
             })()}
+            {(() => {
+              if (normalizeRequestType(sub.request_type) !== "remblai") return null;
+              const n = siteGaps(sub).length;
+              return n > 0 ? (
+                <span className="text-[10px] font-display font-bold px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 border border-amber-500/30">
+                  Fiche site incomplète ({n})
+                </span>
+              ) : null;
+            })()}
           </div>
           <p className="text-xs text-muted-foreground font-body truncate">
             {formatDate(sub.created_at)} • {getMaterialLabels(sub.materials)} • {sub.address}
@@ -1318,6 +1361,122 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
             </div>
 
             {/* Budget & machinerie */}
+            {normalizeRequestType(sub.request_type) === "remblai" && (() => {
+              const site: SiteLike = {
+                materials: sub.materials ?? null,
+                other_material: sub.other_material,
+                truck_types_allowed: sub.truck_types_allowed ?? null,
+                accessibility: sub.accessibility ?? null,
+                access_heavy_truck: sub.access_heavy_truck ?? null,
+                access_details: sub.access_details ?? null,
+                availability_status: sub.availability_status ?? null,
+                availability_updated_at: sub.availability_updated_at ?? null,
+              };
+              const info = availabilityInfo(site);
+              const details = (sub.access_details ?? {}) as Record<string, unknown>;
+              const activeRestrictions = ACCESS_RESTRICTION_OPTIONS
+                .map((o) => o.key)
+                .filter((k) => details[k] === true);
+              const gaps = siteGaps(sub);
+              return (
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-3">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <div className="text-[10px] uppercase tracking-wide font-display font-bold text-foreground">
+                      Fiche site (dompe) — visible par les entrepreneurs
+                    </div>
+                    <span className="text-[10px] font-body text-muted-foreground">{info.label} • {info.freshness}</span>
+                    <button
+                      type="button"
+                      onClick={() => onUpdate({ availability_updated_at: new Date().toISOString() } as Partial<Submission>)}
+                      className="ml-auto px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-display font-bold uppercase"
+                    >
+                      Confirmer la disponibilité aujourd'hui
+                    </button>
+                  </div>
+                  {gaps.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {gaps.map((g) => (
+                        <span key={g} className="px-2 py-0.5 rounded text-[10px] font-body bg-amber-500/15 text-amber-700 border border-amber-500/30">
+                          {g}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <InlineField
+                      label="Statut de disponibilité"
+                      type="select"
+                      value={sub.availability_status || ""}
+                      allowEmpty
+                      options={SITE_AVAILABILITY_OPTIONS}
+                      onSave={(v) => onUpdate({ availability_status: v || null } as Partial<Submission>)}
+                    />
+                    <InlineField
+                      label="Capacité restante"
+                      type="text"
+                      value={sub.remaining_capacity || ""}
+                      onSave={(v) => onUpdate({ remaining_capacity: v || null } as Partial<Submission>)}
+                    />
+                    <InlineField
+                      label="Heures d'ouverture"
+                      type="text"
+                      value={sub.opening_hours || ""}
+                      onSave={(v) => onUpdate({ opening_hours: v || null } as Partial<Submission>)}
+                    />
+                    <InlineField
+                      label="Camions lourds acceptés"
+                      type="select"
+                      value={sub.access_heavy_truck || ""}
+                      allowEmpty
+                      options={[{ value: "oui", label: "Oui" }, { value: "non", label: "Non" }]}
+                      onSave={(v) => onUpdate({ access_heavy_truck: v || null } as Partial<Submission>)}
+                    />
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-3">
+                    <InlineField
+                      label="Types de camions acceptés"
+                      type="multiselect"
+                      value={sub.truck_types_allowed ?? []}
+                      options={TRUCK_OPTIONS.map((t) => ({ value: t.key, label: t.label }))}
+                      onSave={(v) => onUpdate({ truck_types_allowed: (v as string[]).length ? (v as string[]) : null } as Partial<Submission>)}
+                    />
+                    <InlineField
+                      label="Restrictions d'accès réelles"
+                      type="multiselect"
+                      value={activeRestrictions}
+                      options={ACCESS_RESTRICTION_OPTIONS.map((o) => ({ value: o.key, label: o.label }))}
+                      onSave={(v) => {
+                        const keys = v as string[];
+                        const next: Record<string, unknown> = {};
+                        Object.entries(details).forEach(([k, val]) => {
+                          if (val !== true) next[k] = val; // conserve les notes texte existantes
+                        });
+                        keys.forEach((k) => { next[k] = true; });
+                        onUpdate({ access_details: Object.keys(next).length ? next : null } as Partial<Submission>);
+                      }}
+                    />
+                    <InlineField
+                      label="Autre restriction (texte libre)"
+                      type="text"
+                      value={typeof details.autre === "string" ? (details.autre as string) : ""}
+                      onSave={(v) => {
+                        const next: Record<string, unknown> = { ...details };
+                        if (v) next.autre = v; else delete next.autre;
+                        onUpdate({ access_details: Object.keys(next).length ? next : null } as Partial<Submission>);
+                      }}
+                    />
+                    <InlineField
+                      label="Note de disponibilité (visible entrepreneurs)"
+                      type="textarea"
+                      rows={2}
+                      value={sub.availability_note || ""}
+                      onSave={(v) => onUpdate({ availability_note: v || null } as Partial<Submission>)}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="bg-secondary/30 rounded-lg p-3 mb-3">
               <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Budget et machinerie</div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

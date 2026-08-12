@@ -563,13 +563,19 @@ const TransportRequest = () => {
           return { ...d, distance_km, duration_minutes, score, reason: reasons.join(" • ") };
         })
         .filter((d) => d.availability_status !== "unavailable")
-        .sort((a, b) => (b.score! - a.score!))
-        .slice(0, 10);
+        .sort((a, b) => (b.score! - a.score!));
 
-      setDumps(ranked);
+      const top = ranked.slice(0, 10);
+      // Le site choisi dans le comparateur reste toujours visible, même hors top 10.
+      if (preselectDumpRef.current && !top.some((d) => d.id === preselectDumpRef.current)) {
+        const pre = ranked.find((d) => d.id === preselectDumpRef.current);
+        if (pre) top.unshift(pre);
+      }
+
+      setDumps(top);
       // Réapplique le site choisi dans le comparateur, s'il est toujours listé.
       if (preselectDumpRef.current) {
-        const pre = ranked.find((d) => d.id === preselectDumpRef.current);
+        const pre = top.find((d) => d.id === preselectDumpRef.current);
         if (pre) setSelectedDump(pre);
       }
     } catch (e: any) {
