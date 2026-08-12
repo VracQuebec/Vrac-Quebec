@@ -25,6 +25,9 @@ import {
   normalizeMaterial, normalizeTruck,
   siteMaterialKeys, siteTruckKeys, type MaterialKey, type TruckKey, type SiteLike,
 } from "@/lib/entrepreneur/site-match";
+import {
+  loadHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff,
+} from "@/lib/parcours/handoff";
 
 type Lead = SiteLike & {
   id: string;
@@ -72,16 +75,27 @@ export default function EntrepreneurComparateur() {
   const [ranked, setRanked] = useState<Ranked[] | null>(null);
   const [computing, setComputing] = useState(false);
   const [showIncompatible, setShowIncompatible] = useState(false);
+  const [request, setRequest] = useState<ParcoursHandoff | null>(null);
 
   useEffect(() => {
     document.title = "Comparateur de sites de dépôt | Vrac Québec";
   }, []);
 
   // Préremplissage depuis un parcours déjà complété (/depot-materiaux) :
-  // aucune information n'est redemandée.
+  // aucune information n'est redemandée. La demande existante est reprise
+  // par `location.state.vqPrefill` puis conservée (sessionStorage) afin de
+  // survivre à un rechargement. Aucune nouvelle demande n'est créée ici.
   useEffect(() => {
-    const pf = (location.state as { vqPrefill?: Record<string, unknown> } | null)?.vqPrefill;
+    const fromState = (location.state as { vqPrefill?: Record<string, unknown> } | null)?.vqPrefill;
+    const stored = loadHandoff();
+    const pf = (fromState ?? stored ?? null) as Record<string, unknown> | null;
     if (!pf) return;
+    if (fromState && fromState.submissionId !== undefined) {
+      saveHandoff(fromState as unknown as ParcoursHandoff);
+    }
+    if (typeof pf.submissionId === "string" || pf.quantityLabel || pf.desiredDate) {
+      setRequest(pf as unknown as ParcoursHandoff);
+    }
     if (typeof pf.address === "string" && pf.address) setAddress(pf.address);
     const c = pf.coords as { lat?: number; lng?: number } | null | undefined;
     if (c && typeof c.lat === "number" && typeof c.lng === "number") setCoords({ lat: c.lat, lng: c.lng });
@@ -89,11 +103,17 @@ export default function EntrepreneurComparateur() {
       const key = normalizeMaterial(pf.material);
       if (key) setMaterial(key);
     }
+    if (typeof pf.materialKey === "string" && pf.materialKey) setMaterial(pf.materialKey as MaterialKey);
     if (typeof pf.truckType === "string" && pf.truckType) {
       const tk = normalizeTruck(pf.truckType);
       if (tk) setTruck(tk);
     }
-    if (typeof pf.trips === "string" && pf.trips.trim()) setTrips(pf.trips.trim());
+    if (typeof pf.truckKey === "string" && pf.truckKey) setTruck(pf.truckKey as TruckKey);
+    const tripsValue =
+      typeof pf.trips === "string" && pf.trips.trim()
+        ? pf.trips.trim()
+        : tripsFromHandoff(pf as unknown as ParcoursHandoff);
+    if (tripsValue) setTrips(tripsValue);
   }, [location.state]);
 
   useEffect(() => {
@@ -171,6 +191,7 @@ export default function EntrepreneurComparateur() {
     navigate("/demande-transport", {
       state: {
         vqPrefill: {
+          submissionId: request?.submissionId ?? null,
           dumpId: r.id,
           dumpName: r.dompe_number || `#${r.submission_number}`,
           dumpSubmissionNumber: r.submission_number,
@@ -289,6 +310,51 @@ export default function EntrepreneurComparateur() {
           Indiquez votre chantier, votre matériau et votre camion : nous classons les sites
           compatibles selon la distance routière réelle (Google Routes).
         </p>
+
+        {request && (
+          <section className="mt-5 rounded-2xl border-2 border-primary/40 bg-primary/5 p-4">
+            <p className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
+              Demande déjà enregistrée
+              {request.submissionId ? ` · réf. ${request.submissionId.slice(0, 8)}` : ""}
+            </p>
+            <p className="mt-1 font-body text-xs text-muted-foreground">
+              Les informations ci-dessous proviennent de votre demande. Aucune nouvelle demande
+              n'est créée ici.
+            </p>
+            <dl className="mt-3 grid gap-1.5 font-body text-sm text-foreground sm:grid-cols-2">
+              {request.address && (
+                <div><dt className="inline font-semibold">Adresse : </dt><dd className="inline">{request.address}</dd></div>
+              )}
+              {request.materials?.length > 0 && (
+                <div><dt className="inline font-semibold">Matériaux : </dt><dd className="inline">{request.materials.join(", ")}</dd></div>
+              )}
+              {request.quantityLabel && (
+                <div><dt className="inline font-semibold">Quantité : </dt><dd className="inline">{request.quantityLabel}</dd></div>
+              )}
+              {request.truckType && (
+                <div><dt className="inline font-semibold">Camion : </dt><dd className="inline">{request.truckType}</dd></div>
+              )}
+              {request.desiredDate && (
+                <div><dt className="inline font-semibold">Date souhaitée : </dt><dd className="inline">{request.desiredDate}</dd></div>
+              )}
+              {request.timeframe && (
+                <div><dt className="inline font-semibold">Délai : </dt><dd className="inline">{request.timeframe}</dd></div>
+              )}
+              {request.accessHeavyTruck && (
+                <div><dt className="inline font-semibold">Accès camion lourd : </dt><dd className="inline">{request.accessHeavyTruck}</dd></div>
+              )}
+              {request.accessDetails?.length > 0 && (
+                <div className="sm:col-span-2"><dt className="inline font-semibold">Restrictions : </dt><dd className="inline">{request.accessDetails.join(" • ")}</dd></div>
+              )}
+            </dl>
+            {!request.coords && request.address && (
+              <p className="mt-2 font-body text-xs text-amber-700">
+                Aucune coordonnée GPS n'a été validée pour cette adresse : sélectionnez une
+                suggestion Google ci-dessous pour lancer la comparaison.
+              </p>
+            )}
+          </section>
+        )}
 
         <section className="mt-6 space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-5">
           <div className="space-y-1.5">
