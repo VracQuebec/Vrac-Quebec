@@ -93,3 +93,51 @@ export const loadHandoff = (): ParcoursHandoff | null => {
 export const clearHandoff = () => {
   try { sessionStorage.removeItem(HANDOFF_KEY); } catch { /* ignore */ }
 };
+
+// ============================================================
+// SÉLECTION DU COMPARATEUR — persistance (même architecture :
+// sessionStorage). La sélection est TOUJOURS rattachée à la
+// demande existante : aucune nouvelle demande n'est créée.
+// ============================================================
+export const SELECTION_KEY = "vq_comparateur_selection_v1";
+
+export interface ComparateurSelection {
+  submissionId: string | null;
+  siteId: string;
+  siteLabel: string;
+  distanceKm: number | null;
+  durationMinutes: number | null;
+  /** Résultat du calcul de besoin (voyages), null si non calculable. */
+  trips: number | null;
+  tonnes: number | null;
+  quantityValue: string;
+  quantityUnit: string;
+  materialKey: string | null;
+  materialLabel: string;
+  truckKey: string | null;
+  truckLabel: string;
+  capacityTonnes: number | null;
+  address: string;
+  coords: { lat: number; lng: number } | null;
+  desiredDate: string;
+  timeframe: string;
+  accessDetails: string[];
+  createdAt: number;
+}
+
+export const saveSelection = (s: ComparateurSelection) => {
+  try { sessionStorage.setItem(SELECTION_KEY, JSON.stringify(s)); } catch { /* quota */ }
+};
+
+export const loadSelection = (): ComparateurSelection | null => {
+  try {
+    const raw = sessionStorage.getItem(SELECTION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ComparateurSelection;
+    return parsed && typeof parsed === "object" && typeof parsed.siteId === "string" ? parsed : null;
+  } catch { return null; }
+};
+
+export const clearSelection = () => {
+  try { sessionStorage.removeItem(SELECTION_KEY); } catch { /* ignore */ }
+};
