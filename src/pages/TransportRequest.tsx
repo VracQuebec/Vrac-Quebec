@@ -295,6 +295,8 @@ const TransportRequest = () => {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const hydratedRef = useRef(false);
+  // Site pré-sélectionné depuis le comparateur (aucune ressaisie demandée).
+  const preselectDumpRef = useRef<string | null>(null);
 
   const hasProgress = () =>
     step > 1 || !!material || !!address || !!quantity || !!clientName || !!clientPhone;
@@ -308,6 +310,31 @@ const TransportRequest = () => {
   // Hydrate from localStorage on mount → offer to resume
   useEffect(() => {
     try {
+      // Prefill provenant du comparateur de sites : il a priorité sur un
+      // éventuel brouillon local (le parcours vient d'être choisi).
+      const pf = (location.state as { vqPrefill?: Record<string, unknown> } | null)?.vqPrefill;
+      if (pf) {
+        const p = pf as {
+          dumpId?: string; material?: string; truckType?: string; address?: string;
+          coords?: { lat: number; lng: number } | null; trips?: string;
+        };
+        if (p.material && MATERIALS.some((m) => m.id === p.material)) {
+          setMaterial(p.material);
+          const g = MATERIAL_GROUPS.find((gr) => gr.subtypes.some((st) => st.id === p.material));
+          if (g) {
+            setMaterialGroup(g.key);
+            setMaterialSubKey(g.subtypes.find((st) => st.id === p.material)?.key || "");
+          }
+        }
+        if (p.address) setAddress(p.address);
+        if (p.coords) setCoords(p.coords);
+        if (p.truckType) setTruckType(p.truckType);
+        if (p.trips) setTrips(p.trips);
+        if (p.dumpId) preselectDumpRef.current = p.dumpId;
+        setStep(3);
+        hydratedRef.current = true;
+        return;
+      }
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) { hydratedRef.current = true; return; }
       const saved = JSON.parse(raw);
@@ -540,6 +567,11 @@ const TransportRequest = () => {
         .slice(0, 10);
 
       setDumps(ranked);
+      // Réapplique le site choisi dans le comparateur, s'il est toujours listé.
+      if (preselectDumpRef.current) {
+        const pre = ranked.find((d) => d.id === preselectDumpRef.current);
+        if (pre) setSelectedDump(pre);
+      }
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
       setDumps([]);
