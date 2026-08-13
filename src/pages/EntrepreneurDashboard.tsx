@@ -204,6 +204,13 @@ const EntrepreneurDashboard = () => {
           />
 
           <ActionCard
+            to="/entrepreneur/reseau"
+            icon={<Building2 className="w-5 h-5" />}
+            title="Explorer le réseau"
+            description="L'annuaire professionnel des entrepreneurs du réseau."
+          />
+
+          <ActionCard
             to="/entrepreneur/carte"
             icon={<MapIcon className="w-5 h-5" />}
             title="Carte des dompes"
