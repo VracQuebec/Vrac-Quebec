@@ -9,6 +9,12 @@
 // n'est pas lisible dans l'adresse reste `null`.
 // ============================================================
 
+import {
+  resolveProvince,
+  resolveCity,
+  tidyCityLabel,
+} from "@/lib/parcours/geo-referentiel";
+
 /** Qualité réelle de la localisation dérivée. */
 export type LocalisationStatus =
   | "reliable"        // ville + province lisibles
@@ -21,10 +27,12 @@ export interface Localisation {
   status: LocalisationStatus;
   /** Ville lisible dans l'adresse, sinon null. */
   city: string | null;
-  /** Région administrative : non déterminable de façon fiable en V1. */
-  region: null;
+  /** Région administrative officielle, uniquement si la ville est répertoriée. */
+  region: string | null;
   /** Province (normalisée « QC » pour le Québec), sinon null. */
   province: string | null;
+  /** Nom officiel de la province (« Québec », « Ontario »), sinon null. */
+  provinceName: string | null;
   /** Code postal complet — PRIVÉ, jamais exposé au réseau. */
   postalCode: string | null;
   /** Secteur postal (3 premiers caractères) — exposable. */
@@ -41,6 +49,7 @@ const EMPTY: Localisation = {
   city: null,
   region: null,
   province: null,
+  provinceName: null,
   postalCode: null,
   postalSector: null,
   latitude: null,
@@ -49,15 +58,6 @@ const EMPTY: Localisation = {
 };
 
 const POSTAL_RE = /\b([A-Za-z]\d[A-Za-z])[ -]?(\d[A-Za-z]\d)\b/;
-
-const PROVINCES: Record<string, string> = {
-  qc: "QC", quebec: "QC", québec: "QC",
-  on: "ON", ontario: "ON",
-  nb: "NB", "nouveau-brunswick": "NB",
-  ns: "NS", pe: "PE", nl: "NL", mb: "MB", sk: "SK",
-  ab: "AB", alberta: "AB", bc: "BC", "colombie-britannique": "BC",
-  yt: "YT", nt: "NT", nu: "NU",
-};
 
 const clean = (s: string) => s.replace(/\s+/g, " ").trim();
 const strip = (s: string) =>
@@ -70,7 +70,7 @@ const looksLikeCity = (seg: string): boolean => {
   if (/\d/.test(t)) return false;                       // « 1234 Rue X » → privé
   const s = strip(t);
   if (s === "canada" || s === "ca") return false;
-  if (PROVINCES[s]) return false;
+  if (resolveProvince(s)) return false;
   return true;
 };
 
@@ -95,15 +95,18 @@ export const normalizeAddress = (address: unknown): Localisation => {
     .filter(Boolean);
 
   let province: string | null = null;
+  let provinceName: string | null = null;
   let provinceIdx = -1;
   segments.forEach((seg, i) => {
     // La province peut être seule (« QC ») ou en fin de segment (« Québec QC »).
     const tokens = strip(seg).split(/[\s/]+/).filter(Boolean);
     for (const tk of tokens) {
-      if (PROVINCES[tk] && provinceIdx === -1) {
+      const ref = resolveProvince(tk);
+      if (ref && provinceIdx === -1) {
         // « Québec » seul est ambigu (ville ET province) : on ne tranche que
         // s'il reste un segment ville avant, sinon on le traitera comme ville.
-        province = PROVINCES[tk];
+        province = ref.code;
+        provinceName = ref.name;
         provinceIdx = i;
       }
     }
@@ -131,6 +134,21 @@ export const normalizeAddress = (address: unknown): Localisation => {
     else if (candidates.length > 1 && provinceIdx === -1) city = candidates[candidates.length - 1];
   }
 
+  // Normalisation stricte de la ville via le référentiel (aucun rapprochement flou).
+  let region: string | null = null;
+  if (city) {
+    const cityRef = resolveCity(city, province);
+    if (cityRef) {
+      // Nom officiel : casse, accents et espaces normalisés.
+      city = cityRef.name;
+      // La région n'est retenue que si la province est réellement déterminée
+      // et correspond au référentiel : jamais supposée à partir de la ville.
+      if (province === cityRef.provinceCode) region = cityRef.region;
+    } else {
+      city = tidyCityLabel(city);
+    }
+  }
+
   const known = [city, province, postalSector].filter(Boolean).length;
   let status: LocalisationStatus;
   let message: string;
@@ -148,8 +166,9 @@ export const normalizeAddress = (address: unknown): Localisation => {
   return {
     status,
     city,
-    region: null,
+    region,
     province,
+    provinceName,
     postalCode,
     postalSector,
     latitude: null,
@@ -161,8 +180,9 @@ export const normalizeAddress = (address: unknown): Localisation => {
 /** Champs strictement non sensibles, seuls candidats à une exposition future. */
 export interface PublicLocalisation {
   city: string | null;
-  region: null;
+  region: string | null;
   province: string | null;
+  provinceName: string | null;
   postalSector: string | null;
 }
 
@@ -172,8 +192,9 @@ export interface PublicLocalisation {
  */
 export const toPublicLocalisation = (loc: Localisation): PublicLocalisation => ({
   city: loc.city,
-  region: null,
+  region: loc.region,
   province: loc.province,
+  provinceName: loc.provinceName,
   postalSector: loc.postalSector,
 });
 
