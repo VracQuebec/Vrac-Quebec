@@ -11723,6 +11723,10 @@ export type Database = {
         Returns: number
       }
       seo_territorial_coverage: { Args: never; Returns: Json }
+      set_my_network_visibility: {
+        Args: { _visible: boolean }
+        Returns: boolean
+      }
       trip_advance_status: {
         Args: {
           _next: Database["public"]["Enums"]["trip_status"]
