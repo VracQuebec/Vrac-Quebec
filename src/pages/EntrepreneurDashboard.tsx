@@ -139,6 +139,9 @@ const EntrepreneurDashboard = () => {
 
         <EntrepreneurNotifications userId={user?.id} />
 
+        {/* Résumé d'activité — compteurs calculés depuis les données réelles du compte */}
+        <ActivitySummary />
+
         {/* Sites recommandés — uniquement des sites réellement rattachés à vos demandes */}
         <section className="mb-8" aria-labelledby="sites-recommandes">
           <h2 id="sites-recommandes" className="mb-1 font-display text-xl font-bold sm:text-2xl">
