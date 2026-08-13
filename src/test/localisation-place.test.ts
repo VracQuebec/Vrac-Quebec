@@ -82,7 +82,7 @@ describe("capture structurée de la localisation", () => {
 
   it("J — données privées jamais exposées", () => {
     const loc = normalizePlaceSelection(quebecPlace);
-    const pub = toPublicLocalisation(loc) as Record<string, unknown>;
+    const pub = toPublicLocalisation(loc) as unknown as Record<string, unknown>;
     expect(Object.keys(pub).sort()).toEqual(
       ["city", "postalSector", "province", "provinceName", "region"],
     );
