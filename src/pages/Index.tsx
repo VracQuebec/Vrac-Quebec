@@ -47,39 +47,45 @@ const Index = () => {
 
       {/* Hero — mobile: image banner; desktop: full hero with centered content */}
       <header className="relative w-full overflow-hidden">
-        {/* Mobile image (kept as-is) */}
+        {/* Mobile image */}
         <img
           src={heroBannerMobile}
           alt="Vrac Québec — Sites de dépôt, terre, sable, gravier, remblai"
-          className="md:hidden w-full h-[280px] sm:h-[360px] object-cover"
+          className="md:hidden w-full h-[240px] sm:h-[300px] object-cover"
           fetchPriority="high"
           decoding="async"
           loading="eager"
           width={800}
           height={447}
         />
-        <div className="md:hidden absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+        {/* Mobile overlays : cibler la zone de texte imprimé pour le rendre secondaire */}
+        <div className="md:hidden absolute inset-0 bg-black/40" />
+        <div className="md:hidden absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,0,0,0.62)_0%,_transparent_70%)]" />
+        <div className="md:hidden absolute inset-0 bg-gradient-to-t from-background via-background/45 to-transparent" />
 
-        {/* Desktop hero — image branding (VRAC QUÉBEC) stays visible up top, text content sits lower over a dark gradient with breathing room */}
+        {/* Desktop hero */}
         <div
-          className="hidden md:flex relative w-full min-h-[560px] lg:min-h-[620px] items-center bg-no-repeat"
+          className="hidden md:flex relative w-full min-h-[460px] lg:min-h-[500px] items-center bg-no-repeat"
           style={{
             backgroundImage: `url(${heroBanner})`,
             backgroundSize: "cover",
             backgroundPosition: "center 85%",
           }}
         >
-          {/* Voile marqué : le texte imprimé dans l'image ne doit pas concurrencer le vrai titre */}
-          <div className="absolute inset-0 bg-black/45" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-black/60" />
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-background" />
+          {/* Voile global très léger : conserve la luminosité du camion et des matériaux */}
+          <div className="absolute inset-0 bg-black/30" />
+          {/* Voile ciblé : assombrir fortement la zone centrale où se trouvent les textes imprimés et le contenu HTML */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,0,0,0.78)_0%,_rgba(0,0,0,0.40)_50%,_transparent_78%)]" />
+          {/* Renforcement vertical pour le bas de l'image */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-background" />
 
-          <div className="relative z-10 container mx-auto px-6 py-16 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <h1 className="text-4xl lg:text-5xl xl:text-[3.4rem] font-display font-extrabold text-white leading-[1.1] max-w-[50rem] mx-auto drop-shadow-[0_2px_16px_rgba(0,0,0,0.75)]">
+          <div className="relative z-10 container mx-auto px-6 py-10 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <h1 className="text-4xl lg:text-5xl xl:text-[3.2rem] font-display font-extrabold text-white leading-[1.1] max-w-[50rem] mx-auto drop-shadow-[0_2px_20px_rgba(0,0,0,0.85)]">
               Trouvez le bon matériau ou la bonne solution pour{" "}
               <span className="text-primary">votre chantier.</span>
             </h1>
-            <p className="text-white/90 mt-5 max-w-2xl mx-auto font-body text-base lg:text-lg leading-relaxed">
+            <p className="text-white/90 mt-5 max-w-2xl mx-auto font-body text-base lg:text-lg leading-relaxed drop-shadow-[0_1px_10px_rgba(0,0,0,0.75)]">
               Vrac Québec vous aide à trouver des matériaux, disposer de vos surplus, trouver une dompe
               ou coordonner le transport.
             </p>
@@ -95,11 +101,11 @@ const Index = () => {
 
       {/* Questionnaire */}
       {/* Extra bottom padding on mobile so the floating contact bar never overlaps interactive content (tiles / Suivant button). */}
-      <main className="-mt-16 md:mt-0 relative z-10 pb-32 md:pb-20 md:pt-14">
+      <main className="-mt-12 md:mt-0 relative z-10 pb-32 md:pb-20 md:pt-8">
         <div className="container mx-auto px-5 sm:px-6 max-w-6xl">
           {/* Mobile-only intro (desktop has hero text above) */}
-          <div className="md:hidden text-center mb-10">
-            <h1 className="text-[1.7rem] font-display font-extrabold text-foreground leading-tight">
+          <div className="md:hidden text-center mb-6">
+            <h1 className="text-[1.6rem] font-display font-extrabold text-foreground leading-tight">
               Trouvez le bon matériau ou la bonne solution pour{" "}
               <span className="text-primary">votre chantier.</span>
             </h1>
