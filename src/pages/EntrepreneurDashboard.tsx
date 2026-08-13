@@ -20,6 +20,7 @@ import {
   Map as MapIcon,
   History,
   HardHat,
+  Building2,
   User,
   ArrowRight,
   Clock,
@@ -201,6 +202,13 @@ const EntrepreneurDashboard = () => {
             icon={<HardHat className="w-5 h-5" />}
             title="Mes chantiers"
             description="Vos demandes regroupées par lieu de chantier."
+          />
+
+          <ActionCard
+            to="/entrepreneur/reseau"
+            icon={<Building2 className="w-5 h-5" />}
+            title="Explorer le réseau"
+            description="L'annuaire professionnel des entrepreneurs du réseau."
           />
 
           <ActionCard

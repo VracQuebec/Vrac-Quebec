@@ -11170,6 +11170,20 @@ export type Database = {
         Args: { p_submission_id: string }
         Returns: Json
       }
+      get_entrepreneur_directory: {
+        Args: never
+        Returns: {
+          city: string
+          company: string
+          id: string
+          postal_sector: string
+          province: string
+          province_name: string
+          region: string
+          truck_count: string
+          truck_types: string[]
+        }[]
+      }
       get_entrepreneur_leads: {
         Args: never
         Returns: {

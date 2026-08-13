@@ -66,6 +66,7 @@ const Calculateur = lazy(() => import("./pages/Calculateur"));
 const TypesCamions = lazy(() => import("./pages/TypesCamions"));
 const EntrepreneurComparateur = lazy(() => import("./pages/EntrepreneurComparateur"));
 const CatalogueMateriau = lazy(() => import("./pages/CatalogueMateriau"));
+const EntrepreneurAnnuaire = lazy(() => import("./pages/EntrepreneurAnnuaire"));
 const Reseau = lazy(() => import("./pages/Reseau"));
 const ReseauProfil = lazy(() => import("./pages/ReseauProfil"));
 const PlaceDeMarche = lazy(() => import("./pages/PlaceDeMarche"));
@@ -129,6 +130,7 @@ const App = () => (
             <Route path="/entrepreneur" element={<EntrepreneurDashboard />} />
             <Route path="/entrepreneur/carte" element={<Entrepreneur />} />
             <Route path="/entrepreneur/demandes" element={<EntrepreneurDemandes />} />
+            <Route path="/entrepreneur/reseau" element={<EntrepreneurAnnuaire />} />
             <Route path="/entrepreneur/chantiers" element={<EntrepreneurChantiers />} />
             <Route path="/entrepreneur/favoris" element={<EntrepreneurFavoris />} />
             <Route path="/entrepreneur/historique" element={<EntrepreneurHistorique />} />
