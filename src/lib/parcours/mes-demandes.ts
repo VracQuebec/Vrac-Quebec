@@ -26,6 +26,9 @@ export interface MySubmission {
   city: string | null;
   address: string | null;
   placeId: string | null;
+  /** Position réellement enregistrée en base, sinon null (jamais géocodée ici). */
+  latitude: number | null;
+  longitude: number | null;
   /** Sélection réellement enregistrée (jamais recalculée ici). */
   selectedSiteId: string | null;
   quoteMaterial: string | null;
@@ -78,6 +81,8 @@ export const mapMySubmission = (row: unknown): MySubmission | null => {
     city: str(r.city),
     address: str(r.formatted_address) ?? str(r.address),
     placeId: str(r.place_id),
+    latitude: num(r.latitude),
+    longitude: num(r.longitude),
     selectedSiteId: str(r.selected_site_id),
     quoteMaterial: str(r.quote_material),
     distanceKm: num(r.quote_distance_km),
