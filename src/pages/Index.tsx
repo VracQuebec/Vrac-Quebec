@@ -2,12 +2,13 @@ import Questionnaire from "@/components/Questionnaire";
 import heroBanner from "@/assets/hero-banner.webp";
 import heroBannerMobile from "@/assets/hero-banner-mobile.webp";
 import TransportBanner from "@/components/TransportBanner";
-import PrimaryCtas from "@/components/home/PrimaryCtas";
-import ClienteleUniverses from "@/components/home/ClienteleUniverses";
+import IntentChoice from "@/components/home/IntentChoice";
 import DompeShowcase from "@/components/home/DompeShowcase";
 import HowItWorks from "@/components/home/HowItWorks";
+import WhyVracQuebec from "@/components/home/WhyVracQuebec";
+import CircularEconomy from "@/components/home/CircularEconomy";
 import IntentSelector from "@/components/home/IntentSelector";
-import { HardHat, Sparkles } from "lucide-react";
+import { ArrowDown, HardHat, Sparkles } from "lucide-react";
 
 const Index = () => {
   return (
@@ -56,51 +57,74 @@ const Index = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/75" />
           <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent to-background" />
 
-          <div className="relative z-10 container mx-auto px-6 pb-10 lg:pb-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <h1 className="text-3xl md:text-4xl lg:text-[2.75rem] font-display font-extrabold text-white leading-[1.2] max-w-[44rem] mx-auto drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
-              Terre à sortir ou terrain à remplir&nbsp;?{" "}
-              <span className="text-primary">On trouve la meilleure solution près de votre chantier.</span>
+          <div className="relative z-10 container mx-auto px-6 pb-12 lg:pb-16 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <h1 className="text-3xl md:text-4xl lg:text-[2.75rem] font-display font-extrabold text-white leading-[1.2] max-w-[46rem] mx-auto drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
+              Trouvez le bon matériau ou la bonne solution pour{" "}
+              <span className="text-primary">votre chantier.</span>
             </h1>
             <p className="text-white/85 mt-6 max-w-2xl mx-auto font-body text-base lg:text-lg leading-relaxed">
-              Terre • Sable • Pierre • Remblai • Transport • Sites de dépôt
+              Vrac Québec vous aide à trouver des matériaux, disposer de vos surplus, trouver une dompe
+              ou coordonner le transport.
             </p>
-            <PrimaryCtas variant="hero" className="mt-8 max-w-4xl mx-auto" />
+            <a
+              href="#choix"
+              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-4 font-display text-base font-bold uppercase tracking-wide text-primary-foreground shadow-lg transition-transform hover:scale-[1.02]"
+            >
+              Qu'est-ce que vous cherchez&nbsp;? <ArrowDown className="h-5 w-5" aria-hidden />
+            </a>
           </div>
         </div>
       </header>
 
       {/* Questionnaire */}
       {/* Extra bottom padding on mobile so the floating contact bar never overlaps interactive content (tiles / Suivant button). */}
-      <main className="-mt-16 md:mt-0 relative z-10 pb-32 md:pb-20 md:pt-12">
-        <div className="container mx-auto px-6">
+      <main className="-mt-16 md:mt-0 relative z-10 pb-32 md:pb-20 md:pt-14">
+        <div className="container mx-auto px-5 sm:px-6 max-w-6xl">
           {/* Mobile-only intro (desktop has hero text above) */}
           <div className="md:hidden text-center mb-10">
             <h1 className="text-2xl font-display font-extrabold text-foreground leading-tight">
-              Terre à sortir ou terrain à remplir&nbsp;?{" "}
-              <span className="text-primary">On trouve la solution près de votre chantier.</span>
+              Trouvez le bon matériau ou la bonne solution pour{" "}
+              <span className="text-primary">votre chantier.</span>
             </h1>
-            <p className="text-muted-foreground mt-3 max-w-md mx-auto font-body text-sm">
-              Terre • Sable • Pierre • Remblai • Transport • Sites de dépôt
+            <p className="text-muted-foreground mt-3 max-w-md mx-auto font-body text-sm leading-relaxed">
+              Vrac Québec vous aide à trouver des matériaux, disposer de vos surplus, trouver une dompe
+              ou coordonner le transport.
             </p>
-            <PrimaryCtas className="mt-5 text-left" />
           </div>
 
-          <div className="mb-12">
+          {/* Niveau 1 — choix principal */}
+          <IntentChoice />
+
+          {/* Niveau 2 — parcours matériaux */}
+          <div className="mt-20 sm:mt-24">
             <IntentSelector />
+            <div id="questionnaire" className="mt-10 scroll-mt-24">
+              <Questionnaire initialService="materiel_remplissage" />
+            </div>
           </div>
 
-          <div id="questionnaire">
-            <Questionnaire />
+          {/* Niveau 2 — recherche de dompe */}
+          <div className="mt-20 sm:mt-24">
+            <DompeShowcase />
           </div>
 
-          <ClienteleUniverses />
-          <DompeShowcase />
-          <HowItWorks />
+          {/* Niveau 3 — réassurance */}
+          <div className="mt-20 sm:mt-24">
+            <WhyVracQuebec />
+          </div>
+          <div className="mt-20 sm:mt-24">
+            <HowItWorks />
+          </div>
+
+          {/* Niveau 4 — mission */}
+          <div className="mt-20 sm:mt-24">
+            <CircularEconomy />
+          </div>
 
           {/* Espace entrepreneur — site public reste vitrine; les outils avancés vivent derrière la connexion */}
           <section
             aria-labelledby="espace-entrepreneur-title"
-            className="mt-14 max-w-3xl mx-auto rounded-2xl border border-border bg-card p-6 sm:p-8 text-center"
+            className="mt-20 sm:mt-24 max-w-3xl mx-auto rounded-2xl bg-muted/50 p-6 sm:p-10 text-center"
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted text-foreground text-xs font-display font-bold uppercase tracking-wide">
               <Sparkles className="w-3.5 h-3.5" />
@@ -110,7 +134,7 @@ const Index = () => {
               id="espace-entrepreneur-title"
               className="mt-4 text-xl sm:text-2xl font-display font-extrabold text-foreground leading-tight"
             >
-              Déjà entrepreneur&nbsp;? Accédez à votre assistant.
+              Déjà entrepreneur&nbsp;? Accédez à votre espace professionnel.
             </h2>
             <p className="mt-3 text-sm sm:text-base text-muted-foreground font-body max-w-xl mx-auto leading-relaxed">
               L’assistant intelligent de recherche de dompes est réservé aux entrepreneurs connectés. Votre demande est
