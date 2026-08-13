@@ -101,11 +101,11 @@ const Index = () => {
 
       {/* Questionnaire */}
       {/* Extra bottom padding on mobile so the floating contact bar never overlaps interactive content (tiles / Suivant button). */}
-      <main className="-mt-16 md:mt-0 relative z-10 pb-32 md:pb-20 md:pt-14">
+      <main className="-mt-12 md:mt-0 relative z-10 pb-32 md:pb-20 md:pt-8">
         <div className="container mx-auto px-5 sm:px-6 max-w-6xl">
           {/* Mobile-only intro (desktop has hero text above) */}
-          <div className="md:hidden text-center mb-10">
-            <h1 className="text-[1.7rem] font-display font-extrabold text-foreground leading-tight">
+          <div className="md:hidden text-center mb-6">
+            <h1 className="text-[1.6rem] font-display font-extrabold text-foreground leading-tight">
               Trouvez le bon matériau ou la bonne solution pour{" "}
               <span className="text-primary">votre chantier.</span>
             </h1>
