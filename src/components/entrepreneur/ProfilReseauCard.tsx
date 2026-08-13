@@ -104,11 +104,6 @@ export default function ProfilReseauCard() {
                 </p>
               )}
 
-              {res.profil.demandes != null && res.profil.chantiers != null ? (
-                <>
-                </>
-              ) : null}
-
               <div className="mt-4 rounded-lg border border-border/70 p-3">
                 <p className="flex items-center gap-1.5 font-body text-[11px] uppercase tracking-wide text-muted-foreground">
                   <MapPin className="h-3.5 w-3.5" aria-hidden /> Localisation réseau
