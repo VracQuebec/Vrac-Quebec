@@ -7,10 +7,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Building2, Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { loadMyProfil, isNetworkVisible, type ProfilResult } from "@/lib/parcours/profil";
+import ProfilEditForm from "@/components/entrepreneur/ProfilEditForm";
 
 export default function ProfilReseauCard() {
   const [res, setRes] = useState<ProfilResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -41,6 +44,12 @@ export default function ProfilReseauCard() {
               Aucune fiche entreprise n'est encore associée à votre compte. Votre profil réseau sera
               disponible dès qu'une fiche existera.
             </p>
+          ) : editing ? (
+            <ProfilEditForm
+              initial={res.profil.edits}
+              onCancel={() => setEditing(false)}
+              onSaved={async () => { setEditing(false); setSaved(true); await reload(); }}
+            />
           ) : (
             <>
               <div className="flex items-start gap-3">
@@ -63,8 +72,14 @@ export default function ProfilReseauCard() {
 
               {res.profil.incomplete ? (
                 <p className="mt-3 rounded-lg bg-muted p-3 font-body text-xs text-muted-foreground">
-                  Profil incomplet : le nom de votre entreprise n'est pas enregistré. Contactez
-                  l'équipe Vrac Québec pour le compléter.
+                  Profil incomplet : le nom de votre entreprise n'est pas enregistré. Utilisez
+                  « Modifier mon profil » pour le compléter.
+                </p>
+              ) : null}
+
+              {saved ? (
+                <p role="status" className="mt-3 rounded-lg bg-primary/10 p-3 font-body text-xs text-primary">
+                  Profil enregistré.
                 </p>
               ) : null}
 
@@ -99,6 +114,14 @@ export default function ProfilReseauCard() {
                 Vos coordonnées personnelles ne sont jamais partagées : Vrac Québec reste votre seul
                 interlocuteur.
               </p>
+
+              <Button
+                variant="outline"
+                className="mt-3 h-11 w-full sm:w-auto"
+                onClick={() => { setSaved(false); setEditing(true); }}
+              >
+                Modifier mon profil
+              </Button>
             </>
           )}
         </div>
