@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import Questionnaire from "@/components/Questionnaire";
-import heroBanner from "@/assets/hero-banner.webp";
-import heroBannerMobile from "@/assets/hero-banner-mobile.webp";
+import heroBanner from "@/assets/hero-banner-clean.webp";
+import heroBannerMobile from "@/assets/hero-banner-mobile-clean.webp";
 import TransportBanner from "@/components/TransportBanner";
 import IntentChoice, { type IntentKey } from "@/components/home/IntentChoice";
 import ParcoursForm from "@/components/parcours/ParcoursForm";
