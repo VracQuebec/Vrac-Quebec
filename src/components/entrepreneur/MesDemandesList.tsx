@@ -24,7 +24,7 @@ const Line = ({ icon, label, value }: { icon: React.ReactNode; label: string; va
 export const SubmissionCard = ({ s }: { s: MySubmission }) => {
   const meta = s.status ? statusMeta(s.status) : null;
   return (
-    <article className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+    <article id={`demande-${s.id}`} className="rounded-2xl border border-border bg-card p-4 sm:p-5 scroll-mt-24">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-display text-sm font-bold">
           Demande {s.number != null ? `#${s.number}` : `#${s.id.slice(0, 8)}`}

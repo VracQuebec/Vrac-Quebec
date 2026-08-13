@@ -6,6 +6,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import FullPageState from "@/components/FullPageState";
 import EntrepreneurNotifications from "@/components/entrepreneur/EntrepreneurNotifications";
+import SitesRecommandesList from "@/components/entrepreneur/SitesRecommandesList";
 import TransportBanner from "@/components/TransportBanner";
 import {
   Truck,
@@ -137,6 +138,17 @@ const EntrepreneurDashboard = () => {
         </button>
 
         <EntrepreneurNotifications userId={user?.id} />
+
+        {/* Sites recommandés — uniquement des sites réellement rattachés à vos demandes */}
+        <section className="mb-8" aria-labelledby="sites-recommandes">
+          <h2 id="sites-recommandes" className="mb-1 font-display text-xl font-bold sm:text-2xl">
+            Sites recommandés
+          </h2>
+          <p className="mb-4 font-body text-sm text-muted-foreground">
+            Les sites déjà rattachés à vos demandes, avec leur contexte réel.
+          </p>
+          <SitesRecommandesList />
+        </section>
 
         {/* Secondary tools */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
