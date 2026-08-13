@@ -65,7 +65,8 @@ export default function ProfilEditForm({ initial, onCancel, onSaved }: Props) {
     setErrors(next);
     if (Object.keys(next).length) return;
     setSaving(true);
-    const res = await saveMyProfil(form);
+    // `reco` = localisation issue d'une sélection Google Places structurée.
+    const res = await saveMyProfil(form, undefined, reco);
     setSaving(false);
     if (res.state === "ok") { onSaved(); return; }
     if (res.state === "invalid") { setErrors(res.errors); return; }

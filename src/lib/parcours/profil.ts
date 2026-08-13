@@ -259,7 +259,7 @@ export const buildProfil = (
   push("phone", "Téléphone", str(r.phone), "self");
   push("address", "Adresse", str(r.address), "self");
 
-  const localisation = normalizeAddress(r.address);
+  const localisation = localisationFromRow(r);
 
   return {
     fields,
