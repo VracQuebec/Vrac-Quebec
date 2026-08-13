@@ -32,6 +32,7 @@ import {
 import {
   persistSelection, fetchPersistedSelection, type PersistedSelection,
 } from "@/lib/parcours/selection";
+import LinkedTransportCard from "@/components/parcours/LinkedTransportCard";
 import { usePublicTrucks } from "@/lib/vrac/units";
 import { useCalcMaterials } from "@/lib/vrac/calculator";
 import { computeBesoin } from "@/lib/parcours/besoin";
