@@ -26,6 +26,14 @@ export interface MySubmission {
   city: string | null;
   address: string | null;
   placeId: string | null;
+  /** Sélection réellement enregistrée (jamais recalculée ici). */
+  selectedSiteId: string | null;
+  quoteMaterial: string | null;
+  distanceKm: number | null;
+  durationMinutes: number | null;
+  selectionUpdatedAt: string | null;
+  siteAvailabilityStatus: string | null;
+  siteAvailabilityUpdatedAt: string | null;
 }
 
 export type MySubmissionsResult =
@@ -37,6 +45,12 @@ const str = (v: unknown): string | null => {
   if (v == null) return null;
   const t = String(v).trim();
   return t ? t : null;
+};
+
+const num = (v: unknown): number | null => {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 };
 
 export const mapMySubmission = (row: unknown): MySubmission | null => {
@@ -64,6 +78,13 @@ export const mapMySubmission = (row: unknown): MySubmission | null => {
     city: str(r.city),
     address: str(r.formatted_address) ?? str(r.address),
     placeId: str(r.place_id),
+    selectedSiteId: str(r.selected_site_id),
+    quoteMaterial: str(r.quote_material),
+    distanceKm: num(r.quote_distance_km),
+    durationMinutes: num(r.quote_duration_minutes),
+    selectionUpdatedAt: str(r.selection_updated_at),
+    siteAvailabilityStatus: str(r.site_availability_status),
+    siteAvailabilityUpdatedAt: str(r.site_availability_updated_at),
   };
 };
 
