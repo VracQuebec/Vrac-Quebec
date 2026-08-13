@@ -11204,10 +11204,16 @@ export type Database = {
           other_material: string
           place_id: string
           quantity: string
+          quote_distance_km: number
+          quote_duration_minutes: number
+          quote_material: string
           request_type: string
           selected_site_address: string
           selected_site_id: string
           selected_site_label: string
+          selection_updated_at: string
+          site_availability_status: string
+          site_availability_updated_at: string
           site_validated_at: string
           status: string
           submission_number: number
