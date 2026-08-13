@@ -97,9 +97,11 @@ describe("Historique admin de visibilité réseau", () => {
     });
     const res = await loadVisibilityAudit(client);
     if (res.state !== "ok") throw new Error("attendu ok");
-    const cols = client.lastSelect().join(" ");
-    ["phone", "email,", "address", "notes", "tax", "internal"].forEach((forbidden) => {
-      expect(cols.includes(forbidden)).toBe(false);
+    const cols: string[] = client.lastSelect();
+    const profilCols = cols.find((c) => c.startsWith("entrepreneurs:")) ?? "";
+    expect(profilCols).toBe("entrepreneurs:id,company");
+    ["phone", "email", "address", "notes", "tax", "internal"].forEach((forbidden) => {
+      expect(profilCols.includes(forbidden)).toBe(false);
     });
     const serialized = JSON.stringify(res.entries);
     ["phone", "address", "@example", "notes"].forEach((f) => {
