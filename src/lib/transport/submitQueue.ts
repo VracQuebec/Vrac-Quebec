@@ -61,9 +61,11 @@ interface QueueItem {
 type QueueMap = Record<string, QueueItem>;
 
 export interface SubmitResult {
-  status: "confirmed" | "queued";
+  status: "confirmed" | "queued" | "rejected";
   request_number?: string | null;
   idempotency_key: string;
+  request_id?: string | null;
+  message?: string | null;
 }
 
 // ---- Cryptographically-unique idempotency key --------------------------------
@@ -138,7 +140,7 @@ export function subscribeQueue(l: Listener): () => void {
 async function attemptSend(
   item: QueueItem,
 ): Promise<
-  | { kind: "ok"; request_number: string | null }
+  | { kind: "ok"; request_number: string | null; request_id: string | null }
   | { kind: "retry"; reason: string }
   | { kind: "drop"; reason: string }
 > {
@@ -166,7 +168,8 @@ async function attemptSend(
 
     if (data && typeof data === "object" && (data as { ok?: boolean }).ok) {
       const rn = (data as { request_number?: string | null }).request_number ?? null;
-      return { kind: "ok", request_number: rn };
+      const rid = (data as { request_id?: string | null }).request_id ?? null;
+      return { kind: "ok", request_number: rn, request_id: rid };
     }
     return { kind: "retry", reason: "unexpected_response" };
   } catch (e) {
@@ -264,12 +267,24 @@ export async function submitTransportRequest(
   if (result.kind === "ok") {
     remove(key);
     notify();
-    return { status: "confirmed", request_number: result.request_number, idempotency_key: key };
+    return {
+      status: "confirmed",
+      request_number: result.request_number,
+      request_id: result.request_id,
+      idempotency_key: key,
+    };
   }
 
   if (result.kind === "drop") {
     upsert(key, { attempts, last_error: `drop:${result.reason}` });
     notify();
+    // Parcours rattaché à une demande existante : jamais de fausse
+    // confirmation. Le refus est explicite et rien n'a été créé.
+    if (payload.origin_submission_id) {
+      remove(key);
+      notify();
+      return { status: "rejected", idempotency_key: key, message: result.reason };
+    }
     // Even on a "drop" we don't scare the user. From their point of view the
     // demand is queued; the admin will see the log and act.
     return { status: "queued", idempotency_key: key };
