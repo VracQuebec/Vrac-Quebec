@@ -4,9 +4,10 @@
 // Aucun annuaire public : la visibilité réseau est seulement annoncée.
 // ============================================================
 import { useCallback, useEffect, useState } from "react";
-import { Building2, Eye, EyeOff, Loader2, Lock } from "lucide-react";
+import { Building2, Eye, EyeOff, Loader2, Lock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { loadMyProfil, isNetworkVisible, type ProfilResult } from "@/lib/parcours/profil";
+import { localisationLabel } from "@/lib/parcours/localisation";
 import ProfilEditForm from "@/components/entrepreneur/ProfilEditForm";
 
 export default function ProfilReseauCard() {
@@ -102,6 +103,35 @@ export default function ProfilReseauCard() {
                   Aucune information professionnelle enregistrée pour le moment.
                 </p>
               )}
+
+              {res.profil.demandes != null && res.profil.chantiers != null ? (
+                <>
+                </>
+              ) : null}
+
+              <div className="mt-4 rounded-lg border border-border/70 p-3">
+                <p className="flex items-center gap-1.5 font-body text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <MapPin className="h-3.5 w-3.5" aria-hidden /> Localisation réseau
+                </p>
+                {res.profil.localisation.status === "reliable" ||
+                res.profil.localisation.status === "partial" ? (
+                  <p className="mt-1 font-body text-sm">
+                    {localisationLabel(res.profil.localisation) ?? "Localisation partielle"}
+                    {res.profil.publicLocalisation.postalSector ? (
+                      <span className="text-muted-foreground">
+                        {" "}· secteur {res.profil.publicLocalisation.postalSector}
+                      </span>
+                    ) : null}
+                  </p>
+                ) : null}
+                <p className="mt-1 font-body text-xs text-muted-foreground">
+                  {res.profil.localisation.message}
+                </p>
+                <p className="mt-1 font-body text-[11px] text-muted-foreground">
+                  Seuls la ville, la province et le secteur pourront être partagés : votre adresse
+                  complète reste privée.
+                </p>
+              </div>
 
               {res.profil.demandes != null && res.profil.chantiers != null ? (
                 <p className="mt-4 font-body text-xs text-muted-foreground">
