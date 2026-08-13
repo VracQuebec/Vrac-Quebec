@@ -19,6 +19,53 @@ export type ValidationFailure =
   | "not_found"
   | "save_failed";
 
+/* ---------------- Rattachement demande de transport ---------------- */
+
+export interface LinkedTransportRequest {
+  id: string;
+  requestNumber: string | null;
+  status: string | null;
+  createdAt: string | null;
+  submissionId: string | null;
+  stage: string;
+  dumpName: string | null;
+  siteAddress: string | null;
+}
+
+export const mapLinkedTransport = (row: unknown): LinkedTransportRequest | null => {
+  if (!row || typeof row !== "object") return null;
+  const r = row as Record<string, unknown>;
+  if (!r.id) return null;
+  return {
+    id: String(r.id),
+    requestNumber: (r.request_number as string | null) ?? null,
+    status: (r.status as string | null) ?? null,
+    createdAt: (r.created_at as string | null) ?? null,
+    submissionId: (r.origin_submission_id as string | null) ?? null,
+    stage: (r.origin_stage as string | null) ?? "transport_request",
+    dumpName: (r.dump_name as string | null) ?? null,
+    siteAddress: (r.site_address as string | null) ?? null,
+  };
+};
+
+/**
+ * Retrouve, depuis le CRM, la demande de transport rattachée à la demande
+ * existante. La relation en base est la seule source de vérité.
+ */
+export const fetchLinkedTransportRequest = async (
+  submissionId: string | null | undefined,
+  client: RpcClient = supabase as unknown as RpcClient,
+  stage = "transport_request",
+): Promise<LinkedTransportRequest | null> => {
+  if (!submissionId) return null;
+  const { data, error } = await client.rpc("get_submission_transport_request", {
+    p_submission_id: submissionId,
+    p_stage: stage,
+  });
+  if (error) return null;
+  return mapLinkedTransport(data);
+};
+
 export interface ValidatedSite {
   submissionId: string;
   siteId: string | null;

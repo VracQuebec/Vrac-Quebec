@@ -12,6 +12,8 @@ import FullPageState from "@/components/FullPageState";
 import {
   validateSelectedSite,
   buildTransportPrefill,
+  fetchLinkedTransportRequest,
+  type LinkedTransportRequest,
   type TransportPrefillSource,
 } from "@/lib/parcours/validation";
 import {
@@ -1107,6 +1109,7 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
   const cardNavigate = useNavigate();
   const [validating, setValidating] = useState(false);
   const [validatedAt, setValidatedAt] = useState<string | null>(sub.site_validated_at ?? null);
+  const [linkedTransport, setLinkedTransport] = useState<LinkedTransportRequest | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
   // Validation admin du site sélectionné : UPDATE idempotent sur CETTE demande.
@@ -1124,9 +1127,25 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
   };
 
   const goToTransportRequest = () => {
+    if (linkedTransport) {
+      // La relation en base est la source de vérité : on rouvre la demande
+      // existante au lieu d'en créer une nouvelle.
+      cardNavigate(`/demande-transport?submission=${sub.id}`);
+      return;
+    }
     const prefill = buildTransportPrefill(sub as unknown as TransportPrefillSource);
     cardNavigate("/demande-transport", { state: { vqPrefill: prefill } });
   };
+
+  // Rattachement submission → demande de transport (relu depuis la DB).
+  useEffect(() => {
+    if (!expanded) return;
+    let cancelled = false;
+    fetchLinkedTransportRequest(sub.id).then((row) => {
+      if (!cancelled) setLinkedTransport(row);
+    });
+    return () => { cancelled = true; };
+  }, [expanded, sub.id, validatedAt]);
 
   useEffect(() => {
     if (expanded && cardRef.current) {
@@ -1614,8 +1633,33 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                     disabled={!validatedAt}
                     className="rounded-lg border border-primary/40 px-3 py-1.5 text-[11px] font-display font-semibold text-primary disabled:opacity-50"
                   >
-                    Poursuivre la demande de transport
+                    {linkedTransport ? "Ouvrir la demande de transport" : "Poursuivre la demande de transport"}
                   </button>
+                </div>
+
+                {/* Rattachement : Submission → Site sélectionné → Site validé → Demande de transport */}
+                <div className="mt-2 border-t border-primary/20 pt-2 text-[11px] font-body">
+                  <div className="font-display text-[10px] font-bold uppercase tracking-wide text-primary">
+                    Demande de transport rattachée
+                  </div>
+                  {linkedTransport ? (
+                    <div className="mt-1 space-y-0.5">
+                      <div>
+                        <span className="font-semibold">Numéro : </span>
+                        {linkedTransport.requestNumber || linkedTransport.id.slice(0, 8)}
+                        {linkedTransport.status ? ` — ${linkedTransport.status}` : ""}
+                      </div>
+                      <div>
+                        <span className="font-semibold">Créée le : </span>
+                        {linkedTransport.createdAt ? formatDate(linkedTransport.createdAt) : "—"}
+                      </div>
+                      <div className="text-muted-foreground">Rattachée à la demande #{sub.submission_number}</div>
+                    </div>
+                  ) : (
+                    <div className="mt-1 text-muted-foreground">
+                      Aucune demande de transport n'est encore rattachée à cette demande.
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -31,6 +31,8 @@ type Payload = {
   quantity?: number | null;
   quantity_unit?: string | null;
   dump_submission_id?: string | null;
+  origin_submission_id?: string | null;
+  origin_stage?: string | null;
   dump_name?: string | null;
   distance_km?: number | null;
   travel_time_minutes?: number | null;
@@ -85,6 +87,8 @@ function validate(p: Partial<Payload>): { ok: true; data: Payload } | { ok: fals
       quantity: typeof p.quantity === "number" && isFinite(p.quantity) ? p.quantity : null,
       quantity_unit: sanitize(p.quantity_unit, 20),
       dump_submission_id: typeof p.dump_submission_id === "string" ? p.dump_submission_id : null,
+      origin_submission_id: typeof p.origin_submission_id === "string" ? p.origin_submission_id : null,
+      origin_stage: sanitize(p.origin_stage, 60) ?? "transport_request",
       dump_name: sanitize(p.dump_name, 200),
       distance_km: typeof p.distance_km === "number" ? p.distance_km : null,
       travel_time_minutes: typeof p.travel_time_minutes === "number" ? Math.round(p.travel_time_minutes) : null,
@@ -201,6 +205,58 @@ Deno.serve(async (req) => {
 
   const data = v.data;
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  // ---- Rattachement à la demande d'origine (submission) --------------------
+  // Quand le parcours vient d'une submission, la demande de transport DOIT
+  // être rattachée : submission existante + site validé, sinon refus propre.
+  if (data.origin_submission_id) {
+    if (!UUID_RE.test(data.origin_submission_id)) {
+      return jsonResponse({ ok: false, retry: false, message: "origin_submission_invalide" }, 400);
+    }
+    const { data: origin, error: originErr } = await admin
+      .from("submissions")
+      .select("id, site_validated_at")
+      .eq("id", data.origin_submission_id)
+      .maybeSingle();
+
+    if (originErr) {
+      await logError(admin, {
+        idempotency_key: data.idempotency_key,
+        stage: "origin_lookup",
+        error_message: originErr.message ?? "origin lookup failed",
+        attempt,
+        user_agent: userAgent,
+        ip,
+      });
+      return jsonResponse({ ok: false, retry: true, message: "temporary_failure" }, 503);
+    }
+    if (!origin) {
+      return jsonResponse({ ok: false, retry: false, message: "submission_introuvable" }, 400);
+    }
+    if (!(origin as { site_validated_at?: string | null }).site_validated_at) {
+      return jsonResponse({ ok: false, retry: false, message: "site_non_valide" }, 400);
+    }
+
+    // Idempotence par (submission, étape) : double clic / refresh / retour
+    // arrière réutilisent la demande déjà créée.
+    const { data: linked } = await admin
+      .from("transport_requests")
+      .select("id, request_number")
+      .eq("origin_submission_id", data.origin_submission_id)
+      .eq("origin_stage", data.origin_stage ?? "transport_request")
+      .maybeSingle();
+    if (linked) {
+      return jsonResponse({
+        ok: true,
+        deduplicated: true,
+        request_number: (linked as { request_number: string | null }).request_number,
+        request_id: (linked as { id: string }).id,
+        origin_submission_id: data.origin_submission_id,
+      });
+    }
+  }
+
   // Idempotency: if the same key already produced a row, return the same result.
   try {
     const { data: existing, error: exErr } = await admin
@@ -252,6 +308,8 @@ Deno.serve(async (req) => {
         quantity: data.quantity,
         quantity_unit: data.quantity_unit,
         dump_submission_id: data.dump_submission_id,
+        origin_submission_id: data.origin_submission_id,
+        origin_stage: data.origin_stage ?? "transport_request",
         dump_name: data.dump_name,
         distance_km: data.distance_km,
         travel_time_minutes: data.travel_time_minutes,
@@ -282,6 +340,23 @@ Deno.serve(async (req) => {
             request_number: winner.request_number,
             request_id: winner.id,
           });
+        }
+        if (data.origin_submission_id) {
+          const { data: originWinner } = await admin
+            .from("transport_requests")
+            .select("id, request_number")
+            .eq("origin_submission_id", data.origin_submission_id)
+            .eq("origin_stage", data.origin_stage ?? "transport_request")
+            .maybeSingle();
+          if (originWinner) {
+            return jsonResponse({
+              ok: true,
+              deduplicated: true,
+              request_number: (originWinner as { request_number: string | null }).request_number,
+              request_id: (originWinner as { id: string }).id,
+              origin_submission_id: data.origin_submission_id,
+            });
+          }
         }
       }
 
