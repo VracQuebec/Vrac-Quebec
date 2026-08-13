@@ -44,7 +44,8 @@ export const mapLinkedTransport = (row: unknown): LinkedTransportRequest | null 
     submissionId: (r.origin_submission_id as string | null) ?? null,
     stage: (r.origin_stage as string | null) ?? "transport_request",
     dumpName: (r.dump_name as string | null) ?? null,
-    siteAddress: (r.site_address as string | null) ?? null,
+    siteAddress:
+      (r.selected_site_address as string | null) ?? (r.site_address as string | null) ?? null,
   };
 };
 
@@ -64,6 +65,38 @@ export const fetchLinkedTransportRequest = async (
   });
   if (error) return null;
   return mapLinkedTransport(data);
+};
+
+/* -------- Rattachement INVERSE (suivi entrepreneur) --------
+ * Lecture seule : depuis une demande (submission), on retrouve la demande de
+ * transport réellement enregistrée en base (transport_requests.origin_submission_id).
+ * Aucune écriture, donc aucune création possible en consultant son suivi.
+ * Les trois états sont distincts : trouvée / aucune / erreur (jamais de
+ * fausse confirmation en cas d'échec de lecture).
+ */
+export type LinkedTransportLookup =
+  | { state: "found"; request: LinkedTransportRequest }
+  | { state: "none" }
+  | { state: "unauthorized" }
+  | { state: "error"; message: string };
+
+export const loadLinkedTransportRequest = async (
+  submissionId: string | null | undefined,
+  client: RpcClient = supabase as unknown as RpcClient,
+  stage = "transport_request",
+): Promise<LinkedTransportLookup> => {
+  if (!submissionId) return { state: "none" };
+  const { data, error } = await client.rpc("get_submission_transport_request", {
+    p_submission_id: submissionId,
+    p_stage: stage,
+  });
+  if (error) {
+    const m = (error.message || "").toLowerCase();
+    if (m.includes("not_authorized") || m.includes("permission")) return { state: "unauthorized" };
+    return { state: "error", message: error.message || "Lecture impossible." };
+  }
+  const mapped = mapLinkedTransport(data);
+  return mapped ? { state: "found", request: mapped } : { state: "none" };
 };
 
 export interface ValidatedSite {

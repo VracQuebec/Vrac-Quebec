@@ -32,6 +32,7 @@ import {
 import {
   persistSelection, fetchPersistedSelection, type PersistedSelection,
 } from "@/lib/parcours/selection";
+import LinkedTransportCard from "@/components/parcours/LinkedTransportCard";
 import { usePublicTrucks } from "@/lib/vrac/units";
 import { useCalcMaterials } from "@/lib/vrac/calculator";
 import { computeBesoin } from "@/lib/parcours/besoin";
@@ -510,6 +511,10 @@ export default function EntrepreneurComparateur() {
             )}
           </section>
         )}
+
+        {/* Rattachement inverse : demande de transport déjà créée pour cette
+            demande (lecture seule, la base fait foi). */}
+        <LinkedTransportCard submissionId={request?.submissionId ?? persisted?.submissionId ?? null} />
 
         <section className="mt-6 space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-5">
           <div className="space-y-1.5">
