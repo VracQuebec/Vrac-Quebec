@@ -38,6 +38,7 @@ const Questionnaire = ({
     remblaiMode || isRemblaiRequest(data.materials, data.propertyType);
   const formTopRef = useRef<HTMLDivElement>(null);
   const isPopStateRef = useRef(false);
+  const isFirstRenderRef = useRef(true);
   const [showErrors, setShowErrors] = useState(false);
 
   // Sync browser history with current step
