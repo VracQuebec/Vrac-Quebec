@@ -225,6 +225,16 @@ const Questionnaire = ({
 
       if (error) throw error;
 
+      // Géocodage serveur (Google) : rend la demande exploitable par la carte
+      // admin et le dispatch. Best-effort : ne bloque jamais la confirmation.
+      try {
+        await supabase.functions.invoke("geocode-submission", {
+          body: { submissionId },
+        });
+      } catch (e) {
+        console.warn("Geocoding failed:", e);
+      }
+
       // Backup to Google Sheet (best-effort, never blocks the user)
       try {
         await supabase.functions.invoke("backup-to-sheet", {
