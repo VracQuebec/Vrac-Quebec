@@ -9,6 +9,12 @@
 // ============================================================
 import { supabase } from "@/integrations/supabase/client";
 import { loadActivitySummary, type ActivityClient } from "@/lib/parcours/activity";
+import {
+  normalizeAddress,
+  toPublicLocalisation,
+  type Localisation,
+  type PublicLocalisation,
+} from "@/lib/parcours/localisation";
 
 /** Visibilité d'un champ : privé (jamais affiché), self (moi seul), réseau. */
 export type FieldVisibility = "private" | "self" | "network";
@@ -34,6 +40,10 @@ export interface ProfilReseau {
   missing: boolean;
   /** Valeurs éditables réelles, préremplies dans le formulaire. */
   edits: ProfilEdits;
+  /** Localisation dérivée de l'adresse réelle (adresse complète jamais exposée). */
+  localisation: Localisation;
+  /** Champs de localisation non sensibles, seuls exposables au réseau. */
+  publicLocalisation: PublicLocalisation;
 }
 
 export type ProfilResult =
@@ -233,6 +243,8 @@ export const buildProfil = (
   push("phone", "Téléphone", str(r.phone), "self");
   push("address", "Adresse", str(r.address), "self");
 
+  const localisation = normalizeAddress(r.address);
+
   return {
     fields,
     company,
@@ -241,6 +253,8 @@ export const buildProfil = (
     incomplete: !missing && !company,
     missing,
     edits: toEdits(row),
+    localisation,
+    publicLocalisation: toPublicLocalisation(localisation),
   };
 };
 
