@@ -204,3 +204,54 @@ export const localisationLabel = (loc: Localisation): string | null => {
   if (!parts.length) return loc.postalSector ? `Secteur ${loc.postalSector}` : null;
   return parts.join(", ");
 };
+
+// ------------------------------------------------------------
+// CAPTURE STRUCTURÉE (Google Places) — AUCUNE seconde logique de
+// normalisation : les composants structurés sont réduits à un texte
+// « Ville, Province, Code postal » qui repasse par `normalizeAddress`.
+// La région administrative reste déterminée par le référentiel local.
+// ------------------------------------------------------------
+
+export interface PlaceComponent {
+  longText?: string | null;
+  shortText?: string | null;
+  types?: string[];
+}
+
+const pick = (components: PlaceComponent[], type: string): PlaceComponent | null =>
+  components.find((c) => Array.isArray(c.types) && c.types.includes(type)) ?? null;
+
+/**
+ * Texte normalisable dérivé des composants Google réellement retournés.
+ * Ne fabrique rien : renvoie "" si aucune ville ni province n'est fournie.
+ */
+export const addressFromPlaceComponents = (components: unknown): string => {
+  const list = Array.isArray(components) ? (components as PlaceComponent[]) : [];
+  const cityPart =
+    pick(list, "locality") ??
+    pick(list, "postal_town") ??
+    pick(list, "administrative_area_level_2");
+  const provPart = pick(list, "administrative_area_level_1");
+  const postalPart = pick(list, "postal_code");
+
+  const city = clean(String(cityPart?.longText ?? cityPart?.shortText ?? ""));
+  const province = clean(String(provPart?.shortText ?? provPart?.longText ?? ""));
+  const postal = clean(String(postalPart?.longText ?? postalPart?.shortText ?? ""));
+
+  if (!city && !province) return "";
+  return [city, province, postal].filter(Boolean).join(", ");
+};
+
+/**
+ * Normalise une sélection Google via le pipeline existant.
+ * `fallbackAddress` (texte libre) n'est utilisé que si aucun composant
+ * structuré exploitable n'est disponible.
+ */
+export const normalizePlaceSelection = (
+  components: unknown,
+  fallbackAddress?: unknown,
+): Localisation => {
+  const structured = addressFromPlaceComponents(components);
+  if (structured) return normalizeAddress(structured);
+  return normalizeAddress(fallbackAddress);
+};
