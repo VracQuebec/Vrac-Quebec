@@ -9,6 +9,7 @@ import EntrepreneurNotifications from "@/components/entrepreneur/EntrepreneurNot
 import SitesRecommandesList from "@/components/entrepreneur/SitesRecommandesList";
 import ReseauNetwork from "@/components/entrepreneur/ReseauNetwork";
 import ActivitySummary from "@/components/entrepreneur/ActivitySummary";
+import ProfilReseauCard from "@/components/entrepreneur/ProfilReseauCard";
 import TransportBanner from "@/components/TransportBanner";
 import {
   Truck,
@@ -143,6 +144,9 @@ const EntrepreneurDashboard = () => {
 
         {/* Résumé d'activité — compteurs calculés depuis les données réelles du compte */}
         <ActivitySummary />
+
+        {/* Profil réseau — informations professionnelles réellement enregistrées */}
+        <ProfilReseauCard />
 
         {/* Carte du réseau — vue calculée des chantiers, demandes et sites réellement associés */}
         <ReseauNetwork />
