@@ -12,6 +12,8 @@ import { loadActivitySummary, type ActivityClient } from "@/lib/parcours/activit
 import {
   normalizeAddress,
   toPublicLocalisation,
+  toStoredLocalisation,
+  localisationFromRow,
   type Localisation,
   type PublicLocalisation,
 } from "@/lib/parcours/localisation";
@@ -136,15 +138,28 @@ export const validateProfilEdits = (e: ProfilEdits): ProfilErrors => {
   return errors;
 };
 
-/** Payload envoyé à la base : chaînes vides converties en null. */
-export const toPayload = (e: ProfilEdits): Record<string, unknown> => ({
-  company: e.company.trim() || null,
-  contact_name: e.contact_name.trim() || null,
-  phone: e.phone.trim() || null,
-  address: e.address.trim() || null,
-  truck_types: e.truck_types.length ? e.truck_types : null,
-  truck_count: e.truck_count.trim() || null,
-});
+/**
+ * Payload envoyé à la base : chaînes vides converties en null.
+ * `address` reste l'adresse privée complète. Les colonnes normalisées sont
+ * calculées EXCLUSIVEMENT par le pipeline `localisation.ts` : `loc` provient
+ * d'une sélection Google Places structurée, sinon on normalise le texte saisi.
+ */
+export const toPayload = (e: ProfilEdits, loc?: Localisation | null): Record<string, unknown> => {
+  const address = e.address.trim() || null;
+  const localisation = address ? (loc ?? normalizeAddress(address)) : null;
+  const stored = localisation
+    ? toStoredLocalisation(localisation)
+    : { city: null, province: null, province_name: null, region: null, postal_sector: null };
+  return {
+    company: e.company.trim() || null,
+    contact_name: e.contact_name.trim() || null,
+    phone: e.phone.trim() || null,
+    address,
+    truck_types: e.truck_types.length ? e.truck_types : null,
+    truck_count: e.truck_count.trim() || null,
+    ...stored,
+  };
+};
 
 export type SaveResult =
   | { state: "ok" }
@@ -160,13 +175,14 @@ export type SaveResult =
 export const saveMyProfil = async (
   edits: ProfilEdits,
   client: ProfilClient = supabase as unknown as ProfilClient,
+  loc?: Localisation | null,
 ): Promise<SaveResult> => {
   const errors = validateProfilEdits(edits);
   if (Object.keys(errors).length) return { state: "invalid", errors };
   try {
     const { error } = await (client as any)
       .from("entrepreneurs")
-      .update(toPayload(edits))
+      .update(toPayload(edits, loc))
       .select("company");
     if (error) {
       const m = (error.message || "").toLowerCase();
