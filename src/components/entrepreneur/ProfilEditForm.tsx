@@ -47,7 +47,7 @@ export default function ProfilEditForm({ initial, onCancel, onSaved }: Props) {
     return () => { cancelled = true; };
   }, []);
 
-  const set = (k: keyof ProfilEdits, v: string | string[]) =>
+  const set = (k: keyof ProfilEdits, v: string | string[] | boolean) =>
     setForm((prev) => ({ ...prev, [k]: v }) as ProfilEdits);
 
   const toggleTruck = (t: string) =>
@@ -78,7 +78,7 @@ export default function ProfilEditForm({ initial, onCancel, onSaved }: Props) {
   };
 
   const field = (
-    key: Exclude<keyof ProfilEdits, "truck_types">,
+    key: Exclude<keyof ProfilEdits, "truck_types" | "is_network_visible">,
     label: string,
     hint?: string,
   ) => (

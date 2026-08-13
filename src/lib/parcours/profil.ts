@@ -40,6 +40,8 @@ export interface ProfilReseau {
   incomplete: boolean;
   /** true si aucune fiche entrepreneur n'existe pour ce compte. */
   missing: boolean;
+  /** Choix explicite de l'entrepreneur d'apparaître dans l'annuaire. */
+  networkOptIn: boolean;
   /** Valeurs éditables réelles, préremplies dans le formulaire. */
   edits: ProfilEdits;
   /** Localisation dérivée de l'adresse réelle (adresse complète jamais exposée). */
@@ -287,15 +289,19 @@ export const buildProfil = (
     chantiers: counters.chantiers,
     incomplete: !missing && !company,
     missing,
+    networkOptIn: r.is_network_visible === true,
     edits: toEdits(row),
     localisation,
     publicLocalisation: toPublicLocalisation(localisation),
   };
 };
 
-/** Un profil n'est visible dans le réseau que s'il a un nom d'entreprise réel. */
+/**
+ * Visibilité réseau : opt-in explicite de l'entrepreneur ET nom d'entreprise réel.
+ * Le filtrage effectif est fait côté serveur (RPC `get_entrepreneur_directory`).
+ */
 export const isNetworkVisible = (profil: ProfilReseau): boolean =>
-  !profil.missing && !!profil.company;
+  !profil.missing && !!profil.company && profil.networkOptIn;
 
 /** Charge le profil du compte connecté. Jamais celui d'un autre entrepreneur. */
 export const loadMyProfil = async (
@@ -307,7 +313,7 @@ export const loadMyProfil = async (
     const { data, error } = await client
       .from("entrepreneurs")
       .select(
-        "company,contact_name,name,phone,address,truck_types,truck_count,city,province,province_name,region,postal_sector",
+        "company,contact_name,name,phone,address,truck_types,truck_count,city,province,province_name,region,postal_sector,is_network_visible",
       );
     if (error) {
       const m = (error.message || "").toLowerCase();
