@@ -23,12 +23,15 @@ const IntentSelector = () => {
   const [selected, setSelected] = useState<Intent | null>(null);
 
   return (
-    <section aria-labelledby="intent-title" className="mx-auto max-w-3xl rounded-2xl border border-border bg-card p-6 sm:p-8">
-      <h2 id="intent-title" className="text-center font-display text-xl sm:text-2xl font-extrabold text-foreground">
+    <section aria-labelledby="intent-title" className="mx-auto max-w-3xl">
+      <p className="text-center font-display text-xs font-bold uppercase tracking-wider text-primary">
+        Parcours « J'ai besoin de matériaux »
+      </p>
+      <h2 id="intent-title" className="mt-2 text-center font-display text-2xl sm:text-3xl font-extrabold text-foreground">
         Qu'est-ce que vous voulez faire&nbsp;?
       </h2>
-      <p className="mt-2 text-center font-body text-sm text-muted-foreground">
-        On vous recommande ensuite le matériau — vous restez libre de choisir.
+      <p className="mx-auto mt-3 max-w-xl text-center font-body text-sm sm:text-base text-muted-foreground">
+        Dites-nous ce que vous voulez réaliser et nous vous aiderons à trouver le bon matériau.
       </p>
 
       <div className="mt-6 flex flex-wrap justify-center gap-2">
