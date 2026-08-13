@@ -97,7 +97,7 @@ describe("capture structurée de la localisation", () => {
     // Colonnes de localisation ajoutées (dérivées de l'adresse, non saisies).
     expect(Object.keys(toPayload(edits)).sort()).toEqual(
       [
-        "address", "city", "company", "contact_name", "phone", "postal_sector",
+        "address", "city", "company", "contact_name", "is_network_visible", "phone", "postal_sector",
         "province", "province_name", "region", "truck_count", "truck_types",
       ],
     );

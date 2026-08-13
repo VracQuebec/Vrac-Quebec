@@ -1856,6 +1856,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          is_network_visible: boolean
           map_number: string | null
           name: string
           notes: string | null
@@ -1879,6 +1880,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_network_visible?: boolean
           map_number?: string | null
           name?: string
           notes?: string | null
@@ -1902,6 +1904,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_network_visible?: boolean
           map_number?: string | null
           name?: string
           notes?: string | null

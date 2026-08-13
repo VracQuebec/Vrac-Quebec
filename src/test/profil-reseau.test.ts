@@ -24,7 +24,11 @@ const makeClient = (
 describe("Profil réseau V1", () => {
   it("A — profil complet expose les champs réels", () => {
     const p = buildProfil(
-      { company: "Excavation ABC", truck_types: ["10 roues"], truck_count: "4", phone: "418" },
+      {
+        company: "Excavation ABC", truck_types: ["10 roues"], truck_count: "4", phone: "418",
+        // Visibilité réseau désormais explicite (opt-in).
+        is_network_visible: true,
+      },
       counters,
     );
     expect(p.company).toBe("Excavation ABC");
@@ -138,6 +142,7 @@ const baseEdits = (o: Partial<ProfilEdits> = {}): ProfilEdits => ({
   address: "12 rue Test",
   truck_types: ["Camion 10 roues"],
   truck_count: "4",
+  is_network_visible: false,
   ...o,
 });
 
@@ -170,6 +175,7 @@ describe("Édition contrôlée du profil", () => {
     const e = toEdits(null);
     expect(e).toEqual({
       company: "", contact_name: "", phone: "", address: "", truck_types: [], truck_count: "",
+      is_network_visible: false,
     });
   });
 

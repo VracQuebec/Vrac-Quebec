@@ -47,7 +47,7 @@ export default function ProfilEditForm({ initial, onCancel, onSaved }: Props) {
     return () => { cancelled = true; };
   }, []);
 
-  const set = (k: keyof ProfilEdits, v: string | string[]) =>
+  const set = (k: keyof ProfilEdits, v: string | string[] | boolean) =>
     setForm((prev) => ({ ...prev, [k]: v }) as ProfilEdits);
 
   const toggleTruck = (t: string) =>
@@ -78,7 +78,7 @@ export default function ProfilEditForm({ initial, onCancel, onSaved }: Props) {
   };
 
   const field = (
-    key: Exclude<keyof ProfilEdits, "truck_types">,
+    key: Exclude<keyof ProfilEdits, "truck_types" | "is_network_visible">,
     label: string,
     hint?: string,
   ) => (
@@ -194,6 +194,40 @@ export default function ProfilEditForm({ initial, onCancel, onSaved }: Props) {
           <p className="mt-1 font-body text-xs text-destructive">{errors.truck_types}</p>
         ) : null}
       </fieldset>
+
+      {/* Visibilité réseau : opt-in explicite, jamais activé par défaut. */}
+      <section
+        aria-labelledby="profil-visibilite"
+        className="rounded-lg border border-border bg-muted/30 p-3"
+      >
+        <h3 id="profil-visibilite" className="font-body text-sm font-semibold">
+          Visibilité dans le réseau
+        </h3>
+        <p className="mt-1 font-body text-xs text-muted-foreground">
+          Permettez aux autres utilisateurs de découvrir votre entreprise dans le réseau
+          professionnel.
+        </p>
+        <label className="mt-3 flex items-start gap-3">
+          <input
+            type="checkbox"
+            checked={form.is_network_visible}
+            onChange={(e) => set("is_network_visible", e.target.checked)}
+            className="mt-0.5 h-5 w-5 flex-shrink-0 rounded border-input accent-primary"
+          />
+          <span className="font-body text-sm">
+            Afficher mon entreprise dans le réseau professionnel
+          </span>
+        </label>
+        <p className="mt-2 font-body text-[11px] text-muted-foreground">
+          Votre adresse complète, téléphone, courriel et données administratives ne seront jamais
+          publiés par cette option.
+        </p>
+        <p aria-live="polite" className="mt-2 font-body text-xs text-foreground">
+          {form.is_network_visible
+            ? "Votre entreprise est maintenant visible dans le réseau professionnel."
+            : "Votre entreprise n'est plus visible dans le réseau professionnel."}
+        </p>
+      </section>
 
       {failure ? (
         <p role="alert" className="rounded-lg bg-destructive/10 p-3 font-body text-xs text-destructive">
