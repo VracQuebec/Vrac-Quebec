@@ -139,12 +139,11 @@ export const normalizeAddress = (address: unknown): Localisation => {
   if (city) {
     const cityRef = resolveCity(city, province);
     if (cityRef) {
+      // Nom officiel : casse, accents et espaces normalisés.
       city = cityRef.name;
-      region = cityRef.region;
-      if (!province) {
-        province = cityRef.provinceCode;
-        provinceName = resolveProvince(cityRef.provinceCode)?.name ?? null;
-      }
+      // La région n'est retenue que si la province est réellement déterminée
+      // et correspond au référentiel : jamais supposée à partir de la ville.
+      if (province === cityRef.provinceCode) region = cityRef.region;
     } else {
       city = tidyCityLabel(city);
     }
