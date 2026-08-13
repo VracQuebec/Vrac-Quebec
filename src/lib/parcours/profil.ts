@@ -39,6 +39,136 @@ export type ProfilResult =
   | { state: "unauthorized" }
   | { state: "error"; message: string };
 
+// ------------------------------------------------------------
+// ÉDITION CONTRÔLÉE — uniquement les colonnes réellement éditables
+// par l'entrepreneur propriétaire (RLS : user_id = auth.uid()).
+// ------------------------------------------------------------
+export interface ProfilEdits {
+  company: string;
+  contact_name: string;
+  phone: string;
+  address: string;
+  truck_types: string[];
+  truck_count: string;
+}
+
+export const EDITABLE_KEYS = [
+  "company",
+  "contact_name",
+  "phone",
+  "address",
+  "truck_types",
+  "truck_count",
+] as const;
+
+/** Options de camions déjà utilisées par l'application (aucune invention). */
+export const TRUCK_TYPE_OPTIONS = [
+  "Camion 6 roues",
+  "Camion 10 roues",
+  "Camion 12 roues",
+  "Semi-remorque 2 essieux",
+  "Semi-remorque 3 essieux",
+  "Semi-remorque 4 essieux",
+  "Fardier",
+  "Autre",
+] as const;
+
+export const MAX_LEN: Record<keyof ProfilEdits, number> = {
+  company: 120,
+  contact_name: 120,
+  phone: 30,
+  address: 200,
+  truck_types: 0,
+  truck_count: 6,
+};
+
+export type ProfilErrors = Partial<Record<keyof ProfilEdits, string>>;
+
+/** Valeurs du formulaire à partir d'une ligne réelle (jamais inventées). */
+export const toEdits = (row: unknown): ProfilEdits => {
+  const r = (row && typeof row === "object" ? row : {}) as Record<string, unknown>;
+  return {
+    company: str(r.company) ?? "",
+    contact_name: str(r.contact_name) ?? "",
+    phone: str(r.phone) ?? "",
+    address: str(r.address) ?? "",
+    truck_types: Array.isArray(r.truck_types)
+      ? r.truck_types.map((x) => String(x ?? "").trim()).filter(Boolean)
+      : [],
+    truck_count: str(r.truck_count) ?? "",
+  };
+};
+
+/** Validation : mêmes règles que le reste de l'application, rien de plus. */
+export const validateProfilEdits = (e: ProfilEdits): ProfilErrors => {
+  const errors: ProfilErrors = {};
+  const company = e.company.trim();
+  if (!company) errors.company = "Le nom de l'entreprise est requis.";
+  else if (company.length > MAX_LEN.company) errors.company = "Maximum 120 caractères.";
+
+  if (e.contact_name.trim().length > MAX_LEN.contact_name)
+    errors.contact_name = "Maximum 120 caractères.";
+  if (e.address.trim().length > MAX_LEN.address) errors.address = "Maximum 200 caractères.";
+
+  const phone = e.phone.trim();
+  if (phone) {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 10 || digits.length > 11) errors.phone = "Téléphone invalide (10 chiffres).";
+    else if (phone.length > MAX_LEN.phone) errors.phone = "Maximum 30 caractères.";
+  }
+
+  const count = e.truck_count.trim();
+  if (count && !/^\d{1,6}$/.test(count)) errors.truck_count = "Nombre entier seulement.";
+
+  if (e.truck_types.some((t) => !t.trim())) errors.truck_types = "Type de camion invalide.";
+  return errors;
+};
+
+/** Payload envoyé à la base : chaînes vides converties en null. */
+export const toPayload = (e: ProfilEdits): Record<string, unknown> => ({
+  company: e.company.trim() || null,
+  contact_name: e.contact_name.trim() || null,
+  phone: e.phone.trim() || null,
+  address: e.address.trim() || null,
+  truck_types: e.truck_types.length ? e.truck_types : null,
+  truck_count: e.truck_count.trim() || null,
+});
+
+export type SaveResult =
+  | { state: "ok" }
+  | { state: "unauthorized" }
+  | { state: "invalid"; errors: ProfilErrors }
+  | { state: "error"; message: string };
+
+/**
+ * Sauvegarde la fiche du compte connecté UNIQUEMENT.
+ * Aucun identifiant client n'est utilisé : la policy UPDATE
+ * (`user_id = auth.uid()`) détermine seule la ligne modifiable.
+ */
+export const saveMyProfil = async (
+  edits: ProfilEdits,
+  client: ProfilClient = supabase as unknown as ProfilClient,
+): Promise<SaveResult> => {
+  const errors = validateProfilEdits(edits);
+  if (Object.keys(errors).length) return { state: "invalid", errors };
+  try {
+    const { error } = await (client as any)
+      .from("entrepreneurs")
+      .update(toPayload(edits))
+      .select("company");
+    if (error) {
+      const m = (error.message || "").toLowerCase();
+      if (m.includes("not_authorized") || m.includes("permission") || m.includes("jwt") || m.includes("row-level")) {
+        return { state: "unauthorized" };
+      }
+      return { state: "error", message: error.message || "Enregistrement impossible." };
+    }
+    return { state: "ok" };
+  } catch (err) {
+    return { state: "error", message: (err as Error)?.message || "Enregistrement impossible." };
+  }
+};
+
 export interface ProfilQueryResult {
   data: unknown;
   error: { message: string } | null;
