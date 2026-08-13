@@ -73,11 +73,11 @@ const Index = () => {
           }}
         >
           {/* Voile global très léger : conserve la luminosité du camion et des matériaux */}
-          <div className="absolute inset-0 bg-black/25" />
+          <div className="absolute inset-0 bg-black/30" />
           {/* Voile ciblé : assombrir fortement la zone centrale où se trouvent les textes imprimés et le contenu HTML */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,0,0,0.72)_0%,_rgba(0,0,0,0.35)_50%,_transparent_78%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,0,0,0.78)_0%,_rgba(0,0,0,0.40)_50%,_transparent_78%)]" />
           {/* Renforcement vertical pour le bas de l'image */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/50" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/50" />
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-background" />
 
           <div className="relative z-10 container mx-auto px-6 py-10 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
