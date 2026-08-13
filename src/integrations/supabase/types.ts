@@ -1850,6 +1850,7 @@ export type Database = {
         Row: {
           address: string | null
           billing_address: string | null
+          city: string | null
           company: string | null
           contact_name: string | null
           created_at: string
@@ -1859,6 +1860,10 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          postal_sector: string | null
+          province: string | null
+          province_name: string | null
+          region: string | null
           tax_tps: string | null
           tax_tvq: string | null
           truck_count: string | null
@@ -1868,6 +1873,7 @@ export type Database = {
         Insert: {
           address?: string | null
           billing_address?: string | null
+          city?: string | null
           company?: string | null
           contact_name?: string | null
           created_at?: string
@@ -1877,6 +1883,10 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          postal_sector?: string | null
+          province?: string | null
+          province_name?: string | null
+          region?: string | null
           tax_tps?: string | null
           tax_tvq?: string | null
           truck_count?: string | null
@@ -1886,6 +1896,7 @@ export type Database = {
         Update: {
           address?: string | null
           billing_address?: string | null
+          city?: string | null
           company?: string | null
           contact_name?: string | null
           created_at?: string
@@ -1895,6 +1906,10 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          postal_sector?: string | null
+          province?: string | null
+          province_name?: string | null
+          region?: string | null
           tax_tps?: string | null
           tax_tvq?: string | null
           truck_count?: string | null

@@ -94,8 +94,12 @@ describe("capture structurée de la localisation", () => {
   it("K — sauvegarde du profil inchangée", () => {
     const edits = toEdits({ company: "Excavation X", address: "1234 Rue Saint-Jean, Québec, QC G1R 1P5" });
     expect(validateProfilEdits(edits)).toEqual({});
+    // Colonnes de localisation ajoutées (dérivées de l'adresse, non saisies).
     expect(Object.keys(toPayload(edits)).sort()).toEqual(
-      ["address", "company", "contact_name", "phone", "truck_count", "truck_types"],
+      [
+        "address", "city", "company", "contact_name", "phone", "postal_sector",
+        "province", "province_name", "region", "truck_count", "truck_types",
+      ],
     );
     expect(toPayload(edits).address).toBe("1234 Rue Saint-Jean, Québec, QC G1R 1P5");
   });

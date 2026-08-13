@@ -206,6 +206,72 @@ export const localisationLabel = (loc: Localisation): string | null => {
 };
 
 // ------------------------------------------------------------
+// PERSISTANCE — colonnes normalisées de `entrepreneurs`.
+// Aucune seconde logique : les colonnes sont remplies par `normalizeAddress`
+// (ou `normalizePlaceSelection`) et relues telles quelles.
+// ------------------------------------------------------------
+
+/** Colonnes réellement persistées (jamais l'adresse complète). */
+export interface StoredLocalisation {
+  city: string | null;
+  province: string | null;
+  province_name: string | null;
+  region: string | null;
+  postal_sector: string | null;
+}
+
+const nn = (v: unknown): string | null => {
+  if (v == null) return null;
+  const t = String(v).trim();
+  return t ? t : null;
+};
+
+/** Projection persistable : ce qui n'est pas fiable reste `null`. */
+export const toStoredLocalisation = (loc: Localisation): StoredLocalisation => ({
+  city: loc.city,
+  province: loc.province,
+  province_name: loc.provinceName,
+  region: loc.region,
+  postal_sector: loc.postalSector,
+});
+
+/**
+ * Localisation d'une ligne `entrepreneurs` :
+ * - colonnes normalisées si elles existent réellement (profil déjà enregistré);
+ * - sinon dérivation à la lecture depuis `address` (profils antérieurs),
+ *   sans jamais écrire ni inventer de valeur.
+ */
+export const localisationFromRow = (row: unknown): Localisation => {
+  const r = (row && typeof row === "object" ? row : {}) as Record<string, unknown>;
+  const city = nn(r.city);
+  const province = nn(r.province);
+  const provinceName = nn(r.province_name);
+  const region = nn(r.region);
+  const postalSector = nn(r.postal_sector);
+  const derived = normalizeAddress(r.address);
+
+  if (!city && !province && !postalSector) return derived;
+
+  const status: LocalisationStatus = city && province ? "reliable" : "partial";
+  return {
+    status,
+    city,
+    region,
+    province,
+    provinceName,
+    // Le code postal complet n'est jamais persisté : il reste dans `address`.
+    postalCode: derived.postalCode,
+    postalSector,
+    latitude: null,
+    longitude: null,
+    message:
+      status === "reliable"
+        ? "Localisation confirmée à partir de votre adresse."
+        : "Localisation partielle : complétez votre adresse (ville et province).",
+  };
+};
+
+// ------------------------------------------------------------
 // CAPTURE STRUCTURÉE (Google Places) — AUCUNE seconde logique de
 // normalisation : les composants structurés sont réduits à un texte
 // « Ville, Province, Code postal » qui repasse par `normalizeAddress`.

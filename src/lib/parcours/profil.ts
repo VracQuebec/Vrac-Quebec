@@ -12,6 +12,8 @@ import { loadActivitySummary, type ActivityClient } from "@/lib/parcours/activit
 import {
   normalizeAddress,
   toPublicLocalisation,
+  toStoredLocalisation,
+  localisationFromRow,
   type Localisation,
   type PublicLocalisation,
 } from "@/lib/parcours/localisation";
@@ -71,6 +73,18 @@ export const EDITABLE_KEYS = [
   "address",
   "truck_types",
   "truck_count",
+] as const;
+
+/**
+ * Colonnes de localisation normalisée écrites par le pipeline `localisation.ts`.
+ * Elles ne sont PAS saisies par l'utilisateur : elles sont dérivées de `address`.
+ */
+export const LOCATION_KEYS = [
+  "city",
+  "province",
+  "province_name",
+  "region",
+  "postal_sector",
 ] as const;
 
 /** Options de camions déjà utilisées par l'application (aucune invention). */
@@ -136,15 +150,28 @@ export const validateProfilEdits = (e: ProfilEdits): ProfilErrors => {
   return errors;
 };
 
-/** Payload envoyé à la base : chaînes vides converties en null. */
-export const toPayload = (e: ProfilEdits): Record<string, unknown> => ({
-  company: e.company.trim() || null,
-  contact_name: e.contact_name.trim() || null,
-  phone: e.phone.trim() || null,
-  address: e.address.trim() || null,
-  truck_types: e.truck_types.length ? e.truck_types : null,
-  truck_count: e.truck_count.trim() || null,
-});
+/**
+ * Payload envoyé à la base : chaînes vides converties en null.
+ * `address` reste l'adresse privée complète. Les colonnes normalisées sont
+ * calculées EXCLUSIVEMENT par le pipeline `localisation.ts` : `loc` provient
+ * d'une sélection Google Places structurée, sinon on normalise le texte saisi.
+ */
+export const toPayload = (e: ProfilEdits, loc?: Localisation | null): Record<string, unknown> => {
+  const address = e.address.trim() || null;
+  const localisation = address ? (loc ?? normalizeAddress(address)) : null;
+  const stored = localisation
+    ? toStoredLocalisation(localisation)
+    : { city: null, province: null, province_name: null, region: null, postal_sector: null };
+  return {
+    company: e.company.trim() || null,
+    contact_name: e.contact_name.trim() || null,
+    phone: e.phone.trim() || null,
+    address,
+    truck_types: e.truck_types.length ? e.truck_types : null,
+    truck_count: e.truck_count.trim() || null,
+    ...stored,
+  };
+};
 
 export type SaveResult =
   | { state: "ok" }
@@ -160,13 +187,14 @@ export type SaveResult =
 export const saveMyProfil = async (
   edits: ProfilEdits,
   client: ProfilClient = supabase as unknown as ProfilClient,
+  loc?: Localisation | null,
 ): Promise<SaveResult> => {
   const errors = validateProfilEdits(edits);
   if (Object.keys(errors).length) return { state: "invalid", errors };
   try {
     const { error } = await (client as any)
       .from("entrepreneurs")
-      .update(toPayload(edits))
+      .update(toPayload(edits, loc))
       .select("company");
     if (error) {
       const m = (error.message || "").toLowerCase();
@@ -243,7 +271,7 @@ export const buildProfil = (
   push("phone", "Téléphone", str(r.phone), "self");
   push("address", "Adresse", str(r.address), "self");
 
-  const localisation = normalizeAddress(r.address);
+  const localisation = localisationFromRow(r);
 
   return {
     fields,
@@ -271,7 +299,9 @@ export const loadMyProfil = async (
     // RLS : seule la ligne de l'utilisateur connecté peut revenir.
     const { data, error } = await client
       .from("entrepreneurs")
-      .select("company,contact_name,name,phone,address,truck_types,truck_count");
+      .select(
+        "company,contact_name,name,phone,address,truck_types,truck_count,city,province,province_name,region,postal_sector",
+      );
     if (error) {
       const m = (error.message || "").toLowerCase();
       if (m.includes("not_authorized") || m.includes("permission") || m.includes("jwt")) {
