@@ -10,6 +10,7 @@ import HowItWorks from "@/components/home/HowItWorks";
 import WhyVracQuebec from "@/components/home/WhyVracQuebec";
 import CircularEconomy from "@/components/home/CircularEconomy";
 import IntentSelector from "@/components/home/IntentSelector";
+import LogoVracQuebec from "@/components/LogoVracQuebec";
 import { ArrowDown, HardHat, Sparkles } from "lucide-react";
 
 const Index = () => {
@@ -32,9 +33,10 @@ const Index = () => {
       {/* 1. Bandeau Vrac Québec — haut de page */}
       <TransportBanner />
 
-      {/* 2. Accès entrepreneur — volontairement discret et secondaire */}
+      {/* 2. Navigation principale — logo Vrac Québec + accès entrepreneur */}
       <nav className="w-full bg-foreground/95 text-background">
-        <div className="container mx-auto px-4 sm:px-6 py-1 flex items-center justify-end">
+        <div className="container mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
+          <LogoVracQuebec />
           <a
             href="/login"
             className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md font-body text-[11px] sm:text-xs text-background/70 hover:text-primary transition-colors"
