@@ -7,6 +7,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import FullPageState from "@/components/FullPageState";
 import EntrepreneurNotifications from "@/components/entrepreneur/EntrepreneurNotifications";
 import SitesRecommandesList from "@/components/entrepreneur/SitesRecommandesList";
+import ReseauNetwork from "@/components/entrepreneur/ReseauNetwork";
 import ActivitySummary from "@/components/entrepreneur/ActivitySummary";
 import TransportBanner from "@/components/TransportBanner";
 import {
@@ -142,6 +143,9 @@ const EntrepreneurDashboard = () => {
 
         {/* Résumé d'activité — compteurs calculés depuis les données réelles du compte */}
         <ActivitySummary />
+
+        {/* Carte du réseau — vue calculée des chantiers, demandes et sites réellement associés */}
+        <ReseauNetwork />
 
         {/* Sites recommandés — uniquement des sites réellement rattachés à vos demandes */}
         <section className="mb-8" aria-labelledby="sites-recommandes">
