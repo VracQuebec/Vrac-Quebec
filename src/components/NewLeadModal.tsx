@@ -8,6 +8,7 @@ import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import { Loader2 } from "lucide-react";
 
 export const LEAD_SOURCES = [
+  { value: "vracquebec.ca", label: "Site vracquebec.ca" },
   { value: "marketplace", label: "Marketplace Facebook" },
   { value: "messenger", label: "Facebook Messenger" },
   { value: "phone", label: "Téléphone" },
