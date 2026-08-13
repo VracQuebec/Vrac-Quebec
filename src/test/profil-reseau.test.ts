@@ -138,6 +138,7 @@ const baseEdits = (o: Partial<ProfilEdits> = {}): ProfilEdits => ({
   address: "12 rue Test",
   truck_types: ["Camion 10 roues"],
   truck_count: "4",
+  is_network_visible: false,
   ...o,
 });
 
@@ -170,6 +171,7 @@ describe("Édition contrôlée du profil", () => {
     const e = toEdits(null);
     expect(e).toEqual({
       company: "", contact_name: "", phone: "", address: "", truck_types: [], truck_count: "",
+      is_network_visible: false,
     });
   });
 

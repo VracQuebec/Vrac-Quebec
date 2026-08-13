@@ -23,6 +23,7 @@ const edits = (over: Partial<ProfilEdits> = {}): ProfilEdits => ({
   address: "1234 Rue Principale, Québec, QC G1R 2B3",
   truck_types: [],
   truck_count: "",
+  is_network_visible: false,
   ...over,
 });
 
