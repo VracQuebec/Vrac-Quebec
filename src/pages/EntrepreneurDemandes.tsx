@@ -5,6 +5,7 @@ import EntrepreneurShell from "@/components/EntrepreneurShell";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { Loader2, Sparkles, ArrowRight, MapPin } from "lucide-react";
 import { statusMeta } from "@/lib/access-requests/status";
+import MesDemandesList from "@/components/entrepreneur/MesDemandesList";
 
 interface Req {
   id: string;
@@ -52,7 +53,17 @@ const EntrepreneurDemandes = () => {
   });
 
   return (
-    <EntrepreneurShell title="Mes demandes d'accès" description="Historique et suivi de vos demandes d'accès aux dompes.">
+    <EntrepreneurShell title="Mes demandes" description="Vos demandes enregistrées et le suivi de vos demandes d'accès aux dompes.">
+      <section className="mb-10">
+        <h2 className="mb-3 font-display text-sm font-bold uppercase tracking-wider text-muted-foreground">
+          Mes demandes
+        </h2>
+        <MesDemandesList />
+      </section>
+
+      <h2 className="mb-3 font-display text-sm font-bold uppercase tracking-wider text-muted-foreground">
+        Mes demandes d'accès aux dompes
+      </h2>
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
       ) : requests.length === 0 ? (

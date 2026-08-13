@@ -11189,6 +11189,28 @@ export type Database = {
           truck_types_allowed: string[]
         }[]
       }
+      get_my_submissions: {
+        Args: never
+        Returns: {
+          address: string
+          city: string
+          created_at: string
+          desired_date: string
+          formatted_address: string
+          id: string
+          materials: string[]
+          other_material: string
+          quantity: string
+          request_type: string
+          selected_site_address: string
+          selected_site_id: string
+          selected_site_label: string
+          site_validated_at: string
+          status: string
+          submission_number: number
+          tonnage: string
+        }[]
+      }
       get_public_dumps: {
         Args: never
         Returns: {
