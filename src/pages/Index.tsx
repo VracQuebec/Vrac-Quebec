@@ -1,8 +1,10 @@
+import { useRef, useState } from "react";
 import Questionnaire from "@/components/Questionnaire";
 import heroBanner from "@/assets/hero-banner.webp";
 import heroBannerMobile from "@/assets/hero-banner-mobile.webp";
 import TransportBanner from "@/components/TransportBanner";
-import IntentChoice from "@/components/home/IntentChoice";
+import IntentChoice, { type IntentKey } from "@/components/home/IntentChoice";
+import ParcoursForm from "@/components/parcours/ParcoursForm";
 import DompeShowcase from "@/components/home/DompeShowcase";
 import HowItWorks from "@/components/home/HowItWorks";
 import WhyVracQuebec from "@/components/home/WhyVracQuebec";
@@ -11,6 +13,20 @@ import IntentSelector from "@/components/home/IntentSelector";
 import { ArrowDown, HardHat, Sparkles } from "lucide-react";
 
 const Index = () => {
+  // Aucun parcours n'est ouvert par défaut : le visiteur choisit d'abord son intention.
+  const [intent, setIntent] = useState<IntentKey | null>(null);
+  const parcoursRef = useRef<HTMLDivElement | null>(null);
+
+  const selectIntent = (key: IntentKey) => {
+    setIntent(key);
+    requestAnimationFrame(() => {
+      const el = parcoursRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY - 90;
+      window.scrollTo({ top: Math.max(top, 0), behavior: "smooth" });
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* 1. Bandeau Vrac Québec — haut de page */}
@@ -100,14 +116,23 @@ const Index = () => {
           </div>
 
           {/* Niveau 1 — choix principal */}
-          <IntentChoice />
+          <IntentChoice selected={intent} onSelect={selectIntent} />
 
-          {/* Niveau 2 — parcours matériaux */}
-          <div className="mt-20 sm:mt-24">
-            <IntentSelector />
-            <div id="questionnaire" className="mt-10 scroll-mt-24">
-              <Questionnaire initialService="materiel_remplissage" />
-            </div>
+          {/* Niveau 2 — parcours affiché uniquement après sélection d'une intention */}
+          <div ref={parcoursRef} className="scroll-mt-24">
+            {intent === "materiaux" && (
+              <div className="mt-14 sm:mt-16">
+                <IntentSelector />
+                <div id="questionnaire" className="mt-10 scroll-mt-24">
+                  <Questionnaire initialService="materiel_remplissage" />
+                </div>
+              </div>
+            )}
+            {intent === "sortir" && (
+              <div className="mt-14 sm:mt-16">
+                <ParcoursForm variant="evacuation" />
+              </div>
+            )}
           </div>
 
           {/* Niveau 2 — recherche de dompe */}
