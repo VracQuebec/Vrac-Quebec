@@ -23,6 +23,7 @@ const AdminCalendar = lazy(() => import("./pages/AdminCalendar"));
 const Entrepreneur = lazy(() => import("./pages/Entrepreneur"));
 const EntrepreneurDashboard = lazy(() => import("./pages/EntrepreneurDashboard"));
 const EntrepreneurDemandes = lazy(() => import("./pages/EntrepreneurDemandes"));
+const EntrepreneurChantiers = lazy(() => import("./pages/EntrepreneurChantiers"));
 const EntrepreneurFavoris = lazy(() => import("./pages/EntrepreneurFavoris"));
 const EntrepreneurHistorique = lazy(() => import("./pages/EntrepreneurHistorique"));
 const EntrepreneurCompte = lazy(() => import("./pages/EntrepreneurCompte"));
@@ -128,6 +129,7 @@ const App = () => (
             <Route path="/entrepreneur" element={<EntrepreneurDashboard />} />
             <Route path="/entrepreneur/carte" element={<Entrepreneur />} />
             <Route path="/entrepreneur/demandes" element={<EntrepreneurDemandes />} />
+            <Route path="/entrepreneur/chantiers" element={<EntrepreneurChantiers />} />
             <Route path="/entrepreneur/favoris" element={<EntrepreneurFavoris />} />
             <Route path="/entrepreneur/historique" element={<EntrepreneurHistorique />} />
             <Route path="/entrepreneur/compte" element={<EntrepreneurCompte />} />

@@ -21,7 +21,7 @@ const Line = ({ icon, label, value }: { icon: React.ReactNode; label: string; va
   </p>
 );
 
-const SubmissionCard = ({ s }: { s: MySubmission }) => {
+export const SubmissionCard = ({ s }: { s: MySubmission }) => {
   const meta = s.status ? statusMeta(s.status) : null;
   return (
     <article className="rounded-2xl border border-border bg-card p-4 sm:p-5">

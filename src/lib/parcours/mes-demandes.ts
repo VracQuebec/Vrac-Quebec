@@ -22,6 +22,10 @@ export interface MySubmission {
   selectedSiteLabel: string | null;
   selectedSiteAddress: string | null;
   siteValidatedAt: string | null;
+  /** Champs additionnels (regroupement « Mes chantiers ») — jamais inventés. */
+  city: string | null;
+  address: string | null;
+  placeId: string | null;
 }
 
 export type MySubmissionsResult =
@@ -57,6 +61,9 @@ export const mapMySubmission = (row: unknown): MySubmission | null => {
     selectedSiteLabel: str(r.selected_site_label),
     selectedSiteAddress: str(r.selected_site_address),
     siteValidatedAt: str(r.site_validated_at),
+    city: str(r.city),
+    address: str(r.formatted_address) ?? str(r.address),
+    placeId: str(r.place_id),
   };
 };
 

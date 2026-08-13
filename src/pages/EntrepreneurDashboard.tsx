@@ -15,6 +15,7 @@ import {
   Star,
   Map as MapIcon,
   History,
+  HardHat,
   User,
   ArrowRight,
   Clock,
@@ -169,6 +170,13 @@ const EntrepreneurDashboard = () => {
             icon={<Star className="w-5 h-5" />}
             title="Mes favoris"
             description="Retrouvez vos dompes favorites en un clic."
+          />
+
+          <ActionCard
+            to="/entrepreneur/chantiers"
+            icon={<HardHat className="w-5 h-5" />}
+            title="Mes chantiers"
+            description="Vos demandes regroupées par lieu de chantier."
           />
 
           <ActionCard
