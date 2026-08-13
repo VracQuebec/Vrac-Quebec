@@ -7,6 +7,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import FullPageState from "@/components/FullPageState";
 import EntrepreneurNotifications from "@/components/entrepreneur/EntrepreneurNotifications";
 import SitesRecommandesList from "@/components/entrepreneur/SitesRecommandesList";
+import ActivitySummary from "@/components/entrepreneur/ActivitySummary";
 import TransportBanner from "@/components/TransportBanner";
 import {
   Truck,
@@ -138,6 +139,9 @@ const EntrepreneurDashboard = () => {
         </button>
 
         <EntrepreneurNotifications userId={user?.id} />
+
+        {/* Résumé d'activité — compteurs calculés depuis les données réelles du compte */}
+        <ActivitySummary />
 
         {/* Sites recommandés — uniquement des sites réellement rattachés à vos demandes */}
         <section className="mb-8" aria-labelledby="sites-recommandes">
