@@ -4,7 +4,6 @@ import {
   isNetworkVisible,
   loadMyProfil,
   PRIVATE_KEYS,
-  LOCATION_KEYS,
   type ProfilClient,
 } from "@/lib/parcours/profil";
 
@@ -128,6 +127,7 @@ import {
   validateProfilEdits,
   saveMyProfil,
   EDITABLE_KEYS,
+  LOCATION_KEYS,
   type ProfilEdits,
 } from "@/lib/parcours/profil";
 
