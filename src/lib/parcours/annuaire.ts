@@ -10,6 +10,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RpcClient } from "@/lib/parcours/validation";
 import { geoKey } from "@/lib/parcours/geo-referentiel";
+import type { PublicLocalisation } from "@/lib/parcours/localisation";
+import {
+  compareProximity,
+  PROXIMITY_RANK,
+  type ProximityRelation,
+} from "@/lib/parcours/proximite";
 
 /** Champs publics — strictement ceux retournés par la RPC. */
 export interface AnnuaireProfil {
@@ -26,6 +32,8 @@ export interface AnnuaireProfil {
   locationLabel: string | null;
   /** true si ville ET province sont réellement connues. */
   locationComplete: boolean;
+  /** Relation de proximité avec le profil de référence (jamais une distance). */
+  proximity: ProximityRelation;
 }
 
 export type AnnuaireResult =
@@ -39,6 +47,8 @@ export interface AnnuaireFilters {
   region: string;
   city: string;
   truckType: string;
+  /** "" = Tous. Sinon same_city | same_region | same_province. */
+  proximity: "" | "same_city" | "same_region" | "same_province";
 }
 
 export const EMPTY_FILTERS: AnnuaireFilters = {
@@ -47,6 +57,7 @@ export const EMPTY_FILTERS: AnnuaireFilters = {
   region: "",
   city: "",
   truckType: "",
+  proximity: "",
 };
 
 /** Colonnes publiques demandées au serveur (aucun `select('*')`). */
@@ -113,6 +124,7 @@ export const mapAnnuaireProfil = (row: unknown): AnnuaireProfil | null => {
     truckCount: str(r.truck_count),
     locationLabel: parts.length ? parts.join(", ") : null,
     locationComplete: !!city && !!province,
+    proximity: "unknown",
   };
 };
 
@@ -133,6 +145,57 @@ export const buildFacets = (profils: AnnuaireProfil[]) => {
 const match = (a: string | null, b: string): boolean =>
   !!a && geoKey(a) === geoKey(b);
 
+// ------------------------------------------------------------
+// PROXIMITÉ — lecture seule, aucune distance, aucune coordonnée.
+// Le contrat déterministe `compareProximity` est la seule source.
+// ------------------------------------------------------------
+
+/** Projection publique d'un profil d'annuaire vers le contrat de proximité. */
+export const toProximityLocalisation = (p: AnnuaireProfil): PublicLocalisation => ({
+  city: p.city,
+  province: p.province,
+  provinceName: p.provinceName,
+  region: p.region,
+  postalSector: p.postalSector,
+});
+
+/**
+ * Annote chaque profil avec sa relation de proximité puis trie de façon
+ * STABLE selon `PROXIMITY_RANK` (égalité = ordre serveur conservé).
+ * Sans profil de référence, l'ordre existant est intégralement conservé.
+ */
+export const applyProximity = (
+  profils: AnnuaireProfil[],
+  reference: PublicLocalisation | null | undefined,
+): AnnuaireProfil[] => {
+  if (!reference) return profils.map((p) => ({ ...p, proximity: "unknown" as const }));
+  const annotated = profils.map((p, index) => ({
+    p: {
+      ...p,
+      proximity: compareProximity(
+        { localisation: reference },
+        { localisation: toProximityLocalisation(p) },
+      ).relation,
+    },
+    index,
+  }));
+  annotated.sort(
+    (a, b) =>
+      PROXIMITY_RANK[a.p.proximity] - PROXIMITY_RANK[b.p.proximity] || a.index - b.index,
+  );
+  return annotated.map((a) => a.p);
+};
+
+/** Libellé simple, sans kilomètre ni carte. */
+export const proximityLabel = (relation: ProximityRelation): string | null => {
+  switch (relation) {
+    case "same_city": return "Même ville";
+    case "same_region": return "Même région";
+    case "same_province": return "Même province";
+    default: return null;
+  }
+};
+
 /** Recherche textuelle déterministe sur les champs publics uniquement. */
 export const filterAnnuaire = (
   profils: AnnuaireProfil[],
@@ -140,6 +203,7 @@ export const filterAnnuaire = (
 ): AnnuaireProfil[] => {
   const q = geoKey(filters.query ?? "");
   return profils.filter((p) => {
+    if (filters.proximity && p.proximity !== filters.proximity) return false;
     if (filters.province && !(match(p.provinceName, filters.province) || match(p.province, filters.province)))
       return false;
     if (filters.region && !match(p.region, filters.region)) return false;
