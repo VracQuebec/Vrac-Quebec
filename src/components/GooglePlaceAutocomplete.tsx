@@ -10,6 +10,7 @@ interface Props {
     postalCode?: string;
     lat?: number;
     lng?: number;
+    components?: { longText?: string | null; shortText?: string | null; types?: string[] }[];
   }) => void;
   placeholder?: string;
   className?: string;
@@ -101,6 +102,11 @@ const GooglePlaceAutocomplete = ({ value, onChange, onSelect, placeholder, class
           postalCode: postal || undefined,
           lat: loc?.lat() ?? undefined,
           lng: loc?.lng() ?? undefined,
+          components: (place.addressComponents || []).map((c) => ({
+            longText: c.longText ?? null,
+            shortText: c.shortText ?? null,
+            types: (c.types || []) as string[],
+          })),
         });
         if (suggestionsRef.current) suggestionsRef.current.innerHTML = "";
         // New session token after each selection
