@@ -7,6 +7,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import FullPageState from "@/components/FullPageState";
 import EntrepreneurNotifications from "@/components/entrepreneur/EntrepreneurNotifications";
 import SitesRecommandesList from "@/components/entrepreneur/SitesRecommandesList";
+import ActivitySummary from "@/components/entrepreneur/ActivitySummary";
 import TransportBanner from "@/components/TransportBanner";
 import {
   Truck,
