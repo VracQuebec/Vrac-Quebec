@@ -70,8 +70,8 @@ const Index = () => {
           }}
         >
           {/* Voile marqué : le texte imprimé dans l'image ne doit pas concurrencer le vrai titre */}
-          <div className="absolute inset-0 bg-black/65" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/70" />
+          <div className="absolute inset-0 bg-black/45" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-black/60" />
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-background" />
 
           <div className="relative z-10 container mx-auto px-6 py-16 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
