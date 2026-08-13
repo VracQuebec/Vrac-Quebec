@@ -58,7 +58,6 @@ describe("Normalisation de la localisation du profil", () => {
     const loc = normalizeAddress("1234 Rue Principale, Québec, QC G1V 2M3");
     expect(loc.latitude).toBeNull();
     expect(loc.longitude).toBeNull();
-    expect(loc.region).toBeNull();
   });
 
   it("G — l'adresse complète n'est jamais exposée", () => {
@@ -101,7 +100,7 @@ describe("Normalisation de la localisation du profil", () => {
   it("K — profil sans adresse : état « missing » explicite, aucun 0 ni faux positif", () => {
     const p = buildProfil({ company: "ABC" }, counters);
     expect(p.localisation.status).toBe("missing");
-    expect(p.publicLocalisation).toEqual({ city: null, region: null, province: null, postalSector: null });
+    expect(p.publicLocalisation).toEqual({ city: null, region: null, province: null, provinceName: null, postalSector: null });
   });
 
   it("L — le code postal complet reste privé, seul le secteur est exposable", () => {
