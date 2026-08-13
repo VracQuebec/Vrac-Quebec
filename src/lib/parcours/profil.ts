@@ -64,6 +64,8 @@ export interface ProfilEdits {
   address: string;
   truck_types: string[];
   truck_count: string;
+  /** Visibilité explicite dans l'annuaire professionnel (opt-in volontaire). */
+  is_network_visible: boolean;
 }
 
 export const EDITABLE_KEYS = [
@@ -73,6 +75,7 @@ export const EDITABLE_KEYS = [
   "address",
   "truck_types",
   "truck_count",
+  "is_network_visible",
 ] as const;
 
 /**
@@ -106,6 +109,7 @@ export const MAX_LEN: Record<keyof ProfilEdits, number> = {
   address: 200,
   truck_types: 0,
   truck_count: 6,
+  is_network_visible: 0,
 };
 
 export type ProfilErrors = Partial<Record<keyof ProfilEdits, string>>;
@@ -122,6 +126,7 @@ export const toEdits = (row: unknown): ProfilEdits => {
       ? r.truck_types.map((x) => String(x ?? "").trim()).filter(Boolean)
       : [],
     truck_count: str(r.truck_count) ?? "",
+    is_network_visible: r.is_network_visible === true,
   };
 };
 
@@ -169,6 +174,8 @@ export const toPayload = (e: ProfilEdits, loc?: Localisation | null): Record<str
     address,
     truck_types: e.truck_types.length ? e.truck_types : null,
     truck_count: e.truck_count.trim() || null,
+    // Opt-in explicite : jamais déduit, jamais activé automatiquement.
+    is_network_visible: e.is_network_visible === true,
     ...stored,
   };
 };
