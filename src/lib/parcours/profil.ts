@@ -75,6 +75,18 @@ export const EDITABLE_KEYS = [
   "truck_count",
 ] as const;
 
+/**
+ * Colonnes de localisation normalisée écrites par le pipeline `localisation.ts`.
+ * Elles ne sont PAS saisies par l'utilisateur : elles sont dérivées de `address`.
+ */
+export const LOCATION_KEYS = [
+  "city",
+  "province",
+  "province_name",
+  "region",
+  "postal_sector",
+] as const;
+
 /** Options de camions déjà utilisées par l'application (aucune invention). */
 export const TRUCK_TYPE_OPTIONS = [
   "Camion 6 roues",

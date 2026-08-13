@@ -76,8 +76,9 @@ describe("Persistance de la localisation normalisée", () => {
   it("F — postalSector conservé, code postal complet non persisté", () => {
     const p = toPayload(edits());
     expect(p.postal_sector).toBe("G1R");
-    expect(JSON.stringify(p)).not.toContain("G1R 2B3\",");
+    // Le code postal complet n'existe que dans `address` (privé).
     expect(Object.keys(p)).not.toContain("postal_code");
+    expect(String(p.address)).toContain("G1R 2B3");
   });
 
   it("G — adresse complète reste privée (jamais dans la projection publique)", () => {
@@ -85,7 +86,7 @@ describe("Persistance de la localisation normalisée", () => {
     const pub = toPublicLocalisation(loc);
     expect(JSON.stringify(pub)).not.toContain("1234");
     expect(JSON.stringify(pub)).not.toContain("Rue Principale");
-    expect((pub as Record<string, unknown>).postalCode).toBeUndefined();
+    expect((pub as unknown as Record<string, unknown>).postalCode).toBeUndefined();
   });
 
   it("H — ville inconnue → null", () => {

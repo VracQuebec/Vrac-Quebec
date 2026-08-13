@@ -4,6 +4,7 @@ import {
   isNetworkVisible,
   loadMyProfil,
   PRIVATE_KEYS,
+  LOCATION_KEYS,
   type ProfilClient,
 } from "@/lib/parcours/profil";
 
@@ -216,7 +217,7 @@ describe("Édition contrôlée du profil", () => {
     const { client, calls } = saveClient();
     await saveMyProfil({ ...baseEdits(), ...({ user_id: "uid-B", id: "row-B" } as any) }, client);
     const payload = calls[0] as Record<string, unknown>;
-    expect(Object.keys(payload).sort()).toEqual([...EDITABLE_KEYS].sort());
+    expect(Object.keys(payload).sort()).toEqual([...EDITABLE_KEYS, ...LOCATION_KEYS].sort());
     expect(payload.user_id).toBeUndefined();
     expect(payload.id).toBeUndefined();
   });
