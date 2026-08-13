@@ -59,9 +59,9 @@ const Index = () => {
           height={447}
         />
         {/* Mobile overlays : cibler la zone de texte imprimé pour le rendre secondaire */}
-        <div className="md:hidden absolute inset-0 bg-black/30" />
-        <div className="md:hidden absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,0,0,0.55)_0%,_transparent_70%)]" />
-        <div className="md:hidden absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+        <div className="md:hidden absolute inset-0 bg-black/40" />
+        <div className="md:hidden absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,0,0,0.62)_0%,_transparent_70%)]" />
+        <div className="md:hidden absolute inset-0 bg-gradient-to-t from-background via-background/45 to-transparent" />
 
         {/* Desktop hero */}
         <div
