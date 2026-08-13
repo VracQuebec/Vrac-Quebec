@@ -198,8 +198,9 @@ const Questionnaire = ({
         ]
           .filter(Boolean)
           .join("\n"),
-        latitude: coords?.lat ?? null,
-        longitude: coords?.lng ?? null,
+        // La géolocalisation est calculée côté serveur (Google) après l'insertion :
+        // le déclencheur public neutralise volontairement toute coordonnée envoyée
+        // par le navigateur. Voir la fonction `geocode-submission`.
         request_type: isRemblai ? "remblai" : detectRequestType(data.materials, data.propertyType),
         visible_to_entrepreneur: (isRemblai ? "remblai" : detectRequestType(data.materials, data.propertyType)) === "vrac" ? false : true,
         deliver_or_remove: data.deliverOrRemove || null,
