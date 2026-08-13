@@ -12,6 +12,8 @@ import FullPageState from "@/components/FullPageState";
 import {
   validateSelectedSite,
   buildTransportPrefill,
+  fetchLinkedTransportRequest,
+  type LinkedTransportRequest,
   type TransportPrefillSource,
 } from "@/lib/parcours/validation";
 import {
