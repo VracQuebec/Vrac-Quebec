@@ -15,6 +15,7 @@ import {
   Star,
   Map as MapIcon,
   History,
+  HardHat,
   User,
   ArrowRight,
   Clock,
