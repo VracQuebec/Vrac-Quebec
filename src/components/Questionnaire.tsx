@@ -412,7 +412,7 @@ const Questionnaire = ({
         />
       )}
 
-      {service && (
+      {service && !initialService && (
         <button
           type="button"
           onClick={() => { setService(null); setRemblaiMode(false); setStep(0); }}
