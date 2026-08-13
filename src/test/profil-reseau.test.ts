@@ -24,7 +24,11 @@ const makeClient = (
 describe("Profil réseau V1", () => {
   it("A — profil complet expose les champs réels", () => {
     const p = buildProfil(
-      { company: "Excavation ABC", truck_types: ["10 roues"], truck_count: "4", phone: "418" },
+      {
+        company: "Excavation ABC", truck_types: ["10 roues"], truck_count: "4", phone: "418",
+        // Visibilité réseau désormais explicite (opt-in).
+        is_network_visible: true,
+      },
       counters,
     );
     expect(p.company).toBe("Excavation ABC");

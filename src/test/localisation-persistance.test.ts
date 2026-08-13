@@ -183,7 +183,7 @@ describe("Persistance de la localisation normalisée", () => {
   it("R — compatibilité formulaire : toEdits ignore les colonnes de localisation", () => {
     const e = toEdits({ company: "ABC", address: "1 rue A", city: "Laval" });
     expect(Object.keys(e).sort()).toEqual(
-      ["address", "company", "contact_name", "phone", "truck_count", "truck_types"].sort(),
+      ["address", "company", "contact_name", "phone", "truck_count", "truck_types", "is_network_visible"].sort(),
     );
   });
 
