@@ -32,6 +32,8 @@ export interface ProfilReseau {
   incomplete: boolean;
   /** true si aucune fiche entrepreneur n'existe pour ce compte. */
   missing: boolean;
+  /** Valeurs éditables réelles, préremplies dans le formulaire. */
+  edits: ProfilEdits;
 }
 
 export type ProfilResult =
@@ -238,6 +240,7 @@ export const buildProfil = (
     chantiers: counters.chantiers,
     incomplete: !missing && !company,
     missing,
+    edits: toEdits(row),
   };
 };
 
