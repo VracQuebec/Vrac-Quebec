@@ -117,3 +117,128 @@ describe("Profil réseau V1", () => {
     expect(p.chantiers).toBe(2);
   });
 });
+
+// ============================================================
+// ÉDITION CONTRÔLÉE DU PROFIL
+// ============================================================
+import {
+  toEdits,
+  toPayload,
+  validateProfilEdits,
+  saveMyProfil,
+  EDITABLE_KEYS,
+  type ProfilEdits,
+} from "@/lib/parcours/profil";
+
+const baseEdits = (o: Partial<ProfilEdits> = {}): ProfilEdits => ({
+  company: "Excavation ABC",
+  contact_name: "Marc",
+  phone: "418-555-1234",
+  address: "12 rue Test",
+  truck_types: ["Camion 10 roues"],
+  truck_count: "4",
+  ...o,
+});
+
+const saveClient = (error: { message: string } | null = null) => {
+  const calls: unknown[] = [];
+  const client = {
+    from: () => ({
+      update: (payload: unknown) => {
+        calls.push(payload);
+        return { select: () => Promise.resolve({ data: [], error }) };
+      },
+    }),
+    rpc: async () => ({ data: [], error: null }),
+  } as any;
+  return { client, calls };
+};
+
+describe("Édition contrôlée du profil", () => {
+  it("A — affichage : valeurs existantes préremplies", () => {
+    const p = buildProfil(
+      { company: "ABC", truck_types: ["Camion 12 roues"], truck_count: "3", phone: "418-555-1234" },
+      counters,
+    );
+    expect(p.edits.company).toBe("ABC");
+    expect(p.edits.truck_types).toEqual(["Camion 12 roues"]);
+    expect(p.edits.truck_count).toBe("3");
+  });
+
+  it("B — profil incomplet : formulaire vide, pas de valeur inventée", () => {
+    const e = toEdits(null);
+    expect(e).toEqual({
+      company: "", contact_name: "", phone: "", address: "", truck_types: [], truck_count: "",
+    });
+  });
+
+  it("C — company obligatoire", () => {
+    expect(validateProfilEdits(baseEdits({ company: "  " })).company).toBeTruthy();
+    expect(validateProfilEdits(baseEdits({ company: "A".repeat(121) })).company).toBeTruthy();
+    expect(validateProfilEdits(baseEdits())).toEqual({});
+  });
+
+  it("D — truck_types conservés au format tableau texte de la base", () => {
+    const payload = toPayload(baseEdits({ truck_types: ["Camion 10 roues", "Autre"] }));
+    expect(payload.truck_types).toEqual(["Camion 10 roues", "Autre"]);
+    expect(toPayload(baseEdits({ truck_types: [] })).truck_types).toBeNull();
+  });
+
+  it("E — truck_count : entier seulement", () => {
+    expect(validateProfilEdits(baseEdits({ truck_count: "abc" })).truck_count).toBeTruthy();
+    expect(validateProfilEdits(baseEdits({ truck_count: "" })).truck_count).toBeUndefined();
+  });
+
+  it("F — téléphone selon le format déjà utilisé", () => {
+    expect(validateProfilEdits(baseEdits({ phone: "4185551234" }))).toEqual({});
+    expect(validateProfilEdits(baseEdits({ phone: "123" })).phone).toBeTruthy();
+  });
+
+  it("G — sauvegarde réussie", async () => {
+    const { client, calls } = saveClient();
+    const res = await saveMyProfil(baseEdits(), client);
+    expect(res.state).toBe("ok");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("H — erreur de sauvegarde remontée sans perte de données", async () => {
+    const { client } = saveClient({ message: "network down" });
+    const res = await saveMyProfil(baseEdits(), client);
+    expect(res).toEqual({ state: "error", message: "network down" });
+  });
+
+  it("I — utilisateur non connecté / RLS", async () => {
+    const { client } = saveClient({ message: "new row violates row-level security policy" });
+    expect((await saveMyProfil(baseEdits(), client)).state).toBe("unauthorized");
+  });
+
+  it("J — aucun identifiant client envoyé (A ne peut pas viser la fiche de B)", async () => {
+    const { client, calls } = saveClient();
+    await saveMyProfil({ ...baseEdits(), ...({ user_id: "uid-B", id: "row-B" } as any) }, client);
+    const payload = calls[0] as Record<string, unknown>;
+    expect(Object.keys(payload).sort()).toEqual([...EDITABLE_KEYS].sort());
+    expect(payload.user_id).toBeUndefined();
+    expect(payload.id).toBeUndefined();
+  });
+
+  it("K — aucune donnée privée éditable ni exposée", () => {
+    for (const k of PRIVATE_KEYS) {
+      expect((EDITABLE_KEYS as readonly string[]).includes(k)).toBe(false);
+    }
+    const payload = toPayload(baseEdits());
+    for (const k of PRIVATE_KEYS) expect(payload[k]).toBeUndefined();
+  });
+
+  it("L — refresh après sauvegarde : valeurs vides converties en null", () => {
+    const payload = toPayload(baseEdits({ contact_name: "  ", address: "" }));
+    expect(payload.contact_name).toBeNull();
+    expect(payload.address).toBeNull();
+  });
+
+  it("M — validation invalide bloque l'appel réseau", async () => {
+    const { client, calls } = saveClient();
+    const res = await saveMyProfil(baseEdits({ company: "" }), client);
+    expect(res.state).toBe("invalid");
+    expect(calls).toHaveLength(0);
+  });
+});
