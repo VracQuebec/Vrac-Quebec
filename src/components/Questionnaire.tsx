@@ -133,27 +133,6 @@ const Questionnaire = ({
     setStep((s) => s + 1);
   };
 
-  const geocodeAddress = async (address: string, postalCode: string): Promise<{ lat: number; lng: number } | null> => {
-    const queries = [
-      `${address}, ${postalCode}, Québec, Canada`,
-      postalCode ? `${postalCode}, Québec, Canada` : null,
-      `${address}, Québec, Canada`,
-    ].filter(Boolean) as string[];
-
-    for (const q of queries) {
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=ca`);
-        const results = await res.json();
-        if (results.length > 0) {
-          return { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
-        }
-      } catch {
-        // try next query
-      }
-    }
-    return null;
-  };
-
   const handleSubmit = async () => {
     // Remblai form has its own validation — skip the multi-step canNext check
     if (!isRemblai && !canNext()) {
@@ -172,9 +151,6 @@ const Questionnaire = ({
     setLoading(true);
     try {
       const submissionId = crypto.randomUUID();
-      // Geocode address
-      const coords = await geocodeAddress(data.address, data.postalCode);
-
       const submissionPayload = {
         id: submissionId,
         materials: data.materials,
