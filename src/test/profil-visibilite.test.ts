@@ -229,7 +229,7 @@ describe("Visibilité explicite dans le réseau", () => {
     expect(Object.keys(p).sort()).toEqual(
       [
         "city", "company", "id", "locationComplete", "locationLabel", "postalSector",
-        "province", "provinceName", "region", "truckCount", "truckTypes",
+        "province", "provinceName", "proximity", "region", "truckCount", "truckTypes",
       ],
     );
   });

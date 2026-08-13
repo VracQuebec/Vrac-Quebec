@@ -11,11 +11,15 @@ import {
   loadAnnuaire,
   filterAnnuaire,
   buildFacets,
+  applyProximity,
+  proximityLabel,
   EMPTY_FILTERS,
   type AnnuaireFilters,
   type AnnuaireProfil,
   type AnnuaireResult,
 } from "@/lib/parcours/annuaire";
+import { loadMyProfil } from "@/lib/parcours/profil";
+import type { PublicLocalisation } from "@/lib/parcours/localisation";
 
 const PAGE_SIZE = 24;
 
@@ -60,6 +64,11 @@ const ProfilCard = ({ p }: { p: AnnuaireProfil }) => {
         <MapPin className="h-3 w-3 flex-shrink-0" aria-hidden />
         {p.locationLabel ?? "Localisation non renseignée"}
       </p>
+      {proximityLabel(p.proximity) && (
+        <p className="mt-1 inline-flex rounded-full bg-primary/10 px-2 py-0.5 font-body text-[11px] text-primary">
+          {proximityLabel(p.proximity)}
+        </p>
+      )}
       {p.region && (
         <p className="mt-0.5 font-body text-xs text-muted-foreground">Région : {p.region}</p>
       )}
@@ -120,16 +129,23 @@ export default function AnnuaireList() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<AnnuaireFilters>(EMPTY_FILTERS);
   const [limit, setLimit] = useState(PAGE_SIZE);
+  const [reference, setReference] = useState<PublicLocalisation | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
-    setRes(await loadAnnuaire());
+    // Deux lectures indépendantes seulement (aucune requête par profil).
+    const [annuaire, profil] = await Promise.all([loadAnnuaire(), loadMyProfil()]);
+    setRes(annuaire);
+    setReference(profil.state === "ok" ? profil.profil.publicLocalisation : null);
     setLoading(false);
   }, []);
 
   useEffect(() => { void reload(); }, [reload]);
 
-  const profils = res?.state === "ok" ? res.profils : [];
+  const profils = useMemo(
+    () => applyProximity(res?.state === "ok" ? res.profils : [], reference),
+    [res, reference],
+  );
   const facets = useMemo(() => buildFacets(profils), [profils]);
   const filtered = useMemo(() => filterAnnuaire(profils, filters), [profils, filters]);
   const set = (patch: Partial<AnnuaireFilters>) => {
@@ -188,6 +204,22 @@ export default function AnnuaireList() {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
+        {reference && (
+          <label className="flex-1 min-w-[9rem]">
+            <span className="sr-only">Proximité</span>
+            <select
+              aria-label="Proximité"
+              value={filters.proximity}
+              onChange={(e) => set({ proximity: e.target.value as AnnuaireFilters["proximity"] })}
+              className="h-10 w-full rounded-lg border border-border bg-background px-3 font-body text-sm"
+            >
+              <option value="">Proximité : tous</option>
+              <option value="same_city">Même ville</option>
+              <option value="same_region">Même région</option>
+              <option value="same_province">Même province</option>
+            </select>
+          </label>
+        )}
         <Select label="Province" value={filters.province} options={facets.provinces} onChange={(v) => set({ province: v })} />
         <Select label="Région" value={filters.region} options={facets.regions} onChange={(v) => set({ region: v })} />
         <Select label="Ville" value={filters.city} options={facets.cities} onChange={(v) => set({ city: v })} />
