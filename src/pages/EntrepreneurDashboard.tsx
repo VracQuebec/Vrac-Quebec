@@ -172,6 +172,13 @@ const EntrepreneurDashboard = () => {
           />
 
           <ActionCard
+            to="/entrepreneur/chantiers"
+            icon={<HardHat className="w-5 h-5" />}
+            title="Mes chantiers"
+            description="Vos demandes regroupées par lieu de chantier."
+          />
+
+          <ActionCard
             to="/entrepreneur/carte"
             icon={<MapIcon className="w-5 h-5" />}
             title="Carte des dompes"
