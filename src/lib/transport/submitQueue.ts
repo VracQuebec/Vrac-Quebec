@@ -35,6 +35,9 @@ export interface TransportSubmitPayload {
   quantity_unit?: string | null;
   dump_submission_id?: string | null;
   dump_name?: string | null;
+  /** Demande (submission) d'origine à laquelle cette demande est rattachée. */
+  origin_submission_id?: string | null;
+  origin_stage?: string | null;
   distance_km?: number | null;
   travel_time_minutes?: number | null;
   truck_type?: string | null;
