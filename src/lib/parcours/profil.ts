@@ -188,6 +188,43 @@ export type SaveResult =
   | { state: "invalid"; errors: ProfilErrors }
   | { state: "error"; message: string };
 
+export type VisibilityResult =
+  | { state: "ok"; visible: boolean }
+  | { state: "unauthorized" }
+  | { state: "error"; message: string };
+
+/**
+ * Bascule rapide de la visibilité réseau du COMPTE CONNECTÉ uniquement.
+ * Logique unique côté serveur : RPC `set_my_network_visibility`
+ * (SECURITY DEFINER, `user_id = auth.uid()`), qui journalise le changement
+ * dans `crm_audit_log` (aucune donnée privée). Aucune seconde logique métier.
+ */
+export const setMyNetworkVisibility = async (
+  visible: boolean,
+  client: ProfilClient = supabase as unknown as ProfilClient,
+): Promise<VisibilityResult> => {
+  try {
+    const { data, error } = await (client as any).rpc("set_my_network_visibility", {
+      _visible: visible === true,
+    });
+    if (error) {
+      const m = (error.message || "").toLowerCase();
+      if (
+        m.includes("not_authorized") ||
+        m.includes("permission") ||
+        m.includes("jwt") ||
+        m.includes("row-level")
+      ) {
+        return { state: "unauthorized" };
+      }
+      return { state: "error", message: error.message || "Changement impossible." };
+    }
+    return { state: "ok", visible: data === true ? true : data === false ? false : visible };
+  } catch (err) {
+    return { state: "error", message: (err as Error)?.message || "Changement impossible." };
+  }
+};
+
 /**
  * Sauvegarde la fiche du compte connecté UNIQUEMENT.
  * Aucun identifiant client n'est utilisé : la policy UPDATE
