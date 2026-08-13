@@ -20,6 +20,7 @@ import {
   Map as MapIcon,
   History,
   HardHat,
+  Building2,
   User,
   ArrowRight,
   Clock,
