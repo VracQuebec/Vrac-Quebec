@@ -17,14 +17,23 @@ const STEPS = [
   { label: "Contact", number: 3 },
 ];
 
-const Questionnaire = ({ sourcePageSlug }: { sourcePageSlug?: string } = {}) => {
+const Questionnaire = ({
+  sourcePageSlug,
+  initialService,
+}: { sourcePageSlug?: string; initialService?: ServiceKey } = {}) => {
   const [step, setStep] = useState(0);
   const navigate = useNavigate();
-  const [service, setService] = useState<ServiceKey | null>(null);
-  const [data, setData] = useState<QuestionnaireData>(initialFormData);
+  const [service, setService] = useState<ServiceKey | null>(
+    initialService === "materiel_remplissage" ? initialService : null,
+  );
+  const [data, setData] = useState<QuestionnaireData>(
+    initialService === "materiel_remplissage"
+      ? { ...initialFormData, propertyType: "Remplissage / remblai", deliverOrRemove: "À livrer" }
+      : initialFormData,
+  );
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [remblaiMode, setRemblaiMode] = useState(false);
+  const [remblaiMode, setRemblaiMode] = useState(initialService === "materiel_remplissage");
   const isRemblai =
     remblaiMode || isRemblaiRequest(data.materials, data.propertyType);
   const formTopRef = useRef<HTMLDivElement>(null);
