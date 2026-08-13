@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, X, Save, User as UserIcon, Building2, Mail, Phone, Calendar, Briefcase, Truck, Plus, FileText, Receipt, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import VisibilityAuditList from "@/components/admin/VisibilityAuditList";
 import { PAYMENT_STATUSES, PAYMENT_METHODS, findPaymentStatus, computeTaxes, isMaterialTaxableByDefault, type LeadTrip } from "@/lib/billing";
 
 type RoleRow = { user_id: string; email: string; roles: string[]; approved: boolean; created_at: string };
@@ -164,6 +165,8 @@ export default function EntrepreneursAdmin() {
           className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-full sm:w-80"
         />
       </div>
+
+      <VisibilityAuditList />
 
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
