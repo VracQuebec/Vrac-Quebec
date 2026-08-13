@@ -287,7 +287,9 @@ export const loadMyProfil = async (
     // RLS : seule la ligne de l'utilisateur connecté peut revenir.
     const { data, error } = await client
       .from("entrepreneurs")
-      .select("company,contact_name,name,phone,address,truck_types,truck_count");
+      .select(
+        "company,contact_name,name,phone,address,truck_types,truck_count,city,province,province_name,region,postal_sector",
+      );
     if (error) {
       const m = (error.message || "").toLowerCase();
       if (m.includes("not_authorized") || m.includes("permission") || m.includes("jwt")) {
