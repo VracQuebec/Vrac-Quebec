@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Building2, Eye, EyeOff, Loader2, Lock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { loadMyProfil, isNetworkVisible, type ProfilResult } from "@/lib/parcours/profil";
+import { loadMyProfil, setMyNetworkVisibility, type ProfilResult } from "@/lib/parcours/profil";
 import { localisationLabel } from "@/lib/parcours/localisation";
 import ProfilEditForm from "@/components/entrepreneur/ProfilEditForm";
 
@@ -15,14 +15,47 @@ export default function ProfilReseauCard() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
+  // Statut réel affiché (jamais déduit du nom d'entreprise).
+  const [visible, setVisible] = useState(false);
+  const [toggling, setToggling] = useState(false);
+  const [visMsg, setVisMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
-    setRes(await loadMyProfil());
+    const next = await loadMyProfil();
+    setRes(next);
+    if (next.state === "ok") setVisible(next.profil.networkOptIn);
     setLoading(false);
   }, []);
 
   useEffect(() => { void reload(); }, [reload]);
+
+  const toggleVisibility = useCallback(async () => {
+    if (toggling) return; // anti double-clic
+    const target = !visible;
+    setToggling(true);
+    setVisMsg(null);
+    const r = await setMyNetworkVisibility(target);
+    if (r.state === "ok") {
+      setVisible(r.visible);
+      setVisMsg({
+        kind: "ok",
+        text: r.visible
+          ? "Votre entreprise est maintenant visible dans le réseau."
+          : "Votre entreprise n'est plus visible dans le réseau.",
+      });
+    } else {
+      // Statut précédent conservé.
+      setVisMsg({
+        kind: "error",
+        text:
+          r.state === "unauthorized"
+            ? "Connexion requise pour modifier votre visibilité."
+            : r.message || "Changement impossible.",
+      });
+    }
+    setToggling(false);
+  }, [toggling, visible]);
 
   return (
     <section aria-labelledby="profil-reseau" className="mb-8">
@@ -62,13 +95,45 @@ export default function ProfilReseauCard() {
                     {res.profil.company ?? "Entreprise à compléter"}
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 font-body text-xs text-muted-foreground">
-                    {isNetworkVisible(res.profil) ? (
+                    {visible ? (
                       <><Eye className="h-3.5 w-3.5" aria-hidden /> Visible dans le réseau</>
                     ) : (
                       <><EyeOff className="h-3.5 w-3.5" aria-hidden /> Non visible dans le réseau</>
                     )}
                   </p>
                 </div>
+              </div>
+
+              {/* Action rapide : bascule de visibilité sans ouvrir le formulaire complet. */}
+              <div className="mt-3 rounded-lg border border-border/70 p-3">
+                <Button
+                  type="button"
+                  variant={visible ? "outline" : "default"}
+                  className="h-11 w-full sm:w-auto"
+                  disabled={toggling}
+                  aria-busy={toggling}
+                  aria-pressed={visible}
+                  onClick={() => void toggleVisibility()}
+                >
+                  {toggling ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> Mise à jour…</>
+                  ) : visible ? (
+                    <><EyeOff className="mr-2 h-4 w-4" aria-hidden /> Me retirer du réseau</>
+                  ) : (
+                    <><Eye className="mr-2 h-4 w-4" aria-hidden /> Me rendre visible dans le réseau</>
+                  )}
+                </Button>
+                {visMsg ? (
+                  <p
+                    role="status"
+                    aria-live="polite"
+                    className={`mt-2 font-body text-xs ${
+                      visMsg.kind === "ok" ? "text-primary" : "text-destructive"
+                    }`}
+                  >
+                    {visMsg.text}
+                  </p>
+                ) : null}
               </div>
 
               {res.profil.incomplete ? (
