@@ -68,6 +68,10 @@ const Questionnaire = ({
   }, []);
 
   useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
     if (formTopRef.current) {
       const offset = 80;
       const top = formTopRef.current.getBoundingClientRect().top + window.scrollY - offset;
