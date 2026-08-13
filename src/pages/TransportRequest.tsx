@@ -684,8 +684,24 @@ const TransportRequest = () => {
         })(),
       ].filter(Boolean).join("\n") || null,
       source: user ? "wizard_authenticated" : "wizard_public",
+      // Rattachement explicite à la demande existante (source de vérité DB).
+      origin_submission_id: submissionIdRef.current,
+      origin_stage: "transport_request",
     });
 
+      if (result.status === "rejected") {
+        toast({
+          title: "Demande impossible",
+          description:
+            result.message === "site_non_valide"
+              ? "Le site sélectionné n'a pas encore été validé par notre équipe."
+              : result.message === "submission_introuvable"
+                ? "La demande d'origine est introuvable."
+                : "Cette demande n'a pas pu être rattachée à votre dossier.",
+          variant: "destructive",
+        });
+        return;
+      }
       setConfirmationMode(result.status);
       setConfirmedNumber(result.request_number ?? null);
       setStep(6);
