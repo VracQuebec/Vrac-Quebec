@@ -1,7 +1,7 @@
 const FB_URL = "https://www.facebook.com/share/1ArYFDkkUX/?mibextid=wwXIfr";
 
 const TickerContent = () => (
-  <span className="inline-flex items-center gap-2 px-8 text-white text-xs sm:text-sm font-body whitespace-nowrap">
+  <span className="inline-flex items-center gap-2 px-8 text-white/90 text-[11px] sm:text-xs font-body whitespace-nowrap">
     <span className="text-primary">🚛</span>
     <span>
       Livraison rapide coordonnée par{" "}
@@ -34,7 +34,7 @@ const TickerContent = () => (
 );
 
 const TransportBanner = () => (
-  <div className="w-full bg-[#1F2937] border-b-2 border-primary py-2.5 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-700">
+  <div className="w-full bg-[#1F2937] border-b border-primary/70 py-1.5 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-700">
     <div className="group relative flex overflow-hidden">
       <div className="flex shrink-0 animate-marquee group-hover:[animation-play-state:paused] motion-reduce:animate-none">
         <TickerContent />

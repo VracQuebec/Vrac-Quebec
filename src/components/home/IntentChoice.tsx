@@ -7,26 +7,26 @@ const INTENTS = [
     to: "/acheter-materiaux",
     icon: Mountain,
     title: "J'ai besoin de matériaux",
-    text: "Trouvez le bon matériau selon votre projet.",
+    text: "Trouver le bon matériau pour mon chantier",
     primary: true,
   },
   {
     to: "/depot-materiaux",
     icon: Truck,
     title: "J'ai des matériaux à sortir",
-    text: "Trouvez un site de dépôt compatible.",
+    text: "Trouver un site de dépôt compatible",
   },
   {
     to: "/espace-entrepreneur",
     icon: MapPin,
     title: "Je cherche une dompe",
-    text: "Trouvez une solution proche de votre chantier.",
+    text: "Trouver une solution près de mon chantier",
   },
   {
     to: "/soumission",
     icon: HardHat,
     title: "J'ai besoin de transport",
-    text: "Trouvez une solution de transport adaptée.",
+    text: "Trouver une solution de transport",
   },
 ] as const;
 
@@ -36,10 +36,10 @@ const IntentChoice = () => (
       id="choix-title"
       className="text-center font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold text-foreground"
     >
-      Qu'est-ce que vous cherchez aujourd'hui&nbsp;?
+      Que cherchez-vous aujourd'hui&nbsp;?
     </h2>
     <p className="mx-auto mt-3 max-w-xl text-center font-body text-sm sm:text-base text-muted-foreground">
-      Choisissez votre besoin — Vrac Québec vous guide ensuite.
+      Choisissez votre besoin et nous vous guiderons vers la bonne solution.
     </p>
 
     <div className="mx-auto mt-8 grid max-w-5xl gap-3 sm:grid-cols-2">

@@ -16,14 +16,14 @@ const Index = () => {
       {/* 1. Bandeau Vrac Québec — haut de page */}
       <TransportBanner />
 
-      {/* 2. Navigation bar with compact entrepreneur access on the right */}
-      <nav className="w-full bg-foreground text-background border-b border-foreground/20">
-        <div className="container mx-auto px-4 sm:px-6 py-1.5 flex items-center justify-end">
+      {/* 2. Accès entrepreneur — volontairement discret et secondaire */}
+      <nav className="w-full bg-foreground/95 text-background">
+        <div className="container mx-auto px-4 sm:px-6 py-1 flex items-center justify-end">
           <a
             href="/login"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground font-display font-semibold text-xs sm:text-sm shadow-sm hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md font-body text-[11px] sm:text-xs text-background/70 hover:text-primary transition-colors"
           >
-            <HardHat className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <HardHat className="w-3.5 h-3.5" aria-hidden />
             Connexion entrepreneur
           </a>
         </div>
@@ -46,31 +46,32 @@ const Index = () => {
 
         {/* Desktop hero — image branding (VRAC QUÉBEC) stays visible up top, text content sits lower over a dark gradient with breathing room */}
         <div
-          className="hidden md:flex relative w-full min-h-[600px] lg:min-h-[680px] xl:min-h-[740px] items-end bg-no-repeat"
+          className="hidden md:flex relative w-full min-h-[560px] lg:min-h-[620px] items-center bg-no-repeat"
           style={{
             backgroundImage: `url(${heroBanner})`,
             backgroundSize: "cover",
-            backgroundPosition: "center 5%",
+            backgroundPosition: "center 85%",
           }}
         >
-          {/* Gradient: transparent on top to keep logo/camion visible, dark at bottom for text legibility */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/75" />
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent to-background" />
+          {/* Voile marqué : le texte imprimé dans l'image ne doit pas concurrencer le vrai titre */}
+          <div className="absolute inset-0 bg-black/65" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/70" />
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-background" />
 
-          <div className="relative z-10 container mx-auto px-6 pb-12 lg:pb-16 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <h1 className="text-3xl md:text-4xl lg:text-[2.75rem] font-display font-extrabold text-white leading-[1.2] max-w-[46rem] mx-auto drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
+          <div className="relative z-10 container mx-auto px-6 py-16 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <h1 className="text-4xl lg:text-5xl xl:text-[3.4rem] font-display font-extrabold text-white leading-[1.1] max-w-[50rem] mx-auto drop-shadow-[0_2px_16px_rgba(0,0,0,0.75)]">
               Trouvez le bon matériau ou la bonne solution pour{" "}
               <span className="text-primary">votre chantier.</span>
             </h1>
-            <p className="text-white/85 mt-6 max-w-2xl mx-auto font-body text-base lg:text-lg leading-relaxed">
+            <p className="text-white/90 mt-5 max-w-2xl mx-auto font-body text-base lg:text-lg leading-relaxed">
               Vrac Québec vous aide à trouver des matériaux, disposer de vos surplus, trouver une dompe
               ou coordonner le transport.
             </p>
             <a
               href="#choix"
-              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-4 font-display text-base font-bold uppercase tracking-wide text-primary-foreground shadow-lg transition-transform hover:scale-[1.02]"
+              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 font-display text-base font-bold uppercase tracking-wide text-primary-foreground shadow-xl transition-transform hover:scale-[1.02]"
             >
-              Qu'est-ce que vous cherchez&nbsp;? <ArrowDown className="h-5 w-5" aria-hidden />
+              Choisir mon besoin <ArrowDown className="h-5 w-5" aria-hidden />
             </a>
           </div>
         </div>
@@ -82,7 +83,7 @@ const Index = () => {
         <div className="container mx-auto px-5 sm:px-6 max-w-6xl">
           {/* Mobile-only intro (desktop has hero text above) */}
           <div className="md:hidden text-center mb-10">
-            <h1 className="text-2xl font-display font-extrabold text-foreground leading-tight">
+            <h1 className="text-[1.7rem] font-display font-extrabold text-foreground leading-tight">
               Trouvez le bon matériau ou la bonne solution pour{" "}
               <span className="text-primary">votre chantier.</span>
             </h1>
@@ -90,6 +91,12 @@ const Index = () => {
               Vrac Québec vous aide à trouver des matériaux, disposer de vos surplus, trouver une dompe
               ou coordonner le transport.
             </p>
+            <a
+              href="#choix"
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 font-display text-sm font-bold uppercase tracking-wide text-primary-foreground shadow-lg"
+            >
+              Choisir mon besoin <ArrowDown className="h-4 w-4" aria-hidden />
+            </a>
           </div>
 
           {/* Niveau 1 — choix principal */}
