@@ -10236,6 +10236,8 @@ export type Database = {
           jsc_request_id: string | null
           material_other: string | null
           material_type: string
+          origin_stage: string
+          origin_submission_id: string | null
           owner_contacted: boolean
           owner_contacted_at: string | null
           quantity: number | null
@@ -10276,6 +10278,8 @@ export type Database = {
           jsc_request_id?: string | null
           material_other?: string | null
           material_type: string
+          origin_stage?: string
+          origin_submission_id?: string | null
           owner_contacted?: boolean
           owner_contacted_at?: string | null
           quantity?: number | null
@@ -10316,6 +10320,8 @@ export type Database = {
           jsc_request_id?: string | null
           material_other?: string | null
           material_type?: string
+          origin_stage?: string
+          origin_submission_id?: string | null
           owner_contacted?: boolean
           owner_contacted_at?: string | null
           quantity?: number | null
@@ -10367,6 +10373,13 @@ export type Database = {
             columns: ["jsc_request_id"]
             isOneToOne: false
             referencedRelation: "jsc_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_requests_origin_submission_id_fkey"
+            columns: ["origin_submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
           {
@@ -11191,6 +11204,10 @@ export type Database = {
           submission_number: number
           truck_types_allowed: string[]
         }[]
+      }
+      get_submission_transport_request: {
+        Args: { p_stage?: string; p_submission_id: string }
+        Returns: Json
       }
       has_role: {
         Args: {
