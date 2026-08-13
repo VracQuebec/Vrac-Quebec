@@ -11198,8 +11198,11 @@ export type Database = {
           desired_date: string
           formatted_address: string
           id: string
+          latitude: number
+          longitude: number
           materials: string[]
           other_material: string
+          place_id: string
           quantity: string
           request_type: string
           selected_site_address: string
