@@ -138,6 +138,26 @@ Deno.serve(async (req) => {
       throw new Error("Supabase service credentials are not configured");
     }
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // SECURITY: this endpoint must not be freely callable.
+    // 1) Internal cron / admin callers may back up any submission.
+    // 2) The public questionnaire may back up ONLY a submission it has just
+    //    created (< 15 min old) and only once (sheet_backup_at guard).
+    const isCron = req.headers.get("Lovable-Context") === "cron";
+    let isAdmin = false;
+    const authHeader = req.headers.get("Authorization") || "";
+    if (!isCron && authHeader.toLowerCase().startsWith("bearer ")) {
+      const token = authHeader.slice(7);
+      const { data: userData } = await supabase.auth.getUser(token);
+      if (userData?.user) {
+        const { data: roleOk } = await supabase.rpc("has_role", {
+          _user_id: userData.user.id,
+          _role: "admin",
+        });
+        isAdmin = Boolean(roleOk);
+      }
+    }
+
     const { data: s, error: lookupError } = await supabase
       .from("submissions")
       .select("*")
@@ -149,6 +169,18 @@ Deno.serve(async (req) => {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (!isCron && !isAdmin) {
+      const createdAt = s.created_at ? new Date(s.created_at).getTime() : 0;
+      const fresh = createdAt > 0 && Date.now() - createdAt < 15 * 60 * 1000;
+      if (!fresh || s.sheet_backup_at) {
+        // Deliberately vague: do not confirm whether the ID exists.
+        return new Response(JSON.stringify({ error: "Not allowed" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     await ensureSheetAndHeader(LOVABLE_API_KEY, GOOGLE_SHEETS_API_KEY);
@@ -206,6 +238,11 @@ Deno.serve(async (req) => {
     if (!appendRes.ok) {
       throw new Error(`Append failed [${appendRes.status}]: ${JSON.stringify(appendJson)}`);
     }
+
+    await supabase
+      .from("submissions")
+      .update({ sheet_backup_at: new Date().toISOString() })
+      .eq("id", submissionId);
 
     return new Response(JSON.stringify({ success: true, updates: appendJson.updates ?? null }), {
       status: 200,
