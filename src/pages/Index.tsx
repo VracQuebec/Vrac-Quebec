@@ -108,10 +108,12 @@ const Index = () => {
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-background" />
 
           <div className="relative z-10 container mx-auto px-6 py-10 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <h1 className="text-4xl lg:text-5xl xl:text-[3.2rem] font-display font-extrabold text-white leading-[1.1] max-w-[50rem] mx-auto drop-shadow-[0_2px_20px_rgba(0,0,0,0.85)]">
+            {/* Rendu desktop du titre : le <h1> unique de la page vit dans le bloc ci-dessous
+                (indexation mobile-first), ce libellé reste strictement identique visuellement. */}
+            <p className="text-4xl lg:text-5xl xl:text-[3.2rem] font-display font-extrabold text-white leading-[1.1] max-w-[50rem] mx-auto drop-shadow-[0_2px_20px_rgba(0,0,0,0.85)]">
               Trouvez le bon matériau ou la bonne solution pour{" "}
               <span className="text-primary">votre chantier.</span>
-            </h1>
+            </p>
             <p className="text-white/90 mt-5 max-w-2xl mx-auto font-body text-base lg:text-lg leading-relaxed drop-shadow-[0_1px_10px_rgba(0,0,0,0.75)]">
               Vrac Québec vous aide à trouver des matériaux, disposer de vos surplus, trouver une dompe
               ou coordonner le transport.
@@ -132,11 +134,11 @@ const Index = () => {
         <div className="container mx-auto px-5 sm:px-6 max-w-6xl">
           {/* Mobile-only intro (desktop has hero text above) */}
           <div className="md:hidden text-center mb-6">
-            {/* Rendu mobile du titre principal : le <h1> unique de la page est celui du hero desktop. */}
-            <p className="text-[1.6rem] font-display font-extrabold text-foreground leading-tight">
+            {/* <h1> unique de la page (visible en mobile-first, masqué visuellement en desktop). */}
+            <h1 className="text-[1.6rem] font-display font-extrabold text-foreground leading-tight">
               Trouvez le bon matériau ou la bonne solution pour{" "}
               <span className="text-primary">votre chantier.</span>
-            </p>
+            </h1>
             <p className="text-muted-foreground mt-3 max-w-md mx-auto font-body text-sm leading-relaxed">
               Vrac Québec vous aide à trouver des matériaux, disposer de vos surplus, trouver une dompe
               ou coordonner le transport.
