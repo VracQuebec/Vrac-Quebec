@@ -34,23 +34,23 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Matériaux en vrac et dompes à Québec | Vrac Québec</title>
-        <meta name="description" content="Terre, sable, gravier, remblai, dompes et transport de matériaux en vrac pour vos chantiers à Québec et les environs. Une demande, plusieurs solutions comparées." />
+        <title>Matériaux en vrac à Québec — terre, gravier, pierre concassée</title>
+        <meta name="description" content="Livraison de terre, gravier, pierre concassée, sable et remblai à Québec et Lévis. Trouvez aussi une dompe pour disposer de vos surplus. Soumission gratuite." />
         <link rel="canonical" href="https://vracquebec.ca/" />
-        <meta property="og:title" content="Matériaux en vrac et dompes à Québec | Vrac Québec" />
-        <meta property="og:description" content="Trouvez des matériaux, disposez de vos surplus, trouvez une dompe ou coordonnez le transport dans la région de Québec." />
+        <meta property="og:title" content="Matériaux en vrac à Québec — terre, gravier, pierre concassée" />
+        <meta property="og:description" content="Livraison de matériaux en vrac, disposition de surplus, recherche de dompe et transport dans la région de Québec." />
         <meta property="og:url" content="https://vracquebec.ca/" />
         <meta property="og:type" content="website" />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebPage",
-          name: "Matériaux en vrac et dompes à Québec",
+          name: "Matériaux en vrac à Québec — terre, gravier, pierre concassée",
           url: "https://vracquebec.ca/",
           inLanguage: "fr-CA",
           isPartOf: { "@type": "WebSite", name: "Vrac Québec", url: "https://vracquebec.ca" },
           about: [
-            { "@type": "Service", name: "Livraison de matériaux en vrac", areaServed: { "@type": "City", name: "Québec" } },
-            { "@type": "Service", name: "Recherche de dompe / site de dépôt", areaServed: { "@type": "City", name: "Québec" } },
+            { "@type": "Service", name: "Livraison de terre, gravier et pierre concassée en vrac", areaServed: { "@type": "City", name: "Québec" } },
+            { "@type": "Service", name: "Disposition de terre et de surplus de matériaux (dompe)", areaServed: { "@type": "City", name: "Québec" } },
             { "@type": "Service", name: "Transport de matériaux pour chantier", areaServed: { "@type": "City", name: "Québec" } },
           ],
         })}</script>
@@ -247,6 +247,32 @@ const Index = () => {
                 { href: "/types-de-camions", label: "Types de camions" },
                 { href: "/livraison", label: "Secteurs desservis" },
                 { href: "/blog", label: "Guides et conseils" },
+              ].map((l) => (
+                <li key={l.href}>
+                  <a
+                    href={l.href}
+                    className="inline-flex items-center rounded-full border border-border bg-card px-4 py-2 font-body text-sm text-foreground transition-colors hover:border-primary hover:text-primary"
+                  >
+                    {l.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+
+            {/* Secteurs les plus demandés — envoie de l'autorité vers les pages locales existantes. */}
+            <h2 className="mt-10 text-sm font-display font-bold uppercase tracking-wide text-muted-foreground">
+              Livraison par secteur
+            </h2>
+            <ul className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              {[
+                { href: "/livraison/quebec", label: "Matériaux en vrac à Québec" },
+                { href: "/pierre-concassee-beauport", label: "Pierre concassée à Beauport" },
+                { href: "/pierre-concassee-levis", label: "Pierre concassée à Lévis" },
+                { href: "/gravier-0-3-4-beaupre", label: "Gravier 0-3/4 à Beaupré" },
+                { href: "/livraison-pierre-portneuf", label: "Livraison de pierre à Portneuf" },
+                { href: "/livraison/charlesbourg", label: "Livraison à Charlesbourg" },
+                { href: "/livraison/sainte-foy", label: "Livraison à Sainte-Foy" },
+                { href: "/livraison/stoneham-et-tewkesbury", label: "Livraison à Stoneham" },
               ].map((l) => (
                 <li key={l.href}>
                   <a

@@ -48,6 +48,15 @@ export default function Catalogue() {
         <meta property="og:title" content="Catalogue de matériaux en vrac | Vrac Québec" />
         <meta property="og:url" content="https://vracquebec.ca/materiaux" />
         <meta property="og:type" content="website" />
+        <meta property="og:description" content="Pierre concassée, sable, terre, remblai et enrochement livrés partout au Québec." />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Accueil", item: "https://vracquebec.ca/" },
+            { "@type": "ListItem", position: 2, name: "Matériaux en vrac", item: "https://vracquebec.ca/materiaux" },
+          ],
+        })}</script>
       </Helmet>
 
       <h1 className="text-3xl font-bold">Catalogue de matériaux en vrac</h1>

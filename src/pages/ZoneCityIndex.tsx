@@ -53,9 +53,32 @@ export default function ZoneCityIndex() {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
   }
 
-  const title = `Livraison de vrac à ${city.name} — Terre, sable, gravier, remblai | Vrac Québec`;
-  const description = `Vrac Québec livre terre, sable, gravier, pierre concassée et remblai directement à ${city.name}. Soumission gratuite, camions adaptés, livraison rapide.`.slice(0, 158);
+  const title = `Livraison de matériaux en vrac à ${city.name} | Vrac Québec`;
+  const description = (
+    city.intro?.trim()
+      ? city.intro.trim()
+      : `Terre, sable, gravier et pierre concassée livrés à ${city.name} (${city.region}). Vrac Québec coordonne la livraison et la disposition de matériaux pour vos chantiers.`
+  ).slice(0, 158);
   const url = `${SITE}/livraison/${city.slug}`;
+
+  const jsonLdBreadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Accueil", item: `${SITE}/` },
+      { "@type": "ListItem", position: 2, name: "Zones desservies", item: `${SITE}/livraison` },
+      { "@type": "ListItem", position: 3, name: city.name, item: url },
+    ],
+  };
+  const jsonLdService = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: `Livraison de matériaux en vrac à ${city.name}`,
+    serviceType: "Livraison de terre, gravier, pierre concassée et remblai",
+    areaServed: { "@type": "City", name: city.name, addressRegion: "QC", addressCountry: "CA" },
+    provider: { "@type": "Organization", name: "Vrac Québec", url: SITE, telephone: "+1-581-994-7717" },
+    url,
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,6 +89,8 @@ export default function ZoneCityIndex() {
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         <meta property="og:url" content={url} />
+        <script type="application/ld+json">{JSON.stringify(jsonLdBreadcrumb)}</script>
+        <script type="application/ld+json">{JSON.stringify(jsonLdService)}</script>
       </Helmet>
       <TransportBanner />
       <nav aria-label="Fil d'Ariane" className="container mx-auto px-4 sm:px-6 pt-4 flex items-center gap-1 text-xs text-muted-foreground font-body">
@@ -116,6 +141,29 @@ export default function ZoneCityIndex() {
             </ul>
           </section>
         )}
+        <section aria-labelledby="ressources-ville">
+          <h2 id="ressources-ville" className="text-xl font-display font-bold text-foreground mb-3">
+            Aller plus loin
+          </h2>
+          <ul className="flex flex-wrap gap-2">
+            {[
+              { to: "/materiaux", label: "Catalogue de matériaux en vrac" },
+              { to: "/soumission", label: `Soumission de livraison à ${city.name}` },
+              { to: "/depot-materiaux", label: "Disposer de terre ou de surplus" },
+              { to: "/calculateur", label: "Calculer la quantité nécessaire" },
+              { to: "/types-de-camions", label: "Camions de transport de matériaux" },
+            ].map((l) => (
+              <li key={l.to}>
+                <Link
+                  to={l.to}
+                  className="inline-block rounded-full border border-border bg-card px-4 py-2 text-sm hover:border-primary font-body text-foreground"
+                >
+                  {l.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       </main>
     </div>
   );
