@@ -9801,6 +9801,7 @@ export type Database = {
           geocoding_status: string
           id: string
           internal_notes: string
+          landing_referrer: string | null
           latitude: number | null
           latitude_old: number | null
           lead_category: string | null
@@ -9854,6 +9855,9 @@ export type Database = {
           submission_number: number
           tonnage: string
           truck_types_allowed: string[] | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
           visible_to_entrepreneur: boolean
           width_ft: string | null
         }
@@ -9888,6 +9892,7 @@ export type Database = {
           geocoding_status?: string
           id?: string
           internal_notes?: string
+          landing_referrer?: string | null
           latitude?: number | null
           latitude_old?: number | null
           lead_category?: string | null
@@ -9941,6 +9946,9 @@ export type Database = {
           submission_number?: number
           tonnage: string
           truck_types_allowed?: string[] | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
           visible_to_entrepreneur?: boolean
           width_ft?: string | null
         }
@@ -9975,6 +9983,7 @@ export type Database = {
           geocoding_status?: string
           id?: string
           internal_notes?: string
+          landing_referrer?: string | null
           latitude?: number | null
           latitude_old?: number | null
           lead_category?: string | null
@@ -10028,6 +10037,9 @@ export type Database = {
           submission_number?: number
           tonnage?: string
           truck_types_allowed?: string[] | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
           visible_to_entrepreneur?: boolean
           width_ft?: string | null
         }

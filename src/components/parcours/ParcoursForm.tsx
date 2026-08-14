@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { getAttribution } from "@/lib/analytics/attribution";
+import { trackEvent } from "@/lib/analytics/ga4";
 import {
   REMBLAI_MATERIAL_CATEGORIES,
   REMBLAI_MATERIAL_IMAGES,
@@ -196,6 +198,7 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
           contact: { name: data.name, phone: data.phone, email: data.email, notes: data.notes },
           website: honeypot.current?.value ?? "",
           form_started_at: startedAt.current,
+          attribution: getAttribution(),
         },
       });
       if (fnError) throw fnError;
@@ -224,6 +227,7 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
         saveHandoff(ho);
       }
       setDone(true);
+      trackEvent("lead_created", { form: "parcours", variant });
       try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Envoi impossible pour le moment.";
