@@ -188,9 +188,10 @@ const App = () => (
             <Route path="/admin/seo-manager" element={<Navigate to="/admin/seo" replace />} />
             <Route path="/livraison" element={<ZonesIndex />} />
             <Route path="/livraison/:citySlug" element={<ZoneCityIndex />} />
-            {/* Local SEO landing: MUST stay just before the catch-all route */}
             {/* /404 doit rester AVANT /:localSlug, sinon la redirection de SeoLandingPage
                 retombe sur elle-même et affiche une page vide. */}
+            <Route path="/404" element={<NotFound />} />
+            {/* Local SEO landing: MUST stay just before the catch-all route */}
             <Route path="/:localSlug" element={<SeoLandingPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
