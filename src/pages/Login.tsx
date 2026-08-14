@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -62,6 +63,13 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Connexion entrepreneur | Vrac Québec</title>
+        <meta name="description" content="Connexion à l'espace professionnel Vrac Québec pour les entrepreneurs et administrateurs du réseau de matériaux en vrac." />
+        <meta name="robots" content="noindex, follow" />
+        <link rel="canonical" href="https://vracquebec.ca/login" />
+        <meta property="og:title" content="Connexion entrepreneur | Vrac Québec" />
+      </Helmet>
       <TransportBanner />
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-sm">

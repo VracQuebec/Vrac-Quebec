@@ -4,6 +4,7 @@
 // aucune capacité n'est inventée ici.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { ArrowRight, Truck } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,16 +41,6 @@ const TypesCamions = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.title = "Types de camions pour le transport en vrac | Vrac Québec";
-    document
-      .querySelector('meta[name="description"]')
-      ?.setAttribute(
-        "content",
-        "Camion 10 roues, 12 roues, semi-dompeur et fardier : à quoi sert chaque véhicule, usages typiques et contraintes d'accès pour le transport en vrac au Québec.",
-      );
-  }, []);
-
-  useEffect(() => {
     void (async () => {
       const { data } = await supabase.rpc("jsc_public_truck_profiles" as never);
       setProfiles((data ?? []) as TruckProfile[]);
@@ -63,6 +54,15 @@ const TypesCamions = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Types de camions pour le transport en vrac | Vrac Québec</title>
+        <meta name="description" content="Camion 10 roues, 12 roues, semi-dompeur et fardier : usages typiques, capacités et contraintes d'accès pour le transport de matériaux en vrac au Québec." />
+        <link rel="canonical" href="https://vracquebec.ca/types-de-camions" />
+        <meta property="og:title" content="Types de camions pour le transport en vrac | Vrac Québec" />
+        <meta property="og:description" content="Quel camion pour votre chantier ? Usages, capacités et contraintes d'accès." />
+        <meta property="og:url" content="https://vracquebec.ca/types-de-camions" />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <TransportBanner />
       <main className="container mx-auto max-w-3xl px-4 py-8 sm:py-12">
         <header className="text-center">
