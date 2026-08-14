@@ -1691,13 +1691,7 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
           {sub.photos && sub.photos.length > 0 && (
             <div>
               <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Photos</label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {sub.photos.map((url) => (
-                  <a key={url} href={url} target="_blank" rel="noreferrer">
-                    <img src={url} alt="" className="w-full h-24 object-cover rounded" />
-                  </a>
-                ))}
-              </div>
+              <LeadPhotos photos={sub.photos} />
             </div>
           )}
 
