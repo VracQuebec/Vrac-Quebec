@@ -196,6 +196,7 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
           contact: { name: data.name, phone: data.phone, email: data.email, notes: data.notes },
           website: honeypot.current?.value ?? "",
           form_started_at: startedAt.current,
+          attribution: getAttribution(),
         },
       });
       if (fnError) throw fnError;
