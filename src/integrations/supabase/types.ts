@@ -9893,6 +9893,7 @@ export type Database = {
           selected_site_longitude: number | null
           selection_updated_at: string | null
           service_type: string | null
+          sheet_backup_at: string | null
           show_on_admin_map: boolean
           site_validated_at: string | null
           site_validated_by: string | null
@@ -9984,6 +9985,7 @@ export type Database = {
           selected_site_longitude?: number | null
           selection_updated_at?: string | null
           service_type?: string | null
+          sheet_backup_at?: string | null
           show_on_admin_map?: boolean
           site_validated_at?: string | null
           site_validated_by?: string | null
@@ -10075,6 +10077,7 @@ export type Database = {
           selected_site_longitude?: number | null
           selection_updated_at?: string | null
           service_type?: string | null
+          sheet_backup_at?: string | null
           show_on_admin_map?: boolean
           site_validated_at?: string | null
           site_validated_by?: string | null
