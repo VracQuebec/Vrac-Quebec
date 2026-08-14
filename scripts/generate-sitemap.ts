@@ -75,11 +75,20 @@ async function build(): Promise<Entry[]> {
     { path: "/types-de-camions", changefreq: "monthly", priority: "0.7" },
   ];
 
-  // /materiaux/:slug — fiches matériaux réellement publiées dans le catalogue public.
+  // /materiaux/:slug — mêmes fiches que le catalogue public (RPC jsc_public_catalog),
+  // afin de n'annoncer que des URLs qui existent réellement.
   try {
-    const materials = await fetchAll<{ slug: string }>(
-      `${SUPABASE_URL}/rest/v1/jsc_materials?select=slug&is_active=eq.true&archived_at=is.null&slug=not.is.null&order=slug`,
-    );
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/jsc_public_catalog`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+    });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const materials = (await res.json()) as { slug: string | null }[];
     for (const m of materials) {
       if (m.slug) entries.push({ path: `/materiaux/${m.slug}`, changefreq: "monthly", priority: "0.7" });
     }
