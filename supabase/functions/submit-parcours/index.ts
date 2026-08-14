@@ -68,6 +68,14 @@ Deno.serve(async (req) => {
     if (!address || address.length < 5) throw new Error("L'adresse du terrain est requise.");
 
     const materials = strArray(body?.materials, 15, 120);
+    // Attribution marketing : valeurs brutes uniquement. `lead_source`
+    // reste calculé par le déclencheur serveur.
+    const attribution = {
+      utm_source: clean(body?.attribution?.utm_source, 80),
+      utm_medium: clean(body?.attribution?.utm_medium, 80),
+      utm_campaign: clean(body?.attribution?.utm_campaign, 120),
+      landing_referrer: clean(body?.attribution?.landing_referrer, 300),
+    };
     const otherMaterial = clean(body?.other_material, 300);
     const projectUsage = clean(body?.project_usage, 160);
     const quantityLabel = clean(body?.quantity_label, 160) ?? 'Je ne sais pas';
@@ -151,6 +159,7 @@ Deno.serve(async (req) => {
         : null,
       desired_date: desiredDate,
       delivery_timeframe: timeframe,
+      ...attribution,
     }).select('id').single();
 
     if (error) throw new Error(error.message);

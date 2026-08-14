@@ -227,6 +227,7 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
         saveHandoff(ho);
       }
       setDone(true);
+      trackEvent("lead_created", { form: "parcours", variant });
       try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Envoi impossible pour le moment.";
