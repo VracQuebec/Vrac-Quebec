@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useEffect, lazy, Suspense } from "react";
+import { Helmet } from "react-helmet-async";
 import Index from "./pages/Index";
 import SessionKeeper from "./components/SessionKeeper";
 import AppErrorBoundary from "./components/AppErrorBoundary";
@@ -108,6 +109,16 @@ const Ga4RouteTracker = () => {
 
 const App = () => (
   <AppErrorBoundary>
+    {/* Métadonnées par défaut : chaque page peut les remplacer avec son propre <Helmet>. */}
+    <Helmet>
+      <title>Vrac Québec | Terre, sable, gravier et remblai à Québec</title>
+      <meta name="description" content="Plateforme de référence pour le vrac au Québec : matériaux, sites de dépôt (dompes), remblai et transport en vrac pour l'excavation et la construction." />
+      <meta property="og:site_name" content="Vrac Québec" />
+      <meta property="og:title" content="Vrac Québec | Terre, sable, gravier et remblai à Québec" />
+      <meta property="og:description" content="Matériaux en vrac, dompes et transport pour vos chantiers dans la région de Québec." />
+      <meta name="twitter:title" content="Vrac Québec | Terre, sable, gravier et remblai à Québec" />
+      <meta name="twitter:description" content="Matériaux en vrac, dompes et transport pour vos chantiers dans la région de Québec." />
+    </Helmet>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
