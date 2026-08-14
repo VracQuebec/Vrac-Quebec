@@ -9,6 +9,8 @@ import { initialFormData, MATERIAL_TYPES, detectRequestType, isRemblaiRequest, t
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { logSeoEvent } from "@/lib/seo/tracking";
+import { trackEvent } from "@/lib/analytics/ga4";
+import { getAttribution } from "@/lib/analytics/attribution";
 import { ChevronLeft, ChevronRight, Send, Check, Loader2, Facebook } from "lucide-react";
 
 const STEPS = [
@@ -217,6 +219,8 @@ const Questionnaire = ({
           data.accessDetails && data.accessDetails.length > 0 ? { criteres: data.accessDetails } : null,
         // Type de service choisi par le client — pilote le pipeline CRM.
         service_type: service ?? (isRemblai ? "remblai_disposition" : "materiel_remplissage"),
+        // Provenance brute : le serveur en déduit `lead_source` (jamais le navigateur).
+        ...getAttribution(),
       };
 
       const { error } = await supabase
@@ -276,6 +280,7 @@ const Questionnaire = ({
       if (sourcePageSlug) {
         logSeoEvent(sourcePageSlug, "submission");
       }
+      trackEvent("lead_created", { form: "questionnaire", service: service ?? "remblai" });
       toast({ title: "Demande envoyée! ✅", description: "Nous vous contacterons rapidement." });
     } catch (err) {
       console.error(err);

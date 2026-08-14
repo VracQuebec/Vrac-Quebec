@@ -11,6 +11,7 @@ import WhyVracQuebec from "@/components/home/WhyVracQuebec";
 import CircularEconomy from "@/components/home/CircularEconomy";
 import IntentSelector from "@/components/home/IntentSelector";
 import LogoVracQuebec from "@/components/LogoVracQuebec";
+import { trackEvent } from "@/lib/analytics/ga4";
 import { ArrowDown, HardHat, Sparkles } from "lucide-react";
 
 const Index = () => {
@@ -20,6 +21,7 @@ const Index = () => {
 
   const selectIntent = (key: IntentKey) => {
     setIntent(key);
+    trackEvent("intent_select", { intent: key });
     requestAnimationFrame(() => {
       const el = parcoursRef.current;
       if (!el) return;
