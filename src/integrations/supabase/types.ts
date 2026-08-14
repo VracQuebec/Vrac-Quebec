@@ -9316,6 +9316,30 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_pages_meta_backup_20260814: {
+        Row: {
+          backed_up_at: string | null
+          id: string | null
+          meta_description: string | null
+          meta_title: string | null
+          slug: string | null
+        }
+        Insert: {
+          backed_up_at?: string | null
+          id?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          slug?: string | null
+        }
+        Update: {
+          backed_up_at?: string | null
+          id?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          slug?: string | null
+        }
+        Relationships: []
+      }
       seo_pagespeed_snapshots: {
         Row: {
           cls: number | null

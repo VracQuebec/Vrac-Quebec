@@ -149,18 +149,25 @@ export default function SeoLandingPage() {
   const description = page.meta_description || page.intro?.slice(0, 158) || "";
   const h1 = page.h1 || page.title;
 
-  const jsonLdLocalBusiness = {
+  // Service plutôt que LocalBusiness : Vrac Québec n'a pas d'établissement physique
+  // dans chaque ville, donc aucune adresse d'entreprise n'est déclarée à Google.
+  const jsonLdService = {
     "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "@id": `${url}#business`,
-    name: `Vrac Québec — ${page.title}`,
+    "@type": "Service",
+    "@id": `${url}#service`,
+    name: page.title,
+    serviceType: material?.name || "Matériaux en vrac",
     url,
-    telephone: "+1-581-994-7717",
-    priceRange: "$$",
-    areaServed: city ? { "@type": "City", name: city.name } : undefined,
-    address: city ? { "@type": "PostalAddress", addressLocality: city.name, addressRegion: "QC", addressCountry: "CA" } : undefined,
-    geo: city && city.latitude != null && city.longitude != null ? { "@type": "GeoCoordinates", latitude: city.latitude, longitude: city.longitude } : undefined,
     description,
+    areaServed: city
+      ? { "@type": "City", name: city.name, addressRegion: "QC", addressCountry: "CA" }
+      : { "@type": "AdministrativeArea", name: "Région de Québec" },
+    provider: {
+      "@type": "Organization",
+      name: "Vrac Québec",
+      url: SITE,
+      telephone: "+1-581-994-7717",
+    },
   };
   const jsonLdBreadcrumb = {
     "@context": "https://schema.org",
@@ -205,7 +212,7 @@ export default function SeoLandingPage() {
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
         {page.cover_image_url && <meta name="twitter:image" content={page.cover_image_url} />}
-        <script type="application/ld+json">{JSON.stringify(jsonLdLocalBusiness)}</script>
+        <script type="application/ld+json">{JSON.stringify(jsonLdService)}</script>
         <script type="application/ld+json">{JSON.stringify(jsonLdBreadcrumb)}</script>
         {jsonLdFaq && <script type="application/ld+json">{JSON.stringify(jsonLdFaq)}</script>}
       </Helmet>
