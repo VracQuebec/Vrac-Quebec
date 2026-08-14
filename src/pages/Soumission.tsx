@@ -210,6 +210,18 @@ export default function Soumission() {
                   <p className="text-sm text-muted-foreground">
                     Le catalogue de matériaux est en cours de configuration. Contactez-nous et notre équipe préparera votre estimation.
                   </p>
+                ) : categories.length === 0 ? (
+                  // Aucun regroupement configuré : on présente directement les matériaux
+                  // pour ne jamais laisser l'étape 1 sans choix possible.
+                  <div className="space-y-3">
+                    <StepMaterial materials={materials} value={material?.id ?? null}
+                      onSelect={(m) => { setMaterial(m); setCategoryId(m.category_id); setStep(2); }} />
+                    <button type="button" onClick={() => setAdvisor(true)}
+                      className="w-full rounded-2xl border-2 border-border bg-muted/40 px-4 py-4 text-left transition hover:border-primary/50">
+                      <span className="block font-semibold text-foreground">Je ne sais pas quel matériau choisir</span>
+                      <span className="block text-sm text-muted-foreground">Répondez à 3 questions, on vous recommande le bon.</span>
+                    </button>
+                  </div>
                 ) : (
                   <StepCategory categories={categories} materials={materials} value={categoryId}
                     onSelect={(id) => { setCategoryId(id); setMaterial(null); setStep(1); }}
