@@ -9316,6 +9316,27 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_pages_links_backup_20260814: {
+        Row: {
+          content_html: string | null
+          id: string | null
+          internal_links: Json | null
+          slug: string | null
+        }
+        Insert: {
+          content_html?: string | null
+          id?: string | null
+          internal_links?: Json | null
+          slug?: string | null
+        }
+        Update: {
+          content_html?: string | null
+          id?: string | null
+          internal_links?: Json | null
+          slug?: string | null
+        }
+        Relationships: []
+      }
       seo_pages_meta_backup_20260814: {
         Row: {
           backed_up_at: string | null
