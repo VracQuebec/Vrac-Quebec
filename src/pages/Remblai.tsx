@@ -1,6 +1,6 @@
 // Points 6 & 33 — landing remblai économique (trafic Marketplace, mobile d'abord)
 // avec le parcours de demande intégré directement dans la page.
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ArrowRight, Coins, MapPin, Recycle, ShieldCheck } from "lucide-react";

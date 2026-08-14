@@ -1,5 +1,5 @@
 // Point 34 — parcours « sortir de la terre / des matériaux » (dompe / site receveur).
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { ArrowRight, MapPin, ShieldCheck, Truck } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";

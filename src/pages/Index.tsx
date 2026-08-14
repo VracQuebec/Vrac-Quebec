@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import Questionnaire from "@/components/Questionnaire";
 import heroBanner from "@/assets/hero-banner-clean.webp";
 import heroBannerMobile from "@/assets/hero-banner-mobile-clean.webp";
@@ -32,6 +33,28 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Matériaux en vrac et dompes à Québec | Vrac Québec</title>
+        <meta name="description" content="Terre, sable, gravier, remblai, dompes et transport de matériaux en vrac pour vos chantiers à Québec et les environs. Une demande, plusieurs solutions comparées." />
+        <link rel="canonical" href="https://vracquebec.ca/" />
+        <meta property="og:title" content="Matériaux en vrac et dompes à Québec | Vrac Québec" />
+        <meta property="og:description" content="Trouvez des matériaux, disposez de vos surplus, trouvez une dompe ou coordonnez le transport dans la région de Québec." />
+        <meta property="og:url" content="https://vracquebec.ca/" />
+        <meta property="og:type" content="website" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "Matériaux en vrac et dompes à Québec",
+          url: "https://vracquebec.ca/",
+          inLanguage: "fr-CA",
+          isPartOf: { "@type": "WebSite", name: "Vrac Québec", url: "https://vracquebec.ca" },
+          about: [
+            { "@type": "Service", name: "Livraison de matériaux en vrac", areaServed: { "@type": "City", name: "Québec" } },
+            { "@type": "Service", name: "Recherche de dompe / site de dépôt", areaServed: { "@type": "City", name: "Québec" } },
+            { "@type": "Service", name: "Transport de matériaux pour chantier", areaServed: { "@type": "City", name: "Québec" } },
+          ],
+        })}</script>
+      </Helmet>
       {/* 1. Bandeau Vrac Québec — haut de page */}
       <TransportBanner />
 
@@ -109,10 +132,11 @@ const Index = () => {
         <div className="container mx-auto px-5 sm:px-6 max-w-6xl">
           {/* Mobile-only intro (desktop has hero text above) */}
           <div className="md:hidden text-center mb-6">
-            <h1 className="text-[1.6rem] font-display font-extrabold text-foreground leading-tight">
+            {/* Rendu mobile du titre principal : le <h1> unique de la page est celui du hero desktop. */}
+            <p className="text-[1.6rem] font-display font-extrabold text-foreground leading-tight">
               Trouvez le bon matériau ou la bonne solution pour{" "}
               <span className="text-primary">votre chantier.</span>
-            </h1>
+            </p>
             <p className="text-muted-foreground mt-3 max-w-md mx-auto font-body text-sm leading-relaxed">
               Vrac Québec vous aide à trouver des matériaux, disposer de vos surplus, trouver une dompe
               ou coordonner le transport.
