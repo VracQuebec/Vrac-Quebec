@@ -1,23 +1,22 @@
 // Point 13/14 — Calculateurs Vrac Québec (quantité + transport).
-import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { ArrowRight, Truck } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import MaterialCalculator from "@/components/vrac/MaterialCalculator";
 
 const Calculateur = () => {
-  useEffect(() => {
-    document.title = "Calculateur de matériaux en vrac | Vrac Québec";
-    document
-      .querySelector('meta[name="description"]')
-      ?.setAttribute(
-        "content",
-        "Calculez le volume (pi³, m³, verges³), le tonnage approximatif et le nombre de voyages de camion nécessaires pour votre projet, puis obtenez un prix.",
-      );
-  }, []);
-
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Calculateur de matériaux en vrac | Vrac Québec</title>
+        <meta name="description" content="Calculez le volume (pi³, m³, verges³), le tonnage approximatif et le nombre de voyages de camion nécessaires pour votre chantier, puis obtenez une estimation." />
+        <link rel="canonical" href="https://vracquebec.ca/calculateur" />
+        <meta property="og:title" content="Calculateur de matériaux en vrac | Vrac Québec" />
+        <meta property="og:description" content="Volume, tonnage et nombre de voyages de camion pour votre projet de terre, sable ou gravier." />
+        <meta property="og:url" content="https://vracquebec.ca/calculateur" />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <TransportBanner />
       <main className="container mx-auto max-w-2xl px-4 py-8 sm:py-12">
         <header className="text-center">

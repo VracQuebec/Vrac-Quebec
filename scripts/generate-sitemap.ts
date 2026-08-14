@@ -55,6 +55,12 @@ async function fetchAll<T>(baseUrl: string, pageSize = 1000): Promise<T[]> {
 async function build(): Promise<Entry[]> {
   const entries: Entry[] = [
     { path: "/", changefreq: "weekly", priority: "1.0" },
+    { path: "/remblai", changefreq: "monthly", priority: "0.9" },
+    { path: "/depot-materiaux", changefreq: "monthly", priority: "0.9" },
+    { path: "/materiaux", changefreq: "weekly", priority: "0.9" },
+    { path: "/acheter-materiaux", changefreq: "monthly", priority: "0.8" },
+    { path: "/soumission", changefreq: "monthly", priority: "0.8" },
+    { path: "/espace-entrepreneur", changefreq: "monthly", priority: "0.6" },
     { path: "/blog", changefreq: "daily", priority: "0.9" },
     { path: "/blog/outils", changefreq: "monthly", priority: "0.8" },
     { path: "/blog/outils/tonnage", changefreq: "monthly", priority: "0.7" },
@@ -68,6 +74,27 @@ async function build(): Promise<Entry[]> {
     { path: "/calculateur", changefreq: "monthly", priority: "0.8" },
     { path: "/types-de-camions", changefreq: "monthly", priority: "0.7" },
   ];
+
+  // /materiaux/:slug — mêmes fiches que le catalogue public (RPC jsc_public_catalog),
+  // afin de n'annoncer que des URLs qui existent réellement.
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/jsc_public_catalog`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+    });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const materials = (await res.json()) as { slug: string | null }[];
+    for (const m of materials) {
+      if (m.slug) entries.push({ path: `/materiaux/${m.slug}`, changefreq: "monthly", priority: "0.7" });
+    }
+  } catch (e) {
+    console.warn("sitemap: could not fetch materials:", e);
+  }
 
   // /livraison/:citySlug — only cities that actually have visible dumps.
   // Uses the same public RPC the app uses so we never advertise an empty city.

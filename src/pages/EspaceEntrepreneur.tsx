@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { ArrowRight, CheckCircle2, LogIn, ShieldCheck, UserPlus } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 
@@ -18,15 +19,20 @@ const EspaceEntrepreneur = () => {
   const { user, isReady } = useAuthReady();
 
   useEffect(() => {
-    document.title = "Espace Entrepreneur | Déposez votre remblai — Vrac Québec";
-  }, []);
-
-  useEffect(() => {
     if (isReady && user) navigate("/entrepreneur", { replace: true });
   }, [isReady, user, navigate]);
 
   return (
     <main className="min-h-screen bg-background">
+      <Helmet>
+        <title>Espace entrepreneur — réseau de dompes | Vrac Québec</title>
+        <meta name="description" content="Accédez au réseau de sites de dépôt de Vrac Québec : recherche de dompes, demandes d'accès et suivi de vos chantiers dans la région de Québec." />
+        <link rel="canonical" href="https://vracquebec.ca/espace-entrepreneur" />
+        <meta property="og:title" content="Espace entrepreneur — réseau de dompes | Vrac Québec" />
+        <meta property="og:description" content="Recherche de dompes, demandes d'accès et suivi de chantiers pour les entrepreneurs." />
+        <meta property="og:url" content="https://vracquebec.ca/espace-entrepreneur" />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <section className="container mx-auto max-w-4xl px-4 py-12 sm:py-16">
         <div className="text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 font-display text-xs font-semibold text-primary">

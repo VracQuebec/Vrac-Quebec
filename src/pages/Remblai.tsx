@@ -1,7 +1,8 @@
 // Points 6 & 33 — landing remblai économique (trafic Marketplace, mobile d'abord)
 // avec le parcours de demande intégré directement dans la page.
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { ArrowRight, Coins, MapPin, Recycle, ShieldCheck } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import ParcoursForm from "@/components/parcours/ParcoursForm";
@@ -14,18 +15,27 @@ const BENEFITS = [
 
 const Remblai = () => {
   const formRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    document.title = "Remblai économique près de chez vous | Vrac Québec";
-    document
-      .querySelector('meta[name="description"]')
-      ?.setAttribute(
-        "content",
-        "Besoin de remplir un terrain? Des surplus de terre, sable ou remblai provenant de chantiers peuvent être disponibles dans votre secteur. Vérifiez les possibilités."
-      );
-  }, []);
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Remblai à Québec — terre et sable de chantier | Vrac Québec</title>
+        <meta name="description" content="Besoin de remblai pour remplir un terrain à Québec et les environs ? Terre, sable et matériaux de surplus de chantier, livraison coordonnée par Vrac Québec." />
+        <link rel="canonical" href="https://vracquebec.ca/remblai" />
+        <meta property="og:title" content="Remblai à Québec — terre et sable de chantier | Vrac Québec" />
+        <meta property="og:description" content="Terre, sable et remblai provenant de surplus de chantier, près de votre terrain dans la région de Québec." />
+        <meta property="og:url" content="https://vracquebec.ca/remblai" />
+        <meta property="og:type" content="website" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Service",
+          name: "Remblai et matériaux de remplissage",
+          serviceType: "Fourniture de remblai en vrac",
+          provider: { "@type": "Organization", name: "Vrac Québec", url: "https://vracquebec.ca" },
+          areaServed: { "@type": "City", name: "Québec" },
+          url: "https://vracquebec.ca/remblai",
+        })}</script>
+      </Helmet>
       <TransportBanner />
 
       <main className="container mx-auto max-w-3xl px-4 py-10 sm:py-14">
