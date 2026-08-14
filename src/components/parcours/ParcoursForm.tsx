@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { getAttribution } from "@/lib/analytics/attribution";
+import { trackEvent } from "@/lib/analytics/ga4";
 import {
   REMBLAI_MATERIAL_CATEGORIES,
   REMBLAI_MATERIAL_IMAGES,
