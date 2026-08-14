@@ -9,6 +9,11 @@ import { Loader2 } from "lucide-react";
 
 export const LEAD_SOURCES = [
   { value: "vracquebec.ca", label: "Site vracquebec.ca" },
+  { value: "google", label: "Google (campagne)" },
+  { value: "facebook", label: "Facebook / Instagram" },
+  { value: "referencement_naturel", label: "Référencement naturel" },
+  { value: "pages_locales", label: "Pages locales" },
+  { value: "campagne", label: "Autre campagne" },
   { value: "marketplace", label: "Marketplace Facebook" },
   { value: "messenger", label: "Facebook Messenger" },
   { value: "phone", label: "Téléphone" },
