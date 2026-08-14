@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -772,6 +773,15 @@ const TransportRequest = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Helmet>
+        <title>Demande de transport | Vrac Québec</title>
+        <meta
+          name="description"
+          content="Formulaire de demande de transport de matériaux en vrac — étape opérationnelle du parcours Vrac Québec."
+        />
+        <meta name="robots" content="noindex, follow" />
+        <link rel="canonical" href="https://vracquebec.ca/demande-transport" />
+      </Helmet>
       <TransportBanner />
       <header className="border-b border-border bg-card/80 backdrop-blur sticky top-0 z-40">
         <div className="container mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
