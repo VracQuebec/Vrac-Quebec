@@ -225,6 +225,40 @@ const Index = () => {
               </a>
             </div>
           </section>
+
+          {/* Maillage interne — accès direct aux pages de contenu et parcours (SEO + navigation). */}
+          <nav
+            aria-labelledby="liens-utiles-title"
+            className="mt-16 sm:mt-20 max-w-4xl mx-auto text-center"
+          >
+            <h2
+              id="liens-utiles-title"
+              className="text-sm font-display font-bold uppercase tracking-wide text-muted-foreground"
+            >
+              Ressources Vrac Québec
+            </h2>
+            <ul className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              {[
+                { href: "/materiaux", label: "Catalogue de matériaux en vrac" },
+                { href: "/remblai", label: "Remblai pour remplir un terrain" },
+                { href: "/depot-materiaux", label: "Trouver une dompe" },
+                { href: "/soumission", label: "Estimation de livraison" },
+                { href: "/calculateur", label: "Calculateur de quantité" },
+                { href: "/types-de-camions", label: "Types de camions" },
+                { href: "/livraison", label: "Secteurs desservis" },
+                { href: "/blog", label: "Guides et conseils" },
+              ].map((l) => (
+                <li key={l.href}>
+                  <a
+                    href={l.href}
+                    className="inline-flex items-center rounded-full border border-border bg-card px-4 py-2 font-body text-sm text-foreground transition-colors hover:border-primary hover:text-primary"
+                  >
+                    {l.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
       </main>
 
