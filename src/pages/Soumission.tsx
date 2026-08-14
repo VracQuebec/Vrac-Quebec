@@ -67,7 +67,7 @@ export default function Soumission() {
   const [confirmation, setConfirmation] = useState<{ number: string; quote: PublicQuote } | null>(null);
   // Verrou synchrone : un double clic ne peut jamais déclencher deux envois.
   const sending = useRef(false);
-  const honeypot = useRef<HTMLInputElement>(null);
+  const [honeypot, setHoneypot] = useState("");
   const startedAt = useRef<number>(Date.now());
 
   // Bandeau de navigation universel : prévient avant de quitter une saisie en cours.
@@ -150,7 +150,7 @@ export default function Soumission() {
           company: contact.company.trim() || undefined, comments: contact.comments.trim() || undefined,
         },
         attribution: getAttribution(),
-        website: honeypot.current?.value ?? "",
+        website: honeypot,
         form_started_at: startedAt.current,
       });
       setConfirmation({ number: res.request_number, quote: res.quote.public });
@@ -258,7 +258,8 @@ export default function Soumission() {
               {step === 4 && <StepDate date={date} setDate={setDate} />}
               {step === 5 && <StepContact contact={contact} setContact={setContact} />}
               {/* Champ piège anti-robot : invisible, jamais rempli par un humain. */}
-              <input ref={honeypot} type="text" name="website" tabIndex={-1} autoComplete="off"
+              <input type="text" name="website" tabIndex={-1} autoComplete="off"
+                value={honeypot} onChange={(e) => setHoneypot(e.target.value)}
                 aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 opacity-0" />
 
               {step === 6 && (
