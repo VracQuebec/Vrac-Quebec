@@ -97,6 +97,36 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vracquebec.ca/materiaux/terre-tamisee</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/materiaux/sable</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/materiaux/sable-a-compaction</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/materiaux/pierre-concassee-0-3-4</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/materiaux/pierre-concassee-3-4-net</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/materiaux/poussiere-de-pierre</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vracquebec.ca/livraison/quebec</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
