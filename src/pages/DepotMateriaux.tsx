@@ -1,5 +1,6 @@
 // Point 34 — parcours « sortir de la terre / des matériaux » (dompe / site receveur).
 import { useEffect, useRef } from "react";
+import { Helmet } from "react-helmet-async";
 import { ArrowRight, MapPin, ShieldCheck, Truck } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import ParcoursForm from "@/components/parcours/ParcoursForm";
@@ -13,18 +14,27 @@ const STEPS = [
 
 const DepotMateriaux = () => {
   const formRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    document.title = "Trouver une dompe (site de dépôt) au Québec | Vrac Québec";
-    document
-      .querySelector('meta[name="description"]')
-      ?.setAttribute(
-        "content",
-        "Besoin de vous débarrasser de terre ou de matériaux? Vrac Québec cherche un site de dépôt (dompe) ou un site receveur compatible près de votre chantier."
-      );
-  }, []);
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Trouver une dompe à Québec — site de dépôt | Vrac Québec</title>
+        <meta name="description" content="Sortir de la terre ou des matériaux de chantier ? Vrac Québec trouve une dompe ou un site de dépôt compatible près de votre chantier à Québec et en région." />
+        <link rel="canonical" href="https://vracquebec.ca/depot-materiaux" />
+        <meta property="og:title" content="Trouver une dompe à Québec — site de dépôt | Vrac Québec" />
+        <meta property="og:description" content="Site de dépôt ou site receveur compatible avec votre matériau, votre camion et votre secteur." />
+        <meta property="og:url" content="https://vracquebec.ca/depot-materiaux" />
+        <meta property="og:type" content="website" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Service",
+          name: "Recherche de site de dépôt (dompe)",
+          serviceType: "Disposition de matériaux d'excavation",
+          provider: { "@type": "Organization", name: "Vrac Québec", url: "https://vracquebec.ca" },
+          areaServed: { "@type": "City", name: "Québec" },
+          url: "https://vracquebec.ca/depot-materiaux",
+        })}</script>
+      </Helmet>
       <TransportBanner />
 
       <main className="container mx-auto max-w-3xl px-4 py-10 sm:py-14">

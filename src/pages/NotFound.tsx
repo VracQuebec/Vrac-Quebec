@@ -1,5 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import TransportBanner from "@/components/TransportBanner";
 
 const NotFound = () => {
@@ -11,6 +12,12 @@ const NotFound = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-muted">
+      <Helmet>
+        <title>Page introuvable (404) | Vrac Québec</title>
+        <meta name="description" content="Cette page n'existe pas ou a été déplacée. Retournez à l'accueil de Vrac Québec ou trouvez une dompe près de votre chantier." />
+        <meta name="robots" content="noindex, follow" />
+        <meta property="og:title" content="Page introuvable (404) | Vrac Québec" />
+      </Helmet>
       <TransportBanner />
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center px-6">
