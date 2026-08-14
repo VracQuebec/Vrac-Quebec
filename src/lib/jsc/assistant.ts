@@ -82,4 +82,10 @@ export const confirmEstimate = (input: {
   address: string;
   desired_date?: string | null;
   contact: AssistantContact;
-}) => call<{ request_number: string; quote: { public: PublicQuote } }>({ action: "submit", ...input });
+  attribution?: Record<string, string | null>;
+  website?: string;
+  form_started_at?: number;
+}) =>
+  call<{ request_number: string; submission_id?: string | null; deduplicated?: boolean; quote: { public: PublicQuote } }>(
+    { action: "submit", ...input },
+  );

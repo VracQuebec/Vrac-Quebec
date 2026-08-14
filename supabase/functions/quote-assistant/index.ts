@@ -15,6 +15,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { type Unit } from '../_shared/vqos/index.ts';
 import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
+import { clientIp, GuardError, guardPublicRequest, rememberResult } from '../_shared/public-guard.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
 const EXCLUDED = /remblai/i; // Le module Remblai reste totalement indépendant.
@@ -31,6 +32,22 @@ function db() {
   return createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
     auth: { persistSession: false },
   });
+}
+
+// Courriels transactionnels : jamais bloquants pour la confirmation client.
+async function sendEmail(payload: Record<string, unknown>) {
+  try {
+    await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-transactional-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    console.error('assistant email failed', e instanceof Error ? e.message : e);
+  }
 }
 
 // ---------- 1. Catalogue (100 % paramètres administrateur) ----------
@@ -147,7 +164,7 @@ async function computeQuote(sb: any, args: QuoteArgs) {
 }
 
 // ---------- 4. Confirmation : client + demande + estimation ----------
-async function submit(sb: any, body: any) {
+async function submit(sb: any, body: any, req: Request) {
   const args = readQuoteArgs(body);
   const name = clean(body?.contact?.name, 160);
   const phone = clean(body?.contact?.phone, 40);
@@ -161,8 +178,34 @@ async function submit(sb: any, body: any) {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new Error('Un courriel valide est requis.');
   if (desiredDate && !/^\d{4}-\d{2}-\d{2}$/.test(desiredDate)) throw new Error('Date souhaitée invalide.');
 
+  // Anti-robot, limitation de débit et surtout DÉDUPLICATION : un double
+  // clic (ou un renvoi identique) ne doit jamais créer deux demandes CRM.
+  const fingerprint = [
+    email.toLowerCase(), args.material_id, String(args.quantity), args.unit, args.address.toLowerCase(),
+  ].join('|');
+  const guard = await guardPublicRequest(sb, {
+    scope: 'assistant-soumission',
+    identity: email.toLowerCase(),
+    fingerprint,
+    honeypot: body?.website,
+    formStartedAt: body?.form_started_at,
+    freeText: [comments, name].filter(Boolean).join(' '),
+    ip: clientIp(req),
+  });
+
   // Recalcul serveur : la valeur affichée au client n'est jamais celle enregistrée sans vérification.
   const { result, delivery } = await computeQuote(sb, args);
+
+  if (guard.duplicate && guard.previous?.request_number) {
+    return {
+      ok: true,
+      deduplicated: true,
+      request_number: String(guard.previous.request_number),
+      submission_id: guard.previous.submission_id ?? null,
+      quote: { public: result.public },
+    };
+  }
+
   const best = result.technical.selected as Record<string, any>;
 
   const { data: client, error: clientError } = await sb.from('jsc_clients').insert({
@@ -226,9 +269,85 @@ async function submit(sb: any, body: any) {
   });
   if (logged.error) console.error('audit log failed', logged.error.message);
 
+  // ---------- CRM unique : la demande apparaît aussi dans `submissions` ----------
+  const attribution = {
+    utm_source: clean(body?.attribution?.utm_source, 80),
+    utm_medium: clean(body?.attribution?.utm_medium, 80),
+    utm_campaign: clean(body?.attribution?.utm_campaign, 120),
+    landing_referrer: clean(body?.attribution?.landing_referrer, 300),
+  };
+  const description = [
+    'Demande provenant de /soumission (assistant de transport et livraison).',
+    `Matériau : ${result.public.material.name}`,
+    `Quantité demandée : ${args.quantity} ${args.unit}`,
+    `Tonnage calculé : ${result.public.tonnage} tonnes`,
+    `Voyages estimés : ${result.public.trips}`,
+    `Estimation totale : ${result.public.total} $`,
+    `Référence estimation : ${request.request_number}`,
+    desiredDate ? `Date souhaitée : ${desiredDate}` : '',
+    comments ? `Notes du demandeur : ${comments}` : '',
+  ].filter(Boolean).join('\n');
+
+  let submissionId: string | null = null;
+  const { data: lead, error: leadError } = await sb.from('submissions').insert({
+    materials: [result.public.material.name],
+    property_type: 'Livraison de matériaux',
+    quantity: `${args.quantity} ${args.unit}`,
+    tonnage: String(result.public.tonnage ?? ''),
+    address: delivery.address ?? args.address,
+    postal_code: delivery.postal_code ?? '',
+    city: delivery.city ?? null,
+    name,
+    company,
+    email,
+    phone,
+    description,
+    request_type: 'transport',
+    service_type: 'transport_livraison',
+    deliver_or_remove: 'À livrer',
+    desired_date: desiredDate,
+    ...attribution,
+  }).select('id').single();
+
+  if (leadError) {
+    console.error('assistant CRM lead failed', leadError.message);
+  } else if (lead?.id) {
+    submissionId = lead.id as string;
+    // Le déclencheur public neutralise les coordonnées : on les réapplique.
+    if (typeof delivery.lat === 'number' && typeof delivery.lng === 'number') {
+      await sb.from('submissions').update({
+        latitude: delivery.lat,
+        longitude: delivery.lng,
+        formatted_address: delivery.address,
+        geocoding_status: 'ok',
+        geocoding_provider: 'google',
+      }).eq('id', submissionId);
+    }
+    const mails = (async () => {
+      await sendEmail({
+        templateName: 'new-lead-notification',
+        idempotencyKey: `new-lead-${submissionId}`,
+        submissionId,
+      });
+      await sendEmail({
+        templateName: 'client-confirmation',
+        idempotencyKey: `client-confirm-${submissionId}`,
+        submissionId,
+      });
+    })();
+    const rt = (globalThis as { EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void } }).EdgeRuntime;
+    if (rt?.waitUntil) rt.waitUntil(mails); else await mails;
+  }
+
+  await rememberResult(sb, 'assistant-soumission', fingerprint, {
+    request_number: request.request_number,
+    submission_id: submissionId,
+  });
+
   return {
     ok: true,
     request_number: request.request_number,
+    submission_id: submissionId,
     quote: { public: result.public },
   };
 }
@@ -255,11 +374,12 @@ Deno.serve(async (req) => {
         });
       }
       case 'submit':
-        return json(await submit(sb, body));
+        return json(await submit(sb, body, req));
       default:
         return json({ error: 'Action inconnue.' }, 400);
     }
   } catch (e) {
+    if (e instanceof GuardError) return json({ error: e.message }, e.status);
     const message = e instanceof Error ? e.message : 'Erreur inconnue';
     console.error('quote-assistant failed:', message);
     return json({ error: message }, 400);

@@ -5,7 +5,7 @@
 // des taxes) provient du Decision Engine et du Calculation Engine
 // via l'API `quote-assistant`. Le module Remblai reste indépendant.
 // ============================================================
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import {
@@ -25,6 +25,8 @@ import {
 } from "@/lib/jsc/assistant";
 import type { PublicQuote } from "@/lib/jsc/engine";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
+import { getAttribution } from "@/lib/analytics/attribution";
+import { trackEvent } from "@/lib/analytics/ga4";
 
 const STEPS = ["Matériau", "Type", "Quantité", "Livraison", "Date", "Coordonnées", "Estimation"];
 const money = (n: number) =>
@@ -63,6 +65,10 @@ export default function Soumission() {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState<{ number: string; quote: PublicQuote } | null>(null);
+  // Verrou synchrone : un double clic ne peut jamais déclencher deux envois.
+  const sending = useRef(false);
+  const [honeypot, setHoneypot] = useState("");
+  const startedAt = useRef<number>(Date.now());
 
   // Bandeau de navigation universel : prévient avant de quitter une saisie en cours.
   useUnsavedChangesGuard(
@@ -130,7 +136,8 @@ export default function Soumission() {
   };
 
   const submit = async () => {
-    if (!material || !quantityPayload) return;
+    if (!material || !quantityPayload || sending.current) return;
+    sending.current = true;
     setSubmitting(true);
     try {
       const res = await confirmEstimate({
@@ -142,9 +149,14 @@ export default function Soumission() {
           name: contact.name.trim(), phone: contact.phone.trim(), email: contact.email.trim(),
           company: contact.company.trim() || undefined, comments: contact.comments.trim() || undefined,
         },
+        attribution: getAttribution(),
+        website: honeypot,
+        form_started_at: startedAt.current,
       });
       setConfirmation({ number: res.request_number, quote: res.quote.public });
+      trackEvent("lead_created", { form: "soumission" });
     } catch (e) {
+      sending.current = false;
       toast({
         title: "Envoi impossible",
         description: e instanceof Error ? e.message : "Veuillez réessayer.",
@@ -245,6 +257,10 @@ export default function Soumission() {
               {step === 3 && <StepAddress address={address} setAddress={setAddress} />}
               {step === 4 && <StepDate date={date} setDate={setDate} />}
               {step === 5 && <StepContact contact={contact} setContact={setContact} />}
+              {/* Champ piège anti-robot : invisible, jamais rempli par un humain. */}
+              <input type="text" name="website" tabIndex={-1} autoComplete="off"
+                value={honeypot} onChange={(e) => setHoneypot(e.target.value)}
+                aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 opacity-0" />
 
               {step === 6 && (
                 <div className="space-y-4">
