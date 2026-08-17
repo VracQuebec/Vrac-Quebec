@@ -1089,6 +1089,23 @@ const TypeBadgePicker = ({
   );
 };
 
+const LeadSection = ({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="rounded-xl border border-border bg-card overflow-hidden min-w-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 bg-secondary/40 text-left"
+      >
+        <span className="text-xs font-display font-bold uppercase tracking-wide text-foreground">{title}</span>
+        {open ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
+      </button>
+      {open && <div className="p-3 sm:p-4 space-y-3 min-w-0">{children}</div>}
+    </section>
+  );
+};
+
 interface CardProps {
   sub: Submission;
   expanded: boolean;
@@ -1242,7 +1259,29 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
       </button>
 
       {expanded && (
-        <div className="px-4 sm:px-5 pb-5 border-t border-border pt-4 space-y-5">
+        <div className="px-3 sm:px-5 pb-5 border-t border-border pt-4 space-y-4 min-w-0">
+          {/* 1. Résumé du lead */}
+          <div className="rounded-xl border border-border bg-secondary/30 p-3 sm:p-4">
+            <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Résumé du lead</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 text-xs font-body min-w-0">
+              <D label="Numéro" v={sub.submission_number ? `#${sub.submission_number}` : "Non renseigné"} />
+              <D label="Client" v={sub.name || "Non renseigné"} />
+              <D label="Type de demande" v={requestTypeMeta(sub.request_type)?.label || sub.request_type || "Non renseigné"} />
+              <D label="Matériau principal" v={getMaterialLabels(sub.materials || []) || sub.other_material || "Non renseigné"} />
+              <D label="Voyages" v={sub.quantity || "Non renseigné"} />
+              <D label="Transport" v={sub.quote_truck || "Non renseigné"} />
+              <D label="Dompe / site" v={sub.selected_site_label || sub.dompe_number || "Aucun site sélectionné"} />
+              <D label="Priorité" v={LEAD_PRIORITIES.find((x) => x.value === sub.priority)?.label || sub.priority || "Non renseigné"} />
+              <D label="Créé le" v={formatDate(sub.created_at)} />
+              <D label="Dernière modification" v={(sub as unknown as { updated_at?: string | null }).updated_at ? formatDate((sub as unknown as { updated_at: string }).updated_at) : "Non renseigné"} />
+              <div className="sm:col-span-2 lg:col-span-3 flex items-center gap-2 pt-1">
+                <span className="text-muted-foreground">Statut :</span>
+                <StatusBadgePicker status={sub.status} statuses={leadStatuses} onChange={(v) => onStatusChange(v)} />
+              </div>
+            </div>
+          </div>
+          <LeadSection title="Client et coordonnées" defaultOpen={true}>
+            <div className="text-[10px] text-muted-foreground italic">Sauvegarde automatique à chaque modification.</div>
           {/* Quick actions */}
           <div className="flex flex-wrap gap-2">
             {sub.phone && (
@@ -1259,92 +1298,6 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
             </Link>
             <button onClick={onArchive} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary text-foreground text-xs font-display font-semibold"><Archive className="w-3.5 h-3.5" /> Archiver</button>
           </div>
-
-          {/* Status selector */}
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Statut du lead</label>
-            <div className="flex flex-wrap gap-2">
-              {leadStatuses.filter((s) => s.enabled || s.value === sub.status).map((s) => {
-                const active = sub.status === s.value;
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => onStatusChange(s.value)}
-                    style={active ? { backgroundColor: s.color, color: s.text_color, borderColor: "transparent" } : undefined}
-                    className={`px-3 py-2 min-h-[36px] rounded-md text-[11px] font-display font-bold uppercase border transition-all touch-manipulation ${active ? "" : "bg-card text-muted-foreground border-border hover:border-foreground/30 active:bg-secondary"}`}
-                  >
-                    {s.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Request type selector */}
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Type de demande</label>
-            <div className="flex flex-wrap gap-1.5">
-              {REQUEST_TYPES.map((t) => (
-                <button key={t.value} onClick={() => {
-                  const updates: any = { request_type: t.value };
-                  updates.visible_to_entrepreneur = t.value === "remblai";
-                  onUpdate(updates);
-                }}
-                  className={`px-2.5 py-1 rounded text-[11px] font-display font-bold border transition-all ${normalizeRequestType(sub.request_type) === t.value ? t.color : "bg-card text-muted-foreground border-border hover:border-foreground/30"}`}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Priority + visibility + assigned */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Priorité</label>
-              <div className="flex gap-1.5">
-                {LEAD_PRIORITIES.map((p) => (
-                  <button key={p.value} onClick={() => onUpdate({ priority: p.value })}
-                    className={`px-2.5 py-1 rounded text-[11px] font-display font-bold uppercase border transition-all ${sub.priority === p.value ? p.color + " border-transparent" : "bg-card text-muted-foreground border-border hover:border-foreground/30"}`}>
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Entrepreneur assigné</label>
-              <select value={sub.assigned_entrepreneur || ""}
-                onChange={(e) => onUpdate({ assigned_entrepreneur: e.target.value || null })}
-                className="w-full px-2 py-1.5 text-xs rounded-lg border border-border bg-background font-body">
-                <option value="">— Aucun —</option>
-                {entrepreneurs.map((e) => (
-                  <option key={e.user_id} value={e.user_id}>{e.email}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Afficher sur carte entrepreneurs</label>
-              <button onClick={() => onUpdate({ visible_to_entrepreneur: !sub.visible_to_entrepreneur })}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-bold uppercase border ${sub.visible_to_entrepreneur ? "bg-emerald-600 text-white border-transparent" : "bg-card text-muted-foreground border-border"}`}>
-                {sub.visible_to_entrepreneur ? <><Eye className="w-3.5 h-3.5" /> Oui</> : <><EyeOff className="w-3.5 h-3.5" /> Non</>}
-              </button>
-            </div>
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Afficher sur carte administration</label>
-              <button onClick={() => onUpdate({ show_on_admin_map: !(sub.show_on_admin_map !== false) })}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-bold uppercase border ${sub.show_on_admin_map !== false ? "bg-emerald-600 text-white border-transparent" : "bg-card text-muted-foreground border-border"}`}>
-                {sub.show_on_admin_map !== false ? <><Eye className="w-3.5 h-3.5" /> Oui</> : <><EyeOff className="w-3.5 h-3.5" /> Non</>}
-              </button>
-            </div>
-          </div>
-
-          {/* Editable details grid */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <h3 className="text-sm font-display font-bold uppercase tracking-wide text-foreground">Fiche client modifiable</h3>
-              <span className="text-[10px] text-muted-foreground italic">— sauvegarde automatique à chaque modification</span>
-            </div>
-
             {/* Contact */}
             <div className="bg-secondary/30 rounded-lg p-3 mb-3">
               <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Contact</div>
@@ -1356,7 +1309,8 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                 <InlineField label="Code postal" type="text" value={sub.postal_code || ""} onSave={(v) => onUpdate({ postal_code: v })} />
               </div>
             </div>
-
+          </LeadSection>
+          <LeadSection title="Demande et projet" defaultOpen={true}>
             {/* Matériaux & projet */}
             <div className="bg-secondary/30 rounded-lg p-3 mb-3">
               <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Matériaux et projet</div>
@@ -1399,7 +1353,114 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                 </div>
               </div>
             </div>
+            {/* Notes client */}
+            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
+              <InlineField
+                label="Notes du client (description)"
+                type="textarea"
+                rows={3}
+                value={sub.description || ""}
+                onSave={(v) => onUpdate({ description: v || null })}
+              />
+            </div>
+          {sub.photos && sub.photos.length > 0 && (
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Photos</label>
+              <LeadPhotos photos={sub.photos} />
+            </div>
+          )}
+          </LeadSection>
+          <LeadSection title="Statut et suivi" defaultOpen={true}>
+          {/* Status selector */}
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Statut du lead</label>
+            <div className="flex flex-wrap gap-2">
+              {leadStatuses.filter((s) => s.enabled || s.value === sub.status).map((s) => {
+                const active = sub.status === s.value;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => onStatusChange(s.value)}
+                    style={active ? { backgroundColor: s.color, color: s.text_color, borderColor: "transparent" } : undefined}
+                    className={`px-3 py-2 min-h-[36px] rounded-md text-[11px] font-display font-bold uppercase border transition-all touch-manipulation ${active ? "" : "bg-card text-muted-foreground border-border hover:border-foreground/30 active:bg-secondary"}`}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {/* Request type selector */}
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Type de demande</label>
+            <div className="flex flex-wrap gap-1.5">
+              {REQUEST_TYPES.map((t) => (
+                <button key={t.value} onClick={() => {
+                  const updates: any = { request_type: t.value };
+                  updates.visible_to_entrepreneur = t.value === "remblai";
+                  onUpdate(updates);
+                }}
+                  className={`px-2.5 py-1 rounded text-[11px] font-display font-bold border transition-all ${normalizeRequestType(sub.request_type) === t.value ? t.color : "bg-card text-muted-foreground border-border hover:border-foreground/30"}`}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Priority + visibility + assigned */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Priorité</label>
+              <div className="flex gap-1.5">
+                {LEAD_PRIORITIES.map((p) => (
+                  <button key={p.value} onClick={() => onUpdate({ priority: p.value })}
+                    className={`px-2.5 py-1 rounded text-[11px] font-display font-bold uppercase border transition-all ${sub.priority === p.value ? p.color + " border-transparent" : "bg-card text-muted-foreground border-border hover:border-foreground/30"}`}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Entrepreneur assigné</label>
+              <select value={sub.assigned_entrepreneur || ""}
+                onChange={(e) => onUpdate({ assigned_entrepreneur: e.target.value || null })}
+                className="w-full px-2 py-1.5 text-xs rounded-lg border border-border bg-background font-body">
+                <option value="">— Aucun —</option>
+                {entrepreneurs.map((e) => (
+                  <option key={e.user_id} value={e.user_id}>{e.email}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Afficher sur carte entrepreneurs</label>
+              <button onClick={() => onUpdate({ visible_to_entrepreneur: !sub.visible_to_entrepreneur })}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-bold uppercase border ${sub.visible_to_entrepreneur ? "bg-emerald-600 text-white border-transparent" : "bg-card text-muted-foreground border-border"}`}>
+                {sub.visible_to_entrepreneur ? <><Eye className="w-3.5 h-3.5" /> Oui</> : <><EyeOff className="w-3.5 h-3.5" /> Non</>}
+              </button>
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Afficher sur carte administration</label>
+              <button onClick={() => onUpdate({ show_on_admin_map: !(sub.show_on_admin_map !== false) })}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-bold uppercase border ${sub.show_on_admin_map !== false ? "bg-emerald-600 text-white border-transparent" : "bg-card text-muted-foreground border-border"}`}>
+                {sub.show_on_admin_map !== false ? <><Eye className="w-3.5 h-3.5" /> Oui</> : <><EyeOff className="w-3.5 h-3.5" /> Non</>}
+              </button>
+            </div>
+          </div>
+          </LeadSection>
+          <LeadSection title="Transport" defaultOpen={false}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 text-xs font-body min-w-0">
+              <D label="Type de camion" v={sub.quote_truck || "Non renseigné"} />
+              <D label="Nombre de voyages" v={sub.quote_trips != null ? String(sub.quote_trips) : (sub.quantity || "Non renseigné")} />
+              <D label="Distance" v={sub.quote_distance_km != null ? `${sub.quote_distance_km} km` : "Non renseigné"} />
+              <D label="Durée estimée" v={sub.quote_duration_minutes != null ? `${sub.quote_duration_minutes} min` : "Non renseigné"} />
+              <D label="Camions acceptés" v={(sub.truck_types_allowed || []).join(", ") || "Non renseigné"} />
+              <D label="Camions lourds" v={sub.access_heavy_truck || "Non renseigné"} />
+              <D label="Accessibilité camion" v={(sub.accessibility || []).join(", ") || "Non renseigné"} />
+              <D label="Demande de transport" v={linkedTransport ? (linkedTransport.requestNumber || linkedTransport.id.slice(0, 8)) : "Aucune"} />
+            </div>
 
+          </LeadSection>
+          <LeadSection title="Livraison et accessibilité" defaultOpen={false}>
             {/* Dimensions & livraison */}
             <div className="bg-secondary/30 rounded-lg p-3 mb-3">
               <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Dimensions et livraison</div>
@@ -1420,7 +1481,8 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                 />
               </div>
             </div>
-
+          </LeadSection>
+          <LeadSection title="Dompe / site" defaultOpen={false}>
             {/* Budget & machinerie */}
             {normalizeRequestType(sub.request_type) === "remblai" && (() => {
               const site: SiteLike = {
@@ -1537,52 +1599,6 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                 </div>
               );
             })()}
-
-            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
-              <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Budget et machinerie</div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <InlineField label="Budget max" type="text" value={sub.budget_max || ""} onSave={(v) => onUpdate({ budget_max: v || null })} />
-                <InlineField
-                  label="Unité budget"
-                  type="select"
-                  value={sub.budget_unit || ""}
-                  allowEmpty
-                  options={[
-                    { value: "$ / voyage", label: "$ / voyage" },
-                    { value: "$ / tonne", label: "$ / tonne" },
-                    { value: "$ total", label: "$ total" },
-                  ]}
-                  onSave={(v) => onUpdate({ budget_unit: v || null })}
-                />
-                <InlineField
-                  label="Machinerie sur place"
-                  type="boolean"
-                  value={!!sub.machinery_available}
-                  onSave={(v) => onUpdate({ machinery_available: v })}
-                />
-              </div>
-              <div className="mt-3">
-                <InlineField
-                  label="Description machinerie"
-                  type="textarea"
-                  rows={2}
-                  value={sub.machinery_description || ""}
-                  onSave={(v) => onUpdate({ machinery_description: v || null })}
-                />
-              </div>
-            </div>
-
-            {/* Notes client */}
-            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
-              <InlineField
-                label="Notes du client (description)"
-                type="textarea"
-                rows={3}
-                value={sub.description || ""}
-                onSave={(v) => onUpdate({ description: v || null })}
-              />
-            </div>
-
             {/* Sélection du comparateur — rattachée à cette demande (lecture seule) */}
             {!sub.selected_site_id ? (
               <div className="mb-3 rounded-lg border border-border bg-muted/30 p-3 text-xs font-body text-muted-foreground">
@@ -1664,41 +1680,80 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                 </div>
               </div>
             )}
-
-            {/* Lecture seule */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground font-body bg-muted/30 rounded-lg p-3">
-              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Numéro :</span> #{sub.submission_number}</div>
-              {sub.dompe_number && <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Dompe :</span> {sub.dompe_number}</div>}
-              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Créé le :</span> {formatDate(sub.created_at)}</div>
-              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">GPS :</span> {sub.latitude && sub.longitude ? `${sub.latitude.toFixed(4)}, ${sub.longitude.toFixed(4)}` : "—"}</div>
-              <div className="sm:col-span-2">
-                <span className="uppercase tracking-wide text-[10px] font-display font-bold">Validation géo :</span>{" "}
-                {(() => {
-                  const st = sub.geocoding_status || "pending";
-                  const map: Record<string, { label: string; cls: string }> = {
-                    validated_address: { label: "Adresse validée", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
-                    validated_postal:  { label: "Centre code postal", cls: "bg-blue-100 text-blue-800 border-blue-300" },
-                    approximate:       { label: "Position approximative", cls: "bg-amber-100 text-amber-800 border-amber-300" },
-                    error:             { label: "Erreur géocodage", cls: "bg-rose-100 text-rose-800 border-rose-300" },
-                    pending:           { label: "Non vérifiée", cls: "bg-slate-100 text-slate-700 border-slate-300" },
-                  };
-                  const v = map[st] || map.pending;
-                  return <span className={`inline-block px-2 py-0.5 rounded border text-[11px] font-display font-semibold ${v.cls}`}>{v.label}</span>;
-                })()}
+          </LeadSection>
+          <LeadSection title="Budget et machinerie" defaultOpen={false}>
+            <div className="bg-secondary/30 rounded-lg p-3 mb-3">
+              <div className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-2">Budget et machinerie</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <InlineField label="Budget max" type="text" value={sub.budget_max || ""} onSave={(v) => onUpdate({ budget_max: v || null })} />
+                <InlineField
+                  label="Unité budget"
+                  type="select"
+                  value={sub.budget_unit || ""}
+                  allowEmpty
+                  options={[
+                    { value: "$ / voyage", label: "$ / voyage" },
+                    { value: "$ / tonne", label: "$ / tonne" },
+                    { value: "$ total", label: "$ total" },
+                  ]}
+                  onSave={(v) => onUpdate({ budget_unit: v || null })}
+                />
+                <InlineField
+                  label="Machinerie sur place"
+                  type="boolean"
+                  value={!!sub.machinery_available}
+                  onSave={(v) => onUpdate({ machinery_available: v })}
+                />
+              </div>
+              <div className="mt-3">
+                <InlineField
+                  label="Description machinerie"
+                  type="textarea"
+                  rows={2}
+                  value={sub.machinery_description || ""}
+                  onSave={(v) => onUpdate({ machinery_description: v || null })}
+                />
               </div>
             </div>
-          </div>
-
-          {sub.photos && sub.photos.length > 0 && (
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Photos</label>
-              <LeadPhotos photos={sub.photos} />
+          </LeadSection>
+          <LeadSection title="Communication et historique" defaultOpen={false}>
+            <div className="text-xs font-body text-muted-foreground">
+              Dernier contact : {notes[0] ? formatDate(notes[0].created_at) : "Non renseigné"}
             </div>
-          )}
+          {/* Quick actions */}
+          <div className="flex flex-wrap gap-2">
+            {sub.phone && (
+              <>
+                <a href={`tel:${phoneClean}`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold"><Phone className="w-3.5 h-3.5" /> Appeler</a>
+                <a href={`sms:${phoneClean}`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground text-background text-xs font-display font-semibold"><MessageSquare className="w-3.5 h-3.5" /> SMS</a>
+                <a href={`https://wa.me/1${phoneClean}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#25D366] text-white text-xs font-display font-semibold">🟢 WhatsApp</a>
+              </>
+            )}
+            <a href={`mailto:${sub.email}`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-display font-semibold"><Mail className="w-3.5 h-3.5" /> Courriel</a>
+            <a href={mapsUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-display font-semibold"><MapPin className="w-3.5 h-3.5" /> Carte</a>
+            <Link to={`/admin/calendrier?from_submission=${sub.id}`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold">
+              <CalendarDays className="w-3.5 h-3.5" /> Planifier au calendrier
+            </Link>
+            <button onClick={onArchive} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary text-foreground text-xs font-display font-semibold"><Archive className="w-3.5 h-3.5" /> Archiver</button>
+          </div>
+            <div className="space-y-2 max-h-60 overflow-auto min-w-0">
+              {notes.length === 0 && <p className="text-xs text-muted-foreground italic">Aucun échange enregistré.</p>}
+              {notes.map((n) => (
+                <div key={`comm-${n.id}`} className="text-sm bg-secondary/50 rounded-lg p-3 break-words">
+                  <div className="text-[10px] text-muted-foreground font-display uppercase mb-1">
+                    {formatDate(n.created_at)} {n.author_email && `• ${n.author_email}`}
+                  </div>
+                  <p className="font-body whitespace-pre-wrap">{n.note}</p>
+                </div>
+              ))}
+            </div>
 
+          </LeadSection>
+          <LeadSection title="Facturation et paiements" defaultOpen={false}>
           {/* Facturation */}
           <BillingSection submissionId={sub.id} />
-
+          </LeadSection>
+          <LeadSection title="Notes internes" defaultOpen={false}>
           {/* Internal notes timeline */}
           <div>
             <label className="block text-xs text-muted-foreground mb-1.5 font-display font-semibold uppercase">Notes internes (privées)</label>
@@ -1733,13 +1788,36 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               ))}
             </div>
           </div>
-
+          </LeadSection>
+          <LeadSection title="Informations du dossier" defaultOpen={false}>
+            {/* Lecture seule */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground font-body bg-muted/30 rounded-lg p-3">
+              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Numéro :</span> #{sub.submission_number}</div>
+              {sub.dompe_number && <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Dompe :</span> {sub.dompe_number}</div>}
+              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">Créé le :</span> {formatDate(sub.created_at)}</div>
+              <div><span className="uppercase tracking-wide text-[10px] font-display font-bold">GPS :</span> {sub.latitude && sub.longitude ? `${sub.latitude.toFixed(4)}, ${sub.longitude.toFixed(4)}` : "—"}</div>
+              <div className="sm:col-span-2">
+                <span className="uppercase tracking-wide text-[10px] font-display font-bold">Validation géo :</span>{" "}
+                {(() => {
+                  const st = sub.geocoding_status || "pending";
+                  const map: Record<string, { label: string; cls: string }> = {
+                    validated_address: { label: "Adresse validée", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
+                    validated_postal:  { label: "Centre code postal", cls: "bg-blue-100 text-blue-800 border-blue-300" },
+                    approximate:       { label: "Position approximative", cls: "bg-amber-100 text-amber-800 border-amber-300" },
+                    error:             { label: "Erreur géocodage", cls: "bg-rose-100 text-rose-800 border-rose-300" },
+                    pending:           { label: "Non vérifiée", cls: "bg-slate-100 text-slate-700 border-slate-300" },
+                  };
+                  const v = map[st] || map.pending;
+                  return <span className={`inline-block px-2 py-0.5 rounded border text-[11px] font-display font-semibold ${v.cls}`}>{v.label}</span>;
+                })()}
+              </div>
+            </div>
+          </LeadSection>
           <div className="flex justify-end pt-2 border-t border-border">
             <button onClick={onDelete} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-destructive hover:bg-destructive/10 font-display font-semibold">
               <Trash2 className="w-3.5 h-3.5" /> Supprimer définitivement
             </button>
-          </div>
-        </div>
+          </div>        </div>
       )}
     </div>
   );
