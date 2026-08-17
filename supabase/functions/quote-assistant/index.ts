@@ -356,6 +356,191 @@ async function submit(sb: any, body: any, req: Request) {
   };
 }
 
+// ---------- 5. Calculateur de soumission rapide (CRM, administrateurs) ----------
+// Même moteur, même configuration : seule l'interface change. Cette action
+// n'écrase jamais une donnée existante ; elle rattache la soumission au lead
+// déjà présent lorsqu'il existe, sinon elle en crée un.
+async function requireAdmin(req: Request) {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) throw new Error('Accès réservé aux administrateurs.');
+  const url = Deno.env.get('SUPABASE_URL')!;
+  const userClient = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: { headers: { Authorization: authHeader } },
+    auth: { persistSession: false },
+  });
+  const { data: userData } = await userClient.auth.getUser();
+  if (!userData?.user) throw new Error('Accès réservé aux administrateurs.');
+  const sb = db();
+  const { data: role } = await sb.rpc('has_role', { _user_id: userData.user.id, _role: 'admin' });
+  if (role !== true) throw new Error('Accès réservé aux administrateurs.');
+  return { sb, user: userData.user };
+}
+
+async function adminSave(req: Request, body: any) {
+  const { sb, user } = await requireAdmin(req);
+  const args = readQuoteArgs(body);
+  const name = clean(body?.contact?.name, 160);
+  const phone = clean(body?.contact?.phone, 40);
+  const email = clean(body?.contact?.email, 200);
+  const company = clean(body?.contact?.company, 160);
+  const notes = clean(body?.notes, 2000);
+  const source = clean(body?.source, 40) ?? 'crm';
+  const existingSubmissionId = clean(body?.submission_id, 40);
+
+  if (!name) throw new Error('Le nom du client est requis.');
+  if (!phone && !email) throw new Error('Un téléphone ou un courriel est requis.');
+
+  const { result, delivery } = await computeQuote(sb, args);
+  const best = result.technical.selected as Record<string, any>;
+
+  // --- Client CRM : réutilisé s'il existe déjà (jamais de doublon, jamais d'écrasement).
+  let clientId: string | null = null;
+  const orFilters = [
+    email ? `email.ilike.${email}` : null,
+    phone ? `phone.eq.${phone}` : null,
+  ].filter(Boolean).join(',');
+  if (orFilters) {
+    const { data: found } = await sb.from('jsc_clients').select('id').or(orFilters).limit(1).maybeSingle();
+    clientId = found?.id ?? null;
+  }
+  if (!clientId) {
+    const { data: created, error } = await sb.from('jsc_clients').insert({
+      client_type: company ? 'entreprise' : 'particulier',
+      name: company ?? name,
+      contact_name: name,
+      phone, email,
+      billing_address: delivery.address,
+      city: delivery.city,
+      postal_code: delivery.postal_code,
+    }).select('id').single();
+    if (error) throw new Error(error.message);
+    clientId = created.id as string;
+  }
+
+  const { data: request, error: requestError } = await sb.from('jsc_requests').insert({
+    client_id: clientId,
+    source,
+    material_id: args.material_id,
+    quantity: args.quantity,
+    quantity_unit: args.unit,
+    delivery_address: delivery.address,
+    city: delivery.city,
+    postal_code: delivery.postal_code,
+    latitude: delivery.lat,
+    longitude: delivery.lng,
+    notes,
+    created_by: user.id,
+  }).select('id,request_number').single();
+  if (requestError) throw new Error(requestError.message);
+
+  const { error: estimateError } = await sb.from('jsc_estimates').insert({
+    request_id: request.id,
+    engine_version: result.engine_version,
+    truck_id: best?.truck?.id ?? null,
+    supplier_id: best?.pickup?.supplier_id ?? null,
+    pickup_location_id: best?.pickup?.id ?? null,
+    material_id: result.public.material.id,
+    trips: result.public.trips,
+    distance_km: result.public.distance_km,
+    billed_hours: result.public.billable_hours,
+    material_cost: result.public.material_amount,
+    transport_cost: result.public.transport_amount,
+    subtotal: result.public.subtotal,
+    tax_total: result.public.tax_total,
+    total: result.public.total,
+    decision: result.technical.decision_trace as unknown as Record<string, unknown>,
+    calculation: { public: result.public, selected: best, options: result.technical.options },
+    settings_snapshot: result.technical.settings_used as unknown as Record<string, unknown>,
+    is_selected: true,
+  });
+  if (estimateError) throw new Error(estimateError.message);
+
+  const summary = [
+    `Soumission rapide ${request.request_number} (source : ${source})`,
+    `Matériau : ${result.public.material.name}`,
+    `Quantité : ${args.quantity} ${args.unit} (${result.public.tonnage} tonnes)`,
+    `Camion : ${result.public.truck?.name ?? '—'}`,
+    `Voyages : ${result.public.trips}`,
+    `Livraison : ${delivery.address ?? args.address}`,
+    `Matériau : ${result.public.material_amount} $ · Transport : ${result.public.transport_amount} $`,
+    `Sous-total : ${result.public.subtotal} $ · Taxes : ${result.public.tax_total} $ · Total : ${result.public.total} $`,
+    notes ? `Notes : ${notes}` : '',
+  ].filter(Boolean).join('\n');
+
+  // --- Lead CRM : rattachement prioritaire à une fiche existante.
+  let submissionId: string | null = existingSubmissionId;
+  if (!submissionId) {
+    const leadFilters = [
+      email ? `email.ilike.${email}` : null,
+      phone ? `phone.eq.${phone}` : null,
+    ].filter(Boolean).join(',');
+    if (leadFilters) {
+      const { data: lead } = await sb.from('submissions').select('id')
+        .or(leadFilters).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      submissionId = lead?.id ?? null;
+    }
+  }
+  let leadCreated = false;
+  if (!submissionId) {
+    const { data: lead, error: leadError } = await sb.from('submissions').insert({
+      materials: [result.public.material.name],
+      property_type: 'Livraison de matériaux',
+      quantity: `${args.quantity} ${args.unit}`,
+      tonnage: String(result.public.tonnage ?? ''),
+      address: delivery.address ?? args.address,
+      postal_code: delivery.postal_code ?? '',
+      city: delivery.city ?? null,
+      name, company, email, phone,
+      description: summary,
+      request_type: 'transport',
+      service_type: 'transport_livraison',
+      deliver_or_remove: 'À livrer',
+      latitude: delivery.lat,
+      longitude: delivery.lng,
+      formatted_address: delivery.address,
+      geocoding_status: 'ok',
+      geocoding_provider: 'google',
+      utm_source: source,
+    }).select('id').single();
+    if (leadError) throw new Error(leadError.message);
+    submissionId = lead.id as string;
+    leadCreated = true;
+    if (typeof delivery.lat === 'number' && typeof delivery.lng === 'number') {
+      await sb.from('submissions').update({
+        latitude: delivery.lat, longitude: delivery.lng,
+        formatted_address: delivery.address, geocoding_status: 'ok', geocoding_provider: 'google',
+      }).eq('id', submissionId);
+    }
+  }
+
+  // La fiche existante n'est jamais modifiée : la soumission est journalisée en note.
+  if (submissionId) {
+    await sb.from('lead_notes').insert({
+      submission_id: submissionId,
+      author_id: user.id,
+      author_email: user.email ?? null,
+      note: summary,
+    });
+  }
+
+  const logged = await sb.rpc('jsc_log_event', {
+    _action: 'admin_quick_quote',
+    _entity_type: 'jsc_requests',
+    _entity_id: request.id,
+    _label: request.request_number,
+    _context: { source, total: result.public.total, submission_id: submissionId, lead_created: leadCreated },
+  });
+  if (logged.error) console.error('audit log failed', logged.error.message);
+
+  return {
+    ok: true,
+    request_number: request.request_number,
+    submission_id: submissionId,
+    lead_created: leadCreated,
+    quote: { public: result.public },
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Méthode non supportée' }, 405);
@@ -379,6 +564,8 @@ Deno.serve(async (req) => {
       }
       case 'submit':
         return json(await submit(sb, body, req));
+      case 'admin_save':
+        return json(await adminSave(req, body));
       default:
         return json({ error: 'Action inconnue.' }, 400);
     }
