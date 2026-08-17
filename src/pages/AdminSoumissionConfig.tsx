@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import {
   SOUMISSION_MATERIALS, SOUMISSION_QUARRIES, SOUMISSION_TRUCKS, SOUMISSION_TAXES,
   SOUMISSION_SETTINGS, SOUMISSION_SUPPLIERS, SOUMISSION_CATEGORIES,
+  SOUMISSION_TRANSPORT_RATES, SOUMISSION_TRANSPORT_TAXES,
 } from "@/lib/jsc/soumission-config";
 
 const TABS = [
@@ -36,6 +37,8 @@ const TABS = [
   { id: "suppliers", label: "Fournisseurs", icon: Building2 },
   { id: "supply", label: "Approvisionnement", icon: Network },
   { id: "trucks", label: "Camions", icon: Truck },
+  { id: "transport_rates", label: "Tarifs de transport", icon: Truck },
+  { id: "transport_taxes", label: "Taxes du transport", icon: Percent },
   { id: "taxes", label: "Taxes", icon: Percent },
   { id: "settings", label: "Paramètres", icon: SlidersHorizontal },
   { id: "validation", label: "Validation", icon: ClipboardCheck },
@@ -245,6 +248,8 @@ export default function AdminSoumissionConfig() {
           {tab === "suppliers" && <ResourceManager resource={SOUMISSION_SUPPLIERS} companyId={companyId} />}
           {tab === "supply" && <SupplyMatrix />}
           {tab === "trucks" && <ResourceManager resource={SOUMISSION_TRUCKS} companyId={companyId} />}
+          {tab === "transport_rates" && <ResourceManager resource={SOUMISSION_TRANSPORT_RATES} companyId={null} />}
+          {tab === "transport_taxes" && <ResourceManager resource={SOUMISSION_TRANSPORT_TAXES} companyId={null} />}
           {tab === "taxes" && <ResourceManager resource={SOUMISSION_TAXES} companyId={companyId} />}
           {tab === "settings" && <GeneralSettings companyId={companyId} />}
           {tab === "validation" && <QuoteValidation companyId={companyId} />}

@@ -355,6 +355,55 @@ export const SOUMISSION_SETTINGS: SettingDef[] = [
   },
 ];
 
+/** Section — Tarifs de transport par voyage (grille administrable). */
+export const SOUMISSION_TRANSPORT_RATES: ResourceDef = {
+  id: "soum_transport_rates",
+  table: "transport_truck_rates",
+  title: "Tarifs de transport",
+  singular: "Tarif de transport",
+  description:
+    "Prix AVANT TAXES facturé PAR VOYAGE pour chaque type de camion. Modifier un tarif n'affecte jamais les demandes déjà enregistrées : chaque demande conserve le tarif en vigueur au moment de son envoi.",
+  icon: "Truck",
+  labelField: "label",
+  orderBy: [{ column: "sort_order", ascending: true }],
+  fields: [
+    {
+      key: "code", label: "Code technique", type: "text", inList: true, required: true,
+      help: "Identifiant stable utilisé par le calcul (ex. 10_roues). À ne pas modifier une fois en service.",
+    },
+    { key: "label", label: "Nom affiché", type: "text", inList: true, required: true },
+    {
+      key: "price_per_trip", label: "Prix par voyage", type: "number", inList: true, suffix: "$",
+      required: true, defaultValue: 0, help: "Montant avant taxes facturé pour un voyage.",
+    },
+    sortField,
+    activeField,
+  ],
+};
+
+/** Section — Taux de taxes appliqués au transport. */
+export const SOUMISSION_TRANSPORT_TAXES: ResourceDef = {
+  id: "soum_transport_taxes",
+  table: "transport_tax_rates",
+  title: "Taxes du transport",
+  singular: "Taux de taxe",
+  description:
+    "Taux appliqués au transport avant taxes (TPS et TVQ). Exprimés en décimales : 0,05 = 5 %.",
+  icon: "Percent",
+  labelField: "label",
+  orderBy: [{ column: "sort_order", ascending: true }],
+  fields: [
+    { key: "code", label: "Code", type: "text", inList: true, required: true, help: "tps ou tvq." },
+    { key: "label", label: "Nom affiché", type: "text", inList: true, required: true },
+    {
+      key: "rate", label: "Taux", type: "number", inList: true, required: true, defaultValue: 0,
+      help: "Valeur décimale : 0,05 pour 5 %, 0,09975 pour 9,975 %.",
+    },
+    sortField,
+    activeField,
+  ],
+};
+
 export const SOUMISSION_SECTIONS: ResourceDef[] = [
   SOUMISSION_MATERIALS,
   SOUMISSION_CATEGORIES,
