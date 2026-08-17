@@ -138,7 +138,7 @@ async function advise(sb: any, answers: Record<string, string>) {
 }
 
 // ---------- 3. Estimation (moteurs uniquement) ----------
-interface QuoteArgs { material_id: string; quantity: number; unit: Unit; address: string }
+interface QuoteArgs { material_id: string; quantity: number; unit: Unit; address: string; truck_id?: string | null }
 
 function readQuoteArgs(body: any): QuoteArgs {
   const material_id = body?.material_id;
@@ -149,14 +149,18 @@ function readQuoteArgs(body: any): QuoteArgs {
   if (!Number.isFinite(quantity) || quantity <= 0 || quantity > 100000) throw new Error('Quantité invalide.');
   if (!UNITS.includes(unit)) throw new Error('Unité invalide.');
   if (!address || address.length < 5) throw new Error('Adresse de livraison requise.');
-  return { material_id, quantity, unit, address };
+  const truck_id = typeof body?.truck_id === 'string' && body.truck_id.length >= 10 ? body.truck_id : null;
+  return { material_id, quantity, unit, address, truck_id };
 }
 
 async function computeQuote(sb: any, args: QuoteArgs) {
   const delivery = await geocode(args.address);
   const config = await loadConfig(sb, args.material_id);
   const result = await runCarrierQuote(
-    { material_id: args.material_id, quantity: args.quantity, unit: args.unit, delivery },
+    {
+      material_id: args.material_id, quantity: args.quantity, unit: args.unit, delivery,
+      truck_id: args.truck_id ?? null,
+    },
     config,
     distanceProvider,
   );
