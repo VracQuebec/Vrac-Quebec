@@ -21,6 +21,9 @@ export default function TransportEstimate({
   materialSubtotal?: number | null;
 }) {
   if (!pricing || "error" in pricing) {
+    const message = pricing && "error" in pricing
+      ? pricing.error
+      : "Sélectionnez un type de camion et un nombre de voyages.";
     return (
       <div className="rounded-2xl border-2 border-dashed border-border bg-muted/30 p-4 sm:p-5">
         <p className="text-[10px] font-display font-bold uppercase tracking-wide text-muted-foreground mb-2">
@@ -28,7 +31,7 @@ export default function TransportEstimate({
         </p>
         <p className="flex items-start gap-2 text-sm font-body text-muted-foreground">
           <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
-          {pricing?.error ?? "Sélectionnez un type de camion et un nombre de voyages."}
+          {message}
         </p>
       </div>
     );
