@@ -31,12 +31,12 @@ export function buildQuoteSummary(
   quote: PublicQuote,
   input: { quantity: number; unit: QuoteUnit; address?: string | null },
 ): string {
-  const lines = [
+  const lines: (string | null)[] = [
     "SOUMISSION VRAC QUÉBEC",
     "",
     `Matériau : ${quote.material.name}`,
     `Quantité : ${input.quantity} ${UNIT_LABELS[input.unit]}`,
-    input.address ? `Adresse de livraison : ${input.address}` : "",
+    input.address ? `Adresse de livraison : ${input.address}` : null,
     `Camion : ${quote.truck?.name ?? "—"}`,
     `Voyages : ${quote.trips}`,
     "",
@@ -49,7 +49,7 @@ export function buildQuoteSummary(
     "",
     QUICK_QUOTE_DISCLAIMER,
   ];
-  return lines.filter((l) => l !== "").join("\n").replace(/\n(Matériau : )/, "\n\n$1");
+  return lines.filter((l) => l !== null).join("\n");
 }
 
 export interface QuickQuoteSaveInput {
