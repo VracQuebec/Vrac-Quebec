@@ -284,6 +284,15 @@ const TransportRequest = () => {
   const [trips, setTrips] = useState<string>("");
   // Tarifs et taxes administrés (jamais codés en dur).
   const { rates: truckRates, taxes: taxRates } = useTransportRates();
+  const selectedRate = useMemo(
+    () => truckRates.find((r) => r.code === truckType) ?? null,
+    [truckRates, truckType],
+  );
+  /** Estimation recalculée dès que le camion ou le nombre de voyages change. */
+  const transportPricing = useMemo(
+    () => (taxRates ? computeTransportPricing(selectedRate, trips, taxRates) : null),
+    [selectedRate, trips, taxRates],
+  );
   const [desiredDate, setDesiredDate] = useState<string>("");
   const [desiredTime, setDesiredTime] = useState<string>("");
   const [clientNotes, setClientNotes] = useState<string>("");
