@@ -456,9 +456,9 @@ export default function EntrepreneurComparateur() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background">
       <TransportBanner />
-      <main className="container mx-auto max-w-3xl px-4 py-8">
+      <main className="container mx-auto w-full min-w-0 max-w-3xl px-4 py-8">
         <h1 className="font-display text-2xl font-extrabold text-foreground sm:text-3xl">
           Comparateur de sites de dépôt
         </h1>
