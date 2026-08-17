@@ -1523,26 +1523,46 @@ const TransportRequest = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="block">
                 <span className="block text-xs font-display font-bold uppercase text-muted-foreground mb-1.5">
-                  Type de camion
+                  Type de camion *
                 </span>
                 <select
                   value={truckType}
                   onChange={(e) => setTruckType(e.target.value)}
-                  className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground"
+                  className="h-12 w-full rounded-lg border border-input bg-background px-3 text-base sm:text-sm text-foreground"
                 >
-                  <option value="">{suggestedTruck ? `Suggéré : ${suggestedTruck}` : "À déterminer avec nous"}</option>
-                  {BULK_TRUCK_OPTIONS.map((t) => (
-                    <option key={t.key} value={t.label}>{t.label}</option>
+                  <option value="">Choisir un type de camion…</option>
+                  {truckRates.map((r) => (
+                    <option key={r.code} value={r.code}>
+                      {r.label} — {formatCad(r.price_per_trip)} / voyage
+                    </option>
                   ))}
-                  {/* Valeur historique ou préremplie hors nomenclature : conservée */}
-                  {truckType && !BULK_TRUCK_OPTIONS.some((t) => t.label === truckType) && (
+                  {/* Valeur historique ou préremplie hors grille : conservée */}
+                  {truckType && !truckRates.some((r) => r.code === truckType) && (
                     <option value={truckType}>{truckType}</option>
                   )}
                 </select>
               </label>
+              <label className="block">
+                <span className="block text-xs font-display font-bold uppercase text-muted-foreground mb-1.5">
+                  Nombre de voyages *
+                </span>
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  value={trips}
+                  onChange={(e) => setTrips(e.target.value)}
+                  placeholder="Ex. 3"
+                  className="h-12 w-full rounded-lg border border-input bg-background px-3 text-base sm:text-sm text-foreground"
+                />
+              </label>
               <Field label="Date souhaitée" value={desiredDate} onChange={setDesiredDate} type="date" />
               <Field label="Heure souhaitée" value={desiredTime} onChange={setDesiredTime} type="time" />
-              <Field label="Voyages estimés (facultatif)" value={trips} onChange={setTrips} placeholder="Ex. 3" type="number" />
+            </div>
+
+            <div className="mt-4">
+              <TransportEstimate pricing={transportPricing} />
             </div>
 
             <label className="block mt-3">
