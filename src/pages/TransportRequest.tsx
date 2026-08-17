@@ -679,7 +679,9 @@ const TransportRequest = () => {
         })),
       distance_km: selectedDump.distance_km ?? null,
       travel_time_minutes: selectedDump.duration_minutes ?? null,
-      truck_type: truckType || null,
+      // Le libellé sert à l'affichage CRM ; le code sert au recalcul serveur.
+      truck_type: selectedRate?.label ?? truckType ?? null,
+      truck_rate_code: selectedRate?.code ?? null,
       estimated_trips: trips ? Number(trips) : null,
       desired_date: desiredDate || null,
       desired_time: desiredTime || null,
