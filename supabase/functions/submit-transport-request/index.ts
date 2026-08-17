@@ -37,6 +37,7 @@ type Payload = {
   distance_km?: number | null;
   travel_time_minutes?: number | null;
   truck_type?: string | null;
+  truck_rate_code?: string | null;
   estimated_trips?: number | null;
   desired_date?: string | null;
   desired_time?: string | null;
@@ -93,6 +94,7 @@ function validate(p: Partial<Payload>): { ok: true; data: Payload } | { ok: fals
       distance_km: typeof p.distance_km === "number" ? p.distance_km : null,
       travel_time_minutes: typeof p.travel_time_minutes === "number" ? Math.round(p.travel_time_minutes) : null,
       truck_type: sanitize(p.truck_type, 100),
+      truck_rate_code: sanitize(p.truck_rate_code, 60),
       estimated_trips: typeof p.estimated_trips === "number" ? Math.round(p.estimated_trips) : null,
       desired_date: sanitize(p.desired_date, 20),
       desired_time: sanitize(p.desired_time, 20),
