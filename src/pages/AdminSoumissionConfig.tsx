@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft, Layers, MapPin, Truck, Percent, SlidersHorizontal, ShieldCheck, Loader2,
-  ClipboardCheck, Network, LayoutDashboard, Building2, FileText, Tags,
+  ClipboardCheck, Network, LayoutDashboard, Building2, FileText, Tags, Calculator,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -15,6 +15,7 @@ import QuoteValidation from "@/components/jsc/QuoteValidation";
 import SupplyMatrix from "@/components/jsc/SupplyMatrix";
 import AdminOverview from "@/components/jsc/AdminOverview";
 import QuotesBoard from "@/components/jsc/QuotesBoard";
+import QuickQuote from "@/components/jsc/QuickQuote";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +32,7 @@ import {
 const TABS = [
   { id: "overview", label: "Tableau de bord", icon: LayoutDashboard },
   { id: "requests", label: "Demandes", icon: FileText },
+  { id: "quick_quote", label: "Calculateur rapide", icon: Calculator },
   { id: "materials", label: "Matériaux", icon: Layers },
   { id: "categories", label: "Catégories", icon: Tags },
   { id: "quarries", label: "Carrières", icon: MapPin },
@@ -242,6 +244,7 @@ export default function AdminSoumissionConfig() {
         <main className="min-w-0 flex-1">
           {tab === "overview" && <AdminOverview />}
           {tab === "requests" && <QuotesBoard />}
+          {tab === "quick_quote" && <QuickQuote />}
           {tab === "materials" && <ResourceManager resource={SOUMISSION_MATERIALS} companyId={companyId} />}
           {tab === "categories" && <ResourceManager resource={SOUMISSION_CATEGORIES} companyId={companyId} />}
           {tab === "quarries" && <ResourceManager resource={SOUMISSION_QUARRIES} companyId={companyId} />}
