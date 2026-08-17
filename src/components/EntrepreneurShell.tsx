@@ -39,21 +39,21 @@ const EntrepreneurShell = ({ title, description, children }: Props) => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <nav className="sticky top-0 z-[1000] bg-card/80 backdrop-blur-md border-b border-border">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/entrepreneur" className="flex items-center gap-2">
-            <Truck className="w-6 h-6 text-primary" />
-            <span className="font-display font-bold text-xl text-foreground">Vrac<span className="text-primary">Québec</span></span>
-            <span className="ml-2 px-2 py-0.5 rounded text-xs bg-emerald-500/10 text-emerald-700 font-display font-semibold">Entrepreneur</span>
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background flex flex-col">
+      <nav className="sticky top-0 z-30 w-full bg-card/95 backdrop-blur-md border-b border-border">
+        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2">
+          <Link to="/entrepreneur" className="flex min-w-0 items-center gap-2">
+            <Truck className="w-6 h-6 flex-shrink-0 text-primary" />
+            <span className="truncate font-display font-bold text-lg sm:text-xl text-foreground">Vrac<span className="text-primary">Québec</span></span>
+            <span className="hidden xs:inline sm:inline ml-1 px-2 py-0.5 rounded text-xs bg-emerald-500/10 text-emerald-700 font-display font-semibold">Entrepreneur</span>
           </Link>
-          <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-            <LogOut className="w-4 h-4" /> Déconnexion
+          <button onClick={handleLogout} className="flex flex-shrink-0 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
+            <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Déconnexion</span>
           </button>
         </div>
       </nav>
       <TransportBanner />
-      <main className="flex-1 container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <main className="flex-1 w-full min-w-0 container mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <Link to="/entrepreneur" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary mb-4 font-body">
           <ArrowLeft className="w-4 h-4" /> Retour au tableau de bord
         </Link>

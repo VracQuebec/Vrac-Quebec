@@ -272,23 +272,23 @@ const Entrepreneur = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <nav className="sticky top-0 z-[1000] bg-background/80 backdrop-blur-xl border-b border-border/60">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Truck className="w-6 h-6 text-primary" />
-            <span className="font-display font-bold text-xl text-foreground">Vrac<span className="text-primary">Québec</span></span>
-            <span className="ml-2 px-2 py-0.5 rounded-full text-[11px] bg-secondary text-muted-foreground font-body">Entrepreneur</span>
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background flex flex-col">
+      <nav className="sticky top-0 z-30 w-full bg-background/95 backdrop-blur-xl border-b border-border/60">
+        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <Truck className="w-6 h-6 flex-shrink-0 text-primary" />
+            <span className="truncate font-display font-bold text-lg sm:text-xl text-foreground">Vrac<span className="text-primary">Québec</span></span>
+            <span className="hidden sm:inline ml-1 px-2 py-0.5 rounded-full text-[11px] bg-secondary text-muted-foreground font-body">Entrepreneur</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-shrink-0 items-center gap-3 sm:gap-4">
             <a
               href="/entrepreneur/comparateur"
-              className="text-sm font-body text-muted-foreground hover:text-foreground"
+              className="hidden sm:inline text-sm font-body text-muted-foreground hover:text-foreground"
             >
               Comparateur de dompes
             </a>
             <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <LogOut className="w-4 h-4" /> Déconnexion
+              <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Déconnexion</span>
             </button>
           </div>
         </div>
@@ -296,10 +296,10 @@ const Entrepreneur = () => {
 
       <TransportBanner />
 
-      <main className="flex-1 container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      <main className="flex-1 w-full min-w-0 container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
         {/* En-tête + accès aux dompes */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 rounded-2xl border border-border/70 bg-card p-6 sm:p-8">
+          <div className="min-w-0 lg:col-span-2 rounded-2xl border border-border/70 bg-card p-5 sm:p-8">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">Accès aux dompes</p>
             <h1 className="font-display font-bold text-2xl sm:text-3xl leading-tight mb-3">
               Trouvez une dompe, nous nous occupons du reste.
@@ -355,7 +355,7 @@ const Entrepreneur = () => {
         </section>
 
         {/* Filtres */}
-        <section className="sticky top-[73px] z-[900] -mx-4 sm:mx-0 px-4 sm:px-0">
+        <section className="relative z-20 lg:sticky lg:top-[73px] -mx-4 sm:mx-0 px-4 sm:px-0">
           <div className="rounded-2xl border border-border/70 bg-background/90 backdrop-blur-xl p-3 sm:p-4">
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative flex-1 min-w-[180px]">
@@ -412,14 +412,14 @@ const Entrepreneur = () => {
         ) : (
           <section className={`grid gap-4 ${expanded ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-5"}`}>
             {/* Carte */}
-            <div className={`${expanded ? "" : "lg:col-span-3"} relative isolate rounded-2xl border border-border/70 bg-card overflow-hidden`}>
+            <div className={`${expanded ? "" : "lg:col-span-3"} relative isolate min-w-0 rounded-2xl border border-border/70 bg-card overflow-hidden`}>
               <div
                 ref={containerRef}
-                style={{ height: expanded ? "78vh" : "64vh", minHeight: 380, width: "100%" }}
+                style={{ height: expanded ? "78vh" : "64vh", minHeight: 320, maxHeight: 900, width: "100%" }}
               />
               <button
                 onClick={() => setExpanded((v) => !v)}
-                className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 rounded-xl bg-background/95 border border-border px-3 py-2 text-xs font-body hover:border-foreground/30"
+                className="absolute top-3 left-3 z-10 inline-flex items-center gap-1.5 rounded-xl bg-background/95 border border-border px-3 py-2 text-xs font-body shadow-sm hover:border-foreground/30"
               >
                 {expanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                 {expanded ? "Réduire la carte" : "Agrandir la carte"}
@@ -427,7 +427,7 @@ const Entrepreneur = () => {
             </div>
 
             {/* Liste */}
-            <div className={`${expanded ? "" : "lg:col-span-2"} space-y-3`}>
+            <div className={`${expanded ? "" : "lg:col-span-2"} min-w-0 space-y-3`}>
               <div className="flex items-baseline justify-between">
                 <h2 className="font-display font-bold text-base">
                   {filteredLeads.length} dompe{filteredLeads.length > 1 ? "s" : ""} disponible{filteredLeads.length > 1 ? "s" : ""}

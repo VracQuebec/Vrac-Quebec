@@ -791,7 +791,7 @@ const TransportRequest = () => {
   const back = () => step > 1 && setStep((step - 1) as Step);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background flex flex-col">
       <Helmet>
         <title>Demande de transport | Vrac Québec</title>
         <meta
@@ -802,7 +802,7 @@ const TransportRequest = () => {
         <link rel="canonical" href="https://vracquebec.ca/demande-transport" />
       </Helmet>
       <TransportBanner />
-      <header className="border-b border-border bg-card/80 backdrop-blur sticky top-0 z-40">
+      <header className="border-b border-border bg-card/95 backdrop-blur sticky top-0 z-30 w-full">
         <div className="container mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
           <button
             onClick={requestExit}

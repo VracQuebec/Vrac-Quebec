@@ -86,23 +86,23 @@ const EntrepreneurDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <nav className="sticky top-0 z-[1000] bg-card/80 backdrop-blur-md border-b border-border">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/entrepreneur" className="flex items-center gap-2">
-            <Truck className="w-6 h-6 text-primary" />
-            <span className="font-display font-bold text-xl text-foreground">Vrac<span className="text-primary">Québec</span></span>
-            <span className="ml-2 px-2 py-0.5 rounded text-xs bg-emerald-500/10 text-emerald-700 font-display font-semibold">Entrepreneur</span>
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background flex flex-col">
+      <nav className="sticky top-0 z-30 w-full bg-card/95 backdrop-blur-md border-b border-border">
+        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2">
+          <Link to="/entrepreneur" className="flex min-w-0 items-center gap-2">
+            <Truck className="w-6 h-6 flex-shrink-0 text-primary" />
+            <span className="truncate font-display font-bold text-lg sm:text-xl text-foreground">Vrac<span className="text-primary">Québec</span></span>
+            <span className="hidden sm:inline ml-1 px-2 py-0.5 rounded text-xs bg-emerald-500/10 text-emerald-700 font-display font-semibold">Entrepreneur</span>
           </Link>
-          <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-            <LogOut className="w-4 h-4" /> Déconnexion
+          <button onClick={handleLogout} className="flex flex-shrink-0 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
+            <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Déconnexion</span>
           </button>
         </div>
       </nav>
 
       <TransportBanner />
 
-      <main className="flex-1 container mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <main className="flex-1 w-full min-w-0 container mx-auto px-4 sm:px-6 py-8 sm:py-10">
         <header className="mb-8">
           <h1 className="text-2xl sm:text-4xl font-display font-bold tracking-tight">
             Bienvenue sur votre tableau de bord
@@ -115,26 +115,26 @@ const EntrepreneurDashboard = () => {
         {/* Hero: Assistant intelligent */}
         <button
           onClick={() => navigate("/demande-transport")}
-          className="group w-full text-left mb-8 rounded-2xl overflow-hidden relative border-2 border-primary bg-gradient-to-br from-primary/90 via-primary to-primary/80 text-primary-foreground p-6 sm:p-10 transition-transform hover:scale-[1.01]"
+          className="group w-full max-w-full text-left mb-8 rounded-2xl overflow-hidden border-2 border-primary bg-gradient-to-br from-primary/90 via-primary to-primary/80 text-primary-foreground p-5 sm:p-8 lg:p-10 transition-transform hover:scale-[1.005]"
           style={{ boxShadow: "0 20px 60px -20px rgba(126, 211, 33, 0.5)" }}
         >
-          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-            <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-black/20 flex items-center justify-center">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-5 sm:gap-6">
+            <div className="flex-shrink-0 w-14 h-14 sm:w-20 sm:h-20 rounded-2xl bg-black/20 flex items-center justify-center">
               <Sparkles className="w-8 h-8 sm:w-10 sm:h-10" />
             </div>
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/25 text-[10px] uppercase font-display font-bold tracking-wider mb-2">
                 Assistant intelligent
               </div>
-              <h2 className="text-2xl sm:text-3xl font-display font-bold mb-2">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-display font-bold mb-2 break-words">
                 Trouver une dompe pour mon chantier
               </h2>
-              <p className="text-sm sm:text-base opacity-95 max-w-2xl font-body">
+              <p className="text-sm sm:text-base opacity-95 max-w-2xl font-body break-words">
                 Décrivez votre chantier en moins de 60 secondes. Notre assistant analyse votre demande et recommande automatiquement la meilleure dompe selon la distance, le matériau, la disponibilité et le type de camion.
               </p>
             </div>
             <div className="flex-shrink-0">
-              <span className="inline-flex items-center gap-2 bg-black text-white px-6 py-3.5 rounded-xl font-display font-bold text-base group-hover:gap-3 transition-all">
+              <span className="inline-flex w-full justify-center lg:w-auto items-center gap-2 bg-black text-white px-6 py-3.5 rounded-xl font-display font-bold text-base group-hover:gap-3 transition-all">
                 Commencer <ArrowRight className="w-5 h-5" />
               </span>
             </div>
