@@ -10,6 +10,8 @@ import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import { BULK_TRUCK_OPTIONS } from "@/lib/entrepreneur/site-match";
 import { buildTransportPrefill, type TransportPrefillSource } from "@/lib/parcours/validation";
+import TransportEstimate from "@/components/transport/TransportEstimate";
+import { useTransportRates, computeTransportPricing, formatCad } from "@/lib/transport/pricing";
 
 import {
   submitTransportRequest,
@@ -280,6 +282,8 @@ const TransportRequest = () => {
   const [clientEmail, setClientEmail] = useState("");
   const [truckType, setTruckType] = useState<string>("");
   const [trips, setTrips] = useState<string>("");
+  // Tarifs et taxes administrés (jamais codés en dur).
+  const { rates: truckRates, taxes: taxRates } = useTransportRates();
   const [desiredDate, setDesiredDate] = useState<string>("");
   const [desiredTime, setDesiredTime] = useState<string>("");
   const [clientNotes, setClientNotes] = useState<string>("");
@@ -734,9 +738,14 @@ const TransportRequest = () => {
       if (!hasSessionIdentity && !clientName.trim()) missing.push("Nom complet");
       // Le serveur exige toujours un numéro de téléphone.
       if (!clientPhone.trim()) missing.push("Téléphone");
+      // Le prix du transport doit pouvoir être calculé avant l'envoi.
+      if (!truckType) missing.push("Type de camion");
+      else if (!selectedRate) missing.push("Tarif du camion (introuvable)");
+      if (!(Number(trips) > 0)) missing.push("Nombre de voyages");
+      else if (transportPricing && "error" in transportPricing) missing.push(transportPricing.error);
     }
     return missing;
-  }, [step, material, coords, address, quantity, unit, selectedDump, user, clientName, clientCompany, clientPhone, clientEmail]);
+  }, [step, material, coords, address, quantity, unit, selectedDump, user, clientName, clientCompany, clientPhone, clientEmail, truckType, trips, selectedRate, transportPricing]);
 
   const canNext = missingFields.length === 0;
 
