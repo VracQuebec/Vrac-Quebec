@@ -41,6 +41,8 @@ export interface TransportSubmitPayload {
   distance_km?: number | null;
   travel_time_minutes?: number | null;
   truck_type?: string | null;
+  /** Code du tarif administré (le serveur recalcule le prix à partir de ce code). */
+  truck_rate_code?: string | null;
   estimated_trips?: number | null;
   desired_date?: string | null;
   desired_time?: string | null;

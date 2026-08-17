@@ -8,8 +8,9 @@ import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
 import TransportBanner from "@/components/TransportBanner";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
-import { BULK_TRUCK_OPTIONS } from "@/lib/entrepreneur/site-match";
 import { buildTransportPrefill, type TransportPrefillSource } from "@/lib/parcours/validation";
+import TransportEstimate from "@/components/transport/TransportEstimate";
+import { useTransportRates, computeTransportPricing, formatCad } from "@/lib/transport/pricing";
 
 import {
   submitTransportRequest,
@@ -280,6 +281,17 @@ const TransportRequest = () => {
   const [clientEmail, setClientEmail] = useState("");
   const [truckType, setTruckType] = useState<string>("");
   const [trips, setTrips] = useState<string>("");
+  // Tarifs et taxes administrés (jamais codés en dur).
+  const { rates: truckRates, taxes: taxRates } = useTransportRates();
+  const selectedRate = useMemo(
+    () => truckRates.find((r) => r.code === truckType) ?? null,
+    [truckRates, truckType],
+  );
+  /** Estimation recalculée dès que le camion ou le nombre de voyages change. */
+  const transportPricing = useMemo(
+    () => (taxRates ? computeTransportPricing(selectedRate, trips, taxRates) : null),
+    [selectedRate, trips, taxRates],
+  );
   const [desiredDate, setDesiredDate] = useState<string>("");
   const [desiredTime, setDesiredTime] = useState<string>("");
   const [clientNotes, setClientNotes] = useState<string>("");
@@ -666,7 +678,9 @@ const TransportRequest = () => {
         })),
       distance_km: selectedDump.distance_km ?? null,
       travel_time_minutes: selectedDump.duration_minutes ?? null,
-      truck_type: truckType || null,
+      // Le libellé sert à l'affichage CRM ; le code sert au recalcul serveur.
+      truck_type: selectedRate?.label ?? truckType ?? null,
+      truck_rate_code: selectedRate?.code ?? null,
       estimated_trips: trips ? Number(trips) : null,
       desired_date: desiredDate || null,
       desired_time: desiredTime || null,
@@ -734,9 +748,14 @@ const TransportRequest = () => {
       if (!hasSessionIdentity && !clientName.trim()) missing.push("Nom complet");
       // Le serveur exige toujours un numéro de téléphone.
       if (!clientPhone.trim()) missing.push("Téléphone");
+      // Le prix du transport doit pouvoir être calculé avant l'envoi.
+      if (!truckType) missing.push("Type de camion");
+      else if (!selectedRate) missing.push("Tarif du camion (introuvable)");
+      if (!(Number(trips) > 0)) missing.push("Nombre de voyages");
+      else if (transportPricing && "error" in transportPricing) missing.push(transportPricing.error);
     }
     return missing;
-  }, [step, material, coords, address, quantity, unit, selectedDump, user, clientName, clientCompany, clientPhone, clientEmail]);
+  }, [step, material, coords, address, quantity, unit, selectedDump, user, clientName, clientCompany, clientPhone, clientEmail, truckType, trips, selectedRate, transportPricing]);
 
   const canNext = missingFields.length === 0;
 
@@ -1523,26 +1542,46 @@ const TransportRequest = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="block">
                 <span className="block text-xs font-display font-bold uppercase text-muted-foreground mb-1.5">
-                  Type de camion
+                  Type de camion *
                 </span>
                 <select
                   value={truckType}
                   onChange={(e) => setTruckType(e.target.value)}
-                  className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground"
+                  className="h-12 w-full rounded-lg border border-input bg-background px-3 text-base sm:text-sm text-foreground"
                 >
-                  <option value="">{suggestedTruck ? `Suggéré : ${suggestedTruck}` : "À déterminer avec nous"}</option>
-                  {BULK_TRUCK_OPTIONS.map((t) => (
-                    <option key={t.key} value={t.label}>{t.label}</option>
+                  <option value="">Choisir un type de camion…</option>
+                  {truckRates.map((r) => (
+                    <option key={r.code} value={r.code}>
+                      {r.label} — {formatCad(r.price_per_trip)} / voyage
+                    </option>
                   ))}
-                  {/* Valeur historique ou préremplie hors nomenclature : conservée */}
-                  {truckType && !BULK_TRUCK_OPTIONS.some((t) => t.label === truckType) && (
+                  {/* Valeur historique ou préremplie hors grille : conservée */}
+                  {truckType && !truckRates.some((r) => r.code === truckType) && (
                     <option value={truckType}>{truckType}</option>
                   )}
                 </select>
               </label>
+              <label className="block">
+                <span className="block text-xs font-display font-bold uppercase text-muted-foreground mb-1.5">
+                  Nombre de voyages *
+                </span>
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  value={trips}
+                  onChange={(e) => setTrips(e.target.value)}
+                  placeholder="Ex. 3"
+                  className="h-12 w-full rounded-lg border border-input bg-background px-3 text-base sm:text-sm text-foreground"
+                />
+              </label>
               <Field label="Date souhaitée" value={desiredDate} onChange={setDesiredDate} type="date" />
               <Field label="Heure souhaitée" value={desiredTime} onChange={setDesiredTime} type="time" />
-              <Field label="Voyages estimés (facultatif)" value={trips} onChange={setTrips} placeholder="Ex. 3" type="number" />
+            </div>
+
+            <div className="mt-4">
+              <TransportEstimate pricing={transportPricing} />
             </div>
 
             <label className="block mt-3">

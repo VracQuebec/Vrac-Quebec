@@ -10327,8 +10327,17 @@ export type Database = {
           site_longitude: number | null
           source: string
           status: Database["public"]["Enums"]["transport_request_status"]
+          transport_subtotal: number | null
+          transport_total: number | null
+          transport_tps_amount: number | null
+          transport_tps_rate: number | null
+          transport_tvq_amount: number | null
+          transport_tvq_rate: number | null
           travel_time_minutes: number | null
           truck_id: string | null
+          truck_rate_code: string | null
+          truck_rate_label: string | null
+          truck_rate_per_trip: number | null
           truck_type: string | null
           updated_at: string
           user_id: string | null
@@ -10369,8 +10378,17 @@ export type Database = {
           site_longitude?: number | null
           source?: string
           status?: Database["public"]["Enums"]["transport_request_status"]
+          transport_subtotal?: number | null
+          transport_total?: number | null
+          transport_tps_amount?: number | null
+          transport_tps_rate?: number | null
+          transport_tvq_amount?: number | null
+          transport_tvq_rate?: number | null
           travel_time_minutes?: number | null
           truck_id?: string | null
+          truck_rate_code?: string | null
+          truck_rate_label?: string | null
+          truck_rate_per_trip?: number | null
           truck_type?: string | null
           updated_at?: string
           user_id?: string | null
@@ -10411,8 +10429,17 @@ export type Database = {
           site_longitude?: number | null
           source?: string
           status?: Database["public"]["Enums"]["transport_request_status"]
+          transport_subtotal?: number | null
+          transport_total?: number | null
+          transport_tps_amount?: number | null
+          transport_tps_rate?: number | null
+          transport_tvq_amount?: number | null
+          transport_tvq_rate?: number | null
           travel_time_minutes?: number | null
           truck_id?: string | null
+          truck_rate_code?: string | null
+          truck_rate_label?: string | null
+          truck_rate_per_trip?: number | null
           truck_type?: string | null
           updated_at?: string
           user_id?: string | null
@@ -10468,6 +10495,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      transport_tax_rates: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          rate: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          rate: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          rate?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      transport_truck_rates: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          price_per_trip: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          price_per_trip: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          price_per_trip?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       trip_status_history: {
         Row: {

@@ -6,6 +6,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { Loader2, Sparkles, ArrowRight, MapPin } from "lucide-react";
 import { statusMeta } from "@/lib/access-requests/status";
 import MesDemandesList from "@/components/entrepreneur/MesDemandesList";
+import { formatCad } from "@/lib/transport/pricing";
 
 interface Req {
   id: string;
@@ -15,6 +16,10 @@ interface Req {
   site_city: string | null;
   site_address: string;
   estimated_trips: number | null;
+  truck_type: string | null;
+  truck_rate_per_trip: number | null;
+  transport_subtotal: number | null;
+  transport_total: number | null;
   created_at: string;
   desired_date: string | null;
 }
@@ -38,7 +43,7 @@ const EntrepreneurDemandes = () => {
       setLoading(true);
       const { data } = await supabase
         .from("transport_requests")
-        .select("id, request_number, status, material_type, site_city, site_address, estimated_trips, created_at, desired_date")
+        .select("id, request_number, status, material_type, site_city, site_address, estimated_trips, truck_type, truck_rate_per_trip, transport_subtotal, transport_total, created_at, desired_date")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       setRequests((data as any) || []);
@@ -113,6 +118,20 @@ const EntrepreneurDemandes = () => {
                           {r.estimated_trips ? `${r.estimated_trips} voyages estimés` : ""}
                           {r.desired_date ? ` • Date : ${new Date(r.desired_date).toLocaleDateString("fr-CA")}` : ""}
                         </p>
+                        {r.transport_subtotal != null && (
+                          <div className="mt-2 rounded-lg border border-border bg-muted/40 p-2.5 text-xs font-body">
+                            <p className="font-display text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                              Transport
+                            </p>
+                            <p>{r.truck_type || "Camion"} • {r.estimated_trips ?? "—"} voyage{(r.estimated_trips ?? 0) > 1 ? "s" : ""}
+                              {r.truck_rate_per_trip != null ? ` • ${formatCad(Number(r.truck_rate_per_trip))} / voyage` : ""}
+                            </p>
+                            <p>Avant taxes : <b className="tabular-nums">{formatCad(Number(r.transport_subtotal))}</b></p>
+                            {r.transport_total != null && (
+                              <p>Taxes incluses : <b className="tabular-nums">{formatCad(Number(r.transport_total))}</b></p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

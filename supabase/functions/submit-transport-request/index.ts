@@ -37,6 +37,7 @@ type Payload = {
   distance_km?: number | null;
   travel_time_minutes?: number | null;
   truck_type?: string | null;
+  truck_rate_code?: string | null;
   estimated_trips?: number | null;
   desired_date?: string | null;
   desired_time?: string | null;
@@ -93,6 +94,7 @@ function validate(p: Partial<Payload>): { ok: true; data: Payload } | { ok: fals
       distance_km: typeof p.distance_km === "number" ? p.distance_km : null,
       travel_time_minutes: typeof p.travel_time_minutes === "number" ? Math.round(p.travel_time_minutes) : null,
       truck_type: sanitize(p.truck_type, 100),
+      truck_rate_code: sanitize(p.truck_rate_code, 60),
       estimated_trips: typeof p.estimated_trips === "number" ? Math.round(p.estimated_trips) : null,
       desired_date: sanitize(p.desired_date, 20),
       desired_time: sanitize(p.desired_time, 20),
@@ -207,6 +209,53 @@ Deno.serve(async (req) => {
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+  // ---- Tarification du transport (source de vérité serveur) ----------------
+  // Le prix affiché dans le navigateur n'est jamais accepté tel quel : on
+  // relit le tarif administré et on recalcule voyages × tarif + taxes.
+  const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+  let pricing: Record<string, number | string | null> | null = null;
+
+  if (data.truck_rate_code) {
+    const trips = data.estimated_trips;
+    if (!trips || !Number.isFinite(trips) || trips <= 0) {
+      return jsonResponse({ ok: false, retry: false, message: "nombre de voyages invalide" }, 400);
+    }
+    const { data: rateRow, error: rateErr } = await admin
+      .from("transport_truck_rates")
+      .select("code,label,price_per_trip,is_active")
+      .eq("code", data.truck_rate_code)
+      .maybeSingle();
+    if (rateErr) {
+      return jsonResponse({ ok: false, retry: true, message: "temporary_failure" }, 503);
+    }
+    const rate = rateRow as { code: string; label: string; price_per_trip: number; is_active: boolean } | null;
+    if (!rate || !rate.is_active) {
+      return jsonResponse({ ok: false, retry: false, message: "tarif de camion introuvable" }, 400);
+    }
+    const { data: taxRows } = await admin
+      .from("transport_tax_rates")
+      .select("code,rate")
+      .eq("is_active", true);
+    const taxMap = new Map((taxRows ?? []).map((t: { code: string; rate: number }) => [t.code, Number(t.rate)]));
+    const tpsRate = taxMap.get("tps") ?? 0;
+    const tvqRate = taxMap.get("tvq") ?? 0;
+    const pricePerTrip = Number(rate.price_per_trip);
+    const subtotal = round2(trips * pricePerTrip);
+    const tps = round2(subtotal * tpsRate);
+    const tvq = round2(subtotal * tvqRate);
+    pricing = {
+      truck_rate_code: rate.code,
+      truck_rate_label: rate.label,
+      truck_rate_per_trip: pricePerTrip,
+      transport_subtotal: subtotal,
+      transport_tps_rate: tpsRate,
+      transport_tvq_rate: tvqRate,
+      transport_tps_amount: tps,
+      transport_tvq_amount: tvq,
+      transport_total: round2(subtotal + tps + tvq),
+    };
+  }
+
   // ---- Rattachement à la demande d'origine (submission) --------------------
   // Quand le parcours vient d'une submission, la demande de transport DOIT
   // être rattachée : submission existante + site validé, sinon refus propre.
@@ -315,6 +364,7 @@ Deno.serve(async (req) => {
         travel_time_minutes: data.travel_time_minutes,
         truck_type: data.truck_type,
         estimated_trips: data.estimated_trips,
+        ...(pricing ?? {}),
         desired_date: data.desired_date,
         desired_time: data.desired_time,
         source: data.source,
