@@ -50,6 +50,12 @@ export default function QuoteCard({
     ["Adresse de livraison", quote.delivery_address ?? address ?? "—"],
   ];
 
+  // Détail financier : provient intégralement du moteur (aucun calcul ici).
+  const priceRows: [string, number][] = [
+    ["Prix avant taxes", quote.subtotal],
+    ...quote.taxes.map((t) => [t.name, t.amount] as [string, number]),
+  ];
+
   const included = [
     "Le matériau",
     "Le transport et la livraison à votre adresse",
@@ -77,8 +83,18 @@ export default function QuoteCard({
 
       <div className="mx-6 mb-6 animate-fade-in rounded-2xl border border-primary/40 bg-primary/5 p-6 text-center">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">Estimation</p>
-        <p className="mt-1 text-4xl font-bold text-foreground">{formatMoney(quote.total)}</p>
-        <p className="mt-1 text-sm text-muted-foreground">(TPS/TVQ incluses)</p>
+        <dl className="mt-3 space-y-2 text-left">
+          {priceRows.map(([label, amount]) => (
+            <div key={label} className="flex items-center justify-between gap-4 text-sm">
+              <dt className="text-muted-foreground">{label}</dt>
+              <dd className="font-semibold text-foreground">{formatMoney(amount)}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="mt-4 border-t border-primary/30 pt-4">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Total avec taxes</p>
+          <p className="mt-1 text-4xl font-bold text-foreground">{formatMoney(quote.total)}</p>
+        </div>
       </div>
 
       <div
@@ -161,7 +177,7 @@ export default function QuoteCard({
         <Button onClick={onEmail} disabled={pending !== null} className="h-auto w-full whitespace-normal py-3 text-center">
           {pending === "submit"
             ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Envoi…</>
-            : <><Mail className="mr-2 h-4 w-4" /> Recevoir ma soumission par courriel</>}
+            : <><Check className="mr-2 h-4 w-4" /> Confirmer ma demande</>}
         </Button>
         <Button onClick={onCallback} variant="outline" disabled={pending !== null} className="h-auto w-full whitespace-normal py-3 text-center">
           {pending === "callback"
