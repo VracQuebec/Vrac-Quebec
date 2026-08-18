@@ -1510,6 +1510,7 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                 .map((o) => o.key)
                 .filter((k) => details[k] === true);
               const gaps = siteGaps(sub);
+              const toConfirm = siteToConfirm(sub);
               return (
                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-3">
                   <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -1525,11 +1526,16 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                       Confirmer la disponibilité aujourd'hui
                     </button>
                   </div>
-                  {gaps.length > 0 && (
+                  {(gaps.length > 0 || toConfirm.length > 0) && (
                     <div className="flex flex-wrap gap-1.5 mb-3">
                       {gaps.map((g) => (
-                        <span key={g} className="px-2 py-0.5 rounded text-[10px] font-body bg-amber-500/15 text-amber-700 border border-amber-500/30">
+                        <span key={g} className="px-2 py-0.5 rounded text-[10px] font-body bg-destructive/10 text-destructive border border-destructive/30">
                           {g}
+                        </span>
+                      ))}
+                      {toConfirm.map((g) => (
+                        <span key={g} className="px-2 py-0.5 rounded text-[10px] font-body bg-muted text-muted-foreground border border-border">
+                          {g} : à confirmer
                         </span>
                       ))}
                     </div>
