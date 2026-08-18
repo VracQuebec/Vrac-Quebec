@@ -53,16 +53,25 @@ const SITE_AVAILABILITY_OPTIONS = [
   { value: "unavailable", label: "Indisponible" },
 ];
 
+/** Champs réellement essentiels à la fiche site : sans eux, la fiche n'est pas
+ *  exploitable par les entrepreneurs. */
 const siteGaps = (sub: Submission): string[] => {
   const gaps: string[] = [];
-  if (!sub.availability_updated_at) gaps.push("Disponibilité jamais confirmée");
-  if (!(sub.truck_types_allowed?.length)) gaps.push("Camions acceptés non renseignés");
-  if (!sub.access_details || Object.keys(sub.access_details).length === 0)
-    gaps.push("Restrictions d'accès non renseignées");
-  if (!(sub.materials?.length)) gaps.push("Matériaux non renseignés");
-  if (!sub.remaining_capacity) gaps.push("Capacité restante non renseignée");
-  if (!sub.opening_hours) gaps.push("Heures d'ouverture non renseignées");
+  if (!(sub.materials?.length) && !sub.other_material) gaps.push("Matériaux non renseignés");
+  if (!sub.address?.trim()) gaps.push("Adresse du site non renseignée");
+  if (sub.latitude == null || sub.longitude == null) gaps.push("Coordonnées GPS non disponibles");
   return gaps;
+};
+
+/** Informations facultatives : jamais inventées, simplement « à confirmer ». */
+const siteToConfirm = (sub: Submission): string[] => {
+  const list: string[] = [];
+  if (!(sub.truck_types_allowed?.length)) list.push("Camions acceptés");
+  if (!sub.access_details || Object.keys(sub.access_details).length === 0) list.push("Restrictions d'accès");
+  if (!sub.remaining_capacity) list.push("Capacité restante");
+  if (!sub.opening_hours) list.push("Heures d'ouverture");
+  if (!sub.availability_updated_at) list.push("Disponibilité");
+  return list;
 };
 
 interface Submission {
