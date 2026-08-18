@@ -9,10 +9,10 @@ export type IntentKey = "materiaux" | "sortir" | "dompe" | "transport";
 const INTENTS = [
   {
     key: "materiaux" as const,
-    to: null,
+    to: "/remblai",
     icon: Mountain,
-    title: "J'ai besoin de matériaux",
-    text: "Trouver le bon matériau pour mon chantier",
+    title: "J'ai besoin de remblais",
+    text: "Trouver du remblais pour mon chantier",
   },
   {
     key: "sortir" as const,
