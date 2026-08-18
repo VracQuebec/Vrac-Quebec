@@ -39,6 +39,8 @@ export function useQuoteSubmit() {
           ...request,
           website: honeypot,
           form_started_at: formStartedAt,
+          desired_date: draft.date || null,
+          access_notes: draft.addressNotes || null,
           contact: {
             name: draft.contact.name,
             phone: draft.contact.phone,
