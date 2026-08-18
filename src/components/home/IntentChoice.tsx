@@ -16,10 +16,10 @@ const INTENTS = [
   },
   {
     key: "vrac" as const,
-    to: "/calculateur",
+    to: "/acheter-materiaux",
     icon: Calculator,
     title: "J'ai besoin de matériaux en vrac",
-    text: "Calculer la quantité nécessaire et obtenir une estimation",
+    text: "Calculer ma quantité, obtenir ma soumission et confirmer ma demande",
   },
   {
     key: "sortir" as const,
