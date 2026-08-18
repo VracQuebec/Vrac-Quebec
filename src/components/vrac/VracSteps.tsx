@@ -291,6 +291,18 @@ export function StepDelivery({ draft, set }: { draft: VracDraft; set: Setter }) 
         <Textarea rows={3} placeholder="Accès par la cour arrière, portail étroit, etc."
           value={draft.addressNotes} onChange={(e) => set({ addressNotes: e.target.value })} />
       </Field>
+      <Field
+        label="Date de livraison souhaitée (optionnel)"
+        icon={<CalendarDays className="h-4 w-4 text-primary" aria-hidden />}
+        hint="Indiquez une date approximative : notre équipe la confirmera avec vous."
+      >
+        <Input
+          type="date"
+          value={draft.date}
+          min={new Date().toISOString().slice(0, 10)}
+          onChange={(e) => set({ date: e.target.value, dateMode: e.target.value ? "precise" : "flexible" })}
+        />
+      </Field>
       <DeliveryDateNotice />
     </div>
   );
