@@ -2,17 +2,24 @@
 // Les parcours « matériaux » et « matériaux à sortir » s'ouvrent en place;
 // les deux autres mènent aux parcours déjà existants (routes inchangées).
 import { Link } from "react-router-dom";
-import { ArrowRight, Mountain, Truck, MapPin, HardHat } from "lucide-react";
+import { ArrowRight, Mountain, Truck, MapPin, HardHat, Calculator } from "lucide-react";
 
-export type IntentKey = "materiaux" | "sortir" | "dompe" | "transport";
+export type IntentKey = "materiaux" | "vrac" | "sortir" | "dompe" | "transport";
 
 const INTENTS = [
   {
     key: "materiaux" as const,
     to: "/remblai",
     icon: Mountain,
-    title: "J'ai besoin de remblais",
-    text: "Trouver du remblais pour mon chantier",
+    title: "J'ai besoin de matériel de remblais",
+    text: "Faire une demande de remblais pour mon chantier",
+  },
+  {
+    key: "vrac" as const,
+    to: "/calculateur",
+    icon: Calculator,
+    title: "J'ai besoin de matériaux en vrac",
+    text: "Calculer la quantité nécessaire et obtenir une estimation",
   },
   {
     key: "sortir" as const,
