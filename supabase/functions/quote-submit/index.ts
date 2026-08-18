@@ -112,6 +112,9 @@ Deno.serve(async (req) => {
     const email = clean(body?.contact?.email, 200);
     const company = clean(body?.contact?.company, 160);
     const comments = clean(body?.contact?.comments, 2000);
+    const accessNotes = clean(body?.access_notes, 500);
+    const rawDate = clean(body?.desired_date, 10);
+    const desiredDate = rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : null;
     if (!name) throw new Error('Votre nom est requis.');
     if (!phone || phone.replace(/\D/g, '').length < 10) throw new Error('Un numéro de téléphone valide est requis.');
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new Error('Un courriel valide est requis.');
@@ -193,7 +196,12 @@ Deno.serve(async (req) => {
       postal_code: delivery.postal_code,
       latitude: delivery.lat,
       longitude: delivery.lng,
-      notes: action === 'callback' ? `Rappel demandé. ${comments ?? ''}`.trim() : comments,
+      notes: [
+        action === 'callback' ? 'Rappel demandé.' : '',
+        comments ?? '',
+        accessNotes ? `Accès : ${accessNotes}` : '',
+        desiredDate ? `Date souhaitée : ${desiredDate}` : '',
+      ].filter(Boolean).join('\n') || null,
     }).select('id,request_number').single();
     if (requestError) throw new Error(requestError.message);
 
@@ -281,6 +289,8 @@ Deno.serve(async (req) => {
         pub.distance_km != null ? `Distance : ${pub.distance_km} km` : '',
         durationMinutes ? `Temps estimé : ${durationMinutes} min` : '',
         `Prix estimé : ${money(pub.total)}`,
+        desiredDate ? `Date souhaitée : ${desiredDate}` : '',
+        accessNotes ? `Accès : ${accessNotes}` : '',
         action === 'callback' ? 'Rappel demandé par le client.' : '',
         comments ? `Notes : ${comments}` : '',
       ].filter(Boolean).join('\n');
@@ -301,7 +311,7 @@ Deno.serve(async (req) => {
         request_type: 'vrac',
         service_type: 'vrac_achat',
         client_id: null,
-        desired_date: null,
+        desired_date: desiredDate,
         quote_number: quote.quote_number ?? null,
         quote_id: quote.id,
         quote_material: pub.material.name,
