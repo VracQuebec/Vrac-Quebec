@@ -1249,27 +1249,6 @@ function AnalyticsTab() {
     return { avg, excellent, good, weak, refresh };
   }, [rows]);
 
-  const regenerate = async (page: Page) => {
-    setRegenerating(page.id);
-    try {
-      const { data: city } = await supabase.from("seo_cities").select("slug, name, region").eq("slug", page.city_slug).maybeSingle();
-      const { data: material } = page.material_slug ? await supabase.from("seo_materials").select("slug, name, short_name, description").eq("slug", page.material_slug).maybeSingle() : { data: null };
-      const { data: service } = page.service_slug ? await supabase.from("seo_services").select("slug, name, description").eq("slug", page.service_slug).maybeSingle() : { data: null };
-      if (!city) throw new Error("Ville introuvable pour cette page.");
-      const materialFallback = !material && page.material_slug ? { slug: page.material_slug, name: page.material_slug } : material;
-      const serviceFallback = !service && page.service_slug ? { slug: page.service_slug, name: page.service_slug } : service;
-      if (!materialFallback && !serviceFallback) throw new Error("Cette page n'a ni matériau ni service associé — impossible à régénérer.");
-      const res = await invokeWithFreshSession("seo-generate-page", { city, material: materialFallback ?? undefined, service: serviceFallback ?? undefined, force: true });
-      if ((res as any)?.error) throw new Error((res as any).error?.message || "Erreur");
-      toast.success("Page régénérée");
-      load();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erreur de régénération");
-    } finally {
-      setRegenerating(null);
-    }
-  };
-
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
