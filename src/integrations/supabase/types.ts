@@ -9192,6 +9192,12 @@ export type Database = {
           og_title: string | null
           priority: number
           priority_locked: boolean
+          proc_error: string | null
+          proc_finished_at: string | null
+          proc_kind: string | null
+          proc_result: Json | null
+          proc_started_at: string | null
+          proc_status: string
           published_at: string | null
           qa_blockers: string[]
           qa_breakdown: Json
@@ -9245,6 +9251,12 @@ export type Database = {
           og_title?: string | null
           priority?: number
           priority_locked?: boolean
+          proc_error?: string | null
+          proc_finished_at?: string | null
+          proc_kind?: string | null
+          proc_result?: Json | null
+          proc_started_at?: string | null
+          proc_status?: string
           published_at?: string | null
           qa_blockers?: string[]
           qa_breakdown?: Json
@@ -9298,6 +9310,12 @@ export type Database = {
           og_title?: string | null
           priority?: number
           priority_locked?: boolean
+          proc_error?: string | null
+          proc_finished_at?: string | null
+          proc_kind?: string | null
+          proc_result?: Json | null
+          proc_started_at?: string | null
+          proc_status?: string
           published_at?: string | null
           qa_blockers?: string[]
           qa_breakdown?: Json
