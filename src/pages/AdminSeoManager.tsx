@@ -1109,22 +1109,135 @@ function LabeledTextarea({ label, value, onChange }: { label: string; value: str
 /* =========================================================================
  * ANALYTICS TAB — SEO score, structure, refresh queue
  * ========================================================================= */
+const PAGE_COLS = "id, slug, city_slug, material_slug, service_slug, title, status, last_generated_at, created_at, view_count, seo_score, word_count, internal_link_count, needs_refresh, proc_status, proc_kind, proc_started_at, proc_finished_at, proc_error, proc_result";
+const STALE_MS = 15 * 60 * 1000;
+
+/** A row is really busy only if its own proc_status is "running" and not stale. */
+function isRunning(p: Page) {
+  if (p.proc_status !== "running") return false;
+  const started = p.proc_started_at ? new Date(p.proc_started_at).getTime() : 0;
+  return !started || Date.now() - started < STALE_MS;
+}
+
 function AnalyticsTab() {
   const [rows, setRows] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "needs_refresh" | "low_score">("all");
-  const [regenerating, setRegenerating] = useState<string | null>(null);
 
-  const load = async () => {
+  const patchRow = useCallback((id: string, patch: Partial<Page>) => {
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  }, []);
+
+  const load = useCallback(async () => {
     setLoading(true);
-    let q = supabase.from("seo_pages").select("id, slug, city_slug, material_slug, service_slug, title, status, last_generated_at, created_at, view_count, seo_score, word_count, internal_link_count, needs_refresh").order("seo_score", { ascending: true, nullsFirst: true }).limit(500);
+    let q = supabase.from("seo_pages").select(PAGE_COLS).order("seo_score", { ascending: true, nullsFirst: true }).limit(500);
     if (filter === "needs_refresh") q = q.eq("needs_refresh", true);
     if (filter === "low_score") q = q.lt("seo_score", 70);
-    const { data } = await q;
+    const { data, error } = await q;
+    if (error) toast.error(error.message);
     setRows((data ?? []) as unknown as Page[]);
     setLoading(false);
+  }, [filter]);
+  useEffect(() => { void load(); }, [load]);
+
+  /** Re-sync only the rows currently marked running (never resets the others). */
+  const runningIds = rows.filter(isRunning).map((r) => r.id).join(",");
+  useEffect(() => {
+    if (!runningIds) return;
+    const ids = runningIds.split(",");
+    const t = setInterval(async () => {
+      const { data } = await supabase.from("seo_pages").select(PAGE_COLS).in("id", ids);
+      for (const row of (data ?? []) as unknown as Page[]) patchRow(row.id, row);
+    }, 6000);
+    return () => clearInterval(t);
+  }, [runningIds, patchRow]);
+
+  const refreshRow = useCallback(async (id: string) => {
+    const { data } = await supabase.from("seo_pages").select(PAGE_COLS).eq("id", id).maybeSingle();
+    if (data) patchRow(id, data as unknown as Page);
+  }, [patchRow]);
+
+  const markStart = async (page: Page, kind: "analyze" | "regenerate") => {
+    const startedAt = new Date().toISOString();
+    patchRow(page.id, { proc_status: "running", proc_kind: kind, proc_started_at: startedAt, proc_error: null });
+    const { error } = await supabase.from("seo_pages")
+      .update({ proc_status: "running", proc_kind: kind, proc_started_at: startedAt, proc_finished_at: null, proc_error: null })
+      .eq("id", page.id);
+    if (error) throw new Error(`Impossible d'enregistrer l'état: ${error.message}`);
   };
-  useEffect(() => { load(); }, [filter]);
+
+  const markFinish = async (page: Page, patch: Record<string, unknown>) => {
+    const full = { ...patch, proc_finished_at: new Date().toISOString() };
+    await supabase.from("seo_pages").update(full).eq("id", page.id);
+    await refreshRow(page.id);
+  };
+
+  /** Analyse QA d'UNE page — persistée immédiatement en base. */
+  const analyze = async (page: Page) => {
+    if (isRunning(page)) return;
+    try {
+      await markStart(page, "analyze");
+      const res = await invokeWithFreshSession<Record<string, unknown>, { ok?: boolean; score?: number; blockers?: string[]; warnings?: string[] }>(
+        "seo-qa-check", { page_id: page.id, enforce_draft: false },
+      );
+      if (res.error) throw new Error(res.error.message);
+      const score = Number(res.data?.score ?? 0);
+      const blockers = res.data?.blockers ?? [];
+      await markFinish(page, {
+        proc_status: "done",
+        proc_error: null,
+        proc_result: { kind: "analyze", score, blockers, warnings: res.data?.warnings ?? [] },
+        seo_score: score,
+        last_analyzed_at: new Date().toISOString(),
+        needs_refresh: blockers.length > 0 || score < 65,
+        refresh_reason: blockers.length ? `qa:${blockers.slice(0, 3).join(",")}` : null,
+      });
+      toast.success(`Analyse terminée — score ${score}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erreur d'analyse";
+      await supabase.from("seo_pages").update({ proc_status: "error", proc_error: msg, proc_finished_at: new Date().toISOString() }).eq("id", page.id);
+      await refreshRow(page.id);
+      toast.error(msg);
+    }
+  };
+
+  /** Régénération d'UNE page uniquement, suivie d'une analyse QA. */
+  const regenerate = async (page: Page) => {
+    if (isRunning(page)) return;
+    try {
+      await markStart(page, "regenerate");
+      const { data: city } = await supabase.from("seo_cities").select("slug, name, region").eq("slug", page.city_slug).maybeSingle();
+      const { data: material } = page.material_slug ? await supabase.from("seo_materials").select("slug, name, short_name, description").eq("slug", page.material_slug).maybeSingle() : { data: null };
+      const { data: service } = page.service_slug ? await supabase.from("seo_services").select("slug, name, description").eq("slug", page.service_slug).maybeSingle() : { data: null };
+      if (!city) throw new Error("Ville introuvable pour cette page.");
+      const materialFallback = !material && page.material_slug ? { slug: page.material_slug, name: page.material_slug } : material;
+      const serviceFallback = !service && page.service_slug ? { slug: page.service_slug, name: page.service_slug } : service;
+      if (!materialFallback && !serviceFallback) throw new Error("Cette page n'a ni matériau ni service associé — impossible à régénérer.");
+      const res = await invokeWithFreshSession("seo-generate-page", { city, material: materialFallback ?? undefined, service: serviceFallback ?? undefined, force: true });
+      if (res.error) throw new Error(res.error.message || "Erreur de régénération");
+
+      // QA immédiate sur la nouvelle version (best effort — ne bloque pas la sauvegarde).
+      let score: number | null = null;
+      let blockers: string[] = [];
+      const qa = await invokeWithFreshSession<Record<string, unknown>, { score?: number; blockers?: string[] }>(
+        "seo-qa-check", { page_id: page.id, enforce_draft: false },
+      ).catch(() => null);
+      if (qa && !qa.error) { score = Number(qa.data?.score ?? 0); blockers = qa.data?.blockers ?? []; }
+
+      await markFinish(page, {
+        proc_status: "done",
+        proc_error: null,
+        proc_result: { kind: "regenerate", score, blockers },
+        ...(score != null ? { seo_score: score, last_analyzed_at: new Date().toISOString(), needs_refresh: blockers.length > 0 || score < 65 } : { needs_refresh: false }),
+      });
+      toast.success(score != null ? `Page régénérée — score ${score}` : "Page régénérée");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erreur de régénération";
+      await supabase.from("seo_pages").update({ proc_status: "error", proc_error: msg, proc_finished_at: new Date().toISOString() }).eq("id", page.id);
+      await refreshRow(page.id);
+      toast.error(msg);
+    }
+  };
 
   const stats = useMemo(() => {
     const scored = rows.filter((r) => typeof r.seo_score === "number");
@@ -1194,11 +1307,16 @@ function AnalyticsTab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {rows.map((r) => (
+              {rows.map((r) => {
+                const busy = isRunning(r);
+                return (
                 <tr key={r.id} className="hover:bg-muted/30">
                   <td className="p-3 min-w-0">
                     <div className="font-body text-foreground truncate max-w-[420px]">{r.title}</div>
                     <div className="text-xs text-muted-foreground font-mono truncate">/{r.slug}</div>
+                    {r.proc_status === "error" && r.proc_error && (
+                      <div className="text-[11px] text-destructive truncate max-w-[420px]" title={r.proc_error}>{r.proc_error}</div>
+                    )}
                   </td>
                   <td className="p-3 text-center">
                     <ScoreBadge score={r.seo_score} />
@@ -1206,12 +1324,25 @@ function AnalyticsTab() {
                   <td className="p-3 text-center text-foreground">{r.word_count ?? "—"}</td>
                   <td className="p-3 text-center text-foreground">{r.internal_link_count ?? "—"}</td>
                   <td className="p-3 text-center">
-                    {r.needs_refresh ? (
-                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 font-display font-semibold">
-                        <RefreshCw className="w-3 h-3" /> À rafraîchir
+                    {busy ? (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary font-display font-semibold">
+                        <Loader2 className="w-3 h-3 animate-spin" /> En cours{r.proc_kind === "regenerate" ? " (régénération)" : ""}
                       </span>
+                    ) : r.proc_status === "error" ? (
+                      <button type="button" onClick={() => analyze(r)}
+                        className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-display font-semibold hover:bg-destructive/25">
+                        <RotateCcw className="w-3 h-3" /> Erreur — Réessayer
+                      </button>
+                    ) : r.needs_refresh ? (
+                      <button type="button" onClick={() => analyze(r)} title="Analyser cette page maintenant"
+                        className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 font-display font-semibold hover:bg-amber-500/25">
+                        <RefreshCw className="w-3 h-3" /> À rafraîchir
+                      </button>
                     ) : (
-                      <span className="text-xs text-muted-foreground">À jour</span>
+                      <button type="button" onClick={() => analyze(r)} title="Analyser cette page"
+                        className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-display font-semibold hover:bg-secondary/70">
+                        <RefreshCw className="w-3 h-3" /> {r.proc_status === "done" ? "Terminé" : "À jour"}
+                      </button>
                     )}
                   </td>
                   <td className="p-3 text-right">
@@ -1219,15 +1350,16 @@ function AnalyticsTab() {
                       <Link to={`/${r.slug}`} target="_blank" className="text-primary hover:underline text-xs inline-flex items-center gap-1">
                         <ExternalLink className="w-3 h-3" /> Voir
                       </Link>
-                      <button onClick={() => regenerate(r)} disabled={regenerating === r.id}
+                      <button type="button" onClick={() => regenerate(r)} disabled={busy}
                         className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-primary text-primary-foreground font-display font-semibold hover:opacity-90 disabled:opacity-50">
-                        {regenerating === r.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+                        {busy && r.proc_kind === "regenerate" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
                         Régénérer
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
