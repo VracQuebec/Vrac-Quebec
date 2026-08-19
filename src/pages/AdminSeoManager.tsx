@@ -44,7 +44,8 @@ type Use = {
   active: boolean; sort_order: number;
 };
 type Service = { id: string; slug: string; name: string; short_name: string | null; description: string; keywords: string[]; active: boolean; sort_order: number };
-type Page = { id: string; slug: string; city_slug: string; material_slug: string | null; service_slug: string | null; title: string; status: string; last_generated_at: string | null; created_at: string; view_count: number; seo_score?: number | null; word_count?: number | null; internal_link_count?: number | null; needs_refresh?: boolean };
+type Page = { id: string; slug: string; city_slug: string; material_slug: string | null; service_slug: string | null; title: string; status: string; last_generated_at: string | null; created_at: string; view_count: number; seo_score?: number | null; word_count?: number | null; internal_link_count?: number | null; needs_refresh?: boolean;
+  proc_status?: string | null; proc_kind?: string | null; proc_started_at?: string | null; proc_finished_at?: string | null; proc_error?: string | null; proc_result?: Record<string, unknown> | null };
 
 function slugify(s: string) {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-+|-+$)/g, "");
