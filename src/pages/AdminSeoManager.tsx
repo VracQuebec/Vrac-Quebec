@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -25,6 +25,7 @@ import RecommendationCard, { type Reco } from "@/components/seo/RecommendationCa
 import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
 import GoalCard, { type Goal } from "@/components/seo/GoalCard";
 import QaReportBadge from "@/components/seo/QaReportBadge";
+import TabBoundary from "@/components/seo/TabBoundary";
 
 type Tab = "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "publication" | "intelligence" | "coverage" | "territory" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "gbp" | "blog";
 
@@ -53,13 +54,13 @@ export default function AdminSeoManager() {
   const { isReady: authReady, user } = useAuthReady();
   const { isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("copilot");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [remountKey, setRemountKey] = useState(0);
 
   useEffect(() => {
     if (authReady && !user) navigate("/login");
     if (authReady && user && !roleLoading && !isAdmin) navigate("/");
   }, [authReady, user, isAdmin, roleLoading, navigate]);
-  if (!isAdmin) return null;
 
   const tabGroups: Array<{ title: string; tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> }> = [
     {
@@ -112,6 +113,24 @@ export default function AdminSeoManager() {
     },
   ];
 
+  const allTabs = useMemo(() => tabGroups.flatMap((g) => g.tabs), [tabGroups]);
+  const requested = searchParams.get("tab") as Tab | null;
+  const tab: Tab = allTabs.some((t) => t.id === requested) ? (requested as Tab) : "copilot";
+  const currentLabel = allTabs.find((t) => t.id === tab)?.label ?? "SEO";
+
+  const setTab = useCallback(
+    (id: Tab) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("tab", id);
+        return next;
+      }, { replace: false });
+    },
+    [setSearchParams],
+  );
+
+  if (!isAdmin) return null;
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card sticky top-0 z-10">
@@ -136,8 +155,11 @@ export default function AdminSeoManager() {
           </Link>
         </div>
       </header>
-      <div className="container mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6">
-        <nav className="flex md:flex-col gap-1 md:sticky md:top-20 h-fit overflow-x-auto md:overflow-visible">
+      <div className="container mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 items-start">
+        <nav
+          aria-label="Sections SEO"
+          className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-hidden md:sticky md:top-[4.5rem] md:max-h-[calc(100vh-6rem)] md:overflow-y-auto md:overscroll-contain md:pr-1 [-webkit-overflow-scrolling:touch]"
+        >
           {tabGroups.map((group) => (
             <div key={group.title} className="md:mb-3 flex md:block gap-1">
               <div className="hidden md:block text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground/70 px-3 pt-1 pb-1">
@@ -154,30 +176,32 @@ export default function AdminSeoManager() {
             </div>
           ))}
         </nav>
-        <main>
-          {tab === "copilot" && <CopilotDashboard />}
-          {tab === "dashboard" && <CommandCenter />}
-          {tab === "assistant" && <AssistantTab />}
-          {tab === "production" && <ProductionTab />}
-          {tab === "optimizer" && <OptimizationEngine />}
-          {tab === "goals" && <GoalsTab />}
-          {tab === "competitors" && <CompetitorsTab />}
-          {tab === "pages" && <PagesTab />}
-          {tab === "publication" && <PublicationDashboard />}
-          {tab === "intelligence" && <SeoIntelligence />}
-          {tab === "coverage" && <CoverageMatrix />}
-          {tab === "territory" && <TerritorialCoverage />}
-          {tab === "conversions" && <ConversionsTable />}
-          {tab === "cities" && <CitiesTab />}
-          {tab === "materials" && <MaterialsTab />}
-          {tab === "uses" && <UsesTab />}
-          {tab === "services" && <ServicesTab />}
-          {tab === "generator" && <GeneratorTab />}
-          {tab === "analytics" && <AnalyticsTab />}
-          {tab === "gsc" && <GscTab />}
-          {tab === "gbp" && <GbpDashboard />}
-          {tab === "suggestions" && <SuggestionsTab />}
-          {tab === "blog" && <BlogTab />}
+        <main className="min-w-0">
+          <TabBoundary key={`${tab}-${remountKey}`} label={currentLabel} onRetry={() => setRemountKey((k) => k + 1)}>
+            {tab === "copilot" && <CopilotDashboard />}
+            {tab === "dashboard" && <CommandCenter />}
+            {tab === "assistant" && <AssistantTab />}
+            {tab === "production" && <ProductionTab />}
+            {tab === "optimizer" && <OptimizationEngine />}
+            {tab === "goals" && <GoalsTab />}
+            {tab === "competitors" && <CompetitorsTab />}
+            {tab === "pages" && <PagesTab />}
+            {tab === "publication" && <PublicationDashboard />}
+            {tab === "intelligence" && <SeoIntelligence />}
+            {tab === "coverage" && <CoverageMatrix />}
+            {tab === "territory" && <TerritorialCoverage />}
+            {tab === "conversions" && <ConversionsTable />}
+            {tab === "cities" && <CitiesTab />}
+            {tab === "materials" && <MaterialsTab />}
+            {tab === "uses" && <UsesTab />}
+            {tab === "services" && <ServicesTab />}
+            {tab === "generator" && <GeneratorTab />}
+            {tab === "analytics" && <AnalyticsTab />}
+            {tab === "gsc" && <GscTab />}
+            {tab === "gbp" && <GbpDashboard />}
+            {tab === "suggestions" && <SuggestionsTab />}
+            {tab === "blog" && <BlogTab />}
+          </TabBoundary>
         </main>
       </div>
     </div>
