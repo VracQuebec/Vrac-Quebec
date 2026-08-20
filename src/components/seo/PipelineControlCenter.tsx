@@ -1,260 +1,322 @@
 import { useMemo, useState } from "react";
-import { useEffect } from "react";
-import { useSeoPipelineV2, type CityBatch } from "@/lib/seo/useSeoPipelineV2";
+import { useSeoControlCenter, type ControlCityRow } from "@/lib/seo/useSeoControlCenter";
+import { useSeoPipelineV2 } from "@/lib/seo/useSeoPipelineV2";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import {
-  Play, Pause, Square, RotateCcw, Rocket, RefreshCw, Send, ListRestart,
-  CheckCircle2, AlertCircle, Clock, Loader2, Zap, XCircle,
+  Play, Pause, Square, Rocket, RefreshCw, Send, ListRestart,
+  Loader2, AlertTriangle, ExternalLink, FileText,
 } from "lucide-react";
 
-function formatEta(seconds: number | null): string {
-  if (!seconds || seconds <= 0) return "—";
-  const h = Math.floor(seconds / 3600); const m = Math.floor((seconds % 3600) / 60); const s = seconds % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
-}
+type FilterKey = "all" | "done" | "running" | "todo" | "error";
 
-function statusBadge(s: string) {
-  const map: Record<string, { label: string; className: string; icon: JSX.Element }> = {
-    queued:    { label: "En attente", className: "bg-muted text-muted-foreground",    icon: <Clock className="w-3 h-3" /> },
-    running:   { label: "En cours",   className: "bg-primary/20 text-primary",         icon: <Loader2 className="w-3 h-3 animate-spin" /> },
-    paused:    { label: "En pause",   className: "bg-yellow-500/20 text-yellow-700",   icon: <Pause className="w-3 h-3" /> },
-    completed: { label: "Terminé",    className: "bg-green-500/20 text-green-700",     icon: <CheckCircle2 className="w-3 h-3" /> },
-    failed:    { label: "Échec",      className: "bg-destructive/20 text-destructive", icon: <XCircle className="w-3 h-3" /> },
-    stopped:   { label: "Arrêté",     className: "bg-muted text-muted-foreground",    icon: <Square className="w-3 h-3" /> },
-    cancelled: { label: "Annulé",     className: "bg-muted text-muted-foreground",    icon: <XCircle className="w-3 h-3" /> },
-  };
-  const cfg = map[s] ?? map.queued;
-  return <Badge variant="outline" className={`gap-1 ${cfg.className}`}>{cfg.icon}{cfg.label}</Badge>;
-}
+const FILTERS: Array<{ key: FilterKey; label: string }> = [
+  { key: "all", label: "Toutes" },
+  { key: "done", label: "Terminées" },
+  { key: "running", label: "En cours" },
+  { key: "todo", label: "À faire" },
+  { key: "error", label: "Avec erreurs" },
+];
 
-function cityIcon(status: string): string {
-  if (status === "completed") return "✅";
-  if (status === "running") return "🔄";
-  if (status === "failed") return "⚠️";
-  if (status === "paused") return "⏸";
-  return "⏳";
-}
+const STATUS_META: Record<ControlCityRow["status"], { label: string; className: string; dot: string }> = {
+  done:    { label: "TERMINÉE", className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" },
+  running: { label: "EN COURS", className: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30", dot: "bg-yellow-500" },
+  error:   { label: "ERREUR",   className: "bg-destructive/15 text-destructive border-destructive/30", dot: "bg-destructive" },
+  todo:    { label: "À FAIRE",  className: "bg-muted text-muted-foreground border-border", dot: "bg-muted-foreground" },
+};
+
+function nf(n: number) { return n.toLocaleString("fr-CA"); }
 
 export default function PipelineControlCenter() {
-  const { state, loading, error, start, pause, resume, stop, cancel, retryErrors, regenerateCity, republishCity } = useSeoPipelineV2();
-  const [busy, setBusy] = useState(false);
-  const [logsBatch, setLogsBatch] = useState<CityBatch | null>(null);
+  const { state, loading, error, reload } = useSeoControlCenter();
+  const { start, pause, resume, stop } = useSeoPipelineV2();
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [search, setSearch] = useState("");
+  const [visible, setVisible] = useState(24);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [logsCity, setLogsCity] = useState<string | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
-  const [counters, setCounters] = useState<{ target_total: number; in_db: number; drafts: number; in_qa: number; published: number } | null>(null);
-  const [errorsCount, setErrorsCount] = useState<number>(0);
+  const [pagesCity, setPagesCity] = useState<string | null>(null);
+  const [pages, setPages] = useState<any[]>([]);
+  const [errorsOpen, setErrorsOpen] = useState(false);
+  const [errorRows, setErrorRows] = useState<any[]>([]);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function refresh() {
-      const [{ data: dash }, { count: errs }] = await Promise.all([
-        supabase.rpc("seo_publication_dashboard"),
-        supabase.from("seo_page_tasks").select("id", { count: "exact", head: true }).eq("status", "needs_retry"),
-      ]);
-      if (cancelled) return;
-      const c = (dash as any)?.counts ?? null;
-      if (c) setCounters({ target_total: c.target_total, in_db: c.in_db, drafts: c.drafts, in_qa: c.in_qa, published: c.published });
-      setErrorsCount(errs ?? 0);
-    }
-    void refresh();
-    const t = window.setInterval(refresh, 10000);
-    const ch = supabase.channel("seo-pipeline-global-counters")
-      .on("postgres_changes", { event: "*", schema: "public", table: "seo_pages" }, refresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "seo_page_tasks" }, refresh)
-      .subscribe();
-    return () => { cancelled = true; window.clearInterval(t); void supabase.removeChannel(ch); };
-  }, []);
-
+  const totals = state?.totals ?? null;
   const run = state?.active_run ?? null;
-  const batches = state?.batches ?? [];
-  const overallPct = run && run.total_pages > 0 ? Math.round((run.done_pages / run.total_pages) * 100) : 0;
-  const canPause = run?.status === "running" || run?.status === "queued";
-  const canResume = run?.status === "paused";
-  const canStop = run && ["queued","running","paused"].includes(run.status);
+  const globalPct = totals && totals.target_total > 0
+    ? Math.round((totals.published / totals.target_total) * 100) : 0;
 
-  const summary = useMemo(() => ({
-    remaining: run ? Math.max(0, run.total_pages - run.done_pages) : 0,
-    successRate: run && run.done_pages > 0 ? Math.round((run.succeeded_pages / run.done_pages) * 100) : 0,
-  }), [run]);
+  const cities = useMemo(() => {
+    const list = state?.cities ?? [];
+    const q = search.trim().toLowerCase();
+    return list.filter((c) =>
+      (filter === "all" || c.status === filter) &&
+      (!q || c.name.toLowerCase().includes(q) || c.slug.includes(q))
+    );
+  }, [state, filter, search]);
 
-  async function guarded(fn: () => Promise<void>) {
-    setBusy(true); try { await fn(); } finally { setBusy(false); }
+  async function act(key: string, fn: () => Promise<void>, okMsg: string) {
+    setBusy(key);
+    try { await fn(); await reload(); toast({ title: okMsg }); }
+    catch (e) { toast({ title: "Erreur", description: e instanceof Error ? e.message : "Action impossible", variant: "destructive" }); }
+    finally { setBusy(null); }
   }
 
-  async function openLogs(batch: CityBatch) {
-    setLogsBatch(batch);
+  async function openLogs(slug: string) {
+    setLogsCity(slug); setLogs([]);
     const { data } = await supabase.from("seo_page_tasks")
-      .select("id, city_slug, material_slug, service_slug, status, attempts, qa_score, step, last_error, duration_ms, finished_at")
-      .eq("batch_id", batch.id).order("updated_at", { ascending: false }).limit(200);
+      .select("id, city_slug, material_slug, service_slug, status, step, attempts, qa_score, last_error, updated_at")
+      .eq("city_slug", slug).order("updated_at", { ascending: false }).limit(100);
     setLogs(data ?? []);
   }
 
+  async function openPages(slug: string) {
+    setPagesCity(slug); setPages([]);
+    const { data } = await supabase.from("seo_pages")
+      .select("id, slug, title, status, published_at, qa_last_score, word_count")
+      .eq("city_slug", slug).order("slug").limit(200);
+    setPages(data ?? []);
+  }
+
+  async function openErrors() {
+    setErrorsOpen(true); setErrorRows([]);
+    const { data } = await supabase.from("seo_page_tasks")
+      .select("id, city_slug, page_slug, material_slug, service_slug, status, step, last_error, attempts, updated_at")
+      .in("status", ["failed", "needs_retry"]).order("updated_at", { ascending: false }).limit(200);
+    setErrorRows(data ?? []);
+  }
+
   return (
-    <Card className="p-4 md:p-6 space-y-4">
-      <header className="flex flex-wrap items-center gap-3 justify-between">
-        <div>
-          <h2 className="text-lg font-display font-bold flex items-center gap-2"><Rocket className="w-5 h-5 text-primary" /> Pipeline SEO — Génération par ville</h2>
-          <p className="text-xs text-muted-foreground">Génération séquentielle ville par ville, reprise après crash, watchdog automatique.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {!run || ["completed","failed","stopped","cancelled"].includes(run.status) ? (
-            <>
-              <Button onClick={() => guarded(() => start({ mode: "all_cities" }))} disabled={busy} className="gap-2">
-                <Rocket className="w-4 h-4" /> Générer tout
+    <div className="space-y-4">
+      {/* ── En-tête + contrôles globaux ─────────────────────────── */}
+      <Card className="p-4 md:p-6 space-y-4">
+        <header className="flex flex-wrap items-start gap-3 justify-between">
+          <div className="min-w-0">
+            <h2 className="text-lg font-display font-bold flex items-center gap-2">
+              <Rocket className="w-5 h-5 text-primary" /> Centre de pilotage SEO
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Chiffres calculés en direct depuis la base (pages, villes, tâches). Aucune estimation.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => void reload()} className="gap-2">
+              <RefreshCw className="w-4 h-4" /> Rafraîchir
+            </Button>
+            {!run && (
+              <Button size="sm" onClick={() => act("start", async () => { await start({ mode: "all_cities" }); }, "Génération lancée (pages manquantes uniquement)")} disabled={busy === "start"} className="gap-2">
+                <Play className="w-4 h-4" /> Générer les pages manquantes
               </Button>
-              <Button variant="outline" onClick={() => guarded(() => start({ mode: "all_cities", force: true }))} disabled={busy} className="gap-2">
-                <RefreshCw className="w-4 h-4" /> Regénérer tout
-              </Button>
-            </>
-          ) : null}
-          {canPause && <Button variant="outline" onClick={() => guarded(() => pause(run!.id))} disabled={busy} className="gap-2"><Pause className="w-4 h-4" /> Pause</Button>}
-          {canResume && <Button onClick={() => guarded(() => resume(run!.id))} disabled={busy} className="gap-2"><Play className="w-4 h-4" /> Reprendre</Button>}
-          {canStop && <Button variant="outline" onClick={() => guarded(() => stop(run!.id))} disabled={busy} className="gap-2"><Square className="w-4 h-4" /> Arrêter</Button>}
-          {run && ["running","paused","stopped","failed","completed"].includes(run.status) && (
-            <Button variant="outline" onClick={() => guarded(() => retryErrors(run.id))} disabled={busy} className="gap-2"><ListRestart className="w-4 h-4" /> Relancer erreurs</Button>
-          )}
-          {canStop && <Button variant="ghost" onClick={() => guarded(() => cancel(run!.id))} disabled={busy} className="gap-2 text-destructive"><XCircle className="w-4 h-4" /> Annuler</Button>}
-        </div>
-      </header>
-
-      {error && <div className="text-sm text-destructive">{error}</div>}
-      {loading && !state && <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</div>}
-
-      {counters && (
-        <div className="space-y-2 rounded-lg border border-border bg-background/50 p-3">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Progression réelle · pages persistées en base (jamais régénérées automatiquement)</span>
-            <span className="font-semibold text-foreground">
-              {counters.target_total > 0 ? Math.round((counters.published / counters.target_total) * 100) : 0}%
-            </span>
+            )}
+            {run && ["running", "queued"].includes(run.status) && (
+              <Button size="sm" variant="outline" onClick={() => act("pause", () => pause(run.id), "Pipeline en pause")} className="gap-2"><Pause className="w-4 h-4" /> Pause</Button>
+            )}
+            {run?.status === "paused" && (
+              <Button size="sm" onClick={() => act("resume", () => resume(run.id), "Pipeline reprise")} className="gap-2"><Play className="w-4 h-4" /> Reprendre</Button>
+            )}
+            {run && (
+              <Button size="sm" variant="ghost" onClick={() => act("stop", () => stop(run.id), "Pipeline arrêtée")} className="gap-2"><Square className="w-4 h-4" /> Arrêter</Button>
+            )}
           </div>
-          <Progress value={counters.target_total > 0 ? Math.round((counters.published / counters.target_total) * 100) : 0} className="h-2" />
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
-            <Stat label="Total cible" value={counters.target_total} />
-            <Stat label="Générées" value={counters.in_db} tone="good" />
-            <Stat label="Publiées" value={counters.published} tone="good" />
-            <Stat label="Restantes" value={Math.max(0, counters.target_total - counters.in_db)} />
-            <Stat label="Erreurs" value={errorsCount} tone={errorsCount > 0 ? "bad" : "muted"} />
-          </div>
-        </div>
-      )}
+        </header>
 
-      {run && (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-3 justify-between">
-            <div className="flex items-center gap-2">
-              {statusBadge(run.status)}
-              <span className="text-sm text-muted-foreground">Mode : <strong className="text-foreground">{run.mode}</strong></span>
-              {run.current_city_slug && <span className="text-sm">· Ville actuelle : <strong>{run.current_city_slug}</strong></span>}
+        {error && <div className="text-sm text-destructive">{error}</div>}
+        {loading && !state && (
+          <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</div>
+        )}
+
+        {totals && (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3">
+              <Kpi label="Pages totales" value={nf(totals.target_total)} />
+              <Kpi label="Générées" value={nf(totals.generated)} tone="good" />
+              <Kpi label="Publiées" value={nf(totals.published)} tone="good" />
+              <Kpi label="Restantes" value={nf(totals.remaining)} />
+              <button type="button" onClick={openErrors} className="text-left">
+                <Kpi label="Erreurs" value={nf(totals.errors)} tone={totals.errors > 0 ? "bad" : "muted"} hint="Voir la liste" />
+              </button>
             </div>
-            <div className="text-xs text-muted-foreground">
-              {run.pages_per_minute ? `${run.pages_per_minute} p/min` : "—"} · ETA {formatEta(run.eta_seconds)}
-            </div>
-          </div>
 
-          <Progress value={overallPct} className="h-3" />
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 text-xs">
-            <Stat label="Total" value={run.total_pages} />
-            <Stat label="Faites" value={run.done_pages} />
-            <Stat label="Restantes" value={summary.remaining} />
-            <Stat label="Réussies" value={run.succeeded_pages} tone="good" />
-            <Stat label="Échecs" value={run.failed_pages} tone={run.failed_pages > 0 ? "bad" : "muted"} />
-            <Stat label="QA moyen" value={run.qa_avg != null ? `${run.qa_avg}` : "—"} />
-          </div>
-        </div>
-      )}
-
-      {batches.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold">Villes ({batches.length})</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-            {batches.map((b) => {
-              const pct = b.total_tasks > 0 ? Math.round((b.done_tasks / b.total_tasks) * 100) : 0;
-              return (
-                <div key={b.id} className="rounded-lg border border-border p-3 space-y-2 bg-card">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-lg">{cityIcon(b.status)}</span>
-                      <div className="min-w-0">
-                        <div className="font-medium text-sm truncate">{b.city_slug}</div>
-                        <div className="text-xs text-muted-foreground truncate">{b.current_step ?? "—"}</div>
-                      </div>
-                    </div>
-                    {statusBadge(b.status)}
-                  </div>
-                  <Progress value={pct} className="h-2" />
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{b.done_tasks}/{b.total_tasks} · {pct}%</span>
-                    <span>{b.succeeded_tasks} ✓ · {b.failed_tasks} ✗</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => openLogs(b)}>Logs</Button>
-                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs gap-1" onClick={() => guarded(() => regenerateCity(b.city_slug))} disabled={busy}><RefreshCw className="w-3 h-3" /> Regénérer</Button>
-                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs gap-1" onClick={() => guarded(() => republishCity(b.city_slug))} disabled={busy}><Send className="w-3 h-3" /> Republier</Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {!run && batches.length === 0 && !loading && (
-        <div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg">
-          Aucun lancement actif. Cliquez sur <strong>Générer tout</strong> pour démarrer la pipeline ville par ville.
-        </div>
-      )}
-
-      {state?.recent_runs && state.recent_runs.length > 0 && (
-        <details className="text-xs">
-          <summary className="cursor-pointer text-muted-foreground">Historique récent ({state.recent_runs.length})</summary>
-          <div className="mt-2 space-y-1">
-            {state.recent_runs.map((r) => (
-              <div key={r.id} className="flex items-center gap-2 py-1 border-b border-border last:border-0">
-                {statusBadge(r.status)}
-                <span className="text-muted-foreground">{r.mode}</span>
-                <span className="ml-auto">{r.succeeded_pages}/{r.total_pages} · QA {r.qa_avg ?? "—"}</span>
-                <span className="text-muted-foreground">{new Date(r.created_at).toLocaleString("fr-CA")}</span>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Progression globale (pages publiées / pages prévues)</span>
+                <span className="font-semibold text-foreground">{globalPct}%</span>
               </div>
-            ))}
-          </div>
-        </details>
-      )}
+              <Progress value={globalPct} className="h-3" />
+            </div>
 
-      <Dialog open={!!logsBatch} onOpenChange={(o) => !o && setLogsBatch(null)}>
+            <div className="rounded-lg border border-border bg-background/50 p-3 text-sm">
+              {run ? (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <Badge className="bg-primary/15 text-primary border-primary/30 gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> EN COURS
+                  </Badge>
+                  <span className="font-semibold">{nf(run.done_pages)} / {nf(run.total_pages)}</span>
+                  <span className="text-muted-foreground">
+                    {run.total_pages > 0 ? Math.round((run.done_pages / run.total_pages) * 100) : 0} %
+                  </span>
+                  {run.current_city_slug && <span className="text-muted-foreground">Ville : <strong className="text-foreground">{run.current_city_slug}</strong></span>}
+                  <span className="text-muted-foreground">File : {nf(state?.queued_tasks ?? 0)} tâche(s)</span>
+                </div>
+              ) : (
+                <span className="text-muted-foreground">AUCUNE GÉNÉRATION EN COURS</span>
+              )}
+            </div>
+          </>
+        )}
+      </Card>
+
+      {/* ── État des villes ─────────────────────────────────────── */}
+      <Card className="p-4 md:p-6 space-y-4">
+        <div className="flex flex-wrap items-center gap-3 justify-between">
+          <h3 className="text-base font-display font-bold">État des villes ({state?.cities.length ?? 0})</h3>
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher une ville…" className="h-9 w-full sm:w-56" />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((f) => (
+            <Button key={f.key} size="sm" variant={filter === f.key ? "default" : "outline"}
+              className="h-8 text-xs" onClick={() => { setFilter(f.key); setVisible(24); }}>
+              {f.label}
+            </Button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {cities.slice(0, visible).map((c) => {
+            const meta = STATUS_META[c.status];
+            return (
+              <div key={c.slug} className="rounded-xl border border-border bg-card p-3 space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-semibold truncate flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${meta.dot}`} />{c.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">{c.slug}</div>
+                  </div>
+                  <Badge variant="outline" className={`text-[10px] shrink-0 ${meta.className}`}>{meta.label}</Badge>
+                </div>
+
+                <Progress value={c.pct} className="h-2" />
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-xs">
+                  <span>{c.generated} / {c.planned} générées</span>
+                  <span>{c.published} / {c.planned} publiées</span>
+                  <span>{c.remaining} restante{c.remaining > 1 ? "s" : ""}</span>
+                  <span className={c.errors > 0 ? "text-destructive font-medium" : ""}>{c.errors} erreur{c.errors > 1 ? "s" : ""}</span>
+                  <span className="font-semibold">{c.pct} %</span>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" onClick={() => openPages(c.slug)}>
+                    <FileText className="w-3 h-3" /> Voir les pages
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
+                    disabled={c.errors === 0 || busy === `retry-${c.slug}`}
+                    onClick={() => act(`retry-${c.slug}`, async () => { await supabase.rpc("seo_city_retry_errors" as never, { _city_slug: c.slug } as never); }, `Erreurs relancées — ${c.name}`)}>
+                    <ListRestart className="w-3 h-3" /> Régénérer les erreurs
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
+                    disabled={c.published >= c.generated || busy === `pub-${c.slug}`}
+                    onClick={() => act(`pub-${c.slug}`, async () => { await supabase.rpc("seo_city_publish_missing" as never, { _city_slug: c.slug } as never); }, `Pages non publiées publiées — ${c.name}`)}>
+                    <Send className="w-3 h-3" /> Publier les non publiées
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => openLogs(c.slug)}>Voir les logs</Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {cities.length === 0 && !loading && (
+          <div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg">Aucune ville pour ce filtre.</div>
+        )}
+        {cities.length > visible && (
+          <div className="text-center">
+            <Button variant="outline" size="sm" onClick={() => setVisible((v) => v + 24)}>Afficher plus ({cities.length - visible})</Button>
+          </div>
+        )}
+      </Card>
+
+      {/* ── Dialogs ─────────────────────────────────────────────── */}
+      <Dialog open={errorsOpen} onOpenChange={setErrorsOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
-          <DialogHeader><DialogTitle>Logs — {logsBatch?.city_slug}</DialogTitle></DialogHeader>
-          <div className="space-y-1 text-xs font-mono">
-            {logs.length === 0 && <div className="text-muted-foreground">Aucune tâche.</div>}
-            {logs.map((l) => (
-              <div key={l.id} className="flex items-center gap-2 py-1 border-b border-border last:border-0">
-                {statusBadge(l.status)}
-                <span>{[l.material_slug, l.service_slug].filter(Boolean).join(" · ") || "hub"}</span>
-                <span className="text-muted-foreground">{l.step ?? "—"}</span>
-                <span className="ml-auto">{l.qa_score != null ? `QA ${l.qa_score}` : ""}</span>
-                <span className="text-muted-foreground">{l.duration_ms ? `${Math.round(l.duration_ms/1000)}s` : ""}</span>
-                {l.last_error && <span className="text-destructive truncate max-w-[240px]" title={l.last_error}>{l.last_error}</span>}
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-destructive" /> Erreurs — {totals?.errors ?? 0}</DialogTitle></DialogHeader>
+          <div className="space-y-2 text-xs">
+            {errorRows.length === 0 && <div className="text-muted-foreground">Aucune erreur.</div>}
+            {errorRows.map((e) => (
+              <div key={e.id} className="rounded-lg border border-border p-2 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">{e.status}</Badge>
+                  <strong>{e.city_slug}</strong>
+                  <span className="text-muted-foreground truncate">{e.page_slug ?? [e.material_slug, e.service_slug].filter(Boolean).join(" · ") ?? "hub"}</span>
+                  <span className="text-muted-foreground">étape : {e.step ?? "—"}</span>
+                  <span className="text-muted-foreground ml-auto">{new Date(e.updated_at).toLocaleString("fr-CA")}</span>
+                </div>
+                {e.last_error && <div className="text-destructive break-words">{e.last_error}</div>}
+                <Button size="sm" variant="outline" className="h-7 text-xs"
+                  onClick={() => act(`retry-${e.city_slug}`, async () => { await supabase.rpc("seo_city_retry_errors" as never, { _city_slug: e.city_slug } as never); await openErrors(); }, "Erreurs relancées")}>
+                  Réessayer
+                </Button>
               </div>
             ))}
           </div>
         </DialogContent>
       </Dialog>
-    </Card>
+
+      <Dialog open={!!logsCity} onOpenChange={(o) => !o && setLogsCity(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
+          <DialogHeader><DialogTitle>Logs — {logsCity}</DialogTitle></DialogHeader>
+          <div className="space-y-1 text-xs font-mono">
+            {logs.length === 0 && <div className="text-muted-foreground">Aucune tâche enregistrée pour cette ville.</div>}
+            {logs.map((l) => (
+              <div key={l.id} className="flex flex-wrap items-center gap-2 py-1 border-b border-border last:border-0">
+                <Badge variant="outline" className="text-[10px]">{l.status}</Badge>
+                <span>{[l.material_slug, l.service_slug].filter(Boolean).join(" · ") || "hub"}</span>
+                <span className="text-muted-foreground">{l.step ?? "—"}</span>
+                <span className="ml-auto text-muted-foreground">{new Date(l.updated_at).toLocaleString("fr-CA")}</span>
+                {l.last_error && <span className="text-destructive w-full break-words">{l.last_error}</span>}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!pagesCity} onOpenChange={(o) => !o && setPagesCity(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
+          <DialogHeader><DialogTitle>Pages — {pagesCity}</DialogTitle></DialogHeader>
+          <div className="space-y-1 text-xs">
+            {pages.length === 0 && <div className="text-muted-foreground">Aucune page.</div>}
+            {pages.map((p) => (
+              <div key={p.id} className="flex flex-wrap items-center gap-2 py-1 border-b border-border last:border-0">
+                <Badge variant="outline" className={`text-[10px] ${p.status === "published" ? "bg-green-500/15 text-green-700 border-green-500/30" : ""}`}>{p.status}</Badge>
+                <span className="truncate max-w-[240px]">{p.title ?? p.slug}</span>
+                <span className="text-muted-foreground">QA {p.qa_last_score ?? "—"} · {p.word_count ?? 0} mots</span>
+                <a href={`/${p.slug}`} target="_blank" rel="noreferrer" className="ml-auto text-primary inline-flex items-center gap-1">
+                  Ouvrir <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: string | number; tone?: "good" | "bad" | "muted" }) {
+function Kpi({ label, value, tone, hint }: { label: string; value: string; tone?: "good" | "bad" | "muted"; hint?: string }) {
   const cls = tone === "good" ? "text-green-700" : tone === "bad" ? "text-destructive" : "text-foreground";
   return (
-    <div className="rounded-md border border-border bg-background/50 p-2">
+    <div className="rounded-xl border border-border bg-background/50 p-3 h-full">
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={`text-base font-bold ${cls}`}>{value}</div>
+      <div className={`text-2xl font-bold leading-tight ${cls}`}>{value}</div>
+      {hint && <div className="text-[10px] text-muted-foreground">{hint}</div>}
     </div>
   );
 }
