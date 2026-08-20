@@ -11805,6 +11805,12 @@ export type Database = {
         }
         Returns: Json
       }
+      seo_city_publish_missing: {
+        Args: { _city_slug: string }
+        Returns: number
+      }
+      seo_city_retry_errors: { Args: { _city_slug: string }; Returns: number }
+      seo_control_center: { Args: never; Returns: Json }
       seo_dashboard_stats: { Args: never; Returns: Json }
       seo_executive_dashboard: { Args: never; Returns: Json }
       seo_final_coverage_report: { Args: never; Returns: Json }
