@@ -9844,6 +9844,7 @@ export type Database = {
           availability_updated_at: string | null
           budget_max: string | null
           budget_unit: string | null
+          callara_call_id: string | null
           city: string | null
           client_id: string | null
           company: string | null
@@ -9936,6 +9937,7 @@ export type Database = {
           availability_updated_at?: string | null
           budget_max?: string | null
           budget_unit?: string | null
+          callara_call_id?: string | null
           city?: string | null
           client_id?: string | null
           company?: string | null
@@ -10028,6 +10030,7 @@ export type Database = {
           availability_updated_at?: string | null
           budget_max?: string | null
           budget_unit?: string | null
+          callara_call_id?: string | null
           city?: string | null
           client_id?: string | null
           company?: string | null
