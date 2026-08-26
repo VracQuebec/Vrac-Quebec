@@ -127,7 +127,7 @@ export default function PipelineControlCenter() {
               <Kpi label="Générées" value={nf(totals.generated)} tone="good" />
               <Kpi label="Publiées" value={nf(totals.published)} tone="good" />
               <Kpi label="Restantes" value={nf(totals.remaining)} />
-              <button type="button" onClick={openErrors} className="text-left">
+              <button type="button" onClick={() => setErrorsOpen(true)} className="text-left">
                 <Kpi label="Erreurs" value={nf(totals.errors)} tone={totals.errors > 0 ? "bad" : "muted"} hint="Voir la liste" />
               </button>
             </div>
