@@ -44,10 +44,8 @@ export default function PipelineControlCenter() {
   const [busy, setBusy] = useState<string | null>(null);
   const [logsCity, setLogsCity] = useState<string | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
-  const [pagesCity, setPagesCity] = useState<string | null>(null);
-  const [pages, setPages] = useState<any[]>([]);
+  const [pagesCity, setPagesCity] = useState<{ slug: string; name: string } | null>(null);
   const [errorsOpen, setErrorsOpen] = useState(false);
-  const [errorRows, setErrorRows] = useState<any[]>([]);
 
   const totals = state?.totals ?? null;
   const run = state?.active_run ?? null;
@@ -58,10 +56,15 @@ export default function PipelineControlCenter() {
     const list = state?.cities ?? [];
     const q = search.trim().toLowerCase();
     return list.filter((c) =>
-      (filter === "all" || c.status === filter) &&
+      (filter === "all" || (filter === "error" ? c.errors > 0 : c.status === filter)) &&
       (!q || c.name.toLowerCase().includes(q) || c.slug.includes(q))
     );
   }, [state, filter, search]);
+
+  const errorCities = useMemo(
+    () => (state?.cities ?? []).filter((c) => c.errors > 0).sort((a, b) => b.errors - a.errors),
+    [state],
+  );
 
   async function act(key: string, fn: () => Promise<void>, okMsg: string) {
     setBusy(key);
@@ -73,25 +76,9 @@ export default function PipelineControlCenter() {
   async function openLogs(slug: string) {
     setLogsCity(slug); setLogs([]);
     const { data } = await supabase.from("seo_page_tasks")
-      .select("id, city_slug, material_slug, service_slug, status, step, attempts, qa_score, last_error, updated_at")
-      .eq("city_slug", slug).order("updated_at", { ascending: false }).limit(100);
+      .select("id, city_slug, material_slug, service_slug, kind, status, step, attempts, qa_score, last_error, updated_at")
+      .eq("city_slug", slug).order("updated_at", { ascending: false }).limit(200);
     setLogs(data ?? []);
-  }
-
-  async function openPages(slug: string) {
-    setPagesCity(slug); setPages([]);
-    const { data } = await supabase.from("seo_pages")
-      .select("id, slug, title, status, published_at, qa_last_score, word_count")
-      .eq("city_slug", slug).order("slug").limit(200);
-    setPages(data ?? []);
-  }
-
-  async function openErrors() {
-    setErrorsOpen(true); setErrorRows([]);
-    const { data } = await supabase.from("seo_page_tasks")
-      .select("id, city_slug, page_slug, material_slug, service_slug, status, step, last_error, attempts, updated_at")
-      .in("status", ["failed", "needs_retry"]).order("updated_at", { ascending: false }).limit(200);
-    setErrorRows(data ?? []);
   }
 
   return (
