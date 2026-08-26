@@ -9070,7 +9070,7 @@ export type Database = {
       seo_page_tasks: {
         Row: {
           attempts: number
-          batch_id: string
+          batch_id: string | null
           city_slug: string
           created_at: string
           duration_ms: number | null
@@ -9084,7 +9084,7 @@ export type Database = {
           page_id: string | null
           page_slug: string | null
           qa_score: number | null
-          run_id: string
+          run_id: string | null
           service_slug: string | null
           started_at: string | null
           status: string
@@ -9093,7 +9093,7 @@ export type Database = {
         }
         Insert: {
           attempts?: number
-          batch_id: string
+          batch_id?: string | null
           city_slug: string
           created_at?: string
           duration_ms?: number | null
@@ -9107,7 +9107,7 @@ export type Database = {
           page_id?: string | null
           page_slug?: string | null
           qa_score?: number | null
-          run_id: string
+          run_id?: string | null
           service_slug?: string | null
           started_at?: string | null
           status?: string
@@ -9116,7 +9116,7 @@ export type Database = {
         }
         Update: {
           attempts?: number
-          batch_id?: string
+          batch_id?: string | null
           city_slug?: string
           created_at?: string
           duration_ms?: number | null
@@ -9130,7 +9130,7 @@ export type Database = {
           page_id?: string | null
           page_slug?: string | null
           qa_score?: number | null
-          run_id?: string
+          run_id?: string | null
           service_slug?: string | null
           started_at?: string | null
           status?: string

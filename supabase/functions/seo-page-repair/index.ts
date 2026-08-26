@@ -58,7 +58,7 @@ async function processSlot(sb: SupabaseClient, slot: Slot) {
   const { count } = await q;
   const attempt = (count ?? 0) + 1;
 
-  const { data: task } = await sb.from("seo_page_tasks").insert({
+  const { data: task, error: insErr } = await sb.from("seo_page_tasks").insert({
     city_slug: slot.city_slug,
     material_slug: slot.material_slug,
     service_slug: slot.service_slug,
@@ -69,8 +69,10 @@ async function processSlot(sb: SupabaseClient, slot: Slot) {
     max_attempts: 3,
     started_at: new Date().toISOString(),
   }).select("id").single();
+  if (insErr) console.error("[repair] insert task failed:", insErr.message);
 
   const res = await generate(slot);
+  console.log("[repair]", slot.city_slug, slot.material_slug ?? slot.service_slug ?? "hub", "->", JSON.stringify(res).slice(0, 500));
 
   await sb.from("seo_page_tasks").update({
     status: res.ok ? "succeeded" : "failed",
