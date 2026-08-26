@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSeoControlCenter, type ControlCityRow } from "@/lib/seo/useSeoControlCenter";
+import { useSeoControlCenter, type ControlCityRow, type ControlProblem } from "@/lib/seo/useSeoControlCenter";
 import { useSeoPipelineV2 } from "@/lib/seo/useSeoPipelineV2";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -48,9 +48,11 @@ export default function PipelineControlCenter() {
   const [logs, setLogs] = useState<any[]>([]);
   const [pagesCity, setPagesCity] = useState<{ slug: string; name: string } | null>(null);
   const [errorsOpen, setErrorsOpen] = useState(false);
+  const [problemsOpen, setProblemsOpen] = useState(false);
 
   const totals = state?.totals ?? null;
   const run = state?.active_run ?? null;
+  const pipelineState = state?.pipeline_state ?? "completed";
   const globalPct = totals && totals.target_total > 0
     ? Math.round((totals.published / totals.target_total) * 100) : 0;
 
@@ -143,17 +145,19 @@ export default function PipelineControlCenter() {
             </div>
 
             <div className="rounded-lg border border-border bg-background/50 p-3 text-sm">
-              {run ? (
+              {run || (totals.remaining > 0) ? (
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                  <Badge className="bg-primary/15 text-primary border-primary/30 gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" /> EN COURS
+                  <Badge variant="outline" className={pipelineState === "running" ? "bg-primary/15 text-primary border-primary/30 gap-1" : pipelineState === "blocked" ? "bg-destructive/15 text-destructive border-destructive/30" : "bg-amber-500/15 text-amber-700 border-amber-500/30"}>
+                    {pipelineState === "running" && <Loader2 className="w-3 h-3 animate-spin" />}
+                    {pipelineState === "running" ? "EN COURS" : pipelineState === "waiting" ? "EN ATTENTE" : pipelineState === "blocked" ? "BLOQUÉ — ACTION REQUISE" : "PARTIELLEMENT TERMINÉ"}
                   </Badge>
-                  <span className="font-semibold">{nf(run.done_pages)} / {nf(run.total_pages)}</span>
-                  <span className="text-muted-foreground">
-                    {run.total_pages > 0 ? Math.round((run.done_pages / run.total_pages) * 100) : 0} %
-                  </span>
-                  {run.current_city_slug && <span className="text-muted-foreground">Ville : <strong className="text-foreground">{run.current_city_slug}</strong></span>}
+                  <span className="font-semibold">{nf(totals.published)} / {nf(totals.target_total)}</span>
+                  <span className="text-muted-foreground">{globalPct} %</span>
+                  {run?.current_city_slug && <span className="text-muted-foreground">Ville : <strong className="text-foreground">{run.current_city_slug}</strong></span>}
                   <span className="text-muted-foreground">File : {nf(state?.queued_tasks ?? 0)} tâche(s)</span>
+                  {(state?.processing_tasks ?? 0) > 0 && <span className="text-muted-foreground">Traitement : {state?.processing_tasks}</span>}
+                  {(state?.stalled_tasks ?? 0) > 0 && <span className="text-destructive">Bloquées : {state?.stalled_tasks}</span>}
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setProblemsOpen(true)}>Voir les {totals.remaining} restantes</Button>
                 </div>
               ) : (
                 <span className="text-muted-foreground">AUCUNE GÉNÉRATION EN COURS</span>
@@ -259,6 +263,20 @@ export default function PipelineControlCenter() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={problemsOpen} onOpenChange={setProblemsOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-auto">
+          <DialogHeader><DialogTitle>Pages restantes — {state?.problems.length ?? 0}</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            {(state?.problems ?? []).map((problem) => (
+              <ProblemRow key={`${problem.city_slug}|${problem.material_slug ?? ""}|${problem.service_slug ?? ""}`} problem={problem} busy={busy}
+                onRepair={() => act(`problem-${problem.city_slug}-${problem.material_slug ?? problem.service_slug ?? "hub"}`, async () => {
+                  await repairSeoPages({ citySlug: problem.city_slug, materialSlug: problem.material_slug, serviceSlug: problem.service_slug });
+                }, `Régénération terminée — ${problem.city_name} · ${problem.label}`)} />
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!logsCity} onOpenChange={(o) => !o && setLogsCity(null)}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
           <DialogHeader><DialogTitle>Logs — {logsCity}</DialogTitle></DialogHeader>
@@ -283,6 +301,29 @@ export default function PipelineControlCenter() {
         onClose={() => setPagesCity(null)}
         onChanged={() => void reload()}
       />
+    </div>
+  );
+}
+
+function ProblemRow({ problem, busy, onRepair }: { problem: ControlProblem; busy: string | null; onRepair: () => void }) {
+  const key = `problem-${problem.city_slug}-${problem.material_slug ?? problem.service_slug ?? "hub"}`;
+  const status = problem.gen_state === "error" ? "ERREUR" : problem.gen_state === "invalid" ? "INVALIDE" : problem.gen_state === "pending" ? "EN ATTENTE" : "À GÉNÉRER";
+  return (
+    <div className="rounded-lg border border-border p-3 text-xs space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <strong>{problem.city_name}</strong><span>— {problem.label}</span>
+        <Badge variant="outline">{problem.kind === "material" ? "Matériau" : problem.kind === "service" ? "Service" : "Hub"}</Badge>
+        <Badge variant="outline" className={problem.gen_state === "error" ? "text-destructive border-destructive/30" : "text-amber-700 border-amber-500/30"}>{status}</Badge>
+        <Button size="sm" className="h-7 ml-auto" disabled={busy === key || problem.gen_state === "pending"} onClick={onRepair}>
+          {busy === key ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />} Régénérer
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+        <span>Statut tâche : {problem.task_status ?? "aucune"}</span>
+        <span>Tentatives : {problem.task_attempts ?? 0}</span>
+        <span>Dernière tentative : {problem.task_updated_at ? new Date(problem.task_updated_at).toLocaleString("fr-CA") : "jamais"}</span>
+      </div>
+      {(problem.task_error || problem.issues?.length) && <div className="text-destructive break-words">{problem.task_error ?? problem.issues?.join(" · ")}</div>}
     </div>
   );
 }

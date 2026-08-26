@@ -239,6 +239,9 @@ async function runOneTask(sb: SupabaseClient, run: any, batch: any, task: any) {
         callFn("seo-generate-page", {
           city: ctx.city, material: ctx.material, service: ctx.service,
           force: !!run.force_regenerate,
+          // The previous response may have been cached before structural
+          // validation. A retry must request a genuinely fresh completion.
+          bypass_cache: task.attempts > 0,
           // Admin-triggered pipeline: always allow the AI call so economy mode
           // doesn't block generation and leave a needs_retry task forever.
           allow_ai: true,
@@ -305,7 +308,8 @@ async function tick(sb: SupabaseClient): Promise<{ processed: number; state: str
   const staleCutoff = new Date(Date.now() - STALE_RUNNING_MS).toISOString();
   await sb.from("seo_page_tasks").update({
     status: "queued", last_error: "watchdog: tâche bloquée > 90s", started_at: null,
-  }).eq("status", "running").lt("started_at", staleCutoff);
+    next_attempt_at: nowIso(),
+  }).eq("status", "running").lt("updated_at", staleCutoff);
 
   // 2) Load active run
   const { data: run } = await sb.from("seo_pipeline_runs")

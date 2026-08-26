@@ -46,6 +46,26 @@ export type ControlCenterState = {
   cities: ControlCityRow[];
   active_run: ControlRun;
   queued_tasks: number;
+  processing_tasks: number;
+  stalled_tasks: number;
+  pipeline_state: "running" | "waiting" | "partial" | "blocked" | "completed";
+  problems: ControlProblem[];
+};
+
+export type ControlProblem = {
+  city_slug: string;
+  city_name: string;
+  kind: "hub" | "material" | "service";
+  material_slug: string | null;
+  service_slug: string | null;
+  label: string;
+  gen_state: "error" | "invalid" | "pending" | "missing";
+  task_status: string | null;
+  task_step: string | null;
+  task_attempts: number | null;
+  task_error: string | null;
+  task_updated_at: string | null;
+  issues: string[] | null;
 };
 
 /**
