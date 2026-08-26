@@ -104,6 +104,7 @@ async function materializeBatch(sb: SupabaseClient, run: any, batch: any) {
   // metadata or generated_at timestamps of pages already produced.
   const force = !!run.force_regenerate;
   const existingKeys = new Set<string>();
+  const activeKeys = new Set<string>();
   if (!force) {
     const { data: existingPages } = await sb.from("seo_pages")
       .select("material_slug, service_slug")
@@ -112,8 +113,16 @@ async function materializeBatch(sb: SupabaseClient, run: any, batch: any) {
       existingKeys.add(`${p.material_slug ?? ""}::${p.service_slug ?? ""}`);
     }
   }
+  const { data: activeTasks } = await sb.from("seo_page_tasks")
+    .select("material_slug, service_slug")
+    .eq("city_slug", citySlug)
+    .in("status", ["queued", "running"]);
+  for (const task of activeTasks ?? []) {
+    activeKeys.add(`${task.material_slug ?? ""}::${task.service_slug ?? ""}`);
+  }
   const shouldQueue = (material: string | null, service: string | null) =>
-    force || !existingKeys.has(`${material ?? ""}::${service ?? ""}`);
+    !activeKeys.has(`${material ?? ""}::${service ?? ""}`) &&
+    (force || !existingKeys.has(`${material ?? ""}::${service ?? ""}`));
 
   const rows: any[] = [];
   if (shouldQueue(null, null)) {

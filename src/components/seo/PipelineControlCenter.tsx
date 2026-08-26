@@ -65,8 +65,8 @@ export default function PipelineControlCenter() {
     );
   }, [state, filter, search]);
 
-  const errorCities = useMemo(
-    () => (state?.cities ?? []).filter((c) => c.errors > 0).sort((a, b) => b.errors - a.errors),
+  const errorProblems = useMemo(
+    () => (state?.problems ?? []).filter((p) => p.gen_state === "error" || p.gen_state === "invalid"),
     [state],
   );
 
@@ -246,18 +246,12 @@ export default function PipelineControlCenter() {
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-destructive" /> Pages en erreur — {totals?.errors ?? 0}</DialogTitle></DialogHeader>
           <div className="space-y-2 text-xs">
-            {errorCities.length === 0 && <div className="text-muted-foreground">Aucune erreur réelle : toutes les pages prévues existent et sont valides.</div>}
-            {errorCities.map((c) => (
-              <div key={c.slug} className="rounded-lg border border-border p-2 flex flex-wrap items-center gap-2">
-                <strong>{c.name}</strong>
-                <span className="text-destructive">{c.errors} erreur{c.errors > 1 ? "s" : ""}</span>
-                {c.invalid > 0 && <span className="text-amber-700">dont {c.invalid} page(s) invalide(s)</span>}
-                <span className="text-muted-foreground">{c.generated}/{c.planned} générées · {c.published}/{c.planned} publiées</span>
-                <Button size="sm" variant="outline" className="h-7 text-xs ml-auto"
-                  onClick={() => { setErrorsOpen(false); setPagesCity({ slug: c.slug, name: c.name }); }}>
-                  Détails des erreurs
-                </Button>
-              </div>
+            {errorProblems.length === 0 && <div className="text-muted-foreground">Aucune erreur réelle : toutes les pages prévues existent et sont valides.</div>}
+            {errorProblems.map((problem) => (
+              <ProblemRow key={`${problem.city_slug}|${problem.material_slug ?? ""}|${problem.service_slug ?? ""}`} problem={problem} busy={busy}
+                onRepair={() => act(`problem-${problem.city_slug}-${problem.material_slug ?? problem.service_slug ?? "hub"}`, async () => {
+                  await repairSeoPages({ citySlug: problem.city_slug, materialSlug: problem.material_slug, serviceSlug: problem.service_slug });
+                }, `Régénération terminée — ${problem.city_name} · ${problem.label}`)} />
             ))}
           </div>
         </DialogContent>

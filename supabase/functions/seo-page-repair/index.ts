@@ -51,6 +51,13 @@ async function generate(slot: Slot): Promise<{ ok: boolean; error?: string }> {
 }
 
 async function processSlot(sb: SupabaseClient, slot: Slot) {
+  let active = sb.from("seo_page_tasks").select("id,status", { count: "exact", head: false })
+    .eq("city_slug", slot.city_slug).in("status", ["queued", "running"]);
+  active = slot.material_slug ? active.eq("material_slug", slot.material_slug) : active.is("material_slug", null);
+  active = slot.service_slug ? active.eq("service_slug", slot.service_slug) : active.is("service_slug", null);
+  const { count: activeCount } = await active.limit(1);
+  if ((activeCount ?? 0) > 0) return { ok: true, skipped: true };
+
   // Journal : une tâche par tentative, l'historique précédent est conservé.
   let q = sb.from("seo_page_tasks").select("id", { count: "exact", head: true }).eq("city_slug", slot.city_slug);
   q = slot.material_slug ? q.eq("material_slug", slot.material_slug) : q.is("material_slug", null);
@@ -69,7 +76,7 @@ async function processSlot(sb: SupabaseClient, slot: Slot) {
     max_attempts: 3,
     started_at: new Date().toISOString(),
   }).select("id").single();
-  if (insErr) console.error("[repair] insert task failed:", insErr.message);
+  if (insErr || !task?.id) return { ok: false, error: insErr?.message ?? "Impossible de journaliser la tentative" };
 
   const res = await generate(slot);
   console.log("[repair]", slot.city_slug, slot.material_slug ?? slot.service_slug ?? "hub", "->", JSON.stringify(res).slice(0, 500));
