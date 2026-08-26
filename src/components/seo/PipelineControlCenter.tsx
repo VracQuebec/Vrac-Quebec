@@ -277,24 +277,12 @@ export default function PipelineControlCenter() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!pagesCity} onOpenChange={(o) => !o && setPagesCity(null)}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
-          <DialogHeader><DialogTitle>Pages — {pagesCity}</DialogTitle></DialogHeader>
-          <div className="space-y-1 text-xs">
-            {pages.length === 0 && <div className="text-muted-foreground">Aucune page.</div>}
-            {pages.map((p) => (
-              <div key={p.id} className="flex flex-wrap items-center gap-2 py-1 border-b border-border last:border-0">
-                <Badge variant="outline" className={`text-[10px] ${p.status === "published" ? "bg-green-500/15 text-green-700 border-green-500/30" : ""}`}>{p.status}</Badge>
-                <span className="truncate max-w-[240px]">{p.title ?? p.slug}</span>
-                <span className="text-muted-foreground">QA {p.qa_last_score ?? "—"} · {p.word_count ?? 0} mots</span>
-                <a href={`/${p.slug}`} target="_blank" rel="noreferrer" className="ml-auto text-primary inline-flex items-center gap-1">
-                  Ouvrir <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CityPagesDialog
+        citySlug={pagesCity?.slug ?? null}
+        cityName={pagesCity?.name}
+        onClose={() => setPagesCity(null)}
+        onChanged={() => void reload()}
+      />
     </div>
   );
 }
