@@ -235,23 +235,19 @@ export default function PipelineControlCenter() {
 
       {/* ── Dialogs ─────────────────────────────────────────────── */}
       <Dialog open={errorsOpen} onOpenChange={setErrorsOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-destructive" /> Erreurs — {totals?.errors ?? 0}</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-destructive" /> Pages en erreur — {totals?.errors ?? 0}</DialogTitle></DialogHeader>
           <div className="space-y-2 text-xs">
-            {errorRows.length === 0 && <div className="text-muted-foreground">Aucune erreur.</div>}
-            {errorRows.map((e) => (
-              <div key={e.id} className="rounded-lg border border-border p-2 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">{e.status}</Badge>
-                  <strong>{e.city_slug}</strong>
-                  <span className="text-muted-foreground truncate">{e.page_slug ?? [e.material_slug, e.service_slug].filter(Boolean).join(" · ") ?? "hub"}</span>
-                  <span className="text-muted-foreground">étape : {e.step ?? "—"}</span>
-                  <span className="text-muted-foreground ml-auto">{new Date(e.updated_at).toLocaleString("fr-CA")}</span>
-                </div>
-                {e.last_error && <div className="text-destructive break-words">{e.last_error}</div>}
-                <Button size="sm" variant="outline" className="h-7 text-xs"
-                  onClick={() => act(`retry-${e.city_slug}`, async () => { await supabase.rpc("seo_city_retry_errors" as never, { _city_slug: e.city_slug } as never); await openErrors(); }, "Erreurs relancées")}>
-                  Réessayer
+            {errorCities.length === 0 && <div className="text-muted-foreground">Aucune erreur réelle : toutes les pages prévues existent et sont valides.</div>}
+            {errorCities.map((c) => (
+              <div key={c.slug} className="rounded-lg border border-border p-2 flex flex-wrap items-center gap-2">
+                <strong>{c.name}</strong>
+                <span className="text-destructive">{c.errors} erreur{c.errors > 1 ? "s" : ""}</span>
+                {c.invalid > 0 && <span className="text-amber-700">dont {c.invalid} page(s) invalide(s)</span>}
+                <span className="text-muted-foreground">{c.generated}/{c.planned} générées · {c.published}/{c.planned} publiées</span>
+                <Button size="sm" variant="outline" className="h-7 text-xs ml-auto"
+                  onClick={() => { setErrorsOpen(false); setPagesCity({ slug: c.slug, name: c.name }); }}>
+                  Détails des erreurs
                 </Button>
               </div>
             ))}
