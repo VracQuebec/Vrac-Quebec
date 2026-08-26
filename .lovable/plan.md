@@ -1,99 +1,48 @@
-# Intégration Google Business Profile — Plan Phase 1
+# Débloquer le pipeline SEO à 98 %
 
-**Périmètre confirmé** : une seule fiche, sync quotidien 05h45, publications + Q&R en écriture, avis livrés en Phase 2 quand Google approuve l'accès `mybusiness.v4`.
+## Diagnostic confirmé
 
-## Prérequis à faire de ton côté (bloquants)
+- Les **32 pages restantes sont réelles** : 27 emplacements ont leur dernière tentative en `needs_retry` et 5 sont actuellement `queued`; aucune page restante n’est sans historique.
+- Les « 499 tâches » ne représentent pas le travail restant : **498 tâches `queued` appartiennent à des runs déjà terminés ou annulés**. Parmi elles, **473 correspondent déjà à des pages publiées**. Le tableau de bord les compte à tort parce qu’il additionne toutes les tâches `queued/running`, sans limiter au run actif ni à un emplacement réellement manquant.
+- Il n’y a actuellement **aucune tâche `running` ni verrou bloqué**. Le cron, le superviseur et l’orchestrateur répondent bien.
+- Le run courant progresse ville par ville et ne contient que les pages manquantes, mais ses compteurs démarrent à `0/0` tant que les lots suivants ne sont pas matérialisés; cela produit un état visuel trompeur.
+- La cause principale des échecs est `AI response incomplete (< 800 words or malformed)`; un cas est un timeout de 45 s.
+- Cause technique du cycle d’échec : une réponse IA incomplète est mise en cache avant validation. Les tentatives suivantes relisent instantanément cette même réponse invalide, retournent 502, puis épuisent les essais sans véritable nouvelle génération.
+- Le watchdog existant remet bien une tâche `running` de plus de 90 secondes en attente, mais il ne nettoie pas la file historique et ne distingue pas clairement un pipeline actif d’un pipeline partiellement terminé ou bloqué.
 
-1. **Google Cloud Console** — activer 4 APIs dans le projet GCP (idéalement le même que GSC/GA4) :
-   - My Business Business Information API
-   - My Business Account Management API
-   - Business Profile Performance API
-   - My Business Q&A API
+## Corrections à appliquer
 
-2. **OAuth Client ID** type "Web application" avec redirect URI exact :
-   `https://kenduhxscnynugpvktin.supabase.co/functions/v1/gbp-oauth-callback`
-   Scopes autorisés : `https://www.googleapis.com/auth/business.manage`
+### 1. Assainir la file sans supprimer de données
 
-3. **Deux secrets** que je te demanderai via `add_secret` :
-   - `GBP_GOOGLE_CLIENT_ID`
-   - `GBP_GOOGLE_CLIENT_SECRET`
+- Conserver tout l’historique, mais reclasser les anciennes tâches `queued` rattachées à des runs terminés/annulés en état terminal approprié (`skipped` si la page existe déjà, `cancelled` sinon).
+- Faire compter la file uniquement à partir des tâches actionnables du run actif et d’emplacements encore manquants.
+- Ajouter une protection pour qu’une page existante/publiée soit toujours terminale, même si une ancienne tentative a échoué.
+- Empêcher la création de tâches concurrentes en doublon pour un même emplacement.
 
-4. **Demander l'accès Reviews API** dès maintenant via [le formulaire Google](https://support.google.com/business/contact/api_default) — délai 2-6 semaines. Livraison Phase 2 quand ça arrive.
+### 2. Corriger les reprises et les blocages
 
-## Architecture
+- Lors d’une nouvelle tentative après réponse invalide, contourner la réponse IA mise en cache afin d’obtenir une vraie nouvelle génération.
+- Conserver le backoff borné et les trois tentatives; exposer clairement timeout, réponse invalide et autres erreurs.
+- Renforcer le watchdog : détecter les tâches `running` sans progression, les remettre en attente et poursuivre les autres tâches admissibles sans bloquer le lot entier.
+- Finaliser automatiquement un lot/run quand il n’a plus aucune tâche réellement active; utiliser `PARTIELLEMENT TERMINÉ` si des erreurs terminales subsistent, et `BLOQUÉ — ACTION REQUISE` si du travail reste mais aucun traitement actif ne progresse.
 
-```text
-Admin (bouton "Connecter Google Business")
-   → gbp-oauth-start        (redirige vers consent Google, state signé)
-   → Google consent
-   → gbp-oauth-callback     (échange code → refresh_token, stocké chiffré)
-   → gbp-select-location    (liste comptes + établissements, admin choisit)
-   ↓
-   gbp_config (1 ligne : refresh_token, account_name, location_name)
-   ↓
-   pg_cron 05h45 → gbp-sync-daily
-      • Performance API  → gbp_daily_metrics
-      • Q&A API          → gbp_questions
-      • Business Info    → gbp_location (photos count, note moy., etc.)
-   ↓
-   Dashboard "Google Business" dans SEO Manager
-```
+### 3. Unifier les compteurs avec l’état réel
 
-## Tables (migration unique, RLS admin-only)
+- Étendre la source de vérité serveur afin qu’elle retourne : progression publiée/planifiée, file active réelle, tâche réellement traitée, tâches bloquées, erreurs terminales et emplacements restants.
+- Calculer `1536 / 1568` depuis les emplacements actuels, indépendamment des anciens journaux de tâches.
+- Ne montrer `EN COURS` que lorsqu’un worker traite réellement une tâche récente ou qu’une tâche active est admissible dans le run courant.
+- Remplacer le `0 / 0` par les compteurs réels du run ou par l’état partiel/bloqué approprié.
 
-| Table | Rôle |
-|---|---|
-| `gbp_config` | Une seule ligne (refresh_token chiffré via pgsodium, account_name, location_name, dernière synchro) |
-| `gbp_daily_metrics` | Un enregistrement par jour × métrique : CALL_CLICKS, WEBSITE_CLICKS, BUSINESS_DIRECTION_REQUESTS, BUSINESS_IMPRESSIONS_DESKTOP_MAPS, BUSINESS_IMPRESSIONS_DESKTOP_SEARCH, BUSINESS_IMPRESSIONS_MOBILE_MAPS, BUSINESS_IMPRESSIONS_MOBILE_SEARCH, BUSINESS_CONVERSATIONS, BUSINESS_BOOKINGS |
-| `gbp_location` | Snapshot fiche : nom, adresse, catégories, note moyenne, nombre d'avis, nombre de photos, URL |
-| `gbp_posts` | Publications créées (statut : draft/published/failed, réponse API, date programmée) |
-| `gbp_questions` | Questions publiques + réponses avec états read/answered |
+### 4. Rendre les 30/32 cas compréhensibles et réparables
 
-Placeholder `gbp_reviews` documenté mais pas créé (Phase 2).
+- Ajouter une liste globale détaillée des erreurs/restantes avec : ville, matériau ou service, type de page, statut, message, dernière tentative et nombre de tentatives.
+- Ajouter `Régénérer` sur chaque emplacement, sans toucher aux pages déjà publiées.
+- Conserver l’action groupée, mais la limiter strictement aux emplacements encore manquants et réellement en erreur; ignorer ceux déjà actifs ou publiés.
+- Rafraîchir automatiquement chaque ligne pendant son traitement et refléter le résultat réel en base.
 
-## Edge functions
+## Validation
 
-| Fonction | JWT | Rôle |
-|---|---|---|
-| `gbp-oauth-start` | ✅ admin only | Génère URL consent Google avec state signé |
-| `gbp-oauth-callback` | ❌ (Google appelle) | Échange code, vérifie state, stocke refresh_token |
-| `gbp-list-locations` | ✅ admin | Liste comptes + établissements du compte connecté |
-| `gbp-set-location` | ✅ admin | Sauvegarde le location_name choisi + snapshot initial |
-| `gbp-sync-daily` | ❌ (pg_cron) | Refresh access_token → Performance/Q&A/Info APIs → upsert |
-| `gbp-post-create` | ✅ admin | POST vers `mybusiness.googleapis.com/v4/{location}/localPosts` |
-| `gbp-qa-answer` | ✅ admin | Répond à une question |
-| `gbp-disconnect` | ✅ admin | Révoque refresh_token + purge `gbp_config` |
-
-Toutes reprennent le pattern existant : refresh access_token à chaque appel via `client_credentials` OAuth flow, backoff sur 429/5xx, logs d'erreur structurés.
-
-## Interface — nouvel onglet "Google Business" dans SEO Manager
-
-- **Bandeau connexion** : "Non connecté / Connecté à [Nom fiche]" + bouton Connecter/Déconnecter.
-- **KPIs 28 j** (cartes) : Vues totales, Recherches directes, Recherches découverte, Appels, Itinéraires, Clics site.
-- **Graphique 90 j** : évolution vues + actions (recharts).
-- **Répartition sources** : donut Maps vs Search × Desktop vs Mobile.
-- **Correlation SEO** : tableau agrégeant impressions GSC + vues GBP pour les 56 territoires (jointure statistique globale — une seule fiche donc pas de mapping 1-1).
-- **Section Publications** : liste + éditeur (titre, corps, CTA, image) + bouton "Publier maintenant" ou "Programmer".
-- **Section Q&R** : liste des questions non répondues + formulaire de réponse inline.
-- **Snapshot fiche** : note moyenne, nombre d'avis, nombre de photos (lien "Gérer sur Google" en attendant Phase 2).
-
-## Alertes nouveaux avis
-
-Reportée à Phase 2 avec l'accès Reviews API. Placeholder dans `admin_notifications` prêt à recevoir les événements dès que l'API répond.
-
-## Ordre d'exécution
-
-1. Migration DB (tables + RLS + trigger updated_at + cron 05h45).
-2. Je te demande `GBP_GOOGLE_CLIENT_ID` / `GBP_GOOGLE_CLIENT_SECRET` via `add_secret`.
-3. Déploiement des 8 edge functions + `verify_jwt` correct dans `supabase/config.toml`.
-4. Composant `GbpDashboard.tsx` + wiring dans `AdminSeoManager.tsx` (nouvel onglet "Google Business").
-5. Test end-to-end : connexion OAuth → sélection fiche → sync manuelle → création d'un post test → réponse Q&R test.
-6. Activation du cron 05h45.
-
-## Ce qui n'est PAS livré Phase 1
-
-- Lecture des avis Google + réponses aux avis (API dépréciée, en attente d'approbation).
-- Alertes nouveaux avis (dépend du point ci-dessus).
-- Upload de photos (l'API existe mais lourde à intégrer proprement — à confirmer si besoin).
-
-Confirme le plan et je démarre par la migration DB.
+- Ajouter des tests déterministes pour les états : page réussie, échouée, bloquée, en attente et déjà publiée.
+- Vérifier qu’une réponse invalide n’est pas réutilisée au retry et qu’un timeout est récupérable.
+- Tester une nouvelle génération sur un emplacement réellement manquant, une régénération individuelle et un petit lot d’erreurs, sans jamais régénérer les 1 536 pages publiées.
+- Vérifier en base et dans les journaux que les tâches passent correctement de `queued` à `running`, puis `succeeded` ou `needs_retry`, qu’aucune tâche bloquée n’arrête la file, et que les totaux UI correspondent exactement aux emplacements réels.
