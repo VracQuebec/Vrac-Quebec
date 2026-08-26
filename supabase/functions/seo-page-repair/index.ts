@@ -52,13 +52,11 @@ async function generate(slot: Slot): Promise<{ ok: boolean; error?: string }> {
 
 async function processSlot(sb: SupabaseClient, slot: Slot) {
   // Journal : une tâche par tentative, l'historique précédent est conservé.
-  const { data: prev } = await sb.from("seo_page_tasks")
-    .select("attempts")
-    .eq("city_slug", slot.city_slug)
-    .is("material_slug", slot.material_slug === null ? null : undefined)
-    .order("updated_at", { ascending: false })
-    .limit(1);
-  const attempt = ((prev?.[0]?.attempts as number | undefined) ?? 0) + 1;
+  let q = sb.from("seo_page_tasks").select("id", { count: "exact", head: true }).eq("city_slug", slot.city_slug);
+  q = slot.material_slug ? q.eq("material_slug", slot.material_slug) : q.is("material_slug", null);
+  q = slot.service_slug ? q.eq("service_slug", slot.service_slug) : q.is("service_slug", null);
+  const { count } = await q;
+  const attempt = (count ?? 0) + 1;
 
   const { data: task } = await sb.from("seo_page_tasks").insert({
     city_slug: slot.city_slug,
