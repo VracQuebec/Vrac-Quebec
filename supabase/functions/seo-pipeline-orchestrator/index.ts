@@ -16,9 +16,6 @@ const json = (b: unknown, s = 200) =>
 const TASK_TIMEOUT_MS = 60_000;
 const STEP_TIMEOUT_MS = 45_000;
 const STALE_RUNNING_MS = 90_000;
-// Distributed lock key so only ONE orchestrator instance runs at any time.
-// Any 32-bit int works — chosen once and kept stable.
-const ORCH_LOCK_KEY = 918273645;
 // Max wall-clock time we allow a single invocation to keep the lock.
 const MAX_INVOCATION_MS = 50_000;
 
@@ -104,6 +101,7 @@ async function materializeBatch(sb: SupabaseClient, run: any, batch: any) {
   // metadata or generated_at timestamps of pages already produced.
   const force = !!run.force_regenerate;
   const existingKeys = new Set<string>();
+  const activeKeys = new Set<string>();
   if (!force) {
     const { data: existingPages } = await sb.from("seo_pages")
       .select("material_slug, service_slug")
@@ -112,8 +110,16 @@ async function materializeBatch(sb: SupabaseClient, run: any, batch: any) {
       existingKeys.add(`${p.material_slug ?? ""}::${p.service_slug ?? ""}`);
     }
   }
+  const { data: activeTasks } = await sb.from("seo_page_tasks")
+    .select("material_slug, service_slug")
+    .eq("city_slug", citySlug)
+    .in("status", ["queued", "running"]);
+  for (const task of activeTasks ?? []) {
+    activeKeys.add(`${task.material_slug ?? ""}::${task.service_slug ?? ""}`);
+  }
   const shouldQueue = (material: string | null, service: string | null) =>
-    force || !existingKeys.has(`${material ?? ""}::${service ?? ""}`);
+    !activeKeys.has(`${material ?? ""}::${service ?? ""}`) &&
+    (force || !existingKeys.has(`${material ?? ""}::${service ?? ""}`));
 
   const rows: any[] = [];
   if (shouldQueue(null, null)) {
@@ -239,6 +245,9 @@ async function runOneTask(sb: SupabaseClient, run: any, batch: any, task: any) {
         callFn("seo-generate-page", {
           city: ctx.city, material: ctx.material, service: ctx.service,
           force: !!run.force_regenerate,
+          // The previous response may have been cached before structural
+          // validation. A retry must request a genuinely fresh completion.
+          bypass_cache: task.attempts > 0,
           // Admin-triggered pipeline: always allow the AI call so economy mode
           // doesn't block generation and leave a needs_retry task forever.
           allow_ai: true,
@@ -305,7 +314,8 @@ async function tick(sb: SupabaseClient): Promise<{ processed: number; state: str
   const staleCutoff = new Date(Date.now() - STALE_RUNNING_MS).toISOString();
   await sb.from("seo_page_tasks").update({
     status: "queued", last_error: "watchdog: tâche bloquée > 90s", started_at: null,
-  }).eq("status", "running").lt("started_at", staleCutoff);
+    next_attempt_at: nowIso(),
+  }).eq("status", "running").lt("updated_at", staleCutoff);
 
   // 2) Load active run
   const { data: run } = await sb.from("seo_pipeline_runs")
@@ -378,16 +388,13 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
   const steps = Math.max(1, Math.min(200, Number(body?.steps ?? 40)));
 
-  // Distributed lock via Postgres advisory lock. Guarantees a single
-  // active orchestrator across cron + manual triggers.
-  const { data: lockRes } = await sb.rpc("pg_try_advisory_lock" as any, { key: ORCH_LOCK_KEY } as any)
-    .then((r: any) => r, () => ({ data: null }));
-  // Fallback: run a raw SELECT via a dedicated RPC if the direct call is unavailable.
-  let acquired: boolean = lockRes === true;
-  if (!acquired) {
-    const { data } = await sb.rpc("seo_orchestrator_try_lock" as any).then((r: any) => r, () => ({ data: null }));
-    acquired = data === true;
-  }
+  // A row lease is safe across the PostgREST connection pool, unlike a
+  // session-level advisory lock. Its TTL self-recovers after a worker crash.
+  const holderId = crypto.randomUUID();
+  const { data: acquired } = await sb.rpc("seo_orchestrator_acquire_lease" as any, {
+    _holder_id: holderId,
+    _ttl_seconds: 120,
+  } as any).then((r: any) => r, () => ({ data: false }));
   if (!acquired) return json({ ok: true, locked: true, message: "Another orchestrator is running" });
 
   const startedAt = Date.now();
@@ -401,9 +408,7 @@ Deno.serve(async (req) => {
       await sleep(50);
     }
   } finally {
-    // NOTE: PostgrestBuilder is a thenable but exposes no `.catch`.
-    // Always go through `.then(onOk, onErr)` here.
-    await sb.rpc("seo_orchestrator_unlock" as any).then(() => {}, () => {});
+    await sb.rpc("seo_orchestrator_release_lease" as any, { _holder_id: holderId } as any).then(() => {}, () => {});
   }
   return json({ ok: true, ticks: results, elapsed_ms: Date.now() - startedAt });
 });

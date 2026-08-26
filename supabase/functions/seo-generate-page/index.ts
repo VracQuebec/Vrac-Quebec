@@ -3,6 +3,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAIChatCached } from "../_shared/ai-cache.ts";
+import { shouldBypassGenerationCache } from "./cache-policy.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -276,6 +277,10 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
     try {
       // Honor `allow_ai` from the request; force flag also implies user intent.
       const allowAi = body?.allow_ai === true || forceRegenerate === true;
+      const bypassCache = shouldBypassGenerationCache({
+        forceRegenerate,
+        bypassCacheRequested: body?.bypass_cache === true,
+      });
       const ai = await callAIChatCached({
         supabase,
         functionName: "seo-generate-page",
@@ -286,7 +291,8 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
         ],
         response_format: { type: "json_object" },
         allowAi,
-        forceRefresh: forceRegenerate,
+        // Never replay a response already known to be malformed during a retry.
+        forceRefresh: bypassCache,
       });
       raw = ai.content;
     } catch (e) {
