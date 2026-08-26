@@ -203,16 +203,18 @@ export default function PipelineControlCenter() {
                 </div>
 
                 <div className="flex flex-wrap gap-1.5">
-                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" onClick={() => openPages(c.slug)}>
+                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" onClick={() => setPagesCity({ slug: c.slug, name: c.name })}>
                     <FileText className="w-3 h-3" /> Voir les pages
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
-                    disabled={c.errors === 0 || busy === `retry-${c.slug}`}
-                    onClick={() => act(`retry-${c.slug}`, async () => { await supabase.rpc("seo_city_retry_errors" as never, { _city_slug: c.slug } as never); }, `Erreurs relancées — ${c.name}`)}>
-                    <ListRestart className="w-3 h-3" /> Régénérer les erreurs
+                    disabled={c.errors + c.remaining === 0 || busy === `retry-${c.slug}`}
+                    onClick={() => act(`retry-${c.slug}`, async () => {
+                      await repairSeoPages({ citySlug: c.slug, allErrors: true });
+                    }, `Régénération lancée — ${c.name}`)}>
+                    {busy === `retry-${c.slug}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <ListRestart className="w-3 h-3" />} Régénérer les erreurs
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
-                    disabled={c.published >= c.generated || busy === `pub-${c.slug}`}
+                    disabled={c.unpublished === 0 || busy === `pub-${c.slug}`}
                     onClick={() => act(`pub-${c.slug}`, async () => { await supabase.rpc("seo_city_publish_missing" as never, { _city_slug: c.slug } as never); }, `Pages non publiées publiées — ${c.name}`)}>
                     <Send className="w-3 h-3" /> Publier les non publiées
                   </Button>
