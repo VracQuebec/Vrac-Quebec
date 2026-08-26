@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import CityPagesDialog from "@/components/seo/CityPagesDialog";
+import { repairSeoPages } from "@/lib/seo/useSeoCityMatrix";
 import {
   Play, Pause, Square, Rocket, RefreshCw, Send, ListRestart,
   Loader2, AlertTriangle, ExternalLink, FileText,
