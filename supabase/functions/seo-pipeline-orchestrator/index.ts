@@ -16,9 +16,6 @@ const json = (b: unknown, s = 200) =>
 const TASK_TIMEOUT_MS = 60_000;
 const STEP_TIMEOUT_MS = 45_000;
 const STALE_RUNNING_MS = 90_000;
-// Distributed lock key so only ONE orchestrator instance runs at any time.
-// Any 32-bit int works — chosen once and kept stable.
-const ORCH_LOCK_KEY = 918273645;
 // Max wall-clock time we allow a single invocation to keep the lock.
 const MAX_INVOCATION_MS = 50_000;
 
@@ -391,16 +388,13 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
   const steps = Math.max(1, Math.min(200, Number(body?.steps ?? 40)));
 
-  // Distributed lock via Postgres advisory lock. Guarantees a single
-  // active orchestrator across cron + manual triggers.
-  const { data: lockRes } = await sb.rpc("pg_try_advisory_lock" as any, { key: ORCH_LOCK_KEY } as any)
-    .then((r: any) => r, () => ({ data: null }));
-  // Fallback: run a raw SELECT via a dedicated RPC if the direct call is unavailable.
-  let acquired: boolean = lockRes === true;
-  if (!acquired) {
-    const { data } = await sb.rpc("seo_orchestrator_try_lock" as any).then((r: any) => r, () => ({ data: null }));
-    acquired = data === true;
-  }
+  // A row lease is safe across the PostgREST connection pool, unlike a
+  // session-level advisory lock. Its TTL self-recovers after a worker crash.
+  const holderId = crypto.randomUUID();
+  const { data: acquired } = await sb.rpc("seo_orchestrator_acquire_lease" as any, {
+    _holder_id: holderId,
+    _ttl_seconds: 120,
+  } as any).then((r: any) => r, () => ({ data: false }));
   if (!acquired) return json({ ok: true, locked: true, message: "Another orchestrator is running" });
 
   const startedAt = Date.now();
@@ -414,9 +408,7 @@ Deno.serve(async (req) => {
       await sleep(50);
     }
   } finally {
-    // NOTE: PostgrestBuilder is a thenable but exposes no `.catch`.
-    // Always go through `.then(onOk, onErr)` here.
-    await sb.rpc("seo_orchestrator_unlock" as any).then(() => {}, () => {});
+    await sb.rpc("seo_orchestrator_release_lease" as any, { _holder_id: holderId } as any).then(() => {}, () => {});
   }
   return json({ ok: true, ticks: results, elapsed_ms: Date.now() - startedAt });
 });
