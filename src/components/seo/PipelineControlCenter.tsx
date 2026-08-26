@@ -9,26 +9,30 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import CityPagesDialog from "@/components/seo/CityPagesDialog";
+import { repairSeoPages } from "@/lib/seo/useSeoCityMatrix";
 import {
   Play, Pause, Square, Rocket, RefreshCw, Send, ListRestart,
   Loader2, AlertTriangle, ExternalLink, FileText,
 } from "lucide-react";
 
-type FilterKey = "all" | "done" | "running" | "todo" | "error";
+type FilterKey = "all" | "done" | "partial" | "running" | "todo" | "error";
 
 const FILTERS: Array<{ key: FilterKey; label: string }> = [
   { key: "all", label: "Toutes" },
   { key: "done", label: "Terminées" },
+  { key: "partial", label: "Partielles" },
   { key: "running", label: "En cours" },
-  { key: "todo", label: "À faire" },
+  { key: "todo", label: "En attente" },
   { key: "error", label: "Avec erreurs" },
 ];
 
 const STATUS_META: Record<ControlCityRow["status"], { label: string; className: string; dot: string }> = {
-  done:    { label: "TERMINÉE", className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" },
+  done:    { label: "TERMINÉ", className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" },
+  partial: { label: "PARTIELLEMENT TERMINÉ", className: "bg-amber-500/15 text-amber-700 border-amber-500/30", dot: "bg-amber-500" },
   running: { label: "EN COURS", className: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30", dot: "bg-yellow-500" },
   error:   { label: "ERREUR",   className: "bg-destructive/15 text-destructive border-destructive/30", dot: "bg-destructive" },
-  todo:    { label: "À FAIRE",  className: "bg-muted text-muted-foreground border-border", dot: "bg-muted-foreground" },
+  todo:    { label: "EN ATTENTE",  className: "bg-muted text-muted-foreground border-border", dot: "bg-muted-foreground" },
 };
 
 function nf(n: number) { return n.toLocaleString("fr-CA"); }
@@ -42,10 +46,8 @@ export default function PipelineControlCenter() {
   const [busy, setBusy] = useState<string | null>(null);
   const [logsCity, setLogsCity] = useState<string | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
-  const [pagesCity, setPagesCity] = useState<string | null>(null);
-  const [pages, setPages] = useState<any[]>([]);
+  const [pagesCity, setPagesCity] = useState<{ slug: string; name: string } | null>(null);
   const [errorsOpen, setErrorsOpen] = useState(false);
-  const [errorRows, setErrorRows] = useState<any[]>([]);
 
   const totals = state?.totals ?? null;
   const run = state?.active_run ?? null;
@@ -56,10 +58,15 @@ export default function PipelineControlCenter() {
     const list = state?.cities ?? [];
     const q = search.trim().toLowerCase();
     return list.filter((c) =>
-      (filter === "all" || c.status === filter) &&
+      (filter === "all" || (filter === "error" ? c.errors > 0 : c.status === filter)) &&
       (!q || c.name.toLowerCase().includes(q) || c.slug.includes(q))
     );
   }, [state, filter, search]);
+
+  const errorCities = useMemo(
+    () => (state?.cities ?? []).filter((c) => c.errors > 0).sort((a, b) => b.errors - a.errors),
+    [state],
+  );
 
   async function act(key: string, fn: () => Promise<void>, okMsg: string) {
     setBusy(key);
@@ -71,25 +78,9 @@ export default function PipelineControlCenter() {
   async function openLogs(slug: string) {
     setLogsCity(slug); setLogs([]);
     const { data } = await supabase.from("seo_page_tasks")
-      .select("id, city_slug, material_slug, service_slug, status, step, attempts, qa_score, last_error, updated_at")
-      .eq("city_slug", slug).order("updated_at", { ascending: false }).limit(100);
+      .select("id, city_slug, material_slug, service_slug, kind, status, step, attempts, qa_score, last_error, updated_at")
+      .eq("city_slug", slug).order("updated_at", { ascending: false }).limit(200);
     setLogs(data ?? []);
-  }
-
-  async function openPages(slug: string) {
-    setPagesCity(slug); setPages([]);
-    const { data } = await supabase.from("seo_pages")
-      .select("id, slug, title, status, published_at, qa_last_score, word_count")
-      .eq("city_slug", slug).order("slug").limit(200);
-    setPages(data ?? []);
-  }
-
-  async function openErrors() {
-    setErrorsOpen(true); setErrorRows([]);
-    const { data } = await supabase.from("seo_page_tasks")
-      .select("id, city_slug, page_slug, material_slug, service_slug, status, step, last_error, attempts, updated_at")
-      .in("status", ["failed", "needs_retry"]).order("updated_at", { ascending: false }).limit(200);
-    setErrorRows(data ?? []);
   }
 
   return (
@@ -138,7 +129,7 @@ export default function PipelineControlCenter() {
               <Kpi label="Générées" value={nf(totals.generated)} tone="good" />
               <Kpi label="Publiées" value={nf(totals.published)} tone="good" />
               <Kpi label="Restantes" value={nf(totals.remaining)} />
-              <button type="button" onClick={openErrors} className="text-left">
+              <button type="button" onClick={() => setErrorsOpen(true)} className="text-left">
                 <Kpi label="Erreurs" value={nf(totals.errors)} tone={totals.errors > 0 ? "bad" : "muted"} hint="Voir la liste" />
               </button>
             </div>
@@ -214,16 +205,18 @@ export default function PipelineControlCenter() {
                 </div>
 
                 <div className="flex flex-wrap gap-1.5">
-                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" onClick={() => openPages(c.slug)}>
+                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" onClick={() => setPagesCity({ slug: c.slug, name: c.name })}>
                     <FileText className="w-3 h-3" /> Voir les pages
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
-                    disabled={c.errors === 0 || busy === `retry-${c.slug}`}
-                    onClick={() => act(`retry-${c.slug}`, async () => { await supabase.rpc("seo_city_retry_errors" as never, { _city_slug: c.slug } as never); }, `Erreurs relancées — ${c.name}`)}>
-                    <ListRestart className="w-3 h-3" /> Régénérer les erreurs
+                    disabled={c.errors + c.remaining === 0 || busy === `retry-${c.slug}`}
+                    onClick={() => act(`retry-${c.slug}`, async () => {
+                      await repairSeoPages({ citySlug: c.slug, allErrors: true });
+                    }, `Régénération lancée — ${c.name}`)}>
+                    {busy === `retry-${c.slug}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <ListRestart className="w-3 h-3" />} Régénérer les erreurs
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
-                    disabled={c.published >= c.generated || busy === `pub-${c.slug}`}
+                    disabled={c.unpublished === 0 || busy === `pub-${c.slug}`}
                     onClick={() => act(`pub-${c.slug}`, async () => { await supabase.rpc("seo_city_publish_missing" as never, { _city_slug: c.slug } as never); }, `Pages non publiées publiées — ${c.name}`)}>
                     <Send className="w-3 h-3" /> Publier les non publiées
                   </Button>
@@ -246,23 +239,19 @@ export default function PipelineControlCenter() {
 
       {/* ── Dialogs ─────────────────────────────────────────────── */}
       <Dialog open={errorsOpen} onOpenChange={setErrorsOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-destructive" /> Erreurs — {totals?.errors ?? 0}</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-destructive" /> Pages en erreur — {totals?.errors ?? 0}</DialogTitle></DialogHeader>
           <div className="space-y-2 text-xs">
-            {errorRows.length === 0 && <div className="text-muted-foreground">Aucune erreur.</div>}
-            {errorRows.map((e) => (
-              <div key={e.id} className="rounded-lg border border-border p-2 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">{e.status}</Badge>
-                  <strong>{e.city_slug}</strong>
-                  <span className="text-muted-foreground truncate">{e.page_slug ?? [e.material_slug, e.service_slug].filter(Boolean).join(" · ") ?? "hub"}</span>
-                  <span className="text-muted-foreground">étape : {e.step ?? "—"}</span>
-                  <span className="text-muted-foreground ml-auto">{new Date(e.updated_at).toLocaleString("fr-CA")}</span>
-                </div>
-                {e.last_error && <div className="text-destructive break-words">{e.last_error}</div>}
-                <Button size="sm" variant="outline" className="h-7 text-xs"
-                  onClick={() => act(`retry-${e.city_slug}`, async () => { await supabase.rpc("seo_city_retry_errors" as never, { _city_slug: e.city_slug } as never); await openErrors(); }, "Erreurs relancées")}>
-                  Réessayer
+            {errorCities.length === 0 && <div className="text-muted-foreground">Aucune erreur réelle : toutes les pages prévues existent et sont valides.</div>}
+            {errorCities.map((c) => (
+              <div key={c.slug} className="rounded-lg border border-border p-2 flex flex-wrap items-center gap-2">
+                <strong>{c.name}</strong>
+                <span className="text-destructive">{c.errors} erreur{c.errors > 1 ? "s" : ""}</span>
+                {c.invalid > 0 && <span className="text-amber-700">dont {c.invalid} page(s) invalide(s)</span>}
+                <span className="text-muted-foreground">{c.generated}/{c.planned} générées · {c.published}/{c.planned} publiées</span>
+                <Button size="sm" variant="outline" className="h-7 text-xs ml-auto"
+                  onClick={() => { setErrorsOpen(false); setPagesCity({ slug: c.slug, name: c.name }); }}>
+                  Détails des erreurs
                 </Button>
               </div>
             ))}
@@ -288,24 +277,12 @@ export default function PipelineControlCenter() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!pagesCity} onOpenChange={(o) => !o && setPagesCity(null)}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
-          <DialogHeader><DialogTitle>Pages — {pagesCity}</DialogTitle></DialogHeader>
-          <div className="space-y-1 text-xs">
-            {pages.length === 0 && <div className="text-muted-foreground">Aucune page.</div>}
-            {pages.map((p) => (
-              <div key={p.id} className="flex flex-wrap items-center gap-2 py-1 border-b border-border last:border-0">
-                <Badge variant="outline" className={`text-[10px] ${p.status === "published" ? "bg-green-500/15 text-green-700 border-green-500/30" : ""}`}>{p.status}</Badge>
-                <span className="truncate max-w-[240px]">{p.title ?? p.slug}</span>
-                <span className="text-muted-foreground">QA {p.qa_last_score ?? "—"} · {p.word_count ?? 0} mots</span>
-                <a href={`/${p.slug}`} target="_blank" rel="noreferrer" className="ml-auto text-primary inline-flex items-center gap-1">
-                  Ouvrir <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CityPagesDialog
+        citySlug={pagesCity?.slug ?? null}
+        cityName={pagesCity?.name}
+        onClose={() => setPagesCity(null)}
+        onChanged={() => void reload()}
+      />
     </div>
   );
 }

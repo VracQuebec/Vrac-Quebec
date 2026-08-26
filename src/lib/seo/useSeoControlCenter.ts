@@ -9,8 +9,11 @@ export type ControlCityRow = {
   published: number;
   remaining: number;
   errors: number;
+  invalid: number;
+  pending: number;
+  unpublished: number;
   pct: number;
-  status: "done" | "running" | "error" | "todo";
+  status: "done" | "running" | "error" | "todo" | "partial";
 };
 
 export type ControlTotals = {
