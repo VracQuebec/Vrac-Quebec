@@ -14,21 +14,23 @@ import {
   Loader2, AlertTriangle, ExternalLink, FileText,
 } from "lucide-react";
 
-type FilterKey = "all" | "done" | "running" | "todo" | "error";
+type FilterKey = "all" | "done" | "partial" | "running" | "todo" | "error";
 
 const FILTERS: Array<{ key: FilterKey; label: string }> = [
   { key: "all", label: "Toutes" },
   { key: "done", label: "Terminées" },
+  { key: "partial", label: "Partielles" },
   { key: "running", label: "En cours" },
-  { key: "todo", label: "À faire" },
+  { key: "todo", label: "En attente" },
   { key: "error", label: "Avec erreurs" },
 ];
 
 const STATUS_META: Record<ControlCityRow["status"], { label: string; className: string; dot: string }> = {
-  done:    { label: "TERMINÉE", className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" },
+  done:    { label: "TERMINÉ", className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" },
+  partial: { label: "PARTIELLEMENT TERMINÉ", className: "bg-amber-500/15 text-amber-700 border-amber-500/30", dot: "bg-amber-500" },
   running: { label: "EN COURS", className: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30", dot: "bg-yellow-500" },
   error:   { label: "ERREUR",   className: "bg-destructive/15 text-destructive border-destructive/30", dot: "bg-destructive" },
-  todo:    { label: "À FAIRE",  className: "bg-muted text-muted-foreground border-border", dot: "bg-muted-foreground" },
+  todo:    { label: "EN ATTENTE",  className: "bg-muted text-muted-foreground border-border", dot: "bg-muted-foreground" },
 };
 
 function nf(n: number) { return n.toLocaleString("fr-CA"); }
