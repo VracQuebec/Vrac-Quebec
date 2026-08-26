@@ -8857,6 +8857,30 @@ export type Database = {
           },
         ]
       }
+      seo_orchestrator_lease: {
+        Row: {
+          acquired_at: string | null
+          expires_at: string | null
+          holder_id: string | null
+          lock_name: string
+          updated_at: string
+        }
+        Insert: {
+          acquired_at?: string | null
+          expires_at?: string | null
+          holder_id?: string | null
+          lock_name: string
+          updated_at?: string
+        }
+        Update: {
+          acquired_at?: string | null
+          expires_at?: string | null
+          holder_id?: string | null
+          lock_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       seo_page_analytics: {
         Row: {
           analyzed_at: string
@@ -11862,6 +11886,14 @@ export type Database = {
       }
       seo_optimization_state: { Args: never; Returns: Json }
       seo_optimization_watchdog: { Args: never; Returns: number }
+      seo_orchestrator_acquire_lease: {
+        Args: { _holder_id: string; _ttl_seconds?: number }
+        Returns: boolean
+      }
+      seo_orchestrator_release_lease: {
+        Args: { _holder_id: string }
+        Returns: boolean
+      }
       seo_orchestrator_try_lock: { Args: never; Returns: boolean }
       seo_orchestrator_unlock: { Args: never; Returns: boolean }
       seo_page_publish: { Args: { _page_id: string }; Returns: Json }
