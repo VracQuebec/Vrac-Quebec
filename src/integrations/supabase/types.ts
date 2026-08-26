@@ -11808,10 +11808,8 @@ export type Database = {
         }
         Returns: Json
       }
-      seo_city_publish_missing: {
-        Args: { _city_slug: string }
-        Returns: number
-      }
+      seo_city_matrix: { Args: { _city_slug: string }; Returns: Json }
+      seo_city_publish_missing: { Args: { _city_slug: string }; Returns: Json }
       seo_city_retry_errors: { Args: { _city_slug: string }; Returns: number }
       seo_control_center: { Args: never; Returns: Json }
       seo_dashboard_stats: { Args: never; Returns: Json }
@@ -11866,6 +11864,8 @@ export type Database = {
       seo_optimization_watchdog: { Args: never; Returns: number }
       seo_orchestrator_try_lock: { Args: never; Returns: boolean }
       seo_orchestrator_unlock: { Args: never; Returns: boolean }
+      seo_page_publish: { Args: { _page_id: string }; Returns: Json }
+      seo_page_save: { Args: { _page_id: string; _patch: Json }; Returns: Json }
       seo_pipeline_cancel: { Args: { _run_id: string }; Returns: undefined }
       seo_pipeline_detect_stalls: {
         Args: { _alert_minutes?: number }
@@ -11902,7 +11902,46 @@ export type Database = {
         Args: { _page_id?: string }
         Returns: number
       }
+      seo_slot_rows: {
+        Args: { _city_slug?: string }
+        Returns: {
+          city_name: string
+          city_slug: string
+          gen_state: string
+          issues: string[]
+          kind: string
+          label: string
+          last_generated_at: string
+          material_slug: string
+          page_id: string
+          page_slug: string
+          page_status: string
+          pub_state: string
+          published_at: string
+          seo_score: number
+          service_slug: string
+          task_attempts: number
+          task_error: string
+          task_status: string
+          task_step: string
+          task_updated_at: string
+          title: string
+          word_count: number
+        }[]
+      }
       seo_territorial_coverage: { Args: never; Returns: Json }
+      seo_validate_page_fields: {
+        Args: {
+          _city_slug: string
+          _content_html: string
+          _dupe: boolean
+          _h1: string
+          _meta_description: string
+          _meta_title: string
+          _slug: string
+        }
+        Returns: string[]
+      }
       set_my_network_visibility: {
         Args: { _visible: boolean }
         Returns: boolean
