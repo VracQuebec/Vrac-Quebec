@@ -163,7 +163,8 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
       const added: PhotoEntry[] = [];
       for (const file of Array.from(files).slice(0, 6)) {
         const ext = file.name.split(".").pop();
-        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const safeExt = (ext || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg";
+        const path = `submissions/${crypto.randomUUID()}/${Date.now()}.${safeExt}`;
         const { error: upErr } = await supabase.storage.from("lead-photos").upload(path, file);
         if (!upErr) {
           const { data: pub } = supabase.storage.from("lead-photos").getPublicUrl(path);
