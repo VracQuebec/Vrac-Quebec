@@ -92,6 +92,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const pageId = String(body?.page_id || "");
     const mode = String(body?.mode || "propose"); // "propose" | "apply"
+    const focus: string[] = Array.isArray(body?.focus)
+      ? (body.focus as unknown[]).map((f) => String(f || "").trim()).filter(Boolean).slice(0, 20)
+      : [];
     if (!pageId) return json({ error: "page_id requis" }, 400);
 
     if (mode === "apply") {
@@ -108,6 +111,7 @@ Deno.serve(async (req) => {
         og_title: after.og_title,
         og_description: after.og_description,
         cover_image_alt: after.cover_image_alt,
+        keywords: after.keywords,
         intro: after.intro,
         content_html: after.content_html,
         faq: after.faq,
@@ -150,6 +154,7 @@ Réponds UNIQUEMENT en JSON valide strict :
   "og_title": "≤ 60 caractères",
   "og_description": "≤ 200 caractères",
   "cover_image_alt": "≤ 120 caractères",
+  "keywords": ["8 à 12 mots-clés secondaires ciblés (longue traîne locale)"],
   "intro": "2-3 phrases HTML sans balise",
   "content_html": "voir règles",
   "faq": [{"question":"...","answer":"..."}],
@@ -181,7 +186,8 @@ ${(page.content_html ?? "").slice(0, 6000)}
 FAQ actuelle :
 ${JSON.stringify(page.faq ?? [])}
 
-Score SEO actuel : ${page.seo_score ?? "n/a"}/100 (${page.word_count ?? 0} mots).`;
+Score SEO actuel : ${page.seo_score ?? "n/a"}/100 (${page.word_count ?? 0} mots).
+${focus.length ? `\nPROBLÈMES DÉTECTÉS PAR L'AUDIT SEO — corrige-les en priorité :\n- ${focus.join("\n- ")}` : ""}`;
 
     let raw = "";
     try {
@@ -215,6 +221,11 @@ Score SEO actuel : ${page.seo_score ?? "n/a"}/100 (${page.word_count ?? 0} mots)
     const metaDescription = String(parsed.meta_description || page.meta_description || "").slice(0, 300);
     const ogTitle = String(parsed.og_title || metaTitle).slice(0, 100);
     const ogDescription = String(parsed.og_description || metaDescription).slice(0, 250);
+    const kwRaw = Array.isArray(parsed.keywords) ? parsed.keywords : [];
+    const keywords = kwRaw
+      .map((k: unknown) => String(k || "").trim())
+      .filter((k: string) => k.length > 1)
+      .slice(0, 15);
     const coverAlt = String(parsed.cover_image_alt || page.cover_image_alt || `${title} — Vrac Québec`).slice(0, 160);
     const intro = String(parsed.intro || page.intro || "");
     const contentHtml = String(parsed.content_html || page.content_html || "");
@@ -244,6 +255,7 @@ Score SEO actuel : ${page.seo_score ?? "n/a"}/100 (${page.word_count ?? 0} mots)
     const afterSnapshot = {
       title, meta_title: metaTitle, meta_description: metaDescription,
       og_title: ogTitle, og_description: ogDescription, cover_image_alt: coverAlt,
+      keywords: keywords.length >= 5 ? keywords : (Array.isArray(page.keywords) ? page.keywords : keywords),
       intro, content_html: contentHtml, faq, internal_links: rebuiltLinks,
       word_count: words, h2_count: h2, h3_count: h3,
       internal_link_count: totalInternal, seo_score: score,
@@ -251,6 +263,7 @@ Score SEO actuel : ${page.seo_score ?? "n/a"}/100 (${page.word_count ?? 0} mots)
     const beforeSnapshot = {
       title: page.title, meta_title: page.meta_title, meta_description: page.meta_description,
       og_title: page.og_title, og_description: page.og_description, cover_image_alt: page.cover_image_alt,
+      keywords: page.keywords,
       intro: page.intro, content_html: page.content_html, faq: page.faq, internal_links: page.internal_links,
       word_count: page.word_count, h2_count: page.h2_count, h3_count: page.h3_count,
       internal_link_count: page.internal_link_count, seo_score: page.seo_score,
