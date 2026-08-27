@@ -7,6 +7,8 @@ import {
   computeTaxes, isMaterialTaxableByDefault, TPS_RATE, TVQ_RATE,
 } from "@/lib/billing";
 import { REMBLAI_MATERIAL_OPTIONS, REQUEST_TYPES } from "@/lib/questionnaire-data";
+import InvoiceEditDialog, { ConfirmDialog } from "@/components/billing/InvoiceEditDialog";
+
 
 interface EntrepreneurRow {
   id: string;
