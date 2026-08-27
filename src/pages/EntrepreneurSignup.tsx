@@ -50,7 +50,10 @@ const EntrepreneurSignup = () => {
       if (loginError) throw loginError;
 
       try { localStorage.setItem("vq_stay_logged_in", "1"); } catch { /* ignore storage errors */ }
-      toast({ title: "Compte créé", description: "Votre accès entrepreneur est actif immédiatement." });
+      toast({
+        title: "Compte créé",
+        description: "Votre compte est en attente de validation par l'équipe Vrac Québec. L'accès aux demandes et aux sites du réseau sera activé dès l'approbation.",
+      });
       navigate("/entrepreneur", { replace: true });
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Inscription échouée", variant: "destructive" });
