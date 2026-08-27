@@ -33,7 +33,6 @@ const CATEGORIES = Object.keys(CATEGORY_LABELS) as NotifCategory[];
 const DELAY_FIELDS: { key: string; label: string; suffix: string }[] = [
   { key: "lead_untreated_hours", label: "Lead non traité après", suffix: "heures" },
   { key: "quote_followup_days", label: "Relance de soumission après", suffix: "jours" },
-  { key: "recall_hours", label: "Rappel client à effectuer dans", suffix: "heures" },
   { key: "payment_overdue_days", label: "Paiement en retard après", suffix: "jours" },
   { key: "delivery_reminder_hours", label: "Rappel de livraison", suffix: "heures avant" },
 ];
