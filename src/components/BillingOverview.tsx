@@ -330,7 +330,7 @@ export default function BillingOverview({ onOpenLead }: Props) {
                         </div>
                       )}
                     </td>
-                    <td className="px-3 py-2 print:hidden">
+                    <td className="px-3 py-2 print:hidden" onClick={(e) => e.stopPropagation()}>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <button onClick={() => onOpenLead(r.submission_id)}
                           className="px-2 py-1.5 rounded-md border border-border bg-card hover:bg-secondary text-xs font-display font-semibold min-h-[34px]">Ouvrir</button>
@@ -342,8 +342,8 @@ export default function BillingOverview({ onOpenLead }: Props) {
                         </button>
                       </div>
                     </td>
-
                   </tr>
+
                 );
               })}
             </tbody>
