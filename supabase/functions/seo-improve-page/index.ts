@@ -72,6 +72,55 @@ async function buildInternalLinks(
   return links.slice(0, 10);
 }
 
+
+/** Coupe un texte sur une frontière de mot, sans dépasser `max`. */
+function clampText(text: string, min: number, max: number): string {
+  const t = (text || "").replace(/\s+/g, " ").trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const lastStop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(" — "));
+  if (lastStop >= min) return cut.slice(0, lastStop + 1).trim();
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace >= min ? cut.slice(0, lastSpace) : cut).trim();
+}
+
+function countCtaLinks(html: string): number {
+  const links = html.match(/<a\s[^>]*href=["'][^"']+["'][^>]*>/gi) ?? [];
+  let n = 0;
+  for (const l of links) {
+    const href = /href=["']([^"']+)["']/i.exec(l)?.[1] ?? "";
+    if (/\/transport-request|#questionnaire|\/contact/i.test(href)) n++;
+  }
+  return n;
+}
+
+function normalizeLoose(text: string): string {
+  return (text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/**
+ * Corrections déterministes appliquées après l'IA : CTA manquants et mention
+ * explicite ville + sujet. L'IA échoue régulièrement sur ces critères mesurés.
+ */
+function enforceCtaAndLocal(html: string, cityName: string, topicName: string): string {
+  let out = html;
+  const plain = normalizeLoose(out.replace(/<[^>]+>/g, " "));
+  const cityOk = !cityName || plain.includes(normalizeLoose(cityName));
+  const topicOk = !topicName || plain.includes(normalizeLoose(topicName));
+  if (!cityOk || !topicOk) {
+    out += `<p><strong>${[topicName, cityName].filter(Boolean).join(" à ")}</strong> : Vrac Québec met en relation les chantiers de ${cityName} avec les fournisseurs et transporteurs locaux disponibles.</p>`;
+  }
+  let ctas = countCtaLinks(out);
+  if (ctas < 2) {
+    const blocks = [
+      `<p><a href="/transport-request">Demander une soumission pour ${topicName || "vos matériaux"} à ${cityName}</a></p>`,
+      `<p>Besoin d'un accompagnement ? <a href="/contact">Contactez l'équipe Vrac Québec</a> pour valider votre besoin.</p>`,
+    ];
+    while (ctas < 2 && blocks.length) { out += blocks.shift(); ctas++; }
+  }
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   try {
@@ -218,9 +267,10 @@ ${focus.length ? `\nPROBLÈMES DÉTECTÉS PAR L'AUDIT SEO — corrige-les en pri
 
     const title = String(parsed.title || page.title).slice(0, 200);
     const metaTitle = String(parsed.meta_title || page.meta_title || title).slice(0, 70);
-    const metaDescription = String(parsed.meta_description || page.meta_description || "").slice(0, 300);
-    const ogTitle = String(parsed.og_title || metaTitle).slice(0, 100);
-    const ogDescription = String(parsed.og_description || metaDescription).slice(0, 250);
+    const metaDescription = clampText(String(parsed.meta_description || page.meta_description || ""), 140, 165);
+    const ogTitleRaw = clampText(String(parsed.og_title || metaTitle), 20, 90);
+    const ogTitleSafe = ogTitleRaw.length >= 20 ? ogTitleRaw : clampText(`${ogTitleRaw} — Vrac Québec`, 20, 90);
+    const ogDescription = clampText(String(parsed.og_description || metaDescription), 60, 200);
     const kwRaw = Array.isArray(parsed.keywords) ? parsed.keywords : [];
     const keywords = kwRaw
       .map((k: unknown) => String(k || "").trim())
@@ -228,7 +278,11 @@ ${focus.length ? `\nPROBLÈMES DÉTECTÉS PAR L'AUDIT SEO — corrige-les en pri
       .slice(0, 15);
     const coverAlt = String(parsed.cover_image_alt || page.cover_image_alt || `${title} — Vrac Québec`).slice(0, 160);
     const intro = String(parsed.intro || page.intro || "");
-    const contentHtml = String(parsed.content_html || page.content_html || "");
+    const contentHtml = enforceCtaAndLocal(
+      String(parsed.content_html || page.content_html || ""),
+      String(city?.name ?? "").trim(),
+      String(material?.name ?? service?.name ?? "").trim(),
+    );
     const faqRaw = Array.isArray(parsed.faq) ? parsed.faq : [];
     const faq = faqRaw
       .map((f: unknown) => {
@@ -254,7 +308,7 @@ ${focus.length ? `\nPROBLÈMES DÉTECTÉS PAR L'AUDIT SEO — corrige-les en pri
 
     const afterSnapshot = {
       title, meta_title: metaTitle, meta_description: metaDescription,
-      og_title: ogTitle, og_description: ogDescription, cover_image_alt: coverAlt,
+      og_title: ogTitleSafe, og_description: ogDescription, cover_image_alt: coverAlt,
       keywords: keywords.length >= 5 ? keywords : (Array.isArray(page.keywords) ? page.keywords : keywords),
       intro, content_html: contentHtml, faq, internal_links: rebuiltLinks,
       word_count: words, h2_count: h2, h3_count: h3,

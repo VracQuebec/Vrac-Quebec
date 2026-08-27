@@ -19,8 +19,10 @@ function normalize(text: string): string {
   return (text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 function containsWord(haystack: string, needle: string): boolean {
-  const h = normalize(haystack);
-  const n = normalize(needle);
+  // Ponctuation-insensible : « Château-Richer » doit matcher « chateau richer ».
+  const loose = (s: string) => normalize(s).replace(/[^a-z0-9]+/g, " ").trim();
+  const h = loose(haystack);
+  const n = loose(needle);
   if (!n) return false;
   return h.includes(n);
 }
@@ -146,6 +148,11 @@ Deno.serve(async (req) => {
     const internal = countInternalLinks(html);
     const ctas = countCTAs(html);
     const images = countImages(html);
+    // L'image de couverture rendue par le gabarit compte comme visuel de la page.
+    if (page.cover_image_url) {
+      images.total += 1;
+      if (String(page.cover_image_alt || "").trim().length >= 3) images.withAlt += 1;
+    }
     const plain = stripHtml(html);
     const avgSent = avgSentenceLength(plain);
 
@@ -210,7 +217,7 @@ Deno.serve(async (req) => {
     const ogDescOk = ogDesc.length >= 60 && ogDesc.length <= 200;
     const ogOk = ogTitleOk && ogDescOk;
     const ogWarn = (ogTitle.length > 0 && !ogTitleOk) || (ogDesc.length > 0 && !ogDescOk);
-    const imagesOk = images.total >= 2 && images.withAlt === images.total;
+    const imagesOk = images.total >= 1 && images.withAlt === images.total;
     const imagesWarn = images.total >= 1 && !imagesOk;
     const keywordsOk = keywords.length >= 5;
     const keywordsWarn = keywords.length >= 2 && !keywordsOk;
@@ -314,7 +321,7 @@ Deno.serve(async (req) => {
         ok: imagesOk,
         status: mkStatus(imagesOk, imagesWarn),
         detail: imagesOk ? undefined : images.total === 0
-          ? "Aucune image — ajouter au moins 2 visuels avec attribut alt."
+          ? "Aucune image — ajouter une image de couverture avec attribut alt."
           : "Compléter les attributs alt (≥ 3 caractères).",
         fixable: true,
         fix_action: "fix_images_alt",
