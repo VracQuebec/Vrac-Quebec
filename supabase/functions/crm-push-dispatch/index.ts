@@ -139,8 +139,13 @@ Deno.serve(async (req) => {
     .from('crm_notifications').select('id', { count: 'exact', head: true }).eq('status', 'unread');
 
   let sent = 0;
+  const DAY = 24 * 3600 * 1000;
   for (const n of pending) {
     const allowedGlobally = globalPush[n.category] !== false;
+    const stale = Date.now() - new Date(n.created_at as string).getTime() > DAY;
+    // Aucun appareil abonné : on garde la notification « en attente » pendant 24 h
+    // pour que le premier iPhone activé reçoive les alertes récentes.
+    if (subs.length === 0 && allowedGlobally && !stale) continue;
     if (!allowedGlobally || subs.length === 0) {
       await sb.from('crm_notifications')
         .update({ push_status: 'skipped', push_sent_at: new Date().toISOString() }).eq('id', n.id);
