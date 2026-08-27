@@ -1,1 +1,2 @@
 - [Panneau d'administration](mem://features/panneau-administration) — Console admin complète (référentiel, paramètres financiers, demandes, tableau de bord).
+- [Notifications CRM + Push](mem://features/notifications-crm-push) — crm_notifications, déclencheurs et veille planifiée, cloche CRM, /admin/notifications, Web Push iPhone.
