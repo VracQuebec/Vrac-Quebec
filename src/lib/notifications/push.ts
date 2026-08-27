@@ -104,15 +104,17 @@ export async function enablePush(categories: Record<string, boolean>) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error("Session expirée");
 
+  const ua = navigator.userAgent.slice(0, 300);
   const { error } = await supabase.from("crm_push_subscriptions").upsert({
     user_id: auth.user.id,
     endpoint: raw.endpoint!,
     p256dh: raw.keys!.p256dh!,
     auth: raw.keys!.auth!,
-    user_agent: navigator.userAgent.slice(0, 300),
+    user_agent: ua,
+    label: deviceName({ label: null, user_agent: ua }),
     categories,
     is_enabled: true,
-  }, { onConflict: "endpoint" });
+  } as never, { onConflict: "endpoint" });
   if (error) throw error;
 }
 
