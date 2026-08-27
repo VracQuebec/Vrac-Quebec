@@ -665,15 +665,18 @@ const Admin = () => {
             <button onClick={() => setShowUsers(true)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <Users className="w-4 h-4" /> Entrepreneurs
             </button>
+            <NotificationBell />
             <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <LogOut className="w-4 h-4" /> Déconnexion
             </button>
           </div>
 
-          {/* Mobile hamburger */}
+          {/* Mobile : cloche + hamburger */}
+          <div className="sm:hidden flex items-center -mr-2">
+            <NotificationBell />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <button className="sm:hidden p-2 rounded-md hover:bg-secondary/80 -mr-2" aria-label="Menu">
+              <button className="p-2 rounded-md hover:bg-secondary/80" aria-label="Menu">
                 <Menu className="w-5 h-5 text-foreground" />
               </button>
             </SheetTrigger>
