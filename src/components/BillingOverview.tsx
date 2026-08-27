@@ -358,8 +358,13 @@ export default function BillingOverview({ onOpenLead }: Props) {
           onEdit={() => setEditing(detail)}
           onDelete={() => setDeleting(detail)}
           onOpenLead={onOpenLead}
+          onStatusChanged={(row) => {
+            setRows((prev) => prev.map((x) => (x.id === row.id ? { ...x, ...row } : x)));
+            setDetail((d) => (d && d.id === row.id ? { ...d, ...row } : d));
+          }}
         />
       )}
+
 
       {editing && (
         <InvoiceEditDialog
