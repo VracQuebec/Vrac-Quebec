@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowRight, Clock } from "lucide-react";
 import { useCrmNotifications } from "@/hooks/useCrmNotifications";
+import { useCrmAlertsEnabled } from "@/hooks/useNotificationsEnabled";
 import { isOverdue, isToday } from "@/lib/notifications/api";
 import NotificationItem from "./NotificationItem";
 
@@ -10,6 +11,7 @@ import NotificationItem from "./NotificationItem";
  * il met simplement en avant ce qui bloque la journée.
  */
 const TodoNow = ({ limit = 5 }: { limit?: number }) => {
+  const alertsEnabled = useCrmAlertsEnabled();
   const { items, stats, loading, read, change } = useCrmNotifications(true);
 
   const priority = items
@@ -17,6 +19,7 @@ const TodoNow = ({ limit = 5 }: { limit?: number }) => {
     .filter((n) => n.priority === "urgente" || isOverdue(n) || isToday(n))
     .slice(0, limit);
 
+  if (!alertsEnabled) return null;
   if (loading || (priority.length === 0 && stats.total === 0)) return null;
 
   return (

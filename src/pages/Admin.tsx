@@ -679,6 +679,9 @@ const Admin = () => {
             <button onClick={() => setShowUsers(true)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <Users className="w-4 h-4" /> Entrepreneurs
             </button>
+            <Link to="/admin/settings" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
+              <Settings className="w-4 h-4" /> Paramètres
+            </Link>
             <NotificationBell />
             <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <LogOut className="w-4 h-4" /> Déconnexion
@@ -730,6 +733,9 @@ const Admin = () => {
                 </Link>
                 <Link to="/admin/donnees" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
                   <DatabaseIcon className="w-4 h-4" /> Données
+                </Link>
+                <Link to="/admin/settings" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
+                  <Settings className="w-4 h-4" /> Paramètres
                 </Link>
                 <div className="border-t border-border my-2" />
                 <button onClick={() => { setMobileOpen(false); handleLogout(); }} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-muted-foreground hover:text-foreground hover:bg-secondary">

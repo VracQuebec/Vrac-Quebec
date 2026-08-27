@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Bell, CheckCheck, Settings2 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useCrmNotifications } from "@/hooks/useCrmNotifications";
+import { useCrmAlertsEnabled } from "@/hooks/useNotificationsEnabled";
 import { FILTER_LABELS, matchesFilter, type NotifFilter } from "@/lib/notifications/api";
 import NotificationItem from "./NotificationItem";
 
@@ -12,10 +13,11 @@ const QUICK_FILTERS: NotifFilter[] = ["todo", "urgent", "today", "unread", "all"
 const NotificationBell = ({ className = "" }: { className?: string }) => {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<NotifFilter>("todo");
+  const alertsEnabled = useCrmAlertsEnabled();
   const { items, stats, loading, read, change, readAll } = useCrmNotifications(true);
 
   const visible = items.filter((n) => matchesFilter(n, filter)).slice(0, 60);
-  const badge = stats.unread;
+  const badge = alertsEnabled ? stats.unread : 0;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

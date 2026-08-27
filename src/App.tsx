@@ -59,6 +59,7 @@ const DriverPortal = lazy(() => import("./pages/DriverPortal"));
 const AdminSoumissionConfig = lazy(() => import("./pages/AdminSoumissionConfig"));
 const AdminSoumissions = lazy(() => import("./pages/AdminSoumissions"));
 const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
+const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const AdminMonitoring = lazy(() => import("./pages/AdminMonitoring"));
 
 const Catalogue = lazy(() => import("./pages/Catalogue"));
@@ -190,6 +191,8 @@ const App = () => (
             <Route path="/admin/jsc" element={<AdminJsc />} />
             <Route path="/admin/configuration-soumissions" element={<AdminSoumissionConfig />} />
             <Route path="/admin/notifications" element={<AdminNotifications />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/parametres" element={<Navigate to="/admin/settings" replace />} />
             <Route path="/admin/soumissions" element={<AdminSoumissions />} />
             <Route path="/admin/supervision" element={<AdminMonitoring />} />
             <Route path="/admin/centre-operations" element={<OpsCenter />} />
