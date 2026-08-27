@@ -212,9 +212,14 @@ export default function BillingSection({ submissionId }: Props) {
                     ? <div className="text-[10px] text-muted-foreground font-body">HT {fmtMoney(tx.subtotal)} + taxes</div>
                     : <div className="text-[10px] text-muted-foreground font-body italic">Non taxable</div>}
                 </div>
-                <button onClick={() => removeTrip(t.id)} className="text-rose-600 hover:bg-rose-50 p-1 rounded" title="Supprimer">
+                <button onClick={() => setEditing(t)} title="Modifier la facture"
+                  className="px-2 py-1 rounded-md border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 text-[11px] font-display font-semibold min-h-[32px]">
+                  Modifier
+                </button>
+                <button onClick={() => setDeleting(t)} className="text-rose-600 border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 p-1.5 rounded-md min-h-[32px]" title="Supprimer la facture">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
+
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                 <Field label="Voyages"><input type="number" min={0} step="0.5" value={t.trips_count}
