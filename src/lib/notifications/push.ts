@@ -104,15 +104,17 @@ export async function enablePush(categories: Record<string, boolean>) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error("Session expirée");
 
+  const ua = navigator.userAgent.slice(0, 300);
   const { error } = await supabase.from("crm_push_subscriptions").upsert({
     user_id: auth.user.id,
     endpoint: raw.endpoint!,
     p256dh: raw.keys!.p256dh!,
     auth: raw.keys!.auth!,
-    user_agent: navigator.userAgent.slice(0, 300),
+    user_agent: ua,
+    label: deviceName({ label: null, user_agent: ua }),
     categories,
     is_enabled: true,
-  }, { onConflict: "endpoint" });
+  } as never, { onConflict: "endpoint" });
   if (error) throw error;
 }
 
@@ -151,4 +153,66 @@ export async function setAppBadge(count: number) {
     if (count > 0 && nav.setAppBadge) await nav.setAppBadge(count);
     else if (nav.clearAppBadge) await nav.clearAppBadge();
   } catch { /* non supporté : sans effet */ }
+}
+
+/* ------------------------------------------------------------
+   APPAREILS ENREGISTRÉS (lecture seule + activation/désactivation)
+   Aucune suppression automatique : un appareil inactif reste listé.
+------------------------------------------------------------ */
+
+export interface PushDevice {
+  id: string;
+  endpoint: string;
+  label: string | null;
+  user_agent: string | null;
+  is_enabled: boolean;
+  last_success_at: string | null;
+  last_test_at: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
+/** Endpoint de l'abonnement de CET appareil (null si non inscrit). */
+export async function currentEndpoint(): Promise<string | null> {
+  if (!pushSupported()) return null;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration(SW_URL);
+    const sub = await reg?.pushManager.getSubscription();
+    return sub?.endpoint ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function listDevices(): Promise<PushDevice[]> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return [];
+  const { data, error } = await supabase
+    .from("crm_push_subscriptions")
+    .select("id, endpoint, label, user_agent, is_enabled, last_success_at, last_test_at, last_error, created_at, updated_at")
+    .eq("user_id", auth.user.id)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as PushDevice[];
+}
+
+export async function setDeviceEnabled(id: string, enabled: boolean) {
+  const { error } = await supabase
+    .from("crm_push_subscriptions")
+    .update({ is_enabled: enabled })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Nom lisible de l'appareil déduit de son user-agent. */
+export function deviceName(d: Pick<PushDevice, "label" | "user_agent">) {
+  if (d.label) return d.label;
+  const ua = d.user_agent ?? "";
+  if (/iPhone/i.test(ua)) return "iPhone";
+  if (/iPad/i.test(ua)) return "iPad";
+  if (/Android/i.test(ua)) return "Appareil Android";
+  if (/Macintosh/i.test(ua)) return "Mac";
+  if (/Windows/i.test(ua)) return "PC Windows";
+  return "Appareil";
 }

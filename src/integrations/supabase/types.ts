@@ -1336,6 +1336,7 @@ export type Database = {
           categories: Json
           created_at: string
           delays: Json
+          options: Json
           push_categories: Json
           scope: string
           updated_at: string
@@ -1344,6 +1345,7 @@ export type Database = {
           categories?: Json
           created_at?: string
           delays?: Json
+          options?: Json
           push_categories?: Json
           scope?: string
           updated_at?: string
@@ -1352,6 +1354,7 @@ export type Database = {
           categories?: Json
           created_at?: string
           delays?: Json
+          options?: Json
           push_categories?: Json
           scope?: string
           updated_at?: string
@@ -1444,8 +1447,10 @@ export type Database = {
           endpoint: string
           id: string
           is_enabled: boolean
+          label: string | null
           last_error: string | null
           last_success_at: string | null
+          last_test_at: string | null
           p256dh: string
           updated_at: string
           user_agent: string | null
@@ -1458,8 +1463,10 @@ export type Database = {
           endpoint: string
           id?: string
           is_enabled?: boolean
+          label?: string | null
           last_error?: string | null
           last_success_at?: string | null
+          last_test_at?: string | null
           p256dh: string
           updated_at?: string
           user_agent?: string | null
@@ -1472,8 +1479,10 @@ export type Database = {
           endpoint?: string
           id?: string
           is_enabled?: boolean
+          label?: string | null
           last_error?: string | null
           last_success_at?: string | null
+          last_test_at?: string | null
           p256dh?: string
           updated_at?: string
           user_agent?: string | null

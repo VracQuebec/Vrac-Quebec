@@ -109,6 +109,11 @@ Deno.serve(async (req) => {
         icon: ICON,
       }, sb)) sent++;
     }
+    if ((subs ?? []).length) {
+      await sb.from('crm_push_subscriptions')
+        .update({ last_test_at: new Date().toISOString() })
+        .in('id', (subs ?? []).map((s: Sub) => s.id));
+    }
     return json({ ok: true, sent, devices: (subs ?? []).length });
   }
 
@@ -125,8 +130,11 @@ Deno.serve(async (req) => {
   if (!pending?.length) return json({ ok: true, sent: 0, notifications: 0 });
 
   const { data: settings } = await sb
-    .from('crm_notification_settings').select('push_categories').eq('scope', 'global').maybeSingle();
+    .from('crm_notification_settings').select('push_categories, options').eq('scope', 'global').maybeSingle();
   const globalPush = (settings?.push_categories ?? {}) as Record<string, boolean>;
+  const options = (settings?.options ?? {}) as { push_enabled?: boolean };
+  // Push mis en pause depuis les Paramètres : on laisse les notifications en attente.
+  if (options.push_enabled === false) return json({ ok: true, sent: 0, paused: true });
 
   const { data: subsRaw } = await sb
     .from('crm_push_subscriptions')

@@ -161,22 +161,34 @@ export async function setStatus(id: string, status: NotifStatus) {
   if (error) throw error;
 }
 
+export interface NotificationOptions {
+  /** Affichage des alertes CRM (cloche, « À faire »). N'efface aucune notification. */
+  crm_enabled?: boolean;
+  /** Envoi des notifications Push. Les notifications restent en attente. */
+  push_enabled?: boolean;
+}
+
 export interface NotificationSettings {
   categories: Record<string, boolean>;
   push_categories: Record<string, boolean>;
   delays: Record<string, number>;
+  options: NotificationOptions;
 }
 
 export async function fetchSettings(): Promise<NotificationSettings> {
   const { data } = await supabase
     .from("crm_notification_settings")
-    .select("categories, push_categories, delays")
+    .select("categories, push_categories, delays, options")
     .eq("scope", "global")
     .maybeSingle();
+  const row = data as unknown as {
+    categories?: unknown; push_categories?: unknown; delays?: unknown; options?: unknown;
+  } | null;
   return {
-    categories: (data?.categories ?? {}) as Record<string, boolean>,
-    push_categories: (data?.push_categories ?? {}) as Record<string, boolean>,
-    delays: (data?.delays ?? {}) as Record<string, number>,
+    categories: (row?.categories ?? {}) as Record<string, boolean>,
+    push_categories: (row?.push_categories ?? {}) as Record<string, boolean>,
+    delays: (row?.delays ?? {}) as Record<string, number>,
+    options: (row?.options ?? {}) as NotificationOptions,
   };
 }
 
