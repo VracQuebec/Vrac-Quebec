@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
 
   const { data: pending } = await sb
     .from('crm_notifications')
-    .select('id, category, type, priority, title, body, action_url, client_name, lead_number')
+    .select('id, category, type, priority, title, body, action_url, client_name, lead_number, created_at')
     .eq('push_status', 'pending')
     .in('status', ['unread', 'read', 'in_progress'])
     .order('created_at', { ascending: true })
