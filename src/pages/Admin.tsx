@@ -1895,6 +1895,19 @@ const UsersModal = ({ onClose }: { onClose: () => void }) => {
     load();
   };
 
+  // Validation manuelle d'un compte entrepreneur auto-inscrit (approved = false à l'inscription).
+  const setApproval = async (uid: string, approved: boolean) => {
+    const { error } = await supabase
+      .from("user_roles")
+      .update({ approved })
+      .eq("user_id", uid)
+      .eq("role", "entrepreneur");
+    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    else toast({ title: approved ? "Compte approuvé ✓" : "Approbation retirée" });
+    load();
+  };
+
+
   const createEntrepreneur = async () => {
     if (!newEmail || !newPass) return;
     setCreating(true);
