@@ -38,12 +38,27 @@ export default function ReseauProfil() {
     void (async () => {
       setLoading(true);
       const isUuid = /^[0-9a-f-]{36}$/i.test(slug);
+      // Champs publics uniquement : les coordonnées directes sont réservées aux comptes connectés.
+      const PUBLIC_COLS =
+        "id,slug,name,partner_type,tagline,description,city,region,website,logo_url,photos," +
+        "certifications,services,opening_hours,service_radius_km,rating_average,rating_count";
       const { data } = await supabase
         .from("jsc_marketplace_profiles")
-        .select("*")
+        .select(PUBLIC_COLS)
         .eq(isUuid ? "id" : "slug", slug)
         .maybeSingle();
-      const p = data as unknown as Profile | null;
+      let p = data as unknown as Profile | null;
+      if (p) {
+        const { data: session } = await supabase.auth.getSession();
+        if (session.session) {
+          const { data: contact } = await supabase
+            .from("jsc_marketplace_profiles")
+            .select("address,postal_code,phone,email")
+            .eq("id", p.id)
+            .maybeSingle();
+          if (contact) p = { ...p, ...(contact as unknown as Partial<Profile>) };
+        }
+      }
       setProfile(p);
       if (p) {
         const [{ data: av }, { data: rv }] = await Promise.all([
