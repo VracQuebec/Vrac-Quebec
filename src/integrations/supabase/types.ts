@@ -1331,6 +1331,156 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_notification_settings: {
+        Row: {
+          categories: Json
+          created_at: string
+          delays: Json
+          push_categories: Json
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          categories?: Json
+          created_at?: string
+          delays?: Json
+          push_categories?: Json
+          scope?: string
+          updated_at?: string
+        }
+        Update: {
+          categories?: Json
+          created_at?: string
+          delays?: Json
+          push_categories?: Json
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_notifications: {
+        Row: {
+          action_url: string | null
+          body: string | null
+          category: string
+          client_name: string | null
+          created_at: string
+          dedupe_key: string
+          due_at: string | null
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string | null
+          id: string
+          lead_number: string | null
+          meta: Json
+          priority: string
+          push_error: string | null
+          push_sent_at: string | null
+          push_status: string
+          read_at: string | null
+          resolved_at: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          action_url?: string | null
+          body?: string | null
+          category: string
+          client_name?: string | null
+          created_at?: string
+          dedupe_key: string
+          due_at?: string | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          id?: string
+          lead_number?: string | null
+          meta?: Json
+          priority?: string
+          push_error?: string | null
+          push_sent_at?: string | null
+          push_status?: string
+          read_at?: string | null
+          resolved_at?: string | null
+          status?: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          action_url?: string | null
+          body?: string | null
+          category?: string
+          client_name?: string | null
+          created_at?: string
+          dedupe_key?: string
+          due_at?: string | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          id?: string
+          lead_number?: string | null
+          meta?: Json
+          priority?: string
+          push_error?: string | null
+          push_sent_at?: string | null
+          push_status?: string
+          read_at?: string | null
+          resolved_at?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_push_subscriptions: {
+        Row: {
+          auth: string
+          categories: Json
+          created_at: string
+          endpoint: string
+          id: string
+          is_enabled: boolean
+          last_error: string | null
+          last_success_at: string | null
+          p256dh: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          categories?: Json
+          created_at?: string
+          endpoint: string
+          id?: string
+          is_enabled?: boolean
+          last_error?: string | null
+          last_success_at?: string | null
+          p256dh: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          categories?: Json
+          created_at?: string
+          endpoint?: string
+          id?: string
+          is_enabled?: boolean
+          last_error?: string | null
+          last_success_at?: string | null
+          p256dh?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       custom_fields: {
         Row: {
           created_at: string
@@ -11311,6 +11461,36 @@ export type Database = {
       crm_merge_entities: {
         Args: { _owner_type: string; _source_id: string; _target_id: string }
         Returns: undefined
+      }
+      crm_notification_stats: { Args: never; Returns: Json }
+      crm_notifications_sweep: { Args: never; Returns: Json }
+      crm_notify: {
+        Args: {
+          p_action_url?: string
+          p_body?: string
+          p_category: string
+          p_client_name?: string
+          p_dedupe_key: string
+          p_due_at?: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_lead_number?: string
+          p_meta?: Json
+          p_priority: string
+          p_reopen?: boolean
+          p_title: string
+          p_type: string
+        }
+        Returns: string
+      }
+      crm_resolve: {
+        Args: {
+          p_categories?: string[]
+          p_entity_id: string
+          p_entity_type: string
+          p_types?: string[]
+        }
+        Returns: number
       }
       current_user_email: { Args: never; Returns: string }
       delete_email: {

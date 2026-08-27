@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LeadPhotos } from "@/components/admin/LeadPhotos";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES, serviceTypeMeta, normalizeRequestType, requestTypeMeta } from "@/lib/questionnaire-data";
 import { CONTAMINATION_OPTIONS, DELIVER_OR_REMOVE_OPTIONS, PROJECT_TYPES, TRUCK_ACCESS_OPTIONS } from "@/lib/questionnaire-data";
@@ -10,6 +10,8 @@ import { useLeadStatuses, findStatus, type LeadStatus } from "@/hooks/useLeadSta
 import { Switch } from "@/components/ui/switch";
 import StatusManagerModal from "@/components/StatusManagerModal";
 import FullPageState from "@/components/FullPageState";
+import NotificationBell from "@/components/notifications/NotificationBell";
+import TodoNow from "@/components/notifications/TodoNow";
 import {
   validateSelectedSite,
   buildTransportPrefill,
@@ -199,6 +201,7 @@ const Admin = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { statuses: leadStatuses } = useLeadStatuses();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, isReady: authReady } = useAuthReady();
   const { isAdmin, isEntrepreneur, loading: roleLoading } = useUserRoles(user, authReady);
 
@@ -206,6 +209,17 @@ const Admin = () => {
     if (!authReady || roleLoading) return;
     if (!isAdmin && isEntrepreneur) navigate("/entrepreneur", { replace: true });
   }, [authReady, isAdmin, isEntrepreneur, roleLoading, navigate]);
+
+  // Lien direct depuis une notification : /admin?lead=<uuid> ouvre la fiche.
+  useEffect(() => {
+    const leadId = searchParams.get("lead");
+    if (!leadId) return;
+    setTab("leads");
+    setExpanded(leadId);
+    const next = new URLSearchParams(searchParams);
+    next.delete("lead");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!authReady) return;
@@ -665,15 +679,18 @@ const Admin = () => {
             <button onClick={() => setShowUsers(true)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <Users className="w-4 h-4" /> Entrepreneurs
             </button>
+            <NotificationBell />
             <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <LogOut className="w-4 h-4" /> Déconnexion
             </button>
           </div>
 
-          {/* Mobile hamburger */}
+          {/* Mobile : cloche + hamburger */}
+          <div className="sm:hidden flex items-center -mr-2">
+            <NotificationBell />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <button className="sm:hidden p-2 rounded-md hover:bg-secondary/80 -mr-2" aria-label="Menu">
+              <button className="p-2 rounded-md hover:bg-secondary/80" aria-label="Menu">
                 <Menu className="w-5 h-5 text-foreground" />
               </button>
             </SheetTrigger>
@@ -721,12 +738,14 @@ const Admin = () => {
               </div>
             </SheetContent>
           </Sheet>
+          </div>
         </div>
       </nav>
 
       <TransportBanner />
 
       <main className="container mx-auto px-4 sm:px-6 py-8">
+        <TodoNow />
         <div className="flex flex-wrap gap-2 mb-5">
           <button onClick={() => setTab("leads")}
             className={`px-4 py-2 rounded-lg text-sm font-display font-semibold ${tab === "leads" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
