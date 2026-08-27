@@ -573,6 +573,7 @@ Deno.serve(async (req) => {
     if (e instanceof GuardError) return json({ error: e.message }, e.status);
     const message = e instanceof Error ? e.message : 'Erreur inconnue';
     console.error('quote-assistant failed:', message);
-    return json({ error: message }, 400);
+    // Message générique côté client : les détails restent dans les logs serveur.
+    return json({ error: "Une erreur est survenue. Veuillez réessayer." }, 400);
   }
 });

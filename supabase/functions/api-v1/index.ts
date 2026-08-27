@@ -218,6 +218,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     errorMessage = e instanceof Error ? e.message : 'unknown';
     console.error('api-v1 failed:', errorMessage, 'path:', path, 'status:', status);
-    return await finish({ error: errorMessage }, 500);
+    // Détails techniques conservés dans les logs uniquement.
+    return await finish({ error: 'internal_error' }, 500);
   }
 });
