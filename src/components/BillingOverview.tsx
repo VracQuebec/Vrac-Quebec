@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, AlertTriangle, Search, Download, FileSpreadsheet, Printer, Trash2 } from "lucide-react";
 import InvoiceEditDialog, { ConfirmDialog } from "@/components/billing/InvoiceEditDialog";
+import InvoiceDetailDialog from "@/components/billing/InvoiceDetailDialog";
+
 import { supabase as sb } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -43,7 +45,9 @@ export default function BillingOverview({ onOpenLead }: Props) {
   const [maxAmount, setMaxAmount] = useState<string>("");
   const [editing, setEditing] = useState<TripRow | null>(null);
   const [deleting, setDeleting] = useState<TripRow | null>(null);
+  const [detail, setDetail] = useState<TripRow | null>(null);
   const [busy, setBusy] = useState(false);
+
 
   const applyDelete = async () => {
     if (!deleting) return;
