@@ -20,6 +20,7 @@ import ConversionsTable from "@/components/seo/ConversionsTable";
 import CommandCenter from "@/components/seo/CommandCenter";
 import CopilotDashboard from "@/components/seo/CopilotDashboard";
 import ImproveDialog from "@/components/seo/ImproveDialog";
+import OptimizeDialog from "@/components/seo/OptimizeDialog";
 import OptimizationEngine from "@/components/seo/OptimizationEngine";
 import RecommendationCard, { type Reco } from "@/components/seo/RecommendationCard";
 import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
@@ -1157,6 +1158,8 @@ function AnalyticsTab() {
     if (data) patchRow(id, data as unknown as Page);
   }, [patchRow]);
 
+  const [optimizeTarget, setOptimizeTarget] = useState<Page | null>(null);
+
   const markStart = async (page: Page, kind: "analyze" | "regenerate") => {
     const startedAt = new Date().toISOString();
     patchRow(page.id, { proc_status: "running", proc_kind: kind, proc_started_at: startedAt, proc_error: null });
@@ -1301,10 +1304,11 @@ function AnalyticsTab() {
                       <Link to={`/${r.slug}`} target="_blank" className="text-primary hover:underline text-xs inline-flex items-center gap-1">
                         <ExternalLink className="w-3 h-3" /> Voir
                       </Link>
-                      <button type="button" onClick={() => regenerate(r)} disabled={busy}
+                      <button type="button" onClick={() => openOptimize(r)} disabled={busy}
+                        title="Analyser, corriger les critères en échec et recalculer le score réel"
                         className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-primary text-primary-foreground font-display font-semibold hover:opacity-90 disabled:opacity-50">
-                        {busy && r.proc_kind === "regenerate" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
-                        Régénérer
+                        {busy && r.proc_kind === "regenerate" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                        Optimiser
                       </button>
                     </div>
                   </td>
@@ -1314,6 +1318,15 @@ function AnalyticsTab() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {optimizeTarget && (
+        <OptimizeDialog
+          pageId={optimizeTarget.id}
+          pageTitle={optimizeTarget.title}
+          onClose={() => setOptimizeTarget(null)}
+          onFinished={() => { void refreshRow(optimizeTarget.id); }}
+        />
       )}
     </div>
   );
