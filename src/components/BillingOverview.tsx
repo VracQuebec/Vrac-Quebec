@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertTriangle, Search, Download, FileSpreadsheet, Printer } from "lucide-react";
+import { Loader2, AlertTriangle, Search, Download, FileSpreadsheet, Printer, Trash2 } from "lucide-react";
+import InvoiceEditDialog, { ConfirmDialog } from "@/components/billing/InvoiceEditDialog";
+import { supabase as sb } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+
 import * as XLSX from "xlsx";
 import {
   PAYMENT_STATUSES, findPaymentStatus, overdueBucket, type LeadTrip,
