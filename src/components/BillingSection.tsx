@@ -7,6 +7,8 @@ import {
   computeTaxes, isMaterialTaxableByDefault, TPS_RATE, TVQ_RATE,
 } from "@/lib/billing";
 import { REMBLAI_MATERIAL_OPTIONS, REQUEST_TYPES } from "@/lib/questionnaire-data";
+import InvoiceEditDialog, { ConfirmDialog } from "@/components/billing/InvoiceEditDialog";
+
 
 interface EntrepreneurRow {
   id: string;
@@ -58,6 +60,9 @@ export default function BillingSection({ submissionId }: Props) {
   const [entrepreneurs, setEntrepreneurs] = useState<EntrepreneurRow[]>([]);
   const [draft, setDraft] = useState<TripDraft>(emptyDraft());
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<LeadTrip | null>(null);
+  const [deleting, setDeleting] = useState<LeadTrip | null>(null);
+
 
   const load = async () => {
     setLoading(true);
@@ -139,11 +144,13 @@ export default function BillingSection({ submissionId }: Props) {
   };
 
   const removeTrip = async (id: string) => {
-    if (!confirm("Supprimer ce voyage ?")) return;
-    const { error } = await supabase.from("lead_trips" as any).delete().eq("id", id);
+    const { error } = await supabase.from("lead_trips" as never).delete().eq("id", id);
     if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
     setTrips((prev) => prev.filter((t) => t.id !== id));
+    setDeleting(null);
+    toast({ title: "Facture supprimée" });
   };
+
 
   return (
     <div>
@@ -207,9 +214,14 @@ export default function BillingSection({ submissionId }: Props) {
                     ? <div className="text-[10px] text-muted-foreground font-body">HT {fmtMoney(tx.subtotal)} + taxes</div>
                     : <div className="text-[10px] text-muted-foreground font-body italic">Non taxable</div>}
                 </div>
-                <button onClick={() => removeTrip(t.id)} className="text-rose-600 hover:bg-rose-50 p-1 rounded" title="Supprimer">
+                <button onClick={() => setEditing(t)} title="Modifier la facture"
+                  className="px-2 py-1 rounded-md border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 text-[11px] font-display font-semibold min-h-[32px]">
+                  Modifier
+                </button>
+                <button onClick={() => setDeleting(t)} className="text-rose-600 border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 p-1.5 rounded-md min-h-[32px]" title="Supprimer la facture">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
+
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                 <Field label="Voyages"><input type="number" min={0} step="0.5" value={t.trips_count}
@@ -346,7 +358,32 @@ export default function BillingSection({ submissionId }: Props) {
           </button>
         </div>
       </div>
+      {editing && (
+        <InvoiceEditDialog
+          invoice={editing}
+          allowMove={false}
+          onClose={() => setEditing(null)}
+          onSaved={(row) => setTrips((prev) => prev.map((t) => (t.id === row.id ? { ...t, ...row } : t)))}
+          onDeleted={(id) => setTrips((prev) => prev.filter((t) => t.id !== id))}
+        />
+      )}
+
+      {deleting && (
+        <ConfirmDialog
+          danger
+          title="⚠️ Supprimer cette facture ?"
+          message={`Cette action supprimera définitivement la facture et ses données associées.${
+            deleting.payment_status === "paye"
+              ? "\n\n⚠️ Cette facture est déjà marquée comme payée. La supprimer peut affecter les données de paiement et les statistiques de facturation."
+              : ""
+          }`}
+          confirmLabel="Supprimer définitivement"
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => removeTrip(deleting.id)}
+        />
+      )}
     </div>
+
   );
 }
 

@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertTriangle, Search, Download, FileSpreadsheet, Printer } from "lucide-react";
+import { Loader2, AlertTriangle, Search, Download, FileSpreadsheet, Printer, Trash2 } from "lucide-react";
+import InvoiceEditDialog, { ConfirmDialog } from "@/components/billing/InvoiceEditDialog";
+import { supabase as sb } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+
 import * as XLSX from "xlsx";
 import {
   PAYMENT_STATUSES, findPaymentStatus, overdueBucket, type LeadTrip,
@@ -37,6 +41,21 @@ export default function BillingOverview({ onOpenLead }: Props) {
   const [dateTo, setDateTo] = useState<string>("");
   const [minAmount, setMinAmount] = useState<string>("");
   const [maxAmount, setMaxAmount] = useState<string>("");
+  const [editing, setEditing] = useState<TripRow | null>(null);
+  const [deleting, setDeleting] = useState<TripRow | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const applyDelete = async () => {
+    if (!deleting) return;
+    setBusy(true);
+    const { error } = await sb.from("lead_trips" as never).delete().eq("id", deleting.id);
+    setBusy(false);
+    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
+    setRows((prev) => prev.filter((x) => x.id !== deleting.id));
+    setDeleting(null);
+    toast({ title: "Facture supprimée" });
+  };
+
 
   useEffect(() => {
     (async () => {
@@ -303,9 +322,18 @@ export default function BillingOverview({ onOpenLead }: Props) {
                       )}
                     </td>
                     <td className="px-3 py-2 print:hidden">
-                      <button onClick={() => onOpenLead(r.submission_id)}
-                        className="text-primary text-xs font-display font-semibold hover:underline">Ouvrir</button>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button onClick={() => onOpenLead(r.submission_id)}
+                          className="px-2 py-1.5 rounded-md border border-border bg-card hover:bg-secondary text-xs font-display font-semibold min-h-[34px]">Ouvrir</button>
+                        <button onClick={() => setEditing(r)}
+                          className="px-2 py-1.5 rounded-md border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-display font-semibold min-h-[34px]">Modifier</button>
+                        <button onClick={() => setDeleting(r)} aria-label="Supprimer la facture"
+                          className="px-2 py-1.5 rounded-md border border-rose-500/50 bg-rose-500/10 text-rose-700 hover:bg-rose-500/20 text-xs font-display font-semibold min-h-[34px]">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
+
                   </tr>
                 );
               })}
@@ -313,8 +341,34 @@ export default function BillingOverview({ onOpenLead }: Props) {
           </table>
         </div>
       )}
+
+      {editing && (
+        <InvoiceEditDialog
+          invoice={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(row) => setRows((prev) => prev.map((x) => (x.id === row.id ? { ...x, ...row } : x)))}
+          onDeleted={(id) => setRows((prev) => prev.filter((x) => x.id !== id))}
+        />
+      )}
+
+      {deleting && (
+        <ConfirmDialog
+          danger
+          title="⚠️ Supprimer cette facture ?"
+          message={`Cette action supprimera définitivement la facture et ses données associées.${
+            deleting.payment_status === "paye"
+              ? "\n\n⚠️ Cette facture est déjà marquée comme payée. La supprimer peut affecter les données de paiement et les statistiques de facturation."
+              : ""
+          }`}
+          confirmLabel="Supprimer définitivement"
+          busy={busy}
+          onCancel={() => setDeleting(null)}
+          onConfirm={applyDelete}
+        />
+      )}
     </div>
   );
+
 }
 
 const Kpi = ({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "emerald" | "amber" | "rose" }) => {

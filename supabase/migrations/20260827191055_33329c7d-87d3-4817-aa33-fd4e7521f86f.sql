@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.crm_resolve_lead_trip_deleted() FROM PUBLIC, anon, authenticated;
