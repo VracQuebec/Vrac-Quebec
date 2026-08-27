@@ -58,6 +58,9 @@ export default function BillingSection({ submissionId }: Props) {
   const [entrepreneurs, setEntrepreneurs] = useState<EntrepreneurRow[]>([]);
   const [draft, setDraft] = useState<TripDraft>(emptyDraft());
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<LeadTrip | null>(null);
+  const [deleting, setDeleting] = useState<LeadTrip | null>(null);
+
 
   const load = async () => {
     setLoading(true);
