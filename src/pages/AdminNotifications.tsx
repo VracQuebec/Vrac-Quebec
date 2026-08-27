@@ -306,7 +306,7 @@ function SettingsPanel() {
               <span>{f.label}</span>
               <span className="flex items-center gap-1.5 shrink-0">
                 <input
-                  type="number" min={1} max={720}
+                  type="number" min={0} max={720}
                   value={Number(settings.delays[f.key] ?? 0)}
                   onChange={(e) => setSettings({ ...settings, delays: { ...settings.delays, [f.key]: Number(e.target.value) } })}
                   onBlur={() => persist(settings)}
