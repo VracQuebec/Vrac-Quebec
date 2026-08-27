@@ -733,6 +733,7 @@ const Admin = () => {
       <TransportBanner />
 
       <main className="container mx-auto px-4 sm:px-6 py-8">
+        <TodoNow />
         <div className="flex flex-wrap gap-2 mb-5">
           <button onClick={() => setTab("leads")}
             className={`px-4 py-2 rounded-lg text-sm font-display font-semibold ${tab === "leads" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
