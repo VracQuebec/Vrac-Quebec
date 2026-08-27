@@ -341,8 +341,34 @@ export default function BillingOverview({ onOpenLead }: Props) {
           </table>
         </div>
       )}
+
+      {editing && (
+        <InvoiceEditDialog
+          invoice={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(row) => setRows((prev) => prev.map((x) => (x.id === row.id ? { ...x, ...row } : x)))}
+          onDeleted={(id) => setRows((prev) => prev.filter((x) => x.id !== id))}
+        />
+      )}
+
+      {deleting && (
+        <ConfirmDialog
+          danger
+          title="⚠️ Supprimer cette facture ?"
+          message={`Cette action supprimera définitivement la facture et ses données associées.${
+            deleting.payment_status === "paye"
+              ? "\n\n⚠️ Cette facture est déjà marquée comme payée. La supprimer peut affecter les données de paiement et les statistiques de facturation."
+              : ""
+          }`}
+          confirmLabel="Supprimer définitivement"
+          busy={busy}
+          onCancel={() => setDeleting(null)}
+          onConfirm={applyDelete}
+        />
+      )}
     </div>
   );
+
 }
 
 const Kpi = ({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "emerald" | "amber" | "rose" }) => {
