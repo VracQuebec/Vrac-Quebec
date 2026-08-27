@@ -351,14 +351,31 @@ export default function BillingOverview({ onOpenLead }: Props) {
         </div>
       )}
 
+      {detail && !editing && !deleting && (
+        <InvoiceDetailDialog
+          invoice={detail}
+          onClose={() => setDetail(null)}
+          onEdit={() => setEditing(detail)}
+          onDelete={() => setDeleting(detail)}
+          onOpenLead={onOpenLead}
+        />
+      )}
+
       {editing && (
         <InvoiceEditDialog
           invoice={editing}
           onClose={() => setEditing(null)}
-          onSaved={(row) => setRows((prev) => prev.map((x) => (x.id === row.id ? { ...x, ...row } : x)))}
-          onDeleted={(id) => setRows((prev) => prev.filter((x) => x.id !== id))}
+          onSaved={(row) => {
+            setRows((prev) => prev.map((x) => (x.id === row.id ? { ...x, ...row } : x)));
+            setDetail((d) => (d && d.id === row.id ? { ...d, ...row } : d));
+          }}
+          onDeleted={(id) => {
+            setRows((prev) => prev.filter((x) => x.id !== id));
+            setDetail((d) => (d && d.id === id ? null : d));
+          }}
         />
       )}
+
 
       {deleting && (
         <ConfirmDialog
