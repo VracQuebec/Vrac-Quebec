@@ -4980,7 +4980,7 @@ export type Database = {
           contact_email: string | null
           contact_phone: string | null
           created_at: string
-          created_by: string | null
+          created_by: string
           description: string | null
           id: string
           is_active: boolean
@@ -5009,7 +5009,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           description?: string | null
           id?: string
           is_active?: boolean
@@ -5038,7 +5038,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
-          created_by?: string | null
+          created_by?: string
           description?: string | null
           id?: string
           is_active?: boolean

@@ -207,6 +207,7 @@ Deno.serve(async (req) => {
     }
     const message = e instanceof Error ? e.message : String(e);
     await logEvent({ source: 'submit_parcours', event: 'submit.failed', level: 'error', message });
-    return json({ ok: false, retry: false, message }, 400);
+    // Message générique côté client : les détails restent dans les logs serveur.
+    return json({ ok: false, retry: false, message: "Une erreur est survenue. Veuillez réessayer." }, 400);
   }
 });

@@ -448,6 +448,7 @@ Deno.serve(async (req) => {
       source: 'quote_submit', event: 'submission.failed', level: 'error',
       message, durationMs: Date.now() - startedAt,
     });
-    return json({ ok: false, error: message }, 400);
+    // Ne jamais exposer le détail technique (schéma, contraintes) au visiteur.
+    return json({ ok: false, error: "Une erreur est survenue. Veuillez réessayer." }, 400);
   }
 });
