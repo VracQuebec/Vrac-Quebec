@@ -69,53 +69,57 @@ export default function AdminNotifications() {
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
-      <nav className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-md">
-        <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
-          <Link to="/admin" className="inline-flex items-center gap-2 text-sm font-display font-semibold text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-4 h-4" /> Retour au CRM
+      <nav
+        className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-md"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
+        <div className="container mx-auto px-3 sm:px-6 h-12 flex items-center justify-between gap-2">
+          <Link to="/admin" className="inline-flex items-center gap-1.5 text-xs font-display font-semibold text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="w-4 h-4" /> CRM
           </Link>
-          <h1 className="font-display font-bold inline-flex items-center gap-2">
+          <h1 className="font-display font-bold text-base inline-flex items-center gap-1.5">
             <Bell className="w-4 h-4 text-primary" /> Notifications
           </h1>
           <button
             onClick={readAll}
             disabled={stats.unread === 0}
-            className="inline-flex items-center gap-1 text-xs font-display font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
+            className="inline-flex items-center gap-1 text-[11px] font-display font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
           >
-            <CheckCheck className="w-4 h-4" /> Tout lire
+            <CheckCheck className="w-3.5 h-3.5" /> Tout lire
           </button>
         </div>
       </nav>
 
-      <main className="container mx-auto px-4 sm:px-6 py-6 max-w-4xl">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-          <Kpi label="Urgentes" value={stats.urgent} alert />
-          <Kpi label="En retard" value={stats.overdue} alert />
-          <Kpi label="Aujourd'hui" value={stats.today} />
-          <Kpi label="À traiter" value={stats.total} />
+      <main className="container mx-auto px-3 sm:px-6 py-3 max-w-4xl">
+        <div className="flex flex-wrap items-center gap-1.5 mb-3">
+          <KpiBadge icon="🔴" label="urgentes" value={stats.urgent} alert />
+          <KpiBadge icon="⏰" label="en retard" value={stats.overdue} alert />
+          <KpiBadge icon="📋" label="à traiter" value={stats.total} />
+          <KpiBadge icon="📅" label="aujourd'hui" value={stats.today} />
+          <KpiBadge icon="✉️" label="non lues" value={stats.unread} />
         </div>
 
         <PushPanel />
 
-        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2">
+        <div className="flex gap-1 overflow-x-auto pb-1.5 mb-1.5 -mx-3 px-3 sm:mx-0 sm:px-0">
           {FILTERS.map((f) => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-display font-bold ${
+              className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-display font-bold ${
                 filter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
               {FILTER_LABELS[f]}
             </button>
           ))}
         </div>
 
-        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4">
+        <div className="flex gap-1 overflow-x-auto pb-1.5 mb-2 -mx-3 px-3 sm:mx-0 sm:px-0">
           <button onClick={() => setCategory("all")}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-display font-semibold ${
+            className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-display font-semibold ${
               category === "all" ? "bg-foreground text-background" : "bg-secondary text-foreground"}`}>
             Toutes catégories
           </button>
           {CATEGORIES.map((c) => (
             <button key={c} onClick={() => setCategory(c)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-display font-semibold ${
+              className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-display font-semibold ${
                 category === c ? "bg-foreground text-background" : "bg-secondary text-foreground"}`}>
               {CATEGORY_ICONS[c]} {CATEGORY_LABELS[c]}
               {stats.byCategory[c] > 0 && <span className="ml-1 opacity-70">({stats.byCategory[c]})</span>}
@@ -125,25 +129,25 @@ export default function AdminNotifications() {
 
         <button
           onClick={() => setShowSettings((v) => !v)}
-          className="mb-4 text-xs font-display font-bold text-primary"
+          className="mb-2 text-[11px] font-display font-bold text-primary"
         >
           {showSettings ? "Masquer les réglages" : "Réglages des alertes et délais"}
         </button>
         {showSettings && <SettingsPanel />}
 
         {error && (
-          <p className="rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive font-body mb-4">
+          <p className="rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive font-body mb-3">
             {error}
           </p>
         )}
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {loading && <p className="text-sm text-muted-foreground font-body">Chargement…</p>}
           {!loading && visible.length === 0 && (
-            <div className="text-center py-14 rounded-2xl border border-border bg-card">
-              <div className="text-4xl mb-2">✅</div>
-              <p className="font-display font-bold">Rien à traiter ici</p>
-              <p className="text-sm text-muted-foreground font-body">Aucune notification ne correspond à ce filtre.</p>
+            <div className="text-center py-10 rounded-2xl border border-border bg-card">
+              <div className="text-3xl mb-1.5">✅</div>
+              <p className="font-display font-bold text-sm">Rien à traiter ici</p>
+              <p className="text-xs text-muted-foreground font-body">Aucune notification ne correspond à ce filtre.</p>
             </div>
           )}
           {visible.map((n) => (
@@ -155,11 +159,15 @@ export default function AdminNotifications() {
   );
 }
 
-const Kpi = ({ label, value, alert }: { label: string; value: number; alert?: boolean }) => (
-  <div className={`rounded-xl border p-3 ${alert && value > 0 ? "border-destructive/40 bg-destructive/5" : "border-border bg-card"}`}>
-    <div className={`text-2xl font-display font-bold ${alert && value > 0 ? "text-destructive" : "text-foreground"}`}>{value}</div>
-    <div className="text-[11px] uppercase tracking-wide font-display font-bold text-muted-foreground">{label}</div>
-  </div>
+const KpiBadge = ({ icon, label, value, alert }: { icon: string; label: string; value: number; alert?: boolean }) => (
+  <span
+    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-display font-bold ${
+      alert && value > 0 ? "border-destructive/40 bg-destructive/5 text-destructive" : "border-border bg-card text-foreground"
+    }`}
+  >
+    <span aria-hidden>{icon}</span>
+    {value} <span className="font-semibold text-muted-foreground">{label}</span>
+  </span>
 );
 
 /* ------------------ PUSH iPHONE ------------------ */
@@ -200,47 +208,47 @@ function PushPanel() {
   if (!state) return null;
 
   return (
-    <section className="mb-5 rounded-2xl border border-border bg-card p-4">
-      <h2 className="flex items-center gap-2 font-display font-bold mb-1">
+    <section className="mb-3 rounded-xl border border-border bg-card p-3">
+      <h2 className="flex items-center gap-1.5 font-display font-bold text-sm mb-1">
         <Smartphone className="w-4 h-4 text-primary" /> Notifications sur iPhone / iPad
       </h2>
 
       {state === "needs_install" || (isIos() && !isStandalone()) ? (
-        <p className="text-sm text-muted-foreground font-body">
+        <p className="text-xs text-muted-foreground font-body leading-snug">
           Sur iPhone, ouvrez <strong>vracquebec.ca/admin</strong> dans Safari, appuyez sur <strong>Partager</strong> →
           {" "}<strong>Sur l'écran d'accueil</strong>, puis rouvrez l'app depuis l'icône pour activer les notifications.
         </p>
       ) : state === "unsupported" ? (
-        <p className="text-sm text-muted-foreground font-body">
+        <p className="text-xs text-muted-foreground font-body">
           Ce navigateur ne prend pas en charge les notifications push. Le centre de notifications reste disponible.
         </p>
       ) : state === "denied" ? (
-        <p className="text-sm text-muted-foreground font-body">
+        <p className="text-xs text-muted-foreground font-body">
           Notifications refusées pour cet appareil. Activez-les dans Réglages → Notifications → Vrac Québec.
         </p>
       ) : (
         <>
-          <p className="text-sm text-muted-foreground font-body mb-3">
+          <p className="text-xs text-muted-foreground font-body mb-2 leading-snug">
             {state === "subscribed"
               ? "Cet appareil reçoit les alertes du CRM, même application fermée."
               : "Recevez les leads, relances et paiements directement sur votre écran verrouillé."}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {state === "subscribed" ? (
               <>
                 <button onClick={test} disabled={busy}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-bold disabled:opacity-60">
-                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Envoyer un test
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold disabled:opacity-60">
+                  {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />} Envoyer un test
                 </button>
                 <button onClick={deactivate} disabled={busy}
-                  className="px-3 py-2 rounded-lg bg-secondary text-foreground text-sm font-display font-semibold">
+                  className="px-2.5 py-1.5 rounded-lg bg-secondary text-foreground text-xs font-display font-semibold">
                   Désactiver sur cet appareil
                 </button>
               </>
             ) : (
               <button onClick={activate} disabled={busy}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-bold disabled:opacity-60">
-                {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <BellRing className="w-4 h-4" />} Activer les notifications
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold disabled:opacity-60">
+                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BellRing className="w-3.5 h-3.5" />} Activer les notifications
               </button>
             )}
           </div>
@@ -276,12 +284,12 @@ function SettingsPanel() {
   };
 
   return (
-    <section className="mb-5 rounded-2xl border border-border bg-card p-4 space-y-4">
+    <section className="mb-3 rounded-xl border border-border bg-card p-3 space-y-3">
       <div>
-        <h3 className="font-display font-bold text-sm mb-2">Catégories suivies</h3>
-        <div className="space-y-1.5">
+        <h3 className="font-display font-bold text-xs mb-1.5">Catégories suivies</h3>
+        <div className="space-y-1">
           {CATEGORIES.map((c) => (
-            <div key={c} className="flex items-center justify-between gap-3 text-sm font-body">
+            <div key={c} className="flex items-center justify-between gap-3 text-xs font-body">
               <span>{CATEGORY_ICONS[c]} {CATEGORY_LABELS[c]}</span>
               <div className="flex items-center gap-3 shrink-0">
                 <label className="flex items-center gap-1.5 text-xs">
@@ -299,10 +307,10 @@ function SettingsPanel() {
       </div>
 
       <div>
-        <h3 className="font-display font-bold text-sm mb-2">Délais de déclenchement</h3>
-        <div className="space-y-2">
+        <h3 className="font-display font-bold text-xs mb-1.5">Délais de déclenchement</h3>
+        <div className="space-y-1.5">
           {DELAY_FIELDS.map((f) => (
-            <label key={f.key} className="flex items-center justify-between gap-3 text-sm font-body">
+            <label key={f.key} className="flex items-center justify-between gap-3 text-xs font-body">
               <span>{f.label}</span>
               <span className="flex items-center gap-1.5 shrink-0">
                 <input
