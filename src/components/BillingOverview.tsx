@@ -41,6 +41,21 @@ export default function BillingOverview({ onOpenLead }: Props) {
   const [dateTo, setDateTo] = useState<string>("");
   const [minAmount, setMinAmount] = useState<string>("");
   const [maxAmount, setMaxAmount] = useState<string>("");
+  const [editing, setEditing] = useState<TripRow | null>(null);
+  const [deleting, setDeleting] = useState<TripRow | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const applyDelete = async () => {
+    if (!deleting) return;
+    setBusy(true);
+    const { error } = await sb.from("lead_trips" as never).delete().eq("id", deleting.id);
+    setBusy(false);
+    if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
+    setRows((prev) => prev.filter((x) => x.id !== deleting.id));
+    setDeleting(null);
+    toast({ title: "Facture supprimée" });
+  };
+
 
   useEffect(() => {
     (async () => {
