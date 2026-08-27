@@ -201,6 +201,7 @@ const Admin = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { statuses: leadStatuses } = useLeadStatuses();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, isReady: authReady } = useAuthReady();
   const { isAdmin, isEntrepreneur, loading: roleLoading } = useUserRoles(user, authReady);
 
@@ -208,6 +209,17 @@ const Admin = () => {
     if (!authReady || roleLoading) return;
     if (!isAdmin && isEntrepreneur) navigate("/entrepreneur", { replace: true });
   }, [authReady, isAdmin, isEntrepreneur, roleLoading, navigate]);
+
+  // Lien direct depuis une notification : /admin?lead=<uuid> ouvre la fiche.
+  useEffect(() => {
+    const leadId = searchParams.get("lead");
+    if (!leadId) return;
+    setTab("leads");
+    setExpanded(leadId);
+    const next = new URLSearchParams(searchParams);
+    next.delete("lead");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!authReady) return;
