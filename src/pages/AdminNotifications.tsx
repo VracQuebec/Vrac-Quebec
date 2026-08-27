@@ -159,11 +159,15 @@ export default function AdminNotifications() {
   );
 }
 
-const Kpi = ({ label, value, alert }: { label: string; value: number; alert?: boolean }) => (
-  <div className={`rounded-xl border p-3 ${alert && value > 0 ? "border-destructive/40 bg-destructive/5" : "border-border bg-card"}`}>
-    <div className={`text-2xl font-display font-bold ${alert && value > 0 ? "text-destructive" : "text-foreground"}`}>{value}</div>
-    <div className="text-[11px] uppercase tracking-wide font-display font-bold text-muted-foreground">{label}</div>
-  </div>
+const KpiBadge = ({ icon, label, value, alert }: { icon: string; label: string; value: number; alert?: boolean }) => (
+  <span
+    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-display font-bold ${
+      alert && value > 0 ? "border-destructive/40 bg-destructive/5 text-destructive" : "border-border bg-card text-foreground"
+    }`}
+  >
+    <span aria-hidden>{icon}</span>
+    {value} <span className="font-semibold text-muted-foreground">{label}</span>
+  </span>
 );
 
 /* ------------------ PUSH iPHONE ------------------ */
