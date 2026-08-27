@@ -1895,6 +1895,19 @@ const UsersModal = ({ onClose }: { onClose: () => void }) => {
     load();
   };
 
+  // Validation manuelle d'un compte entrepreneur auto-inscrit (approved = false à l'inscription).
+  const setApproval = async (uid: string, approved: boolean) => {
+    const { error } = await supabase
+      .from("user_roles")
+      .update({ approved })
+      .eq("user_id", uid)
+      .eq("role", "entrepreneur");
+    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    else toast({ title: approved ? "Compte approuvé ✓" : "Approbation retirée" });
+    load();
+  };
+
+
   const createEntrepreneur = async () => {
     if (!newEmail || !newPass) return;
     setCreating(true);
@@ -1945,9 +1958,16 @@ const UsersModal = ({ onClose }: { onClose: () => void }) => {
                         <p className="text-sm font-body truncate">{u.email}</p>
                         <p className="text-[10px] text-muted-foreground">
                           {u.roles.join(", ") || "aucun rôle"}
+                          {hasEnt && !isAdm && (u.approved ? " · approuvé" : " · en attente d'approbation")}
                         </p>
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        {hasEnt && !isAdm && (
+                          <button onClick={() => setApproval(u.user_id, !u.approved)}
+                            className={`px-3 py-1.5 rounded text-xs font-display font-semibold ${u.approved ? "bg-amber-600 text-white" : "bg-primary text-primary-foreground"}`}>
+                            {u.approved ? "Suspendre" : "Approuver"}
+                          </button>
+                        )}
                         {!isAdm && (
                           <button onClick={() => toggleRole(u.user_id, hasEnt)}
                             className={`px-3 py-1.5 rounded text-xs font-display font-semibold ${hasEnt ? "bg-rose-600 text-white" : "bg-slate-600 text-white"}`}>
