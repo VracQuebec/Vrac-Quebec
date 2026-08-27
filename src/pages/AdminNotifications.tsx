@@ -69,53 +69,57 @@ export default function AdminNotifications() {
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
-      <nav className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-md">
-        <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
-          <Link to="/admin" className="inline-flex items-center gap-2 text-sm font-display font-semibold text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-4 h-4" /> Retour au CRM
+      <nav
+        className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-md"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
+        <div className="container mx-auto px-3 sm:px-6 h-12 flex items-center justify-between gap-2">
+          <Link to="/admin" className="inline-flex items-center gap-1.5 text-xs font-display font-semibold text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="w-4 h-4" /> CRM
           </Link>
-          <h1 className="font-display font-bold inline-flex items-center gap-2">
+          <h1 className="font-display font-bold text-base inline-flex items-center gap-1.5">
             <Bell className="w-4 h-4 text-primary" /> Notifications
           </h1>
           <button
             onClick={readAll}
             disabled={stats.unread === 0}
-            className="inline-flex items-center gap-1 text-xs font-display font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
+            className="inline-flex items-center gap-1 text-[11px] font-display font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
           >
-            <CheckCheck className="w-4 h-4" /> Tout lire
+            <CheckCheck className="w-3.5 h-3.5" /> Tout lire
           </button>
         </div>
       </nav>
 
-      <main className="container mx-auto px-4 sm:px-6 py-6 max-w-4xl">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-          <Kpi label="Urgentes" value={stats.urgent} alert />
-          <Kpi label="En retard" value={stats.overdue} alert />
-          <Kpi label="Aujourd'hui" value={stats.today} />
-          <Kpi label="À traiter" value={stats.total} />
+      <main className="container mx-auto px-3 sm:px-6 py-3 max-w-4xl">
+        <div className="flex flex-wrap items-center gap-1.5 mb-3">
+          <KpiBadge icon="🔴" label="urgentes" value={stats.urgent} alert />
+          <KpiBadge icon="⏰" label="en retard" value={stats.overdue} alert />
+          <KpiBadge icon="📋" label="à traiter" value={stats.total} />
+          <KpiBadge icon="📅" label="aujourd'hui" value={stats.today} />
+          <KpiBadge icon="✉️" label="non lues" value={stats.unread} />
         </div>
 
         <PushPanel />
 
-        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2">
+        <div className="flex gap-1 overflow-x-auto pb-1.5 mb-1.5 -mx-3 px-3 sm:mx-0 sm:px-0">
           {FILTERS.map((f) => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-display font-bold ${
+              className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-display font-bold ${
                 filter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
               {FILTER_LABELS[f]}
             </button>
           ))}
         </div>
 
-        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4">
+        <div className="flex gap-1 overflow-x-auto pb-1.5 mb-2 -mx-3 px-3 sm:mx-0 sm:px-0">
           <button onClick={() => setCategory("all")}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-display font-semibold ${
+            className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-display font-semibold ${
               category === "all" ? "bg-foreground text-background" : "bg-secondary text-foreground"}`}>
             Toutes catégories
           </button>
           {CATEGORIES.map((c) => (
             <button key={c} onClick={() => setCategory(c)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-display font-semibold ${
+              className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-display font-semibold ${
                 category === c ? "bg-foreground text-background" : "bg-secondary text-foreground"}`}>
               {CATEGORY_ICONS[c]} {CATEGORY_LABELS[c]}
               {stats.byCategory[c] > 0 && <span className="ml-1 opacity-70">({stats.byCategory[c]})</span>}
