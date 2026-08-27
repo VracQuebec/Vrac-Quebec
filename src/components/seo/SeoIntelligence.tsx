@@ -43,10 +43,6 @@ function Kpi({ label, value, icon: Icon, tone, action }: { label: string; value:
           {action.label}
         </button>
       )}
-
-      {center && (
-        <OptimizationCenter scope={center} onClose={() => setCenter(null)} onChanged={() => { void load(); }} />
-      )}
     </div>
   );
 }
