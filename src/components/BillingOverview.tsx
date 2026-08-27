@@ -56,9 +56,11 @@ export default function BillingOverview({ onOpenLead }: Props) {
     setBusy(false);
     if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
     setRows((prev) => prev.filter((x) => x.id !== deleting.id));
+    setDetail((d) => (d && d.id === deleting.id ? null : d));
     setDeleting(null);
     toast({ title: "Facture supprimée" });
   };
+
 
 
   useEffect(() => {
