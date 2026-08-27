@@ -407,6 +407,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vracquebec.ca/poussiere-de-pierre-chateau-richer</loc>
+    <lastmod>2026-08-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vracquebec.ca/dompe-saint-augustin-de-desmaures</loc>
     <lastmod>2026-08-27</lastmod>
     <changefreq>monthly</changefreq>
@@ -426,12 +432,6 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/livraison-sable-sillery</loc>
-    <lastmod>2026-08-27</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/poussiere-de-pierre-chateau-richer</loc>
     <lastmod>2026-08-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
