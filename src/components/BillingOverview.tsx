@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, AlertTriangle, Search, Download, FileSpreadsheet, Printer, Trash2 } from "lucide-react";
 import InvoiceEditDialog, { ConfirmDialog } from "@/components/billing/InvoiceEditDialog";
+import InvoiceDetailDialog from "@/components/billing/InvoiceDetailDialog";
+
 import { supabase as sb } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -43,7 +45,9 @@ export default function BillingOverview({ onOpenLead }: Props) {
   const [maxAmount, setMaxAmount] = useState<string>("");
   const [editing, setEditing] = useState<TripRow | null>(null);
   const [deleting, setDeleting] = useState<TripRow | null>(null);
+  const [detail, setDetail] = useState<TripRow | null>(null);
   const [busy, setBusy] = useState(false);
+
 
   const applyDelete = async () => {
     if (!deleting) return;
@@ -52,9 +56,11 @@ export default function BillingOverview({ onOpenLead }: Props) {
     setBusy(false);
     if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
     setRows((prev) => prev.filter((x) => x.id !== deleting.id));
+    setDetail((d) => (d && d.id === deleting.id ? null : d));
     setDeleting(null);
     toast({ title: "Facture supprimée" });
   };
+
 
 
   useEffect(() => {
@@ -283,7 +289,10 @@ export default function BillingOverview({ onOpenLead }: Props) {
                 const ps = findPaymentStatus(r.payment_status);
                 const ob = overdueBucket(r);
                 return (
-                  <tr key={r.id} className="border-t border-border hover:bg-secondary/50">
+                  <tr key={r.id} onClick={() => setDetail(r)} role="button" tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetail(r); } }}
+                    className="border-t border-border hover:bg-secondary/50 cursor-pointer">
+
                     <td className="px-3 py-2 font-body">
                       <div className="font-display font-semibold">{r.submissions?.name || "—"}</div>
                       <div className="text-[11px] text-muted-foreground truncate max-w-[200px]">
@@ -321,7 +330,7 @@ export default function BillingOverview({ onOpenLead }: Props) {
                         </div>
                       )}
                     </td>
-                    <td className="px-3 py-2 print:hidden">
+                    <td className="px-3 py-2 print:hidden" onClick={(e) => e.stopPropagation()}>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <button onClick={() => onOpenLead(r.submission_id)}
                           className="px-2 py-1.5 rounded-md border border-border bg-card hover:bg-secondary text-xs font-display font-semibold min-h-[34px]">Ouvrir</button>
@@ -333,8 +342,8 @@ export default function BillingOverview({ onOpenLead }: Props) {
                         </button>
                       </div>
                     </td>
-
                   </tr>
+
                 );
               })}
             </tbody>
@@ -342,14 +351,31 @@ export default function BillingOverview({ onOpenLead }: Props) {
         </div>
       )}
 
+      {detail && !editing && !deleting && (
+        <InvoiceDetailDialog
+          invoice={detail}
+          onClose={() => setDetail(null)}
+          onEdit={() => setEditing(detail)}
+          onDelete={() => setDeleting(detail)}
+          onOpenLead={onOpenLead}
+        />
+      )}
+
       {editing && (
         <InvoiceEditDialog
           invoice={editing}
           onClose={() => setEditing(null)}
-          onSaved={(row) => setRows((prev) => prev.map((x) => (x.id === row.id ? { ...x, ...row } : x)))}
-          onDeleted={(id) => setRows((prev) => prev.filter((x) => x.id !== id))}
+          onSaved={(row) => {
+            setRows((prev) => prev.map((x) => (x.id === row.id ? { ...x, ...row } : x)));
+            setDetail((d) => (d && d.id === row.id ? { ...d, ...row } : d));
+          }}
+          onDeleted={(id) => {
+            setRows((prev) => prev.filter((x) => x.id !== id));
+            setDetail((d) => (d && d.id === id ? null : d));
+          }}
         />
       )}
+
 
       {deleting && (
         <ConfirmDialog
