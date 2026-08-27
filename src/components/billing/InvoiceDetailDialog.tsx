@@ -31,7 +31,10 @@ interface Props {
   onEdit: () => void;
   onDelete: () => void;
   onOpenLead?: (submissionId: string) => void;
+  /** Appelé après un changement de statut enregistré (synchronisation liste + KPI). */
+  onStatusChanged?: (row: LeadTrip) => void;
 }
+
 
 interface ClientInfo {
   name: string | null;
