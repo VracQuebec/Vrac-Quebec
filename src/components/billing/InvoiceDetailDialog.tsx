@@ -240,7 +240,7 @@ export default function InvoiceDetailDialog({ invoice, onClose, onEdit, onDelete
           <Section title="Dates et paiement">
             <Row label="Date de livraison" value={fmtDate(invoice.delivery_date)} />
             <Row label="Date d'échéance" value={fmtDate(invoice.due_date)} />
-            <Row label="Date de paiement" value={fmtDate(invoice.payment_date)} />
+            <Row label="Date de paiement" value={fmtDate(paymentDate)} />
             <Row label="Mode de paiement" value={invoice.payment_method || "—"} />
             <Row label="Créée le" value={fmtDate(invoice.created_at)} />
             <Row label="Modifiée le" value={fmtDate(invoice.updated_at)} />
