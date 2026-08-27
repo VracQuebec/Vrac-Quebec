@@ -40,3 +40,6 @@ verify_jwt = false
 
 [functions.submit-parcours]
 verify_jwt = false
+
+[functions.crm-push-dispatch]
+verify_jwt = false
