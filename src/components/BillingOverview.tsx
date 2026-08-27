@@ -303,9 +303,18 @@ export default function BillingOverview({ onOpenLead }: Props) {
                       )}
                     </td>
                     <td className="px-3 py-2 print:hidden">
-                      <button onClick={() => onOpenLead(r.submission_id)}
-                        className="text-primary text-xs font-display font-semibold hover:underline">Ouvrir</button>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button onClick={() => onOpenLead(r.submission_id)}
+                          className="px-2 py-1.5 rounded-md border border-border bg-card hover:bg-secondary text-xs font-display font-semibold min-h-[34px]">Ouvrir</button>
+                        <button onClick={() => setEditing(r)}
+                          className="px-2 py-1.5 rounded-md border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-display font-semibold min-h-[34px]">Modifier</button>
+                        <button onClick={() => setDeleting(r)} aria-label="Supprimer la facture"
+                          className="px-2 py-1.5 rounded-md border border-rose-500/50 bg-rose-500/10 text-rose-700 hover:bg-rose-500/20 text-xs font-display font-semibold min-h-[34px]">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
+
                   </tr>
                 );
               })}
