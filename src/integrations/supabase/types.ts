@@ -12057,6 +12057,37 @@ export type Database = {
       }
       seo_optimization_autotune: { Args: { _run_id: string }; Returns: number }
       seo_optimization_cancel: { Args: { _run_id: string }; Returns: undefined }
+      seo_optimization_candidates: {
+        Args: { _limit?: number; _offset?: number; _scope?: string }
+        Returns: {
+          avg_position: number
+          backlinks_count: number
+          clicks: number
+          ctr: number
+          google_index_status: string
+          id: string
+          impressions: number
+          improvements_applied: number
+          indexed_at: string
+          intelligence_flags: string[]
+          internal_link_count: number
+          last_improved_at: string
+          meta_description: string
+          meta_title: string
+          primary_keyword: string
+          priority_level: string
+          priority_score: number
+          published_at: string
+          qa_last_score: number
+          reasons: string[]
+          seo_score: number
+          slug: string
+          title: string
+          top_queries: Json
+          word_count: number
+        }[]
+      }
+      seo_optimization_counts: { Args: never; Returns: Json }
       seo_optimization_finalize: { Args: { _run_id: string }; Returns: string }
       seo_optimization_pause: { Args: { _run_id: string }; Returns: undefined }
       seo_optimization_resume: { Args: { _run_id: string }; Returns: undefined }
