@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LeadPhotos } from "@/components/admin/LeadPhotos";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES, serviceTypeMeta, normalizeRequestType, requestTypeMeta } from "@/lib/questionnaire-data";
 import { CONTAMINATION_OPTIONS, DELIVER_OR_REMOVE_OPTIONS, PROJECT_TYPES, TRUCK_ACCESS_OPTIONS } from "@/lib/questionnaire-data";
