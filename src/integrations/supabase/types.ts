@@ -7729,6 +7729,7 @@ export type Database = {
           price_per_trip: number
           submission_id: string | null
           taxable: boolean
+          tonnage: number | null
           total_price: number
           total_with_tax: number
           tps_amount: number
@@ -7757,6 +7758,7 @@ export type Database = {
           price_per_trip?: number
           submission_id?: string | null
           taxable?: boolean
+          tonnage?: number | null
           total_price?: number
           total_with_tax?: number
           tps_amount?: number
@@ -7785,6 +7787,7 @@ export type Database = {
           price_per_trip?: number
           submission_id?: string | null
           taxable?: boolean
+          tonnage?: number | null
           total_price?: number
           total_with_tax?: number
           tps_amount?: number
