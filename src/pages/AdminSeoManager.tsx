@@ -20,6 +20,7 @@ import ConversionsTable from "@/components/seo/ConversionsTable";
 import CommandCenter from "@/components/seo/CommandCenter";
 import CopilotDashboard from "@/components/seo/CopilotDashboard";
 import ImproveDialog from "@/components/seo/ImproveDialog";
+import OptimizeDialog from "@/components/seo/OptimizeDialog";
 import OptimizationEngine from "@/components/seo/OptimizationEngine";
 import RecommendationCard, { type Reco } from "@/components/seo/RecommendationCard";
 import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
@@ -1157,6 +1158,8 @@ function AnalyticsTab() {
     if (data) patchRow(id, data as unknown as Page);
   }, [patchRow]);
 
+  const [optimizeTarget, setOptimizeTarget] = useState<Page | null>(null);
+
   const markStart = async (page: Page, kind: "analyze" | "regenerate") => {
     const startedAt = new Date().toISOString();
     patchRow(page.id, { proc_status: "running", proc_kind: kind, proc_started_at: startedAt, proc_error: null });
@@ -1201,43 +1204,15 @@ function AnalyticsTab() {
     }
   };
 
-  /** Régénération d'UNE page uniquement, suivie d'une analyse QA. */
-  const regenerate = async (page: Page) => {
+  /**
+   * Optimisation réelle d'UNE page : analyse → correction ciblée → recalcul du score.
+   * Le déroulé et les résultats (avant/après) sont pilotés par OptimizeDialog.
+   */
+  const openOptimize = (page: Page) => {
     if (isRunning(page)) return;
-    try {
-      await markStart(page, "regenerate");
-      const { data: city } = await supabase.from("seo_cities").select("slug, name, region").eq("slug", page.city_slug).maybeSingle();
-      const { data: material } = page.material_slug ? await supabase.from("seo_materials").select("slug, name, short_name, description").eq("slug", page.material_slug).maybeSingle() : { data: null };
-      const { data: service } = page.service_slug ? await supabase.from("seo_services").select("slug, name, description").eq("slug", page.service_slug).maybeSingle() : { data: null };
-      if (!city) throw new Error("Ville introuvable pour cette page.");
-      const materialFallback = !material && page.material_slug ? { slug: page.material_slug, name: page.material_slug } : material;
-      const serviceFallback = !service && page.service_slug ? { slug: page.service_slug, name: page.service_slug } : service;
-      if (!materialFallback && !serviceFallback) throw new Error("Cette page n'a ni matériau ni service associé — impossible à régénérer.");
-      const res = await invokeWithFreshSession("seo-generate-page", { city, material: materialFallback ?? undefined, service: serviceFallback ?? undefined, force: true });
-      if (res.error) throw new Error(res.error.message || "Erreur de régénération");
-
-      // QA immédiate sur la nouvelle version (best effort — ne bloque pas la sauvegarde).
-      let score: number | null = null;
-      let blockers: string[] = [];
-      const qa = await invokeWithFreshSession<Record<string, unknown>, { score?: number; blockers?: string[] }>(
-        "seo-qa-check", { page_id: page.id, enforce_draft: false },
-      ).catch(() => null);
-      if (qa && !qa.error) { score = Number(qa.data?.score ?? 0); blockers = qa.data?.blockers ?? []; }
-
-      await markFinish(page, {
-        proc_status: "done",
-        proc_error: null,
-        proc_result: { kind: "regenerate", score, blockers },
-        ...(score != null ? { seo_score: score, last_analyzed_at: new Date().toISOString(), needs_refresh: blockers.length > 0 || score < 65 } : { needs_refresh: false }),
-      });
-      toast.success(score != null ? `Page régénérée — score ${score}` : "Page régénérée");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erreur de régénération";
-      await supabase.from("seo_pages").update({ proc_status: "error", proc_error: msg, proc_finished_at: new Date().toISOString() }).eq("id", page.id);
-      await refreshRow(page.id);
-      toast.error(msg);
-    }
+    setOptimizeTarget(page);
   };
+
 
   const stats = useMemo(() => {
     const scored = rows.filter((r) => typeof r.seo_score === "number");
@@ -1329,10 +1304,11 @@ function AnalyticsTab() {
                       <Link to={`/${r.slug}`} target="_blank" className="text-primary hover:underline text-xs inline-flex items-center gap-1">
                         <ExternalLink className="w-3 h-3" /> Voir
                       </Link>
-                      <button type="button" onClick={() => regenerate(r)} disabled={busy}
+                      <button type="button" onClick={() => openOptimize(r)} disabled={busy}
+                        title="Analyser, corriger les critères en échec et recalculer le score réel"
                         className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-primary text-primary-foreground font-display font-semibold hover:opacity-90 disabled:opacity-50">
-                        {busy && r.proc_kind === "regenerate" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
-                        Régénérer
+                        {busy && r.proc_kind === "regenerate" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                        Optimiser
                       </button>
                     </div>
                   </td>
@@ -1342,6 +1318,15 @@ function AnalyticsTab() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {optimizeTarget && (
+        <OptimizeDialog
+          pageId={optimizeTarget.id}
+          pageTitle={optimizeTarget.title}
+          onClose={() => setOptimizeTarget(null)}
+          onFinished={() => { void refreshRow(optimizeTarget.id); }}
+        />
       )}
     </div>
   );
