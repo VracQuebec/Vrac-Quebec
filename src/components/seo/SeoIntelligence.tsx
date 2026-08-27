@@ -3,6 +3,7 @@ import { Loader2, Sparkles, RefreshCw, ExternalLink, AlertTriangle, TrendingUp, 
 import { supabase } from "@/integrations/supabase/client";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { toast } from "sonner";
+import OptimizationCenter, { type Scope } from "@/components/seo/OptimizationCenter";
 
 type Kpi = {
   computed_at: string;
@@ -42,6 +43,10 @@ function Kpi({ label, value, icon: Icon, tone, action }: { label: string; value:
           {action.label}
         </button>
       )}
+
+      {center && (
+        <OptimizationCenter scope={center} onClose={() => setCenter(null)} onChanged={() => { void load(); }} />
+      )}
     </div>
   );
 }
@@ -64,13 +69,17 @@ export default function SeoIntelligence() {
   const [filter, setFilter] = useState<Filter>("all");
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
+  const [counts, setCounts] = useState<{ to_optimize: number; zero_impressions: number } | null>(null);
+  const [center, setCenter] = useState<Scope | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [k, p] = await Promise.all([
+    const [k, p, c] = await Promise.all([
       supabase.rpc("seo_intelligence_dashboard"),
       supabase.rpc("seo_intelligence_pages", { _filter: filter, _limit: 100 }),
+      supabase.rpc("seo_optimization_counts" as never),
     ]);
+    if (!c.error) setCounts(c.data as unknown as { to_optimize: number; zero_impressions: number });
     if (k.error) toast.error(k.error.message);
     else setKpi(k.data as unknown as Kpi);
     if (p.error) toast.error(p.error.message);
@@ -126,8 +135,10 @@ export default function SeoIntelligence() {
           <Kpi label="Indexées" value={kpi.indexed} icon={Eye} tone="positive" />
           <Kpi label="Top 3" value={kpi.top3} icon={TrendingUp} tone="positive" />
           <Kpi label="Top 10" value={kpi.top10} icon={TrendingUp} />
-          <Kpi label="Sans impression" value={kpi.zero_impressions} icon={AlertTriangle} tone="warning" />
-          <Kpi label="À optimiser" value={kpi.need_meta_rewrite + kpi.boost_candidates + kpi.not_indexed_14d} icon={AlertTriangle} tone="warning" />
+          <Kpi label="Sans impression" value={counts?.zero_impressions ?? kpi.zero_impressions} icon={AlertTriangle} tone="warning"
+            action={{ label: "🔎 Analyser les pages", onClick: () => setCenter("zero_impressions") }} />
+          <Kpi label="À optimiser" value={counts?.to_optimize ?? 0} icon={AlertTriangle} tone="warning"
+            action={{ label: "✨ Optimiser les pages", onClick: () => setCenter("to_optimize") }} />
         </div>
       )}
 
@@ -203,6 +214,10 @@ export default function SeoIntelligence() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {center && (
+        <OptimizationCenter scope={center} onClose={() => setCenter(null)} onChanged={() => { void load(); }} />
       )}
     </div>
   );
