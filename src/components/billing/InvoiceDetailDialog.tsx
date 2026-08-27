@@ -47,9 +47,32 @@ interface ClientInfo {
   submission_number: number | null;
 }
 
-export default function InvoiceDetailDialog({ invoice, onClose, onEdit, onDelete, onOpenLead }: Props) {
+export default function InvoiceDetailDialog({ invoice, onClose, onEdit, onDelete, onOpenLead, onStatusChanged }: Props) {
   const [client, setClient] = useState<ClientInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState(invoice.payment_status);
+  const [paymentDate, setPaymentDate] = useState<string | null>(invoice.payment_date ?? null);
+  const [amountPaid, setAmountPaid] = useState<number | null>(
+    invoice.amount_paid != null ? Number(invoice.amount_paid) : null,
+  );
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setStatus(invoice.payment_status);
+    setPaymentDate(invoice.payment_date ?? null);
+    setAmountPaid(invoice.amount_paid != null ? Number(invoice.amount_paid) : null);
+  }, [invoice.id, invoice.payment_status, invoice.payment_date, invoice.amount_paid]);
+
+  useEffect(() => {
+    if (!statusOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setStatusOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [statusOpen]);
 
   useEffect(() => {
     let alive = true;
@@ -72,11 +95,46 @@ export default function InvoiceDetailDialog({ invoice, onClose, onEdit, onDelete
     Number(invoice.tps_rate ?? TPS_RATE),
     Number(invoice.tvq_rate ?? TVQ_RATE),
   );
-  const ps = findPaymentStatus(invoice.payment_status);
-  const ob = overdueBucket(invoice);
+  const ps = findPaymentStatus(status);
+  const ob = overdueBucket({ ...invoice, payment_status: status });
   const tonnage = (invoice as unknown as { tonnage?: number | null }).tonnage;
 
+  const changeStatus = async (next: string) => {
+    setStatusOpen(false);
+    if (next === status) return;
+    setSavingStatus(true);
+    // Réutilise la logique de paiement existante : montant payé + date de paiement.
+    const payload: Record<string, unknown> = { payment_status: next };
+    if (next === "paye") {
+      payload.payment_date = paymentDate || new Date().toISOString().slice(0, 10);
+      payload.amount_paid = tx.total;
+    } else if (status === "paye") {
+      payload.payment_date = null;
+      payload.amount_paid = 0;
+    }
+    const { data, error } = await supabase
+      .from("lead_trips" as never)
+      .update(payload as never)
+      .eq("id", invoice.id)
+      .select()
+      .single();
+    setSavingStatus(false);
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      return;
+    }
+    const row = data as unknown as LeadTrip;
+    setStatus(row.payment_status);
+    setPaymentDate(row.payment_date ?? null);
+    setAmountPaid(row.amount_paid != null ? Number(row.amount_paid) : null);
+    toast({ title: `Statut mis à jour — ${findPaymentStatus(row.payment_status).label}` });
+    onStatusChanged?.(row);
+  };
+
+  const paid = amountPaid ?? (status === "paye" ? tx.total : 0);
+
   return createPortal(
+
     <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
       onClick={onClose}>
       <div className="bg-card w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-border shadow-xl"
