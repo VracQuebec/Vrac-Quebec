@@ -28,17 +28,24 @@ function fmtDate(iso: string | null) {
   return new Date(iso).toLocaleDateString("fr-CA", { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
-function Kpi({ label, value, icon: Icon, tone }: { label: string; value: number; icon: React.ComponentType<{ className?: string }>; tone?: "positive" | "warning" | "neutral" }) {
+function Kpi({ label, value, icon: Icon, tone, action }: { label: string; value: number; icon: React.ComponentType<{ className?: string }>; tone?: "positive" | "warning" | "neutral"; action?: { label: string; onClick: () => void } }) {
   const color = tone === "positive" ? "text-primary" : tone === "warning" ? "text-destructive" : "text-foreground";
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-lg border border-border bg-card p-4 flex flex-col">
       <div className="flex items-center gap-2 text-xs text-muted-foreground font-body">
         <Icon className="w-4 h-4" /> {label}
       </div>
       <div className={`text-2xl font-display font-bold mt-1 ${color}`}>{value.toLocaleString("fr-CA")}</div>
+      {action && (
+        <button onClick={action.onClick}
+          className="mt-2 w-full px-2 py-1.5 rounded-md bg-primary text-primary-foreground text-[11px] font-display font-bold hover:opacity-90">
+          {action.label}
+        </button>
+      )}
     </div>
   );
 }
+
 
 const FLAG_LABELS: Record<string, string> = {
   robots_blocked: "Bloqué par robots.txt",
