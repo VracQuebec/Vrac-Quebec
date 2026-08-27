@@ -13,7 +13,7 @@ interface Props {
   compact?: boolean;
 }
 
-/** Ligne de notification : contexte complet + action directe vers l'élément. */
+/** Ligne de notification compacte : contexte complet + action directe vers l'élément. */
 const NotificationItem = ({ n, onRead, onChange, onNavigate, compact }: Props) => {
   const unread = n.status === "unread";
   const late = isOverdue(n);
@@ -21,52 +21,60 @@ const NotificationItem = ({ n, onRead, onChange, onNavigate, compact }: Props) =
 
   return (
     <div
-      className={`rounded-xl border p-3 transition-colors ${
+      className={`rounded-lg border px-2.5 py-2 transition-colors ${
         done ? "border-border bg-background opacity-60"
           : unread ? "border-primary/40 bg-primary/5"
           : "border-border bg-card"
       }`}
     >
-      <div className="flex items-start gap-2.5">
-        <span aria-hidden className="text-lg leading-none mt-0.5">{CATEGORY_ICONS[n.category] ?? "🔔"}</span>
+      <div className="flex items-start gap-2">
+        <span aria-hidden className="text-base leading-none mt-0.5">{CATEGORY_ICONS[n.category] ?? "🔔"}</span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px]" aria-hidden>{PRIORITY_DOT[n.priority]}</span>
-            <span className="text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground">
+          <div className="flex items-center gap-1.5 flex-wrap leading-tight">
+            <span className="text-[10px]" aria-hidden>{PRIORITY_DOT[n.priority]}</span>
+            <span className="text-[9px] uppercase tracking-wide font-display font-bold text-muted-foreground">
               {CATEGORY_LABELS[n.category] ?? n.category}
             </span>
             {late && (
-              <span className="text-[10px] font-display font-bold px-1.5 py-0.5 rounded bg-destructive/10 text-destructive">
+              <span className="text-[9px] font-display font-bold px-1 py-px rounded bg-destructive/10 text-destructive">
                 En retard
               </span>
             )}
             {n.status === "in_progress" && (
-              <span className="text-[10px] font-display font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+              <span className="text-[9px] font-display font-bold px-1 py-px rounded bg-primary/10 text-primary">
                 En cours
               </span>
             )}
+            {unread && (
+              <button
+                onClick={() => onRead(n.id)}
+                className="ml-auto inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground font-display"
+              >
+                <X className="w-3 h-3" /> Marquer lue
+              </button>
+            )}
           </div>
 
-          <div className={`text-sm font-display ${unread ? "font-bold" : "font-semibold"} text-foreground mt-0.5`}>
+          <div className={`text-[13px] font-display leading-snug ${unread ? "font-bold" : "font-semibold"} text-foreground mt-0.5`}>
             {n.title}
           </div>
           {n.body && !compact && (
-            <p className="text-xs text-muted-foreground font-body mt-0.5 whitespace-pre-line">{n.body}</p>
+            <p className="text-[11px] text-muted-foreground font-body mt-0.5 leading-snug line-clamp-2 whitespace-pre-line">{n.body}</p>
           )}
 
-          <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground font-body mt-1">
+          <div className="flex items-center gap-x-1.5 flex-wrap text-[10px] text-muted-foreground font-body mt-0.5 leading-snug">
             {n.lead_number && <span className="font-semibold text-foreground">{n.lead_number}</span>}
             {n.client_name && <span>{n.client_name}</span>}
             <span>{formatWhen(n.created_at)}</span>
             {n.due_at && <span>· échéance {formatWhen(n.due_at)}</span>}
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap mt-2">
+          <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
             {n.action_url && (
               <Link
                 to={n.action_url}
                 onClick={() => { onRead(n.id); onNavigate?.(); }}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-display font-bold"
               >
                 Ouvrir <ExternalLink className="w-3 h-3" />
               </Link>
@@ -75,13 +83,13 @@ const NotificationItem = ({ n, onRead, onChange, onNavigate, compact }: Props) =
               <>
                 <button
                   onClick={() => onChange(n.id, n.status === "in_progress" ? "read" : "in_progress")}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-secondary text-foreground text-xs font-display font-semibold"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-foreground text-[11px] font-display font-semibold"
                 >
                   <CircleDot className="w-3 h-3" /> {n.status === "in_progress" ? "Mettre en attente" : "Je m'en occupe"}
                 </button>
                 <button
                   onClick={() => onChange(n.id, "done")}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-secondary text-foreground text-xs font-display font-semibold"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-foreground text-[11px] font-display font-semibold"
                 >
                   <Check className="w-3 h-3" /> Traité
                 </button>
@@ -90,17 +98,9 @@ const NotificationItem = ({ n, onRead, onChange, onNavigate, compact }: Props) =
             {done && (
               <button
                 onClick={() => onChange(n.id, "read")}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-secondary text-foreground text-xs font-display font-semibold"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-foreground text-[11px] font-display font-semibold"
               >
                 Rouvrir
-              </button>
-            )}
-            {unread && (
-              <button
-                onClick={() => onRead(n.id)}
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-display"
-              >
-                <X className="w-3 h-3" /> Marquer lue
               </button>
             )}
           </div>
