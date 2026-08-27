@@ -139,11 +139,13 @@ export default function BillingSection({ submissionId }: Props) {
   };
 
   const removeTrip = async (id: string) => {
-    if (!confirm("Supprimer ce voyage ?")) return;
-    const { error } = await supabase.from("lead_trips" as any).delete().eq("id", id);
+    const { error } = await supabase.from("lead_trips" as never).delete().eq("id", id);
     if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
     setTrips((prev) => prev.filter((t) => t.id !== id));
+    setDeleting(null);
+    toast({ title: "Facture supprimée" });
   };
+
 
   return (
     <div>
