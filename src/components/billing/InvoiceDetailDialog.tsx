@@ -1,13 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Pencil, Trash2, ExternalLink, AlertTriangle, Loader2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { X, Pencil, Trash2, ExternalLink, AlertTriangle, Loader2, ChevronDown, Check } from "lucide-react";
 import {
-  findPaymentStatus, overdueBucket, computeTaxes, TPS_RATE, TVQ_RATE, type LeadTrip,
+  findPaymentStatus, overdueBucket, computeTaxes, TPS_RATE, TVQ_RATE, PAYMENT_STATUSES, type LeadTrip,
 } from "@/lib/billing";
+
+/** Statuts modifiables directement depuis la fiche. */
+const QUICK_STATUSES = ["en_attente", "en_retard", "paye", "annule"] as const;
 
 const fmtMoney = (n: number) =>
   new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" }).format(n || 0);
+
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("fr-CA") : "—");
 
 export interface InvoiceDetailRow extends LeadTrip {
