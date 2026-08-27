@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
 
     const { error: roleErr } = await admin
       .from("user_roles")
-      .insert({ user_id: userId, role: "entrepreneur", approved: true });
+      .insert({ user_id: userId, role: "entrepreneur", approved: false });
 
     if (roleErr) {
       if (createdNewUser) await admin.auth.admin.deleteUser(userId);
@@ -132,12 +132,22 @@ Deno.serve(async (req) => {
       return json(500, { error: `Profil entrepreneur non créé: ${profileErr.message}` });
     }
 
+    // Notifier l'administration pour la validation manuelle du compte.
+    await admin.from("admin_notifications").insert({
+      title: "Nouvelle inscription entrepreneur à valider",
+      body: `${company || name} (${email}) attend une approbation pour accéder au réseau.`,
+      level: "warn",
+      link: "/admin",
+      meta: { user_id: userId, email, company, phone, source: "signup-entrepreneur" },
+    });
+
     return json(200, {
       ok: true,
       user_id: userId,
       email,
-      approved: true,
-      message: "Compte entrepreneur créé. Accès entrepreneur actif immédiatement.",
+      approved: false,
+      message:
+        "Compte entrepreneur créé. Votre accès aux demandes et aux sites du réseau sera actif dès la validation par l'équipe Vrac Québec.",
     });
   } catch (e) {
     return json(500, { error: (e as Error).message || "Erreur serveur" });
