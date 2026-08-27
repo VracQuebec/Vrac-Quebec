@@ -289,7 +289,10 @@ export default function BillingOverview({ onOpenLead }: Props) {
                 const ps = findPaymentStatus(r.payment_status);
                 const ob = overdueBucket(r);
                 return (
-                  <tr key={r.id} className="border-t border-border hover:bg-secondary/50">
+                  <tr key={r.id} onClick={() => setDetail(r)} role="button" tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetail(r); } }}
+                    className="border-t border-border hover:bg-secondary/50 cursor-pointer">
+
                     <td className="px-3 py-2 font-body">
                       <div className="font-display font-semibold">{r.submissions?.name || "—"}</div>
                       <div className="text-[11px] text-muted-foreground truncate max-w-[200px]">
