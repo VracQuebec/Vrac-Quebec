@@ -157,9 +157,31 @@ export default function InvoiceDetailDialog({ invoice, onClose, onEdit, onDelete
 
         <div className="p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-display font-bold uppercase border ${ps.color}`}>
-              {ps.label}
-            </span>
+            <div className="relative" ref={menuRef}>
+              <button type="button" onClick={() => setStatusOpen((o) => !o)} disabled={savingStatus}
+                aria-haspopup="listbox" aria-expanded={statusOpen}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-display font-bold uppercase border min-h-[32px] hover:opacity-80 disabled:opacity-60 ${ps.color}`}>
+                {savingStatus ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                {ps.label}
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {statusOpen && (
+                <div role="listbox"
+                  className="absolute left-0 top-full mt-1 z-20 w-56 rounded-lg border border-border bg-card shadow-xl p-1">
+                  {PAYMENT_STATUSES
+                    .filter((s) => (QUICK_STATUSES as readonly string[]).includes(s.value) || s.value === status)
+                    .map((s) => (
+                      <button key={s.value} role="option" aria-selected={s.value === status}
+                        onClick={() => changeStatus(s.value)}
+                        className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-left text-xs font-display font-semibold hover:bg-secondary min-h-[36px]">
+                        <span className={`inline-block w-2.5 h-2.5 rounded-full border ${s.color}`} />
+                        <span className="flex-1 uppercase">{s.label}</span>
+                        {s.value === status && <Check className="w-3.5 h-3.5 text-primary" />}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
             {ob && (
               <span className="inline-flex items-center gap-1 text-[11px] text-rose-700 font-display font-semibold">
                 <AlertTriangle className="w-3.5 h-3.5" /> En retard {ob.days}j (≥{ob.bucket}j)
@@ -176,8 +198,9 @@ export default function InvoiceDetailDialog({ invoice, onClose, onEdit, onDelete
             <Row label="TPS (5 %)" value={fmtMoney(tx.tps)} />
             <Row label="TVQ (9,975 %)" value={fmtMoney(tx.tvq)} />
             <Row label="Total TTC" value={fmtMoney(tx.total)} strong />
-            {invoice.amount_paid != null && <Row label="Montant payé" value={fmtMoney(Number(invoice.amount_paid))} />}
-            <Row label="Solde" value={fmtMoney(tx.total - Number(invoice.amount_paid || (invoice.payment_status === "paye" ? tx.total : 0)))} />
+            <Row label="Montant payé" value={fmtMoney(paid)} />
+            <Row label="Solde" value={fmtMoney(tx.total - paid)} />
+
           </Section>
 
           {/* Client */}
