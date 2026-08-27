@@ -1201,43 +1201,15 @@ function AnalyticsTab() {
     }
   };
 
-  /** Régénération d'UNE page uniquement, suivie d'une analyse QA. */
-  const regenerate = async (page: Page) => {
+  /**
+   * Optimisation réelle d'UNE page : analyse → correction ciblée → recalcul du score.
+   * Le déroulé et les résultats (avant/après) sont pilotés par OptimizeDialog.
+   */
+  const openOptimize = (page: Page) => {
     if (isRunning(page)) return;
-    try {
-      await markStart(page, "regenerate");
-      const { data: city } = await supabase.from("seo_cities").select("slug, name, region").eq("slug", page.city_slug).maybeSingle();
-      const { data: material } = page.material_slug ? await supabase.from("seo_materials").select("slug, name, short_name, description").eq("slug", page.material_slug).maybeSingle() : { data: null };
-      const { data: service } = page.service_slug ? await supabase.from("seo_services").select("slug, name, description").eq("slug", page.service_slug).maybeSingle() : { data: null };
-      if (!city) throw new Error("Ville introuvable pour cette page.");
-      const materialFallback = !material && page.material_slug ? { slug: page.material_slug, name: page.material_slug } : material;
-      const serviceFallback = !service && page.service_slug ? { slug: page.service_slug, name: page.service_slug } : service;
-      if (!materialFallback && !serviceFallback) throw new Error("Cette page n'a ni matériau ni service associé — impossible à régénérer.");
-      const res = await invokeWithFreshSession("seo-generate-page", { city, material: materialFallback ?? undefined, service: serviceFallback ?? undefined, force: true });
-      if (res.error) throw new Error(res.error.message || "Erreur de régénération");
-
-      // QA immédiate sur la nouvelle version (best effort — ne bloque pas la sauvegarde).
-      let score: number | null = null;
-      let blockers: string[] = [];
-      const qa = await invokeWithFreshSession<Record<string, unknown>, { score?: number; blockers?: string[] }>(
-        "seo-qa-check", { page_id: page.id, enforce_draft: false },
-      ).catch(() => null);
-      if (qa && !qa.error) { score = Number(qa.data?.score ?? 0); blockers = qa.data?.blockers ?? []; }
-
-      await markFinish(page, {
-        proc_status: "done",
-        proc_error: null,
-        proc_result: { kind: "regenerate", score, blockers },
-        ...(score != null ? { seo_score: score, last_analyzed_at: new Date().toISOString(), needs_refresh: blockers.length > 0 || score < 65 } : { needs_refresh: false }),
-      });
-      toast.success(score != null ? `Page régénérée — score ${score}` : "Page régénérée");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erreur de régénération";
-      await supabase.from("seo_pages").update({ proc_status: "error", proc_error: msg, proc_finished_at: new Date().toISOString() }).eq("id", page.id);
-      await refreshRow(page.id);
-      toast.error(msg);
-    }
+    setOptimizeTarget(page);
   };
+
 
   const stats = useMemo(() => {
     const scored = rows.filter((r) => typeof r.seo_score === "number");
