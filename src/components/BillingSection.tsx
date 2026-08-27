@@ -356,7 +356,32 @@ export default function BillingSection({ submissionId }: Props) {
           </button>
         </div>
       </div>
+      {editing && (
+        <InvoiceEditDialog
+          invoice={editing}
+          allowMove={false}
+          onClose={() => setEditing(null)}
+          onSaved={(row) => setTrips((prev) => prev.map((t) => (t.id === row.id ? { ...t, ...row } : t)))}
+          onDeleted={(id) => setTrips((prev) => prev.filter((t) => t.id !== id))}
+        />
+      )}
+
+      {deleting && (
+        <ConfirmDialog
+          danger
+          title="⚠️ Supprimer cette facture ?"
+          message={`Cette action supprimera définitivement la facture et ses données associées.${
+            deleting.payment_status === "paye"
+              ? "\n\n⚠️ Cette facture est déjà marquée comme payée. La supprimer peut affecter les données de paiement et les statistiques de facturation."
+              : ""
+          }`}
+          confirmLabel="Supprimer définitivement"
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => removeTrip(deleting.id)}
+        />
+      )}
     </div>
+
   );
 }
 
