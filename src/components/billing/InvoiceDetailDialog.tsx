@@ -1,13 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Pencil, Trash2, ExternalLink, AlertTriangle, Loader2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { X, Pencil, Trash2, ExternalLink, AlertTriangle, Loader2, ChevronDown, Check } from "lucide-react";
 import {
-  findPaymentStatus, overdueBucket, computeTaxes, TPS_RATE, TVQ_RATE, type LeadTrip,
+  findPaymentStatus, overdueBucket, computeTaxes, TPS_RATE, TVQ_RATE, PAYMENT_STATUSES, type LeadTrip,
 } from "@/lib/billing";
+
+/** Statuts modifiables directement depuis la fiche. */
+const QUICK_STATUSES = ["en_attente", "en_retard", "paye", "annule"] as const;
 
 const fmtMoney = (n: number) =>
   new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" }).format(n || 0);
+
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString("fr-CA") : "—");
 
 export interface InvoiceDetailRow extends LeadTrip {
@@ -26,7 +31,10 @@ interface Props {
   onEdit: () => void;
   onDelete: () => void;
   onOpenLead?: (submissionId: string) => void;
+  /** Appelé après un changement de statut enregistré (synchronisation liste + KPI). */
+  onStatusChanged?: (row: LeadTrip) => void;
 }
+
 
 interface ClientInfo {
   name: string | null;
@@ -39,9 +47,32 @@ interface ClientInfo {
   submission_number: number | null;
 }
 
-export default function InvoiceDetailDialog({ invoice, onClose, onEdit, onDelete, onOpenLead }: Props) {
+export default function InvoiceDetailDialog({ invoice, onClose, onEdit, onDelete, onOpenLead, onStatusChanged }: Props) {
   const [client, setClient] = useState<ClientInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState(invoice.payment_status);
+  const [paymentDate, setPaymentDate] = useState<string | null>(invoice.payment_date ?? null);
+  const [amountPaid, setAmountPaid] = useState<number | null>(
+    invoice.amount_paid != null ? Number(invoice.amount_paid) : null,
+  );
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setStatus(invoice.payment_status);
+    setPaymentDate(invoice.payment_date ?? null);
+    setAmountPaid(invoice.amount_paid != null ? Number(invoice.amount_paid) : null);
+  }, [invoice.id, invoice.payment_status, invoice.payment_date, invoice.amount_paid]);
+
+  useEffect(() => {
+    if (!statusOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setStatusOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [statusOpen]);
 
   useEffect(() => {
     let alive = true;
@@ -64,11 +95,46 @@ export default function InvoiceDetailDialog({ invoice, onClose, onEdit, onDelete
     Number(invoice.tps_rate ?? TPS_RATE),
     Number(invoice.tvq_rate ?? TVQ_RATE),
   );
-  const ps = findPaymentStatus(invoice.payment_status);
-  const ob = overdueBucket(invoice);
+  const ps = findPaymentStatus(status);
+  const ob = overdueBucket({ ...invoice, payment_status: status });
   const tonnage = (invoice as unknown as { tonnage?: number | null }).tonnage;
 
+  const changeStatus = async (next: string) => {
+    setStatusOpen(false);
+    if (next === status) return;
+    setSavingStatus(true);
+    // Réutilise la logique de paiement existante : montant payé + date de paiement.
+    const payload: Record<string, unknown> = { payment_status: next };
+    if (next === "paye") {
+      payload.payment_date = paymentDate || new Date().toISOString().slice(0, 10);
+      payload.amount_paid = tx.total;
+    } else if (status === "paye") {
+      payload.payment_date = null;
+      payload.amount_paid = 0;
+    }
+    const { data, error } = await supabase
+      .from("lead_trips" as never)
+      .update(payload as never)
+      .eq("id", invoice.id)
+      .select()
+      .single();
+    setSavingStatus(false);
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      return;
+    }
+    const row = data as unknown as LeadTrip;
+    setStatus(row.payment_status);
+    setPaymentDate(row.payment_date ?? null);
+    setAmountPaid(row.amount_paid != null ? Number(row.amount_paid) : null);
+    toast({ title: `Statut mis à jour — ${findPaymentStatus(row.payment_status).label}` });
+    onStatusChanged?.(row);
+  };
+
+  const paid = amountPaid ?? (status === "paye" ? tx.total : 0);
+
   return createPortal(
+
     <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
       onClick={onClose}>
       <div className="bg-card w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-border shadow-xl"
@@ -91,9 +157,31 @@ export default function InvoiceDetailDialog({ invoice, onClose, onEdit, onDelete
 
         <div className="p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-display font-bold uppercase border ${ps.color}`}>
-              {ps.label}
-            </span>
+            <div className="relative" ref={menuRef}>
+              <button type="button" onClick={() => setStatusOpen((o) => !o)} disabled={savingStatus}
+                aria-haspopup="listbox" aria-expanded={statusOpen}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-display font-bold uppercase border min-h-[32px] hover:opacity-80 disabled:opacity-60 ${ps.color}`}>
+                {savingStatus ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                {ps.label}
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {statusOpen && (
+                <div role="listbox"
+                  className="absolute left-0 top-full mt-1 z-20 w-56 rounded-lg border border-border bg-card shadow-xl p-1">
+                  {PAYMENT_STATUSES
+                    .filter((s) => (QUICK_STATUSES as readonly string[]).includes(s.value) || s.value === status)
+                    .map((s) => (
+                      <button key={s.value} role="option" aria-selected={s.value === status}
+                        onClick={() => changeStatus(s.value)}
+                        className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-left text-xs font-display font-semibold hover:bg-secondary min-h-[36px]">
+                        <span className={`inline-block w-2.5 h-2.5 rounded-full border ${s.color}`} />
+                        <span className="flex-1 uppercase">{s.label}</span>
+                        {s.value === status && <Check className="w-3.5 h-3.5 text-primary" />}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
             {ob && (
               <span className="inline-flex items-center gap-1 text-[11px] text-rose-700 font-display font-semibold">
                 <AlertTriangle className="w-3.5 h-3.5" /> En retard {ob.days}j (≥{ob.bucket}j)
@@ -110,8 +198,9 @@ export default function InvoiceDetailDialog({ invoice, onClose, onEdit, onDelete
             <Row label="TPS (5 %)" value={fmtMoney(tx.tps)} />
             <Row label="TVQ (9,975 %)" value={fmtMoney(tx.tvq)} />
             <Row label="Total TTC" value={fmtMoney(tx.total)} strong />
-            {invoice.amount_paid != null && <Row label="Montant payé" value={fmtMoney(Number(invoice.amount_paid))} />}
-            <Row label="Solde" value={fmtMoney(tx.total - Number(invoice.amount_paid || (invoice.payment_status === "paye" ? tx.total : 0)))} />
+            <Row label="Montant payé" value={fmtMoney(paid)} />
+            <Row label="Solde" value={fmtMoney(tx.total - paid)} />
+
           </Section>
 
           {/* Client */}
@@ -151,7 +240,7 @@ export default function InvoiceDetailDialog({ invoice, onClose, onEdit, onDelete
           <Section title="Dates et paiement">
             <Row label="Date de livraison" value={fmtDate(invoice.delivery_date)} />
             <Row label="Date d'échéance" value={fmtDate(invoice.due_date)} />
-            <Row label="Date de paiement" value={fmtDate(invoice.payment_date)} />
+            <Row label="Date de paiement" value={fmtDate(paymentDate)} />
             <Row label="Mode de paiement" value={invoice.payment_method || "—"} />
             <Row label="Créée le" value={fmtDate(invoice.created_at)} />
             <Row label="Modifiée le" value={fmtDate(invoice.updated_at)} />
