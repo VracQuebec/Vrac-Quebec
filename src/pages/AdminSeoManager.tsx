@@ -1228,8 +1228,11 @@ function AnalyticsTab() {
 
   return (
     <div className="space-y-5">
+      {/* Centre de contrôle massif : analyse, optimisation et rafraîchissement par lots */}
+      <BulkOptimizationPanel onProgress={() => { void load(); }} />
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <StatCard label="Score moyen" value={stats.avg} />
+        <StatCard label="Score moyen (échantillon)" value={stats.avg} />
         <StatCard label="Excellent (85+)" value={stats.excellent} />
         <StatCard label="Bon (65-84)" value={stats.good} />
         <StatCard label="À améliorer" value={stats.weak} />
