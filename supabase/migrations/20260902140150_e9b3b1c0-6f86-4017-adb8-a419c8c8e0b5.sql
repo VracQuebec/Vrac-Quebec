@@ -1,0 +1,15 @@
+REVOKE EXECUTE ON FUNCTION public.seo_bulk_overview() FROM anon, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.seo_bulk_preview(text,text) FROM anon, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.seo_bulk_start(text,text,integer,integer) FROM anon, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.seo_bulk_state() FROM anon, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.seo_bulk_errors(uuid) FROM anon, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.seo_bulk_retry_task(uuid) FROM anon, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.seo_page_optim_history(uuid,integer) FROM anon, PUBLIC;
+GRANT EXECUTE ON FUNCTION public.seo_bulk_overview() TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.seo_bulk_preview(text,text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.seo_bulk_start(text,text,integer,integer) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.seo_bulk_state() TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.seo_bulk_errors(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.seo_bulk_retry_task(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.seo_page_optim_history(uuid,integer) TO authenticated, service_role;
+REVOKE SELECT ON public.seo_bulk_candidates FROM anon;
