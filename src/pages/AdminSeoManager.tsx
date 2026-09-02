@@ -1161,6 +1161,7 @@ function AnalyticsTab() {
   }, [patchRow]);
 
   const [optimizeTarget, setOptimizeTarget] = useState<Page | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<Page | null>(null);
 
   const markStart = async (page: Page, kind: "analyze" | "regenerate") => {
     const startedAt = new Date().toISOString();
