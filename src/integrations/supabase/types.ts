@@ -840,6 +840,13 @@ export type Database = {
             foreignKeyName: "blog_seo_links_seo_page_id_fkey"
             columns: ["seo_page_id"]
             isOneToOne: false
+            referencedRelation: "seo_bulk_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_seo_links_seo_page_id_fkey"
+            columns: ["seo_page_id"]
+            isOneToOne: false
             referencedRelation: "seo_gsc_ga4_merged_v"
             referencedColumns: ["page_id"]
           },
@@ -8572,6 +8579,13 @@ export type Database = {
             foreignKeyName: "seo_gsc_metrics_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_bulk_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_gsc_metrics_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_gsc_ga4_merged_v"
             referencedColumns: ["page_id"]
           },
@@ -8745,6 +8759,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "seo_opportunities_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_bulk_candidates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "seo_opportunities_page_id_fkey"
             columns: ["page_id"]
@@ -8933,6 +8954,7 @@ export type Database = {
           max_attempts: number
           next_attempt_at: string | null
           page_id: string
+          priority: number
           qa_after: number | null
           qa_before: number | null
           run_id: string
@@ -8960,6 +8982,7 @@ export type Database = {
           max_attempts?: number
           next_attempt_at?: string | null
           page_id: string
+          priority?: number
           qa_after?: number | null
           qa_before?: number | null
           run_id: string
@@ -8987,6 +9010,7 @@ export type Database = {
           max_attempts?: number
           next_attempt_at?: string | null
           page_id?: string
+          priority?: number
           qa_after?: number | null
           qa_before?: number | null
           run_id?: string
@@ -8996,6 +9020,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "seo_optimization_tasks_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_bulk_candidates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "seo_optimization_tasks_page_id_fkey"
             columns: ["page_id"]
@@ -9106,6 +9137,13 @@ export type Database = {
             foreignKeyName: "seo_page_analytics_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_bulk_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_page_analytics_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_gsc_ga4_merged_v"
             referencedColumns: ["page_id"]
           },
@@ -9187,6 +9225,13 @@ export type Database = {
             foreignKeyName: "seo_page_improvements_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_bulk_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_page_improvements_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_gsc_ga4_merged_v"
             referencedColumns: ["page_id"]
           },
@@ -9237,6 +9282,13 @@ export type Database = {
           traffic_score?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "seo_page_scores_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: true
+            referencedRelation: "seo_bulk_candidates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "seo_page_scores_page_id_fkey"
             columns: ["page_id"]
@@ -9610,6 +9662,13 @@ export type Database = {
             foreignKeyName: "seo_pagespeed_snapshots_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_bulk_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_pagespeed_snapshots_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_gsc_ga4_merged_v"
             referencedColumns: ["page_id"]
           },
@@ -9736,6 +9795,13 @@ export type Database = {
             foreignKeyName: "seo_qa_reports_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_bulk_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_qa_reports_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_gsc_ga4_merged_v"
             referencedColumns: ["page_id"]
           },
@@ -9818,6 +9884,13 @@ export type Database = {
             columns: ["blog_post_id"]
             isOneToOne: false
             referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_recommendations_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_bulk_candidates"
             referencedColumns: ["id"]
           },
           {
@@ -11329,6 +11402,60 @@ export type Database = {
           },
         ]
       }
+      seo_bulk_candidates: {
+        Row: {
+          city_slug: string | null
+          id: string | null
+          internal_link_count: number | null
+          is_error: boolean | null
+          is_excellent: boolean | null
+          is_to_improve: boolean | null
+          is_to_refresh: boolean | null
+          last_analyzed_at: string | null
+          material_slug: string | null
+          needs_refresh: boolean | null
+          proc_status: string | null
+          score: number | null
+          slug: string | null
+          title: string | null
+          word_count: number | null
+        }
+        Insert: {
+          city_slug?: string | null
+          id?: string | null
+          internal_link_count?: number | null
+          is_error?: never
+          is_excellent?: never
+          is_to_improve?: never
+          is_to_refresh?: never
+          last_analyzed_at?: string | null
+          material_slug?: string | null
+          needs_refresh?: boolean | null
+          proc_status?: string | null
+          score?: never
+          slug?: string | null
+          title?: string | null
+          word_count?: number | null
+        }
+        Update: {
+          city_slug?: string | null
+          id?: string | null
+          internal_link_count?: number | null
+          is_error?: never
+          is_excellent?: never
+          is_to_improve?: never
+          is_to_refresh?: never
+          last_analyzed_at?: string | null
+          material_slug?: string | null
+          needs_refresh?: boolean | null
+          proc_status?: string | null
+          score?: never
+          slug?: string | null
+          title?: string | null
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       seo_gsc_deltas_28d: {
         Row: {
           clicks: number | null
@@ -11344,6 +11471,13 @@ export type Database = {
           prev_position: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "seo_gsc_metrics_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_bulk_candidates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "seo_gsc_metrics_page_id_fkey"
             columns: ["page_id"]
@@ -12024,6 +12158,34 @@ export type Database = {
         }
         Returns: Json
       }
+      seo_bulk_errors: {
+        Args: { _run_id: string }
+        Returns: {
+          attempts: number
+          error: string
+          last_error_at: string
+          page_id: string
+          slug: string
+          task_id: string
+          title: string
+        }[]
+      }
+      seo_bulk_overview: { Args: never; Returns: Json }
+      seo_bulk_preview: {
+        Args: { _mode?: string; _scope?: string }
+        Returns: Json
+      }
+      seo_bulk_retry_task: { Args: { _task_id: string }; Returns: boolean }
+      seo_bulk_start: {
+        Args: {
+          _concurrency?: number
+          _limit?: number
+          _mode?: string
+          _scope?: string
+        }
+        Returns: Json
+      }
+      seo_bulk_state: { Args: never; Returns: Json }
       seo_city_matrix: { Args: { _city_slug: string }; Returns: Json }
       seo_city_publish_missing: { Args: { _city_slug: string }; Returns: Json }
       seo_city_retry_errors: { Args: { _city_slug: string }; Returns: number }
@@ -12119,6 +12281,21 @@ export type Database = {
       }
       seo_orchestrator_try_lock: { Args: never; Returns: boolean }
       seo_orchestrator_unlock: { Args: never; Returns: boolean }
+      seo_page_optim_history: {
+        Args: { _limit?: number; _page_id: string }
+        Returns: {
+          error: string
+          finished_at: string
+          fixed_actions: string[]
+          mode: string
+          qa_after: number
+          qa_before: number
+          run_id: string
+          skip_reason: string
+          status: string
+          task_id: string
+        }[]
+      }
       seo_page_publish: { Args: { _page_id: string }; Returns: Json }
       seo_page_save: { Args: { _page_id: string; _patch: Json }; Returns: Json }
       seo_pipeline_cancel: { Args: { _run_id: string }; Returns: undefined }
