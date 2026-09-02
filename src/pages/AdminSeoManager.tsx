@@ -21,6 +21,8 @@ import CommandCenter from "@/components/seo/CommandCenter";
 import CopilotDashboard from "@/components/seo/CopilotDashboard";
 import ImproveDialog from "@/components/seo/ImproveDialog";
 import OptimizeDialog from "@/components/seo/OptimizeDialog";
+import BulkOptimizationPanel from "@/components/seo/BulkOptimizationPanel";
+import PageHistoryDialog from "@/components/seo/PageHistoryDialog";
 import OptimizationEngine from "@/components/seo/OptimizationEngine";
 import RecommendationCard, { type Reco } from "@/components/seo/RecommendationCard";
 import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
