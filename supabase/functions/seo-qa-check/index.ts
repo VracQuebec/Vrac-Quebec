@@ -410,6 +410,12 @@ Deno.serve(async (req) => {
       qa_last_checked_at: new Date().toISOString(),
       qa_blockers: blockers,
       qa_breakdown: checks,
+      // Keep the SEO Manager dashboards (Analyse SEO, centre de contrôle massif)
+      // aligned with the real, freshly computed score.
+      seo_score: score,
+      last_analyzed_at: new Date().toISOString(),
+      needs_refresh: blockers.length > 0 || score < 65,
+      refresh_reason: blockers.length ? `qa:${blockers.slice(0, 3).join(",")}` : null,
     };
     if (shouldDemote) updates.status = "draft";
     await supabase.from("seo_pages").update(updates).eq("id", pageId);
