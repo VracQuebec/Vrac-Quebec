@@ -21,6 +21,8 @@ import CommandCenter from "@/components/seo/CommandCenter";
 import CopilotDashboard from "@/components/seo/CopilotDashboard";
 import ImproveDialog from "@/components/seo/ImproveDialog";
 import OptimizeDialog from "@/components/seo/OptimizeDialog";
+import BulkOptimizationPanel from "@/components/seo/BulkOptimizationPanel";
+import PageHistoryDialog from "@/components/seo/PageHistoryDialog";
 import OptimizationEngine from "@/components/seo/OptimizationEngine";
 import RecommendationCard, { type Reco } from "@/components/seo/RecommendationCard";
 import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
@@ -1159,6 +1161,7 @@ function AnalyticsTab() {
   }, [patchRow]);
 
   const [optimizeTarget, setOptimizeTarget] = useState<Page | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<Page | null>(null);
 
   const markStart = async (page: Page, kind: "analyze" | "regenerate") => {
     const startedAt = new Date().toISOString();
@@ -1226,8 +1229,11 @@ function AnalyticsTab() {
 
   return (
     <div className="space-y-5">
+      {/* Centre de contrôle massif : analyse, optimisation et rafraîchissement par lots */}
+      <BulkOptimizationPanel onProgress={() => { void load(); }} />
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <StatCard label="Score moyen" value={stats.avg} />
+        <StatCard label="Score moyen (échantillon)" value={stats.avg} />
         <StatCard label="Excellent (85+)" value={stats.excellent} />
         <StatCard label="Bon (65-84)" value={stats.good} />
         <StatCard label="À améliorer" value={stats.weak} />
@@ -1304,6 +1310,11 @@ function AnalyticsTab() {
                       <Link to={`/${r.slug}`} target="_blank" className="text-primary hover:underline text-xs inline-flex items-center gap-1">
                         <ExternalLink className="w-3 h-3" /> Voir
                       </Link>
+                      <button type="button" onClick={() => setHistoryTarget(r)}
+                        title="Voir l'historique des optimisations de cette page"
+                        className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border font-display font-semibold hover:bg-secondary">
+                        <RotateCcw className="w-3 h-3" /> Historique
+                      </button>
                       <button type="button" onClick={() => openOptimize(r)} disabled={busy}
                         title="Analyser, corriger les critères en échec et recalculer le score réel"
                         className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-primary text-primary-foreground font-display font-semibold hover:opacity-90 disabled:opacity-50">
@@ -1326,6 +1337,14 @@ function AnalyticsTab() {
           pageTitle={optimizeTarget.title}
           onClose={() => setOptimizeTarget(null)}
           onFinished={() => { void refreshRow(optimizeTarget.id); }}
+        />
+      )}
+
+      {historyTarget && (
+        <PageHistoryDialog
+          pageId={historyTarget.id}
+          pageTitle={historyTarget.title}
+          onClose={() => setHistoryTarget(null)}
         />
       )}
     </div>
