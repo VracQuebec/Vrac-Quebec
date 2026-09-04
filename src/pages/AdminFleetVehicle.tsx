@@ -18,12 +18,18 @@ import {
   type CheckValue, type Cost, type FleetEvent, type Inspection, type Maintenance,
   type Part, type Repair, type Vehicle,
 } from "@/lib/fleet/api";
+import { TRUCK_TYPE_LABELS } from "@/lib/calendar-utils";
 import type { Driver } from "@/lib/calendar-utils";
 import { useToast } from "@/hooks/use-toast";
 import FleetDocuments from "@/components/fleet/FleetDocuments";
 import CompleteDialog from "@/components/fleet/CompleteDialog";
 import { Input } from "@/components/ui/input";
 import { setStatus, type CrmNotification } from "@/lib/notifications/api";
+
+const FLEET_REF_LABELS: Record<string, string> = {
+  entretien: "Entretien", reparation: "Réparation",
+  inspection: "Inspection", echeance: "Échéance",
+};
 
 const TABS = [
   { key: "infos", label: "Informations" },
@@ -168,7 +174,7 @@ export default function AdminFleetVehicle() {
           <div className="rounded-xl border border-border bg-card p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
             <Info label="Nom" value={vehicle.name} />
             <Info label="Numéro d'unité" value={vehicle.unit_number} />
-            <Info label="Type" value={vehicle.type} />
+            <Info label="Type" value={TRUCK_TYPE_LABELS[vehicle.type] ?? vehicle.type} />
             <Info label="Marque" value={vehicle.make} />
             <Info label="Modèle" value={vehicle.model} />
             <Info label="Année" value={vehicle.year} />
@@ -318,7 +324,9 @@ export default function AdminFleetVehicle() {
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <Button size="sm" variant="outline" onClick={() => setInspDialog({ open: true, record: i })}>Ouvrir</Button>
-                      {i.has_problem && <Button size="sm" onClick={() => convert(i)}>Créer une réparation</Button>}
+                      {i.has_problem && !repairs.some((r) => r.inspection_id === i.id) && (
+                        <Button size="sm" onClick={() => convert(i)}>Créer une réparation</Button>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-2">
@@ -395,16 +403,16 @@ export default function AdminFleetVehicle() {
 
         {tab === "calendrier" && (
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
-            {events.map((e) => (
+            {events.filter((e) => e.status !== "termine" && e.status !== "annule").map((e) => (
               <Link key={e.id} to={`/admin/calendrier?event=${e.id}`} className="p-3 flex justify-between gap-3 hover:bg-secondary/50">
                 <div>
                   <div className="text-sm font-body">{e.title}</div>
-                  <div className="text-xs text-muted-foreground">{dateLabel(e.start_at)} · {e.fleet_ref_type}</div>
+                  <div className="text-xs text-muted-foreground">{dateLabel(e.start_at)} · {FLEET_REF_LABELS[e.fleet_ref_type ?? ""] ?? e.fleet_ref_type}</div>
                 </div>
                 <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
               </Link>
             ))}
-            {!events.length && <p className="p-4 text-sm text-muted-foreground font-body">Aucun événement au calendrier pour ce véhicule.</p>}
+            {!events.filter((e) => e.status !== "termine" && e.status !== "annule").length && <p className="p-4 text-sm text-muted-foreground font-body">Aucun événement au calendrier pour ce véhicule.</p>}
           </div>
         )}
         {tab === "journal" && (
