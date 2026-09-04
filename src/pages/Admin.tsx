@@ -663,6 +663,9 @@ const Admin = () => {
             <Link to="/admin/calendrier" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <CalendarDays className="w-4 h-4" /> Calendrier
             </Link>
+            <Link to="/admin/flotte" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
+              <Truck className="w-4 h-4" /> Flotte
+            </Link>
             <Link to="/admin/demandes-acces" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
               <Truck className="w-4 h-4" /> Demandes d'accès
             </Link>
