@@ -366,8 +366,10 @@ export function buildTodo(maint: Maintenance[], repairs: Repair[], inspections: 
       priority: r.priority, status: REPAIR_STATUS_LABELS[r.status] ?? r.status, late,
     });
   }
+  const converted = new Set(repairs.map((r) => r.inspection_id).filter(Boolean) as string[]);
   for (const i of inspections) {
-    if (!i.has_problem) continue;
+    // Un problème déjà transformé en réparation n'apparaît qu'une seule fois.
+    if (!i.has_problem || converted.has(i.id)) continue;
     items.push({
       id: i.id, kind: "inspection", vehicleId: i.vehicle_id,
       work: i.comment || "Problème signalé à l'inspection",
