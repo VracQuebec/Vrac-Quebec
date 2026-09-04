@@ -429,7 +429,13 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
         comment: comment || null,
         signature: signature || null,
       } as never);
-      toast({ title: "Inspection enregistrée" });
+      const problems = Object.values(checks).filter((v) => v === "probleme").length;
+      toast({
+        title: "Inspection enregistrée",
+        description: problems
+          ? `${problems} problème(s) transformé(s) en réparation à planifier.`
+          : undefined,
+      });
       onOpenChange(false); onSaved();
     } catch (e) {
       toast({ title: "Enregistrement impossible", description: (e as Error).message, variant: "destructive" });
@@ -490,8 +496,20 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
 
           <Field label="Commentaire"><Textarea rows={2} value={comment} onChange={(e) => setComment(e.target.value)} /></Field>
           <Field label="Signature (nom)"><Input value={signature} onChange={(e) => setSignature(e.target.value)} /></Field>
+          {record && <FleetDocuments ownerType="fleet_inspection" ownerId={record.id} label="Photos et rapports" />}
         </div>
         <DialogFooter>
+          {record && (
+            <DeleteButton label="Supprimer cette inspection ?" onDelete={async () => {
+              try {
+                await deleteRow("fleet_inspections", record.id);
+                toast({ title: "Inspection supprimée" });
+                onOpenChange(false); onSaved();
+              } catch (e) {
+                toast({ title: "Suppression impossible", description: (e as Error).message, variant: "destructive" });
+              }
+            }} />
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={save} disabled={busy}>Enregistrer</Button>
         </DialogFooter>
