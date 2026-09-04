@@ -79,6 +79,8 @@ export default function AdminFleet() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
+      // Balayage des échéances → alimente le centre de notifications EXISTANT.
+      await scanDue().catch(() => undefined);
       const [v, d, m, r, i, c, e] = await Promise.all([
         fetchVehicles(),
         supabase.from("drivers").select("*").order("name"),
@@ -273,18 +275,21 @@ export default function AdminFleet() {
         {tab === "inspections" && (
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
             {inspections.map((i) => (
-              <button key={i.id} onClick={() => setInspDialog({ open: true, record: i })} className="w-full text-left p-3 hover:bg-secondary/50">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-display font-semibold truncate">{vName(i.vehicle_id)}</div>
-                    <div className="text-xs text-muted-foreground font-body truncate">{i.comment || "Inspection quotidienne"}</div>
-                  </div>
-                  <div className="text-right shrink-0">
+              <div key={i.id} className="p-3 flex items-center justify-between gap-3">
+                <button onClick={() => setInspDialog({ open: true, record: i })} className="min-w-0 text-left flex-1">
+                  <div className="text-sm font-display font-semibold truncate">{vName(i.vehicle_id)}</div>
+                  <div className="text-xs text-muted-foreground font-body truncate">{i.comment || "Inspection quotidienne"}</div>
+                </button>
+                <div className="text-right shrink-0 flex items-center gap-2">
+                  <div>
                     <div className="text-xs text-muted-foreground">{dateLabel(i.inspected_on)}</div>
                     {i.has_problem && <div className="text-xs font-display font-semibold text-destructive">Problème</div>}
                   </div>
+                  <Link to={`/admin/flotte/vehicule/${i.vehicle_id}?tab=inspections`}>
+                    <Button size="sm" variant="outline">Ouvrir</Button>
+                  </Link>
                 </div>
-              </button>
+              </div>
             ))}
             {!inspections.length && !loading && <p className="p-4 text-sm text-muted-foreground font-body">Aucune inspection.</p>}
           </div>
