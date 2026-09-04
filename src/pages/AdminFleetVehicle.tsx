@@ -13,12 +13,16 @@ import {
 import {
   buildTodo, CHECK_LABELS, costTotals, dateLabel, fetchCosts, fetchFleetEvents,
   fetchInspections, fetchMaintenance, fetchParts, fetchRepairs, inspectionToRepair,
-  money, PRIORITY_LABELS, REPAIR_STATUS_LABELS, SERVICE_STATUS_LABELS, vehicleLabel,
+  money, PRIORITY_LABELS, REPAIR_STATUS_LABELS, SERVICE_STATUS_LABELS,
+  updateVehicleReadings, vehicleLabel,
   type CheckValue, type Cost, type FleetEvent, type Inspection, type Maintenance,
   type Part, type Repair, type Vehicle,
 } from "@/lib/fleet/api";
 import type { Driver } from "@/lib/calendar-utils";
 import { useToast } from "@/hooks/use-toast";
+import FleetDocuments from "@/components/fleet/FleetDocuments";
+import { Input } from "@/components/ui/input";
+import { setStatus, type CrmNotification } from "@/lib/notifications/api";
 
 const TABS = [
   { key: "infos", label: "Informations" },
@@ -29,6 +33,8 @@ const TABS = [
   { key: "historique", label: "Historique" },
   { key: "couts", label: "Coûts" },
   { key: "afaire", label: "À faire" },
+  { key: "alertes", label: "Alertes" },
+  { key: "documents", label: "Documents" },
   { key: "calendrier", label: "Calendrier" },
 ] as const;
 
@@ -49,6 +55,8 @@ export default function AdminFleetVehicle() {
   const [parts, setParts] = useState<Part[]>([]);
   const [costs, setCosts] = useState<Cost[]>([]);
   const [events, setEvents] = useState<FleetEvent[]>([]);
+  const [alerts, setAlerts] = useState<CrmNotification[]>([]);
+  const [readings, setReadings] = useState({ km: "", hours: "" });
   const [loading, setLoading] = useState(true);
 
   const [vehicleDialog, setVehicleDialog] = useState(false);
@@ -73,6 +81,18 @@ export default function AdminFleetVehicle() {
       setVehicle((v.data as Vehicle) ?? null);
       setDrivers((d.data as Driver[]) ?? []);
       setMaint(m); setRepairs(r); setInspections(i); setParts(p); setCosts(c); setEvents(e);
+      const veh = (v.data as Vehicle) ?? null;
+      setReadings({
+        km: veh?.odometer_km != null ? String(veh.odometer_km) : "",
+        hours: veh?.engine_hours != null ? String(veh.engine_hours) : "",
+      });
+      // Alertes : centre de notifications EXISTANT, filtré sur les éléments de ce véhicule.
+      const refIds = new Set<string>([id, ...m.map((x) => x.id), ...r.map((x) => x.id), ...i.map((x) => x.id)]);
+      const { data: notif } = await supabase
+        .from("crm_notifications").select("*").like("dedupe_key", "fleet:%")
+        .order("created_at", { ascending: false }).limit(200);
+      setAlerts(((notif ?? []) as unknown as CrmNotification[])
+        .filter((n) => [...refIds].some((rid) => n.dedupe_key.includes(rid))));
     } catch (err) {
       toast({ title: "Chargement impossible", description: (err as Error).message, variant: "destructive" });
     } finally { setLoading(false); }
@@ -153,6 +173,57 @@ export default function AdminFleetVehicle() {
             <Info label="Statut" value={SERVICE_STATUS_LABELS[vehicle.service_status ?? "en_service"]} />
             <Info label="Ajouté le" value={dateLabel(vehicle.created_at)} />
             <div className="col-span-2 sm:col-span-3"><Info label="Notes" value={vehicle.notes} /></div>
+            <div className="col-span-2 sm:col-span-3 border-t border-border pt-4">
+              <div className="text-xs text-muted-foreground font-body mb-2">Mise à jour rapide des relevés</div>
+              <div className="flex flex-wrap items-end gap-2">
+                <div>
+                  <div className="text-[11px] text-muted-foreground font-body">Kilométrage</div>
+                  <Input inputMode="numeric" className="w-36" value={readings.km}
+                    onChange={(e) => setReadings({ ...readings, km: e.target.value })} />
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground font-body">Heures moteur</div>
+                  <Input inputMode="numeric" className="w-36" value={readings.hours}
+                    onChange={(e) => setReadings({ ...readings, hours: e.target.value })} />
+                </div>
+                <Button size="sm" onClick={async () => {
+                  try {
+                    await updateVehicleReadings(id, readings.km ? Number(readings.km) : null,
+                      readings.hours ? Number(readings.hours) : null);
+                    toast({ title: "Relevés mis à jour" });
+                    load();
+                  } catch (e) {
+                    toast({ title: "Mise à jour impossible", description: (e as Error).message, variant: "destructive" });
+                  }
+                }}>Enregistrer</Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "documents" && (
+          <div className="rounded-xl border border-border bg-card p-4">
+            <FleetDocuments ownerType="fleet_vehicle" ownerId={id} label="Documents du véhicule" />
+          </div>
+        )}
+
+        {tab === "alertes" && (
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {alerts.map((n) => (
+              <div key={n.id} className="p-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-body truncate">{n.title}</div>
+                  <div className="text-xs text-muted-foreground">{dateLabel(n.created_at)} · {n.status === "done" ? "Résolue" : n.status === "unread" ? "Non lue" : "Lue"}</div>
+                </div>
+                {n.status !== "done" && (
+                  <Button size="sm" variant="outline" onClick={async () => {
+                    await setStatus(n.id, "done");
+                    load();
+                  }}>Marquer résolue</Button>
+                )}
+              </div>
+            ))}
+            {!alerts.length && <p className="p-4 text-sm text-muted-foreground font-body">Aucune alerte pour ce véhicule.</p>}
           </div>
         )}
 
