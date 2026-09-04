@@ -431,7 +431,17 @@ export default function AdminFleetVehicle() {
       </main>
 
       <CompleteDialog target={complete} onOpenChange={(o) => !o && setComplete(null)} onSaved={load} />
-      <VehicleDialog open={vehicleDialog} onOpenChange={setVehicleDialog} vehicle={vehicle} onSaved={load} />
+      <VehicleDialog
+        open={vehicleDialog}
+        onOpenChange={setVehicleDialog}
+        vehicle={vehicle}
+        onSaved={async () => {
+          // Après une suppression, la fiche n'existe plus : on revient à la liste.
+          const { data } = await supabase.from("trucks").select("id").eq("id", id!).maybeSingle();
+          if (!data) navigate("/admin/flotte?tab=vehicules");
+          else load();
+        }}
+      />
       <MaintenanceDialog open={maintDialog.open} onOpenChange={(o) => setMaintDialog({ open: o })}
         vehicles={vehicle ? [vehicle] : []} vehicleId={id} record={maintDialog.record} onSaved={load} />
       <RepairDialog open={repairDialog.open} onOpenChange={(o) => setRepairDialog({ open: o })}
