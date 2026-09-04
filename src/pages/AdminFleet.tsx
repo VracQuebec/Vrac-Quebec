@@ -116,7 +116,7 @@ export default function AdminFleet() {
         .some((s) => String(s).toLowerCase().includes(q)));
   }, [vehicles, search]);
 
-  if (!isReady || roleLoading) return <FullPageState variant="loading" title="Chargement…" />;
+  if (!isReady || roleLoading) return <FullPageState title="Chargement de la flotte" />;
   if (!isAdmin) return null;
 
   const runScan = async () => {
