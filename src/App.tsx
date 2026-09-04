@@ -21,6 +21,8 @@ const Login = lazy(() => import("./pages/Login"));
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminData = lazy(() => import("./pages/AdminData"));
 const AdminCalendar = lazy(() => import("./pages/AdminCalendar"));
+const AdminFleet = lazy(() => import("./pages/AdminFleet"));
+const AdminFleetVehicle = lazy(() => import("./pages/AdminFleetVehicle"));
 const Entrepreneur = lazy(() => import("./pages/Entrepreneur"));
 const EntrepreneurDashboard = lazy(() => import("./pages/EntrepreneurDashboard"));
 const EntrepreneurDemandes = lazy(() => import("./pages/EntrepreneurDemandes"));
