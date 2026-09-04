@@ -112,7 +112,12 @@ export default function AdminFleet() {
     maintLate: todo.filter((t) => t.kind === "entretien" && t.late).length,
     urgentRepairs: repairs.filter((r) => r.priority === "urgente" && r.status !== "terminee").length,
     inspectionsSoon: events.filter((e) => e.fleet_ref_type === "inspection" && e.start_at >= today).length,
-    problems: inspections.filter((i) => i.has_problem).length,
+    // Problèmes encore ouverts : la réparation liée n'est pas terminée.
+    problems: inspections.filter((i) => {
+      if (!i.has_problem) return false;
+      const linked = repairs.filter((r) => r.inspection_id === i.id);
+      return !linked.length || linked.some((r) => r.status !== "terminee");
+    }).length,
   }), [vehicles, todo, repairs, events, inspections, today]);
 
   const filteredTodo = useMemo(() => todo.filter((t) => {

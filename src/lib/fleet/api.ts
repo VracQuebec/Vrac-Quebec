@@ -599,6 +599,9 @@ export async function completeRepair(repair: Repair, input: CompletionInput) {
     notes: input.notes ?? repair.notes,
   } as never).eq("id", repair.id);
   if (error) throw error;
+  if (repair.calendar_event_id) {
+    await supabase.from("calendar_events").update({ status: "termine" } as never).eq("id", repair.calendar_event_id);
+  }
   await updateVehicleReadings(repair.vehicle_id, input.odometerKm, input.engineHours, false);
   // L'alerte se referme automatiquement (déclencheur `fleet_notify_repair`).
   await logChange("fleet_repair", repair.id, "update", "Statut", REPAIR_STATUS_LABELS[repair.status], "Terminée");
