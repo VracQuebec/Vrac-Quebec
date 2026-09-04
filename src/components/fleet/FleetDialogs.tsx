@@ -187,6 +187,10 @@ export function MaintenanceDialog({ open, onOpenChange, vehicles, vehicleId, rec
       next_type: record?.next_type ?? "",
       next_due_date: record?.next_due_date ?? "",
       next_due_km: record?.next_due_km != null ? String(record.next_due_km) : "",
+      next_due_hours: record?.next_due_hours != null ? String(record.next_due_hours) : "",
+      alert_days_before: String(record?.alert_days_before ?? 14),
+      alert_km_margin: String(record?.alert_km_margin ?? 2000),
+      alert_hours_margin: String(record?.alert_hours_margin ?? 100),
       notes: record?.notes ?? "",
       document_url: record?.document_url ?? "",
     });
@@ -211,6 +215,10 @@ export function MaintenanceDialog({ open, onOpenChange, vehicles, vehicleId, rec
         next_type: f.next_type || null,
         next_due_date: f.next_due_date || null,
         next_due_km: f.next_due_km ? Number(f.next_due_km) : null,
+        next_due_hours: f.next_due_hours ? Number(f.next_due_hours) : null,
+        alert_days_before: f.alert_days_before ? Number(f.alert_days_before) : 14,
+        alert_km_margin: f.alert_km_margin ? Number(f.alert_km_margin) : 2000,
+        alert_hours_margin: f.alert_hours_margin ? Number(f.alert_hours_margin) : 100,
         notes: f.notes || null,
         document_url: f.document_url || null,
       } as never);
@@ -245,6 +253,11 @@ export function MaintenanceDialog({ open, onOpenChange, vehicles, vehicleId, rec
           <Field label="Prochain entretien"><Input value={f.next_type ?? ""} onChange={(e) => setF({ ...f, next_type: e.target.value })} /></Field>
           <Field label="Prochaine date (calendrier)"><Input type="date" value={f.next_due_date ?? ""} onChange={(e) => setF({ ...f, next_due_date: e.target.value })} /></Field>
           <Field label="Prochain kilométrage"><Input inputMode="numeric" value={f.next_due_km ?? ""} onChange={(e) => setF({ ...f, next_due_km: e.target.value })} /></Field>
+          <Field label="Prochaines heures moteur"><Input inputMode="numeric" value={f.next_due_hours ?? ""} onChange={(e) => setF({ ...f, next_due_hours: e.target.value })} /></Field>
+          <div className="col-span-2 text-xs font-body text-muted-foreground">Rappel : alerte déclenchée avant l'échéance</div>
+          <Field label="Jours d'avance"><Input inputMode="numeric" value={f.alert_days_before ?? ""} onChange={(e) => setF({ ...f, alert_days_before: e.target.value })} /></Field>
+          <Field label="Marge (km)"><Input inputMode="numeric" value={f.alert_km_margin ?? ""} onChange={(e) => setF({ ...f, alert_km_margin: e.target.value })} /></Field>
+          <Field label="Marge (heures)"><Input inputMode="numeric" value={f.alert_hours_margin ?? ""} onChange={(e) => setF({ ...f, alert_hours_margin: e.target.value })} /></Field>
           <div className="col-span-2"><Field label="Facture / document (lien)"><Input value={f.document_url ?? ""} onChange={(e) => setF({ ...f, document_url: e.target.value })} /></Field></div>
           <div className="col-span-2"><Field label="Notes"><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
           {record && <div className="col-span-2"><FleetDocuments ownerType="fleet_maintenance" ownerId={record.id} label="Factures et documents" /></div>}
