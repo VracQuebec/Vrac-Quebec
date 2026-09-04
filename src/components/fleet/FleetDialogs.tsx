@@ -137,8 +137,23 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
           <div className="col-span-2">
             <Field label="Notes"><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
           </div>
+          {vehicle && <div className="col-span-2"><FleetDocuments ownerType="fleet_vehicle" ownerId={vehicle.id} /></div>}
         </div>
         <DialogFooter>
+          {vehicle && (
+            <DeleteButton
+              label="Supprimer ce véhicule ?"
+              onDelete={async () => {
+                try {
+                  await deleteVehicle(vehicle.id);
+                  toast({ title: "Véhicule supprimé" });
+                  onOpenChange(false); onSaved();
+                } catch (e) {
+                  toast({ title: "Suppression impossible", description: (e as Error).message, variant: "destructive" });
+                }
+              }}
+            />
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={save} disabled={busy}>Enregistrer</Button>
         </DialogFooter>
@@ -232,8 +247,20 @@ export function MaintenanceDialog({ open, onOpenChange, vehicles, vehicleId, rec
           <Field label="Prochain kilométrage"><Input inputMode="numeric" value={f.next_due_km ?? ""} onChange={(e) => setF({ ...f, next_due_km: e.target.value })} /></Field>
           <div className="col-span-2"><Field label="Facture / document (lien)"><Input value={f.document_url ?? ""} onChange={(e) => setF({ ...f, document_url: e.target.value })} /></Field></div>
           <div className="col-span-2"><Field label="Notes"><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
+          {record && <div className="col-span-2"><FleetDocuments ownerType="fleet_maintenance" ownerId={record.id} label="Factures et documents" /></div>}
         </div>
         <DialogFooter>
+          {record && (
+            <DeleteButton label="Supprimer cet entretien ?" onDelete={async () => {
+              try {
+                await deleteRow("fleet_maintenance", record.id);
+                toast({ title: "Entretien supprimé" });
+                onOpenChange(false); onSaved();
+              } catch (e) {
+                toast({ title: "Suppression impossible", description: (e as Error).message, variant: "destructive" });
+              }
+            }} />
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={save} disabled={busy}>Enregistrer</Button>
         </DialogFooter>
@@ -339,8 +366,20 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
           <Field label="Garage / fournisseur"><Input value={f.supplier ?? ""} onChange={(e) => setF({ ...f, supplier: e.target.value })} /></Field>
           <div className="col-span-2"><Field label="Description"><Textarea rows={2} value={f.description ?? ""} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field></div>
           <div className="col-span-2"><Field label="Notes"><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
+          {record && <div className="col-span-2"><FleetDocuments ownerType="fleet_repair" ownerId={record.id} label="Factures et documents" /></div>}
         </div>
         <DialogFooter>
+          {record && (
+            <DeleteButton label="Supprimer cette réparation ?" onDelete={async () => {
+              try {
+                await deleteRow("fleet_repairs", record.id);
+                toast({ title: "Réparation supprimée" });
+                onOpenChange(false); onSaved();
+              } catch (e) {
+                toast({ title: "Suppression impossible", description: (e as Error).message, variant: "destructive" });
+              }
+            }} />
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={save} disabled={busy}>Enregistrer</Button>
         </DialogFooter>
