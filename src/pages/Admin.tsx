@@ -718,6 +718,9 @@ const Admin = () => {
                 <Link to="/admin/calendrier" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
                   <CalendarDays className="w-4 h-4" /> Calendrier
                 </Link>
+                <Link to="/admin/flotte" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
+                  <Truck className="w-4 h-4" /> Gestion de la flotte
+                </Link>
                 <Link to="/admin/business-intelligence" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-primary font-semibold hover:bg-secondary">
                   <TrendingUp className="w-4 h-4" /> Business Intelligence
                 </Link>
