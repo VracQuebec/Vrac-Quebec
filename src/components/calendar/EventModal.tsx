@@ -110,6 +110,15 @@ export default function EventModal({ open, onOpenChange, initial, trucks, driver
         <DialogHeader>
           <DialogTitle>{form.id ? "Modifier l'événement" : "Planifier une livraison"}</DialogTitle>
         </DialogHeader>
+        {form.fleet_ref_type && form.vehicle_id && (
+          <Link
+            to={`/admin/flotte/vehicule/${form.vehicle_id}`}
+            className="flex items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-body text-primary"
+          >
+            <TruckIcon className="w-4 h-4" />
+            Voir la fiche du véhicule ({form.fleet_ref_type})
+          </Link>
+        )}
 
         <div className="grid gap-4 py-2">
           <Section title="Informations générales">
