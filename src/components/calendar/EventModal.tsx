@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Truck as TruckIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   CalendarEvent, Truck, Driver, EVENT_STATUSES, STATUS_LABELS,
   TRUCK_TYPE_LABELS, toLocalInput,
@@ -110,6 +111,15 @@ export default function EventModal({ open, onOpenChange, initial, trucks, driver
         <DialogHeader>
           <DialogTitle>{form.id ? "Modifier l'événement" : "Planifier une livraison"}</DialogTitle>
         </DialogHeader>
+        {form.fleet_ref_type && form.vehicle_id && (
+          <Link
+            to={`/admin/flotte/vehicule/${form.vehicle_id}`}
+            className="flex items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-body text-primary"
+          >
+            <TruckIcon className="w-4 h-4" />
+            Voir la fiche du véhicule ({form.fleet_ref_type})
+          </Link>
+        )}
 
         <div className="grid gap-4 py-2">
           <Section title="Informations générales">

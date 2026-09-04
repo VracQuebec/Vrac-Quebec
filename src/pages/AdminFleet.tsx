@@ -1,0 +1,369 @@
+// GESTION DE LA FLOTTE — module interne (back-office Vrac Québec).
+// Réutilise : rôles admin existants, calendrier `calendar_events`, notifications CRM.
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useUserRoles } from "@/hooks/useUserRole";
+import FullPageState from "@/components/FullPageState";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  ArrowLeft, CalendarDays, Plus, RefreshCw, Truck as TruckIcon, Wrench,
+  ClipboardCheck, AlertTriangle, History, DollarSign, LayoutDashboard, Bell,
+} from "lucide-react";
+import {
+  InspectionDialog, MaintenanceDialog, RepairDialog, VehicleDialog,
+} from "@/components/fleet/FleetDialogs";
+import {
+  buildTodo, costTotals, dateLabel, fetchCosts, fetchFleetEvents, fetchInspections,
+  fetchMaintenance, fetchRepairs, fetchVehicles, money, PRIORITY_LABELS,
+  REPAIR_STATUS_LABELS, scanDue, SERVICE_STATUS_LABELS, vehicleLabel,
+  type Cost, type FleetEvent, type Inspection, type Maintenance, type Repair, type Vehicle,
+} from "@/lib/fleet/api";
+import type { Driver } from "@/lib/calendar-utils";
+import { useToast } from "@/hooks/use-toast";
+
+const TABS = [
+  { key: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+  { key: "vehicules", label: "Véhicules", icon: TruckIcon },
+  { key: "entretien", label: "Entretien", icon: Wrench },
+  { key: "reparations", label: "Réparations", icon: AlertTriangle },
+  { key: "inspections", label: "Inspections", icon: ClipboardCheck },
+  { key: "afaire", label: "À faire bientôt", icon: Bell },
+  { key: "historique", label: "Historique", icon: History },
+  { key: "couts", label: "Coûts", icon: DollarSign },
+] as const;
+
+type TabKey = typeof TABS[number]["key"];
+
+function Kpi({ label, value, tone, to }: { label: string; value: string; tone?: string; to?: string }) {
+  const body = (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="text-xs font-body text-muted-foreground">{label}</div>
+      <div className={`text-2xl font-display font-bold mt-1 ${tone ?? "text-foreground"}`}>{value}</div>
+    </div>
+  );
+  return to ? <Link to={to}>{body}</Link> : body;
+}
+
+export default function AdminFleet() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user, isReady } = useAuthReady();
+  const { isAdmin, loading: roleLoading } = useUserRoles(user, isReady);
+  const [params, setParams] = useSearchParams();
+  const tab = (params.get("tab") as TabKey) || "dashboard";
+  const setTab = (t: TabKey) => setParams({ tab: t }, { replace: true });
+
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [maint, setMaint] = useState<Maintenance[]>([]);
+  const [repairs, setRepairs] = useState<Repair[]>([]);
+  const [inspections, setInspections] = useState<Inspection[]>([]);
+  const [costs, setCosts] = useState<Cost[]>([]);
+  const [events, setEvents] = useState<FleetEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  const [vehicleDialog, setVehicleDialog] = useState(false);
+  const [maintDialog, setMaintDialog] = useState<{ open: boolean; record?: Maintenance | null }>({ open: false });
+  const [repairDialog, setRepairDialog] = useState<{ open: boolean; record?: Repair | null }>({ open: false });
+  const [inspDialog, setInspDialog] = useState<{ open: boolean; record?: Inspection | null }>({ open: false });
+
+  useEffect(() => {
+    if (!isReady || roleLoading) return;
+    if (!user || !isAdmin) navigate("/login", { replace: true });
+  }, [isReady, roleLoading, user, isAdmin, navigate]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [v, d, m, r, i, c, e] = await Promise.all([
+        fetchVehicles(),
+        supabase.from("drivers").select("*").order("name"),
+        fetchMaintenance(), fetchRepairs(), fetchInspections(), fetchCosts(), fetchFleetEvents(),
+      ]);
+      setVehicles(v);
+      setDrivers((d.data as Driver[]) ?? []);
+      setMaint(m); setRepairs(r); setInspections(i); setCosts(c); setEvents(e);
+    } catch (err) {
+      toast({ title: "Chargement impossible", description: (err as Error).message, variant: "destructive" });
+    } finally { setLoading(false); }
+  }, [toast]);
+
+  useEffect(() => { if (isAdmin) load(); }, [isAdmin, load]);
+
+  const byId = useMemo(() => new Map(vehicles.map((v) => [v.id, v])), [vehicles]);
+  const todo = useMemo(() => buildTodo(maint, repairs, inspections), [maint, repairs, inspections]);
+  const totals = useMemo(() => costTotals(costs), [costs]);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const stats = useMemo(() => ({
+    inService: vehicles.filter((v) => (v.service_status ?? "en_service") === "en_service").length,
+    maintSoon: todo.filter((t) => t.kind === "entretien" && !t.late).length,
+    maintLate: todo.filter((t) => t.kind === "entretien" && t.late).length,
+    urgentRepairs: repairs.filter((r) => r.priority === "urgente" && r.status !== "terminee").length,
+    inspectionsSoon: events.filter((e) => e.fleet_ref_type === "inspection" && e.start_at >= today).length,
+    problems: inspections.filter((i) => i.has_problem).length,
+  }), [vehicles, todo, repairs, events, inspections, today]);
+
+  const filteredVehicles = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return vehicles;
+    return vehicles.filter((v) =>
+      [v.name, v.unit_number, v.plate, v.make, v.model].filter(Boolean)
+        .some((s) => String(s).toLowerCase().includes(q)));
+  }, [vehicles, search]);
+
+  if (!isReady || roleLoading) return <FullPageState title="Chargement de la flotte" />;
+  if (!isAdmin) return null;
+
+  const runScan = async () => {
+    try {
+      await scanDue();
+      toast({ title: "Échéances vérifiées", description: "Les alertes ont été mises à jour dans les notifications." });
+    } catch (e) {
+      toast({ title: "Vérification impossible", description: (e as Error).message, variant: "destructive" });
+    }
+  };
+
+  const vName = (id: string) => vehicleLabel(byId.get(id));
+
+  return (
+    <div className="min-h-screen bg-background pb-16">
+      <header className="sticky top-0 z-20 bg-card border-b border-border">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Link to="/admin" className="p-2 -ml-2 rounded-lg hover:bg-secondary" aria-label="Retour à l'administration">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <TruckIcon className="w-5 h-5 text-primary shrink-0" />
+            <h1 className="font-display font-bold text-base sm:text-xl truncate">Gestion de la flotte</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={runScan}>
+              <RefreshCw className="w-4 h-4 sm:mr-1.5" /><span className="hidden sm:inline">Vérifier les échéances</span>
+            </Button>
+            <Link to="/admin/calendrier">
+              <Button variant="outline" size="sm"><CalendarDays className="w-4 h-4 sm:mr-1.5" /><span className="hidden sm:inline">Calendrier</span></Button>
+            </Link>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 overflow-x-auto">
+          <div className="flex gap-1 pb-2 min-w-max">
+            {TABS.map((t) => (
+              <button key={t.key} onClick={() => setTab(t.key)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-body whitespace-nowrap ${
+                  tab === t.key ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:bg-secondary"}`}>
+                <t.icon className="w-4 h-4" /> {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-5 space-y-5">
+        {/* Actions rapides */}
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={() => setVehicleDialog(true)}><Plus className="w-4 h-4 mr-1" /> Véhicule</Button>
+          <Button size="sm" variant="outline" onClick={() => setMaintDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Entretien</Button>
+          <Button size="sm" variant="outline" onClick={() => setRepairDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Réparation</Button>
+          <Button size="sm" variant="outline" onClick={() => setInspDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Inspection</Button>
+        </div>
+
+        {loading && <p className="text-sm text-muted-foreground font-body">Chargement…</p>}
+
+        {tab === "dashboard" && (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <Kpi label="Camions en service" value={String(stats.inService)} to="?tab=vehicules" />
+              <Kpi label="Entretiens à venir" value={String(stats.maintSoon)} to="?tab=afaire" />
+              <Kpi label="Entretiens en retard" value={String(stats.maintLate)} tone="text-destructive" to="?tab=afaire" />
+              <Kpi label="Réparations urgentes" value={String(stats.urgentRepairs)} tone="text-destructive" to="?tab=reparations" />
+              <Kpi label="Inspections à venir" value={String(stats.inspectionsSoon)} to="?tab=inspections" />
+              <Kpi label="Problèmes signalés" value={String(stats.problems)} tone="text-amber-500" to="?tab=inspections" />
+              <Kpi label="Coûts du mois" value={money(totals.thisMonth)} to="?tab=couts" />
+              <Kpi label="Coûts de l'année" value={money(totals.thisYear)} to="?tab=couts" />
+            </div>
+            <section className="rounded-xl border border-border bg-card p-4">
+              <h2 className="font-display font-bold mb-3">Prochaines échéances</h2>
+              {todo.slice(0, 8).map((t) => (
+                <Link key={`${t.kind}-${t.id}`} to={`/admin/flotte/vehicule/${t.vehicleId}`}
+                  className="flex items-center justify-between gap-3 py-2 border-b border-border last:border-0">
+                  <div className="min-w-0">
+                    <div className="text-sm font-body truncate">{t.work}</div>
+                    <div className="text-xs text-muted-foreground">{vName(t.vehicleId)} · {dateLabel(t.date)}</div>
+                  </div>
+                  <span className={`text-xs font-display font-semibold ${t.late ? "text-destructive" : "text-muted-foreground"}`}>{t.status}</span>
+                </Link>
+              ))}
+              {!todo.length && <p className="text-sm text-muted-foreground font-body">Aucune échéance.</p>}
+            </section>
+          </div>
+        )}
+
+        {tab === "vehicules" && (
+          <div className="space-y-3">
+            <Input placeholder="Rechercher un véhicule…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredVehicles.map((v) => (
+                <Link key={v.id} to={`/admin/flotte/vehicule/${v.id}`} className="rounded-xl border border-border bg-card p-4 hover:border-primary transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-display font-bold">{vehicleLabel(v)}</div>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-secondary text-muted-foreground font-display">
+                      {SERVICE_STATUS_LABELS[v.service_status ?? "en_service"] ?? v.service_status}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground font-body mt-1">
+                    {[v.make, v.model, v.year].filter(Boolean).join(" ") || "—"}
+                  </div>
+                  <div className="text-xs text-muted-foreground font-body mt-1">
+                    {v.plate ? `Plaque ${v.plate} · ` : ""}{v.odometer_km ? `${Number(v.odometer_km).toLocaleString("fr-CA")} km` : "km non renseigné"}
+                  </div>
+                </Link>
+              ))}
+              {!filteredVehicles.length && !loading && <p className="text-sm text-muted-foreground font-body">Aucun véhicule.</p>}
+            </div>
+          </div>
+        )}
+
+        {tab === "entretien" && (
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {maint.map((m) => (
+              <button key={m.id} onClick={() => setMaintDialog({ open: true, record: m })} className="w-full text-left p-3 hover:bg-secondary/50">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-display font-semibold truncate">{m.maintenance_type}</div>
+                    <div className="text-xs text-muted-foreground font-body">{vName(m.vehicle_id)} · {dateLabel(m.performed_on)}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-sm font-display">{money(m.cost)}</div>
+                    {m.next_due_date && <div className="text-xs text-muted-foreground">Prochain : {dateLabel(m.next_due_date)}</div>}
+                  </div>
+                </div>
+              </button>
+            ))}
+            {!maint.length && !loading && <p className="p-4 text-sm text-muted-foreground font-body">Aucun entretien enregistré.</p>}
+          </div>
+        )}
+
+        {tab === "reparations" && (
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {repairs.map((r) => (
+              <button key={r.id} onClick={() => setRepairDialog({ open: true, record: r })} className="w-full text-left p-3 hover:bg-secondary/50">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-display font-semibold truncate">{r.problem}</div>
+                    <div className="text-xs text-muted-foreground font-body">{vName(r.vehicle_id)} · {dateLabel(r.reported_on)}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className={`text-xs font-display font-semibold ${r.priority === "urgente" ? "text-destructive" : "text-muted-foreground"}`}>
+                      {PRIORITY_LABELS[r.priority] ?? r.priority}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{REPAIR_STATUS_LABELS[r.status] ?? r.status}</div>
+                  </div>
+                </div>
+              </button>
+            ))}
+            {!repairs.length && !loading && <p className="p-4 text-sm text-muted-foreground font-body">Aucune réparation.</p>}
+          </div>
+        )}
+
+        {tab === "inspections" && (
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {inspections.map((i) => (
+              <button key={i.id} onClick={() => setInspDialog({ open: true, record: i })} className="w-full text-left p-3 hover:bg-secondary/50">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-display font-semibold truncate">{vName(i.vehicle_id)}</div>
+                    <div className="text-xs text-muted-foreground font-body truncate">{i.comment || "Inspection quotidienne"}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-xs text-muted-foreground">{dateLabel(i.inspected_on)}</div>
+                    {i.has_problem && <div className="text-xs font-display font-semibold text-destructive">Problème</div>}
+                  </div>
+                </div>
+              </button>
+            ))}
+            {!inspections.length && !loading && <p className="p-4 text-sm text-muted-foreground font-body">Aucune inspection.</p>}
+          </div>
+        )}
+
+        {tab === "afaire" && (
+          <div className="rounded-xl border border-border bg-card overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/50">
+                <tr className="text-left text-xs font-display uppercase text-muted-foreground">
+                  <th className="p-3">Véhicule</th><th className="p-3">Travail</th><th className="p-3">Date</th>
+                  <th className="p-3">Kilométrage</th><th className="p-3">Priorité</th><th className="p-3">Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                {todo.map((t) => (
+                  <tr key={`${t.kind}-${t.id}`} className="border-t border-border cursor-pointer hover:bg-secondary/40"
+                    onClick={() => navigate(`/admin/flotte/vehicule/${t.vehicleId}`)}>
+                    <td className="p-3 font-body">{vName(t.vehicleId)}</td>
+                    <td className="p-3 font-body">{t.work}</td>
+                    <td className="p-3 font-body">{dateLabel(t.date)}</td>
+                    <td className="p-3 font-body">{t.km ? `${t.km.toLocaleString("fr-CA")} km` : "—"}</td>
+                    <td className="p-3 font-body">{PRIORITY_LABELS[t.priority] ?? t.priority}</td>
+                    <td className={`p-3 font-body ${t.late ? "text-destructive font-semibold" : ""}`}>{t.status}</td>
+                  </tr>
+                ))}
+                {!todo.length && <tr><td colSpan={6} className="p-4 text-muted-foreground font-body">Rien à faire pour le moment.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {tab === "historique" && (
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {[
+              ...maint.map((m) => ({ date: m.performed_on, label: `Entretien — ${m.maintenance_type}`, v: m.vehicle_id, amount: Number(m.cost || 0) })),
+              ...repairs.map((r) => ({ date: r.completed_date ?? r.reported_on, label: `Réparation — ${r.problem}`, v: r.vehicle_id, amount: Number(r.cost_actual ?? r.cost_estimated ?? 0) })),
+              ...inspections.map((i) => ({ date: i.inspected_on, label: `Inspection${i.has_problem ? " (problème)" : ""}`, v: i.vehicle_id, amount: 0 })),
+            ].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "")).slice(0, 200).map((row, idx) => (
+              <div key={idx} className="p-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-body truncate">{row.label}</div>
+                  <div className="text-xs text-muted-foreground">{vName(row.v)} · {dateLabel(row.date)}</div>
+                </div>
+                {row.amount > 0 && <span className="text-sm font-display">{money(row.amount)}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === "couts" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <Kpi label="Mois en cours" value={money(totals.thisMonth)} />
+              <Kpi label="Année en cours" value={money(totals.thisYear)} />
+              <Kpi label="Total" value={money(totals.total)} />
+            </div>
+            <div className="rounded-xl border border-border bg-card divide-y divide-border">
+              {vehicles.map((v) => {
+                const t = costTotals(costs.filter((c) => c.vehicle_id === v.id));
+                return (
+                  <Link key={v.id} to={`/admin/flotte/vehicule/${v.id}?tab=couts`} className="flex items-center justify-between p-3 hover:bg-secondary/50">
+                    <span className="text-sm font-body">{vehicleLabel(v)}</span>
+                    <span className="text-sm font-display">{money(t.total)} <span className="text-xs text-muted-foreground">(année {money(t.thisYear)})</span></span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </main>
+
+      <VehicleDialog open={vehicleDialog} onOpenChange={setVehicleDialog} onSaved={load} />
+      <MaintenanceDialog open={maintDialog.open} onOpenChange={(o) => setMaintDialog({ open: o })}
+        vehicles={vehicles} record={maintDialog.record} onSaved={load} />
+      <RepairDialog open={repairDialog.open} onOpenChange={(o) => setRepairDialog({ open: o })}
+        vehicles={vehicles} record={repairDialog.record} onSaved={load} />
+      <InspectionDialog open={inspDialog.open} onOpenChange={(o) => setInspDialog({ open: o })}
+        vehicles={vehicles} drivers={drivers} record={inspDialog.record} onSaved={load} />
+    </div>
+  );
+}
