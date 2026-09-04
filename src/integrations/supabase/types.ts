@@ -893,6 +893,8 @@ export type Database = {
           driver_id: string | null
           end_at: string | null
           entrepreneur_id: string | null
+          fleet_ref_id: string | null
+          fleet_ref_type: string | null
           google_event_id: string | null
           id: string
           last_known_lat: number | null
@@ -910,6 +912,7 @@ export type Database = {
           trips_planned: number | null
           truck_id: string | null
           updated_at: string
+          vehicle_id: string | null
         }
         Insert: {
           admin_notes?: string | null
@@ -923,6 +926,8 @@ export type Database = {
           driver_id?: string | null
           end_at?: string | null
           entrepreneur_id?: string | null
+          fleet_ref_id?: string | null
+          fleet_ref_type?: string | null
           google_event_id?: string | null
           id?: string
           last_known_lat?: number | null
@@ -940,6 +945,7 @@ export type Database = {
           trips_planned?: number | null
           truck_id?: string | null
           updated_at?: string
+          vehicle_id?: string | null
         }
         Update: {
           admin_notes?: string | null
@@ -953,6 +959,8 @@ export type Database = {
           driver_id?: string | null
           end_at?: string | null
           entrepreneur_id?: string | null
+          fleet_ref_id?: string | null
+          fleet_ref_type?: string | null
           google_event_id?: string | null
           id?: string
           last_known_lat?: number | null
@@ -970,6 +978,7 @@ export type Database = {
           trips_planned?: number | null
           truck_id?: string | null
           updated_at?: string
+          vehicle_id?: string | null
         }
         Relationships: [
           {
@@ -996,6 +1005,13 @@ export type Database = {
           {
             foreignKeyName: "calendar_events_truck_id_fkey"
             columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_vehicle_id_fkey"
+            columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "trucks"
             referencedColumns: ["id"]
@@ -2131,6 +2147,368 @@ export type Database = {
           tvq?: number | null
         }
         Relationships: []
+      }
+      fleet_costs: {
+        Row: {
+          amount: number
+          cost_type: string
+          created_at: string
+          id: string
+          incurred_on: string
+          notes: string | null
+          source_id: string | null
+          source_table: string | null
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          amount?: number
+          cost_type: string
+          created_at?: string
+          id?: string
+          incurred_on?: string
+          notes?: string | null
+          source_id?: string | null
+          source_table?: string | null
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          amount?: number
+          cost_type?: string
+          created_at?: string
+          id?: string
+          incurred_on?: string
+          notes?: string | null
+          source_id?: string | null
+          source_table?: string | null
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_costs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_inspections: {
+        Row: {
+          calendar_event_id: string | null
+          checks: Json
+          comment: string | null
+          created_at: string
+          created_by: string | null
+          driver_id: string | null
+          has_problem: boolean
+          id: string
+          inspected_on: string
+          odometer_km: number | null
+          signature: string | null
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          calendar_event_id?: string | null
+          checks?: Json
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          driver_id?: string | null
+          has_problem?: boolean
+          id?: string
+          inspected_on?: string
+          odometer_km?: number | null
+          signature?: string | null
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          calendar_event_id?: string | null
+          checks?: Json
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          driver_id?: string | null
+          has_problem?: boolean
+          id?: string
+          inspected_on?: string
+          odometer_km?: number | null
+          signature?: string | null
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_inspections_calendar_event_id_fkey"
+            columns: ["calendar_event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_inspections_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_inspections_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_maintenance: {
+        Row: {
+          calendar_event_id: string | null
+          cost: number
+          created_at: string
+          created_by: string | null
+          document_url: string | null
+          engine_hours: number | null
+          id: string
+          maintenance_type: string
+          next_due_date: string | null
+          next_due_km: number | null
+          next_type: string | null
+          notes: string | null
+          odometer_km: number | null
+          parts_summary: string | null
+          performed_on: string | null
+          supplier: string | null
+          updated_at: string
+          vehicle_id: string
+          work_done: string | null
+        }
+        Insert: {
+          calendar_event_id?: string | null
+          cost?: number
+          created_at?: string
+          created_by?: string | null
+          document_url?: string | null
+          engine_hours?: number | null
+          id?: string
+          maintenance_type?: string
+          next_due_date?: string | null
+          next_due_km?: number | null
+          next_type?: string | null
+          notes?: string | null
+          odometer_km?: number | null
+          parts_summary?: string | null
+          performed_on?: string | null
+          supplier?: string | null
+          updated_at?: string
+          vehicle_id: string
+          work_done?: string | null
+        }
+        Update: {
+          calendar_event_id?: string | null
+          cost?: number
+          created_at?: string
+          created_by?: string | null
+          document_url?: string | null
+          engine_hours?: number | null
+          id?: string
+          maintenance_type?: string
+          next_due_date?: string | null
+          next_due_km?: number | null
+          next_type?: string | null
+          notes?: string | null
+          odometer_km?: number | null
+          parts_summary?: string | null
+          performed_on?: string | null
+          supplier?: string | null
+          updated_at?: string
+          vehicle_id?: string
+          work_done?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_maintenance_calendar_event_id_fkey"
+            columns: ["calendar_event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_maintenance_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_parts: {
+        Row: {
+          created_at: string
+          id: string
+          installed_on: string | null
+          maintenance_id: string | null
+          name: string
+          notes: string | null
+          part_number: string | null
+          quantity: number
+          repair_id: string | null
+          supplier: string | null
+          unit_cost: number
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          installed_on?: string | null
+          maintenance_id?: string | null
+          name: string
+          notes?: string | null
+          part_number?: string | null
+          quantity?: number
+          repair_id?: string | null
+          supplier?: string | null
+          unit_cost?: number
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          installed_on?: string | null
+          maintenance_id?: string | null
+          name?: string
+          notes?: string | null
+          part_number?: string | null
+          quantity?: number
+          repair_id?: string | null
+          supplier?: string | null
+          unit_cost?: number
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_parts_maintenance_id_fkey"
+            columns: ["maintenance_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_maintenance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_parts_repair_id_fkey"
+            columns: ["repair_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_repairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_parts_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_repairs: {
+        Row: {
+          calendar_event_id: string | null
+          completed_date: string | null
+          cost_actual: number | null
+          cost_estimated: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          document_url: string | null
+          id: string
+          inspection_id: string | null
+          notes: string | null
+          odometer_km: number | null
+          parts_summary: string | null
+          priority: string
+          problem: string
+          reported_on: string
+          scheduled_date: string | null
+          status: string
+          supplier: string | null
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          calendar_event_id?: string | null
+          completed_date?: string | null
+          cost_actual?: number | null
+          cost_estimated?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_url?: string | null
+          id?: string
+          inspection_id?: string | null
+          notes?: string | null
+          odometer_km?: number | null
+          parts_summary?: string | null
+          priority?: string
+          problem: string
+          reported_on?: string
+          scheduled_date?: string | null
+          status?: string
+          supplier?: string | null
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          calendar_event_id?: string | null
+          completed_date?: string | null
+          cost_actual?: number | null
+          cost_estimated?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_url?: string | null
+          id?: string
+          inspection_id?: string | null
+          notes?: string | null
+          odometer_km?: number | null
+          parts_summary?: string | null
+          priority?: string
+          problem?: string
+          reported_on?: string
+          scheduled_date?: string | null
+          status?: string
+          supplier?: string | null
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_repairs_calendar_event_id_fkey"
+            columns: ["calendar_event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_repairs_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_repairs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ga4_daily_summary: {
         Row: {
@@ -11083,34 +11461,61 @@ export type Database = {
           active: boolean
           carrier_id: string | null
           created_at: string
+          engine_hours: number | null
           id: string
+          in_service_since: string | null
+          make: string | null
+          model: string | null
           name: string
           notes: string | null
+          odometer_km: number | null
           plate: string | null
+          service_status: string
           type: Database["public"]["Enums"]["truck_type"]
+          unit_number: string | null
           updated_at: string
+          vin: string | null
+          year: number | null
         }
         Insert: {
           active?: boolean
           carrier_id?: string | null
           created_at?: string
+          engine_hours?: number | null
           id?: string
+          in_service_since?: string | null
+          make?: string | null
+          model?: string | null
           name: string
           notes?: string | null
+          odometer_km?: number | null
           plate?: string | null
+          service_status?: string
           type?: Database["public"]["Enums"]["truck_type"]
+          unit_number?: string | null
           updated_at?: string
+          vin?: string | null
+          year?: number | null
         }
         Update: {
           active?: boolean
           carrier_id?: string | null
           created_at?: string
+          engine_hours?: number | null
           id?: string
+          in_service_since?: string | null
+          make?: string | null
+          model?: string | null
           name?: string
           notes?: string | null
+          odometer_km?: number | null
           plate?: string | null
+          service_status?: string
           type?: Database["public"]["Enums"]["truck_type"]
+          unit_number?: string | null
           updated_at?: string
+          vin?: string | null
+          year?: number | null
         }
         Relationships: [
           {
@@ -11693,6 +12098,7 @@ export type Database = {
           qa_before: number
         }[]
       }
+      fleet_scan_due: { Args: never; Returns: Json }
       get_comparateur_selection: {
         Args: { p_submission_id: string }
         Returns: Json
