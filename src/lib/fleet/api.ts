@@ -34,9 +34,23 @@ export const REPAIR_STATUS_LABELS: Record<string, string> = {
 };
 
 export const PRIORITY_LABELS: Record<string, string> = {
-  urgente: "Urgente",
-  importante: "Importante",
-  normale: "Normale",
+  urgente: "Urgent",
+  elevee: "Élevé",
+  importante: "Élevé", // ancienne valeur conservée pour l'historique
+  normale: "Normal",
+  faible: "Faible",
+};
+
+/** Choix proposés dans les formulaires (l'ancienne valeur « importante » reste lisible). */
+export const PRIORITY_OPTIONS = [
+  { value: "urgente", label: "Urgent" },
+  { value: "elevee", label: "Élevé" },
+  { value: "normale", label: "Normal" },
+  { value: "faible", label: "Faible" },
+];
+
+export const PRIORITY_RANK: Record<string, number> = {
+  urgente: 0, elevee: 1, importante: 1, normale: 2, faible: 3,
 };
 
 export const INSPECTION_POINTS = [
@@ -233,15 +247,49 @@ export async function saveInspection(i: Partial<Inspection> & { vehicle_id: stri
   const checks = (i.checks ?? {}) as Record<string, CheckValue>;
   const hasProblem = Object.values(checks).some((v) => v === "probleme");
   const payload = { ...i, has_problem: hasProblem };
-  if (i.id) {
-    const { error } = await supabase.from("fleet_inspections").update(payload).eq("id", i.id);
+  let id = i.id;
+  if (id) {
+    const { error } = await supabase.from("fleet_inspections").update(payload).eq("id", id);
     if (error) throw error;
-    return i.id;
+  } else {
+    const { data, error } = await supabase.from("fleet_inspections").insert(payload as never)
+      .select("id").single();
+    if (error) throw error;
+    id = data.id as string;
   }
-  const { data, error } = await supabase.from("fleet_inspections").insert(payload as never)
-    .select("id").single();
-  if (error) throw error;
-  return data.id as string;
+  if (hasProblem) await createRepairsFromInspection(id!);
+  return id!;
+}
+
+/**
+ * Crée automatiquement une réparation « à planifier » pour chaque point
+ * marqué PROBLÈME lors d'une inspection (sans jamais créer de doublon).
+ */
+export async function createRepairsFromInspection(inspectionId: string) {
+  const { data: insp } = await supabase.from("fleet_inspections").select("*").eq("id", inspectionId).maybeSingle();
+  if (!insp) return 0;
+  const checks = (insp.checks ?? {}) as Record<string, CheckValue>;
+  const problems = INSPECTION_POINTS.filter((p) => checks[p.key] === "probleme");
+  if (!problems.length) return 0;
+  const { data: existing } = await supabase.from("fleet_repairs").select("problem").eq("inspection_id", inspectionId);
+  const already = new Set((existing ?? []).map((r) => r.problem));
+  let created = 0;
+  for (const p of problems) {
+    const problem = `Inspection — ${p.label}`;
+    if (already.has(problem)) continue;
+    await saveRepair({
+      vehicle_id: insp.vehicle_id,
+      problem,
+      description: insp.comment,
+      odometer_km: insp.odometer_km,
+      reported_on: insp.inspected_on,
+      priority: "elevee",
+      status: "a_planifier",
+      inspection_id: inspectionId,
+    } as never);
+    created += 1;
+  }
+  return created;
 }
 
 /** Transforme un problème d'inspection en réparation à planifier. */
@@ -252,7 +300,7 @@ export async function inspectionToRepair(insp: Inspection, problem: string) {
     description: insp.comment,
     odometer_km: insp.odometer_km,
     reported_on: insp.inspected_on,
-    priority: "importante",
+    priority: "elevee",
     status: "a_planifier",
     inspection_id: insp.id,
   });
@@ -314,11 +362,11 @@ export function buildTodo(maint: Maintenance[], repairs: Repair[], inspections: 
       id: i.id, kind: "inspection", vehicleId: i.vehicle_id,
       work: i.comment || "Problème signalé à l'inspection",
       date: i.inspected_on, km: i.odometer_km ? Number(i.odometer_km) : null,
-      priority: "importante", status: "À traiter", late: false,
+      priority: "elevee", status: "À traiter", late: false,
     });
   }
 
-  const rank: Record<string, number> = { urgente: 0, importante: 1, normale: 2 };
+  const rank = PRIORITY_RANK;
   return items.sort((a, b) => {
     if (a.late !== b.late) return a.late ? -1 : 1;
     if (rank[a.priority] !== rank[b.priority]) return (rank[a.priority] ?? 3) - (rank[b.priority] ?? 3);
@@ -338,4 +386,89 @@ export function costTotals(costs: Cost[]) {
     if (c.incurred_on?.startsWith(year)) thisYear += amount;
   }
   return { total, thisMonth, thisYear };
+}
+
+
+// ---------------- Documents (réutilise `crm_documents` + bucket `crm-docs`) ----------------
+
+export type FleetOwnerType = "fleet_vehicle" | "fleet_maintenance" | "fleet_repair" | "fleet_inspection";
+
+export interface FleetDocument {
+  id: string;
+  owner_type: string;
+  owner_id: string;
+  kind: string;
+  title: string | null;
+  url: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  created_at: string;
+}
+
+export async function fetchDocuments(ownerType: FleetOwnerType, ownerId: string): Promise<FleetDocument[]> {
+  const { data, error } = await supabase
+    .from("crm_documents")
+    .select("id, owner_type, owner_id, kind, title, url, mime_type, size_bytes, created_at")
+    .eq("owner_type", ownerType)
+    .eq("owner_id", ownerId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as FleetDocument[];
+}
+
+export async function uploadDocument(ownerType: FleetOwnerType, ownerId: string, file: File, kind = "document") {
+  const safe = file.name.replace(/[^\w.\-]+/g, "_");
+  const path = `flotte/${ownerType}/${ownerId}/${Date.now()}-${safe}`;
+  const { error: upErr } = await supabase.storage.from("crm-docs").upload(path, file, { upsert: false });
+  if (upErr) throw upErr;
+  const { data: userData } = await supabase.auth.getUser();
+  const { error } = await supabase.from("crm_documents").insert({
+    owner_type: ownerType,
+    owner_id: ownerId,
+    kind,
+    title: file.name,
+    url: path,
+    mime_type: file.type || null,
+    size_bytes: file.size,
+    uploaded_by: userData.user?.id ?? null,
+  } as never);
+  if (error) throw error;
+}
+
+export async function documentLink(doc: FleetDocument) {
+  if (/^https?:\/\//.test(doc.url)) return doc.url;
+  const { data, error } = await supabase.storage.from("crm-docs").createSignedUrl(doc.url, 3600);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+export async function deleteDocument(doc: FleetDocument) {
+  if (!/^https?:\/\//.test(doc.url)) {
+    await supabase.storage.from("crm-docs").remove([doc.url]);
+  }
+  const { error } = await supabase.from("crm_documents").delete().eq("id", doc.id);
+  if (error) throw error;
+}
+
+/** Suppression d'un véhicule : refusée si de l'historique existe (jamais de perte de données). */
+export async function deleteVehicle(id: string) {
+  const [m, r, i] = await Promise.all([
+    supabase.from("fleet_maintenance").select("id", { count: "exact", head: true }).eq("vehicle_id", id),
+    supabase.from("fleet_repairs").select("id", { count: "exact", head: true }).eq("vehicle_id", id),
+    supabase.from("fleet_inspections").select("id", { count: "exact", head: true }).eq("vehicle_id", id),
+  ]);
+  const total = (m.count ?? 0) + (r.count ?? 0) + (i.count ?? 0);
+  if (total > 0) {
+    throw new Error("Ce véhicule possède un historique. Passez plutôt son statut à « Hors service » ou « Vendu ».");
+  }
+  const { error } = await supabase.from("trucks").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/** Mise à jour rapide du kilométrage / des heures moteur. */
+export async function updateVehicleReadings(id: string, odometerKm: number | null, engineHours: number | null) {
+  const { error } = await supabase.from("trucks")
+    .update({ odometer_km: odometerKm, engine_hours: engineHours } as never)
+    .eq("id", id);
+  if (error) throw error;
 }

@@ -9,10 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
-  CHECK_LABELS, INSPECTION_POINTS, PRIORITY_LABELS, REPAIR_STATUS_LABELS,
-  SERVICE_STATUS_LABELS, saveInspection, saveMaintenance, saveRepair, saveVehicle,
-  vehicleLabel, type CheckValue, type Inspection, type Maintenance, type Repair, type Vehicle,
+  CHECK_LABELS, INSPECTION_POINTS, PRIORITY_OPTIONS, REPAIR_STATUS_LABELS,
+  SERVICE_STATUS_LABELS, deleteRow, deleteVehicle, saveInspection, saveMaintenance,
+  saveRepair, saveVehicle, vehicleLabel,
+  type CheckValue, type Inspection, type Maintenance, type Repair, type Vehicle,
 } from "@/lib/fleet/api";
+import FleetDocuments from "@/components/fleet/FleetDocuments";
 import type { Driver } from "@/lib/calendar-utils";
 
 const TRUCK_TYPES = [
@@ -23,6 +25,26 @@ const TRUCK_TYPES = [
   { value: "6_roues", label: "Camion 6 roues" },
   { value: "autre", label: "Autre équipement lourd" },
 ];
+
+/** Bouton de suppression avec confirmation (jamais de suppression silencieuse). */
+function DeleteButton({ label, onDelete }: { label: string; onDelete: () => Promise<void> | void }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      className="mr-auto text-destructive hover:text-destructive"
+      disabled={busy}
+      onClick={async () => {
+        if (!window.confirm(`${label}\n\nCette action est définitive. Continuer ?`)) return;
+        setBusy(true);
+        try { await onDelete(); } finally { setBusy(false); }
+      }}
+    >
+      Supprimer
+    </Button>
+  );
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -115,8 +137,23 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
           <div className="col-span-2">
             <Field label="Notes"><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
           </div>
+          {vehicle && <div className="col-span-2"><FleetDocuments ownerType="fleet_vehicle" ownerId={vehicle.id} /></div>}
         </div>
         <DialogFooter>
+          {vehicle && (
+            <DeleteButton
+              label="Supprimer ce véhicule ?"
+              onDelete={async () => {
+                try {
+                  await deleteVehicle(vehicle.id);
+                  toast({ title: "Véhicule supprimé" });
+                  onOpenChange(false); onSaved();
+                } catch (e) {
+                  toast({ title: "Suppression impossible", description: (e as Error).message, variant: "destructive" });
+                }
+              }}
+            />
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={save} disabled={busy}>Enregistrer</Button>
         </DialogFooter>
@@ -210,8 +247,20 @@ export function MaintenanceDialog({ open, onOpenChange, vehicles, vehicleId, rec
           <Field label="Prochain kilométrage"><Input inputMode="numeric" value={f.next_due_km ?? ""} onChange={(e) => setF({ ...f, next_due_km: e.target.value })} /></Field>
           <div className="col-span-2"><Field label="Facture / document (lien)"><Input value={f.document_url ?? ""} onChange={(e) => setF({ ...f, document_url: e.target.value })} /></Field></div>
           <div className="col-span-2"><Field label="Notes"><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
+          {record && <div className="col-span-2"><FleetDocuments ownerType="fleet_maintenance" ownerId={record.id} label="Factures et documents" /></div>}
         </div>
         <DialogFooter>
+          {record && (
+            <DeleteButton label="Supprimer cet entretien ?" onDelete={async () => {
+              try {
+                await deleteRow("fleet_maintenance", record.id);
+                toast({ title: "Entretien supprimé" });
+                onOpenChange(false); onSaved();
+              } catch (e) {
+                toast({ title: "Suppression impossible", description: (e as Error).message, variant: "destructive" });
+              }
+            }} />
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={save} disabled={busy}>Enregistrer</Button>
         </DialogFooter>
@@ -238,7 +287,7 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
       reported_on: record?.reported_on ?? today,
       odometer_km: record?.odometer_km != null ? String(record.odometer_km) : "",
       description: record?.description ?? "",
-      priority: record?.priority ?? "normale",
+      priority: record?.priority === "importante" ? "elevee" : (record?.priority ?? "normale"),
       status: record?.status ?? "a_diagnostiquer",
       cost_estimated: record?.cost_estimated != null ? String(record.cost_estimated) : "",
       cost_actual: record?.cost_actual != null ? String(record.cost_actual) : "",
@@ -300,7 +349,7 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
           <Field label="Priorité">
             <Select value={f.priority} onValueChange={(v) => setF({ ...f, priority: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{Object.entries(PRIORITY_LABELS).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
+              <SelectContent>{PRIORITY_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
           <Field label="Statut">
@@ -317,8 +366,20 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
           <Field label="Garage / fournisseur"><Input value={f.supplier ?? ""} onChange={(e) => setF({ ...f, supplier: e.target.value })} /></Field>
           <div className="col-span-2"><Field label="Description"><Textarea rows={2} value={f.description ?? ""} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field></div>
           <div className="col-span-2"><Field label="Notes"><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
+          {record && <div className="col-span-2"><FleetDocuments ownerType="fleet_repair" ownerId={record.id} label="Factures et documents" /></div>}
         </div>
         <DialogFooter>
+          {record && (
+            <DeleteButton label="Supprimer cette réparation ?" onDelete={async () => {
+              try {
+                await deleteRow("fleet_repairs", record.id);
+                toast({ title: "Réparation supprimée" });
+                onOpenChange(false); onSaved();
+              } catch (e) {
+                toast({ title: "Suppression impossible", description: (e as Error).message, variant: "destructive" });
+              }
+            }} />
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={save} disabled={busy}>Enregistrer</Button>
         </DialogFooter>
@@ -368,7 +429,13 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
         comment: comment || null,
         signature: signature || null,
       } as never);
-      toast({ title: "Inspection enregistrée" });
+      const problems = Object.values(checks).filter((v) => v === "probleme").length;
+      toast({
+        title: "Inspection enregistrée",
+        description: problems
+          ? `${problems} problème(s) transformé(s) en réparation à planifier.`
+          : undefined,
+      });
       onOpenChange(false); onSaved();
     } catch (e) {
       toast({ title: "Enregistrement impossible", description: (e as Error).message, variant: "destructive" });
@@ -429,8 +496,20 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
 
           <Field label="Commentaire"><Textarea rows={2} value={comment} onChange={(e) => setComment(e.target.value)} /></Field>
           <Field label="Signature (nom)"><Input value={signature} onChange={(e) => setSignature(e.target.value)} /></Field>
+          {record && <FleetDocuments ownerType="fleet_inspection" ownerId={record.id} label="Photos et rapports" />}
         </div>
         <DialogFooter>
+          {record && (
+            <DeleteButton label="Supprimer cette inspection ?" onDelete={async () => {
+              try {
+                await deleteRow("fleet_inspections", record.id);
+                toast({ title: "Inspection supprimée" });
+                onOpenChange(false); onSaved();
+              } catch (e) {
+                toast({ title: "Suppression impossible", description: (e as Error).message, variant: "destructive" });
+              }
+            }} />
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={save} disabled={busy}>Enregistrer</Button>
         </DialogFooter>
