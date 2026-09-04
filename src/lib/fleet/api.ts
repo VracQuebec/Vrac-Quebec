@@ -147,10 +147,12 @@ export async function saveVehicle(v: Partial<Vehicle> & { name: string }) {
   if (v.id) {
     const { error } = await supabase.from("trucks").update(v).eq("id", v.id);
     if (error) throw error;
+    await logChange("fleet_vehicle", v.id, "update");
     return v.id;
   }
   const { data, error } = await supabase.from("trucks").insert(v as never).select("id").single();
   if (error) throw error;
+  await logChange("fleet_vehicle", data.id as string, "create");
   return data.id as string;
 }
 
@@ -194,6 +196,7 @@ export async function syncCalendarEvent(opts: {
 export async function saveMaintenance(m: Partial<Maintenance> & { vehicle_id: string }) {
   let id = m.id;
   if (id) {
+    await logChange("fleet_maintenance", id, "update");
     const { error } = await supabase.from("fleet_maintenance").update(m).eq("id", id);
     if (error) throw error;
   } else {
@@ -220,6 +223,7 @@ export async function saveMaintenance(m: Partial<Maintenance> & { vehicle_id: st
 export async function saveRepair(r: Partial<Repair> & { vehicle_id: string; problem: string }) {
   let id = r.id;
   if (id) {
+    await logChange("fleet_repair", id, "update");
     const { error } = await supabase.from("fleet_repairs").update(r).eq("id", id);
     if (error) throw error;
   } else {
@@ -249,6 +253,7 @@ export async function saveInspection(i: Partial<Inspection> & { vehicle_id: stri
   const payload = { ...i, has_problem: hasProblem };
   let id = i.id;
   if (id) {
+    await logChange("fleet_inspection", id, "update");
     const { error } = await supabase.from("fleet_inspections").update(payload).eq("id", id);
     if (error) throw error;
   } else {
@@ -307,6 +312,11 @@ export async function inspectionToRepair(insp: Inspection, problem: string) {
 }
 
 export async function deleteRow(table: "fleet_maintenance" | "fleet_repairs" | "fleet_inspections" | "fleet_parts", id: string) {
+  const owners: Record<string, FleetOwnerType> = {
+    fleet_maintenance: "fleet_maintenance", fleet_repairs: "fleet_repair",
+    fleet_inspections: "fleet_inspection", fleet_parts: "fleet_vehicle",
+  };
+  await logChange(owners[table], id, "delete");
   const { error } = await supabase.from(table).delete().eq("id", id);
   if (error) throw error;
 }
@@ -337,7 +347,7 @@ export function buildTodo(maint: Maintenance[], repairs: Repair[], inspections: 
   const items: TodoItem[] = [];
 
   for (const m of maint) {
-    if (!m.next_due_date && !m.next_due_km) continue;
+    if (!m.next_due_date && !m.next_due_km && !m.next_due_hours) continue;
     const late = !!m.next_due_date && m.next_due_date < today;
     items.push({
       id: m.id, kind: "entretien", vehicleId: m.vehicle_id,
@@ -356,8 +366,10 @@ export function buildTodo(maint: Maintenance[], repairs: Repair[], inspections: 
       priority: r.priority, status: REPAIR_STATUS_LABELS[r.status] ?? r.status, late,
     });
   }
+  const converted = new Set(repairs.map((r) => r.inspection_id).filter(Boolean) as string[]);
   for (const i of inspections) {
-    if (!i.has_problem) continue;
+    // Un problème déjà transformé en réparation n'apparaît qu'une seule fois.
+    if (!i.has_problem || converted.has(i.id)) continue;
     items.push({
       id: i.id, kind: "inspection", vehicleId: i.vehicle_id,
       work: i.comment || "Problème signalé à l'inspection",
@@ -466,9 +478,175 @@ export async function deleteVehicle(id: string) {
 }
 
 /** Mise à jour rapide du kilométrage / des heures moteur. */
-export async function updateVehicleReadings(id: string, odometerKm: number | null, engineHours: number | null) {
-  const { error } = await supabase.from("trucks")
-    .update({ odometer_km: odometerKm, engine_hours: engineHours } as never)
-    .eq("id", id);
+export async function updateVehicleReadings(
+  id: string,
+  odometerKm: number | null,
+  engineHours: number | null,
+  writeLog = true,
+) {
+  const { data: before } = await supabase.from("trucks")
+    .select("odometer_km, engine_hours").eq("id", id).maybeSingle();
+  const patch: Record<string, number> = {};
+  if (odometerKm != null) patch.odometer_km = odometerKm;
+  if (engineHours != null) patch.engine_hours = engineHours;
+  if (!Object.keys(patch).length) return;
+  const { error } = await supabase.from("trucks").update(patch as never).eq("id", id);
   if (error) throw error;
+  if (!writeLog) return;
+  if (odometerKm != null && Number(before?.odometer_km ?? -1) !== odometerKm) {
+    await logChange("fleet_vehicle", id, "update", "Kilométrage",
+      before?.odometer_km != null ? `${Number(before.odometer_km).toLocaleString("fr-CA")} km` : null,
+      `${odometerKm.toLocaleString("fr-CA")} km`);
+  }
+  if (engineHours != null && Number(before?.engine_hours ?? -1) !== engineHours) {
+    await logChange("fleet_vehicle", id, "update", "Heures moteur",
+      before?.engine_hours ?? null, engineHours);
+  }
+}
+
+
+// ---------------- Journal des modifications (réutilise `crm_audit_log`) ----------------
+
+export interface FleetLogEntry {
+  id: string;
+  owner_type: string;
+  owner_id: string;
+  action: string;
+  field: string | null;
+  old_value: unknown;
+  new_value: unknown;
+  actor_email: string | null;
+  created_at: string;
+}
+
+/** Écrit une ligne dans le journal existant du CRM (jamais de second journal). */
+export async function logChange(
+  ownerType: FleetOwnerType,
+  ownerId: string,
+  action: "create" | "update" | "delete",
+  field?: string | null,
+  oldValue?: unknown,
+  newValue?: unknown,
+) {
+  const { data: userData } = await supabase.auth.getUser();
+  await supabase.from("crm_audit_log").insert({
+    owner_type: ownerType,
+    owner_id: ownerId,
+    action,
+    field: field ?? null,
+    old_value: (oldValue ?? null) as never,
+    new_value: (newValue ?? null) as never,
+    actor_id: userData.user?.id ?? null,
+    actor_email: userData.user?.email ?? null,
+  } as never);
+}
+
+export async function fetchChangeLog(ownerIds: string[]): Promise<FleetLogEntry[]> {
+  if (!ownerIds.length) return [];
+  const { data, error } = await supabase
+    .from("crm_audit_log")
+    .select("id, owner_type, owner_id, action, field, old_value, new_value, actor_email, created_at")
+    .in("owner_id", ownerIds)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw error;
+  return (data ?? []) as FleetLogEntry[];
+}
+
+const OWNER_LABELS: Record<string, string> = {
+  fleet_vehicle: "Véhicule",
+  fleet_maintenance: "Entretien",
+  fleet_repair: "Réparation",
+  fleet_inspection: "Inspection",
+};
+
+/** Phrase lisible pour le journal, ex. « Kilométrage modifié de 428 500 à 429 120 ». */
+export function logSentence(e: FleetLogEntry) {
+  const subject = OWNER_LABELS[e.owner_type] ?? "Élément";
+  if (e.field && e.action === "update") {
+    const from = e.old_value == null || e.old_value === "" ? "—" : String(e.old_value);
+    const to = e.new_value == null || e.new_value === "" ? "—" : String(e.new_value);
+    return `${e.field} modifié de ${from} à ${to}`;
+  }
+  if (e.action === "create") return `${subject} ajouté`;
+  if (e.action === "delete") return `${subject} supprimé`;
+  return `${subject} modifié`;
+}
+
+// ---------------- Marquer comme terminé ----------------
+
+export interface CompletionInput {
+  date: string;
+  odometerKm: number | null;
+  engineHours: number | null;
+  cost: number | null;
+  notes: string | null;
+  /** Prochaine échéance (facultative) pour un entretien. */
+  nextType?: string | null;
+  nextDate?: string | null;
+  nextKm?: number | null;
+  nextHours?: number | null;
+}
+
+/** Réparation terminée → statut, historique, coûts, alerte fermée, relevés du véhicule. */
+export async function completeRepair(repair: Repair, input: CompletionInput) {
+  const { error } = await supabase.from("fleet_repairs").update({
+    status: "terminee",
+    completed_date: input.date,
+    cost_actual: input.cost,
+    odometer_km: input.odometerKm ?? repair.odometer_km,
+    completed_engine_hours: input.engineHours,
+    notes: input.notes ?? repair.notes,
+  } as never).eq("id", repair.id);
+  if (error) throw error;
+  if (repair.calendar_event_id) {
+    await supabase.from("calendar_events").update({ status: "termine" } as never).eq("id", repair.calendar_event_id);
+  }
+  await updateVehicleReadings(repair.vehicle_id, input.odometerKm, input.engineHours, false);
+  // L'alerte se referme automatiquement (déclencheur `fleet_notify_repair`).
+  await logChange("fleet_repair", repair.id, "update", "Statut", REPAIR_STATUS_LABELS[repair.status], "Terminée");
+}
+
+/**
+ * Entretien terminé : l'intervention réalisée est enregistrée, l'échéance
+ * précédente est fermée et la prochaine échéance (si fournie) est recréée
+ * dans le calendrier existant.
+ */
+export async function completeMaintenance(m: Maintenance, input: CompletionInput) {
+  const { error } = await supabase.from("fleet_maintenance").update({
+    performed_on: input.date,
+    odometer_km: input.odometerKm ?? m.odometer_km,
+    engine_hours: input.engineHours ?? m.engine_hours,
+    completed_engine_hours: input.engineHours,
+    cost: input.cost ?? m.cost,
+    notes: input.notes ?? m.notes,
+    next_due_date: null,
+    next_due_km: null,
+    next_due_hours: null,
+  } as never).eq("id", m.id);
+  if (error) throw error;
+  if (m.calendar_event_id) {
+    await supabase.from("calendar_events").update({ status: "termine" } as never).eq("id", m.calendar_event_id);
+  }
+  await updateVehicleReadings(m.vehicle_id, input.odometerKm, input.engineHours, false);
+  // L'alerte se referme lors du balayage des échéances (`fleet_scan_due`).
+  await logChange("fleet_maintenance", m.id, "update", "Statut", "À faire", "Terminé");
+
+  if (input.nextDate || input.nextKm || input.nextHours) {
+    const nextId = await saveMaintenance({
+      vehicle_id: m.vehicle_id,
+      maintenance_type: input.nextType || m.next_type || m.maintenance_type,
+      performed_on: null,
+      next_type: input.nextType || m.next_type || m.maintenance_type,
+      next_due_date: input.nextDate || null,
+      next_due_km: input.nextKm ?? null,
+      next_due_hours: input.nextHours ?? null,
+      cost: 0,
+      alert_days_before: m.alert_days_before,
+      alert_km_margin: m.alert_km_margin,
+      alert_hours_margin: m.alert_hours_margin,
+    } as never);
+    await logChange("fleet_maintenance", nextId, "create");
+  }
+  await scanDue().catch(() => undefined);
 }

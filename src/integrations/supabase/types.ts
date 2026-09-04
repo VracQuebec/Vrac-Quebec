@@ -2267,7 +2267,11 @@ export type Database = {
       }
       fleet_maintenance: {
         Row: {
+          alert_days_before: number
+          alert_hours_margin: number
+          alert_km_margin: number
           calendar_event_id: string | null
+          completed_engine_hours: number | null
           cost: number
           created_at: string
           created_by: string | null
@@ -2276,6 +2280,7 @@ export type Database = {
           id: string
           maintenance_type: string
           next_due_date: string | null
+          next_due_hours: number | null
           next_due_km: number | null
           next_type: string | null
           notes: string | null
@@ -2288,7 +2293,11 @@ export type Database = {
           work_done: string | null
         }
         Insert: {
+          alert_days_before?: number
+          alert_hours_margin?: number
+          alert_km_margin?: number
           calendar_event_id?: string | null
+          completed_engine_hours?: number | null
           cost?: number
           created_at?: string
           created_by?: string | null
@@ -2297,6 +2306,7 @@ export type Database = {
           id?: string
           maintenance_type?: string
           next_due_date?: string | null
+          next_due_hours?: number | null
           next_due_km?: number | null
           next_type?: string | null
           notes?: string | null
@@ -2309,7 +2319,11 @@ export type Database = {
           work_done?: string | null
         }
         Update: {
+          alert_days_before?: number
+          alert_hours_margin?: number
+          alert_km_margin?: number
           calendar_event_id?: string | null
+          completed_engine_hours?: number | null
           cost?: number
           created_at?: string
           created_by?: string | null
@@ -2318,6 +2332,7 @@ export type Database = {
           id?: string
           maintenance_type?: string
           next_due_date?: string | null
+          next_due_hours?: number | null
           next_due_km?: number | null
           next_type?: string | null
           notes?: string | null
@@ -2420,6 +2435,7 @@ export type Database = {
         Row: {
           calendar_event_id: string | null
           completed_date: string | null
+          completed_engine_hours: number | null
           cost_actual: number | null
           cost_estimated: number | null
           created_at: string
@@ -2443,6 +2459,7 @@ export type Database = {
         Insert: {
           calendar_event_id?: string | null
           completed_date?: string | null
+          completed_engine_hours?: number | null
           cost_actual?: number | null
           cost_estimated?: number | null
           created_at?: string
@@ -2466,6 +2483,7 @@ export type Database = {
         Update: {
           calendar_event_id?: string | null
           completed_date?: string | null
+          completed_engine_hours?: number | null
           cost_actual?: number | null
           cost_estimated?: number | null
           created_at?: string

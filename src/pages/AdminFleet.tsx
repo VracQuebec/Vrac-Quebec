@@ -15,6 +15,7 @@ import {
 import {
   InspectionDialog, MaintenanceDialog, RepairDialog, VehicleDialog,
 } from "@/components/fleet/FleetDialogs";
+import CompleteDialog from "@/components/fleet/CompleteDialog";
 import {
   buildTodo, costTotals, dateLabel, fetchCosts, fetchFleetEvents, fetchInspections,
   fetchMaintenance, fetchRepairs, fetchVehicles, money, PRIORITY_LABELS,
@@ -70,6 +71,10 @@ export default function AdminFleet() {
   const [maintDialog, setMaintDialog] = useState<{ open: boolean; record?: Maintenance | null }>({ open: false });
   const [repairDialog, setRepairDialog] = useState<{ open: boolean; record?: Repair | null }>({ open: false });
   const [inspDialog, setInspDialog] = useState<{ open: boolean; record?: Inspection | null }>({ open: false });
+  const [complete, setComplete] = useState<
+    { kind: "entretien"; record: Maintenance } | { kind: "reparation"; record: Repair } | null>(null);
+  const [todoFilter, setTodoFilter] = useState<"tous" | "urgent" | "avenir" | "retard">("tous");
+  const [todoVehicle, setTodoVehicle] = useState("tous");
 
   useEffect(() => {
     if (!isReady || roleLoading) return;
@@ -107,8 +112,21 @@ export default function AdminFleet() {
     maintLate: todo.filter((t) => t.kind === "entretien" && t.late).length,
     urgentRepairs: repairs.filter((r) => r.priority === "urgente" && r.status !== "terminee").length,
     inspectionsSoon: events.filter((e) => e.fleet_ref_type === "inspection" && e.start_at >= today).length,
-    problems: inspections.filter((i) => i.has_problem).length,
+    // Problèmes encore ouverts : la réparation liée n'est pas terminée.
+    problems: inspections.filter((i) => {
+      if (!i.has_problem) return false;
+      const linked = repairs.filter((r) => r.inspection_id === i.id);
+      return !linked.length || linked.some((r) => r.status !== "terminee");
+    }).length,
   }), [vehicles, todo, repairs, events, inspections, today]);
+
+  const filteredTodo = useMemo(() => todo.filter((t) => {
+    if (todoVehicle !== "tous" && t.vehicleId !== todoVehicle) return false;
+    if (todoFilter === "urgent") return t.priority === "urgente";
+    if (todoFilter === "retard") return t.late;
+    if (todoFilter === "avenir") return !t.late;
+    return true;
+  }), [todo, todoFilter, todoVehicle]);
 
   const filteredVehicles = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -221,7 +239,7 @@ export default function AdminFleet() {
                     {[v.make, v.model, v.year].filter(Boolean).join(" ") || "—"}
                   </div>
                   <div className="text-xs text-muted-foreground font-body mt-1">
-                    {v.plate ? `Plaque ${v.plate} · ` : ""}{v.odometer_km ? `${Number(v.odometer_km).toLocaleString("fr-CA")} km` : "km non renseigné"}
+                    {[v.plate ? `Plaque ${v.plate}` : null, v.odometer_km ? `${Number(v.odometer_km).toLocaleString("fr-CA")} km` : null].filter(Boolean).join(" · ")}
                   </div>
                 </Link>
               ))}
@@ -296,29 +314,59 @@ export default function AdminFleet() {
         )}
 
         {tab === "afaire" && (
-          <div className="rounded-xl border border-border bg-card overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/50">
-                <tr className="text-left text-xs font-display uppercase text-muted-foreground">
-                  <th className="p-3">Véhicule</th><th className="p-3">Travail</th><th className="p-3">Date</th>
-                  <th className="p-3">Kilométrage</th><th className="p-3">Priorité</th><th className="p-3">Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {todo.map((t) => (
-                  <tr key={`${t.kind}-${t.id}`} className="border-t border-border cursor-pointer hover:bg-secondary/40"
-                    onClick={() => navigate(`/admin/flotte/vehicule/${t.vehicleId}`)}>
-                    <td className="p-3 font-body">{vName(t.vehicleId)}</td>
-                    <td className="p-3 font-body">{t.work}</td>
-                    <td className="p-3 font-body">{dateLabel(t.date)}</td>
-                    <td className="p-3 font-body">{t.km ? `${t.km.toLocaleString("fr-CA")} km` : "—"}</td>
-                    <td className="p-3 font-body">{PRIORITY_LABELS[t.priority] ?? t.priority}</td>
-                    <td className={`p-3 font-body ${t.late ? "text-destructive font-semibold" : ""}`}>{t.status}</td>
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2 items-center">
+              {([["tous", "Tous"], ["urgent", "Urgent"], ["avenir", "À venir"], ["retard", "En retard"]] as const).map(([k, l]) => (
+                <button key={k} onClick={() => setTodoFilter(k)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-body ${todoFilter === k ? "bg-primary text-primary-foreground font-semibold" : "bg-secondary text-muted-foreground"}`}>
+                  {l}
+                </button>
+              ))}
+              <select value={todoVehicle} onChange={(e) => setTodoVehicle(e.target.value)}
+                className="h-9 rounded-lg border border-border bg-card px-2 text-sm font-body">
+                <option value="tous">Tous les véhicules</option>
+                {vehicles.map((v) => <option key={v.id} value={v.id}>{vehicleLabel(v)}</option>)}
+              </select>
+            </div>
+            <div className="rounded-xl border border-border bg-card overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary/50">
+                  <tr className="text-left text-xs font-display uppercase text-muted-foreground">
+                    <th className="p-3">Véhicule</th><th className="p-3">Travail</th><th className="p-3">Date</th>
+                    <th className="p-3">Kilométrage</th><th className="p-3">Priorité</th><th className="p-3">Statut</th>
+                    <th className="p-3"></th>
                   </tr>
-                ))}
-                {!todo.length && <tr><td colSpan={6} className="p-4 text-muted-foreground font-body">Rien à faire pour le moment.</td></tr>}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredTodo.map((t) => (
+                    <tr key={`${t.kind}-${t.id}`} className="border-t border-border cursor-pointer hover:bg-secondary/40"
+                      onClick={() => navigate(`/admin/flotte/vehicule/${t.vehicleId}?tab=afaire`)}>
+                      <td className="p-3 font-body">{vName(t.vehicleId)}</td>
+                      <td className="p-3 font-body">{t.work}</td>
+                      <td className="p-3 font-body">{dateLabel(t.date)}</td>
+                      <td className="p-3 font-body">{t.km ? `${t.km.toLocaleString("fr-CA")} km` : "—"}</td>
+                      <td className="p-3 font-body">{PRIORITY_LABELS[t.priority] ?? t.priority}</td>
+                      <td className={`p-3 font-body ${t.late ? "text-destructive font-semibold" : ""}`}>{t.status}</td>
+                      <td className="p-3 text-right">
+                        {t.kind !== "inspection" && (
+                          <Button size="sm" variant="outline" onClick={(e) => {
+                            e.stopPropagation();
+                            if (t.kind === "entretien") {
+                              const rec = maint.find((m) => m.id === t.id);
+                              if (rec) setComplete({ kind: "entretien", record: rec });
+                            } else {
+                              const rec = repairs.find((r) => r.id === t.id);
+                              if (rec) setComplete({ kind: "reparation", record: rec });
+                            }
+                          }}>Terminé</Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {!filteredTodo.length && <tr><td colSpan={7} className="p-4 text-muted-foreground font-body">Rien à faire pour le moment.</td></tr>}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -362,6 +410,7 @@ export default function AdminFleet() {
         )}
       </main>
 
+      <CompleteDialog target={complete} onOpenChange={(o) => !o && setComplete(null)} onSaved={load} />
       <VehicleDialog open={vehicleDialog} onOpenChange={setVehicleDialog} onSaved={load} />
       <MaintenanceDialog open={maintDialog.open} onOpenChange={(o) => setMaintDialog({ open: o })}
         vehicles={vehicles} record={maintDialog.record} onSaved={load} />

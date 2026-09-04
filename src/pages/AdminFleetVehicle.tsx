@@ -14,15 +14,22 @@ import {
   buildTodo, CHECK_LABELS, costTotals, dateLabel, fetchCosts, fetchFleetEvents,
   fetchInspections, fetchMaintenance, fetchParts, fetchRepairs, inspectionToRepair,
   money, PRIORITY_LABELS, REPAIR_STATUS_LABELS, SERVICE_STATUS_LABELS,
-  updateVehicleReadings, vehicleLabel,
+  updateVehicleReadings, vehicleLabel, fetchChangeLog, logSentence, type FleetLogEntry,
   type CheckValue, type Cost, type FleetEvent, type Inspection, type Maintenance,
   type Part, type Repair, type Vehicle,
 } from "@/lib/fleet/api";
+import { TRUCK_TYPE_LABELS } from "@/lib/calendar-utils";
 import type { Driver } from "@/lib/calendar-utils";
 import { useToast } from "@/hooks/use-toast";
 import FleetDocuments from "@/components/fleet/FleetDocuments";
+import CompleteDialog from "@/components/fleet/CompleteDialog";
 import { Input } from "@/components/ui/input";
 import { setStatus, type CrmNotification } from "@/lib/notifications/api";
+
+const FLEET_REF_LABELS: Record<string, string> = {
+  entretien: "Entretien", reparation: "Réparation",
+  inspection: "Inspection", echeance: "Échéance",
+};
 
 const TABS = [
   { key: "infos", label: "Informations" },
@@ -36,6 +43,7 @@ const TABS = [
   { key: "alertes", label: "Alertes" },
   { key: "documents", label: "Documents" },
   { key: "calendrier", label: "Calendrier" },
+  { key: "journal", label: "Journal" },
 ] as const;
 
 export default function AdminFleetVehicle() {
@@ -56,6 +64,9 @@ export default function AdminFleetVehicle() {
   const [costs, setCosts] = useState<Cost[]>([]);
   const [events, setEvents] = useState<FleetEvent[]>([]);
   const [alerts, setAlerts] = useState<CrmNotification[]>([]);
+  const [journal, setJournal] = useState<FleetLogEntry[]>([]);
+  const [complete, setComplete] = useState<
+    { kind: "entretien"; record: Maintenance } | { kind: "reparation"; record: Repair } | null>(null);
   const [readings, setReadings] = useState({ km: "", hours: "" });
   const [loading, setLoading] = useState(true);
 
@@ -93,6 +104,7 @@ export default function AdminFleetVehicle() {
         .order("created_at", { ascending: false }).limit(200);
       setAlerts(((notif ?? []) as unknown as CrmNotification[])
         .filter((n) => [...refIds].some((rid) => n.dedupe_key.includes(rid))));
+      setJournal(await fetchChangeLog([...refIds]));
     } catch (err) {
       toast({ title: "Chargement impossible", description: (err as Error).message, variant: "destructive" });
     } finally { setLoading(false); }
@@ -162,7 +174,7 @@ export default function AdminFleetVehicle() {
           <div className="rounded-xl border border-border bg-card p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
             <Info label="Nom" value={vehicle.name} />
             <Info label="Numéro d'unité" value={vehicle.unit_number} />
-            <Info label="Type" value={vehicle.type} />
+            <Info label="Type" value={TRUCK_TYPE_LABELS[vehicle.type] ?? vehicle.type} />
             <Info label="Marque" value={vehicle.make} />
             <Info label="Modèle" value={vehicle.model} />
             <Info label="Année" value={vehicle.year} />
@@ -230,8 +242,8 @@ export default function AdminFleetVehicle() {
         {tab === "entretien" && (
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
             {maint.map((m) => (
-              <button key={m.id} onClick={() => setMaintDialog({ open: true, record: m })} className="w-full text-left p-3 hover:bg-secondary/50">
-                <div className="flex justify-between gap-3">
+              <div key={m.id} className="p-3 hover:bg-secondary/50">
+                <div className="flex justify-between gap-3 cursor-pointer" onClick={() => setMaintDialog({ open: true, record: m })}>
                   <div className="min-w-0">
                     <div className="text-sm font-display font-semibold">{m.maintenance_type}</div>
                     <div className="text-xs text-muted-foreground font-body">{dateLabel(m.performed_on)} · {m.work_done || "—"}</div>
@@ -242,7 +254,14 @@ export default function AdminFleetVehicle() {
                     {m.next_due_km && <div className="text-xs text-muted-foreground">{Number(m.next_due_km).toLocaleString("fr-CA")} km</div>}
                   </div>
                 </div>
-              </button>
+                {(m.next_due_date || m.next_due_km || m.next_due_hours) && (
+                  <div className="mt-2">
+                    <Button size="sm" variant="outline" onClick={() => setComplete({ kind: "entretien", record: m })}>
+                      Marquer comme terminé
+                    </Button>
+                  </div>
+                )}
+              </div>
             ))}
             {!maint.length && <p className="p-4 text-sm text-muted-foreground font-body">Aucun entretien.</p>}
           </div>
@@ -251,8 +270,8 @@ export default function AdminFleetVehicle() {
         {tab === "reparations" && (
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
             {repairs.map((r) => (
-              <button key={r.id} onClick={() => setRepairDialog({ open: true, record: r })} className="w-full text-left p-3 hover:bg-secondary/50">
-                <div className="flex justify-between gap-3">
+              <div key={r.id} className="p-3 hover:bg-secondary/50">
+                <div className="flex justify-between gap-3 cursor-pointer" onClick={() => setRepairDialog({ open: true, record: r })}>
                   <div className="min-w-0">
                     <div className="text-sm font-display font-semibold truncate">{r.problem}</div>
                     <div className="text-xs text-muted-foreground font-body">{dateLabel(r.reported_on)}</div>
@@ -264,7 +283,14 @@ export default function AdminFleetVehicle() {
                     <div className="text-xs text-muted-foreground">{REPAIR_STATUS_LABELS[r.status] ?? r.status}</div>
                   </div>
                 </div>
-              </button>
+                {r.status !== "terminee" && (
+                  <div className="mt-2">
+                    <Button size="sm" variant="outline" onClick={() => setComplete({ kind: "reparation", record: r })}>
+                      Marquer comme terminé
+                    </Button>
+                  </div>
+                )}
+              </div>
             ))}
             {!repairs.length && <p className="p-4 text-sm text-muted-foreground font-body">Aucune réparation.</p>}
           </div>
@@ -298,7 +324,9 @@ export default function AdminFleetVehicle() {
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <Button size="sm" variant="outline" onClick={() => setInspDialog({ open: true, record: i })}>Ouvrir</Button>
-                      {i.has_problem && <Button size="sm" onClick={() => convert(i)}>Créer une réparation</Button>}
+                      {i.has_problem && !repairs.some((r) => r.inspection_id === i.id) && (
+                        <Button size="sm" onClick={() => convert(i)}>Créer une réparation</Button>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-2">
@@ -375,21 +403,45 @@ export default function AdminFleetVehicle() {
 
         {tab === "calendrier" && (
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
-            {events.map((e) => (
+            {events.filter((e) => e.status !== "termine" && e.status !== "annule").map((e) => (
               <Link key={e.id} to={`/admin/calendrier?event=${e.id}`} className="p-3 flex justify-between gap-3 hover:bg-secondary/50">
                 <div>
                   <div className="text-sm font-body">{e.title}</div>
-                  <div className="text-xs text-muted-foreground">{dateLabel(e.start_at)} · {e.fleet_ref_type}</div>
+                  <div className="text-xs text-muted-foreground">{dateLabel(e.start_at)} · {FLEET_REF_LABELS[e.fleet_ref_type ?? ""] ?? e.fleet_ref_type}</div>
                 </div>
                 <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
               </Link>
             ))}
-            {!events.length && <p className="p-4 text-sm text-muted-foreground font-body">Aucun événement au calendrier pour ce véhicule.</p>}
+            {!events.filter((e) => e.status !== "termine" && e.status !== "annule").length && <p className="p-4 text-sm text-muted-foreground font-body">Aucun événement au calendrier pour ce véhicule.</p>}
+          </div>
+        )}
+        {tab === "journal" && (
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {journal.map((e) => (
+              <div key={e.id} className="p-3">
+                <div className="text-sm font-body">{logSentence(e)}</div>
+                <div className="text-xs text-muted-foreground">
+                  {dateLabel(e.created_at)}{e.actor_email ? ` · ${e.actor_email}` : ""}
+                </div>
+              </div>
+            ))}
+            {!journal.length && <p className="p-4 text-sm text-muted-foreground font-body">Aucune modification enregistrée.</p>}
           </div>
         )}
       </main>
 
-      <VehicleDialog open={vehicleDialog} onOpenChange={setVehicleDialog} vehicle={vehicle} onSaved={load} />
+      <CompleteDialog target={complete} onOpenChange={(o) => !o && setComplete(null)} onSaved={load} />
+      <VehicleDialog
+        open={vehicleDialog}
+        onOpenChange={setVehicleDialog}
+        vehicle={vehicle}
+        onSaved={async () => {
+          // Après une suppression, la fiche n'existe plus : on revient à la liste.
+          const { data } = await supabase.from("trucks").select("id").eq("id", id!).maybeSingle();
+          if (!data) navigate("/admin/flotte?tab=vehicules");
+          else load();
+        }}
+      />
       <MaintenanceDialog open={maintDialog.open} onOpenChange={(o) => setMaintDialog({ open: o })}
         vehicles={vehicle ? [vehicle] : []} vehicleId={id} record={maintDialog.record} onSaved={load} />
       <RepairDialog open={repairDialog.open} onOpenChange={(o) => setRepairDialog({ open: o })}
