@@ -420,14 +420,16 @@ export function costTotals(costs: Cost[]) {
   const now = new Date();
   const month = now.toISOString().slice(0, 7);
   const year = String(now.getFullYear());
-  let total = 0, thisMonth = 0, thisYear = 0;
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 7);
+  let total = 0, thisMonth = 0, lastMonth = 0, thisYear = 0;
   for (const c of costs) {
     const amount = Number(c.amount || 0);
     total += amount;
     if (c.incurred_on?.startsWith(month)) thisMonth += amount;
+    if (c.incurred_on?.startsWith(prev)) lastMonth += amount;
     if (c.incurred_on?.startsWith(year)) thisYear += amount;
   }
-  return { total, thisMonth, thisYear };
+  return { total, thisMonth, lastMonth, thisYear };
 }
 
 
