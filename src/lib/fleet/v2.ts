@@ -8,6 +8,7 @@
 // données (politiques RLS), jamais par ce fichier.
 // ============================================================
 import { supabase } from "@/integrations/supabase/client";
+import { TRUCK_TYPE_LABELS } from "@/lib/calendar-utils";
 import type { Database } from "@/integrations/supabase/types";
 import {
   PRIORITY_RANK, type Inspection, type Maintenance, type Repair, type Vehicle,
@@ -119,8 +120,14 @@ export const unitTitle = (v?: Vehicle | null) => {
   return model ? `${head} — ${model}` : head;
 };
 
-export const unitSubtitle = (v?: Vehicle | null) =>
-  !v ? "" : [categoryLabel(v.category), v.year].filter(Boolean).join(" • ");
+export const unitSubtitle = (v?: Vehicle | null) => {
+  if (!v) return "";
+  // Les unités importées avant la V2 n'ont qu'un type de camion : on l'utilise.
+  const label = v.category && v.category !== "camion"
+    ? categoryLabel(v.category)
+    : (TRUCK_TYPE_LABELS[v.type] ?? categoryLabel(v.category));
+  return [label, v.year].filter(Boolean).join(" • ");
+};
 
 export const kmLabel = (n: number | null | undefined) =>
   n == null ? null : `${Number(n).toLocaleString("fr-CA")} km`;
