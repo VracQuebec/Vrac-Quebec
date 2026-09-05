@@ -9,7 +9,12 @@ import type {
 } from "@/lib/marketplace/types";
 
 type Row = Record<string, unknown>;
-const table = (name: string) => supabase.from(name as never);
+// Les tables mkt_* sont récentes : on passe par un client non typé en attendant
+// la régénération des types générés.
+const db = supabase as unknown as {
+  from: (name: string) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
+};
+const table = (name: string) => db.from(name);
 
 // ---------- Taxonomie ----------
 export async function fetchCategories(onlyActive = true): Promise<ServiceCategory[]> {
@@ -105,7 +110,7 @@ export async function fetchPartnerPreferences(companyId: string) {
 
 export async function savePartnerPreferences(companyId: string, updates: Row) {
   const { error } = await table("mkt_partner_preferences")
-    .upsert({ company_id: companyId, ...updates }, { onConflict: "company_id" } as never);
+    .upsert({ company_id: companyId, ...updates }, { onConflict: "company_id" });
   if (error) throw error;
 }
 
@@ -157,7 +162,7 @@ export async function fetchInvitations(filter: { requestId?: string; companyId?:
 export async function saveInvitation(row: Partial<Invitation> & { request_id: string; company_id: string }) {
   const { error } = await table("mkt_invitations").upsert(row as Row, {
     onConflict: "request_id,lot_id,company_id",
-  } as never);
+  });
   if (error) throw error;
 }
 
