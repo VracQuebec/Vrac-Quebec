@@ -128,7 +128,7 @@ export default function AdminMarketplaceCategories() {
   if (!isAdmin) return <FullPageState title="Accès refusé" message="Réservé aux administrateurs Vrac Québec." showSpinner={false} />;
 
   const renderNode = (node: Node, depth: number) => {
-    const expanded = open[node.id] ?? depth === 0 ? open[node.id] ?? false : false;
+    const expanded = open[node.id] ?? false;
     return (
       <div key={node.id} className="border-b border-border/60 last:border-0">
         <div className="flex flex-wrap items-center gap-2 py-2" style={{ paddingLeft: depth * 16 }}>
