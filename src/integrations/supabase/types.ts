@@ -8655,6 +8655,1572 @@ export type Database = {
           },
         ]
       }
+      mkt_awards: {
+        Row: {
+          amount: number | null
+          awarded_at: string
+          bid_id: string | null
+          client_confirmed_at: string | null
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          final_amount: number | null
+          id: string
+          lot_id: string | null
+          notes: string | null
+          partner_confirmed_at: string | null
+          request_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          awarded_at?: string
+          bid_id?: string | null
+          client_confirmed_at?: string | null
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          final_amount?: number | null
+          id?: string
+          lot_id?: string | null
+          notes?: string | null
+          partner_confirmed_at?: string | null
+          request_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          awarded_at?: string
+          bid_id?: string | null
+          client_confirmed_at?: string | null
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          final_amount?: number | null
+          id?: string
+          lot_id?: string | null
+          notes?: string | null
+          partner_confirmed_at?: string | null
+          request_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_awards_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_awards_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_awards_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_request_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_awards_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_bids: {
+        Row: {
+          amount: number | null
+          available_from: string | null
+          company_id: string
+          conditions: string | null
+          created_at: string
+          id: string
+          invitation_id: string | null
+          lead_time: string | null
+          lines: Json
+          lot_id: string | null
+          price_type: string
+          request_id: string
+          scope: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          taxes_included: boolean
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          amount?: number | null
+          available_from?: string | null
+          company_id: string
+          conditions?: string | null
+          created_at?: string
+          id?: string
+          invitation_id?: string | null
+          lead_time?: string | null
+          lines?: Json
+          lot_id?: string | null
+          price_type?: string
+          request_id: string
+          scope?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          taxes_included?: boolean
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          amount?: number | null
+          available_from?: string | null
+          company_id?: string
+          conditions?: string | null
+          created_at?: string
+          id?: string
+          invitation_id?: string | null
+          lead_time?: string | null
+          lines?: Json
+          lot_id?: string | null
+          price_type?: string
+          request_id?: string
+          scope?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          taxes_included?: boolean
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_bids_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_bids_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_bids_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_request_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_bids_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_commissions: {
+        Row: {
+          amount: number | null
+          award_id: string | null
+          base_amount: number | null
+          company_id: string | null
+          created_at: string
+          id: string
+          invoiced_at: string | null
+          notes: string | null
+          paid_at: string | null
+          request_id: string | null
+          rule_id: string | null
+          rule_snapshot: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          award_id?: string | null
+          base_amount?: number | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          invoiced_at?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          request_id?: string | null
+          rule_id?: string | null
+          rule_snapshot?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          award_id?: string | null
+          base_amount?: number | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          invoiced_at?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          request_id?: string | null
+          rule_id?: string | null
+          rule_snapshot?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_commissions_award_id_fkey"
+            columns: ["award_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_awards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_commissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_commissions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_commissions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_pricing_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_documents: {
+        Row: {
+          bid_id: string | null
+          company_id: string | null
+          created_at: string
+          doc_type: string
+          file_path: string
+          id: string
+          lot_id: string | null
+          mime_type: string | null
+          name: string
+          request_id: string | null
+          size_bytes: number | null
+          updated_at: string
+          uploaded_by: string | null
+          visibility: string
+        }
+        Insert: {
+          bid_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          doc_type?: string
+          file_path: string
+          id?: string
+          lot_id?: string | null
+          mime_type?: string | null
+          name: string
+          request_id?: string | null
+          size_bytes?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          bid_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          doc_type?: string
+          file_path?: string
+          id?: string
+          lot_id?: string | null
+          mime_type?: string | null
+          name?: string
+          request_id?: string | null
+          size_bytes?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_documents_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_documents_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_request_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_documents_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_invitations: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          decline_reason: string | null
+          distance_km: number | null
+          id: string
+          lot_id: string | null
+          match_reasons: Json
+          match_score: number | null
+          mode: string
+          request_id: string
+          responded_at: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+          viewed_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          decline_reason?: string | null
+          distance_km?: number | null
+          id?: string
+          lot_id?: string | null
+          match_reasons?: Json
+          match_score?: number | null
+          mode?: string
+          request_id: string
+          responded_at?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          decline_reason?: string | null
+          distance_km?: number | null
+          id?: string
+          lot_id?: string | null
+          match_reasons?: Json
+          match_score?: number | null
+          mode?: string
+          request_id?: string
+          responded_at?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_invitations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_invitations_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_request_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_invitations_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_messages: {
+        Row: {
+          attachments: Json
+          author_company_id: string | null
+          author_user_id: string | null
+          body: string
+          created_at: string
+          id: string
+          is_internal: boolean
+          party: string
+          thread_id: string
+          updated_at: string
+        }
+        Insert: {
+          attachments?: Json
+          author_company_id?: string | null
+          author_user_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          party?: string
+          thread_id: string
+          updated_at?: string
+        }
+        Update: {
+          attachments?: Json
+          author_company_id?: string | null
+          author_user_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          party?: string
+          thread_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_messages_author_company_id_fkey"
+            columns: ["author_company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_number_counters: {
+        Row: {
+          seq: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          seq?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          seq?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      mkt_partner_availability: {
+        Row: {
+          company_id: string
+          created_at: string
+          ends_on: string | null
+          id: string
+          is_active: boolean
+          note: string | null
+          quantity: number | null
+          resource_label: string | null
+          starts_on: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          ends_on?: string | null
+          id?: string
+          is_active?: boolean
+          note?: string | null
+          quantity?: number | null
+          resource_label?: string | null
+          starts_on?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          ends_on?: string | null
+          id?: string
+          is_active?: boolean
+          note?: string | null
+          quantity?: number | null
+          resource_label?: string | null
+          starts_on?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_partner_availability_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_partner_business_roles: {
+        Row: {
+          business_role: string
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          business_role: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          business_role?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_partner_business_roles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_partner_client_types: {
+        Row: {
+          client_type: string
+          company_id: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          client_type: string
+          company_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          client_type?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_partner_client_types_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_partner_documents: {
+        Row: {
+          admin_note: string | null
+          company_id: string
+          created_at: string
+          doc_type: string
+          expires_on: string | null
+          file_path: string | null
+          id: string
+          issued_on: string | null
+          issuer: string | null
+          name: string
+          reference: string | null
+          status: string
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+        }
+        Insert: {
+          admin_note?: string | null
+          company_id: string
+          created_at?: string
+          doc_type: string
+          expires_on?: string | null
+          file_path?: string | null
+          id?: string
+          issued_on?: string | null
+          issuer?: string | null
+          name: string
+          reference?: string | null
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Update: {
+          admin_note?: string | null
+          company_id?: string
+          created_at?: string
+          doc_type?: string
+          expires_on?: string | null
+          file_path?: string | null
+          id?: string
+          issued_on?: string | null
+          issuer?: string | null
+          name?: string
+          reference?: string | null
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_partner_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_partner_equipment: {
+        Row: {
+          capacity: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          equipment_type: string
+          id: string
+          is_active: boolean
+          quantity: number
+          updated_at: string
+          with_operator: boolean | null
+        }
+        Insert: {
+          capacity?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          equipment_type: string
+          id?: string
+          is_active?: boolean
+          quantity?: number
+          updated_at?: string
+          with_operator?: boolean | null
+        }
+        Update: {
+          capacity?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          equipment_type?: string
+          id?: string
+          is_active?: boolean
+          quantity?: number
+          updated_at?: string
+          with_operator?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_partner_equipment_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_partner_preferences: {
+        Row: {
+          category_ids: string[]
+          cities: string[]
+          client_types: string[]
+          company_id: string
+          created_at: string
+          id: string
+          max_project_amount: number | null
+          min_project_amount: number | null
+          notify_email: boolean
+          notify_in_app: boolean
+          notify_sms: boolean
+          paused_until: string | null
+          radius_km: number | null
+          regions: string[]
+          updated_at: string
+        }
+        Insert: {
+          category_ids?: string[]
+          cities?: string[]
+          client_types?: string[]
+          company_id: string
+          created_at?: string
+          id?: string
+          max_project_amount?: number | null
+          min_project_amount?: number | null
+          notify_email?: boolean
+          notify_in_app?: boolean
+          notify_sms?: boolean
+          paused_until?: string | null
+          radius_km?: number | null
+          regions?: string[]
+          updated_at?: string
+        }
+        Update: {
+          category_ids?: string[]
+          cities?: string[]
+          client_types?: string[]
+          company_id?: string
+          created_at?: string
+          id?: string
+          max_project_amount?: number | null
+          min_project_amount?: number | null
+          notify_email?: boolean
+          notify_in_app?: boolean
+          notify_sms?: boolean
+          paused_until?: string | null
+          radius_km?: number | null
+          regions?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_partner_preferences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_partner_scores: {
+        Row: {
+          avg_response_hours: number | null
+          awards_count: number
+          bids_count: number
+          cancelled_count: number
+          company_id: string
+          completed_count: number
+          computed_at: string | null
+          created_at: string
+          disputes_count: number
+          id: string
+          internal_score: number
+          invitations_count: number
+          last_activity_at: string | null
+          metrics: Json
+          profile_completion: number
+          public_score: number | null
+          response_rate: number | null
+          satisfaction: number | null
+          show_public_score: boolean
+          updated_at: string
+        }
+        Insert: {
+          avg_response_hours?: number | null
+          awards_count?: number
+          bids_count?: number
+          cancelled_count?: number
+          company_id: string
+          completed_count?: number
+          computed_at?: string | null
+          created_at?: string
+          disputes_count?: number
+          id?: string
+          internal_score?: number
+          invitations_count?: number
+          last_activity_at?: string | null
+          metrics?: Json
+          profile_completion?: number
+          public_score?: number | null
+          response_rate?: number | null
+          satisfaction?: number | null
+          show_public_score?: boolean
+          updated_at?: string
+        }
+        Update: {
+          avg_response_hours?: number | null
+          awards_count?: number
+          bids_count?: number
+          cancelled_count?: number
+          company_id?: string
+          completed_count?: number
+          computed_at?: string | null
+          created_at?: string
+          disputes_count?: number
+          id?: string
+          internal_score?: number
+          invitations_count?: number
+          last_activity_at?: string | null
+          metrics?: Json
+          profile_completion?: number
+          public_score?: number | null
+          response_rate?: number | null
+          satisfaction?: number | null
+          show_public_score?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_partner_scores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_partner_services: {
+        Row: {
+          category_id: string
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_partner_services_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_partner_services_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_partner_territories: {
+        Row: {
+          center_address: string | null
+          city: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          radius_km: number | null
+          region: string | null
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          center_address?: string | null
+          city?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          radius_km?: number | null
+          region?: string | null
+          scope?: string
+          updated_at?: string
+        }
+        Update: {
+          center_address?: string | null
+          city?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          radius_km?: number | null
+          region?: string | null
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_partner_territories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_partners: {
+        Row: {
+          accepts_subcontracting: boolean
+          accepts_tenders: boolean
+          address: string | null
+          archived_at: string | null
+          archived_by: string | null
+          availability_note: string | null
+          availability_status: string
+          city: string | null
+          company_id: string
+          contact_name: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          founded_year: number | null
+          id: string
+          is_active: boolean
+          is_public: boolean
+          is_verified: boolean
+          latitude: number | null
+          legal_name: string | null
+          logo_url: string | null
+          longitude: number | null
+          max_distance_km: number | null
+          max_project_amount: number | null
+          min_project_amount: number | null
+          neq: string | null
+          onboarding_status: string
+          phone: string | null
+          postal_code: string | null
+          profile_id: string | null
+          project_sizes: string[]
+          region: string | null
+          trade_name: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          accepts_subcontracting?: boolean
+          accepts_tenders?: boolean
+          address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          availability_note?: string | null
+          availability_status?: string
+          city?: string | null
+          company_id: string
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          founded_year?: number | null
+          id?: string
+          is_active?: boolean
+          is_public?: boolean
+          is_verified?: boolean
+          latitude?: number | null
+          legal_name?: string | null
+          logo_url?: string | null
+          longitude?: number | null
+          max_distance_km?: number | null
+          max_project_amount?: number | null
+          min_project_amount?: number | null
+          neq?: string | null
+          onboarding_status?: string
+          phone?: string | null
+          postal_code?: string | null
+          profile_id?: string | null
+          project_sizes?: string[]
+          region?: string | null
+          trade_name?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          accepts_subcontracting?: boolean
+          accepts_tenders?: boolean
+          address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          availability_note?: string | null
+          availability_status?: string
+          city?: string | null
+          company_id?: string
+          contact_name?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          founded_year?: number | null
+          id?: string
+          is_active?: boolean
+          is_public?: boolean
+          is_verified?: boolean
+          latitude?: number | null
+          legal_name?: string | null
+          logo_url?: string | null
+          longitude?: number | null
+          max_distance_km?: number | null
+          max_project_amount?: number | null
+          min_project_amount?: number | null
+          neq?: string | null
+          onboarding_status?: string
+          phone?: string | null
+          postal_code?: string | null
+          profile_id?: string | null
+          project_sizes?: string[]
+          region?: string | null
+          trade_name?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_partners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_partners_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_marketplace_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_pricing_rules: {
+        Row: {
+          category_id: string | null
+          company_id: string | null
+          created_at: string
+          fixed_amount: number | null
+          id: string
+          label: string
+          max_amount: number | null
+          min_amount: number | null
+          model: string
+          notes: string | null
+          priority: number
+          rate_percent: number | null
+          status: string
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          fixed_amount?: number | null
+          id?: string
+          label: string
+          max_amount?: number | null
+          min_amount?: number | null
+          model: string
+          notes?: string | null
+          priority?: number
+          rate_percent?: number | null
+          status?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          fixed_amount?: number | null
+          id?: string
+          label?: string
+          max_amount?: number | null
+          min_amount?: number | null
+          model?: string
+          notes?: string | null
+          priority?: number
+          rate_percent?: number | null
+          status?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_pricing_rules_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_pricing_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_quote_requests: {
+        Row: {
+          address: string | null
+          answers: Json
+          archived_at: string | null
+          archived_by: string | null
+          assigned_to: string | null
+          budget_max: number | null
+          budget_min: number | null
+          category_id: string | null
+          city: string | null
+          client_id: string | null
+          client_type: string
+          client_user_id: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          contact_visibility: string
+          created_at: string
+          created_by: string | null
+          deadline_at: string | null
+          description: string | null
+          desired_date: string | null
+          distribution_mode: string
+          estimated_value: number | null
+          id: string
+          internal_notes: string | null
+          is_active: boolean
+          is_multi_lot: boolean
+          latitude: number | null
+          longitude: number | null
+          organization_name: string | null
+          postal_code: string | null
+          region: string | null
+          request_number: string | null
+          schedule_note: string | null
+          source: string
+          status: string
+          subcategory_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          answers?: Json
+          archived_at?: string | null
+          archived_by?: string | null
+          assigned_to?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          category_id?: string | null
+          city?: string | null
+          client_id?: string | null
+          client_type?: string
+          client_user_id?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          contact_visibility?: string
+          created_at?: string
+          created_by?: string | null
+          deadline_at?: string | null
+          description?: string | null
+          desired_date?: string | null
+          distribution_mode?: string
+          estimated_value?: number | null
+          id?: string
+          internal_notes?: string | null
+          is_active?: boolean
+          is_multi_lot?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          organization_name?: string | null
+          postal_code?: string | null
+          region?: string | null
+          request_number?: string | null
+          schedule_note?: string | null
+          source?: string
+          status?: string
+          subcategory_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          answers?: Json
+          archived_at?: string | null
+          archived_by?: string | null
+          assigned_to?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          category_id?: string | null
+          city?: string | null
+          client_id?: string | null
+          client_type?: string
+          client_user_id?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          contact_visibility?: string
+          created_at?: string
+          created_by?: string | null
+          deadline_at?: string | null
+          description?: string | null
+          desired_date?: string | null
+          distribution_mode?: string
+          estimated_value?: number | null
+          id?: string
+          internal_notes?: string | null
+          is_active?: boolean
+          is_multi_lot?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          organization_name?: string | null
+          postal_code?: string | null
+          region?: string | null
+          request_number?: string | null
+          schedule_note?: string | null
+          source?: string
+          status?: string
+          subcategory_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_quote_requests_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_quote_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_quote_requests_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_request_lots: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          description: string | null
+          ends_on: string | null
+          estimated_amount: number | null
+          id: string
+          lot_number: string
+          quantity: number | null
+          quantity_unit: string | null
+          request_id: string
+          schedule_note: string | null
+          sort_order: number
+          starts_on: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          ends_on?: string | null
+          estimated_amount?: number | null
+          id?: string
+          lot_number: string
+          quantity?: number | null
+          quantity_unit?: string | null
+          request_id: string
+          schedule_note?: string | null
+          sort_order?: number
+          starts_on?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          ends_on?: string | null
+          estimated_amount?: number | null
+          id?: string
+          lot_number?: string
+          quantity?: number | null
+          quantity_unit?: string | null
+          request_id?: string
+          schedule_note?: string | null
+          sort_order?: number
+          starts_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_request_lots_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_request_lots_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_service_categories: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          code: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          keywords: string[]
+          level: string
+          name: string
+          parent_id: string | null
+          slug: string
+          sort_order: number
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          level?: string
+          name: string
+          parent_id?: string | null
+          slug: string
+          sort_order?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          level?: string
+          name?: string
+          parent_id?: string | null
+          slug?: string
+          sort_order?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_service_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_thread_participants: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          last_read_at: string | null
+          party: string
+          thread_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          last_read_at?: string | null
+          party?: string
+          thread_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          last_read_at?: string | null
+          party?: string
+          thread_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_thread_participants_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_thread_participants_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_threads: {
+        Row: {
+          bid_id: string | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          last_message_at: string | null
+          lot_id: string | null
+          request_id: string | null
+          status: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          bid_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          last_message_at?: string | null
+          lot_id?: string | null
+          request_id?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bid_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          last_message_at?: string | null
+          lot_id?: string | null
+          request_id?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_threads_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_threads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_threads_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_request_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_threads_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           charged_to_entrepreneur: number | null
@@ -13075,6 +14641,12 @@ export type Database = {
           user_id: string
         }[]
       }
+      mkt_can_see_request: { Args: { _request_id: string }; Returns: boolean }
+      mkt_in_thread: { Args: { _thread_id: string }; Returns: boolean }
+      mkt_is_admin: { Args: never; Returns: boolean }
+      mkt_is_member: { Args: { _company_id: string }; Returns: boolean }
+      mkt_next_request_number: { Args: never; Returns: string }
+      mkt_owns_request: { Args: { _request_id: string }; Returns: boolean }
       move_to_dlq: {
         Args: {
           dlq_name: string
