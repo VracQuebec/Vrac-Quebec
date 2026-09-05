@@ -2151,6 +2151,7 @@ export type Database = {
       fleet_costs: {
         Row: {
           amount: number
+          company_id: string | null
           cost_type: string
           created_at: string
           id: string
@@ -2163,6 +2164,7 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          company_id?: string | null
           cost_type: string
           created_at?: string
           id?: string
@@ -2175,6 +2177,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          company_id?: string | null
           cost_type?: string
           created_at?: string
           id?: string
@@ -2195,19 +2198,146 @@ export type Database = {
           },
         ]
       }
+      fleet_expenses: {
+        Row: {
+          amount: number
+          amount_before_tax: number | null
+          category: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          document_url: string | null
+          engine_hours: number | null
+          id: string
+          maintenance_id: string | null
+          notes: string | null
+          odometer_km: number | null
+          repair_id: string | null
+          spent_on: string
+          supplier: string | null
+          taxes: number | null
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          amount?: number
+          amount_before_tax?: number | null
+          category?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_url?: string | null
+          engine_hours?: number | null
+          id?: string
+          maintenance_id?: string | null
+          notes?: string | null
+          odometer_km?: number | null
+          repair_id?: string | null
+          spent_on?: string
+          supplier?: string | null
+          taxes?: number | null
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          amount?: number
+          amount_before_tax?: number | null
+          category?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_url?: string | null
+          engine_hours?: number | null
+          id?: string
+          maintenance_id?: string | null
+          notes?: string | null
+          odometer_km?: number | null
+          repair_id?: string | null
+          spent_on?: string
+          supplier?: string | null
+          taxes?: number | null
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_expenses_maintenance_id_fkey"
+            columns: ["maintenance_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_maintenance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_expenses_repair_id_fkey"
+            columns: ["repair_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_repairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_expenses_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_inspection_templates: {
+        Row: {
+          category: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          points: Json
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          points?: Json
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          points?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fleet_inspections: {
         Row: {
           calendar_event_id: string | null
           checks: Json
           comment: string | null
+          company_id: string | null
           created_at: string
           created_by: string | null
           driver_id: string | null
+          engine_hours: number | null
           has_problem: boolean
           id: string
           inspected_on: string
           odometer_km: number | null
           signature: string | null
+          template_id: string | null
           updated_at: string
           vehicle_id: string
         }
@@ -2215,14 +2345,17 @@ export type Database = {
           calendar_event_id?: string | null
           checks?: Json
           comment?: string | null
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           driver_id?: string | null
+          engine_hours?: number | null
           has_problem?: boolean
           id?: string
           inspected_on?: string
           odometer_km?: number | null
           signature?: string | null
+          template_id?: string | null
           updated_at?: string
           vehicle_id: string
         }
@@ -2230,14 +2363,17 @@ export type Database = {
           calendar_event_id?: string | null
           checks?: Json
           comment?: string | null
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           driver_id?: string | null
+          engine_hours?: number | null
           has_problem?: boolean
           id?: string
           inspected_on?: string
           odometer_km?: number | null
           signature?: string | null
+          template_id?: string | null
           updated_at?: string
           vehicle_id?: string
         }
@@ -2257,6 +2393,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fleet_inspections_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_inspection_templates"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fleet_inspections_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
@@ -2271,6 +2414,7 @@ export type Database = {
           alert_hours_margin: number
           alert_km_margin: number
           calendar_event_id: string | null
+          company_id: string | null
           completed_engine_hours: number | null
           cost: number
           created_at: string
@@ -2287,6 +2431,7 @@ export type Database = {
           odometer_km: number | null
           parts_summary: string | null
           performed_on: string | null
+          program_id: string | null
           supplier: string | null
           updated_at: string
           vehicle_id: string
@@ -2297,6 +2442,7 @@ export type Database = {
           alert_hours_margin?: number
           alert_km_margin?: number
           calendar_event_id?: string | null
+          company_id?: string | null
           completed_engine_hours?: number | null
           cost?: number
           created_at?: string
@@ -2313,6 +2459,7 @@ export type Database = {
           odometer_km?: number | null
           parts_summary?: string | null
           performed_on?: string | null
+          program_id?: string | null
           supplier?: string | null
           updated_at?: string
           vehicle_id: string
@@ -2323,6 +2470,7 @@ export type Database = {
           alert_hours_margin?: number
           alert_km_margin?: number
           calendar_event_id?: string | null
+          company_id?: string | null
           completed_engine_hours?: number | null
           cost?: number
           created_at?: string
@@ -2339,6 +2487,7 @@ export type Database = {
           odometer_km?: number | null
           parts_summary?: string | null
           performed_on?: string | null
+          program_id?: string | null
           supplier?: string | null
           updated_at?: string
           vehicle_id?: string
@@ -2353,7 +2502,120 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fleet_maintenance_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_service_programs"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fleet_maintenance_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_meter_readings: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          engine_hours: number | null
+          id: string
+          is_correction: boolean
+          notes: string | null
+          odometer_km: number | null
+          read_at: string
+          source: string
+          source_id: string | null
+          source_table: string | null
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          engine_hours?: number | null
+          id?: string
+          is_correction?: boolean
+          notes?: string | null
+          odometer_km?: number | null
+          read_at?: string
+          source?: string
+          source_id?: string | null
+          source_table?: string | null
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          engine_hours?: number | null
+          id?: string
+          is_correction?: boolean
+          notes?: string | null
+          odometer_km?: number | null
+          read_at?: string
+          source?: string
+          source_id?: string | null
+          source_table?: string | null
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_meter_readings_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_part_refs: {
+        Row: {
+          brand: string | null
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          part_number: string | null
+          supplier: string | null
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          brand?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          part_number?: string | null
+          supplier?: string | null
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          brand?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          part_number?: string | null
+          supplier?: string | null
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_part_refs_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "trucks"
@@ -2363,6 +2625,7 @@ export type Database = {
       }
       fleet_parts: {
         Row: {
+          company_id: string | null
           created_at: string
           id: string
           installed_on: string | null
@@ -2378,6 +2641,7 @@ export type Database = {
           vehicle_id: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           id?: string
           installed_on?: string | null
@@ -2393,6 +2657,7 @@ export type Database = {
           vehicle_id: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           id?: string
           installed_on?: string | null
@@ -2434,6 +2699,7 @@ export type Database = {
       fleet_repairs: {
         Row: {
           calendar_event_id: string | null
+          company_id: string | null
           completed_date: string | null
           completed_engine_hours: number | null
           cost_actual: number | null
@@ -2444,6 +2710,8 @@ export type Database = {
           document_url: string | null
           id: string
           inspection_id: string | null
+          labor_hours: number | null
+          mechanic: string | null
           notes: string | null
           odometer_km: number | null
           parts_summary: string | null
@@ -2455,9 +2723,11 @@ export type Database = {
           supplier: string | null
           updated_at: string
           vehicle_id: string
+          work_item_id: string | null
         }
         Insert: {
           calendar_event_id?: string | null
+          company_id?: string | null
           completed_date?: string | null
           completed_engine_hours?: number | null
           cost_actual?: number | null
@@ -2468,6 +2738,8 @@ export type Database = {
           document_url?: string | null
           id?: string
           inspection_id?: string | null
+          labor_hours?: number | null
+          mechanic?: string | null
           notes?: string | null
           odometer_km?: number | null
           parts_summary?: string | null
@@ -2479,9 +2751,11 @@ export type Database = {
           supplier?: string | null
           updated_at?: string
           vehicle_id: string
+          work_item_id?: string | null
         }
         Update: {
           calendar_event_id?: string | null
+          company_id?: string | null
           completed_date?: string | null
           completed_engine_hours?: number | null
           cost_actual?: number | null
@@ -2492,6 +2766,8 @@ export type Database = {
           document_url?: string | null
           id?: string
           inspection_id?: string | null
+          labor_hours?: number | null
+          mechanic?: string | null
           notes?: string | null
           odometer_km?: number | null
           parts_summary?: string | null
@@ -2503,6 +2779,7 @@ export type Database = {
           supplier?: string | null
           updated_at?: string
           vehicle_id?: string
+          work_item_id?: string | null
         }
         Relationships: [
           {
@@ -2521,6 +2798,160 @@ export type Database = {
           },
           {
             foreignKeyName: "fleet_repairs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_repairs_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_service_programs: {
+        Row: {
+          alert_days_before: number
+          alert_hours_margin: number
+          alert_km_margin: number
+          category: string | null
+          company_id: string
+          created_at: string
+          id: string
+          interval_days: number | null
+          interval_hours: number | null
+          interval_km: number | null
+          is_active: boolean
+          name: string
+          notes: string | null
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          alert_days_before?: number
+          alert_hours_margin?: number
+          alert_km_margin?: number
+          category?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          interval_days?: number | null
+          interval_hours?: number | null
+          interval_km?: number | null
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          alert_days_before?: number
+          alert_hours_margin?: number
+          alert_km_margin?: number
+          category?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          interval_days?: number | null
+          interval_hours?: number | null
+          interval_km?: number | null
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_service_programs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_work_items: {
+        Row: {
+          check_key: string | null
+          closed_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          inspection_id: string | null
+          last_seen_on: string
+          occurrences: number
+          priority: string
+          repair_id: string | null
+          scheduled_date: string | null
+          source: string
+          status: string
+          title: string
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          check_key?: string | null
+          closed_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          inspection_id?: string | null
+          last_seen_on?: string
+          occurrences?: number
+          priority?: string
+          repair_id?: string | null
+          scheduled_date?: string | null
+          source?: string
+          status?: string
+          title: string
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          check_key?: string | null
+          closed_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          inspection_id?: string | null
+          last_seen_on?: string
+          occurrences?: number
+          priority?: string
+          repair_id?: string | null
+          scheduled_date?: string | null
+          source?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_work_items_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_work_items_repair_id_fkey"
+            columns: ["repair_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_repairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fleet_work_items_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "trucks"
@@ -11476,63 +11907,171 @@ export type Database = {
       }
       trucks: {
         Row: {
+          acquisition_notes: string | null
           active: boolean
+          admin_status: string
+          archived_at: string | null
+          axle_make: string | null
+          axle_model: string | null
+          axle_ratio: string | null
+          axle_serial: string | null
+          axles: number | null
+          body_length: string | null
+          body_type: string | null
+          capacity: string | null
           carrier_id: string | null
+          category: string
+          color: string | null
+          company_id: string | null
+          components: Json
+          configuration: string | null
           created_at: string
+          current_value: number | null
           engine_hours: number | null
+          engine_make: string | null
+          engine_model: string | null
+          engine_power: string | null
+          engine_serial: string | null
+          has_pto: boolean | null
+          hydraulics: string | null
           id: string
           in_service_since: string | null
+          last_reading_at: string | null
           make: string | null
           model: string | null
           name: string
           notes: string | null
           odometer_km: number | null
+          ops_status: string
           plate: string | null
+          province: string | null
+          purchase_date: string | null
+          purchase_hours: number | null
+          purchase_odometer_km: number | null
+          purchase_price: number | null
           service_status: string
+          transmission: string | null
+          transmission_make: string | null
+          transmission_model: string | null
+          transmission_serial: string | null
           type: Database["public"]["Enums"]["truck_type"]
           unit_number: string | null
           updated_at: string
+          vendor: string | null
           vin: string | null
+          warranty: string | null
           year: number | null
         }
         Insert: {
+          acquisition_notes?: string | null
           active?: boolean
+          admin_status?: string
+          archived_at?: string | null
+          axle_make?: string | null
+          axle_model?: string | null
+          axle_ratio?: string | null
+          axle_serial?: string | null
+          axles?: number | null
+          body_length?: string | null
+          body_type?: string | null
+          capacity?: string | null
           carrier_id?: string | null
+          category?: string
+          color?: string | null
+          company_id?: string | null
+          components?: Json
+          configuration?: string | null
           created_at?: string
+          current_value?: number | null
           engine_hours?: number | null
+          engine_make?: string | null
+          engine_model?: string | null
+          engine_power?: string | null
+          engine_serial?: string | null
+          has_pto?: boolean | null
+          hydraulics?: string | null
           id?: string
           in_service_since?: string | null
+          last_reading_at?: string | null
           make?: string | null
           model?: string | null
           name: string
           notes?: string | null
           odometer_km?: number | null
+          ops_status?: string
           plate?: string | null
+          province?: string | null
+          purchase_date?: string | null
+          purchase_hours?: number | null
+          purchase_odometer_km?: number | null
+          purchase_price?: number | null
           service_status?: string
+          transmission?: string | null
+          transmission_make?: string | null
+          transmission_model?: string | null
+          transmission_serial?: string | null
           type?: Database["public"]["Enums"]["truck_type"]
           unit_number?: string | null
           updated_at?: string
+          vendor?: string | null
           vin?: string | null
+          warranty?: string | null
           year?: number | null
         }
         Update: {
+          acquisition_notes?: string | null
           active?: boolean
+          admin_status?: string
+          archived_at?: string | null
+          axle_make?: string | null
+          axle_model?: string | null
+          axle_ratio?: string | null
+          axle_serial?: string | null
+          axles?: number | null
+          body_length?: string | null
+          body_type?: string | null
+          capacity?: string | null
           carrier_id?: string | null
+          category?: string
+          color?: string | null
+          company_id?: string | null
+          components?: Json
+          configuration?: string | null
           created_at?: string
+          current_value?: number | null
           engine_hours?: number | null
+          engine_make?: string | null
+          engine_model?: string | null
+          engine_power?: string | null
+          engine_serial?: string | null
+          has_pto?: boolean | null
+          hydraulics?: string | null
           id?: string
           in_service_since?: string | null
+          last_reading_at?: string | null
           make?: string | null
           model?: string | null
           name?: string
           notes?: string | null
           odometer_km?: number | null
+          ops_status?: string
           plate?: string | null
+          province?: string | null
+          purchase_date?: string | null
+          purchase_hours?: number | null
+          purchase_odometer_km?: number | null
+          purchase_price?: number | null
           service_status?: string
+          transmission?: string | null
+          transmission_make?: string | null
+          transmission_model?: string | null
+          transmission_serial?: string | null
           type?: Database["public"]["Enums"]["truck_type"]
           unit_number?: string | null
           updated_at?: string
+          vendor?: string | null
           vin?: string | null
+          warranty?: string | null
           year?: number | null
         }
         Relationships: [
@@ -12116,6 +12655,7 @@ export type Database = {
           qa_before: number
         }[]
       }
+      fleet_can_access: { Args: { _company_id: string }; Returns: boolean }
       fleet_scan_due: { Args: never; Returns: Json }
       get_comparateur_selection: {
         Args: { p_submission_id: string }
