@@ -37,7 +37,7 @@ function tree(rows: ServiceCategory[]): Node[] {
 }
 
 export default function AdminMarketplaceCategories() {
-  const { isReady, session } = useAuthReady();
+  const { isReady, isAuthenticated } = useAuthReady();
   const { isAdmin, loading: roleLoading } = useUserRoles();
   const { toast } = useToast();
   const [rows, setRows] = useState<ServiceCategory[]>([]);
@@ -123,9 +123,9 @@ export default function AdminMarketplaceCategories() {
     }
   };
 
-  if (!isReady || roleLoading) return <FullPageState variant="loading" title="Chargement…" />;
-  if (!session) return <FullPageState variant="error" title="Connexion requise" description="Connectez-vous pour accéder à cette page." />;
-  if (!isAdmin) return <FullPageState variant="error" title="Accès refusé" description="Réservé aux administrateurs Vrac Québec." />;
+  if (!isReady || roleLoading) return <FullPageState title="Chargement des catégories" />;
+  if (!isAuthenticated) return <FullPageState title="Connexion requise" message="Connectez-vous pour accéder à cette page." showSpinner={false} />;
+  if (!isAdmin) return <FullPageState title="Accès refusé" message="Réservé aux administrateurs Vrac Québec." showSpinner={false} />;
 
   const renderNode = (node: Node, depth: number) => {
     const expanded = open[node.id] ?? depth === 0 ? open[node.id] ?? false : false;
