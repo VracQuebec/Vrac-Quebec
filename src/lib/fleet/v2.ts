@@ -469,3 +469,45 @@ export function buildDashboard(s: FleetSnapshot) {
 
 export const sortByPriority = <T extends { priority: string }>(rows: T[]) =>
   [...rows].sort((a, b) => (PRIORITY_RANK[a.priority] ?? 3) - (PRIORITY_RANK[b.priority] ?? 3));
+
+// ---------------- Points d'inspection selon le type d'unité ----------------
+
+const BASE_POINTS = [
+  { key: "huile", label: "Huile" },
+  { key: "pneus", label: "Pneus" },
+  { key: "air", label: "Air" },
+  { key: "lumieres", label: "Lumières" },
+  { key: "freins", label: "Freins" },
+  { key: "fuites", label: "Fuites" },
+  { key: "dompe", label: "Dompe / benne" },
+  { key: "hydraulique", label: "Hydraulique" },
+];
+
+const POINTS_BY_KIND: Record<string, { key: string; label: string }[]> = {
+  vehicule: BASE_POINTS,
+  remorque: [
+    { key: "pneus", label: "Pneus" },
+    { key: "lumieres", label: "Lumières" },
+    { key: "freins", label: "Freins" },
+    { key: "attelage", label: "Attelage" },
+    { key: "structure", label: "Structure / châssis" },
+    { key: "dompe", label: "Dompe / benne" },
+  ],
+  equipement: [
+    { key: "huile", label: "Huile" },
+    { key: "fuites", label: "Fuites" },
+    { key: "hydraulique", label: "Hydraulique" },
+    { key: "chenilles", label: "Chenilles / pneus" },
+    { key: "godet", label: "Godet / outil" },
+    { key: "graissage", label: "Graissage" },
+    { key: "securite", label: "Sécurité (arrêt d'urgence)" },
+  ],
+};
+
+/** Un pickup, une remorque et une pelle n'ont pas la même liste d'inspection. */
+export function inspectionPointsFor(vehicle?: Vehicle | null) {
+  if (vehicle?.category === "pickup") {
+    return BASE_POINTS.filter((p) => p.key !== "dompe" && p.key !== "hydraulique" && p.key !== "air");
+  }
+  return POINTS_BY_KIND[categoryKind(vehicle?.category)] ?? BASE_POINTS;
+}
