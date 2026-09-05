@@ -241,6 +241,8 @@ export async function saveMaintenance(m: Partial<Maintenance> & { vehicle_id: st
     });
     await supabase.from("fleet_maintenance").update({ calendar_event_id: eventId }).eq("id", id!);
   }
+  await recordReading({ vehicleId: m.vehicle_id, km: m.odometer_km, hours: m.engine_hours,
+    source: "entretien", sourceTable: "fleet_maintenance", sourceId: id!, readAt: m.performed_on ?? undefined });
   return id!;
 }
 
@@ -268,6 +270,8 @@ export async function saveRepair(r: Partial<Repair> & { vehicle_id: string; prob
     });
     await supabase.from("fleet_repairs").update({ calendar_event_id: eventId }).eq("id", id!);
   }
+  await recordReading({ vehicleId: r.vehicle_id, km: r.odometer_km,
+    source: "reparation", sourceTable: "fleet_repairs", sourceId: id!, readAt: r.reported_on ?? undefined });
   return id!;
 }
 
@@ -286,6 +290,8 @@ export async function saveInspection(i: Partial<Inspection> & { vehicle_id: stri
     if (error) throw error;
     id = data.id as string;
   }
+  await recordReading({ vehicleId: i.vehicle_id, km: i.odometer_km, hours: (i as { engine_hours?: number | null }).engine_hours,
+    source: "inspection", sourceTable: "fleet_inspections", sourceId: id!, readAt: i.inspected_on ?? undefined });
   if (hasProblem) await createRepairsFromInspection(id!);
   return id!;
 }
