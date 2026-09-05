@@ -16,6 +16,10 @@ import {
 } from "@/lib/fleet/api";
 import FleetDocuments from "@/components/fleet/FleetDocuments";
 import type { Driver } from "@/lib/calendar-utils";
+import {
+  ADMIN_STATUS, OPS_STATUS, UNIT_CATEGORIES, inspectionPointsFor,
+  syncWorkItemsFromInspection, usesEngineHours,
+} from "@/lib/fleet/v2";
 
 const TRUCK_TYPES = [
   { value: "10_roues", label: "Camion 10 roues" },
@@ -412,6 +416,7 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
   const [driver, setDriver] = useState("none");
   const [date, setDate] = useState(today);
   const [km, setKm] = useState("");
+  const [hours, setHours] = useState("");
   const [checks, setChecks] = useState<Record<string, CheckValue>>({});
   const [comment, setComment] = useState("");
   const [signature, setSignature] = useState("");
@@ -423,6 +428,7 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
     setDriver(record?.driver_id ?? "none");
     setDate(record?.inspected_on ?? today);
     setKm(record?.odometer_km != null ? String(record.odometer_km) : "");
+    setHours(record?.engine_hours != null ? String(record.engine_hours) : "");
     setChecks((record?.checks as Record<string, CheckValue>) ?? {});
     setComment(record?.comment ?? "");
     setSignature(record?.signature ?? "");
@@ -432,16 +438,23 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
     if (!vehicle) { toast({ title: "Choisissez un véhicule", variant: "destructive" }); return; }
     setBusy(true);
     try {
-      await saveInspection({
+      const inspectionId = await saveInspection({
         id: record?.id,
         vehicle_id: vehicle,
         driver_id: driver === "none" ? null : driver,
         inspected_on: date,
         odometer_km: km ? Number(km) : null,
+        engine_hours: hours ? Number(hours) : null,
         checks,
         comment: comment || null,
         signature: signature || null,
       } as never);
+      // « À surveiller » et « Problème » alimentent les travaux à faire,
+      // sans jamais créer dix fois le même constat.
+      await syncWorkItemsFromInspection(
+        { id: inspectionId, vehicle_id: vehicle, checks, comment, inspected_on: date } as never,
+        points,
+      ).catch(() => undefined);
       const problems = Object.values(checks).filter((v) => v === "probleme").length;
       toast({
         title: "Inspection enregistrée",
@@ -454,6 +467,9 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
       toast({ title: "Enregistrement impossible", description: (e as Error).message, variant: "destructive" });
     } finally { setBusy(false); }
   };
+
+  const current = vehicles.find((v) => v.id === vehicle) ?? null;
+  const points = inspectionPointsFor(current);
 
   const tone = (v: CheckValue, active: boolean) => {
     if (!active) return "bg-secondary text-muted-foreground";
@@ -485,10 +501,15 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
             </Field>
             <Field label="Date"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
           </div>
-          <Field label="Kilométrage"><Input inputMode="numeric" value={km} onChange={(e) => setKm(e.target.value)} /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Kilométrage"><Input inputMode="numeric" value={km} onChange={(e) => setKm(e.target.value)} /></Field>
+            {usesEngineHours(current) && (
+              <Field label="Heures moteur"><Input inputMode="numeric" value={hours} onChange={(e) => setHours(e.target.value)} /></Field>
+            )}
+          </div>
 
           <div className="space-y-2">
-            {INSPECTION_POINTS.map((p) => (
+            {points.map((p) => (
               <div key={p.key} className="flex items-center justify-between gap-2">
                 <span className="text-sm font-body">{p.label}</span>
                 <div className="flex gap-1">
