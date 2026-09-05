@@ -157,6 +157,30 @@ export async function saveVehicle(v: Partial<Vehicle> & { name: string }) {
 }
 
 /**
+ * Relevé de compteur automatique : toute intervention qui contient un
+ * kilométrage ou des heures moteur alimente l'historique des compteurs.
+ * La base de données refuse de faire reculer le compteur du véhicule.
+ */
+export async function recordReading(opts: {
+  vehicleId: string; km?: number | null; hours?: number | null;
+  source: string; sourceTable?: string; sourceId?: string; readAt?: string;
+}) {
+  const km = opts.km == null ? null : Number(opts.km);
+  const hours = opts.hours == null ? null : Number(opts.hours);
+  if (km == null && hours == null) return;
+  await supabase.from("fleet_meter_readings").insert({
+    vehicle_id: opts.vehicleId,
+    odometer_km: km, engine_hours: hours,
+    source: opts.source,
+    source_table: opts.sourceTable ?? null,
+    source_id: opts.sourceId ?? null,
+    read_at: opts.readAt ? new Date(`${opts.readAt}T12:00:00`).toISOString() : new Date().toISOString(),
+  } as never);
+}
+
+
+
+/**
  * Crée (ou met à jour) l'événement correspondant DANS LE CALENDRIER EXISTANT.
  * Aucun second calendrier : on écrit dans `calendar_events`.
  */
@@ -217,6 +241,8 @@ export async function saveMaintenance(m: Partial<Maintenance> & { vehicle_id: st
     });
     await supabase.from("fleet_maintenance").update({ calendar_event_id: eventId }).eq("id", id!);
   }
+  await recordReading({ vehicleId: m.vehicle_id, km: m.odometer_km, hours: m.engine_hours,
+    source: "entretien", sourceTable: "fleet_maintenance", sourceId: id!, readAt: m.performed_on ?? undefined });
   return id!;
 }
 
@@ -244,6 +270,8 @@ export async function saveRepair(r: Partial<Repair> & { vehicle_id: string; prob
     });
     await supabase.from("fleet_repairs").update({ calendar_event_id: eventId }).eq("id", id!);
   }
+  await recordReading({ vehicleId: r.vehicle_id, km: r.odometer_km,
+    source: "reparation", sourceTable: "fleet_repairs", sourceId: id!, readAt: r.reported_on ?? undefined });
   return id!;
 }
 
@@ -262,6 +290,8 @@ export async function saveInspection(i: Partial<Inspection> & { vehicle_id: stri
     if (error) throw error;
     id = data.id as string;
   }
+  await recordReading({ vehicleId: i.vehicle_id, km: i.odometer_km, hours: (i as { engine_hours?: number | null }).engine_hours,
+    source: "inspection", sourceTable: "fleet_inspections", sourceId: id!, readAt: i.inspected_on ?? undefined });
   if (hasProblem) await createRepairsFromInspection(id!);
   return id!;
 }
@@ -390,14 +420,16 @@ export function costTotals(costs: Cost[]) {
   const now = new Date();
   const month = now.toISOString().slice(0, 7);
   const year = String(now.getFullYear());
-  let total = 0, thisMonth = 0, thisYear = 0;
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 7);
+  let total = 0, thisMonth = 0, lastMonth = 0, thisYear = 0;
   for (const c of costs) {
     const amount = Number(c.amount || 0);
     total += amount;
     if (c.incurred_on?.startsWith(month)) thisMonth += amount;
+    if (c.incurred_on?.startsWith(prev)) lastMonth += amount;
     if (c.incurred_on?.startsWith(year)) thisYear += amount;
   }
-  return { total, thisMonth, thisYear };
+  return { total, thisMonth, lastMonth, thisYear };
 }
 
 

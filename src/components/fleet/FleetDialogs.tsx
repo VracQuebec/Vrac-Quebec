@@ -16,6 +16,10 @@ import {
 } from "@/lib/fleet/api";
 import FleetDocuments from "@/components/fleet/FleetDocuments";
 import type { Driver } from "@/lib/calendar-utils";
+import {
+  ADMIN_STATUS, OPS_STATUS, UNIT_CATEGORIES, inspectionPointsFor,
+  syncWorkItemsFromInspection, usesEngineHours,
+} from "@/lib/fleet/v2";
 
 const TRUCK_TYPES = [
   { value: "10_roues", label: "Camion 10 roues" },
@@ -62,13 +66,26 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
 }) {
   const { toast } = useToast();
   const [f, setF] = useState<Record<string, string>>({});
+  const [section, setSection] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    const keys = ["province","color","axles","configuration","capacity","transmission","body_type",
+      "body_length","hydraulics","engine_make","engine_model","engine_serial","engine_power",
+      "transmission_make","transmission_model","transmission_serial","axle_make","axle_model",
+      "axle_ratio","axle_serial","purchase_date","purchase_price","purchase_odometer_km",
+      "purchase_hours","vendor","warranty","current_value","acquisition_notes"] as const;
+    const extra: Record<string, string> = {};
+    for (const k of keys) {
+      const value = (vehicle as Record<string, unknown> | null | undefined)?.[k];
+      extra[k] = value == null ? "" : String(value);
+    }
     setF({
+      ...extra,
       name: vehicle?.name ?? "",
       unit_number: vehicle?.unit_number ?? "",
+      category: vehicle?.category ?? "camion_12_roues",
       type: vehicle?.type ?? "10_roues",
       make: vehicle?.make ?? "",
       model: vehicle?.model ?? "",
@@ -77,7 +94,8 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
       vin: vehicle?.vin ?? "",
       odometer_km: vehicle?.odometer_km != null ? String(vehicle.odometer_km) : "",
       engine_hours: vehicle?.engine_hours != null ? String(vehicle.engine_hours) : "",
-      service_status: vehicle?.service_status ?? "en_service",
+      admin_status: vehicle?.admin_status ?? "actif",
+      ops_status: vehicle?.ops_status ?? "disponible",
       notes: vehicle?.notes ?? "",
     });
   }, [open, vehicle]);
@@ -86,19 +104,40 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
     if (!f.name.trim()) { toast({ title: "Le nom du véhicule est requis", variant: "destructive" }); return; }
     setBusy(true);
     try {
+      const num = (k: string) => (f[k] ? Number(f[k]) : null);
+      const txt = (k: string) => f[k] || null;
       await saveVehicle({
         id: vehicle?.id,
         name: f.name.trim(),
         unit_number: f.unit_number || null,
+        category: f.category,
         type: f.type as Vehicle["type"],
-        make: f.make || null,
-        model: f.model || null,
-        year: f.year ? Number(f.year) : null,
-        plate: f.plate || null,
-        vin: f.vin || null,
-        odometer_km: f.odometer_km ? Number(f.odometer_km) : null,
-        engine_hours: f.engine_hours ? Number(f.engine_hours) : null,
-        service_status: f.service_status,
+        make: txt("make"), model: txt("model"),
+        year: num("year"),
+        plate: txt("plate"), vin: txt("vin"),
+        province: txt("province"), color: txt("color"),
+        axles: num("axles"),
+        configuration: txt("configuration"), capacity: txt("capacity"),
+        transmission: txt("transmission"), body_type: txt("body_type"), body_length: txt("body_length"),
+        hydraulics: txt("hydraulics"),
+        engine_make: txt("engine_make"), engine_model: txt("engine_model"),
+        engine_serial: txt("engine_serial"), engine_power: txt("engine_power"),
+        transmission_make: txt("transmission_make"), transmission_model: txt("transmission_model"),
+        transmission_serial: txt("transmission_serial"),
+        axle_make: txt("axle_make"), axle_model: txt("axle_model"),
+        axle_ratio: txt("axle_ratio"), axle_serial: txt("axle_serial"),
+        purchase_date: txt("purchase_date"), purchase_price: num("purchase_price"),
+        purchase_odometer_km: num("purchase_odometer_km"), purchase_hours: num("purchase_hours"),
+        vendor: txt("vendor"), warranty: txt("warranty"), current_value: num("current_value"),
+        acquisition_notes: txt("acquisition_notes"),
+        odometer_km: num("odometer_km"),
+        engine_hours: num("engine_hours"),
+        admin_status: f.admin_status,
+        ops_status: f.ops_status,
+        // Statut de service historique conservé, aligné sur le statut opérationnel.
+        service_status: f.admin_status === "vendu" ? "vendu"
+          : f.ops_status === "au_garage" ? "atelier"
+          : f.ops_status === "hors_service" ? "hors_service" : "en_service",
         notes: f.notes || null,
       } as never);
       toast({ title: vehicle ? "Véhicule mis à jour" : "Véhicule ajouté" });
@@ -115,16 +154,28 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
         <div className="grid grid-cols-2 gap-3">
           <Field label="Nom / identifiant *"><Input value={f.name ?? ""} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
           <Field label="Numéro d'unité"><Input value={f.unit_number ?? ""} onChange={(e) => setF({ ...f, unit_number: e.target.value })} /></Field>
-          <Field label="Type">
+          <Field label="Catégorie d'unité *">
+            <Select value={f.category} onValueChange={(v) => setF({ ...f, category: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{UNIT_CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
+          <Field label="Type (calendrier)">
             <Select value={f.type} onValueChange={(v) => setF({ ...f, type: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{TRUCK_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
-          <Field label="Statut">
-            <Select value={f.service_status} onValueChange={(v) => setF({ ...f, service_status: v })}>
+          <Field label="Statut administratif">
+            <Select value={f.admin_status} onValueChange={(v) => setF({ ...f, admin_status: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{Object.entries(SERVICE_STATUS_LABELS).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
+              <SelectContent>{ADMIN_STATUS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
+          <Field label="Statut opérationnel">
+            <Select value={f.ops_status} onValueChange={(v) => setF({ ...f, ops_status: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{OPS_STATUS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
           <Field label="Marque"><Input value={f.make ?? ""} onChange={(e) => setF({ ...f, make: e.target.value })} /></Field>
@@ -134,6 +185,64 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
           <Field label="NIV (VIN)"><Input value={f.vin ?? ""} onChange={(e) => setF({ ...f, vin: e.target.value })} /></Field>
           <Field label="Kilométrage"><Input inputMode="numeric" value={f.odometer_km ?? ""} onChange={(e) => setF({ ...f, odometer_km: e.target.value })} /></Field>
           <Field label="Heures moteur"><Input inputMode="numeric" value={f.engine_hours ?? ""} onChange={(e) => setF({ ...f, engine_hours: e.target.value })} /></Field>
+          <Field label="Province"><Input value={f.province ?? ""} onChange={(e) => setF({ ...f, province: e.target.value })} /></Field>
+          <Field label="Couleur"><Input value={f.color ?? ""} onChange={(e) => setF({ ...f, color: e.target.value })} /></Field>
+
+          <div className="col-span-2">
+            <button type="button" onClick={() => setSection(section === "config" ? null : "config")}
+              className="text-sm font-body text-primary">{section === "config" ? "− Configuration" : "+ Configuration"}</button>
+          </div>
+          {section === "config" && (
+            <>
+              <Field label="Nombre d'essieux"><Input inputMode="numeric" value={f.axles ?? ""} onChange={(e) => setF({ ...f, axles: e.target.value })} /></Field>
+              <Field label="Configuration"><Input value={f.configuration ?? ""} onChange={(e) => setF({ ...f, configuration: e.target.value })} /></Field>
+              <Field label="Capacité"><Input value={f.capacity ?? ""} onChange={(e) => setF({ ...f, capacity: e.target.value })} /></Field>
+              <Field label="Transmission"><Input value={f.transmission ?? ""} onChange={(e) => setF({ ...f, transmission: e.target.value })} /></Field>
+              <Field label="Type de benne"><Input value={f.body_type ?? ""} onChange={(e) => setF({ ...f, body_type: e.target.value })} /></Field>
+              <Field label="Longueur de benne"><Input value={f.body_length ?? ""} onChange={(e) => setF({ ...f, body_length: e.target.value })} /></Field>
+              <Field label="Système hydraulique / PTO"><Input value={f.hydraulics ?? ""} onChange={(e) => setF({ ...f, hydraulics: e.target.value })} /></Field>
+            </>
+          )}
+
+          <div className="col-span-2">
+            <button type="button" onClick={() => setSection(section === "meca" ? null : "meca")}
+              className="text-sm font-body text-primary">{section === "meca" ? "− Identification mécanique" : "+ Identification mécanique"}</button>
+          </div>
+          {section === "meca" && (
+            <>
+              <Field label="Moteur — marque"><Input value={f.engine_make ?? ""} onChange={(e) => setF({ ...f, engine_make: e.target.value })} /></Field>
+              <Field label="Moteur — modèle"><Input value={f.engine_model ?? ""} onChange={(e) => setF({ ...f, engine_model: e.target.value })} /></Field>
+              <Field label="Moteur — n° de série"><Input value={f.engine_serial ?? ""} onChange={(e) => setF({ ...f, engine_serial: e.target.value })} /></Field>
+              <Field label="Moteur — puissance"><Input value={f.engine_power ?? ""} onChange={(e) => setF({ ...f, engine_power: e.target.value })} /></Field>
+              <Field label="Transmission — marque"><Input value={f.transmission_make ?? ""} onChange={(e) => setF({ ...f, transmission_make: e.target.value })} /></Field>
+              <Field label="Transmission — modèle"><Input value={f.transmission_model ?? ""} onChange={(e) => setF({ ...f, transmission_model: e.target.value })} /></Field>
+              <Field label="Transmission — n° de série"><Input value={f.transmission_serial ?? ""} onChange={(e) => setF({ ...f, transmission_serial: e.target.value })} /></Field>
+              <Field label="Essieux — marque"><Input value={f.axle_make ?? ""} onChange={(e) => setF({ ...f, axle_make: e.target.value })} /></Field>
+              <Field label="Essieux — modèle"><Input value={f.axle_model ?? ""} onChange={(e) => setF({ ...f, axle_model: e.target.value })} /></Field>
+              <Field label="Essieux — ratio"><Input value={f.axle_ratio ?? ""} onChange={(e) => setF({ ...f, axle_ratio: e.target.value })} /></Field>
+              <Field label="Essieux — n° de série"><Input value={f.axle_serial ?? ""} onChange={(e) => setF({ ...f, axle_serial: e.target.value })} /></Field>
+            </>
+          )}
+
+          <div className="col-span-2">
+            <button type="button" onClick={() => setSection(section === "achat" ? null : "achat")}
+              className="text-sm font-body text-primary">{section === "achat" ? "− Acquisition" : "+ Acquisition"}</button>
+          </div>
+          {section === "achat" && (
+            <>
+              <Field label="Date d'achat"><Input type="date" value={f.purchase_date ?? ""} onChange={(e) => setF({ ...f, purchase_date: e.target.value })} /></Field>
+              <Field label="Prix d'achat"><Input inputMode="decimal" value={f.purchase_price ?? ""} onChange={(e) => setF({ ...f, purchase_price: e.target.value })} /></Field>
+              <Field label="Km à l'achat"><Input inputMode="numeric" value={f.purchase_odometer_km ?? ""} onChange={(e) => setF({ ...f, purchase_odometer_km: e.target.value })} /></Field>
+              <Field label="Heures à l'achat"><Input inputMode="numeric" value={f.purchase_hours ?? ""} onChange={(e) => setF({ ...f, purchase_hours: e.target.value })} /></Field>
+              <Field label="Vendeur"><Input value={f.vendor ?? ""} onChange={(e) => setF({ ...f, vendor: e.target.value })} /></Field>
+              <Field label="Garantie"><Input value={f.warranty ?? ""} onChange={(e) => setF({ ...f, warranty: e.target.value })} /></Field>
+              <Field label="Valeur actuelle"><Input inputMode="decimal" value={f.current_value ?? ""} onChange={(e) => setF({ ...f, current_value: e.target.value })} /></Field>
+              <div className="col-span-2">
+                <Field label="Notes d'acquisition"><Textarea rows={2} value={f.acquisition_notes ?? ""} onChange={(e) => setF({ ...f, acquisition_notes: e.target.value })} /></Field>
+              </div>
+            </>
+          )}
+
           <div className="col-span-2">
             <Field label="Notes"><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
           </div>
@@ -412,6 +521,7 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
   const [driver, setDriver] = useState("none");
   const [date, setDate] = useState(today);
   const [km, setKm] = useState("");
+  const [hours, setHours] = useState("");
   const [checks, setChecks] = useState<Record<string, CheckValue>>({});
   const [comment, setComment] = useState("");
   const [signature, setSignature] = useState("");
@@ -423,6 +533,7 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
     setDriver(record?.driver_id ?? "none");
     setDate(record?.inspected_on ?? today);
     setKm(record?.odometer_km != null ? String(record.odometer_km) : "");
+    setHours(record?.engine_hours != null ? String(record.engine_hours) : "");
     setChecks((record?.checks as Record<string, CheckValue>) ?? {});
     setComment(record?.comment ?? "");
     setSignature(record?.signature ?? "");
@@ -432,16 +543,23 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
     if (!vehicle) { toast({ title: "Choisissez un véhicule", variant: "destructive" }); return; }
     setBusy(true);
     try {
-      await saveInspection({
+      const inspectionId = await saveInspection({
         id: record?.id,
         vehicle_id: vehicle,
         driver_id: driver === "none" ? null : driver,
         inspected_on: date,
         odometer_km: km ? Number(km) : null,
+        engine_hours: hours ? Number(hours) : null,
         checks,
         comment: comment || null,
         signature: signature || null,
       } as never);
+      // « À surveiller » et « Problème » alimentent les travaux à faire,
+      // sans jamais créer dix fois le même constat.
+      await syncWorkItemsFromInspection(
+        { id: inspectionId, vehicle_id: vehicle, checks, comment, inspected_on: date } as never,
+        points,
+      ).catch(() => undefined);
       const problems = Object.values(checks).filter((v) => v === "probleme").length;
       toast({
         title: "Inspection enregistrée",
@@ -454,6 +572,9 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
       toast({ title: "Enregistrement impossible", description: (e as Error).message, variant: "destructive" });
     } finally { setBusy(false); }
   };
+
+  const current = vehicles.find((v) => v.id === vehicle) ?? null;
+  const points = inspectionPointsFor(current);
 
   const tone = (v: CheckValue, active: boolean) => {
     if (!active) return "bg-secondary text-muted-foreground";
@@ -485,10 +606,15 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
             </Field>
             <Field label="Date"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
           </div>
-          <Field label="Kilométrage"><Input inputMode="numeric" value={km} onChange={(e) => setKm(e.target.value)} /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Kilométrage"><Input inputMode="numeric" value={km} onChange={(e) => setKm(e.target.value)} /></Field>
+            {usesEngineHours(current) && (
+              <Field label="Heures moteur"><Input inputMode="numeric" value={hours} onChange={(e) => setHours(e.target.value)} /></Field>
+            )}
+          </div>
 
           <div className="space-y-2">
-            {INSPECTION_POINTS.map((p) => (
+            {points.map((p) => (
               <div key={p.key} className="flex items-center justify-between gap-2">
                 <span className="text-sm font-body">{p.label}</span>
                 <div className="flex gap-1">

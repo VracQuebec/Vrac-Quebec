@@ -23,6 +23,12 @@ import {
   type Cost, type FleetEvent, type Inspection, type Maintenance, type Repair, type Vehicle,
 } from "@/lib/fleet/api";
 import type { Driver } from "@/lib/calendar-utils";
+import { ExpenseDialog, WorkItemDialog } from "@/components/fleet/FleetDialogsV2";
+import {
+  buildDashboard, EXPENSE_LABELS, fetchExpenses, fetchWorkItems, kmLabel, hoursLabel,
+  OPS_STATUS, TONE_CLASS, opsStatus, unitSubtitle, unitTitle, maintenanceDue,
+  type Expense, type WorkItem,
+} from "@/lib/fleet/v2";
 import { useToast } from "@/hooks/use-toast";
 
 const TABS = [
@@ -33,6 +39,7 @@ const TABS = [
   { key: "inspections", label: "Inspections", icon: ClipboardCheck },
   { key: "afaire", label: "À faire bientôt", icon: Bell },
   { key: "historique", label: "Historique", icon: History },
+  { key: "depenses", label: "Dépenses", icon: DollarSign },
   { key: "couts", label: "Coûts", icon: DollarSign },
 ] as const;
 
@@ -64,6 +71,8 @@ export default function AdminFleet() {
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [costs, setCosts] = useState<Cost[]>([]);
   const [events, setEvents] = useState<FleetEvent[]>([]);
+  const [workItems, setWorkItems] = useState<WorkItem[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
@@ -75,6 +84,9 @@ export default function AdminFleet() {
     { kind: "entretien"; record: Maintenance } | { kind: "reparation"; record: Repair } | null>(null);
   const [todoFilter, setTodoFilter] = useState<"tous" | "urgent" | "avenir" | "retard">("tous");
   const [todoVehicle, setTodoVehicle] = useState("tous");
+  const [expenseDialog, setExpenseDialog] = useState<{ open: boolean; record?: Expense | null }>({ open: false });
+  const [workDialog, setWorkDialog] = useState<{ open: boolean; record?: WorkItem | null }>({ open: false });
+  const [vehFilter, setVehFilter] = useState("tous");
 
   useEffect(() => {
     if (!isReady || roleLoading) return;
@@ -86,14 +98,16 @@ export default function AdminFleet() {
     try {
       // Balayage des échéances → alimente le centre de notifications EXISTANT.
       await scanDue().catch(() => undefined);
-      const [v, d, m, r, i, c, e] = await Promise.all([
+      const [v, d, m, r, i, c, e, w, x] = await Promise.all([
         fetchVehicles(),
         supabase.from("drivers").select("*").order("name"),
         fetchMaintenance(), fetchRepairs(), fetchInspections(), fetchCosts(), fetchFleetEvents(),
+        fetchWorkItems(), fetchExpenses(),
       ]);
       setVehicles(v);
       setDrivers((d.data as Driver[]) ?? []);
       setMaint(m); setRepairs(r); setInspections(i); setCosts(c); setEvents(e);
+      setWorkItems(w); setExpenses(x);
     } catch (err) {
       toast({ title: "Chargement impossible", description: (err as Error).message, variant: "destructive" });
     } finally { setLoading(false); }
@@ -128,13 +142,41 @@ export default function AdminFleet() {
     return true;
   }), [todo, todoFilter, todoVehicle]);
 
+  const dash = useMemo(
+    () => buildDashboard({ vehicles, maint, repairs, inspections, workItems }),
+    [vehicles, maint, repairs, inspections, workItems]);
+
   const filteredVehicles = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return vehicles;
-    return vehicles.filter((v) =>
-      [v.name, v.unit_number, v.plate, v.make, v.model].filter(Boolean)
-        .some((s) => String(s).toLowerCase().includes(q)));
-  }, [vehicles, search]);
+    return vehicles.filter((v) => {
+      if (vehFilter !== "tous" && (v.ops_status ?? "disponible") !== vehFilter) return false;
+      if (!q) return true;
+      return [v.name, v.unit_number, v.plate, v.make, v.model, v.vin].filter(Boolean)
+        .some((s) => String(s).toLowerCase().includes(q));
+    });
+  }, [vehicles, search, vehFilter]);
+
+  // Résumé par véhicule affiché sur la carte : prochain entretien + réparations ouvertes.
+  const vehicleBadges = useMemo(() => {
+    const map = new Map<string, { due: string | null; open: number; tone: string }>();
+    for (const v of vehicles) {
+      const rows = maint.filter((m) => m.vehicle_id === v.id
+        && (m.next_due_date || m.next_due_km || m.next_due_hours));
+      let due: string | null = null; let tone = TONE_CLASS.ok;
+      for (const m of rows) {
+        const d = maintenanceDue(m, v);
+        if (d.state === "ok" || !d.reason) continue;
+        if (d.state === "retard") { due = `${m.next_type || m.maintenance_type} — ${d.reason}`; tone = TONE_CLASS.bad; break; }
+        if (!due) { due = `${m.next_type || m.maintenance_type} — ${d.reason}`; tone = TONE_CLASS.soon; }
+      }
+      map.set(v.id, {
+        due,
+        open: repairs.filter((r) => r.vehicle_id === v.id && r.status !== "terminee" && r.status !== "annulee").length,
+        tone,
+      });
+    }
+    return map;
+  }, [vehicles, maint, repairs]);
 
   if (!isReady || roleLoading) return <FullPageState title="Chargement de la flotte" />;
   if (!isAdmin) return null;
@@ -149,6 +191,17 @@ export default function AdminFleet() {
   };
 
   const vName = (id: string) => vehicleLabel(byId.get(id));
+
+  // Variation des coûts vs mois précédent (texte + couleur, jamais la couleur seule).
+  const variation = (() => {
+    const prev = totals.lastMonth;
+    if (!prev) return { text: totals.thisMonth ? "Nouveau" : "—", tone: "text-muted-foreground" };
+    const pct = Math.round(((totals.thisMonth - prev) / prev) * 100);
+    return {
+      text: `${pct > 0 ? "+" : ""}${pct} %`,
+      tone: pct > 0 ? "text-destructive" : pct < 0 ? "text-primary" : "text-muted-foreground",
+    };
+  })();
 
   return (
     <div className="min-h-screen bg-background pb-16">
@@ -190,22 +243,94 @@ export default function AdminFleet() {
           <Button size="sm" variant="outline" onClick={() => setMaintDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Entretien</Button>
           <Button size="sm" variant="outline" onClick={() => setRepairDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Réparation</Button>
           <Button size="sm" variant="outline" onClick={() => setInspDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Inspection</Button>
+          <Button size="sm" variant="outline" onClick={() => setExpenseDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Dépense</Button>
         </div>
 
         {loading && <p className="text-sm text-muted-foreground font-body">Chargement…</p>}
 
         {tab === "dashboard" && (
           <div className="space-y-5">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <Kpi label="Camions en service" value={String(stats.inService)} to="?tab=vehicules" />
-              <Kpi label="Entretiens à venir" value={String(stats.maintSoon)} to="?tab=afaire" />
-              <Kpi label="Entretiens en retard" value={String(stats.maintLate)} tone="text-destructive" to="?tab=afaire" />
-              <Kpi label="Réparations urgentes" value={String(stats.urgentRepairs)} tone="text-destructive" to="?tab=reparations" />
-              <Kpi label="Inspections à venir" value={String(stats.inspectionsSoon)} to="?tab=inspections" />
-              <Kpi label="Problèmes signalés" value={String(stats.problems)} tone="text-amber-500" to="?tab=inspections" />
-              <Kpi label="Coûts du mois" value={money(totals.thisMonth)} to="?tab=couts" />
-              <Kpi label="Coûts de l'année" value={money(totals.thisYear)} to="?tab=couts" />
+            {/* À SURVEILLER */}
+            <section className="rounded-xl border border-border bg-card p-4">
+              <h2 className="font-display font-bold mb-3">À surveiller</h2>
+              {dash.attention.length ? (
+                <div className="space-y-2">
+                  {dash.attention.slice(0, 8).map((a) => (
+                    <Link key={a.id} to={`/admin/flotte/vehicule/${a.vehicleId}`}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 hover:border-primary">
+                      <div className="min-w-0">
+                        <div className="text-sm font-display font-semibold truncate">{a.title}</div>
+                        <div className="text-xs text-muted-foreground font-body truncate">
+                          {vName(a.vehicleId)} · {a.detail}
+                        </div>
+                      </div>
+                      <span className={`text-[11px] px-2 py-1 rounded font-display font-semibold shrink-0 ${
+                        a.level === "urgent" ? TONE_CLASS.bad : a.level === "bientot" ? TONE_CLASS.soon : TONE_CLASS.warn}`}>
+                        {a.level === "urgent" ? "Urgent" : a.level === "bientot" ? "Bientôt" : "À surveiller"}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm font-body text-muted-foreground">
+                  Aucun problème urgent — votre flotte est à jour.
+                </p>
+              )}
+            </section>
+
+            {/* ÉTAT DE LA FLOTTE */}
+            <section className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-baseline justify-between mb-3">
+                <h2 className="font-display font-bold">État de la flotte</h2>
+                <span className="text-sm font-body text-muted-foreground">{dash.total} unité(s)</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {dash.fleetState.map((st) => (
+                  <button key={st.value} onClick={() => { setVehFilter(st.value); setTab("vehicules"); }}
+                    className="rounded-lg border border-border p-3 text-left hover:border-primary">
+                    <div className="text-xl font-display font-bold">{st.count}</div>
+                    <div className="text-xs font-body text-muted-foreground">{st.label}</div>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* ENTRETIENS / RÉPARATIONS / INSPECTIONS */}
+            <div className="grid sm:grid-cols-3 gap-3">
+              <section className="rounded-xl border border-border bg-card p-4">
+                <h3 className="font-display font-bold mb-2">Entretiens</h3>
+                <button onClick={() => setTab("entretien")} className="block text-sm font-body">À jour : <b>{dash.maintenance.ok}</b></button>
+                <button onClick={() => setTab("afaire")} className="block text-sm font-body">Bientôt dus : <b>{dash.maintenance.soon}</b></button>
+                <button onClick={() => setTab("afaire")} className="block text-sm font-body text-destructive">En retard : <b>{dash.maintenance.late}</b></button>
+              </section>
+              <section className="rounded-xl border border-border bg-card p-4">
+                <h3 className="font-display font-bold mb-2">Réparations</h3>
+                <button onClick={() => setTab("reparations")} className="block text-sm font-body text-destructive">Urgentes : <b>{dash.repairs.urgent}</b></button>
+                <button onClick={() => setTab("reparations")} className="block text-sm font-body">À planifier : <b>{dash.repairs.toPlan}</b></button>
+                <button onClick={() => setTab("reparations")} className="block text-sm font-body">En cours : <b>{dash.repairs.inProgress}</b></button>
+              </section>
+              <section className="rounded-xl border border-border bg-card p-4">
+                <h3 className="font-display font-bold mb-2">Inspections</h3>
+                <button onClick={() => setTab("inspections")} className="block text-sm font-body">Complétées : <b>{dash.inspections.done}</b></button>
+                <button onClick={() => setTab("afaire")} className="block text-sm font-body">À faire : <b>{stats.inspectionsSoon}</b></button>
+                <button onClick={() => setTab("inspections")} className="block text-sm font-body text-amber-600">Problèmes : <b>{dash.inspections.problems}</b></button>
+              </section>
             </div>
+
+            {/* AUJOURD'HUI */}
+            <section className="rounded-xl border border-border bg-card p-4">
+              <h2 className="font-display font-bold mb-3">Aujourd'hui</h2>
+              {dash.todayRows.length ? dash.todayRows.map((a) => (
+                <Link key={`t-${a.id}`} to={`/admin/flotte/vehicule/${a.vehicleId}`}
+                  className="flex items-center justify-between gap-3 py-2 border-b border-border last:border-0">
+                  <span className="text-sm font-body truncate">{a.title}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">{vName(a.vehicleId)}</span>
+                </Link>
+              )) : <p className="text-sm font-body text-muted-foreground">Rien ne demande votre attention aujourd'hui.</p>}
+              <button onClick={() => setTab("afaire")} className="mt-3 text-sm font-body text-primary">Voir toutes les tâches →</button>
+            </section>
+
+            {/* PROCHAINES ÉCHÉANCES */}
             <section className="rounded-xl border border-border bg-card p-4">
               <h2 className="font-display font-bold mb-3">Prochaines échéances</h2>
               {todo.slice(0, 8).map((t) => (
@@ -219,30 +344,61 @@ export default function AdminFleet() {
                 </Link>
               ))}
               {!todo.length && <p className="text-sm text-muted-foreground font-body">Aucune échéance.</p>}
+              <Link to="/admin/calendrier" className="mt-3 inline-block text-sm font-body text-primary">Voir le calendrier →</Link>
+            </section>
+
+            {/* COÛTS */}
+            <section className="rounded-xl border border-border bg-card p-4">
+              <h2 className="font-display font-bold mb-3">Coûts</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <Kpi label="Ce mois-ci" value={money(totals.thisMonth)} />
+                <Kpi label="Mois précédent" value={money(totals.lastMonth)} />
+                <Kpi label="Variation" value={variation.text} tone={variation.tone} />
+                <Kpi label="Cette année" value={money(totals.thisYear)} />
+              </div>
+              <button onClick={() => setTab("couts")} className="mt-3 text-sm font-body text-primary">Voir l'analyse des coûts →</button>
             </section>
           </div>
         )}
 
         {tab === "vehicules" && (
           <div className="space-y-3">
-            <Input placeholder="Rechercher un véhicule…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {filteredVehicles.map((v) => (
-                <Link key={v.id} to={`/admin/flotte/vehicule/${v.id}`} className="rounded-xl border border-border bg-card p-4 hover:border-primary transition-colors">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="font-display font-bold">{vehicleLabel(v)}</div>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-secondary text-muted-foreground font-display">
-                      {SERVICE_STATUS_LABELS[v.service_status ?? "en_service"] ?? v.service_status}
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground font-body mt-1">
-                    {[v.make, v.model, v.year].filter(Boolean).join(" ") || "—"}
-                  </div>
-                  <div className="text-xs text-muted-foreground font-body mt-1">
-                    {[v.plate ? `Plaque ${v.plate}` : null, v.odometer_km ? `${Number(v.odometer_km).toLocaleString("fr-CA")} km` : null].filter(Boolean).join(" · ")}
-                  </div>
-                </Link>
+            <Input placeholder="Rechercher : numéro d'unité, marque, modèle, plaque, NIV…"
+              value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-md" />
+            <div className="flex flex-wrap gap-2">
+              {[{ value: "tous", label: "Tous" }, ...OPS_STATUS].map((o) => (
+                <button key={o.value} onClick={() => setVehFilter(o.value)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-body ${
+                    vehFilter === o.value ? "bg-primary text-primary-foreground font-semibold" : "bg-secondary text-muted-foreground"}`}>
+                  {o.label}
+                </button>
               ))}
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredVehicles.map((v) => {
+                const badge = vehicleBadges.get(v.id);
+                const st = opsStatus(v);
+                return (
+                  <Link key={v.id} to={`/admin/flotte/vehicule/${v.id}`}
+                    className="rounded-xl border border-border bg-card p-4 hover:border-primary transition-colors">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="font-display font-bold">{unitTitle(v)}</div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-display shrink-0 ${TONE_CLASS[st.tone]}`}>
+                        {st.label}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground font-body mt-1">{unitSubtitle(v)}</div>
+                    <div className="text-xs text-muted-foreground font-body mt-1">
+                      {[kmLabel(v.odometer_km as number | null), hoursLabel(v.engine_hours as number | null),
+                        v.plate ? `Plaque ${v.plate}` : null].filter(Boolean).join(" • ") || "—"}
+                    </div>
+                    {badge?.due && <div className={`mt-2 inline-block text-[11px] px-2 py-0.5 rounded font-display ${badge.tone}`}>{badge.due}</div>}
+                    {!!badge?.open && (
+                      <div className="mt-1 text-xs font-body text-muted-foreground">{badge.open} réparation(s) ouverte(s)</div>
+                    )}
+                  </Link>
+                );
+              })}
               {!filteredVehicles.length && !loading && <p className="text-sm text-muted-foreground font-body">Aucun véhicule.</p>}
             </div>
           </div>
@@ -370,6 +526,24 @@ export default function AdminFleet() {
           </div>
         )}
 
+        {tab === "depenses" && (
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {expenses.map((x) => (
+              <button key={x.id} onClick={() => setExpenseDialog({ open: true, record: x })}
+                className="w-full text-left p-3 hover:bg-secondary/50 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-display font-semibold truncate">
+                    {EXPENSE_LABELS[x.category] ?? x.category}{x.description ? ` — ${x.description}` : ""}
+                  </div>
+                  <div className="text-xs text-muted-foreground font-body">{vName(x.vehicle_id)} · {dateLabel(x.spent_on)}</div>
+                </div>
+                <div className="text-sm font-display shrink-0">{money(x.amount)}</div>
+              </button>
+            ))}
+            {!expenses.length && !loading && <p className="p-4 text-sm text-muted-foreground font-body">Aucune dépense.</p>}
+          </div>
+        )}
+
         {tab === "historique" && (
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
             {[
@@ -410,6 +584,10 @@ export default function AdminFleet() {
         )}
       </main>
 
+      <ExpenseDialog open={expenseDialog.open} onOpenChange={(o) => setExpenseDialog({ open: o })}
+        vehicles={vehicles} record={expenseDialog.record} onSaved={load} />
+      <WorkItemDialog open={workDialog.open} onOpenChange={(o) => setWorkDialog({ open: o })}
+        vehicles={vehicles} record={workDialog.record} onSaved={load} />
       <CompleteDialog target={complete} onOpenChange={(o) => !o && setComplete(null)} onSaved={load} />
       <VehicleDialog open={vehicleDialog} onOpenChange={setVehicleDialog} onSaved={load} />
       <MaintenanceDialog open={maintDialog.open} onOpenChange={(o) => setMaintDialog({ open: o })}
