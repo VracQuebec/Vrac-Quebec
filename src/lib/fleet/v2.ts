@@ -10,6 +10,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { TRUCK_TYPE_LABELS } from "@/lib/calendar-utils";
 import type { Database } from "@/integrations/supabase/types";
+import { scoped, withCompany } from "./tenant";
 import {
   PRIORITY_RANK, type Inspection, type Maintenance, type Repair, type Vehicle,
 } from "./api";
@@ -138,7 +139,7 @@ export const hoursLabel = (n: number | null | undefined) =>
 // ---------------- Compteurs ----------------
 
 export async function fetchReadings(vehicleId: string, limit = 50): Promise<MeterReading[]> {
-  const { data, error } = await supabase.from("fleet_meter_readings").select("*")
+  const { data, error } = await scoped(supabase.from("fleet_meter_readings").select("*"))
     .eq("vehicle_id", vehicleId).order("read_at", { ascending: false }).limit(limit);
   if (error) throw error;
   return data ?? [];
@@ -156,7 +157,7 @@ export async function addReading(opts: {
   if (opts.km == null && opts.hours == null) return;
   if ((opts.km ?? 0) < 0 || (opts.hours ?? 0) < 0) throw new Error("Un compteur ne peut pas être négatif.");
   const { data: userData } = await supabase.auth.getUser();
-  const { error } = await supabase.from("fleet_meter_readings").insert({
+  const { error } = await supabase.from("fleet_meter_readings").insert(withCompany({
     vehicle_id: opts.vehicleId,
     odometer_km: opts.km ?? null,
     engine_hours: opts.hours ?? null,
@@ -167,7 +168,7 @@ export async function addReading(opts: {
     notes: opts.notes ?? null,
     read_at: opts.readAt ?? new Date().toISOString(),
     created_by: userData.user?.id ?? null,
-  } as never);
+  }) as never);
   if (error) throw error;
 }
 
@@ -178,7 +179,7 @@ export const isMeterRegression = (current: number | null | undefined, next: numb
 // ---------------- Travaux à faire ----------------
 
 export async function fetchWorkItems(vehicleId?: string, openOnly = false): Promise<WorkItem[]> {
-  let q = supabase.from("fleet_work_items").select("*").order("created_at", { ascending: false });
+  let q = scoped(supabase.from("fleet_work_items").select("*").order("created_at", { ascending: false }));
   if (vehicleId) q = q.eq("vehicle_id", vehicleId);
   if (openOnly) q = q.not("status", "in", "(termine,annule)");
   const { data, error } = await q;
@@ -194,7 +195,7 @@ export async function saveWorkItem(w: Partial<WorkItem> & { vehicle_id: string; 
   }
   const { data: userData } = await supabase.auth.getUser();
   const { data, error } = await supabase.from("fleet_work_items")
-    .insert({ ...w, created_by: userData.user?.id ?? null } as never).select("id").single();
+    .insert(withCompany({ ...w, created_by: userData.user?.id ?? null }) as never).select("id").single();
   if (error) throw error;
   return data.id as string;
 }
@@ -246,7 +247,7 @@ export async function syncWorkItemsFromInspection(
 // ---------------- Dépenses ----------------
 
 export async function fetchExpenses(vehicleId?: string): Promise<Expense[]> {
-  let q = supabase.from("fleet_expenses").select("*").order("spent_on", { ascending: false });
+  let q = scoped(supabase.from("fleet_expenses").select("*").order("spent_on", { ascending: false }));
   if (vehicleId) q = q.eq("vehicle_id", vehicleId);
   const { data, error } = await q;
   if (error) throw error;
@@ -262,7 +263,7 @@ export async function saveExpense(e: Partial<Expense> & { vehicle_id: string }) 
   }
   const { data: userData } = await supabase.auth.getUser();
   const { data, error } = await supabase.from("fleet_expenses")
-    .insert({ ...e, created_by: userData.user?.id ?? null } as never).select("id").single();
+    .insert(withCompany({ ...e, created_by: userData.user?.id ?? null }) as never).select("id").single();
   if (error) throw error;
   return data.id as string;
 }
@@ -275,7 +276,7 @@ export async function deleteExpense(id: string) {
 // ---------------- Références de pièces ----------------
 
 export async function fetchPartRefs(vehicleId?: string): Promise<PartRef[]> {
-  let q = supabase.from("fleet_part_refs").select("*").order("name");
+  let q = scoped(supabase.from("fleet_part_refs").select("*").order("name"));
   if (vehicleId) q = q.eq("vehicle_id", vehicleId);
   const { data, error } = await q;
   if (error) throw error;
@@ -288,7 +289,7 @@ export async function savePartRef(p: Partial<PartRef> & { name: string }) {
     if (error) throw error;
     return p.id;
   }
-  const { data, error } = await supabase.from("fleet_part_refs").insert(p as never).select("id").single();
+  const { data, error } = await supabase.from("fleet_part_refs").insert(withCompany(p) as never).select("id").single();
   if (error) throw error;
   return data.id as string;
 }
@@ -301,7 +302,7 @@ export async function deletePartRef(id: string) {
 // ---------------- Programmes d'entretien récurrents ----------------
 
 export async function fetchPrograms(vehicleId?: string): Promise<ServiceProgram[]> {
-  let q = supabase.from("fleet_service_programs").select("*").eq("is_active", true).order("name");
+  let q = scoped(supabase.from("fleet_service_programs").select("*").eq("is_active", true).order("name"));
   if (vehicleId) q = q.eq("vehicle_id", vehicleId);
   const { data, error } = await q;
   if (error) throw error;
@@ -315,7 +316,7 @@ export async function saveProgram(p: Partial<ServiceProgram> & { name: string })
     return p.id;
   }
   const { data, error } = await supabase.from("fleet_service_programs")
-    .insert(p as never).select("id").single();
+    .insert(withCompany(p) as never).select("id").single();
   if (error) throw error;
   return data.id as string;
 }

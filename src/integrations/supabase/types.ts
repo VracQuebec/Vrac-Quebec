@@ -1275,11 +1275,13 @@ export type Database = {
           action: string
           actor_email: string | null
           actor_id: string | null
+          company_id: string | null
           created_at: string
           field: string | null
           id: string
           new_value: Json | null
           old_value: Json | null
+          origin: string
           owner_id: string
           owner_type: string
         }
@@ -1287,11 +1289,13 @@ export type Database = {
           action: string
           actor_email?: string | null
           actor_id?: string | null
+          company_id?: string | null
           created_at?: string
           field?: string | null
           id?: string
           new_value?: Json | null
           old_value?: Json | null
+          origin?: string
           owner_id: string
           owner_type: string
         }
@@ -1299,11 +1303,13 @@ export type Database = {
           action?: string
           actor_email?: string | null
           actor_id?: string | null
+          company_id?: string | null
           created_at?: string
           field?: string | null
           id?: string
           new_value?: Json | null
           old_value?: Json | null
+          origin?: string
           owner_id?: string
           owner_type?: string
         }
@@ -12656,6 +12662,9 @@ export type Database = {
         }[]
       }
       fleet_can_access: { Args: { _company_id: string }; Returns: boolean }
+      fleet_can_administer: { Args: { _company_id: string }; Returns: boolean }
+      fleet_can_manage: { Args: { _company_id: string }; Returns: boolean }
+      fleet_member_role: { Args: { _company_id: string }; Returns: string }
       fleet_scan_due: { Args: never; Returns: Json }
       get_comparateur_selection: {
         Args: { p_submission_id: string }

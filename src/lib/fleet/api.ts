@@ -9,6 +9,7 @@
 // ============================================================
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { actionOrigin, getActiveCompanyId, scoped, withCompany } from "./tenant";
 
 export type Vehicle = Database["public"]["Tables"]["trucks"]["Row"];
 export type Maintenance = Database["public"]["Tables"]["fleet_maintenance"]["Row"];
@@ -86,13 +87,13 @@ export const dateLabel = (d: string | null | undefined) =>
 // ---------------- Lectures ----------------
 
 export async function fetchVehicles(): Promise<Vehicle[]> {
-  const { data, error } = await supabase.from("trucks").select("*").order("name");
+  const { data, error } = await scoped(supabase.from("trucks").select("*")).order("name");
   if (error) throw error;
   return data ?? [];
 }
 
 export async function fetchMaintenance(vehicleId?: string): Promise<Maintenance[]> {
-  let q = supabase.from("fleet_maintenance").select("*").order("performed_on", { ascending: false });
+  let q = scoped(supabase.from("fleet_maintenance").select("*").order("performed_on", { ascending: false }));
   if (vehicleId) q = q.eq("vehicle_id", vehicleId);
   const { data, error } = await q;
   if (error) throw error;
@@ -100,7 +101,7 @@ export async function fetchMaintenance(vehicleId?: string): Promise<Maintenance[
 }
 
 export async function fetchRepairs(vehicleId?: string): Promise<Repair[]> {
-  let q = supabase.from("fleet_repairs").select("*").order("reported_on", { ascending: false });
+  let q = scoped(supabase.from("fleet_repairs").select("*").order("reported_on", { ascending: false }));
   if (vehicleId) q = q.eq("vehicle_id", vehicleId);
   const { data, error } = await q;
   if (error) throw error;
@@ -108,7 +109,7 @@ export async function fetchRepairs(vehicleId?: string): Promise<Repair[]> {
 }
 
 export async function fetchInspections(vehicleId?: string): Promise<Inspection[]> {
-  let q = supabase.from("fleet_inspections").select("*").order("inspected_on", { ascending: false });
+  let q = scoped(supabase.from("fleet_inspections").select("*").order("inspected_on", { ascending: false }));
   if (vehicleId) q = q.eq("vehicle_id", vehicleId);
   const { data, error } = await q;
   if (error) throw error;
@@ -116,7 +117,7 @@ export async function fetchInspections(vehicleId?: string): Promise<Inspection[]
 }
 
 export async function fetchParts(vehicleId?: string): Promise<Part[]> {
-  let q = supabase.from("fleet_parts").select("*").order("installed_on", { ascending: false });
+  let q = scoped(supabase.from("fleet_parts").select("*").order("installed_on", { ascending: false }));
   if (vehicleId) q = q.eq("vehicle_id", vehicleId);
   const { data, error } = await q;
   if (error) throw error;
@@ -124,7 +125,7 @@ export async function fetchParts(vehicleId?: string): Promise<Part[]> {
 }
 
 export async function fetchCosts(vehicleId?: string): Promise<Cost[]> {
-  let q = supabase.from("fleet_costs").select("*").order("incurred_on", { ascending: false });
+  let q = scoped(supabase.from("fleet_costs").select("*").order("incurred_on", { ascending: false }));
   if (vehicleId) q = q.eq("vehicle_id", vehicleId);
   const { data, error } = await q;
   if (error) throw error;
@@ -150,7 +151,7 @@ export async function saveVehicle(v: Partial<Vehicle> & { name: string }) {
     await logChange("fleet_vehicle", v.id, "update");
     return v.id;
   }
-  const { data, error } = await supabase.from("trucks").insert(v as never).select("id").single();
+  const { data, error } = await supabase.from("trucks").insert(withCompany(v) as never).select("id").single();
   if (error) throw error;
   await logChange("fleet_vehicle", data.id as string, "create");
   return data.id as string;
@@ -168,14 +169,14 @@ export async function recordReading(opts: {
   const km = opts.km == null ? null : Number(opts.km);
   const hours = opts.hours == null ? null : Number(opts.hours);
   if (km == null && hours == null) return;
-  await supabase.from("fleet_meter_readings").insert({
+  await supabase.from("fleet_meter_readings").insert(withCompany({
     vehicle_id: opts.vehicleId,
     odometer_km: km, engine_hours: hours,
     source: opts.source,
     source_table: opts.sourceTable ?? null,
     source_id: opts.sourceId ?? null,
     read_at: opts.readAt ? new Date(`${opts.readAt}T12:00:00`).toISOString() : new Date().toISOString(),
-  } as never);
+  }) as never);
 }
 
 
@@ -224,7 +225,7 @@ export async function saveMaintenance(m: Partial<Maintenance> & { vehicle_id: st
     const { error } = await supabase.from("fleet_maintenance").update(m).eq("id", id);
     if (error) throw error;
   } else {
-    const { data, error } = await supabase.from("fleet_maintenance").insert(m as never)
+    const { data, error } = await supabase.from("fleet_maintenance").insert(withCompany(m) as never)
       .select("id").single();
     if (error) throw error;
     id = data.id as string;
@@ -253,7 +254,7 @@ export async function saveRepair(r: Partial<Repair> & { vehicle_id: string; prob
     const { error } = await supabase.from("fleet_repairs").update(r).eq("id", id);
     if (error) throw error;
   } else {
-    const { data, error } = await supabase.from("fleet_repairs").insert(r as never)
+    const { data, error } = await supabase.from("fleet_repairs").insert(withCompany(r) as never)
       .select("id").single();
     if (error) throw error;
     id = data.id as string;
@@ -285,7 +286,7 @@ export async function saveInspection(i: Partial<Inspection> & { vehicle_id: stri
     const { error } = await supabase.from("fleet_inspections").update(payload).eq("id", id);
     if (error) throw error;
   } else {
-    const { data, error } = await supabase.from("fleet_inspections").insert(payload as never)
+    const { data, error } = await supabase.from("fleet_inspections").insert(withCompany(payload) as never)
       .select("id").single();
     if (error) throw error;
     id = data.id as string;
@@ -549,6 +550,9 @@ export interface FleetLogEntry {
   new_value: unknown;
   actor_email: string | null;
   created_at: string;
+  /** « entreprise » ou « support_vrac_quebec » (administration Vrac Québec). */
+  origin?: string | null;
+  company_id?: string | null;
 }
 
 /** Écrit une ligne dans le journal existant du CRM (jamais de second journal). */
@@ -570,6 +574,8 @@ export async function logChange(
     new_value: (newValue ?? null) as never,
     actor_id: userData.user?.id ?? null,
     actor_email: userData.user?.email ?? null,
+    company_id: getActiveCompanyId(),
+    origin: actionOrigin(),
   } as never);
 }
 
@@ -577,7 +583,7 @@ export async function fetchChangeLog(ownerIds: string[]): Promise<FleetLogEntry[
   if (!ownerIds.length) return [];
   const { data, error } = await supabase
     .from("crm_audit_log")
-    .select("id, owner_type, owner_id, action, field, old_value, new_value, actor_email, created_at")
+    .select("id, owner_type, owner_id, action, field, old_value, new_value, actor_email, created_at, origin, company_id")
     .in("owner_id", ownerIds)
     .order("created_at", { ascending: false })
     .limit(200);

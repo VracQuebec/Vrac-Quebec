@@ -21,6 +21,8 @@ import {
 import { TRUCK_TYPE_LABELS } from "@/lib/calendar-utils";
 import type { Driver } from "@/lib/calendar-utils";
 import { useToast } from "@/hooks/use-toast";
+import { useFleetTenant } from "@/lib/fleet/tenant";
+import { SupportBanner } from "@/components/fleet/FleetTenantBar";
 import FleetDocuments from "@/components/fleet/FleetDocuments";
 import CompleteDialog from "@/components/fleet/CompleteDialog";
 import { Input } from "@/components/ui/input";
@@ -62,6 +64,7 @@ export default function AdminFleetVehicle() {
   const { toast } = useToast();
   const { user, isReady } = useAuthReady();
   const { isAdmin, loading: roleLoading } = useUserRoles(user, isReady);
+  const tenant = useFleetTenant(isAdmin, isReady && !roleLoading);
   const [params, setParams] = useSearchParams();
   const tab = params.get("tab") ?? "resume";
 
@@ -170,6 +173,7 @@ export default function AdminFleetVehicle() {
   return (
     <div className="min-h-screen bg-background pb-16">
       <header className="sticky top-0 z-20 bg-card border-b border-border">
+        <SupportBanner tenant={tenant} />
         <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <Link to="/admin/flotte?tab=vehicules" className="p-2 -ml-2 rounded-lg hover:bg-secondary" aria-label="Retour à la flotte">
@@ -570,9 +574,17 @@ export default function AdminFleetVehicle() {
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
             {journal.map((e) => (
               <div key={e.id} className="p-3">
-                <div className="text-sm font-body">{logSentence(e)}</div>
+                <div className="text-sm font-body flex flex-wrap items-center gap-2">
+                  {logSentence(e)}
+                  {e.origin === "support_vrac_quebec" && (
+                    <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                      Support Vrac Québec
+                    </span>
+                  )}
+                </div>
                 <div className="text-xs text-muted-foreground">
                   {dateLabel(e.created_at)}{e.actor_email ? ` · ${e.actor_email}` : ""}
+                  {e.origin === "support_vrac_quebec" ? "" : " · Utilisateur de l'entreprise"}
                 </div>
               </div>
             ))}
