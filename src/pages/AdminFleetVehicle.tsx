@@ -21,6 +21,8 @@ import {
 import { TRUCK_TYPE_LABELS } from "@/lib/calendar-utils";
 import type { Driver } from "@/lib/calendar-utils";
 import { useToast } from "@/hooks/use-toast";
+import { useFleetTenant } from "@/lib/fleet/tenant";
+import { SupportBanner } from "@/components/fleet/FleetTenantBar";
 import FleetDocuments from "@/components/fleet/FleetDocuments";
 import CompleteDialog from "@/components/fleet/CompleteDialog";
 import { Input } from "@/components/ui/input";

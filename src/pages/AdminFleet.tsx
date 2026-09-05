@@ -30,6 +30,8 @@ import {
   type Expense, type WorkItem,
 } from "@/lib/fleet/v2";
 import { useToast } from "@/hooks/use-toast";
+import { useFleetTenant } from "@/lib/fleet/tenant";
+import { CompanySwitcher, SupportBanner } from "@/components/fleet/FleetTenantBar";
 
 const TABS = [
   { key: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
@@ -60,6 +62,7 @@ export default function AdminFleet() {
   const { toast } = useToast();
   const { user, isReady } = useAuthReady();
   const { isAdmin, loading: roleLoading } = useUserRoles(user, isReady);
+  const tenant = useFleetTenant(isAdmin, isReady && !roleLoading);
   const [params, setParams] = useSearchParams();
   const tab = (params.get("tab") as TabKey) || "dashboard";
   const setTab = (t: TabKey) => setParams({ tab: t }, { replace: true });
@@ -113,7 +116,8 @@ export default function AdminFleet() {
     } finally { setLoading(false); }
   }, [toast]);
 
-  useEffect(() => { if (isAdmin) load(); }, [isAdmin, load]);
+  // Rechargement complet quand le Super Admin change d'entreprise.
+  useEffect(() => { if (isAdmin && tenant.companyId) load(); }, [isAdmin, tenant.companyId, load]);
 
   const byId = useMemo(() => new Map(vehicles.map((v) => [v.id, v])), [vehicles]);
   const todo = useMemo(() => buildTodo(maint, repairs, inspections), [maint, repairs, inspections]);
@@ -206,6 +210,7 @@ export default function AdminFleet() {
   return (
     <div className="min-h-screen bg-background pb-16">
       <header className="sticky top-0 z-20 bg-card border-b border-border">
+        <SupportBanner tenant={tenant} />
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <Link to="/admin" className="p-2 -ml-2 rounded-lg hover:bg-secondary" aria-label="Retour à l'administration">
@@ -215,6 +220,7 @@ export default function AdminFleet() {
             <h1 className="font-display font-bold text-base sm:text-xl truncate">Gestion de la flotte</h1>
           </div>
           <div className="flex items-center gap-2">
+            <CompanySwitcher tenant={tenant} />
             <Button variant="outline" size="sm" onClick={runScan}>
               <RefreshCw className="w-4 h-4 sm:mr-1.5" /><span className="hidden sm:inline">Vérifier les échéances</span>
             </Button>
