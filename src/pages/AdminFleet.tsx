@@ -23,6 +23,12 @@ import {
   type Cost, type FleetEvent, type Inspection, type Maintenance, type Repair, type Vehicle,
 } from "@/lib/fleet/api";
 import type { Driver } from "@/lib/calendar-utils";
+import { ExpenseDialog, WorkItemDialog } from "@/components/fleet/FleetDialogsV2";
+import {
+  buildDashboard, EXPENSE_LABELS, fetchExpenses, fetchWorkItems, kmLabel, hoursLabel,
+  OPS_STATUS, TONE_CLASS, opsStatus, unitSubtitle, unitTitle, maintenanceDue,
+  type Expense, type WorkItem,
+} from "@/lib/fleet/v2";
 import { useToast } from "@/hooks/use-toast";
 
 const TABS = [
@@ -33,6 +39,7 @@ const TABS = [
   { key: "inspections", label: "Inspections", icon: ClipboardCheck },
   { key: "afaire", label: "À faire bientôt", icon: Bell },
   { key: "historique", label: "Historique", icon: History },
+  { key: "depenses", label: "Dépenses", icon: DollarSign },
   { key: "couts", label: "Coûts", icon: DollarSign },
 ] as const;
 
@@ -64,6 +71,8 @@ export default function AdminFleet() {
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [costs, setCosts] = useState<Cost[]>([]);
   const [events, setEvents] = useState<FleetEvent[]>([]);
+  const [workItems, setWorkItems] = useState<WorkItem[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
@@ -75,6 +84,9 @@ export default function AdminFleet() {
     { kind: "entretien"; record: Maintenance } | { kind: "reparation"; record: Repair } | null>(null);
   const [todoFilter, setTodoFilter] = useState<"tous" | "urgent" | "avenir" | "retard">("tous");
   const [todoVehicle, setTodoVehicle] = useState("tous");
+  const [expenseDialog, setExpenseDialog] = useState<{ open: boolean; record?: Expense | null }>({ open: false });
+  const [workDialog, setWorkDialog] = useState<{ open: boolean; record?: WorkItem | null }>({ open: false });
+  const [vehFilter, setVehFilter] = useState("tous");
 
   useEffect(() => {
     if (!isReady || roleLoading) return;
@@ -86,14 +98,16 @@ export default function AdminFleet() {
     try {
       // Balayage des échéances → alimente le centre de notifications EXISTANT.
       await scanDue().catch(() => undefined);
-      const [v, d, m, r, i, c, e] = await Promise.all([
+      const [v, d, m, r, i, c, e, w, x] = await Promise.all([
         fetchVehicles(),
         supabase.from("drivers").select("*").order("name"),
         fetchMaintenance(), fetchRepairs(), fetchInspections(), fetchCosts(), fetchFleetEvents(),
+        fetchWorkItems(), fetchExpenses(),
       ]);
       setVehicles(v);
       setDrivers((d.data as Driver[]) ?? []);
       setMaint(m); setRepairs(r); setInspections(i); setCosts(c); setEvents(e);
+      setWorkItems(w); setExpenses(x);
     } catch (err) {
       toast({ title: "Chargement impossible", description: (err as Error).message, variant: "destructive" });
     } finally { setLoading(false); }
@@ -128,13 +142,41 @@ export default function AdminFleet() {
     return true;
   }), [todo, todoFilter, todoVehicle]);
 
+  const dash = useMemo(
+    () => buildDashboard({ vehicles, maint, repairs, inspections, workItems }),
+    [vehicles, maint, repairs, inspections, workItems]);
+
   const filteredVehicles = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return vehicles;
-    return vehicles.filter((v) =>
-      [v.name, v.unit_number, v.plate, v.make, v.model].filter(Boolean)
-        .some((s) => String(s).toLowerCase().includes(q)));
-  }, [vehicles, search]);
+    return vehicles.filter((v) => {
+      if (vehFilter !== "tous" && (v.ops_status ?? "disponible") !== vehFilter) return false;
+      if (!q) return true;
+      return [v.name, v.unit_number, v.plate, v.make, v.model, v.vin].filter(Boolean)
+        .some((s) => String(s).toLowerCase().includes(q));
+    });
+  }, [vehicles, search, vehFilter]);
+
+  // Résumé par véhicule affiché sur la carte : prochain entretien + réparations ouvertes.
+  const vehicleBadges = useMemo(() => {
+    const map = new Map<string, { due: string | null; open: number; tone: string }>();
+    for (const v of vehicles) {
+      const rows = maint.filter((m) => m.vehicle_id === v.id
+        && (m.next_due_date || m.next_due_km || m.next_due_hours));
+      let due: string | null = null; let tone = TONE_CLASS.ok;
+      for (const m of rows) {
+        const d = maintenanceDue(m, v);
+        if (d.state === "ok" || !d.reason) continue;
+        if (d.state === "retard") { due = `${m.next_type || m.maintenance_type} — ${d.reason}`; tone = TONE_CLASS.bad; break; }
+        if (!due) { due = `${m.next_type || m.maintenance_type} — ${d.reason}`; tone = TONE_CLASS.soon; }
+      }
+      map.set(v.id, {
+        due,
+        open: repairs.filter((r) => r.vehicle_id === v.id && r.status !== "terminee" && r.status !== "annulee").length,
+        tone,
+      });
+    }
+    return map;
+  }, [vehicles, maint, repairs]);
 
   if (!isReady || roleLoading) return <FullPageState title="Chargement de la flotte" />;
   if (!isAdmin) return null;
@@ -190,6 +232,7 @@ export default function AdminFleet() {
           <Button size="sm" variant="outline" onClick={() => setMaintDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Entretien</Button>
           <Button size="sm" variant="outline" onClick={() => setRepairDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Réparation</Button>
           <Button size="sm" variant="outline" onClick={() => setInspDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Inspection</Button>
+          <Button size="sm" variant="outline" onClick={() => setExpenseDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Dépense</Button>
         </div>
 
         {loading && <p className="text-sm text-muted-foreground font-body">Chargement…</p>}
