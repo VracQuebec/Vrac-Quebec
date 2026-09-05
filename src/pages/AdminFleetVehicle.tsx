@@ -25,6 +25,13 @@ import FleetDocuments from "@/components/fleet/FleetDocuments";
 import CompleteDialog from "@/components/fleet/CompleteDialog";
 import { Input } from "@/components/ui/input";
 import { setStatus, type CrmNotification } from "@/lib/notifications/api";
+import { ExpenseDialog, ReadingDialog, WorkItemDialog } from "@/components/fleet/FleetDialogsV2";
+import {
+  EXPENSE_LABELS, TONE_CLASS, WORK_STATUS_LABELS, adminStatusLabel, categoryLabel,
+  closeWorkItem, fetchExpenses, fetchReadings, fetchWorkItems, hoursLabel, kmLabel,
+  maintenanceDue, opsStatus, saveWorkItem, unitSubtitle, unitTitle,
+  type Expense, type MeterReading, type WorkItem,
+} from "@/lib/fleet/v2";
 
 const FLEET_REF_LABELS: Record<string, string> = {
   entretien: "Entretien", reparation: "Réparation",
@@ -32,12 +39,15 @@ const FLEET_REF_LABELS: Record<string, string> = {
 };
 
 const TABS = [
+  { key: "resume", label: "Résumé" },
   { key: "infos", label: "Informations" },
   { key: "entretien", label: "Entretien" },
   { key: "reparations", label: "Réparations" },
   { key: "pieces", label: "Pièces" },
   { key: "inspections", label: "Inspections" },
   { key: "historique", label: "Historique" },
+  { key: "depenses", label: "Dépenses" },
+  { key: "compteurs", label: "Compteurs" },
   { key: "couts", label: "Coûts" },
   { key: "afaire", label: "À faire" },
   { key: "alertes", label: "Alertes" },
@@ -53,7 +63,7 @@ export default function AdminFleetVehicle() {
   const { user, isReady } = useAuthReady();
   const { isAdmin, loading: roleLoading } = useUserRoles(user, isReady);
   const [params, setParams] = useSearchParams();
-  const tab = params.get("tab") ?? "infos";
+  const tab = params.get("tab") ?? "resume";
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -65,6 +75,12 @@ export default function AdminFleetVehicle() {
   const [events, setEvents] = useState<FleetEvent[]>([]);
   const [alerts, setAlerts] = useState<CrmNotification[]>([]);
   const [journal, setJournal] = useState<FleetLogEntry[]>([]);
+  const [workItems, setWorkItems] = useState<WorkItem[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [meterReadings, setMeterReadings] = useState<MeterReading[]>([]);
+  const [expenseDialog, setExpenseDialog] = useState<{ open: boolean; record?: Expense | null }>({ open: false });
+  const [workDialog, setWorkDialog] = useState<{ open: boolean; record?: WorkItem | null }>({ open: false });
+  const [readingDialog, setReadingDialog] = useState(false);
   const [complete, setComplete] = useState<
     { kind: "entretien"; record: Maintenance } | { kind: "reparation"; record: Repair } | null>(null);
   const [readings, setReadings] = useState({ km: "", hours: "" });
@@ -83,12 +99,14 @@ export default function AdminFleetVehicle() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [v, d, m, r, i, p, c, e] = await Promise.all([
+      const [v, d, m, r, i, p, c, e, w, x, mr] = await Promise.all([
         supabase.from("trucks").select("*").eq("id", id).maybeSingle(),
         supabase.from("drivers").select("*").order("name"),
         fetchMaintenance(id), fetchRepairs(id), fetchInspections(id),
         fetchParts(id), fetchCosts(id), fetchFleetEvents(id),
+        fetchWorkItems(id), fetchExpenses(id), fetchReadings(id),
       ]);
+      setWorkItems(w); setExpenses(x); setMeterReadings(mr);
       setVehicle((v.data as Vehicle) ?? null);
       setDrivers((d.data as Driver[]) ?? []);
       setMaint(m); setRepairs(r); setInspections(i); setParts(p); setCosts(c); setEvents(e);
@@ -114,6 +132,20 @@ export default function AdminFleetVehicle() {
 
   const todo = useMemo(() => buildTodo(maint, repairs, inspections), [maint, repairs, inspections]);
   const totals = useMemo(() => costTotals(costs), [costs]);
+  const openWork = useMemo(
+    () => workItems.filter((w) => w.status !== "termine" && w.status !== "annule"), [workItems]);
+  const openRepairs = useMemo(
+    () => repairs.filter((r) => r.status !== "terminee" && r.status !== "annulee"), [repairs]);
+  const nextMaint = useMemo(() => {
+    const rows = maint.filter((m) => m.next_due_date || m.next_due_km || m.next_due_hours);
+    for (const m of rows) {
+      const d = maintenanceDue(m, vehicle);
+      if (d.reason) return `${m.next_type || m.maintenance_type} — ${d.reason}`;
+    }
+    const first = rows[0];
+    return first ? `${first.next_type || first.maintenance_type} — ${dateLabel(first.next_due_date)}` : null;
+  }, [maint, vehicle]);
+  const readings = meterReadings;
 
   if (!isReady || roleLoading) return <FullPageState title="Chargement du véhicule" />;
   if (!isAdmin) return null;
@@ -144,7 +176,18 @@ export default function AdminFleetVehicle() {
             <Link to="/admin/flotte?tab=vehicules" className="p-2 -ml-2 rounded-lg hover:bg-secondary" aria-label="Retour à la flotte">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="font-display font-bold text-base sm:text-xl truncate">{vehicleLabel(vehicle)}</h1>
+            <div className="min-w-0">
+              <h1 className="font-display font-bold text-base sm:text-xl truncate">{unitTitle(vehicle)}</h1>
+              <div className="text-xs text-muted-foreground font-body truncate">
+                {unitSubtitle(vehicle)}
+                {vehicle ? ` • ${[kmLabel(vehicle.odometer_km as number | null), hoursLabel(vehicle.engine_hours as number | null)].filter(Boolean).join(" • ")}` : ""}
+              </div>
+            </div>
+            {vehicle && (
+              <span className={`text-[10px] px-2 py-0.5 rounded font-display shrink-0 ${TONE_CLASS[opsStatus(vehicle).tone]}`}>
+                {opsStatus(vehicle).label}
+              </span>
+            )}
           </div>
           <Button size="sm" variant="outline" onClick={() => setVehicleDialog(true)}>
             <Pencil className="w-4 h-4 sm:mr-1.5" /><span className="hidden sm:inline">Modifier</span>
@@ -168,6 +211,8 @@ export default function AdminFleetVehicle() {
           <Button size="sm" variant="outline" onClick={() => setMaintDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Entretien</Button>
           <Button size="sm" variant="outline" onClick={() => setRepairDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Réparation</Button>
           <Button size="sm" variant="outline" onClick={() => setInspDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Inspection</Button>
+          <Button size="sm" variant="outline" onClick={() => setExpenseDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Dépense</Button>
+          <Button size="sm" variant="outline" onClick={() => setReadingDialog(true)}><Plus className="w-4 h-4 mr-1" /> Relevé</Button>
         </div>
 
         {tab === "infos" && vehicle && (
@@ -209,6 +254,113 @@ export default function AdminFleetVehicle() {
                   }
                 }}>Enregistrer</Button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "resume" && vehicle && (
+          <div className="space-y-4">
+            {opsStatus(vehicle).value === "au_garage" && (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
+                <div className="font-display font-bold mb-2">Mode « Au garage » — travaux ouverts</div>
+                {openWork.length || openRepairs.length ? (
+                  <ul className="space-y-1 text-sm font-body">
+                    {openRepairs.map((r) => <li key={r.id}>Réparation — {r.problem} ({REPAIR_STATUS_LABELS[r.status] ?? r.status})</li>)}
+                    {openWork.map((w) => <li key={w.id}>Travail — {w.title}</li>)}
+                  </ul>
+                ) : <p className="text-sm font-body">Aucun travail ouvert.</p>}
+              </div>
+            )}
+
+            <div className="rounded-xl border border-border bg-card p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <Info label="Numéro d'unité" value={vehicle.unit_number} />
+              <Info label="Marque / modèle" value={[vehicle.make, vehicle.model, vehicle.year].filter(Boolean).join(" ") || null} />
+              <Info label="Type" value={categoryLabel(vehicle.category)} />
+              <Info label="Plaque" value={vehicle.plate} />
+              <Info label="Kilométrage" value={kmLabel(vehicle.odometer_km as number | null)} />
+              <Info label="Heures moteur" value={hoursLabel(vehicle.engine_hours as number | null)} />
+              <Info label="Statut opérationnel" value={opsStatus(vehicle).label} />
+              <Info label="Statut administratif" value={adminStatusLabel(vehicle)} />
+              <Info label="Prochain entretien" value={nextMaint} />
+              <Info label="Réparations ouvertes" value={openRepairs.length} />
+              <Info label="À surveiller" value={openWork.filter((w) => w.priority !== "urgente").length} />
+              <Info label="Coûts (12 mois)" value={money(totals.thisYear)} />
+            </div>
+
+            <section className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-display font-bold">Travaux à faire</h2>
+                <Button size="sm" variant="outline" onClick={() => setWorkDialog({ open: true })}>
+                  <Plus className="w-4 h-4 mr-1" /> Ajouter
+                </Button>
+              </div>
+              {openWork.length ? openWork.map((w) => (
+                <div key={w.id} className="py-2 border-b border-border last:border-0 flex items-start justify-between gap-3">
+                  <button className="text-left min-w-0" onClick={() => setWorkDialog({ open: true, record: w })}>
+                    <div className="text-sm font-display font-semibold truncate">{w.title}</div>
+                    <div className="text-xs text-muted-foreground font-body">
+                      {PRIORITY_LABELS[w.priority] ?? w.priority} · {WORK_STATUS_LABELS[w.status] ?? w.status}
+                      {" · "}créé le {dateLabel(w.created_at)}
+                      {w.scheduled_date ? ` · prévu le ${dateLabel(w.scheduled_date)}` : ""}
+                      {" · "}source : {w.source}
+                      {(w.occurrences ?? 1) > 1 ? ` · signalé ${w.occurrences} fois` : ""}
+                    </div>
+                  </button>
+                  <div className="flex gap-2 shrink-0">
+                    <Button size="sm" variant="outline" onClick={async () => {
+                      await saveWorkItem({ ...w, status: "en_cours" } as never);
+                      setRepairDialog({ open: true, record: null });
+                    }}>En réparation</Button>
+                    <Button size="sm" variant="ghost" onClick={async () => { await closeWorkItem(w.id); load(); }}>Terminé</Button>
+                  </div>
+                </div>
+              )) : <p className="text-sm font-body text-muted-foreground">Aucun travail en attente.</p>}
+            </section>
+          </div>
+        )}
+
+        {tab === "depenses" && (
+          <div className="space-y-3">
+            <Button size="sm" variant="outline" onClick={() => setExpenseDialog({ open: true })}>
+              <Plus className="w-4 h-4 mr-1" /> Ajouter une dépense
+            </Button>
+            <div className="rounded-xl border border-border bg-card divide-y divide-border">
+              {expenses.map((x) => (
+                <button key={x.id} onClick={() => setExpenseDialog({ open: true, record: x })}
+                  className="w-full text-left p-3 flex justify-between gap-3 hover:bg-secondary/50">
+                  <div className="min-w-0">
+                    <div className="text-sm font-display font-semibold truncate">
+                      {EXPENSE_LABELS[x.category] ?? x.category}{x.description ? ` — ${x.description}` : ""}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-body">{dateLabel(x.spent_on)}{x.supplier ? ` · ${x.supplier}` : ""}</div>
+                  </div>
+                  <span className="text-sm font-display shrink-0">{money(x.amount)}</span>
+                </button>
+              ))}
+              {!expenses.length && <p className="p-4 text-sm text-muted-foreground font-body">Aucune dépense pour ce véhicule.</p>}
+            </div>
+          </div>
+        )}
+
+        {tab === "compteurs" && (
+          <div className="space-y-3">
+            <Button size="sm" variant="outline" onClick={() => setReadingDialog(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Nouveau relevé
+            </Button>
+            <div className="rounded-xl border border-border bg-card divide-y divide-border">
+              {readings.map((r) => (
+                <div key={r.id} className="p-3 flex justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-body">
+                      {[kmLabel(r.odometer_km as number | null), hoursLabel(r.engine_hours as number | null)].filter(Boolean).join(" • ") || "—"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {dateLabel(r.read_at)} · source : {r.source}{r.is_correction ? " · correction" : ""}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!readings.length && <p className="p-4 text-sm text-muted-foreground font-body">Aucun relevé enregistré.</p>}
             </div>
           </div>
         )}
@@ -430,6 +582,11 @@ export default function AdminFleetVehicle() {
         )}
       </main>
 
+      <ExpenseDialog open={expenseDialog.open} onOpenChange={(o) => setExpenseDialog({ open: o })}
+        vehicles={vehicle ? [vehicle] : []} vehicleId={id} record={expenseDialog.record} onSaved={load} />
+      <WorkItemDialog open={workDialog.open} onOpenChange={(o) => setWorkDialog({ open: o })}
+        vehicles={vehicle ? [vehicle] : []} vehicleId={id} record={workDialog.record} onSaved={load} />
+      <ReadingDialog open={readingDialog} onOpenChange={setReadingDialog} vehicle={vehicle} onSaved={load} />
       <CompleteDialog target={complete} onOpenChange={(o) => !o && setComplete(null)} onSaved={load} />
       <VehicleDialog
         open={vehicleDialog}
