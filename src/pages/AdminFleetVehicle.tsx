@@ -178,8 +178,8 @@ export default function AdminFleetVehicle() {
             <div className="min-w-0">
               <h1 className="font-display font-bold text-base sm:text-xl truncate">{unitTitle(vehicle)}</h1>
               <div className="text-xs text-muted-foreground font-body truncate">
-                {unitSubtitle(vehicle)}
-                {vehicle ? ` • ${[kmLabel(vehicle.odometer_km as number | null), hoursLabel(vehicle.engine_hours as number | null)].filter(Boolean).join(" • ")}` : ""}
+                {[unitSubtitle(vehicle), kmLabel(vehicle?.odometer_km as number | null),
+                  hoursLabel(vehicle?.engine_hours as number | null)].filter(Boolean).join(" • ")}
               </div>
             </div>
             {vehicle && (
