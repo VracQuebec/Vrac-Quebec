@@ -145,7 +145,6 @@ export default function AdminFleetVehicle() {
     const first = rows[0];
     return first ? `${first.next_type || first.maintenance_type} — ${dateLabel(first.next_due_date)}` : null;
   }, [maint, vehicle]);
-  const readings = meterReadings;
 
   if (!isReady || roleLoading) return <FullPageState title="Chargement du véhicule" />;
   if (!isAdmin) return null;
@@ -348,7 +347,7 @@ export default function AdminFleetVehicle() {
               <Plus className="w-4 h-4 mr-1" /> Nouveau relevé
             </Button>
             <div className="rounded-xl border border-border bg-card divide-y divide-border">
-              {readings.map((r) => (
+              {meterReadings.map((r) => (
                 <div key={r.id} className="p-3 flex justify-between gap-3">
                   <div>
                     <div className="text-sm font-body">
@@ -360,7 +359,7 @@ export default function AdminFleetVehicle() {
                   </div>
                 </div>
               ))}
-              {!readings.length && <p className="p-4 text-sm text-muted-foreground font-body">Aucun relevé enregistré.</p>}
+              {!meterReadings.length && <p className="p-4 text-sm text-muted-foreground font-body">Aucun relevé enregistré.</p>}
             </div>
           </div>
         )}
