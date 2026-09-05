@@ -157,6 +157,30 @@ export async function saveVehicle(v: Partial<Vehicle> & { name: string }) {
 }
 
 /**
+ * Relevé de compteur automatique : toute intervention qui contient un
+ * kilométrage ou des heures moteur alimente l'historique des compteurs.
+ * La base de données refuse de faire reculer le compteur du véhicule.
+ */
+export async function recordReading(opts: {
+  vehicleId: string; km?: number | null; hours?: number | null;
+  source: string; sourceTable?: string; sourceId?: string; readAt?: string;
+}) {
+  const km = opts.km == null ? null : Number(opts.km);
+  const hours = opts.hours == null ? null : Number(opts.hours);
+  if (km == null && hours == null) return;
+  await supabase.from("fleet_meter_readings").insert({
+    vehicle_id: opts.vehicleId,
+    odometer_km: km, engine_hours: hours,
+    source: opts.source,
+    source_table: opts.sourceTable ?? null,
+    source_id: opts.sourceId ?? null,
+    read_at: opts.readAt ? new Date(`${opts.readAt}T12:00:00`).toISOString() : new Date().toISOString(),
+  } as never);
+}
+
+
+
+/**
  * Crée (ou met à jour) l'événement correspondant DANS LE CALENDRIER EXISTANT.
  * Aucun second calendrier : on écrit dans `calendar_events`.
  */
