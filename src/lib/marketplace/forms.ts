@@ -199,6 +199,20 @@ export const CATEGORY_FORMS: CategoryForm[] = [
     ],
   },
   {
+    slug: "carrieres-sablieres-et-producteurs",
+    label: "Carrières et sablières",
+    tagline: "Achat direct à la source : sable, gravier, pierre, agrégats…",
+    emoji: "🏔️",
+    fields: [
+      { key: "materiau", label: "Matériau recherché", type: "choix", options: MATERIAUX },
+      { key: "quantite", label: "Quantité approximative", type: "texte" },
+      { key: "unite", label: "Unité", type: "choix", options: UNITES },
+      { key: "mode", label: "Livraison ou chargement sur place", type: "choix", options: [UNKNOWN, "Livraison requise", "Chargement sur place", "Les deux"] },
+      { key: "utilisation", label: "Utilisation prévue", type: "texte", placeholder: "Ex. fondation, entrée, drainage" },
+      { key: "frequence", label: "Fréquence", type: "choix", options: [UNKNOWN, "Une seule fois", "Récurrent"] },
+    ],
+  },
+  {
     slug: "autre",
     label: "Autre besoin",
     tagline: "Décrivez votre projet, nous trouverons les bonnes entreprises.",
