@@ -1288,7 +1288,7 @@ export async function fetchCompanyMembers(companyId: string): Promise<CompanyMem
 export async function addCompanyMember(
   companyId: string, email: string, fullName: string, role: string,
 ): Promise<void> {
-  const rpc = supabase.rpc as (fn: string, args: Record<string, unknown>) => Promise<{ error: Error | null }>;
+  const rpc = supabase.rpc.bind(supabase) as unknown as (fn: string, args: Record<string, unknown>) => Promise<{ error: Error | null }>;
   const { error } = await rpc("jsc_add_company_member", {
     _company_id: companyId, _email: email, _full_name: fullName || null, _role: role,
   });
