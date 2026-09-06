@@ -256,7 +256,12 @@ export default function PartenaireProfil() {
           <Button variant="ghost" size="sm" asChild className="-ml-2">
             <Link to="/"><ArrowLeft className="mr-2 h-4 w-4" /> Accueil</Link>
           </Button>
-          <CompanySwitcher tenant={tenant} />
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/partenaire/soumissions">Mes soumissions</Link>
+            </Button>
+            <CompanySwitcher tenant={tenant} />
+          </div>
         </div>
 
         <div>
