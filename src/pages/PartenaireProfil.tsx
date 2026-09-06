@@ -653,7 +653,70 @@ export default function PartenaireProfil() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="avis" className="mt-4">
+            {/* ---------------- Photos publiques ---------------- */}
+            <TabsContent value="photos" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader><CardTitle className="text-base">Photos de vos réalisations</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Ces photos s'affichent sur votre fiche publique, dans l'annuaire Vrac Québec.
+                    Vos coordonnées n'y apparaissent jamais.
+                  </p>
+                  <div>
+                    <input type="file" accept="image/*" id="photo-upload" className="hidden" onChange={onUploadPhoto} />
+                    <Button asChild disabled={uploading}>
+                      <label htmlFor="photo-upload" className="cursor-pointer">
+                        {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                        Ajouter une photo
+                      </label>
+                    </Button>
+                  </div>
+                  {photos.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Aucune photo pour le moment.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                      {photos.map((ph) => (
+                        <figure key={ph.id} className="group relative overflow-hidden rounded-lg border border-border">
+                          <img src={ph.url} alt={ph.caption || "Photo de réalisation"} loading="lazy" className="aspect-[4/3] w-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => onDeletePhoto(ph)}
+                            aria-label="Retirer cette photo"
+                            className="absolute right-2 top-2 rounded-full bg-background/90 p-1.5 text-destructive opacity-0 transition-opacity group-hover:opacity-100"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </figure>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="avis" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader><CardTitle className="text-base">Avis reçus sur votre fiche publique</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  {reviews.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Aucun avis publié pour le moment.</p>
+                  ) : (
+                    reviews.map((r) => (
+                      <div key={r.id} className="rounded-lg border border-border p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium">{r.title || "Avis client"}</p>
+                          <span className="text-sm font-semibold text-primary">{r.rating}/5</span>
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {r.author_name || "Client"} · {new Date(r.created_at).toLocaleDateString("fr-CA")}
+                          {r.status !== "publie" && " · masqué par la modération"}
+                        </p>
+                        {r.comment && <p className="mt-2 text-sm text-muted-foreground">{r.comment}</p>}
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
               <NotificationsPanel userId={user?.id} audience="partenaire" />
             </TabsContent>
           </Tabs>
