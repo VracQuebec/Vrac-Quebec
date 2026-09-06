@@ -25,6 +25,7 @@ const AdminFleet = lazy(() => import("./pages/AdminFleet"));
 const AdminFleetVehicle = lazy(() => import("./pages/AdminFleetVehicle"));
 const AdminMarketplaceCategories = lazy(() => import("./pages/AdminMarketplaceCategories"));
 const AdminMarketplaceMatching = lazy(() => import("./pages/AdminMarketplaceMatching"));
+const AdminMarketplaceLots = lazy(() => import("./pages/AdminMarketplaceLots"));
 const PartenaireProfil = lazy(() => import("./pages/PartenaireProfil"));
 const PartenaireSoumissions = lazy(() => import("./pages/PartenaireSoumissions"));
 const Entrepreneur = lazy(() => import("./pages/Entrepreneur"));
@@ -151,6 +152,7 @@ const App = () => (
             <Route path="/admin/flotte/vehicule/:id" element={<AdminFleetVehicle />} />
             <Route path="/admin/marche/categories" element={<AdminMarketplaceCategories />} />
             <Route path="/admin/marche/jumelage" element={<AdminMarketplaceMatching />} />
+            <Route path="/admin/marche/lots" element={<AdminMarketplaceLots />} />
             <Route path="/partenaire/profil" element={<PartenaireProfil />} />
             <Route path="/partenaire/soumissions" element={<PartenaireSoumissions />} />
             <Route path="/entrepreneur" element={<EntrepreneurDashboard />} />

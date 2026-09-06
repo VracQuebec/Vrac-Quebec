@@ -165,9 +165,15 @@ export default function AdminMarketplaceMatching() {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto w-full max-w-7xl px-4 py-6">
-        <Button variant="ghost" size="sm" asChild className="mb-4 -ml-2">
-          <Link to="/admin"><ArrowLeft className="mr-2 h-4 w-4" /> Administration</Link>
-        </Button>
+        <div className="mb-4 -ml-2 flex flex-wrap gap-2">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/admin"><ArrowLeft className="mr-2 h-4 w-4" /> Administration</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/marche/lots">Lots et projets complexes</Link>
+          </Button>
+        </div>
+
 
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
