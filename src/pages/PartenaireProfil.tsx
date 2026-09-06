@@ -614,6 +614,10 @@ export default function PartenaireProfil() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="avis" className="mt-4">
+              <NotificationsPanel userId={user?.id} audience="partenaire" />
+            </TabsContent>
           </Tabs>
         )}
       </div>
