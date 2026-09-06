@@ -28,7 +28,7 @@ export default function Reseau() {
   useEffect(() => {
     void (async () => {
       const { data } = await supabase
-        .from("jsc_marketplace_profiles")
+        .from("jsc_marketplace_profiles_public" as never)
         .select("id,slug,name,partner_type,tagline,city,region,logo_url,rating_average,rating_count,is_featured,certifications,services")
         .order("is_featured", { ascending: false })
         .order("rating_average", { ascending: false })
