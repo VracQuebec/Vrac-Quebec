@@ -284,7 +284,7 @@ export async function fetchOpportunities(companyId: string): Promise<Opportunity
   const lotIds = [...new Set(visibles.map((i) => i.lot_id).filter(Boolean))] as string[];
 
   const [{ data: reqRows }, { data: lotRows }, bids] = await Promise.all([
-    table("mkt_quote_requests").select("*").in("id", requestIds),
+    table("mkt_requests_for_partners").select("*").in("id", requestIds),
     lotIds.length
       ? table("mkt_request_lots").select("*").in("id", lotIds)
       : Promise.resolve({ data: [] as Row[] }),

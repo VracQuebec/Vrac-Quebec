@@ -3928,6 +3928,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "jsc_availability_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_marketplace_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "jsc_availability_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
@@ -5926,6 +5933,13 @@ export type Database = {
             referencedRelation: "jsc_marketplace_profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "jsc_listings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_marketplace_profiles_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       jsc_login_history: {
@@ -6135,6 +6149,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "jsc_marketplace_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_marketplace_reviews_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_marketplace_profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -7270,6 +7291,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "jsc_marketplace_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_public_offers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_marketplace_profiles_public"
             referencedColumns: ["id"]
           },
           {
@@ -8697,6 +8725,13 @@ export type Database = {
             referencedRelation: "mkt_quote_requests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "mkt_activity_log_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_requests_for_partners"
+            referencedColumns: ["id"]
+          },
         ]
       }
       mkt_admin_notes: {
@@ -8733,6 +8768,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_admin_notes_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_requests_for_partners"
             referencedColumns: ["id"]
           },
         ]
@@ -8813,6 +8855,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_automation_runs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_requests_for_partners"
             referencedColumns: ["id"]
           },
         ]
@@ -8899,6 +8948,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_awards_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_requests_for_partners"
             referencedColumns: ["id"]
           },
         ]
@@ -8996,6 +9052,13 @@ export type Database = {
             referencedRelation: "mkt_quote_requests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "mkt_bids_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_requests_for_partners"
+            referencedColumns: ["id"]
+          },
         ]
       }
       mkt_commissions: {
@@ -9079,6 +9142,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_commissions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_requests_for_partners"
             referencedColumns: ["id"]
           },
           {
@@ -9187,6 +9257,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "mkt_deals_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_requests_for_partners"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "mkt_deals_supply_price_id_fkey"
             columns: ["supply_price_id"]
             isOneToOne: false
@@ -9280,6 +9357,13 @@ export type Database = {
             referencedRelation: "mkt_quote_requests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "mkt_documents_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_requests_for_partners"
+            referencedColumns: ["id"]
+          },
         ]
       }
       mkt_invitations: {
@@ -9357,6 +9441,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_invitations_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_requests_for_partners"
             referencedColumns: ["id"]
           },
         ]
@@ -9506,6 +9597,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_notifications_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_requests_for_partners"
             referencedColumns: ["id"]
           },
         ]
@@ -10156,6 +10254,13 @@ export type Database = {
             referencedRelation: "jsc_marketplace_profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "mkt_partners_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_marketplace_profiles_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       mkt_pricing_rules: {
@@ -10466,6 +10571,13 @@ export type Database = {
             referencedRelation: "mkt_quote_requests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "mkt_request_lots_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_requests_for_partners"
+            referencedColumns: ["id"]
+          },
         ]
       }
       mkt_service_categories: {
@@ -10761,6 +10873,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_threads_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_requests_for_partners"
             referencedColumns: ["id"]
           },
         ]
@@ -14511,6 +14630,119 @@ export type Database = {
           },
         ]
       }
+      jsc_marketplace_profiles_public: {
+        Row: {
+          carrier_company_id: string | null
+          certifications: Json | null
+          city: string | null
+          company_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          is_published: boolean | null
+          logo_url: string | null
+          name: string | null
+          opening_hours: Json | null
+          partner_type: string | null
+          photos: Json | null
+          rating_average: number | null
+          rating_count: number | null
+          region: string | null
+          service_radius_km: number | null
+          services: Json | null
+          slug: string | null
+          supplier_id: string | null
+          tagline: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          carrier_company_id?: string | null
+          certifications?: Json | null
+          city?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          is_published?: boolean | null
+          logo_url?: string | null
+          name?: string | null
+          opening_hours?: Json | null
+          partner_type?: string | null
+          photos?: Json | null
+          rating_average?: number | null
+          rating_count?: number | null
+          region?: string | null
+          service_radius_km?: number | null
+          services?: Json | null
+          slug?: string | null
+          supplier_id?: string | null
+          tagline?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          carrier_company_id?: string | null
+          certifications?: Json | null
+          city?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          is_published?: boolean | null
+          logo_url?: string | null
+          name?: string | null
+          opening_hours?: Json | null
+          partner_type?: string | null
+          photos?: Json | null
+          rating_average?: number | null
+          rating_count?: number | null
+          region?: string | null
+          service_radius_km?: number | null
+          services?: Json | null
+          slug?: string | null
+          supplier_id?: string | null
+          tagline?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jsc_marketplace_profiles_carrier_company_id_fkey"
+            columns: ["carrier_company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_marketplace_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_marketplace_profiles_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_material_supply_v"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "jsc_marketplace_profiles_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_material_supply_v: {
         Row: {
           company_id: string | null
@@ -14610,6 +14842,67 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: true
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_requests_for_partners: {
+        Row: {
+          address: string | null
+          answers: Json | null
+          budget_max: number | null
+          budget_min: number | null
+          category_id: string | null
+          city: string | null
+          client_type: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          contact_revealed_at: string | null
+          contact_visibility: string | null
+          contact_visible: boolean | null
+          created_at: string | null
+          deadline_at: string | null
+          description: string | null
+          desired_date: string | null
+          estimated_value: number | null
+          id: string | null
+          is_active: boolean | null
+          is_multi_lot: boolean | null
+          latitude: number | null
+          longitude: number | null
+          organization_name: string | null
+          postal_code: string | null
+          region: string | null
+          request_number: string | null
+          schedule_note: string | null
+          source: string | null
+          status: string | null
+          subcategory_id: string | null
+          title: string | null
+          updated_at: string | null
+          viewer_company_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_invitations_company_id_fkey"
+            columns: ["viewer_company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_quote_requests_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_quote_requests_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_service_categories"
             referencedColumns: ["id"]
           },
         ]
@@ -15391,6 +15684,10 @@ export type Database = {
         }[]
       }
       mkt_compute_commission: { Args: { _award_id: string }; Returns: string }
+      mkt_contact_is_revealed: {
+        Args: { _company_id: string; _request_id: string }
+        Returns: boolean
+      }
       mkt_contact_rule: { Args: { _request_id: string }; Returns: string }
       mkt_contact_visible: {
         Args: { _company_id: string; _request_id: string }

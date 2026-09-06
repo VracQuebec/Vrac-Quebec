@@ -43,7 +43,7 @@ export default function ReseauProfil() {
         "id,slug,name,partner_type,tagline,description,city,region,website,logo_url,photos," +
         "certifications,services,opening_hours,service_radius_km,rating_average,rating_count";
       const { data } = await supabase
-        .from("jsc_marketplace_profiles")
+        .from("jsc_marketplace_profiles_public")
         .select(PUBLIC_COLS)
         .eq(isUuid ? "id" : "slug", slug)
         .maybeSingle();
