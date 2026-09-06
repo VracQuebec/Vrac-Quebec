@@ -15,3 +15,5 @@ Flux : `mkt_quote_requests` (numéro auto `VQ-AAAA-00001`) → `mkt_request_lots
 Sécurité : `mkt_is_admin()`, `mkt_is_member(company_id)`, `mkt_owns_request()`, `mkt_can_see_request()`, `mkt_in_thread()` (SECURITY DEFINER, EXECUTE révoqué pour anon).
 
 Code : `src/lib/marketplace/types.ts` (listes de référence FR) et `src/lib/marketplace/api.ts` (client non typé en attendant la régénération des types).
+
+Étapes 4–5 : parcours public `/obtenir-des-soumissions` (`src/pages/ObtenirSoumissions.tsx`) en 9 étapes (service, localisation, description, questions dynamiques, échéancier, photos, coordonnées, révision, confirmation). Questions par catégorie dans `src/lib/marketplace/forms.ts` (12 familles, option « Je ne sais pas », aucun champ obligatoire sauf téléphone ou courriel). Dépôt via l'edge function `mkt-request-submit` (verify_jwt false, service role, `public-guard`, propriétaire déduit du jeton, jamais du corps). Photos téléversées dans le bucket `lead-photos` sous `submissions/<uuid>/`. CTA « Obtenir des soumissions » sur `/place-de-marche`.
