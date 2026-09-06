@@ -147,6 +147,7 @@ const App = () => (
             <Route path="/admin/flotte" element={<AdminFleet />} />
             <Route path="/admin/flotte/vehicule/:id" element={<AdminFleetVehicle />} />
             <Route path="/admin/marche/categories" element={<AdminMarketplaceCategories />} />
+            <Route path="/partenaire/profil" element={<PartenaireProfil />} />
             <Route path="/entrepreneur" element={<EntrepreneurDashboard />} />
             <Route path="/entrepreneur/carte" element={<Entrepreneur />} />
             <Route path="/entrepreneur/demandes" element={<EntrepreneurDemandes />} />
