@@ -15826,6 +15826,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      mkt_recipient_email: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: string
+      }
       mkt_recompute_scores: { Args: never; Returns: number }
       mkt_resolve_pricing_rule: {
         Args: { _at?: string; _category_id?: string; _company_id: string }
