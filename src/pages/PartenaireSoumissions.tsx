@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Loader2, Plus, Send, Trash2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import NotificationsPanel from "@/components/marketplace/NotificationsPanel";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useFleetTenant } from "@/lib/fleet/tenant";
 import { CompanySwitcher, SupportBanner } from "@/components/fleet/FleetTenantBar";
@@ -249,6 +250,8 @@ export default function PartenaireSoumissions() {
           </div>
           <CompanySwitcher tenant={tenant} />
         </div>
+
+        <NotificationsPanel userId={user?.id} audience="partenaire" />
 
         <Tabs value={onglet} onValueChange={(v) => setOnglet(v as Onglet)}>
           <TabsList className="flex w-full flex-wrap h-auto justify-start gap-1">

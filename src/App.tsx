@@ -84,6 +84,10 @@ const ReseauProfil = lazy(() => import("./pages/ReseauProfil"));
 const PlaceDeMarche = lazy(() => import("./pages/PlaceDeMarche"));
 const ObtenirSoumissions = lazy(() => import("./pages/ObtenirSoumissions"));
 const MesSoumissions = lazy(() => import("./pages/MesSoumissions"));
+const TrouverEntrepreneur = lazy(() => import("./pages/TrouverEntrepreneur"));
+const AdminMarketplaceDeals = lazy(() => import("./pages/AdminMarketplaceDeals"));
+const AdminMarketplaceAnalytics = lazy(() => import("./pages/AdminMarketplaceAnalytics"));
+const AdminMarketplaceAutomations = lazy(() => import("./pages/AdminMarketplaceAutomations"));
 const AdminTransportRequests = lazy(() => import("./pages/AdminTransportRequests"));
 const AdminBusinessIntelligence = lazy(() => import("./pages/AdminBusinessIntelligence"));
 const AdminIntelligence = lazy(() => import("./pages/AdminIntelligence"));
@@ -158,6 +162,9 @@ const App = () => (
             <Route path="/admin/marche/lots" element={<AdminMarketplaceLots />} />
             <Route path="/admin/marche/soumissions" element={<AdminMarketplaceRequests />} />
             <Route path="/admin/marche/commissions" element={<AdminMarketplaceCommissions />} />
+            <Route path="/admin/marche/transactions" element={<AdminMarketplaceDeals />} />
+            <Route path="/admin/marche/analytique" element={<AdminMarketplaceAnalytics />} />
+            <Route path="/admin/marche/automatisations" element={<AdminMarketplaceAutomations />} />
             <Route path="/partenaire/profil" element={<PartenaireProfil />} />
             <Route path="/partenaire/soumissions" element={<PartenaireSoumissions />} />
             <Route path="/entrepreneur" element={<EntrepreneurDashboard />} />
@@ -200,6 +207,9 @@ const App = () => (
             <Route path="/reseau" element={<Reseau />} />
             <Route path="/reseau/:slug" element={<ReseauProfil />} />
             <Route path="/place-de-marche" element={<PlaceDeMarche />} />
+            <Route path="/trouver-un-entrepreneur" element={<TrouverEntrepreneur />} />
+            <Route path="/trouver-un-entrepreneur/:service" element={<TrouverEntrepreneur />} />
+            <Route path="/trouver-un-entrepreneur/:service/:ville" element={<TrouverEntrepreneur />} />
             <Route path="/obtenir-des-soumissions" element={<ObtenirSoumissions />} />
             <Route path="/mes-soumissions" element={<MesSoumissions />} />
             <Route path="/admin/demandes-acces" element={<AdminTransportRequests />} />

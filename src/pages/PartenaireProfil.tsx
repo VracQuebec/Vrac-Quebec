@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ensurePartner, fetchCategories, fetchPartnerPreferences, partnerBusinessRoles,
   partnerClientTypes, partnerDocuments, partnerEquipment, partnerServices,
-  partnerTerritories, savePartner, savePartnerPreferences,
+  partnerAvailability, partnerTerritories, savePartner, savePartnerPreferences,
 } from "@/lib/marketplace/api";
 import {
   AVAILABILITY_STATUSES, BUSINESS_ROLES, PARTNER_CLIENT_TYPES, PROJECT_SIZES,
@@ -80,6 +80,7 @@ export default function PartenaireProfil() {
   const [territories, setTerritories] = useState<Row[]>([]);
   const [equipment, setEquipment] = useState<Row[]>([]);
   const [documents, setDocuments] = useState<Row[]>([]);
+  const [availability, setAvailability] = useState<Row[]>([]);
   const [prefs, setPrefs] = useState<Row>({});
   const [serviceSearch, setServiceSearch] = useState("");
 
@@ -89,7 +90,7 @@ export default function PartenaireProfil() {
     if (!companyId) return;
     setLoading(true);
     try {
-      const [p, cats, br, ct, sv, tr, eq, docs, pr] = await Promise.all([
+      const [p, cats, br, ct, sv, tr, eq, docs, pr, av] = await Promise.all([
         ensurePartner(companyId),
         fetchCategories(true),
         partnerBusinessRoles.list(companyId),
@@ -99,6 +100,7 @@ export default function PartenaireProfil() {
         partnerEquipment.list(companyId),
         partnerDocuments.list(companyId),
         fetchPartnerPreferences(companyId),
+        partnerAvailability.list(companyId),
       ]);
       setPartner(p);
       setCategories(cats);
@@ -109,6 +111,7 @@ export default function PartenaireProfil() {
       setEquipment(eq);
       setDocuments(docs);
       setPrefs(pr ?? {});
+      setAvailability(av);
     } catch (e) {
       toast({ title: "Chargement impossible", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -216,6 +219,7 @@ export default function PartenaireProfil() {
   const refreshTerritories = async () => companyId && setTerritories(await partnerTerritories.list(companyId));
   const refreshEquipment = async () => companyId && setEquipment(await partnerEquipment.list(companyId));
   const refreshDocuments = async () => companyId && setDocuments(await partnerDocuments.list(companyId));
+  const refreshAvailability = async () => companyId && setAvailability(await partnerAvailability.list(companyId));
 
   // Services (feuilles) groupés par grande catégorie, filtrables.
   const serviceGroups = useMemo(() => {
@@ -281,6 +285,7 @@ export default function PartenaireProfil() {
               <TabsTrigger value="territoire">Territoires</TabsTrigger>
               <TabsTrigger value="equipements">Équipements</TabsTrigger>
               <TabsTrigger value="capacite">Capacité</TabsTrigger>
+              <TabsTrigger value="disponibilite">Disponibilité</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
               <TabsTrigger value="preferences">Préférences</TabsTrigger>
             </TabsList>
@@ -466,6 +471,64 @@ export default function PartenaireProfil() {
                     <Field label="Précision (facultatif)"><Input value={s(partner.availability_note)} onChange={(e) => patch({ availability_note: e.target.value })} placeholder="Ex. : 3 camions disponibles lundi" /></Field>
                   </div>
                   <Button onClick={saveIdentity} disabled={saving}><Save className="mr-2 h-4 w-4" /> Enregistrer la capacité</Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* ---------------- Documents ---------------- */}
+
+            {/* ---------------- Disponibilité ---------------- */}
+            <TabsContent value="disponibilite" className="mt-4">
+              <Card>
+                <CardHeader><CardTitle className="text-base">Disponibilité et capacité</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Statut général">
+                      <select
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        value={s(partner?.availability_status) || "disponible"}
+                        onChange={(e) => patch({ availability_status: e.target.value })}
+                      >
+                        {AVAILABILITY_STATUSES.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="Précision (facultatif)">
+                      <Input value={s(partner?.availability_note)} onChange={(e) => patch({ availability_note: e.target.value })}
+                        placeholder="Ex. : 3 camions disponibles lundi" />
+                    </Field>
+                  </div>
+                  <Button onClick={saveIdentity} disabled={saving}><Save className="mr-2 h-4 w-4" /> Enregistrer le statut</Button>
+
+                  <p className="pt-2 text-xs text-muted-foreground">
+                    Périodes précises (facultatif). Ces informations aident le jumelage, mais une entreprise
+                    n'est jamais écartée parce que son calendrier n'est pas à jour.
+                  </p>
+                  {availability.length === 0 && <p className="text-sm text-muted-foreground">Aucune période ajoutée.</p>}
+                  {availability.map((av) => (
+                    <div key={s(av.id)} className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-6">
+                      <Input placeholder="Ressource (ex. : pelle)" defaultValue={s(av.resource_label)} onBlur={(e) => void upsertChild(partnerAvailability, { ...av, resource_label: e.target.value }, refreshAvailability)} />
+                      <Input placeholder="Quantité" inputMode="numeric" defaultValue={s(av.quantity)} onBlur={(e) => void upsertChild(partnerAvailability, { ...av, quantity: Number(e.target.value || 1) }, refreshAvailability)} />
+                      <Input type="date" defaultValue={s(av.starts_on)} onBlur={(e) => void upsertChild(partnerAvailability, { ...av, starts_on: e.target.value || null }, refreshAvailability)} />
+                      <Input type="date" defaultValue={s(av.ends_on)} onBlur={(e) => void upsertChild(partnerAvailability, { ...av, ends_on: e.target.value || null }, refreshAvailability)} />
+                      <select
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        defaultValue={s(av.status) || "disponible"}
+                        onChange={(e) => void upsertChild(partnerAvailability, { ...av, status: e.target.value }, refreshAvailability)}
+                      >
+                        {AVAILABILITY_STATUSES.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+                      </select>
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="flex items-center gap-2 text-xs">
+                          <Switch checked={av.is_active !== false} onCheckedChange={(v) => void upsertChild(partnerAvailability, { ...av, is_active: v }, refreshAvailability)} />
+                          Actif
+                        </label>
+                        <Button variant="ghost" size="sm" onClick={() => void removeChild(partnerAvailability, s(av.id), refreshAvailability)}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
+                  ))}
+                  <Button variant="outline" onClick={() => void upsertChild(partnerAvailability, { resource_label: "Camion 10 roues", quantity: 1, status: "disponible" }, refreshAvailability)}>
+                    <Plus className="mr-2 h-4 w-4" /> Ajouter une période
+                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>
