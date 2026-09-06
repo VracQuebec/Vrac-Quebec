@@ -21,6 +21,7 @@ const INTENTS = [
     icon: Mountain,
     title: "J'ai besoin de matériel de remblais",
     text: "Faire une demande de remblais pour mon chantier",
+    highlight: false,
   },
   {
     key: "vrac" as const,
@@ -28,6 +29,7 @@ const INTENTS = [
     icon: Calculator,
     title: "J'ai besoin de matériaux en vrac",
     text: "Calculer ma quantité, obtenir ma soumission et confirmer ma demande",
+    highlight: false,
   },
   {
     key: "sortir" as const,
@@ -35,6 +37,7 @@ const INTENTS = [
     icon: Truck,
     title: "J'ai des matériaux à sortir",
     text: "Trouver un site de dépôt compatible",
+    highlight: false,
   },
   {
     key: "dompe" as const,
@@ -42,6 +45,7 @@ const INTENTS = [
     icon: MapPin,
     title: "Je cherche une dompe",
     text: "Trouver une solution près de mon chantier",
+    highlight: false,
   },
   {
     key: "transport" as const,
@@ -49,6 +53,7 @@ const INTENTS = [
     icon: HardHat,
     title: "J'ai besoin de transport",
     text: "Trouver une solution de transport",
+    highlight: false,
   },
 ];
 
