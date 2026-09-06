@@ -199,6 +199,54 @@ const Index = () => {
             <CircularEconomy />
           </div>
 
+          {/* Place de marché — obtenir plusieurs soumissions d'entreprises vérifiées */}
+          <section
+            aria-labelledby="soumissions-title"
+            className="mx-auto mt-20 max-w-4xl rounded-2xl border-2 border-primary/40 bg-card p-6 text-center sm:mt-24 sm:p-10"
+          >
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 font-display text-xs font-bold uppercase tracking-wide text-primary">
+              <ClipboardList className="h-3.5 w-3.5" aria-hidden />
+              Demandes de soumissions
+            </div>
+            <h2
+              id="soumissions-title"
+              className="mt-4 font-display text-xl font-extrabold leading-tight text-foreground sm:text-2xl"
+            >
+              Un seul formulaire, plusieurs prix d'entreprises vérifiées.
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl font-body text-sm leading-relaxed text-muted-foreground sm:text-base">
+              Excavation, transport, pavage, aménagement, déneigement, location de machinerie&nbsp;: décrivez
+              votre projet en quelques questions simples. Nous transmettons votre demande aux bonnes
+              entreprises et vous comparez les soumissions au même endroit. Gratuit et sans engagement.
+            </p>
+            <ul className="mx-auto mt-5 grid max-w-2xl gap-2 text-left sm:grid-cols-3">
+              {[
+                "Aucune question inutile",
+                "Vos coordonnées restent privées",
+                "Réponses regroupées en ligne",
+              ].map((t) => (
+                <li key={t} className="rounded-xl bg-muted/60 px-3 py-2 font-body text-sm text-foreground">
+                  {t}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <a
+                href="/obtenir-des-soumissions"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 font-display text-base font-bold text-primary-foreground shadow-lg transition-opacity hover:opacity-90 sm:w-auto"
+              >
+                Obtenir des soumissions
+              </a>
+              <a
+                href="/mes-soumissions"
+                className="inline-flex w-full items-center justify-center rounded-lg border-2 border-border px-6 py-3 font-display text-base font-bold text-foreground transition-colors hover:border-primary hover:text-primary sm:w-auto"
+              >
+                Suivre mes demandes
+              </a>
+            </div>
+          </section>
+
+
           {/* Espace entrepreneur — site public reste vitrine; les outils avancés vivent derrière la connexion */}
           <section
             aria-labelledby="espace-entrepreneur-title"
