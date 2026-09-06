@@ -15412,6 +15412,15 @@ export type Database = {
         Args: { _entity_id: string; _entity_type: string }
         Returns: boolean
       }
+      jsc_add_company_member: {
+        Args: {
+          _company_id: string
+          _email: string
+          _full_name?: string
+          _role?: string
+        }
+        Returns: string
+      }
       jsc_advance_flow: {
         Args: { _entity_id: string; _entity_type: string }
         Returns: Json

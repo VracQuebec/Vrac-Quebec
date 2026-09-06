@@ -27,7 +27,8 @@ import {
   partnerClientTypes, partnerDocuments, partnerEquipment, partnerServices,
   partnerAvailability, partnerTerritories, savePartner, savePartnerPreferences,
   fetchMyPhotos, fetchMyReviews, uploadPartnerPhoto, deletePartnerPhoto,
-  type PartnerPhotoRow, type MyReview,
+  fetchCompanyMembers, addCompanyMember, updateCompanyMemberRole, removeCompanyMember,
+  type PartnerPhotoRow, type MyReview, type CompanyMember,
 } from "@/lib/marketplace/api";
 import {
   AVAILABILITY_STATUSES, BUSINESS_ROLES, PARTNER_CLIENT_TYPES, PROJECT_SIZES,
@@ -46,6 +47,16 @@ const DOC_TYPES = [
 const EQUIPMENT_TYPES = [
   "Camion 10 roues", "Camion 12 roues", "Semi-dompeur", "Fardier", "Pelle",
   "Mini-pelle", "Chargeur", "Bulldozer", "Skid steer", "Rouleau compacteur", "Niveleuse",
+];
+
+/** Rôles assignables à un employé d'entreprise partenaire. */
+const MEMBER_ROLES = [
+  { value: "admin", label: "Administrateur" },
+  { value: "manager", label: "Gestionnaire" },
+  { value: "dispatcher", label: "Répartiteur" },
+  { value: "sales", label: "Représentant" },
+  { value: "accounting", label: "Comptabilité" },
+  { value: "driver", label: "Chauffeur" },
 ];
 
 /** Case à cocher simple et lisible sur mobile. */
@@ -89,6 +100,8 @@ export default function PartenaireProfil() {
   const [photos, setPhotos] = useState<PartnerPhotoRow[]>([]);
   const [reviews, setReviews] = useState<MyReview[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [members, setMembers] = useState<CompanyMember[]>([]);
+  const [newMember, setNewMember] = useState({ email: "", full_name: "", role: "sales" });
 
   const companyId = tenant.companyId;
 
@@ -118,9 +131,12 @@ export default function PartenaireProfil() {
       setDocuments(docs);
       setPrefs(pr ?? {});
       setAvailability(av);
-      const [ph, rv] = await Promise.all([fetchMyPhotos(companyId), fetchMyReviews(companyId)]);
+      const [ph, rv, mb] = await Promise.all([
+        fetchMyPhotos(companyId), fetchMyReviews(companyId), fetchCompanyMembers(companyId),
+      ]);
       setPhotos(ph);
       setReviews(rv);
+      setMembers(mb);
     } catch (e) {
       toast({ title: "Chargement impossible", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -168,6 +184,40 @@ export default function PartenaireProfil() {
     try {
       await deletePartnerPhoto(photo);
       setPhotos(await fetchMyPhotos(companyId));
+    } catch (err) {
+      toast({ title: "Suppression impossible", description: (err as Error).message, variant: "destructive" });
+    }
+  };
+
+  const refreshMembers = async () => companyId && setMembers(await fetchCompanyMembers(companyId));
+
+  const onAddMember = async () => {
+    if (!companyId || !newMember.email.trim()) return;
+    setSaving(true);
+    try {
+      await addCompanyMember(companyId, newMember.email, newMember.full_name, newMember.role);
+      setNewMember({ email: "", full_name: "", role: "sales" });
+      await refreshMembers();
+      toast({ title: "Employé ajouté à votre équipe" });
+    } catch (err) {
+      toast({ title: "Ajout impossible", description: (err as Error).message, variant: "destructive" });
+    } finally { setSaving(false); }
+  };
+
+  const onMemberRole = async (memberId: string, role: string) => {
+    try {
+      await updateCompanyMemberRole(memberId, role);
+      await refreshMembers();
+    } catch (err) {
+      toast({ title: "Modification impossible", description: (err as Error).message, variant: "destructive" });
+    }
+  };
+
+  const onRemoveMember = async (member: CompanyMember) => {
+    if (!confirm(`Retirer ${member.full_name || member.email} de votre entreprise ?`)) return;
+    try {
+      await removeCompanyMember(member.id);
+      await refreshMembers();
     } catch (err) {
       toast({ title: "Suppression impossible", description: (err as Error).message, variant: "destructive" });
     }
@@ -327,6 +377,7 @@ export default function PartenaireProfil() {
               <TabsTrigger value="preferences">Préférences</TabsTrigger>
               <TabsTrigger value="photos">Photos</TabsTrigger>
               <TabsTrigger value="avis">Avis</TabsTrigger>
+              <TabsTrigger value="equipe">Équipe</TabsTrigger>
             </TabsList>
 
             {/* ---------------- Identité ---------------- */}
@@ -718,6 +769,83 @@ export default function PartenaireProfil() {
                 </CardContent>
               </Card>
               <NotificationsPanel userId={user?.id} audience="partenaire" />
+            </TabsContent>
+
+            {/* ---------------- Équipe : employés de l'entreprise ---------------- */}
+            <TabsContent value="equipe" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader><CardTitle className="text-base">Employés de votre entreprise</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Les employés ajoutés ici peuvent gérer le profil, les soumissions et les activités
+                    de votre entreprise selon leur rôle. La personne doit d'abord avoir un compte
+                    sur la plateforme avec le même courriel.
+                  </p>
+
+                  <div className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-4">
+                    <Field label="Courriel de l'employé">
+                      <Input
+                        type="email"
+                        value={newMember.email}
+                        onChange={(e) => setNewMember((m) => ({ ...m, email: e.target.value }))}
+                        placeholder="prenom@entreprise.ca"
+                      />
+                    </Field>
+                    <Field label="Nom complet">
+                      <Input
+                        value={newMember.full_name}
+                        onChange={(e) => setNewMember((m) => ({ ...m, full_name: e.target.value }))}
+                        placeholder="Ex. Marie Tremblay"
+                      />
+                    </Field>
+                    <Field label="Rôle">
+                      <select
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={newMember.role}
+                        onChange={(e) => setNewMember((m) => ({ ...m, role: e.target.value }))}
+                      >
+                        {MEMBER_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                      </select>
+                    </Field>
+                    <div className="flex items-end">
+                      <Button onClick={onAddMember} disabled={saving || !newMember.email.trim()}>
+                        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                        Ajouter
+                      </Button>
+                    </div>
+                  </div>
+
+                  {members.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Aucun employé pour le moment.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {members.map((m) => (
+                        <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium">{m.full_name || m.email}</p>
+                            <p className="text-xs text-muted-foreground">{m.email}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <select
+                              aria-label={`Rôle de ${m.full_name || m.email}`}
+                              className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                              value={m.role}
+                              onChange={(e) => onMemberRole(m.id, e.target.value)}
+                            >
+                              {MEMBER_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                            </select>
+                            {m.user_id !== user?.id && (
+                              <Button variant="ghost" size="icon" aria-label={`Retirer ${m.full_name || m.email}`} onClick={() => onRemoveMember(m)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         )}

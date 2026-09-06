@@ -1267,3 +1267,48 @@ export async function addReview(input: {
   } as Row);
   if (error) throw error;
 }
+
+// --- Équipe : employés d'une entreprise (jsc_company_members) ---
+
+export type CompanyMember = {
+  id: string; company_id: string; user_id: string;
+  email: string | null; full_name: string | null; role: string;
+  is_active: boolean | null; created_at: string | null;
+};
+
+export async function fetchCompanyMembers(companyId: string): Promise<CompanyMember[]> {
+  const { data, error } = await table("jsc_company_members")
+    .select("id, company_id, user_id, email, full_name, role, is_active, created_at")
+    .eq("company_id", companyId).order("created_at");
+  if (error) throw error;
+  return (data ?? []) as CompanyMember[];
+}
+
+/** Ajoute un employé à partir de son courriel (compte existant requis). */
+export async function addCompanyMember(
+  companyId: string, email: string, fullName: string, role: string,
+): Promise<void> {
+  const rpc = supabase.rpc.bind(supabase) as unknown as (fn: string, args: Record<string, unknown>) => Promise<{ error: Error | null }>;
+  const { error } = await rpc("jsc_add_company_member", {
+    _company_id: companyId, _email: email, _full_name: fullName || null, _role: role,
+  });
+  if (error) {
+    if (error.message.includes("aucun_compte")) {
+      throw new Error("Aucun compte n'existe avec ce courriel. La personne doit d'abord s'inscrire sur la plateforme.");
+    }
+    if (error.message.includes("permission_refusee")) {
+      throw new Error("Seuls les administrateurs et gestionnaires de l'entreprise peuvent ajouter des employés.");
+    }
+    throw error;
+  }
+}
+
+export async function updateCompanyMemberRole(memberId: string, role: string): Promise<void> {
+  const { error } = await table("jsc_company_members").update({ role } as Row).eq("id", memberId);
+  if (error) throw error;
+}
+
+export async function removeCompanyMember(memberId: string): Promise<void> {
+  const { error } = await table("jsc_company_members").delete().eq("id", memberId);
+  if (error) throw error;
+}
