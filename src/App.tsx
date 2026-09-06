@@ -77,6 +77,7 @@ const EntrepreneurAnnuaire = lazy(() => import("./pages/EntrepreneurAnnuaire"));
 const Reseau = lazy(() => import("./pages/Reseau"));
 const ReseauProfil = lazy(() => import("./pages/ReseauProfil"));
 const PlaceDeMarche = lazy(() => import("./pages/PlaceDeMarche"));
+const ObtenirSoumissions = lazy(() => import("./pages/ObtenirSoumissions"));
 const AdminTransportRequests = lazy(() => import("./pages/AdminTransportRequests"));
 const AdminBusinessIntelligence = lazy(() => import("./pages/AdminBusinessIntelligence"));
 const AdminIntelligence = lazy(() => import("./pages/AdminIntelligence"));
