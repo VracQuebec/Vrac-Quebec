@@ -1,0 +1,2 @@
+REVOKE SELECT ON public.jsc_listings FROM anon;
+GRANT SELECT (id, company_id, profile_id, created_by, listing_type, title, material_id, material_label, quantity, quantity_unit, price, price_unit, city, region, latitude, longitude, available_from, available_until, description, status, is_active, archived_at, archived_by, created_at, updated_at) ON public.jsc_listings TO anon;
