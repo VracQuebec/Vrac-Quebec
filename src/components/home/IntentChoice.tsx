@@ -2,11 +2,19 @@
 // Les parcours « matériaux » et « matériaux à sortir » s'ouvrent en place;
 // les deux autres mènent aux parcours déjà existants (routes inchangées).
 import { Link } from "react-router-dom";
-import { ArrowRight, Mountain, Truck, MapPin, HardHat, Calculator } from "lucide-react";
+import { ArrowRight, Mountain, Truck, MapPin, HardHat, Calculator, ClipboardList } from "lucide-react";
 
-export type IntentKey = "materiaux" | "vrac" | "sortir" | "dompe" | "transport";
+export type IntentKey = "materiaux" | "vrac" | "sortir" | "dompe" | "transport" | "soumissions";
 
 const INTENTS = [
+  {
+    key: "soumissions" as const,
+    to: "/obtenir-des-soumissions",
+    icon: ClipboardList,
+    title: "Obtenir des soumissions",
+    text: "Décrivez votre projet et recevez plusieurs prix d'entreprises vérifiées",
+    highlight: true,
+  },
   {
     key: "materiaux" as const,
     to: "/remblai",
@@ -43,6 +51,7 @@ const INTENTS = [
     text: "Trouver une solution de transport",
   },
 ];
+
 
 type Props = {
   selected?: IntentKey | null;
