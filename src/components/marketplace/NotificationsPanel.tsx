@@ -79,8 +79,10 @@ export default function NotificationsPanel({ userId, audience = "client" }: Prop
               <Switch checked={prefs.app_enabled !== false} onCheckedChange={(v) => majPrefs({ app_enabled: v })} /></div>
             <div className="flex items-center justify-between"><span>Par courriel</span>
               <Switch checked={prefs.email_enabled !== false} onCheckedChange={(v) => majPrefs({ email_enabled: v })} /></div>
-            <div className="flex items-center justify-between"><span>Par texto (à venir)</span>
-              <Switch checked={prefs.sms_enabled === true} onCheckedChange={(v) => majPrefs({ sms_enabled: v })} /></div>
+            <div className="flex items-center justify-between opacity-60">
+              <span>Par texto (bientôt disponible)</span>
+              <Switch disabled checked={false} aria-label="Avis par texto — bientôt disponible" /></div>
+
             <p className="pt-2 text-xs text-muted-foreground">Avis que vous souhaitez recevoir</p>
             {evenements.map((e) => (
               <div key={e.value} className="flex items-center justify-between">
