@@ -533,11 +533,11 @@ export async function retainBid(bidId: string): Promise<string> {
 
 /**
  * Message du client : question à une entreprise (companyId) ou demande de conseil
- * à Vrac Québec (companyId nul, type « conseil »).
+ * à Vrac Québec (companyId nul, type « support »).
  */
 export async function clientMessage(params: {
   requestId: string; lotId?: string | null; companyId?: string | null;
-  subject: string; body: string; kind?: "question" | "conseil";
+  subject: string; body: string; kind?: "client_partenaire" | "support";
 }) {
   const { data: auth } = await supabase.auth.getUser();
   const userId = auth?.user?.id ?? null;
@@ -546,7 +546,7 @@ export async function clientMessage(params: {
     lot_id: params.lotId ?? null,
     company_id: params.companyId ?? null,
     subject: params.subject,
-    kind: params.kind ?? "question",
+    kind: params.kind ?? "client_partenaire",
     created_by: userId,
     last_message_at: new Date().toISOString(),
   } as Row).select("id").single();
