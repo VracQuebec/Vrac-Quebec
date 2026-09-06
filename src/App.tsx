@@ -86,6 +86,7 @@ const ObtenirSoumissions = lazy(() => import("./pages/ObtenirSoumissions"));
 const MesSoumissions = lazy(() => import("./pages/MesSoumissions"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const TrouverEntrepreneur = lazy(() => import("./pages/TrouverEntrepreneur"));
+const FicheEntrepreneur = lazy(() => import("./pages/FicheEntrepreneur"));
 const AdminMarketplaceDeals = lazy(() => import("./pages/AdminMarketplaceDeals"));
 const AdminMarketplaceAnalytics = lazy(() => import("./pages/AdminMarketplaceAnalytics"));
 const AdminMarketplaceScores = lazy(() => import("./pages/AdminMarketplaceScores"));
@@ -210,6 +211,7 @@ const App = () => (
             <Route path="/reseau" element={<Reseau />} />
             <Route path="/reseau/:slug" element={<ReseauProfil />} />
             <Route path="/place-de-marche" element={<PlaceDeMarche />} />
+            <Route path="/trouver-un-entrepreneur/fiche/:companyId" element={<FicheEntrepreneur />} />
             <Route path="/trouver-un-entrepreneur" element={<TrouverEntrepreneur />} />
             <Route path="/trouver-un-entrepreneur/:slug" element={<TrouverEntrepreneur />} />
 

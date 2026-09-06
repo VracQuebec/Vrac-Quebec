@@ -193,9 +193,14 @@ export default function TrouverEntrepreneur() {
                       <Star className="h-4 w-4 text-primary" /> {Math.round(r.public_score)} / 100
                     </p>
                   )}
-                  <Button asChild className="mt-auto w-full">
-                    <Link to="/obtenir-des-soumissions">Demander une soumission</Link>
-                  </Button>
+                  <div className="mt-auto flex gap-2">
+                    <Button asChild variant="outline" className="flex-1">
+                      <Link to={`/trouver-un-entrepreneur/fiche/${r.company_id}`}>Voir la fiche</Link>
+                    </Button>
+                    <Button asChild className="flex-1">
+                      <Link to="/obtenir-des-soumissions">Soumission</Link>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
