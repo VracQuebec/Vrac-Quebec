@@ -46,9 +46,12 @@ export async function saveCategory(payload: Partial<ServiceCategory> & { name: s
 
 // ---------- Partenaires ----------
 export async function fetchPartner(companyId: string): Promise<MarketplacePartner | null> {
-  const { data, error } = await table("mkt_partners").select("*").eq("company_id", companyId).maybeSingle();
+  // Les coordonnées complètes passent par une fonction protégée : seuls les
+  // membres de l'entreprise et l'administration peuvent les obtenir.
+  const rpc = (supabase as unknown as { rpc: (n: string, a: Row) => Promise<{ data: unknown; error: unknown }> }).rpc;
+  const { data, error } = await rpc.call(supabase, "mkt_partner_full", { _company_id: companyId });
   if (error) throw error;
-  return (data as unknown as MarketplacePartner) ?? null;
+  return (data as MarketplacePartner) ?? null;
 }
 
 /** Crée la fiche place de marché d'une entreprise existante si elle n'existe pas encore. */
@@ -58,7 +61,7 @@ export async function ensurePartner(companyId: string): Promise<MarketplacePartn
   const { data: company } = await table("jsc_companies")
     .select("name, legal_name, phone, email, address, website, logo_url").eq("id", companyId).maybeSingle();
   const c = (company ?? {}) as Row;
-  const { data, error } = await table("mkt_partners").insert({
+  const { error } = await table("mkt_partners").insert({
     company_id: companyId,
     trade_name: (c.name as string) ?? null,
     legal_name: (c.legal_name as string) ?? null,
@@ -67,9 +70,11 @@ export async function ensurePartner(companyId: string): Promise<MarketplacePartn
     address: (c.address as string) ?? null,
     website: (c.website as string) ?? null,
     logo_url: (c.logo_url as string) ?? null,
-  } as Row).select("*").single();
+  } as Row);
   if (error) throw error;
-  return data as unknown as MarketplacePartner;
+  const created = await fetchPartner(companyId);
+  if (!created) throw new Error("Fiche entreprise introuvable après création.");
+  return created;
 }
 
 export async function savePartner(companyId: string, updates: Partial<MarketplacePartner>) {
@@ -378,7 +383,7 @@ export async function fetchRequestBids(requestId: string): Promise<LotBid[]> {
   const bids = await fetchBids({ requestId });
   const ids = [...new Set(bids.map((b) => b.company_id))];
   if (ids.length === 0) return [];
-  const { data } = await table("mkt_partners").select("company_id, trade_name, legal_name").in("company_id", ids);
+  const { data } = await table("mkt_partners_public").select("company_id, trade_name, legal_name").in("company_id", ids);
   const names = new Map(((data ?? []) as Row[]).map((p) => [
     p.company_id as string, (p.trade_name as string) || (p.legal_name as string) || "Entreprise",
   ]));
@@ -490,7 +495,7 @@ export async function fetchClientBids(requestId: string): Promise<ClientBid[]> {
 
   const ids = [...new Set(bids.map((b) => b.company_id))];
   const [{ data: partners }, { data: scores }] = await Promise.all([
-    table("mkt_partners").select("company_id, trade_name, legal_name, city").in("company_id", ids),
+    table("mkt_partners_public").select("company_id, trade_name, legal_name, city").in("company_id", ids),
     table("mkt_partner_scores").select("company_id, public_score, show_public_score").in("company_id", ids),
   ]);
   const infos = new Map(((partners ?? []) as Row[]).map((p) => [p.company_id as string, p]));
