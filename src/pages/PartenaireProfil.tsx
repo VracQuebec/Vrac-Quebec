@@ -771,6 +771,83 @@ export default function PartenaireProfil() {
               </Card>
               <NotificationsPanel userId={user?.id} audience="partenaire" />
             </TabsContent>
+
+            {/* ---------------- Équipe : employés de l'entreprise ---------------- */}
+            <TabsContent value="equipe" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader><CardTitle className="text-base">Employés de votre entreprise</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Les employés ajoutés ici peuvent gérer le profil, les soumissions et les activités
+                    de votre entreprise selon leur rôle. La personne doit d'abord avoir un compte
+                    sur la plateforme avec le même courriel.
+                  </p>
+
+                  <div className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-4">
+                    <Field label="Courriel de l'employé">
+                      <Input
+                        type="email"
+                        value={newMember.email}
+                        onChange={(e) => setNewMember((m) => ({ ...m, email: e.target.value }))}
+                        placeholder="prenom@entreprise.ca"
+                      />
+                    </Field>
+                    <Field label="Nom complet">
+                      <Input
+                        value={newMember.full_name}
+                        onChange={(e) => setNewMember((m) => ({ ...m, full_name: e.target.value }))}
+                        placeholder="Ex. Marie Tremblay"
+                      />
+                    </Field>
+                    <Field label="Rôle">
+                      <select
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={newMember.role}
+                        onChange={(e) => setNewMember((m) => ({ ...m, role: e.target.value }))}
+                      >
+                        {MEMBER_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                      </select>
+                    </Field>
+                    <div className="flex items-end">
+                      <Button onClick={onAddMember} disabled={saving || !newMember.email.trim()}>
+                        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                        Ajouter
+                      </Button>
+                    </div>
+                  </div>
+
+                  {members.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Aucun employé pour le moment.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {members.map((m) => (
+                        <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium">{m.full_name || m.email}</p>
+                            <p className="text-xs text-muted-foreground">{m.email}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <select
+                              aria-label={`Rôle de ${m.full_name || m.email}`}
+                              className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                              value={m.role}
+                              onChange={(e) => onMemberRole(m.id, e.target.value)}
+                            >
+                              {MEMBER_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                            </select>
+                            {m.user_id !== user?.id && (
+                              <Button variant="ghost" size="icon" aria-label={`Retirer ${m.full_name || m.email}`} onClick={() => onRemoveMember(m)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         )}
       </div>
