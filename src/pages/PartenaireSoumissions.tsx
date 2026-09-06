@@ -12,6 +12,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import { useFleetTenant } from "@/lib/fleet/tenant";
 import { CompanySwitcher, SupportBanner } from "@/components/fleet/FleetTenantBar";
 import FullPageState from "@/components/FullPageState";
+import Messagerie, { ContactCard } from "@/components/marketplace/Messagerie";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -310,6 +311,9 @@ export default function PartenaireSoumissions() {
                 <div><span className="text-muted-foreground">Date souhaitée : </span>{dateFr(selected.request.desired_date)}</div>
                 <div className="sm:col-span-2 whitespace-pre-wrap">{selected.request.description || "Aucune description fournie."}</div>
                 {selected.lot?.description && <div className="sm:col-span-2 whitespace-pre-wrap">{selected.lot.description}</div>}
+                <div className="sm:col-span-2">
+                  <ContactCard requestId={selected.request.id} companyId={companyId} party="partenaire" />
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -390,6 +394,17 @@ export default function PartenaireSoumissions() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {selected && (
+          <div className="mt-6">
+            <Messagerie
+              requestId={selected.request.id}
+              companyId={companyId}
+              party="partenaire"
+              titre="Messagerie Vrac Québec"
+            />
+          </div>
         )}
       </div>
     </div>

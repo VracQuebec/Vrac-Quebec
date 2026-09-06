@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, HelpCircle, Loader2, MessageSquare, ShieldCheck } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import FullPageState from "@/components/FullPageState";
+import Messagerie from "@/components/marketplace/Messagerie";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,7 @@ const ONGLETS = [
   { value: "attribues", label: "Projets attribués" },
   { value: "termines", label: "Projets terminés" },
   { value: "documents", label: "Documents" },
+  { value: "messages", label: "Messages" },
 ] as const;
 type Onglet = (typeof ONGLETS)[number]["value"];
 
@@ -173,7 +175,9 @@ export default function MesSoumissions() {
         </TabsList>
       </Tabs>
 
-      {onglet === "documents" ? (
+      {onglet === "messages" ? (
+        <Messagerie party="client" titre="Mes conversations" />
+      ) : onglet === "documents" ? (
         <Card>
           <CardHeader><CardTitle className="text-base">Documents de mes demandes</CardTitle></CardHeader>
           <CardContent className="space-y-2">
