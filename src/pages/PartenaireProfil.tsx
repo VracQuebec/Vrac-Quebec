@@ -13,6 +13,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import { useFleetTenant } from "@/lib/fleet/tenant";
 import { CompanySwitcher, SupportBanner } from "@/components/fleet/FleetTenantBar";
 import FullPageState from "@/components/FullPageState";
+import NotificationsPanel from "@/components/marketplace/NotificationsPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
