@@ -8655,6 +8655,88 @@ export type Database = {
           },
         ]
       }
+      mkt_activity_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          company_id: string | null
+          created_at: string
+          detail: Json
+          entity: string
+          entity_id: string | null
+          id: string
+          request_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          detail?: Json
+          entity: string
+          entity_id?: string | null
+          id?: string
+          request_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          detail?: Json
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          request_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_activity_log_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_admin_notes: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          pinned: boolean
+          request_id: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pinned?: boolean
+          request_id: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          pinned?: boolean
+          request_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_admin_notes_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mkt_awards: {
         Row: {
           amount: number | null
@@ -14682,6 +14764,42 @@ export type Database = {
           roles: Database["public"]["Enums"]["app_role"][]
           user_id: string
         }[]
+      }
+      mkt_admin_board: {
+        Args: never
+        Returns: {
+          award_amount: number
+          award_status: string
+          awarded_at: string
+          bids_count: number
+          bids_total: number
+          city: string
+          client_type: string
+          commission_amount: number
+          commission_status: string
+          contact_name: string
+          created_at: string
+          deadline_at: string
+          desired_date: string
+          estimated_value: number
+          id: string
+          invitations_count: number
+          invitations_sent_at: string
+          last_activity_at: string
+          last_bid_at: string
+          notes_count: number
+          organization_name: string
+          region: string
+          request_number: string
+          responses_count: number
+          status: string
+          title: string
+          unread_messages: number
+        }[]
+      }
+      mkt_admin_set_status: {
+        Args: { _note?: string; _request_id: string; _status: string }
+        Returns: undefined
       }
       mkt_can_see_request: { Args: { _request_id: string }; Returns: boolean }
       mkt_client_contact: {

@@ -722,3 +722,120 @@ export async function setRequestContactRule(requestId: string, rule: string | nu
     .update({ contact_visibility: rule, updated_at: new Date().toISOString() } as Row).eq("id", requestId);
   if (error) throw error;
 }
+
+// ============================================================
+// CENTRE ADMINISTRATIF — Gestion des soumissions
+// ============================================================
+export type BoardRow = {
+  id: string;
+  request_number: string | null;
+  title: string | null;
+  status: string;
+  city: string | null;
+  region: string | null;
+  client_type: string | null;
+  contact_name: string | null;
+  organization_name: string | null;
+  estimated_value: number | null;
+  created_at: string;
+  deadline_at: string | null;
+  desired_date: string | null;
+  invitations_count: number;
+  invitations_sent_at: string | null;
+  responses_count: number;
+  bids_count: number;
+  bids_total: number | null;
+  last_bid_at: string | null;
+  award_status: string | null;
+  award_amount: number | null;
+  awarded_at: string | null;
+  commission_status: string | null;
+  commission_amount: number | null;
+  notes_count: number;
+  last_activity_at: string | null;
+};
+
+export async function fetchAdminBoard(): Promise<BoardRow[]> {
+  const data = await rpcCall("mkt_admin_board", {});
+  return (data ?? []) as BoardRow[];
+}
+
+export type AdminNote = {
+  id: string; request_id: string; body: string; pinned: boolean;
+  created_by: string | null; created_at: string;
+};
+
+export async function fetchAdminNotes(requestId: string): Promise<AdminNote[]> {
+  const { data, error } = await table("mkt_admin_notes")
+    .select("*").eq("request_id", requestId).order("pinned", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as AdminNote[];
+}
+
+export async function addAdminNote(requestId: string, body: string, pinned = false) {
+  const { data: auth } = await supabase.auth.getUser();
+  const { error } = await table("mkt_admin_notes")
+    .insert({ request_id: requestId, body, pinned, created_by: auth?.user?.id ?? null } as Row);
+  if (error) throw error;
+}
+
+export async function deleteAdminNote(id: string) {
+  const { error } = await table("mkt_admin_notes").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export type ActivityEntry = {
+  id: string; request_id: string | null; company_id: string | null;
+  entity: string; entity_id: string | null; action: string;
+  detail: Record<string, unknown>; actor_id: string | null; created_at: string;
+};
+
+export async function fetchActivityLog(requestId?: string, limit = 100): Promise<ActivityEntry[]> {
+  let q = table("mkt_activity_log").select("*").order("created_at", { ascending: false }).limit(limit);
+  if (requestId) q = q.eq("request_id", requestId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as ActivityEntry[];
+}
+
+export async function setRequestStatus(requestId: string, status: string, note?: string) {
+  await rpcCall("mkt_admin_set_status", { _request_id: requestId, _status: status, _note: note ?? null });
+}
+
+/** Files de travail du centre administratif (calculées à partir du tableau de bord). */
+export const WORK_QUEUES = [
+  { key: "nouvelles", label: "Nouvelles demandes" },
+  { key: "a_qualifier", label: "À qualifier" },
+  { key: "a_matcher", label: "À jumeler" },
+  { key: "invitations", label: "Invitations envoyées" },
+  { key: "sans_soumission", label: "Sans soumission" },
+  { key: "soumissions", label: "Soumissions reçues" },
+  { key: "relance_client", label: "Client à relancer" },
+  { key: "attribution", label: "Attribution à confirmer" },
+  { key: "en_cours", label: "Projet en cours" },
+  { key: "termine", label: "Projet terminé" },
+  { key: "commission", label: "Commission à facturer" },
+  { key: "probleme", label: "Problèmes / litiges" },
+] as const;
+export type WorkQueue = (typeof WORK_QUEUES)[number]["key"];
+
+const heures = (iso: string | null | undefined) =>
+  iso ? (Date.now() - new Date(iso).getTime()) / 3600000 : 0;
+
+export function queueOf(r: BoardRow, delaiSansSoumission = 48, delaiRelance = 72): WorkQueue {
+  if (r.status === "litige") return "probleme";
+  if (r.commission_status && ["a_confirmer", "a_facturer"].includes(r.commission_status)) return "commission";
+  if (r.status === "terminee" || r.award_status === "termine") return "termine";
+  if (r.award_status && ["confirme", "en_cours"].includes(r.award_status)) return "en_cours";
+  if (r.award_status === "a_confirmer" || r.status === "attribution_a_confirmer") return "attribution";
+  if (r.bids_count > 0) {
+    return heures(r.last_bid_at) > delaiRelance ? "relance_client" : "soumissions";
+  }
+  if (r.invitations_count > 0) {
+    return heures(r.invitations_sent_at) > delaiSansSoumission ? "sans_soumission" : "invitations";
+  }
+  if (r.status === "a_qualifier") return "a_qualifier";
+  if (r.status === "nouvelle") return "nouvelles";
+  return "a_matcher";
+}
