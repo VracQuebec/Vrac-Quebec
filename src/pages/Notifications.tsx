@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
-import UniversalNav from "@/components/UniversalNav";
+
 import FullPageState from "@/components/FullPageState";
 import NotificationsPanel from "@/components/marketplace/NotificationsPanel";
 import { useAuthReady } from "@/hooks/useAuthReady";
