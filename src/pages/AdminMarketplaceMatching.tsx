@@ -17,7 +17,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
   fetchAdminRequests, fetchLots, fetchMarketplaceSettings, invitePartners,
-  matchPartners, saveMarketplaceSettings, CONTACT_RULES,
+  matchPartners, saveMarketplaceSettings, CONTACT_RULES, revealContact, setRequestContactRule,
 } from "@/lib/marketplace/api";
 import type { MarketplaceSettings, PartnerMatch } from "@/lib/marketplace/api";
 import { REQUEST_STATUSES } from "@/lib/marketplace/types";
@@ -147,6 +147,26 @@ export default function AdminMarketplaceMatching() {
       setSending(false);
     }
   }, [selected, visibles, picked, lotId, settings, toast, runMatch, load]);
+
+  const basculerCoordonnees = useCallback(async (r: QuoteRequest) => {
+    const nouveau = !devoile;
+    try {
+      await revealContact(r.id, nouveau);
+      setDevoile(nouveau);
+      toast({ title: nouveau ? "Coordonnées dévoilées" : "Coordonnées masquées" });
+    } catch (e) {
+      toast({ title: "Action impossible", description: (e as Error).message, variant: "destructive" });
+    }
+  }, [devoile, toast]);
+
+  const majRegleDemande = useCallback(async (r: QuoteRequest, rule: string | null) => {
+    try {
+      await setRequestContactRule(r.id, rule);
+      setSelected((prev) => (prev && prev.id === r.id ? { ...prev, contact_visibility: rule } : prev));
+    } catch (e) {
+      toast({ title: "Réglage non enregistré", description: (e as Error).message, variant: "destructive" });
+    }
+  }, [toast]);
 
   const majReglage = useCallback(async (updates: Partial<MarketplaceSettings>) => {
     setSettings((prev) => (prev ? { ...prev, ...updates } : prev));
@@ -279,9 +299,31 @@ export default function AdminMarketplaceMatching() {
                         {selected.request_number} · {[selected.city, selected.region].filter(Boolean).join(", ") || "Lieu non précisé"}
                       </p>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => void runMatch(selected, lotId)} disabled={matching}>
-                      <RefreshCw className={`mr-2 h-4 w-4 ${matching ? "animate-spin" : ""}`} /> Recalculer
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" onClick={() => void runMatch(selected, lotId)} disabled={matching}>
+                        <RefreshCw className={`mr-2 h-4 w-4 ${matching ? "animate-spin" : ""}`} /> Recalculer
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => void basculerCoordonnees(selected)}>
+                        {devoile ? "Masquer les coordonnées" : "Dévoiler les coordonnées"}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                    <Label htmlFor="regle" className="text-muted-foreground">Confidentialité de cette demande</Label>
+                    <select
+                      id="regle"
+                      className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                      value={selected.contact_visibility ?? ""}
+                      onChange={(e) => void majRegleDemande(selected, e.target.value || null)}
+                    >
+                      <option value="">Réglage de la plateforme</option>
+                      {CONTACT_RULES.map((r) => (
+                        <option key={r.value} value={r.value}>{r.label}</option>
+                      ))}
+                    </select>
+                    <span className="text-muted-foreground">
+                      {devoile ? "Coordonnées dévoilées manuellement." : "Coordonnées protégées."}
+                    </span>
                   </div>
                   {selected.description && (
                     <p className="mt-3 whitespace-pre-line text-sm text-muted-foreground">{selected.description}</p>
