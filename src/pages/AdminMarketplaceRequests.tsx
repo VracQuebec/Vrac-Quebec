@@ -169,6 +169,7 @@ export default function AdminMarketplaceRequests() {
           <div className="flex gap-2">
             <Button variant="outline" asChild><Link to="/admin/marche/jumelage">Jumelage</Link></Button>
             <Button variant="outline" asChild><Link to="/admin/marche/lots">Lots</Link></Button>
+            <Button variant="outline" asChild><Link to="/admin/marche/commissions">Revenus</Link></Button>
             <Button variant="outline" onClick={() => void charger()} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
