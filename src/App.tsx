@@ -208,8 +208,8 @@ const App = () => (
             <Route path="/reseau/:slug" element={<ReseauProfil />} />
             <Route path="/place-de-marche" element={<PlaceDeMarche />} />
             <Route path="/trouver-un-entrepreneur" element={<TrouverEntrepreneur />} />
-            <Route path="/trouver-un-entrepreneur/:service" element={<TrouverEntrepreneur />} />
-            <Route path="/trouver-un-entrepreneur/:service/:ville" element={<TrouverEntrepreneur />} />
+            <Route path="/trouver-un-entrepreneur/:slug" element={<TrouverEntrepreneur />} />
+
             <Route path="/obtenir-des-soumissions" element={<ObtenirSoumissions />} />
             <Route path="/mes-soumissions" element={<MesSoumissions />} />
             <Route path="/admin/demandes-acces" element={<AdminTransportRequests />} />
