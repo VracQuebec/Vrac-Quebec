@@ -362,3 +362,99 @@ export async function askQuestion(params: {
   if (msgError) throw msgError;
   return threadId;
 }
+
+// ---------- Lots et projets complexes (étape 8) ----------
+export async function deleteLot(lotId: string) {
+  const { error } = await table("mkt_request_lots").delete().eq("id", lotId);
+  if (error) throw error;
+}
+
+export type LotBid = Bid & { partner_name: string };
+
+/** Soumissions d'une demande enrichies du nom de l'entreprise. */
+export async function fetchRequestBids(requestId: string): Promise<LotBid[]> {
+  const bids = await fetchBids({ requestId });
+  const ids = [...new Set(bids.map((b) => b.company_id))];
+  if (ids.length === 0) return [];
+  const { data } = await table("mkt_partners").select("company_id, trade_name, legal_name").in("company_id", ids);
+  const names = new Map(((data ?? []) as Row[]).map((p) => [
+    p.company_id as string, (p.trade_name as string) || (p.legal_name as string) || "Entreprise",
+  ]));
+  return bids.map((b) => ({ ...b, partner_name: names.get(b.company_id) ?? "Entreprise" }));
+}
+
+export type LotStrategy = {
+  key: string;
+  label: string;
+  detail: string;
+  total: number;
+  covered: number;
+  missing: string[];
+};
+
+/**
+ * Compare les stratégies d'attribution d'un projet découpé en lots :
+ * meilleur prix lot par lot, offre globale d'une entreprise, regroupements par entreprise.
+ */
+export function buildLotStrategies(lots: RequestLot[], bids: LotBid[]): LotStrategy[] {
+  const sent = bids.filter((b) => b.status !== "brouillon" && b.status !== "retiree" && b.amount != null);
+  const strategies: LotStrategy[] = [];
+
+  // 1. Meilleur prix lot par lot
+  const bestByLot = new Map<string, LotBid>();
+  lots.forEach((lot) => {
+    const candidats = sent.filter((b) => b.lot_id === lot.id);
+    const best = candidats.sort((a, b) => (a.amount ?? 0) - (b.amount ?? 0))[0];
+    if (best) bestByLot.set(lot.id, best);
+  });
+  if (bestByLot.size > 0) {
+    const total = [...bestByLot.values()].reduce((s, b) => s + (b.amount ?? 0), 0);
+    const missing = lots.filter((l) => !bestByLot.has(l.id)).map((l) => `${l.lot_number} ${l.title}`);
+    strategies.push({
+      key: "meilleur-par-lot",
+      label: "Meilleur prix lot par lot",
+      detail: [...bestByLot.entries()]
+        .map(([lotId, b]) => `${lots.find((l) => l.id === lotId)?.lot_number ?? "?"} → ${b.partner_name}`)
+        .join(" · "),
+      total,
+      covered: bestByLot.size,
+      missing,
+    });
+  }
+
+  // 2. Offres globales (soumission sans lot = projet complet)
+  sent.filter((b) => !b.lot_id).forEach((b) => {
+    strategies.push({
+      key: `global-${b.id}`,
+      label: `${b.partner_name} — projet complet`,
+      detail: "Offre unique pour l'ensemble du projet",
+      total: b.amount ?? 0,
+      covered: lots.length,
+      missing: [],
+    });
+  });
+
+  // 3. Regroupements : tous les lots soumissionnés par une même entreprise
+  const parCompagnie = new Map<string, LotBid[]>();
+  sent.filter((b) => b.lot_id).forEach((b) => {
+    const list = parCompagnie.get(b.company_id) ?? [];
+    list.push(b);
+    parCompagnie.set(b.company_id, list);
+  });
+  parCompagnie.forEach((list, companyId) => {
+    if (list.length < 2) return;
+    const numeros = list
+      .map((b) => lots.find((l) => l.id === b.lot_id)?.lot_number ?? "?")
+      .sort();
+    strategies.push({
+      key: `groupe-${companyId}`,
+      label: `${list[0].partner_name} — lots ${numeros.join(" + ")}`,
+      detail: "Regroupement chez une même entreprise",
+      total: list.reduce((s, b) => s + (b.amount ?? 0), 0),
+      covered: list.length,
+      missing: lots.filter((l) => !list.some((b) => b.lot_id === l.id)).map((l) => `${l.lot_number} ${l.title}`),
+    });
+  });
+
+  return strategies.sort((a, b) => b.covered - a.covered || a.total - b.total);
+}
