@@ -154,7 +154,7 @@ export async function markAllRead(ids: string[]) {
 }
 
 export async function setStatus(id: string, status: NotifStatus) {
-  const patch: Record<string, unknown> = { status };
+  const patch: { status: NotifStatus; resolved_at?: string; read_at?: string } = { status };
   if (status === "done" || status === "archived") patch.resolved_at = new Date().toISOString();
   if (status === "read" || status === "in_progress") patch.read_at = new Date().toISOString();
   const { error } = await supabase.from("crm_notifications").update(patch).eq("id", id);
