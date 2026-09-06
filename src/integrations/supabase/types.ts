@@ -15920,6 +15920,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      mkt_partner_is_public: { Args: { _company_id: string }; Returns: boolean }
+      mkt_partner_public: { Args: { _company_id: string }; Returns: Json }
       mkt_recipient_email: {
         Args: { _company_id: string; _user_id: string }
         Returns: string
