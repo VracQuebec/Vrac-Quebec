@@ -1192,3 +1192,78 @@ export async function fetchDirectory(params: {
   });
   return (data ?? []) as DirectoryEntry[];
 }
+
+// ============================================================
+// FICHE PUBLIQUE PARTENAIRE (photos + avis)
+// ============================================================
+export type PublicReview = {
+  id: string; author_name: string | null; rating: number;
+  title: string | null; comment: string | null; created_at: string;
+};
+export type PublicPhoto = { id: string; url: string; caption: string | null };
+export type PublicPartner = {
+  company_id: string; name: string; description: string | null; logo_url: string | null;
+  website: string | null; city: string | null; region: string | null; founded_year: number | null;
+  is_verified: boolean; availability_status: string | null; public_score: number | null;
+  services: string[]; territories: string[]; photos: PublicPhoto[]; reviews: PublicReview[];
+  reviews_avg: number | null; reviews_count: number;
+};
+
+export async function fetchPublicPartner(companyId: string): Promise<PublicPartner | null> {
+  const data = await rpcCall("mkt_partner_public", { _company_id: companyId });
+  return (data ?? null) as PublicPartner | null;
+}
+
+export type PartnerPhotoRow = {
+  id: string; company_id: string; storage_path: string; url: string;
+  caption: string | null; sort_order: number; is_public: boolean; created_at: string;
+};
+
+export async function fetchMyPhotos(companyId: string): Promise<PartnerPhotoRow[]> {
+  const { data, error } = await table("mkt_partner_photos")
+    .select("*").eq("company_id", companyId).order("sort_order").order("created_at");
+  if (error) throw error;
+  return (data ?? []) as PartnerPhotoRow[];
+}
+
+const SIGNED_URL_YEARS = 60 * 60 * 24 * 365 * 10;
+
+export async function uploadPartnerPhoto(companyId: string, file: File, caption?: string): Promise<void> {
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `${companyId}/${crypto.randomUUID()}.${ext}`;
+  const { error: upErr } = await supabase.storage.from("partner-photos").upload(path, file, {
+    contentType: file.type || "image/jpeg",
+  });
+  if (upErr) throw upErr;
+  const signed = await supabase.storage.from("partner-photos").createSignedUrl(path, SIGNED_URL_YEARS);
+  if (signed.error || !signed.data?.signedUrl) throw signed.error ?? new Error("URL indisponible");
+  const { error } = await table("mkt_partner_photos").insert({
+    company_id: companyId, storage_path: path, url: signed.data.signedUrl, caption: caption || null,
+  } as Row);
+  if (error) throw error;
+}
+
+export async function deletePartnerPhoto(photo: PartnerPhotoRow): Promise<void> {
+  const { error } = await table("mkt_partner_photos").delete().eq("id", photo.id);
+  if (error) throw error;
+  await supabase.storage.from("partner-photos").remove([photo.storage_path]).catch(() => {});
+}
+
+export type MyReview = PublicReview & { status: string };
+
+export async function fetchMyReviews(companyId: string): Promise<MyReview[]> {
+  const { data, error } = await table("mkt_reviews")
+    .select("*").eq("company_id", companyId).order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as MyReview[];
+}
+
+export async function addReview(input: {
+  companyId: string; rating: number; title?: string; comment?: string; authorName?: string;
+}): Promise<void> {
+  const { error } = await table("mkt_reviews").insert({
+    company_id: input.companyId, rating: input.rating,
+    title: input.title || null, comment: input.comment || null, author_name: input.authorName || null,
+  } as Row);
+  if (error) throw error;
+}
