@@ -234,7 +234,7 @@ export default function PartenaireSoumissions() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SupportBanner active={tenant.supportMode} />
+      <SupportBanner tenant={tenant} />
       <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
