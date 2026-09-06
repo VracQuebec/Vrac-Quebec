@@ -62,22 +62,13 @@ const Index = () => {
       <nav className="w-full bg-foreground/95 text-background">
         <div className="container mx-auto flex items-center justify-between gap-2 px-4 py-2 sm:px-6">
           <LogoVracQuebec />
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <a
-              href="/obtenir-des-soumissions"
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 font-display text-[11px] font-bold uppercase tracking-wide text-primary-foreground transition-opacity hover:opacity-90 sm:text-xs"
-            >
-              <ClipboardList className="h-3.5 w-3.5" aria-hidden />
-              Obtenir des soumissions
-            </a>
-            <a
-              href="/login"
-              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-body text-[11px] text-background/70 transition-colors hover:text-primary sm:text-xs"
-            >
-              <HardHat className="h-3.5 w-3.5" aria-hidden />
-              <span className="hidden xs:inline sm:inline">Connexion</span>
-            </a>
-          </div>
+          <a
+            href="/login"
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-body text-[11px] text-background/70 transition-colors hover:text-primary sm:text-xs"
+          >
+            <HardHat className="h-3.5 w-3.5" aria-hidden />
+            Connexion entrepreneur
+          </a>
         </div>
       </nav>
 
