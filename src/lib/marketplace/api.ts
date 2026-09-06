@@ -1162,8 +1162,10 @@ export async function saveAutomationRule(row: Partial<AutomationRule> & { id: st
   if (error) throw error;
 }
 export async function runAutomations(): Promise<{ actions: number }> {
-  const data = await rpcCall("mkt_run_automations", {});
-  return (data ?? { actions: 0 }) as { actions: number };
+  const data = (await rpcCall("mkt_run_automations_manual", {})) as
+    | { total?: number; actions?: number }
+    | null;
+  return { actions: data?.total ?? data?.actions ?? 0 };
 }
 export async function fetchAutomationRuns(limit = 100) {
   const { data, error } = await table("mkt_automation_runs")
