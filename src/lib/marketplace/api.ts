@@ -324,7 +324,7 @@ export async function declineInvitation(invitationId: string, reason: string) {
 
 export async function markInvitationAnswered(invitationId: string) {
   const { error } = await table("mkt_invitations").update({
-    status: "soumission_deposee",
+    status: "soumise",
     responded_at: new Date().toISOString(),
   } as Row).eq("id", invitationId);
   if (error) throw error;
