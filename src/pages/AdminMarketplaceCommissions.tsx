@@ -150,9 +150,9 @@ export default function AdminMarketplaceCommissions() {
     };
   }, [commissions, filtre]);
 
-  if (!isReady || roleLoading) return <FullPageState variant="loading" title="Chargement…" />;
-  if (!isAuthenticated) return <FullPageState variant="error" title="Connexion requise" />;
-  if (!isAdmin) return <FullPageState variant="error" title="Accès réservé à l'administration" />;
+  if (!isReady || roleLoading) return <FullPageState title="Chargement" message="Vérification de l'accès…" />;
+  if (!isAuthenticated) return <FullPageState title="Connexion requise" message="Connectez-vous pour accéder à cette page." showSpinner={false} />;
+  if (!isAdmin) return <FullPageState title="Accès réservé" message="Cette section est réservée à l'administration de Vrac Québec." showSpinner={false} />;
 
   return (
     <div className="min-h-screen bg-background">
@@ -180,7 +180,7 @@ export default function AdminMarketplaceCommissions() {
           </Button>
         </div>
 
-        {loading && <FullPageState variant="loading" title="Chargement des données…" />}
+        {loading && <p className="text-sm text-muted-foreground">Chargement des données…</p>}
 
         {!loading && onglet === "regles" && (
           <div className="space-y-4">
