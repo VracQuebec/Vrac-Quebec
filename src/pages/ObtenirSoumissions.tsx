@@ -156,8 +156,9 @@ export default function ObtenirSoumissions() {
         </p>
         <p className="mt-6 text-lg font-semibold">Numéro de votre demande : {confirmation}</p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Button asChild><Link to="/">Retour à l'accueil</Link></Button>
-          <Button variant="outline" asChild><Link to="/place-de-marche">Voir la place de marché</Link></Button>
+          <Button asChild><Link to="/mes-soumissions">Suivre ma demande</Link></Button>
+          <Button variant="outline" asChild><Link to="/">Retour à l'accueil</Link></Button>
+
         </div>
       </main>
     );
