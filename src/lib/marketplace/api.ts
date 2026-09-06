@@ -839,3 +839,104 @@ export function queueOf(r: BoardRow, delaiSansSoumission = 48, delaiRelance = 72
   if (r.status === "nouvelle") return "nouvelles";
   return "a_matcher";
 }
+
+// ============================================================
+// MODÈLE COMMERCIAL — règles tarifaires et commissions
+// ============================================================
+export const PRICING_MODELS = [
+  { value: "commission_pourcentage", label: "Commission en pourcentage" },
+  { value: "commission_fixe", label: "Commission fixe" },
+  { value: "marge", label: "Marge ajoutée au prix" },
+  { value: "frais_par_lead", label: "Frais par demande transmise" },
+  { value: "frais_deblocage", label: "Frais pour débloquer une occasion" },
+  { value: "abonnement", label: "Abonnement" },
+  { value: "credits", label: "Crédits" },
+  { value: "gratuit", label: "Gratuit" },
+  { value: "entente_personnalisee", label: "Entente personnalisée" },
+] as const;
+export const pricingModelLabel = (v: string | null) =>
+  PRICING_MODELS.find((m) => m.value === v)?.label ?? "—";
+
+export const COMMISSION_STATUSES = [
+  { value: "a_confirmer", label: "À confirmer" },
+  { value: "a_facturer", label: "À facturer" },
+  { value: "facturee", label: "Facturée" },
+  { value: "payee", label: "Payée" },
+  { value: "annulee", label: "Annulée" },
+  { value: "contestee", label: "Contestée" },
+] as const;
+export const commissionStatusLabel = (v: string | null) =>
+  COMMISSION_STATUSES.find((s) => s.value === v)?.label ?? "—";
+
+export type PricingRule = {
+  id: string;
+  company_id: string | null;
+  category_id: string | null;
+  label: string;
+  model: string;
+  scope: string;
+  rate_percent: number | null;
+  fixed_amount: number | null;
+  subscription_amount: number | null;
+  credits: number | null;
+  min_amount: number | null;
+  max_amount: number | null;
+  valid_from: string | null;
+  valid_until: string | null;
+  priority: number;
+  status: string;
+  is_default: boolean;
+  notes: string | null;
+  created_at?: string;
+};
+
+export async function fetchPricingRules(): Promise<PricingRule[]> {
+  const { data, error } = await table("mkt_pricing_rules")
+    .select("*").order("priority", { ascending: false }).order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as PricingRule[];
+}
+
+export async function savePricingRule(row: Partial<PricingRule> & { label: string; model: string }) {
+  const { error } = await table("mkt_pricing_rules").upsert(row as Row);
+  if (error) throw error;
+}
+
+export async function deletePricingRule(id: string) {
+  const { error } = await table("mkt_pricing_rules").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export type CommissionRow = {
+  id: string;
+  request_id: string | null;
+  request_number: string | null;
+  request_title: string | null;
+  company_id: string | null;
+  partner_name: string | null;
+  model: string | null;
+  label: string | null;
+  base_amount: number | null;
+  amount: number | null;
+  status: string;
+  awarded_at: string | null;
+  invoiced_at: string | null;
+  paid_at: string | null;
+  created_at: string;
+};
+
+export async function fetchCommissions(): Promise<CommissionRow[]> {
+  const data = await rpcCall("mkt_commission_board", {});
+  return (data ?? []) as CommissionRow[];
+}
+
+export async function setCommissionStatus(id: string, status: string, note?: string) {
+  await rpcCall("mkt_set_commission_status", { _commission_id: id, _status: status, _note: note ?? null });
+}
+
+/** Entreprises partenaires (pour associer une règle tarifaire). */
+export async function fetchPartnerCompanies(): Promise<Array<{ id: string; name: string }>> {
+  const { data, error } = await table("jsc_companies").select("id, name").order("name");
+  if (error) throw error;
+  return (data ?? []) as Array<{ id: string; name: string }>;
+}
