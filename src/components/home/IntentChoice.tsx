@@ -71,12 +71,16 @@ const IntentChoice = ({ selected = null, onSelect }: Props) => (
     </p>
 
     <div className="mx-auto mt-8 grid max-w-5xl gap-3 sm:grid-cols-2">
-      {INTENTS.map(({ key, to, icon: Icon, title, text }) => {
+      {INTENTS.map(({ key, to, icon: Icon, title, text, highlight }) => {
         const isActive = selected === key;
         const cls = `group flex w-full items-center gap-4 rounded-2xl p-5 sm:p-6 text-left transition-all hover:-translate-y-0.5 ${
+          highlight ? "sm:col-span-2 " : ""
+        }${
           isActive
             ? "bg-primary text-primary-foreground shadow-lg"
-            : "border border-border bg-card hover:border-primary hover:shadow-md"
+            : highlight
+              ? "border-2 border-primary bg-primary/5 hover:shadow-md"
+              : "border border-border bg-card hover:border-primary hover:shadow-md"
         }`;
         const inner = (
           <>
