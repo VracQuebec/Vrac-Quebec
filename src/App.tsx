@@ -24,6 +24,7 @@ const AdminCalendar = lazy(() => import("./pages/AdminCalendar"));
 const AdminFleet = lazy(() => import("./pages/AdminFleet"));
 const AdminFleetVehicle = lazy(() => import("./pages/AdminFleetVehicle"));
 const AdminMarketplaceCategories = lazy(() => import("./pages/AdminMarketplaceCategories"));
+const PartenaireProfil = lazy(() => import("./pages/PartenaireProfil"));
 const Entrepreneur = lazy(() => import("./pages/Entrepreneur"));
 const EntrepreneurDashboard = lazy(() => import("./pages/EntrepreneurDashboard"));
 const EntrepreneurDemandes = lazy(() => import("./pages/EntrepreneurDemandes"));
