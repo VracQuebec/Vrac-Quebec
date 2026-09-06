@@ -15483,6 +15483,52 @@ export type Database = {
           website: string
         }[]
       }
+      mkt_partner_full: {
+        Args: { _company_id: string }
+        Returns: {
+          accepts_subcontracting: boolean
+          accepts_tenders: boolean
+          address: string | null
+          archived_at: string | null
+          archived_by: string | null
+          availability_note: string | null
+          availability_status: string
+          city: string | null
+          company_id: string
+          contact_name: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          founded_year: number | null
+          id: string
+          is_active: boolean
+          is_public: boolean
+          is_verified: boolean
+          latitude: number | null
+          legal_name: string | null
+          logo_url: string | null
+          longitude: number | null
+          max_distance_km: number | null
+          max_project_amount: number | null
+          min_project_amount: number | null
+          neq: string | null
+          onboarding_status: string
+          phone: string | null
+          postal_code: string | null
+          profile_id: string | null
+          project_sizes: string[]
+          region: string | null
+          trade_name: string | null
+          updated_at: string
+          website: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "mkt_partners"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       mkt_recompute_scores: { Args: never; Returns: number }
       mkt_resolve_pricing_rule: {
         Args: { _at?: string; _category_id?: string; _company_id: string }
