@@ -14549,6 +14549,71 @@ export type Database = {
           },
         ]
       }
+      mkt_partners_public: {
+        Row: {
+          accepts_subcontracting: boolean | null
+          accepts_tenders: boolean | null
+          availability_status: string | null
+          city: string | null
+          company_id: string | null
+          description: string | null
+          is_public: boolean | null
+          is_verified: boolean | null
+          latitude: number | null
+          legal_name: string | null
+          logo_url: string | null
+          longitude: number | null
+          project_sizes: string[] | null
+          region: string | null
+          trade_name: string | null
+          website: string | null
+        }
+        Insert: {
+          accepts_subcontracting?: boolean | null
+          accepts_tenders?: boolean | null
+          availability_status?: string | null
+          city?: string | null
+          company_id?: string | null
+          description?: string | null
+          is_public?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          legal_name?: string | null
+          logo_url?: string | null
+          longitude?: number | null
+          project_sizes?: string[] | null
+          region?: string | null
+          trade_name?: string | null
+          website?: string | null
+        }
+        Update: {
+          accepts_subcontracting?: boolean | null
+          accepts_tenders?: boolean | null
+          availability_status?: string | null
+          city?: string | null
+          company_id?: string | null
+          description?: string | null
+          is_public?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          legal_name?: string | null
+          logo_url?: string | null
+          longitude?: number | null
+          project_sizes?: string[] | null
+          region?: string | null
+          trade_name?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_partners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seo_bulk_candidates: {
         Row: {
           city_slug: string | null
