@@ -8924,9 +8924,13 @@ export type Database = {
           award_id: string | null
           base_amount: number | null
           company_id: string | null
+          contested_at: string | null
           created_at: string
           id: string
+          invoice_note: string | null
           invoiced_at: string | null
+          label: string | null
+          model: string | null
           notes: string | null
           paid_at: string | null
           request_id: string | null
@@ -8940,9 +8944,13 @@ export type Database = {
           award_id?: string | null
           base_amount?: number | null
           company_id?: string | null
+          contested_at?: string | null
           created_at?: string
           id?: string
+          invoice_note?: string | null
           invoiced_at?: string | null
+          label?: string | null
+          model?: string | null
           notes?: string | null
           paid_at?: string | null
           request_id?: string | null
@@ -8956,9 +8964,13 @@ export type Database = {
           award_id?: string | null
           base_amount?: number | null
           company_id?: string | null
+          contested_at?: string | null
           created_at?: string
           id?: string
+          invoice_note?: string | null
           invoiced_at?: string | null
+          label?: string | null
+          model?: string | null
           notes?: string | null
           paid_at?: string | null
           request_id?: string | null
@@ -9341,6 +9353,41 @@ export type Database = {
             foreignKeyName: "mkt_partner_client_types_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_partner_credits: {
+        Row: {
+          balance: number
+          company_id: string
+          created_at: string
+          last_topup_at: string | null
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          company_id: string
+          created_at?: string
+          last_topup_at?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          company_id?: string
+          created_at?: string
+          last_topup_at?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_partner_credits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
             referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
           },
@@ -9829,8 +9876,10 @@ export type Database = {
           category_id: string | null
           company_id: string | null
           created_at: string
+          credits: number | null
           fixed_amount: number | null
           id: string
+          is_default: boolean
           label: string
           max_amount: number | null
           min_amount: number | null
@@ -9838,7 +9887,9 @@ export type Database = {
           notes: string | null
           priority: number
           rate_percent: number | null
+          scope: string
           status: string
+          subscription_amount: number | null
           updated_at: string
           valid_from: string | null
           valid_until: string | null
@@ -9847,8 +9898,10 @@ export type Database = {
           category_id?: string | null
           company_id?: string | null
           created_at?: string
+          credits?: number | null
           fixed_amount?: number | null
           id?: string
+          is_default?: boolean
           label: string
           max_amount?: number | null
           min_amount?: number | null
@@ -9856,7 +9909,9 @@ export type Database = {
           notes?: string | null
           priority?: number
           rate_percent?: number | null
+          scope?: string
           status?: string
+          subscription_amount?: number | null
           updated_at?: string
           valid_from?: string | null
           valid_until?: string | null
@@ -9865,8 +9920,10 @@ export type Database = {
           category_id?: string | null
           company_id?: string | null
           created_at?: string
+          credits?: number | null
           fixed_amount?: number | null
           id?: string
+          is_default?: boolean
           label?: string
           max_amount?: number | null
           min_amount?: number | null
@@ -9874,7 +9931,9 @@ export type Database = {
           notes?: string | null
           priority?: number
           rate_percent?: number | null
+          scope?: string
           status?: string
+          subscription_amount?: number | null
           updated_at?: string
           valid_from?: string | null
           valid_until?: string | null
@@ -14815,6 +14874,27 @@ export type Database = {
         }[]
       }
       mkt_client_select_bid: { Args: { _bid_id: string }; Returns: string }
+      mkt_commission_board: {
+        Args: never
+        Returns: {
+          amount: number
+          awarded_at: string
+          base_amount: number
+          company_id: string
+          created_at: string
+          id: string
+          invoiced_at: string
+          label: string
+          model: string
+          paid_at: string
+          partner_name: string
+          request_id: string
+          request_number: string
+          request_title: string
+          status: string
+        }[]
+      }
+      mkt_compute_commission: { Args: { _award_id: string }; Returns: string }
       mkt_contact_rule: { Args: { _request_id: string }; Returns: string }
       mkt_contact_visible: {
         Args: { _company_id: string; _request_id: string }
@@ -14863,8 +14943,43 @@ export type Database = {
           website: string
         }[]
       }
+      mkt_resolve_pricing_rule: {
+        Args: { _at?: string; _category_id?: string; _company_id: string }
+        Returns: {
+          category_id: string | null
+          company_id: string | null
+          created_at: string
+          credits: number | null
+          fixed_amount: number | null
+          id: string
+          is_default: boolean
+          label: string
+          max_amount: number | null
+          min_amount: number | null
+          model: string
+          notes: string | null
+          priority: number
+          rate_percent: number | null
+          scope: string
+          status: string
+          subscription_amount: number | null
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "mkt_pricing_rules"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       mkt_reveal_contact: {
         Args: { _request_id: string; _reveal?: boolean }
+        Returns: undefined
+      }
+      mkt_set_commission_status: {
+        Args: { _commission_id: string; _note?: string; _status: string }
         Returns: undefined
       }
       mkt_thread_mark_read: { Args: { _thread_id: string }; Returns: undefined }
