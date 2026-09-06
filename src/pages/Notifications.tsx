@@ -31,7 +31,7 @@ const Notifications = () => {
         <meta name="description" content="Consultez vos avis Vrac Québec et choisissez comment vous souhaitez être averti." />
         <meta name="robots" content="noindex" />
       </Helmet>
-      <UniversalNav />
+      
       <section className="container mx-auto max-w-3xl px-4 py-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="flex items-center gap-2 font-display text-2xl font-extrabold text-foreground">
