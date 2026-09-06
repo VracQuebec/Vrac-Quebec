@@ -119,7 +119,7 @@ export default function AdminMarketplaceLots() {
       await saveLot({
         ...row,
         request_id: selected.id,
-        sort_order: row.sort_order ?? Number(row.lot_number) || lots.length + 1,
+        sort_order: row.sort_order ?? (Number(row.lot_number) || lots.length + 1),
       });
       await refreshLots();
       setDraft(null);
