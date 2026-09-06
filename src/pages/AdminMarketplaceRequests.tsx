@@ -166,13 +166,14 @@ export default function AdminMarketplaceRequests() {
             <h1 className="text-2xl font-bold md:text-3xl">Gestion des soumissions</h1>
             <p className="text-sm text-muted-foreground">Files de travail, suivi des projets et revenus de la place de marché.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" asChild><Link to="/admin/marche/jumelage">Jumelage</Link></Button>
             <Button variant="outline" asChild><Link to="/admin/marche/lots">Lots</Link></Button>
             <Button variant="outline" asChild><Link to="/admin/marche/commissions">Revenus</Link></Button>
             <Button variant="outline" asChild><Link to="/admin/marche/transactions">Matériaux et transport</Link></Button>
             <Button variant="outline" asChild><Link to="/admin/marche/analytique">Analytique</Link></Button>
             <Button variant="outline" asChild><Link to="/admin/marche/automatisations">Automatisations</Link></Button>
+            <Button variant="outline" asChild><Link to="/admin/marche/scores">Scores partenaires</Link></Button>
             <Button variant="outline" onClick={() => void charger()} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
