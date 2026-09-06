@@ -105,7 +105,7 @@ export default function PlaceDeMarche() {
             tout le marché québécois du vrac dans une seule interface.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button asChild><Link to="/obtenir-des-soumissions">Obtenir des soumissions</Link></Button>
           <Button asChild variant="secondary"><Link to="/reseau">Voir le réseau</Link></Button>
           <Dialog open={open} onOpenChange={setOpen}>
