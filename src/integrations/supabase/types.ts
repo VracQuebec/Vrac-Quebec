@@ -9831,6 +9831,8 @@ export type Database = {
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
+          contact_revealed_at: string | null
+          contact_revealed_by: string | null
           contact_visibility: string
           created_at: string
           created_by: string | null
@@ -9872,6 +9874,8 @@ export type Database = {
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
+          contact_revealed_at?: string | null
+          contact_revealed_by?: string | null
           contact_visibility?: string
           created_at?: string
           created_by?: string | null
@@ -9913,6 +9917,8 @@ export type Database = {
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
+          contact_revealed_at?: string | null
+          contact_revealed_by?: string | null
           contact_visibility?: string
           created_at?: string
           created_by?: string | null
@@ -10103,6 +10109,7 @@ export type Database = {
         Row: {
           auto_min_score: number
           auto_top_n: number
+          contact_reveal_default: string
           distribution_mode: string
           id: string
           invite_expiry_hours: number
@@ -10113,6 +10120,7 @@ export type Database = {
         Insert: {
           auto_min_score?: number
           auto_top_n?: number
+          contact_reveal_default?: string
           distribution_mode?: string
           id?: string
           invite_expiry_hours?: number
@@ -10123,6 +10131,7 @@ export type Database = {
         Update: {
           auto_min_score?: number
           auto_top_n?: number
+          contact_reveal_default?: string
           distribution_mode?: string
           id?: string
           invite_expiry_hours?: number
@@ -14675,7 +14684,24 @@ export type Database = {
         }[]
       }
       mkt_can_see_request: { Args: { _request_id: string }; Returns: boolean }
+      mkt_client_contact: {
+        Args: { _company_id: string; _request_id: string }
+        Returns: {
+          address: string
+          contact_email: string
+          contact_name: string
+          contact_phone: string
+          organization_name: string
+          rule: string
+          visible: boolean
+        }[]
+      }
       mkt_client_select_bid: { Args: { _bid_id: string }; Returns: string }
+      mkt_contact_rule: { Args: { _request_id: string }; Returns: string }
+      mkt_contact_visible: {
+        Args: { _company_id: string; _request_id: string }
+        Returns: boolean
+      }
       mkt_in_thread: { Args: { _thread_id: string }; Returns: boolean }
       mkt_invite_partners: {
         Args: {
@@ -14707,6 +14733,23 @@ export type Database = {
       }
       mkt_next_request_number: { Args: never; Returns: string }
       mkt_owns_request: { Args: { _request_id: string }; Returns: boolean }
+      mkt_partner_contact: {
+        Args: { _company_id: string; _request_id: string }
+        Returns: {
+          address: string
+          email: string
+          phone: string
+          rule: string
+          trade_name: string
+          visible: boolean
+          website: string
+        }[]
+      }
+      mkt_reveal_contact: {
+        Args: { _request_id: string; _reveal?: boolean }
+        Returns: undefined
+      }
+      mkt_thread_mark_read: { Args: { _thread_id: string }; Returns: undefined }
       move_to_dlq: {
         Args: {
           dlq_name: string
