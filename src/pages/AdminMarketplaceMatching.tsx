@@ -193,6 +193,8 @@ export default function AdminMarketplaceMatching() {
           </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to="/admin/marche/lots">Lots et projets complexes</Link>
+            {" · "}
+            <Link to="/admin/marche/soumissions">Gestion des soumissions</Link>
           </Button>
         </div>
 
