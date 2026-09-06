@@ -58,7 +58,6 @@ const MEMBER_ROLES = [
   { value: "accounting", label: "Comptabilité" },
   { value: "driver", label: "Chauffeur" },
 ];
-const memberRoleLabel = (v: string) => MEMBER_ROLES.find((r) => r.value === v)?.label ?? v;
 
 /** Case à cocher simple et lisible sur mobile. */
 function Check({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
