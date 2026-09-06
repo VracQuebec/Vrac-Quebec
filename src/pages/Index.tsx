@@ -60,17 +60,27 @@ const Index = () => {
 
       {/* 2. Navigation principale — logo Vrac Québec + accès entrepreneur */}
       <nav className="w-full bg-foreground/95 text-background">
-        <div className="container mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
+        <div className="container mx-auto flex items-center justify-between gap-2 px-4 py-2 sm:px-6">
           <LogoVracQuebec />
-          <a
-            href="/login"
-            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md font-body text-[11px] sm:text-xs text-background/70 hover:text-primary transition-colors"
-          >
-            <HardHat className="w-3.5 h-3.5" aria-hidden />
-            Connexion entrepreneur
-          </a>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <a
+              href="/obtenir-des-soumissions"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 font-display text-[11px] font-bold uppercase tracking-wide text-primary-foreground transition-opacity hover:opacity-90 sm:text-xs"
+            >
+              <ClipboardList className="h-3.5 w-3.5" aria-hidden />
+              Obtenir des soumissions
+            </a>
+            <a
+              href="/login"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-body text-[11px] text-background/70 transition-colors hover:text-primary sm:text-xs"
+            >
+              <HardHat className="h-3.5 w-3.5" aria-hidden />
+              <span className="hidden xs:inline sm:inline">Connexion</span>
+            </a>
+          </div>
         </div>
       </nav>
+
 
       {/* Hero — mobile: image banner; desktop: full hero with centered content */}
       <header className="relative w-full overflow-hidden">
