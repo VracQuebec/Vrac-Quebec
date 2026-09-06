@@ -252,6 +252,8 @@ const Index = () => {
                 { href: "/materiaux", label: "Catalogue de matériaux en vrac" },
                 { href: "/remblai", label: "Remblai pour remplir un terrain" },
                 { href: "/depot-materiaux", label: "Trouver une dompe" },
+                { href: "/obtenir-des-soumissions", label: "Obtenir des soumissions" },
+                { href: "/place-de-marche", label: "Réseau d'entreprises partenaires" },
                 { href: "/soumission", label: "Estimation de livraison" },
                 { href: "/calculateur", label: "Calculateur de quantité" },
                 { href: "/types-de-camions", label: "Types de camions" },
