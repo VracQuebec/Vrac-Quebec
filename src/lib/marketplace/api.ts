@@ -197,6 +197,7 @@ export type MarketplaceSettings = {
   auto_min_score: number;
   require_compliance: boolean;
   invite_expiry_hours: number;
+  contact_reveal_default: string;
 };
 
 export async function fetchMarketplaceSettings(): Promise<MarketplaceSettings> {
@@ -205,6 +206,7 @@ export async function fetchMarketplaceSettings(): Promise<MarketplaceSettings> {
   return (data as MarketplaceSettings) ?? {
     id: "global", distribution_mode: "manuel", auto_top_n: 5,
     auto_min_score: 60, require_compliance: false, invite_expiry_hours: 72,
+    contact_reveal_default: "apres_attribution",
   };
 }
 
@@ -571,4 +573,152 @@ export async function fetchClientThreads(requestIds: string[]) {
     .select("*").in("request_id", requestIds).order("last_message_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as Row[];
+}
+
+// ---------- Messagerie interne et confidentialité (étape 10) ----------
+export type Thread = {
+  id: string; request_id: string; lot_id: string | null; bid_id: string | null;
+  company_id: string | null; subject: string; kind: string; status: string;
+  last_message_at: string | null; created_by: string | null; created_at: string;
+};
+export type Message = {
+  id: string; thread_id: string; author_user_id: string | null;
+  author_company_id: string | null; party: string; body: string;
+  attachments: unknown[]; is_internal: boolean; created_at: string;
+};
+
+/** Fils visibles par la personne connectée (la base filtre déjà les fils internes). */
+export async function fetchThreads(filter: { requestId?: string; companyId?: string } = {}) {
+  let q = table("mkt_threads").select("*").order("last_message_at", { ascending: false }).limit(200);
+  if (filter.requestId) q = q.eq("request_id", filter.requestId);
+  if (filter.companyId) q = q.eq("company_id", filter.companyId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as unknown as Thread[];
+}
+
+export async function fetchMessages(threadId: string) {
+  const { data, error } = await table("mkt_messages")
+    .select("*").eq("thread_id", threadId).order("created_at");
+  if (error) throw error;
+  return (data ?? []) as unknown as Message[];
+}
+
+/** Envoi d'un message dans un fil existant. */
+export async function sendMessage(params: {
+  threadId: string; body: string; party: "client" | "partenaire" | "vrac_quebec";
+  companyId?: string | null; attachments?: unknown[]; isInternal?: boolean;
+}) {
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth?.user?.id ?? null;
+  const { error } = await table("mkt_messages").insert({
+    thread_id: params.threadId,
+    author_user_id: userId,
+    author_company_id: params.companyId ?? null,
+    party: params.party,
+    body: params.body,
+    attachments: params.attachments ?? [],
+    is_internal: params.isInternal ?? false,
+  } as Row);
+  if (error) throw error;
+  await table("mkt_threads")
+    .update({ last_message_at: new Date().toISOString() } as Row).eq("id", params.threadId);
+}
+
+/** S'assure que la personne connectée participe au fil, puis le marque comme lu. */
+export async function markThreadRead(threadId: string) {
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth?.user?.id;
+  if (!userId) return;
+  const { data: existing } = await table("mkt_thread_participants")
+    .select("id").eq("thread_id", threadId).eq("user_id", userId).maybeSingle();
+  if (!existing) return;
+  const rpc = (supabase as unknown as { rpc: (n: string, a: Row) => Promise<{ error: unknown }> }).rpc;
+  await rpc.call(supabase, "mkt_thread_mark_read", { _thread_id: threadId });
+}
+
+export async function fetchUnreadCounts(threadIds: string[]): Promise<Record<string, number>> {
+  if (threadIds.length === 0) return {};
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth?.user?.id;
+  if (!userId) return {};
+  const [{ data: parts }, { data: msgs }] = await Promise.all([
+    table("mkt_thread_participants").select("thread_id, last_read_at").in("thread_id", threadIds).eq("user_id", userId),
+    table("mkt_messages").select("thread_id, created_at, author_user_id").in("thread_id", threadIds),
+  ]);
+  const lus = new Map(((parts ?? []) as Row[]).map((p) => [p.thread_id as string, p.last_read_at as string | null]));
+  const counts: Record<string, number> = {};
+  ((msgs ?? []) as Row[]).forEach((m) => {
+    if (m.author_user_id === userId) return;
+    const lu = lus.get(m.thread_id as string);
+    if (!lu || new Date(m.created_at as string) > new Date(lu)) {
+      counts[m.thread_id as string] = (counts[m.thread_id as string] ?? 0) + 1;
+    }
+  });
+  return counts;
+}
+
+export type ContactReveal = {
+  visible: boolean;
+  rule: string;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  extra: string | null;
+};
+
+const rpcCall = async (name: string, args: Row) => {
+  const rpc = (supabase as unknown as { rpc: (n: string, a: Row) => Promise<{ data: unknown; error: unknown }> }).rpc;
+  const { data, error } = await rpc.call(supabase, name, args);
+  if (error) throw error;
+  return data;
+};
+
+/** Coordonnées du client, dévoilées seulement si la règle de la plateforme le permet. */
+export async function fetchClientContact(requestId: string, companyId: string): Promise<ContactReveal> {
+  const rows = (await rpcCall("mkt_client_contact", { _request_id: requestId, _company_id: companyId })) as Row[];
+  const r = (rows ?? [])[0] ?? {};
+  return {
+    visible: Boolean(r.visible), rule: (r.rule as string) ?? "",
+    name: (r.contact_name as string) ?? null, phone: (r.contact_phone as string) ?? null,
+    email: (r.contact_email as string) ?? null, address: (r.address as string) ?? null,
+    extra: (r.organization_name as string) ?? null,
+  };
+}
+
+/** Coordonnées de l'entreprise, dévoilées selon la même règle. */
+export async function fetchPartnerContact(requestId: string, companyId: string): Promise<ContactReveal> {
+  const rows = (await rpcCall("mkt_partner_contact", { _request_id: requestId, _company_id: companyId })) as Row[];
+  const r = (rows ?? [])[0] ?? {};
+  return {
+    visible: Boolean(r.visible), rule: (r.rule as string) ?? "",
+    name: (r.trade_name as string) ?? null, phone: (r.phone as string) ?? null,
+    email: (r.email as string) ?? null, address: (r.address as string) ?? null,
+    extra: (r.website as string) ?? null,
+  };
+}
+
+/** Dévoilement (ou masquage) manuel des coordonnées par Vrac Québec. */
+export async function revealContact(requestId: string, reveal = true) {
+  await rpcCall("mkt_reveal_contact", { _request_id: requestId, _reveal: reveal });
+}
+
+export const CONTACT_RULES = [
+  { value: "toujours_cachees", label: "Toujours cachées" },
+  { value: "apres_soumission", label: "Révélées après soumission" },
+  { value: "apres_preselection", label: "Révélées après présélection" },
+  { value: "apres_attribution", label: "Révélées après attribution" },
+  { value: "manuelle", label: "Révélées manuellement" },
+  { value: "visibles", label: "Visibles dès le départ" },
+] as const;
+
+export const contactRuleLabel = (v: string) =>
+  CONTACT_RULES.find((r) => r.value === v)?.label ?? "Selon le réglage de la plateforme";
+
+/** Règle de confidentialité propre à une demande (null = réglage global). */
+export async function setRequestContactRule(requestId: string, rule: string | null) {
+  const { error } = await table("mkt_quote_requests")
+    .update({ contact_visibility: rule, updated_at: new Date().toISOString() } as Row).eq("id", requestId);
+  if (error) throw error;
 }
