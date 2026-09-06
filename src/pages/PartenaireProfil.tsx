@@ -145,6 +145,34 @@ export default function PartenaireProfil() {
     } finally { setSaving(false); }
   };
 
+  const onUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !companyId) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Format non pris en charge", description: "Choisissez une image (JPG, PNG, WebP).", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      await uploadPartnerPhoto(companyId, file);
+      setPhotos(await fetchMyPhotos(companyId));
+      toast({ title: "Photo publiée sur votre fiche" });
+    } catch (err) {
+      toast({ title: "Envoi impossible", description: (err as Error).message, variant: "destructive" });
+    } finally { setUploading(false); }
+  };
+
+  const onDeletePhoto = async (photo: PartnerPhotoRow) => {
+    if (!companyId || !confirm("Retirer cette photo de votre fiche publique ?")) return;
+    try {
+      await deletePartnerPhoto(photo);
+      setPhotos(await fetchMyPhotos(companyId));
+    } catch (err) {
+      toast({ title: "Suppression impossible", description: (err as Error).message, variant: "destructive" });
+    }
+  };
+
   /** Synchronise une liste de valeurs simples (rôles, clientèles, services). */
   const syncList = async (
     api: typeof partnerBusinessRoles, column: string,
