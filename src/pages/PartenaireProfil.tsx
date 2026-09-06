@@ -239,13 +239,13 @@ export default function PartenaireProfil() {
   }, [categories, serviceSearch]);
 
   if (!isReady || roleLoading) {
-    return <FullPageState variant="loading" title="Chargement" />;
+    return <FullPageState title="Chargement" />;
   }
   if (!isAuthenticated) {
-    return <FullPageState variant="error" title="Connexion requise" description="Connectez-vous pour gérer votre profil d'entreprise." />;
+    return <FullPageState showSpinner={false} title="Connexion requise" message="Connectez-vous pour gérer votre profil d'entreprise." />;
   }
   if (!tenant.loading && !companyId) {
-    return <FullPageState variant="error" title="Aucune entreprise" description="Votre compte n'est rattaché à aucune entreprise partenaire." />;
+    return <FullPageState showSpinner={false} title="Aucune entreprise" message="Votre compte n'est rattaché à aucune entreprise partenaire." />;
   }
 
   return (
