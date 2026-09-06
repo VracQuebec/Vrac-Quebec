@@ -27,7 +27,8 @@ import {
   partnerClientTypes, partnerDocuments, partnerEquipment, partnerServices,
   partnerAvailability, partnerTerritories, savePartner, savePartnerPreferences,
   fetchMyPhotos, fetchMyReviews, uploadPartnerPhoto, deletePartnerPhoto,
-  type PartnerPhotoRow, type MyReview,
+  fetchCompanyMembers, addCompanyMember, updateCompanyMemberRole, removeCompanyMember,
+  type PartnerPhotoRow, type MyReview, type CompanyMember,
 } from "@/lib/marketplace/api";
 import {
   AVAILABILITY_STATUSES, BUSINESS_ROLES, PARTNER_CLIENT_TYPES, PROJECT_SIZES,
@@ -89,6 +90,8 @@ export default function PartenaireProfil() {
   const [photos, setPhotos] = useState<PartnerPhotoRow[]>([]);
   const [reviews, setReviews] = useState<MyReview[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [members, setMembers] = useState<CompanyMember[]>([]);
+  const [newMember, setNewMember] = useState({ email: "", full_name: "", role: "sales" });
 
   const companyId = tenant.companyId;
 
@@ -118,9 +121,12 @@ export default function PartenaireProfil() {
       setDocuments(docs);
       setPrefs(pr ?? {});
       setAvailability(av);
-      const [ph, rv] = await Promise.all([fetchMyPhotos(companyId), fetchMyReviews(companyId)]);
+      const [ph, rv, mb] = await Promise.all([
+        fetchMyPhotos(companyId), fetchMyReviews(companyId), fetchCompanyMembers(companyId),
+      ]);
       setPhotos(ph);
       setReviews(rv);
+      setMembers(mb);
     } catch (e) {
       toast({ title: "Chargement impossible", description: (e as Error).message, variant: "destructive" });
     } finally {
