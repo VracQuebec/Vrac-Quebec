@@ -458,3 +458,117 @@ export function buildLotStrategies(lots: RequestLot[], bids: LotBid[]): LotStrat
 
   return strategies.sort((a, b) => b.covered - a.covered || a.total - b.total);
 }
+
+// ---------- Espace client (étape 9) ----------
+export type ClientBid = Bid & {
+  partner_name: string;
+  partner_city: string | null;
+  partner_score: number | null;
+};
+
+/** Demandes déposées par le client connecté. */
+export async function fetchClientRequests(): Promise<QuoteRequest[]> {
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth?.user?.id;
+  if (!userId) return [];
+  const { data, error } = await table("mkt_quote_requests")
+    .select("*").eq("client_user_id", userId).order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as QuoteRequest[];
+}
+
+/** Soumissions visibles par le client pour une demande (jamais les brouillons). */
+export async function fetchClientBids(requestId: string): Promise<ClientBid[]> {
+  const { data, error } = await table("mkt_bids")
+    .select("*").eq("request_id", requestId).order("amount", { ascending: true });
+  if (error) throw error;
+  const bids = ((data ?? []) as unknown as Bid[])
+    .filter((b) => ["envoyee", "vue", "preselectionnee", "retenue", "non_retenue", "expiree"].includes(b.status));
+  if (bids.length === 0) return [];
+
+  const ids = [...new Set(bids.map((b) => b.company_id))];
+  const [{ data: partners }, { data: scores }] = await Promise.all([
+    table("mkt_partners").select("company_id, trade_name, legal_name, city").in("company_id", ids),
+    table("mkt_partner_scores").select("company_id, public_score, show_public_score").in("company_id", ids),
+  ]);
+  const infos = new Map(((partners ?? []) as Row[]).map((p) => [p.company_id as string, p]));
+  const notes = new Map(((scores ?? []) as Row[]).map((s) => [s.company_id as string, s]));
+
+  return bids.map((b) => {
+    const p = infos.get(b.company_id) ?? {};
+    const s = notes.get(b.company_id) ?? {};
+    return {
+      ...b,
+      partner_name: ((p.trade_name as string) || (p.legal_name as string) || "Entreprise partenaire"),
+      partner_city: (p.city as string) ?? null,
+      partner_score: s.show_public_score ? ((s.public_score as number) ?? null) : null,
+    } as ClientBid;
+  });
+}
+
+/** Attributions liées aux demandes du client. */
+export async function fetchClientAwards(requestIds: string[]) {
+  if (requestIds.length === 0) return [] as Row[];
+  const { data, error } = await table("mkt_awards").select("*").in("request_id", requestIds);
+  if (error) throw error;
+  return (data ?? []) as Row[];
+}
+
+/** Documents rattachés aux demandes du client (jamais les documents internes). */
+export async function fetchClientDocuments(requestIds: string[]) {
+  if (requestIds.length === 0) return [] as Row[];
+  const { data, error } = await table("mkt_documents")
+    .select("*").in("request_id", requestIds).order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Row[];
+}
+
+/** Le client retient une soumission : passe par la fonction sécurisée côté base. */
+export async function retainBid(bidId: string): Promise<string> {
+  const rpc = (supabase as unknown as { rpc: (n: string, a: Row) => Promise<{ data: unknown; error: unknown }> }).rpc;
+  const { data, error } = await rpc.call(supabase, "mkt_client_select_bid", { _bid_id: bidId });
+  if (error) throw error;
+  return data as string;
+}
+
+/**
+ * Message du client : question à une entreprise (companyId) ou demande de conseil
+ * à Vrac Québec (companyId nul, type « conseil »).
+ */
+export async function clientMessage(params: {
+  requestId: string; lotId?: string | null; companyId?: string | null;
+  subject: string; body: string; kind?: "question" | "conseil";
+}) {
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth?.user?.id ?? null;
+  const { data: thread, error } = await table("mkt_threads").insert({
+    request_id: params.requestId,
+    lot_id: params.lotId ?? null,
+    company_id: params.companyId ?? null,
+    subject: params.subject,
+    kind: params.kind ?? "question",
+    created_by: userId,
+    last_message_at: new Date().toISOString(),
+  } as Row).select("id").single();
+  if (error) throw error;
+  const threadId = (thread as { id: string }).id;
+
+  await table("mkt_thread_participants").insert({
+    thread_id: threadId, user_id: userId, company_id: null, party: "client",
+  } as Row);
+
+  const { error: msgError } = await table("mkt_messages").insert({
+    thread_id: threadId, author_user_id: userId, party: "client", body: params.body,
+  } as Row);
+  if (msgError) throw msgError;
+  return threadId;
+}
+
+/** Fils de discussion du client pour ses demandes. */
+export async function fetchClientThreads(requestIds: string[]) {
+  if (requestIds.length === 0) return [] as Row[];
+  const { data, error } = await table("mkt_threads")
+    .select("*").in("request_id", requestIds).order("last_message_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Row[];
+}
