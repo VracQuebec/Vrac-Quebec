@@ -13,7 +13,7 @@ import CircularEconomy from "@/components/home/CircularEconomy";
 import IntentSelector from "@/components/home/IntentSelector";
 import LogoVracQuebec from "@/components/LogoVracQuebec";
 import { trackEvent } from "@/lib/analytics/ga4";
-import { ArrowDown, HardHat, Sparkles } from "lucide-react";
+import { ArrowDown, ClipboardList, HardHat, Sparkles } from "lucide-react";
 
 const Index = () => {
   // Aucun parcours n'est ouvert par défaut : le visiteur choisit d'abord son intention.
