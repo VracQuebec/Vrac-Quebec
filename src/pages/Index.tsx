@@ -13,7 +13,7 @@ import CircularEconomy from "@/components/home/CircularEconomy";
 import IntentSelector from "@/components/home/IntentSelector";
 import LogoVracQuebec from "@/components/LogoVracQuebec";
 import { trackEvent } from "@/lib/analytics/ga4";
-import { ArrowDown, HardHat, Sparkles } from "lucide-react";
+import { ArrowDown, ClipboardList, HardHat, Sparkles } from "lucide-react";
 
 const Index = () => {
   // Aucun parcours n'est ouvert par défaut : le visiteur choisit d'abord son intention.
@@ -60,17 +60,27 @@ const Index = () => {
 
       {/* 2. Navigation principale — logo Vrac Québec + accès entrepreneur */}
       <nav className="w-full bg-foreground/95 text-background">
-        <div className="container mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
+        <div className="container mx-auto flex items-center justify-between gap-2 px-4 py-2 sm:px-6">
           <LogoVracQuebec />
-          <a
-            href="/login"
-            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md font-body text-[11px] sm:text-xs text-background/70 hover:text-primary transition-colors"
-          >
-            <HardHat className="w-3.5 h-3.5" aria-hidden />
-            Connexion entrepreneur
-          </a>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <a
+              href="/obtenir-des-soumissions"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 font-display text-[11px] font-bold uppercase tracking-wide text-primary-foreground transition-opacity hover:opacity-90 sm:text-xs"
+            >
+              <ClipboardList className="h-3.5 w-3.5" aria-hidden />
+              Obtenir des soumissions
+            </a>
+            <a
+              href="/login"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-body text-[11px] text-background/70 transition-colors hover:text-primary sm:text-xs"
+            >
+              <HardHat className="h-3.5 w-3.5" aria-hidden />
+              <span className="hidden xs:inline sm:inline">Connexion</span>
+            </a>
+          </div>
         </div>
       </nav>
+
 
       {/* Hero — mobile: image banner; desktop: full hero with centered content */}
       <header className="relative w-full overflow-hidden">
@@ -189,6 +199,54 @@ const Index = () => {
             <CircularEconomy />
           </div>
 
+          {/* Place de marché — obtenir plusieurs soumissions d'entreprises vérifiées */}
+          <section
+            aria-labelledby="soumissions-title"
+            className="mx-auto mt-20 max-w-4xl rounded-2xl border-2 border-primary/40 bg-card p-6 text-center sm:mt-24 sm:p-10"
+          >
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 font-display text-xs font-bold uppercase tracking-wide text-primary">
+              <ClipboardList className="h-3.5 w-3.5" aria-hidden />
+              Demandes de soumissions
+            </div>
+            <h2
+              id="soumissions-title"
+              className="mt-4 font-display text-xl font-extrabold leading-tight text-foreground sm:text-2xl"
+            >
+              Un seul formulaire, plusieurs prix d'entreprises vérifiées.
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl font-body text-sm leading-relaxed text-muted-foreground sm:text-base">
+              Excavation, transport, pavage, aménagement, déneigement, location de machinerie&nbsp;: décrivez
+              votre projet en quelques questions simples. Nous transmettons votre demande aux bonnes
+              entreprises et vous comparez les soumissions au même endroit. Gratuit et sans engagement.
+            </p>
+            <ul className="mx-auto mt-5 grid max-w-2xl gap-2 text-left sm:grid-cols-3">
+              {[
+                "Aucune question inutile",
+                "Vos coordonnées restent privées",
+                "Réponses regroupées en ligne",
+              ].map((t) => (
+                <li key={t} className="rounded-xl bg-muted/60 px-3 py-2 font-body text-sm text-foreground">
+                  {t}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <a
+                href="/obtenir-des-soumissions"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 font-display text-base font-bold text-primary-foreground shadow-lg transition-opacity hover:opacity-90 sm:w-auto"
+              >
+                Obtenir des soumissions
+              </a>
+              <a
+                href="/mes-soumissions"
+                className="inline-flex w-full items-center justify-center rounded-lg border-2 border-border px-6 py-3 font-display text-base font-bold text-foreground transition-colors hover:border-primary hover:text-primary sm:w-auto"
+              >
+                Suivre mes demandes
+              </a>
+            </div>
+          </section>
+
+
           {/* Espace entrepreneur — site public reste vitrine; les outils avancés vivent derrière la connexion */}
           <section
             aria-labelledby="espace-entrepreneur-title"
@@ -242,6 +300,8 @@ const Index = () => {
                 { href: "/materiaux", label: "Catalogue de matériaux en vrac" },
                 { href: "/remblai", label: "Remblai pour remplir un terrain" },
                 { href: "/depot-materiaux", label: "Trouver une dompe" },
+                { href: "/obtenir-des-soumissions", label: "Obtenir des soumissions" },
+                { href: "/place-de-marche", label: "Réseau d'entreprises partenaires" },
                 { href: "/soumission", label: "Estimation de livraison" },
                 { href: "/calculateur", label: "Calculateur de quantité" },
                 { href: "/types-de-camions", label: "Types de camions" },

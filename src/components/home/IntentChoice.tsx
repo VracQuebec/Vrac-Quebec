@@ -2,17 +2,26 @@
 // Les parcours « matériaux » et « matériaux à sortir » s'ouvrent en place;
 // les deux autres mènent aux parcours déjà existants (routes inchangées).
 import { Link } from "react-router-dom";
-import { ArrowRight, Mountain, Truck, MapPin, HardHat, Calculator } from "lucide-react";
+import { ArrowRight, Mountain, Truck, MapPin, HardHat, Calculator, ClipboardList } from "lucide-react";
 
-export type IntentKey = "materiaux" | "vrac" | "sortir" | "dompe" | "transport";
+export type IntentKey = "materiaux" | "vrac" | "sortir" | "dompe" | "transport" | "soumissions";
 
 const INTENTS = [
+  {
+    key: "soumissions" as const,
+    to: "/obtenir-des-soumissions",
+    icon: ClipboardList,
+    title: "Obtenir des soumissions",
+    text: "Décrivez votre projet et recevez plusieurs prix d'entreprises vérifiées",
+    highlight: true,
+  },
   {
     key: "materiaux" as const,
     to: "/remblai",
     icon: Mountain,
     title: "J'ai besoin de matériel de remblais",
     text: "Faire une demande de remblais pour mon chantier",
+    highlight: false,
   },
   {
     key: "vrac" as const,
@@ -20,6 +29,7 @@ const INTENTS = [
     icon: Calculator,
     title: "J'ai besoin de matériaux en vrac",
     text: "Calculer ma quantité, obtenir ma soumission et confirmer ma demande",
+    highlight: false,
   },
   {
     key: "sortir" as const,
@@ -27,6 +37,7 @@ const INTENTS = [
     icon: Truck,
     title: "J'ai des matériaux à sortir",
     text: "Trouver un site de dépôt compatible",
+    highlight: false,
   },
   {
     key: "dompe" as const,
@@ -34,6 +45,7 @@ const INTENTS = [
     icon: MapPin,
     title: "Je cherche une dompe",
     text: "Trouver une solution près de mon chantier",
+    highlight: false,
   },
   {
     key: "transport" as const,
@@ -41,8 +53,10 @@ const INTENTS = [
     icon: HardHat,
     title: "J'ai besoin de transport",
     text: "Trouver une solution de transport",
+    highlight: false,
   },
 ];
+
 
 type Props = {
   selected?: IntentKey | null;
@@ -62,12 +76,16 @@ const IntentChoice = ({ selected = null, onSelect }: Props) => (
     </p>
 
     <div className="mx-auto mt-8 grid max-w-5xl gap-3 sm:grid-cols-2">
-      {INTENTS.map(({ key, to, icon: Icon, title, text }) => {
+      {INTENTS.map(({ key, to, icon: Icon, title, text, highlight }) => {
         const isActive = selected === key;
         const cls = `group flex w-full items-center gap-4 rounded-2xl p-5 sm:p-6 text-left transition-all hover:-translate-y-0.5 ${
+          highlight ? "sm:col-span-2 " : ""
+        }${
           isActive
             ? "bg-primary text-primary-foreground shadow-lg"
-            : "border border-border bg-card hover:border-primary hover:shadow-md"
+            : highlight
+              ? "border-2 border-primary bg-primary/5 hover:shadow-md"
+              : "border border-border bg-card hover:border-primary hover:shadow-md"
         }`;
         const inner = (
           <>
