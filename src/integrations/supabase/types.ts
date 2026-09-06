@@ -10099,6 +10099,39 @@ export type Database = {
           },
         ]
       }
+      mkt_settings: {
+        Row: {
+          auto_min_score: number
+          auto_top_n: number
+          distribution_mode: string
+          id: string
+          invite_expiry_hours: number
+          require_compliance: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          auto_min_score?: number
+          auto_top_n?: number
+          distribution_mode?: string
+          id?: string
+          invite_expiry_hours?: number
+          require_compliance?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          auto_min_score?: number
+          auto_top_n?: number
+          distribution_mode?: string
+          id?: string
+          invite_expiry_hours?: number
+          require_compliance?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       mkt_thread_participants: {
         Row: {
           company_id: string | null
@@ -14643,8 +14676,34 @@ export type Database = {
       }
       mkt_can_see_request: { Args: { _request_id: string }; Returns: boolean }
       mkt_in_thread: { Args: { _thread_id: string }; Returns: boolean }
+      mkt_invite_partners: {
+        Args: {
+          _company_ids: string[]
+          _lot_id?: string
+          _mode?: string
+          _request_id: string
+        }
+        Returns: number
+      }
       mkt_is_admin: { Args: never; Returns: boolean }
       mkt_is_member: { Args: { _company_id: string }; Returns: boolean }
+      mkt_match_partners: {
+        Args: { _lot_id?: string; _request_id: string }
+        Returns: {
+          already_invited: boolean
+          availability_status: string
+          city: string
+          company_id: string
+          distance_km: number
+          is_verified: boolean
+          last_activity: string
+          matched_services: string[]
+          partner_name: string
+          reasons: Json
+          region: string
+          score: number
+        }[]
+      }
       mkt_next_request_number: { Args: never; Returns: string }
       mkt_owns_request: { Args: { _request_id: string }; Returns: boolean }
       move_to_dlq: {
