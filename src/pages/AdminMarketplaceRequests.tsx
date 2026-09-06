@@ -166,7 +166,7 @@ export default function AdminMarketplaceRequests() {
             <h1 className="text-2xl font-bold md:text-3xl">Gestion des soumissions</h1>
             <p className="text-sm text-muted-foreground">Files de travail, suivi des projets et revenus de la place de marché.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" asChild><Link to="/admin/marche/jumelage">Jumelage</Link></Button>
             <Button variant="outline" asChild><Link to="/admin/marche/lots">Lots</Link></Button>
             <Button variant="outline" asChild><Link to="/admin/marche/commissions">Revenus</Link></Button>
