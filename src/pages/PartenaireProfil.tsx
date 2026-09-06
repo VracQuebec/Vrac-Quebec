@@ -49,6 +49,17 @@ const EQUIPMENT_TYPES = [
   "Mini-pelle", "Chargeur", "Bulldozer", "Skid steer", "Rouleau compacteur", "Niveleuse",
 ];
 
+/** Rôles assignables à un employé d'entreprise partenaire. */
+const MEMBER_ROLES = [
+  { value: "admin", label: "Administrateur" },
+  { value: "manager", label: "Gestionnaire" },
+  { value: "dispatcher", label: "Répartiteur" },
+  { value: "sales", label: "Représentant" },
+  { value: "accounting", label: "Comptabilité" },
+  { value: "driver", label: "Chauffeur" },
+];
+const memberRoleLabel = (v: string) => MEMBER_ROLES.find((r) => r.value === v)?.label ?? v;
+
 /** Case à cocher simple et lisible sur mobile. */
 function Check({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
@@ -174,6 +185,40 @@ export default function PartenaireProfil() {
     try {
       await deletePartnerPhoto(photo);
       setPhotos(await fetchMyPhotos(companyId));
+    } catch (err) {
+      toast({ title: "Suppression impossible", description: (err as Error).message, variant: "destructive" });
+    }
+  };
+
+  const refreshMembers = async () => companyId && setMembers(await fetchCompanyMembers(companyId));
+
+  const onAddMember = async () => {
+    if (!companyId || !newMember.email.trim()) return;
+    setSaving(true);
+    try {
+      await addCompanyMember(companyId, newMember.email, newMember.full_name, newMember.role);
+      setNewMember({ email: "", full_name: "", role: "sales" });
+      await refreshMembers();
+      toast({ title: "Employé ajouté à votre équipe" });
+    } catch (err) {
+      toast({ title: "Ajout impossible", description: (err as Error).message, variant: "destructive" });
+    } finally { setSaving(false); }
+  };
+
+  const onMemberRole = async (memberId: string, role: string) => {
+    try {
+      await updateCompanyMemberRole(memberId, role);
+      await refreshMembers();
+    } catch (err) {
+      toast({ title: "Modification impossible", description: (err as Error).message, variant: "destructive" });
+    }
+  };
+
+  const onRemoveMember = async (member: CompanyMember) => {
+    if (!confirm(`Retirer ${member.full_name || member.email} de votre entreprise ?`)) return;
+    try {
+      await removeCompanyMember(member.id);
+      await refreshMembers();
     } catch (err) {
       toast({ title: "Suppression impossible", description: (err as Error).message, variant: "destructive" });
     }
@@ -333,6 +378,7 @@ export default function PartenaireProfil() {
               <TabsTrigger value="preferences">Préférences</TabsTrigger>
               <TabsTrigger value="photos">Photos</TabsTrigger>
               <TabsTrigger value="avis">Avis</TabsTrigger>
+              <TabsTrigger value="equipe">Équipe</TabsTrigger>
             </TabsList>
 
             {/* ---------------- Identité ---------------- */}
