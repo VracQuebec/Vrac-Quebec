@@ -67,9 +67,9 @@ export default function AdminMarketplaceScores() {
     }
   };
 
-  if (!isReady || roleLoading) return <FullPageState variant="loading" title="Chargement…" />;
+  if (!isReady || roleLoading) return <FullPageState title="Chargement…" />;
   if (!isAuthenticated || !isAdmin) {
-    return <FullPageState variant="error" title="Accès réservé" description="Cette page est réservée à l'administration de Vrac Québec." />;
+    return <FullPageState title="Accès réservé" message="Cette page est réservée à l'administration de Vrac Québec." showSpinner={false} />;
   }
 
   return (
@@ -95,7 +95,7 @@ export default function AdminMarketplaceScores() {
         </p>
 
         {loading ? (
-          <FullPageState variant="loading" title="Chargement des scores…" />
+          <FullPageState title="Chargement des scores…" />
         ) : rows.length === 0 ? (
           <Card><CardContent className="p-6 text-sm text-muted-foreground">
             Aucun score calculé pour le moment. Utilisez « Recalculer » une fois des entreprises inscrites.
