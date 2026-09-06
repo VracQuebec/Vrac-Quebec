@@ -26,6 +26,8 @@ import {
   ensurePartner, fetchCategories, fetchPartnerPreferences, partnerBusinessRoles,
   partnerClientTypes, partnerDocuments, partnerEquipment, partnerServices,
   partnerAvailability, partnerTerritories, savePartner, savePartnerPreferences,
+  fetchMyPhotos, fetchMyReviews, uploadPartnerPhoto, deletePartnerPhoto,
+  type PartnerPhotoRow, type MyReview,
 } from "@/lib/marketplace/api";
 import {
   AVAILABILITY_STATUSES, BUSINESS_ROLES, PARTNER_CLIENT_TYPES, PROJECT_SIZES,
@@ -289,6 +291,7 @@ export default function PartenaireProfil() {
               <TabsTrigger value="disponibilite">Disponibilité</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
               <TabsTrigger value="preferences">Préférences</TabsTrigger>
+              <TabsTrigger value="photos">Photos</TabsTrigger>
               <TabsTrigger value="avis">Avis</TabsTrigger>
             </TabsList>
 
