@@ -15867,6 +15867,7 @@ export type Database = {
         Returns: undefined
       }
       mkt_run_automations: { Args: never; Returns: Json }
+      mkt_run_automations_manual: { Args: never; Returns: Json }
       mkt_set_commission_status: {
         Args: { _commission_id: string; _note?: string; _status: string }
         Returns: undefined
