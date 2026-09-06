@@ -14675,6 +14675,7 @@ export type Database = {
         }[]
       }
       mkt_can_see_request: { Args: { _request_id: string }; Returns: boolean }
+      mkt_client_select_bid: { Args: { _bid_id: string }; Returns: string }
       mkt_in_thread: { Args: { _thread_id: string }; Returns: boolean }
       mkt_invite_partners: {
         Args: {
