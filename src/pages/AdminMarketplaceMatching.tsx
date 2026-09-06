@@ -17,7 +17,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
   fetchAdminRequests, fetchLots, fetchMarketplaceSettings, invitePartners,
-  matchPartners, saveMarketplaceSettings,
+  matchPartners, saveMarketplaceSettings, CONTACT_RULES,
 } from "@/lib/marketplace/api";
 import type { MarketplaceSettings, PartnerMatch } from "@/lib/marketplace/api";
 import { REQUEST_STATUSES } from "@/lib/marketplace/types";
@@ -201,6 +201,19 @@ export default function AdminMarketplaceMatching() {
                   value={settings.auto_top_n}
                   onChange={(e) => majReglage({ auto_top_n: Number(e.target.value) || 1 })}
                 />
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="contact" className="text-xs text-muted-foreground">Coordonnées</Label>
+                <select
+                  id="contact"
+                  className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                  value={settings.contact_reveal_default}
+                  onChange={(e) => majReglage({ contact_reveal_default: e.target.value })}
+                >
+                  {CONTACT_RULES.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex items-center gap-2">
                 <Label htmlFor="minscore" className="text-xs text-muted-foreground">Score minimal</Label>
