@@ -13,6 +13,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import { useFleetTenant } from "@/lib/fleet/tenant";
 import { CompanySwitcher, SupportBanner } from "@/components/fleet/FleetTenantBar";
 import FullPageState from "@/components/FullPageState";
+import NotificationsPanel from "@/components/marketplace/NotificationsPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -288,6 +289,7 @@ export default function PartenaireProfil() {
               <TabsTrigger value="disponibilite">Disponibilité</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
               <TabsTrigger value="preferences">Préférences</TabsTrigger>
+              <TabsTrigger value="avis">Avis</TabsTrigger>
             </TabsList>
 
             {/* ---------------- Identité ---------------- */}
@@ -612,6 +614,10 @@ export default function PartenaireProfil() {
                   <Button onClick={savePrefs} disabled={saving}><Save className="mr-2 h-4 w-4" /> Enregistrer les préférences</Button>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="avis" className="mt-4">
+              <NotificationsPanel userId={user?.id} audience="partenaire" />
             </TabsContent>
           </Tabs>
         )}

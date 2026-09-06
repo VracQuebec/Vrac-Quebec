@@ -1115,7 +1115,7 @@ export async function fetchPartnerScores(): Promise<Array<PartnerScore & { partn
   const { data, error } = await table("mkt_partner_scores").select("*").order("internal_score", { ascending: false });
   if (error) throw error;
   const rows = (data ?? []) as PartnerScore[];
-  const { data: partners } = await table("mkt_partners").select("company_id, trade_name, legal_name");
+  const { data: partners } = await table("mkt_partners_public").select("company_id, trade_name, legal_name");
   const byCompany = new Map(((partners ?? []) as Row[]).map((p) => [
     String(p.company_id), String(p.trade_name || p.legal_name || "Entreprise"),
   ]));
