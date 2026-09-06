@@ -288,6 +288,7 @@ export default function PartenaireProfil() {
               <TabsTrigger value="disponibilite">Disponibilité</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
               <TabsTrigger value="preferences">Préférences</TabsTrigger>
+              <TabsTrigger value="avis">Avis</TabsTrigger>
             </TabsList>
 
             {/* ---------------- Identité ---------------- */}
