@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, HelpCircle, Loader2, MessageSquare, ShieldCheck } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import NotificationsPanel from "@/components/marketplace/NotificationsPanel";
 import FullPageState from "@/components/FullPageState";
 import Messagerie from "@/components/marketplace/Messagerie";
 import { Button } from "@/components/ui/button";
@@ -166,6 +167,8 @@ export default function MesSoumissions() {
           </Button>
         </div>
       </div>
+
+      <NotificationsPanel userId={user?.id} audience="client" />
 
       <Tabs value={onglet} onValueChange={(v) => setOnglet(v as Onglet)}>
         <TabsList className="flex w-full flex-wrap justify-start gap-1 h-auto">

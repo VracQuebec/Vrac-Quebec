@@ -8737,6 +8737,86 @@ export type Database = {
           },
         ]
       }
+      mkt_automation_rules: {
+        Row: {
+          created_at: string
+          delay_hours: number
+          description: string | null
+          id: string
+          is_active: boolean
+          key: string
+          label: string
+          last_run_at: string | null
+          max_runs: number
+          params: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delay_hours?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          label: string
+          last_run_at?: string | null
+          max_runs?: number
+          params?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delay_hours?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          label?: string
+          last_run_at?: string | null
+          max_runs?: number
+          params?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      mkt_automation_runs: {
+        Row: {
+          action: string
+          company_id: string | null
+          created_at: string
+          detail: Json
+          id: string
+          request_id: string | null
+          rule_key: string
+        }
+        Insert: {
+          action: string
+          company_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          request_id?: string | null
+          rule_key: string
+        }
+        Update: {
+          action?: string
+          company_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          request_id?: string | null
+          rule_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_automation_runs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mkt_awards: {
         Row: {
           amount: number | null
@@ -9010,6 +9090,118 @@ export type Database = {
           },
         ]
       }
+      mkt_deals: {
+        Row: {
+          breakdown: Json
+          carrier_company_id: string | null
+          created_at: string
+          created_by: string | null
+          distance_km: number | null
+          gst: number
+          id: string
+          margin_amount: number
+          margin_percent: number
+          material_cost: number
+          material_label: string | null
+          mode: string
+          notes: string | null
+          qst: number
+          quantity: number | null
+          request_id: string | null
+          status: string
+          subtotal: number
+          supplier_company_id: string | null
+          supply_price_id: string | null
+          total: number
+          transport_cost: number
+          transport_rate_id: string | null
+          trips: number | null
+          truck_type: string | null
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          breakdown?: Json
+          carrier_company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          distance_km?: number | null
+          gst?: number
+          id?: string
+          margin_amount?: number
+          margin_percent?: number
+          material_cost?: number
+          material_label?: string | null
+          mode?: string
+          notes?: string | null
+          qst?: number
+          quantity?: number | null
+          request_id?: string | null
+          status?: string
+          subtotal?: number
+          supplier_company_id?: string | null
+          supply_price_id?: string | null
+          total?: number
+          transport_cost?: number
+          transport_rate_id?: string | null
+          trips?: number | null
+          truck_type?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          breakdown?: Json
+          carrier_company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          distance_km?: number | null
+          gst?: number
+          id?: string
+          margin_amount?: number
+          margin_percent?: number
+          material_cost?: number
+          material_label?: string | null
+          mode?: string
+          notes?: string | null
+          qst?: number
+          quantity?: number | null
+          request_id?: string | null
+          status?: string
+          subtotal?: number
+          supplier_company_id?: string | null
+          supply_price_id?: string | null
+          total?: number
+          transport_cost?: number
+          transport_rate_id?: string | null
+          trips?: number | null
+          truck_type?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_deals_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_quote_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_deals_supply_price_id_fkey"
+            columns: ["supply_price_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_supply_prices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_deals_transport_rate_id_fkey"
+            columns: ["transport_rate_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_transport_rates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mkt_documents: {
         Row: {
           bid_id: string | null
@@ -9219,6 +9411,101 @@ export type Database = {
             columns: ["thread_id"]
             isOneToOne: false
             referencedRelation: "mkt_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_notification_prefs: {
+        Row: {
+          app_enabled: boolean
+          company_id: string | null
+          created_at: string
+          email_enabled: boolean
+          id: string
+          muted_events: string[]
+          sms_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          app_enabled?: boolean
+          company_id?: string | null
+          created_at?: string
+          email_enabled?: boolean
+          id?: string
+          muted_events?: string[]
+          sms_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          app_enabled?: boolean
+          company_id?: string | null
+          created_at?: string
+          email_enabled?: boolean
+          id?: string
+          muted_events?: string[]
+          sms_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mkt_notifications: {
+        Row: {
+          audience: string
+          body: string | null
+          channels: string[]
+          company_id: string | null
+          created_at: string
+          data: Json
+          event: string
+          id: string
+          level: string
+          link: string | null
+          read_at: string | null
+          request_id: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          audience?: string
+          body?: string | null
+          channels?: string[]
+          company_id?: string | null
+          created_at?: string
+          data?: Json
+          event: string
+          id?: string
+          level?: string
+          link?: string | null
+          read_at?: string | null
+          request_id?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          audience?: string
+          body?: string | null
+          channels?: string[]
+          company_id?: string | null
+          created_at?: string
+          data?: Json
+          event?: string
+          id?: string
+          level?: string
+          link?: string | null
+          read_at?: string | null
+          request_id?: string | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_notifications_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_quote_requests"
             referencedColumns: ["id"]
           },
         ]
@@ -10282,6 +10569,80 @@ export type Database = {
         }
         Relationships: []
       }
+      mkt_supply_prices: {
+        Row: {
+          category_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_taxable: boolean
+          latitude: number | null
+          longitude: number | null
+          material_label: string
+          min_fee: number
+          notes: string | null
+          pickup_address: string | null
+          pickup_city: string | null
+          price: number
+          surcharge_percent: number
+          unit: string
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_taxable?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          material_label: string
+          min_fee?: number
+          notes?: string | null
+          pickup_address?: string | null
+          pickup_city?: string | null
+          price?: number
+          surcharge_percent?: number
+          unit?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_taxable?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          material_label?: string
+          min_fee?: number
+          notes?: string | null
+          pickup_address?: string | null
+          pickup_city?: string | null
+          price?: number
+          surcharge_percent?: number
+          unit?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_supply_prices_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "mkt_service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mkt_thread_participants: {
         Row: {
           company_id: string | null
@@ -10403,6 +10764,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mkt_transport_rates: {
+        Row: {
+          base_city: string | null
+          capacity_tonnes: number | null
+          capacity_verges: number | null
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          max_distance_km: number | null
+          min_fee: number
+          notes: string | null
+          price: number
+          price_model: string
+          price_per_km: number
+          surcharge_percent: number
+          truck_type: string
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          base_city?: string | null
+          capacity_tonnes?: number | null
+          capacity_verges?: number | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          max_distance_km?: number | null
+          min_fee?: number
+          notes?: string | null
+          price?: number
+          price_model?: string
+          price_per_km?: number
+          surcharge_percent?: number
+          truck_type?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          base_city?: string | null
+          capacity_tonnes?: number | null
+          capacity_verges?: number | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          max_distance_km?: number | null
+          min_fee?: number
+          notes?: string | null
+          price?: number
+          price_model?: string
+          price_per_km?: number
+          surcharge_percent?: number
+          truck_type?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
       }
       payments: {
         Row: {
@@ -14860,6 +15290,7 @@ export type Database = {
         Args: { _note?: string; _request_id: string; _status: string }
         Returns: undefined
       }
+      mkt_analytics: { Args: { _from?: string; _to?: string }; Returns: Json }
       mkt_can_see_request: { Args: { _request_id: string }; Returns: boolean }
       mkt_client_contact: {
         Args: { _company_id: string; _request_id: string }
@@ -14900,6 +15331,36 @@ export type Database = {
         Args: { _company_id: string; _request_id: string }
         Returns: boolean
       }
+      mkt_deal_suggest: {
+        Args: {
+          _material?: string
+          _quantity?: number
+          _request_id: string
+          _unit?: string
+        }
+        Returns: Json
+      }
+      mkt_directory: {
+        Args: {
+          _category_slug?: string
+          _city?: string
+          _limit?: number
+          _region?: string
+          _service?: string
+        }
+        Returns: {
+          city: string
+          company_id: string
+          description: string
+          is_verified: boolean
+          logo_url: string
+          name: string
+          public_score: number
+          region: string
+          services: string[]
+          territories: string[]
+        }[]
+      }
       mkt_in_thread: { Args: { _thread_id: string }; Returns: boolean }
       mkt_invite_partners: {
         Args: {
@@ -14930,6 +15391,20 @@ export type Database = {
         }[]
       }
       mkt_next_request_number: { Args: never; Returns: string }
+      mkt_notify: {
+        Args: {
+          _audience: string
+          _body?: string
+          _company_id?: string
+          _event: string
+          _level?: string
+          _link?: string
+          _request_id?: string
+          _title: string
+          _user_id?: string
+        }
+        Returns: string
+      }
       mkt_owns_request: { Args: { _request_id: string }; Returns: boolean }
       mkt_partner_contact: {
         Args: { _company_id: string; _request_id: string }
@@ -14943,6 +15418,7 @@ export type Database = {
           website: string
         }[]
       }
+      mkt_recompute_scores: { Args: never; Returns: number }
       mkt_resolve_pricing_rule: {
         Args: { _at?: string; _category_id?: string; _company_id: string }
         Returns: {
@@ -14978,6 +15454,7 @@ export type Database = {
         Args: { _request_id: string; _reveal?: boolean }
         Returns: undefined
       }
+      mkt_run_automations: { Args: never; Returns: Json }
       mkt_set_commission_status: {
         Args: { _commission_id: string; _note?: string; _status: string }
         Returns: undefined

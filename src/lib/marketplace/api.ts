@@ -940,3 +940,248 @@ export async function fetchPartnerCompanies(): Promise<Array<{ id: string; name:
   if (error) throw error;
   return (data ?? []) as Array<{ id: string; name: string }>;
 }
+
+// ============================================================
+// TRANSACTIONS MATÉRIAUX + TRANSPORT (prix, tarifs, offres)
+// ============================================================
+export const DEAL_MODES = [
+  { value: "manuel", label: "Manuel — un administrateur prépare le prix" },
+  { value: "semi", label: "Semi-automatique — le système suggère" },
+  { value: "auto", label: "Automatique — calcul direct (préparation)" },
+] as const;
+
+export const PRICE_UNITS = ["tonne", "verge", "voyage", "unite", "heure", "km"] as const;
+export const TRUCK_TYPES = ["10_roues", "12_roues", "semi_dompeur", "fardier", "6_roues", "autre"] as const;
+
+export type SupplyPrice = {
+  id: string; company_id: string; category_id: string | null; material_label: string;
+  unit: string; price: number; min_fee: number; surcharge_percent: number;
+  pickup_address: string | null; pickup_city: string | null; latitude: number | null; longitude: number | null;
+  is_taxable: boolean; valid_from: string | null; valid_until: string | null; notes: string | null; is_active: boolean;
+};
+
+export type TransportRate = {
+  id: string; company_id: string; truck_type: string; price_model: string; price: number;
+  price_per_km: number; min_fee: number; surcharge_percent: number;
+  capacity_tonnes: number | null; capacity_verges: number | null; max_distance_km: number | null;
+  base_city: string | null; latitude: number | null; longitude: number | null;
+  valid_from: string | null; valid_until: string | null; notes: string | null; is_active: boolean;
+};
+
+export type Deal = {
+  id: string; request_id: string | null; mode: string;
+  supplier_company_id: string | null; carrier_company_id: string | null;
+  supply_price_id: string | null; transport_rate_id: string | null;
+  material_label: string | null; quantity: number | null; unit: string | null;
+  truck_type: string | null; trips: number | null; distance_km: number | null;
+  material_cost: number; transport_cost: number; margin_percent: number; margin_amount: number;
+  subtotal: number; gst: number; qst: number; total: number;
+  breakdown: Record<string, unknown>; status: string; notes: string | null; created_at?: string;
+};
+
+export async function fetchSupplyPrices(companyId?: string): Promise<SupplyPrice[]> {
+  let q = table("mkt_supply_prices").select("*").order("material_label");
+  if (companyId) q = q.eq("company_id", companyId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as SupplyPrice[];
+}
+export async function saveSupplyPrice(row: Partial<SupplyPrice> & { company_id: string; material_label: string }) {
+  const { error } = await table("mkt_supply_prices").upsert(row as Row);
+  if (error) throw error;
+}
+export async function deleteSupplyPrice(id: string) {
+  const { error } = await table("mkt_supply_prices").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function fetchTransportRates(companyId?: string): Promise<TransportRate[]> {
+  let q = table("mkt_transport_rates").select("*").order("truck_type");
+  if (companyId) q = q.eq("company_id", companyId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as TransportRate[];
+}
+export async function saveTransportRate(row: Partial<TransportRate> & { company_id: string; truck_type: string }) {
+  const { error } = await table("mkt_transport_rates").upsert(row as Row);
+  if (error) throw error;
+}
+export async function deleteTransportRate(id: string) {
+  const { error } = await table("mkt_transport_rates").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export type DealSuggestion = {
+  request_id: string; material: string | null; quantity: number; unit: string;
+  suppliers: Array<Record<string, unknown>>; carriers: Array<Record<string, unknown>>;
+};
+
+export async function suggestDeal(requestId: string, material?: string, quantity?: number, unit = "tonne"): Promise<DealSuggestion> {
+  const data = await rpcCall("mkt_deal_suggest", {
+    _request_id: requestId, _material: material ?? null, _quantity: quantity ?? null, _unit: unit,
+  });
+  return data as unknown as DealSuggestion;
+}
+
+/** Calcul d'une offre matériaux + transport (taxes Québec). */
+export function computeDeal(input: {
+  materialCost: number; transportCost: number; marginPercent: number; taxable?: boolean;
+}) {
+  const base = (input.materialCost || 0) + (input.transportCost || 0);
+  const margeAmount = Math.round(base * ((input.marginPercent || 0) / 100) * 100) / 100;
+  const subtotal = Math.round((base + margeAmount) * 100) / 100;
+  const taxable = input.taxable !== false;
+  const gst = taxable ? Math.round(subtotal * 0.05 * 100) / 100 : 0;
+  const qst = taxable ? Math.round(subtotal * 0.09975 * 100) / 100 : 0;
+  return { margeAmount, subtotal, gst, qst, total: Math.round((subtotal + gst + qst) * 100) / 100 };
+}
+
+export async function fetchDeals(requestId?: string): Promise<Deal[]> {
+  let q = table("mkt_deals").select("*").order("created_at", { ascending: false });
+  if (requestId) q = q.eq("request_id", requestId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as Deal[];
+}
+export async function saveDeal(row: Partial<Deal>) {
+  const { error } = await table("mkt_deals").upsert(row as Row);
+  if (error) throw error;
+}
+export async function deleteDeal(id: string) {
+  const { error } = await table("mkt_deals").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+export type MktNotification = {
+  id: string; user_id: string | null; company_id: string | null; audience: string;
+  event: string; title: string; body: string | null; level: string;
+  request_id: string | null; link: string | null; channels: string[];
+  read_at: string | null; created_at: string;
+};
+
+export async function fetchNotifications(limit = 50): Promise<MktNotification[]> {
+  const { data, error } = await table("mkt_notifications")
+    .select("*").order("created_at", { ascending: false }).limit(limit);
+  if (error) throw error;
+  return (data ?? []) as MktNotification[];
+}
+export async function markNotificationRead(id: string) {
+  const { error } = await table("mkt_notifications").update({ read_at: new Date().toISOString() }).eq("id", id);
+  if (error) throw error;
+}
+export async function fetchNotificationPrefs(userId: string) {
+  const { data, error } = await table("mkt_notification_prefs").select("*").eq("user_id", userId).maybeSingle();
+  if (error) throw error;
+  return (data as Row) ?? null;
+}
+export async function saveNotificationPrefs(userId: string, updates: Row) {
+  const { error } = await table("mkt_notification_prefs")
+    .upsert({ user_id: userId, ...updates }, { onConflict: "user_id" });
+  if (error) throw error;
+}
+
+export const NOTIFICATION_EVENTS = [
+  { value: "nouvelle_opportunite", label: "Nouvelle opportunité", audience: "partenaire" },
+  { value: "rappel_invitation", label: "Rappel d'invitation", audience: "partenaire" },
+  { value: "question", label: "Nouvelle question", audience: "partenaire" },
+  { value: "soumission_expire", label: "Soumission bientôt expirée", audience: "partenaire" },
+  { value: "confirmation_attribution", label: "Attribution à confirmer", audience: "partenaire" },
+  { value: "document_expire", label: "Document expirant", audience: "partenaire" },
+  { value: "soumission_recue", label: "Soumission reçue", audience: "client" },
+  { value: "relance_client", label: "Relance de décision", audience: "client" },
+  { value: "evaluation", label: "Demande d'évaluation", audience: "client" },
+] as const;
+
+// ============================================================
+// SCORES PARTENAIRES
+// ============================================================
+export type PartnerScore = {
+  id: string; company_id: string; internal_score: number | null; public_score: number | null;
+  show_public_score: boolean; profile_completion: number | null; response_rate: number | null;
+  avg_response_hours: number | null; invitations_count: number; bids_count: number;
+  awards_count: number; completed_count: number; cancelled_count: number; disputes_count: number;
+  satisfaction: number | null; last_activity_at: string | null; computed_at: string | null;
+};
+
+export async function fetchPartnerScores(): Promise<Array<PartnerScore & { partner_name?: string }>> {
+  const { data, error } = await table("mkt_partner_scores").select("*").order("internal_score", { ascending: false });
+  if (error) throw error;
+  const rows = (data ?? []) as PartnerScore[];
+  const { data: partners } = await table("mkt_partners").select("company_id, trade_name, legal_name");
+  const byCompany = new Map(((partners ?? []) as Row[]).map((p) => [
+    String(p.company_id), String(p.trade_name || p.legal_name || "Entreprise"),
+  ]));
+  return rows.map((r) => ({ ...r, partner_name: byCompany.get(r.company_id) ?? "Entreprise" }));
+}
+
+export async function recomputeScores(): Promise<number> {
+  const data = await rpcCall("mkt_recompute_scores", {});
+  return Number(data ?? 0);
+}
+
+export async function setPublicScoreVisibility(companyId: string, visible: boolean) {
+  const { error } = await table("mkt_partner_scores")
+    .upsert({ company_id: companyId, show_public_score: visible }, { onConflict: "company_id" });
+  if (error) throw error;
+}
+
+// ============================================================
+// ANALYTIQUE
+// ============================================================
+export type Analytics = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+export async function fetchAnalytics(from: string, to: string): Promise<Analytics> {
+  const data = await rpcCall("mkt_analytics", { _from: from, _to: to });
+  return (data ?? {}) as Analytics;
+}
+
+// ============================================================
+// AUTOMATISATIONS
+// ============================================================
+export type AutomationRule = {
+  id: string; key: string; label: string; description: string | null;
+  is_active: boolean; delay_hours: number; max_runs: number;
+  params: Record<string, unknown>; last_run_at: string | null;
+};
+
+export async function fetchAutomationRules(): Promise<AutomationRule[]> {
+  const { data, error } = await table("mkt_automation_rules").select("*").order("label");
+  if (error) throw error;
+  return (data ?? []) as AutomationRule[];
+}
+export async function saveAutomationRule(row: Partial<AutomationRule> & { id: string }) {
+  const { error } = await table("mkt_automation_rules").update(row as Row).eq("id", row.id);
+  if (error) throw error;
+}
+export async function runAutomations(): Promise<{ actions: number }> {
+  const data = await rpcCall("mkt_run_automations", {});
+  return (data ?? { actions: 0 }) as { actions: number };
+}
+export async function fetchAutomationRuns(limit = 100) {
+  const { data, error } = await table("mkt_automation_runs")
+    .select("*").order("created_at", { ascending: false }).limit(limit);
+  if (error) throw error;
+  return (data ?? []) as Array<Record<string, unknown>>;
+}
+
+// ============================================================
+// ANNUAIRE PUBLIC
+// ============================================================
+export type DirectoryEntry = {
+  company_id: string; name: string; description: string | null; logo_url: string | null;
+  city: string | null; region: string | null; services: string[]; territories: string[];
+  public_score: number | null; is_verified: boolean;
+};
+
+export async function fetchDirectory(params: {
+  service?: string | null; city?: string | null; region?: string | null; categorySlug?: string | null; limit?: number;
+}): Promise<DirectoryEntry[]> {
+  const data = await rpcCall("mkt_directory", {
+    _service: params.service || null, _city: params.city || null, _region: params.region || null,
+    _category_slug: params.categorySlug || null, _limit: params.limit ?? 60,
+  });
+  return (data ?? []) as DirectoryEntry[];
+}
