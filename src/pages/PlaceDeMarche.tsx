@@ -106,6 +106,7 @@ export default function PlaceDeMarche() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button asChild><Link to="/obtenir-des-soumissions">Obtenir des soumissions</Link></Button>
           <Button asChild variant="secondary"><Link to="/reseau">Voir le réseau</Link></Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>

@@ -77,6 +77,7 @@ const EntrepreneurAnnuaire = lazy(() => import("./pages/EntrepreneurAnnuaire"));
 const Reseau = lazy(() => import("./pages/Reseau"));
 const ReseauProfil = lazy(() => import("./pages/ReseauProfil"));
 const PlaceDeMarche = lazy(() => import("./pages/PlaceDeMarche"));
+const ObtenirSoumissions = lazy(() => import("./pages/ObtenirSoumissions"));
 const AdminTransportRequests = lazy(() => import("./pages/AdminTransportRequests"));
 const AdminBusinessIntelligence = lazy(() => import("./pages/AdminBusinessIntelligence"));
 const AdminIntelligence = lazy(() => import("./pages/AdminIntelligence"));
@@ -188,6 +189,7 @@ const App = () => (
             <Route path="/reseau" element={<Reseau />} />
             <Route path="/reseau/:slug" element={<ReseauProfil />} />
             <Route path="/place-de-marche" element={<PlaceDeMarche />} />
+            <Route path="/obtenir-des-soumissions" element={<ObtenirSoumissions />} />
             <Route path="/admin/demandes-acces" element={<AdminTransportRequests />} />
             <Route path="/admin/demandes-transport" element={<Navigate to="/admin/demandes-acces" replace />} />
             <Route path="/admin/business-intelligence" element={<AdminBusinessIntelligence />} />

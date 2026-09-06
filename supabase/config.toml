@@ -43,3 +43,6 @@ verify_jwt = false
 
 [functions.crm-push-dispatch]
 verify_jwt = false
+
+[functions.mkt-request-submit]
+verify_jwt = false
