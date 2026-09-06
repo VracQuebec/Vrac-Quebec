@@ -258,3 +258,107 @@ export async function fetchAdminRequests(status?: string): Promise<QuoteRequest[
   if (error) throw error;
   return (data ?? []) as unknown as QuoteRequest[];
 }
+
+// ---------- Centre de soumissions des entreprises partenaires ----------
+export type Opportunity = {
+  invitation: Invitation;
+  request: QuoteRequest;
+  lot: RequestLot | null;
+  bid: Bid | null;
+};
+
+/** Occasions transmises à une entreprise (invitations + demande + lot + soumission). */
+export async function fetchOpportunities(companyId: string): Promise<Opportunity[]> {
+  const invitations = await fetchInvitations({ companyId });
+  const visibles = invitations.filter((i) => i.status !== "exclue");
+  if (visibles.length === 0) return [];
+
+  const requestIds = [...new Set(visibles.map((i) => i.request_id))];
+  const lotIds = [...new Set(visibles.map((i) => i.lot_id).filter(Boolean))] as string[];
+
+  const [{ data: reqRows }, { data: lotRows }, bids] = await Promise.all([
+    table("mkt_quote_requests").select("*").in("id", requestIds),
+    lotIds.length
+      ? table("mkt_request_lots").select("*").in("id", lotIds)
+      : Promise.resolve({ data: [] as Row[] }),
+    fetchBids({ companyId }),
+  ]);
+
+  const requests = new Map((((reqRows ?? []) as unknown) as QuoteRequest[]).map((r) => [r.id, r]));
+  const lots = new Map((((lotRows ?? []) as unknown) as RequestLot[]).map((l) => [l.id, l]));
+
+  return visibles
+    .map((invitation) => {
+      const request = requests.get(invitation.request_id);
+      if (!request) return null;
+      const bid = bids.find(
+        (b) => b.request_id === invitation.request_id && (b.lot_id ?? null) === (invitation.lot_id ?? null),
+      ) ?? null;
+      return {
+        invitation,
+        request,
+        lot: invitation.lot_id ? lots.get(invitation.lot_id) ?? null : null,
+        bid,
+      } as Opportunity;
+    })
+    .filter(Boolean) as Opportunity[];
+}
+
+/** Marque l'invitation comme consultée (sans écraser une réponse déjà donnée). */
+export async function markInvitationViewed(invitation: Invitation) {
+  if (invitation.viewed_at) return;
+  const updates: Row = { viewed_at: new Date().toISOString() };
+  if (invitation.status === "envoyee") updates.status = "vue";
+  const { error } = await table("mkt_invitations").update(updates).eq("id", invitation.id);
+  if (error) throw error;
+}
+
+export async function declineInvitation(invitationId: string, reason: string) {
+  const { error } = await table("mkt_invitations").update({
+    status: "declinee",
+    decline_reason: reason || null,
+    responded_at: new Date().toISOString(),
+  } as Row).eq("id", invitationId);
+  if (error) throw error;
+}
+
+export async function markInvitationAnswered(invitationId: string) {
+  const { error } = await table("mkt_invitations").update({
+    status: "soumise",
+    responded_at: new Date().toISOString(),
+  } as Row).eq("id", invitationId);
+  if (error) throw error;
+}
+
+/** Question d'une entreprise sur une demande : crée le fil interne et le premier message. */
+export async function askQuestion(params: {
+  requestId: string; lotId?: string | null; companyId: string; subject: string; body: string;
+}) {
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth?.user?.id ?? null;
+  const { data: thread, error } = await table("mkt_threads").insert({
+    request_id: params.requestId,
+    lot_id: params.lotId ?? null,
+    company_id: params.companyId,
+    subject: params.subject,
+    kind: "question",
+    created_by: userId,
+    last_message_at: new Date().toISOString(),
+  } as Row).select("id").single();
+  if (error) throw error;
+  const threadId = (thread as { id: string }).id;
+
+  await table("mkt_thread_participants").insert({
+    thread_id: threadId, user_id: userId, company_id: params.companyId, party: "partenaire",
+  } as Row);
+
+  const { error: msgError } = await table("mkt_messages").insert({
+    thread_id: threadId,
+    author_user_id: userId,
+    author_company_id: params.companyId,
+    party: "partenaire",
+    body: params.body,
+  } as Row);
+  if (msgError) throw msgError;
+  return threadId;
+}

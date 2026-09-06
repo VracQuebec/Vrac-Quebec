@@ -221,7 +221,9 @@ export interface Invitation {
   mode: "auto" | "manuel";
   status: string;
   sent_at: string | null;
+  viewed_at: string | null;
   responded_at: string | null;
+  decline_reason?: string | null;
 }
 
 export interface Bid {
