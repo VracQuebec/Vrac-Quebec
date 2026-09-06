@@ -55,6 +55,7 @@ export default function AdminMarketplaceMatching() {
   const [requests, setRequests] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<QuoteRequest | null>(null);
+  const [devoile, setDevoile] = useState(false);
   const [lots, setLots] = useState<RequestLot[]>([]);
   const [lotId, setLotId] = useState<string | null>(null);
   const [matches, setMatches] = useState<PartnerMatch[]>([]);
@@ -105,6 +106,7 @@ export default function AdminMarketplaceMatching() {
 
   const openRequest = useCallback(async (request: QuoteRequest) => {
     setSelected(request);
+    setDevoile(Boolean(request.contact_revealed_at));
     setLotId(null);
     try {
       setLots(await fetchLots(request.id));

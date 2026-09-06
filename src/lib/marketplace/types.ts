@@ -192,7 +192,8 @@ export interface QuoteRequest {
   is_multi_lot: boolean;
   status: RequestStatus;
   distribution_mode: "auto" | "manuel" | "semi_auto";
-  contact_visibility: string;
+  contact_visibility: string | null;
+  contact_revealed_at?: string | null;
   created_at: string;
 }
 
