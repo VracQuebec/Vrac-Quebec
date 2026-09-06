@@ -84,6 +84,7 @@ const ReseauProfil = lazy(() => import("./pages/ReseauProfil"));
 const PlaceDeMarche = lazy(() => import("./pages/PlaceDeMarche"));
 const ObtenirSoumissions = lazy(() => import("./pages/ObtenirSoumissions"));
 const MesSoumissions = lazy(() => import("./pages/MesSoumissions"));
+const Notifications = lazy(() => import("./pages/Notifications"));
 const TrouverEntrepreneur = lazy(() => import("./pages/TrouverEntrepreneur"));
 const AdminMarketplaceDeals = lazy(() => import("./pages/AdminMarketplaceDeals"));
 const AdminMarketplaceAnalytics = lazy(() => import("./pages/AdminMarketplaceAnalytics"));
