@@ -86,6 +86,9 @@ export default function PartenaireProfil() {
   const [availability, setAvailability] = useState<Row[]>([]);
   const [prefs, setPrefs] = useState<Row>({});
   const [serviceSearch, setServiceSearch] = useState("");
+  const [photos, setPhotos] = useState<PartnerPhotoRow[]>([]);
+  const [reviews, setReviews] = useState<MyReview[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const companyId = tenant.companyId;
 
@@ -115,6 +118,9 @@ export default function PartenaireProfil() {
       setDocuments(docs);
       setPrefs(pr ?? {});
       setAvailability(av);
+      const [ph, rv] = await Promise.all([fetchMyPhotos(companyId), fetchMyReviews(companyId)]);
+      setPhotos(ph);
+      setReviews(rv);
     } catch (e) {
       toast({ title: "Chargement impossible", description: (e as Error).message, variant: "destructive" });
     } finally {
