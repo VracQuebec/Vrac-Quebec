@@ -88,7 +88,7 @@ export default function TrouverEntrepreneur() {
       position: i + 1,
       item: {
         "@type": "LocalBusiness",
-        name: r.trade_name || r.legal_name || "Entreprise partenaire",
+        name: r.name || "Entreprise partenaire",
         address: { "@type": "PostalAddress", addressLocality: r.city ?? undefined, addressRegion: r.region ?? undefined, addressCountry: "CA" },
       },
     })),
@@ -169,7 +169,7 @@ export default function TrouverEntrepreneur() {
               <Card key={r.company_id} className="flex flex-col">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-start justify-between gap-2 text-base">
-                    <span>{r.trade_name || r.legal_name || "Entreprise partenaire"}</span>
+                    <span>{r.name || "Entreprise partenaire"}</span>
                     {r.is_verified && <ShieldCheck className="h-4 w-4 shrink-0 text-primary" aria-label="Entreprise vérifiée" />}
                   </CardTitle>
                   {(r.city || r.region) && (
