@@ -215,6 +215,7 @@ const App = () => (
 
             <Route path="/obtenir-des-soumissions" element={<ObtenirSoumissions />} />
             <Route path="/mes-soumissions" element={<MesSoumissions />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="/admin/demandes-acces" element={<AdminTransportRequests />} />
             <Route path="/admin/demandes-transport" element={<Navigate to="/admin/demandes-acces" replace />} />
             <Route path="/admin/business-intelligence" element={<AdminBusinessIntelligence />} />
