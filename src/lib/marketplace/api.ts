@@ -188,3 +188,73 @@ export async function sendBid(bidId: string) {
     .update({ status: "envoyee", submitted_at: new Date().toISOString() } as Row).eq("id", bidId);
   if (error) throw error;
 }
+
+// ---------- Réglages de la place de marché ----------
+export type MarketplaceSettings = {
+  id: string;
+  distribution_mode: "auto" | "manuel";
+  auto_top_n: number;
+  auto_min_score: number;
+  require_compliance: boolean;
+  invite_expiry_hours: number;
+};
+
+export async function fetchMarketplaceSettings(): Promise<MarketplaceSettings> {
+  const { data, error } = await table("mkt_settings").select("*").eq("id", "global").maybeSingle();
+  if (error) throw error;
+  return (data as MarketplaceSettings) ?? {
+    id: "global", distribution_mode: "manuel", auto_top_n: 5,
+    auto_min_score: 60, require_compliance: false, invite_expiry_hours: 72,
+  };
+}
+
+export async function saveMarketplaceSettings(updates: Partial<MarketplaceSettings>) {
+  const { error } = await table("mkt_settings")
+    .upsert({ id: "global", ...updates, updated_at: new Date().toISOString() } as Row, { onConflict: "id" });
+  if (error) throw error;
+}
+
+// ---------- Moteur de correspondance ----------
+export type PartnerMatch = {
+  company_id: string;
+  partner_name: string;
+  city: string | null;
+  region: string | null;
+  distance_km: number | null;
+  score: number;
+  reasons: Record<string, number>;
+  matched_services: string[];
+  availability_status: string | null;
+  is_verified: boolean;
+  already_invited: boolean;
+  last_activity: string | null;
+};
+
+export async function matchPartners(requestId: string, lotId?: string | null): Promise<PartnerMatch[]> {
+  const rpc = (supabase as unknown as { rpc: (n: string, a: Row) => Promise<{ data: unknown; error: unknown }> }).rpc;
+  const { data, error } = await rpc.call(supabase, "mkt_match_partners", {
+    _request_id: requestId, _lot_id: lotId ?? null,
+  });
+  if (error) throw error;
+  return (data ?? []) as PartnerMatch[];
+}
+
+export async function invitePartners(
+  requestId: string, companyIds: string[], lotId?: string | null, mode: "auto" | "manuel" = "manuel",
+): Promise<number> {
+  const rpc = (supabase as unknown as { rpc: (n: string, a: Row) => Promise<{ data: unknown; error: unknown }> }).rpc;
+  const { data, error } = await rpc.call(supabase, "mkt_invite_partners", {
+    _request_id: requestId, _company_ids: companyIds, _lot_id: lotId ?? null, _mode: mode,
+  });
+  if (error) throw error;
+  return (data as number) ?? 0;
+}
+
+/** Demandes de la place de marché pour l'administration. */
+export async function fetchAdminRequests(status?: string): Promise<QuoteRequest[]> {
+  let q = table("mkt_quote_requests").select("*").order("created_at", { ascending: false }).limit(200);
+  if (status && status !== "toutes") q = q.eq("status", status);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as unknown as QuoteRequest[];
+}
