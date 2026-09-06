@@ -9887,6 +9887,50 @@ export type Database = {
           },
         ]
       }
+      mkt_partner_photos: {
+        Row: {
+          caption: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_public: boolean
+          sort_order: number
+          storage_path: string
+          uploaded_by: string | null
+          url: string
+        }
+        Insert: {
+          caption?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          sort_order?: number
+          storage_path: string
+          uploaded_by?: string | null
+          url: string
+        }
+        Update: {
+          caption?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          sort_order?: number
+          storage_path?: string
+          uploaded_by?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_partner_photos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mkt_partner_preferences: {
         Row: {
           category_ids: string[]
@@ -10576,6 +10620,56 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "mkt_requests_for_partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mkt_reviews: {
+        Row: {
+          author_name: string | null
+          author_user_id: string
+          comment: string | null
+          company_id: string
+          created_at: string
+          id: string
+          rating: number
+          request_id: string | null
+          status: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_name?: string | null
+          author_user_id?: string
+          comment?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          rating: number
+          request_id?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_name?: string | null
+          author_user_id?: string
+          comment?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          request_id?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mkt_reviews_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -15826,6 +15920,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      mkt_partner_is_public: { Args: { _company_id: string }; Returns: boolean }
+      mkt_partner_public: { Args: { _company_id: string }; Returns: Json }
       mkt_recipient_email: {
         Args: { _company_id: string; _user_id: string }
         Returns: string

@@ -26,6 +26,8 @@ import {
   ensurePartner, fetchCategories, fetchPartnerPreferences, partnerBusinessRoles,
   partnerClientTypes, partnerDocuments, partnerEquipment, partnerServices,
   partnerAvailability, partnerTerritories, savePartner, savePartnerPreferences,
+  fetchMyPhotos, fetchMyReviews, uploadPartnerPhoto, deletePartnerPhoto,
+  type PartnerPhotoRow, type MyReview,
 } from "@/lib/marketplace/api";
 import {
   AVAILABILITY_STATUSES, BUSINESS_ROLES, PARTNER_CLIENT_TYPES, PROJECT_SIZES,
@@ -84,6 +86,9 @@ export default function PartenaireProfil() {
   const [availability, setAvailability] = useState<Row[]>([]);
   const [prefs, setPrefs] = useState<Row>({});
   const [serviceSearch, setServiceSearch] = useState("");
+  const [photos, setPhotos] = useState<PartnerPhotoRow[]>([]);
+  const [reviews, setReviews] = useState<MyReview[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const companyId = tenant.companyId;
 
@@ -113,6 +118,9 @@ export default function PartenaireProfil() {
       setDocuments(docs);
       setPrefs(pr ?? {});
       setAvailability(av);
+      const [ph, rv] = await Promise.all([fetchMyPhotos(companyId), fetchMyReviews(companyId)]);
+      setPhotos(ph);
+      setReviews(rv);
     } catch (e) {
       toast({ title: "Chargement impossible", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -135,6 +143,34 @@ export default function PartenaireProfil() {
     } catch (e) {
       toast({ title: "Enregistrement impossible", description: (e as Error).message, variant: "destructive" });
     } finally { setSaving(false); }
+  };
+
+  const onUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !companyId) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Format non pris en charge", description: "Choisissez une image (JPG, PNG, WebP).", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      await uploadPartnerPhoto(companyId, file);
+      setPhotos(await fetchMyPhotos(companyId));
+      toast({ title: "Photo publiée sur votre fiche" });
+    } catch (err) {
+      toast({ title: "Envoi impossible", description: (err as Error).message, variant: "destructive" });
+    } finally { setUploading(false); }
+  };
+
+  const onDeletePhoto = async (photo: PartnerPhotoRow) => {
+    if (!companyId || !confirm("Retirer cette photo de votre fiche publique ?")) return;
+    try {
+      await deletePartnerPhoto(photo);
+      setPhotos(await fetchMyPhotos(companyId));
+    } catch (err) {
+      toast({ title: "Suppression impossible", description: (err as Error).message, variant: "destructive" });
+    }
   };
 
   /** Synchronise une liste de valeurs simples (rôles, clientèles, services). */
@@ -289,6 +325,7 @@ export default function PartenaireProfil() {
               <TabsTrigger value="disponibilite">Disponibilité</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
               <TabsTrigger value="preferences">Préférences</TabsTrigger>
+              <TabsTrigger value="photos">Photos</TabsTrigger>
               <TabsTrigger value="avis">Avis</TabsTrigger>
             </TabsList>
 
@@ -616,7 +653,70 @@ export default function PartenaireProfil() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="avis" className="mt-4">
+            {/* ---------------- Photos publiques ---------------- */}
+            <TabsContent value="photos" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader><CardTitle className="text-base">Photos de vos réalisations</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Ces photos s'affichent sur votre fiche publique, dans l'annuaire Vrac Québec.
+                    Vos coordonnées n'y apparaissent jamais.
+                  </p>
+                  <div>
+                    <input type="file" accept="image/*" id="photo-upload" className="hidden" onChange={onUploadPhoto} />
+                    <Button asChild disabled={uploading}>
+                      <label htmlFor="photo-upload" className="cursor-pointer">
+                        {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                        Ajouter une photo
+                      </label>
+                    </Button>
+                  </div>
+                  {photos.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Aucune photo pour le moment.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                      {photos.map((ph) => (
+                        <figure key={ph.id} className="group relative overflow-hidden rounded-lg border border-border">
+                          <img src={ph.url} alt={ph.caption || "Photo de réalisation"} loading="lazy" className="aspect-[4/3] w-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => onDeletePhoto(ph)}
+                            aria-label="Retirer cette photo"
+                            className="absolute right-2 top-2 rounded-full bg-background/90 p-1.5 text-destructive opacity-0 transition-opacity group-hover:opacity-100"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </figure>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="avis" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader><CardTitle className="text-base">Avis reçus sur votre fiche publique</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  {reviews.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Aucun avis publié pour le moment.</p>
+                  ) : (
+                    reviews.map((r) => (
+                      <div key={r.id} className="rounded-lg border border-border p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium">{r.title || "Avis client"}</p>
+                          <span className="text-sm font-semibold text-primary">{r.rating}/5</span>
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {r.author_name || "Client"} · {new Date(r.created_at).toLocaleDateString("fr-CA")}
+                          {r.status !== "publie" && " · masqué par la modération"}
+                        </p>
+                        {r.comment && <p className="mt-2 text-sm text-muted-foreground">{r.comment}</p>}
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
               <NotificationsPanel userId={user?.id} audience="partenaire" />
             </TabsContent>
           </Tabs>
