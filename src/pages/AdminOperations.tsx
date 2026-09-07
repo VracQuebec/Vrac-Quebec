@@ -449,6 +449,7 @@ function TripsTab({ trips, onChange }: { trips: Trip[]; onChange: () => void }) 
         </div>
         <div className="bg-card rounded-lg border border-border overflow-hidden">
           <div className="max-h-[70vh] overflow-y-auto">
+            <div className="table-scroll">
             <table className="w-full text-sm">
               <thead className="bg-secondary/50 text-xs font-display font-semibold text-foreground sticky top-0">
                 <tr>
@@ -474,6 +475,7 @@ function TripsTab({ trips, onChange }: { trips: Trip[]; onChange: () => void }) 
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       </div>

@@ -122,6 +122,7 @@ export default function GoogleSheetImportModal({ onClose, onImported }: { onClos
                       <Info className="w-4 h-4" /> Aucune ligne pour ce filtre.
                     </div>
                   ) : (
+                    <div className="table-scroll">
                     <table className="w-full text-xs">
                       <thead className="bg-secondary sticky top-0">
                         <tr>
@@ -153,6 +154,7 @@ export default function GoogleSheetImportModal({ onClose, onImported }: { onClos
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   )}
                 </div>
               </>
