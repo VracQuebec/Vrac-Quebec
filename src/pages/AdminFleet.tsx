@@ -211,15 +211,15 @@ export default function AdminFleet() {
     <div className="min-h-screen bg-background pb-16">
       <header className="sticky top-0 z-20 bg-card border-b border-border">
         <SupportBanner tenant={tenant} />
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 min-w-0 flex-1 basis-full sm:basis-auto">
             <Link to="/admin" className="p-2 -ml-2 rounded-lg hover:bg-secondary" aria-label="Retour à l'administration">
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <TruckIcon className="w-5 h-5 text-primary shrink-0" />
             <h1 className="font-display font-bold text-base sm:text-xl truncate">Gestion de la flotte</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
             <CompanySwitcher tenant={tenant} />
             <Button variant="outline" size="sm" onClick={runScan}>
               <RefreshCw className="w-4 h-4 sm:mr-1.5" /><span className="hidden sm:inline">Vérifier les échéances</span>

@@ -904,19 +904,19 @@ const Admin = () => {
               </button>
             )}
           </div>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
             <option value="all">Tous statuts</option>
             {leadStatuses.map((s) => <option key={s.id} value={s.value}>{s.label}</option>)}
           </select>
-          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
             <option value="all">Tous types</option>
             {REQUEST_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
-          <select value={filterSource} onChange={(e) => setFilterSource(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+          <select value={filterSource} onChange={(e) => setFilterSource(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
             <option value="all">Toutes sources</option>
             {LEAD_SOURCES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
-          <select value={filterTrips} onChange={(e) => setFilterTrips(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+          <select value={filterTrips} onChange={(e) => setFilterTrips(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
             <option value="all">Tous voyages</option>
             <option value="1-5">1 à 5 voyages</option>
             <option value="5-10">5 à 10 voyages</option>
@@ -925,20 +925,20 @@ const Admin = () => {
             <option value="50-100">50 à 100 voyages</option>
             <option value="100+">100+ voyages</option>
           </select>
-          <select value={sortTrips} onChange={(e) => setSortTrips(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+          <select value={sortTrips} onChange={(e) => setSortTrips(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
             <option value="default">Trier par…</option>
             <option value="trips-desc">Plus grand nombre de voyages</option>
             <option value="trips-asc">Plus petit nombre de voyages</option>
           </select>
-          <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+          <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
             <option value="all">Toutes priorités</option>
             {LEAD_PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
-          <select value={filterMaterial} onChange={(e) => setFilterMaterial(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+          <select value={filterMaterial} onChange={(e) => setFilterMaterial(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
             <option value="all">Tous matériaux</option>
             {MATERIAL_TYPES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
           </select>
-          <select value={filterAssigned} onChange={(e) => setFilterAssigned(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+          <select value={filterAssigned} onChange={(e) => setFilterAssigned(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
             <option value="all">Tous entrepreneurs</option>
             <option value="none">— Non assigné —</option>
             {entrepreneursList.map((e) => <option key={e.user_id} value={e.user_id}>{e.email}</option>)}
