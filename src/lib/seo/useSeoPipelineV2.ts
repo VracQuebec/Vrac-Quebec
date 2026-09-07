@@ -63,7 +63,7 @@ export function useSeoPipelineV2() {
   useEffect(() => {
     void load();
     const ch = supabase
-      .channel("seo-pipeline-v2-live")
+      .channel(`seo-pipeline-v2-live-` + Math.random().toString(36).slice(2))
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_pipeline_runs" }, schedule)
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_city_batches" }, schedule)
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_page_tasks" }, schedule)

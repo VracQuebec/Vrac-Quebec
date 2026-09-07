@@ -47,7 +47,7 @@ export default function PublicationDashboard() {
   useEffect(() => {
     void load();
     const t = window.setInterval(load, 15000);
-    const ch = supabase.channel("seo-publication-live")
+    const ch = supabase.channel(`seo-publication-live-` + Math.random().toString(36).slice(2))
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_pages" }, () => { void load(); })
       .subscribe();
     return () => { window.clearInterval(t); void supabase.removeChannel(ch); };

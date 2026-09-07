@@ -45,7 +45,7 @@ export function useSeoStats() {
   useEffect(() => {
     void load();
     const ch = supabase
-      .channel("seo-stats-live")
+      .channel(`seo-stats-live-` + Math.random().toString(36).slice(2))
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_pages" }, scheduleReload)
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_generation_jobs" }, scheduleReload)
       .subscribe();

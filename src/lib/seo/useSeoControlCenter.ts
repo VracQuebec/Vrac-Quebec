@@ -99,7 +99,7 @@ export function useSeoControlCenter() {
   useEffect(() => {
     void load();
     const ch = supabase
-      .channel("seo-control-center")
+      .channel(`seo-control-center-` + Math.random().toString(36).slice(2))
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_pages" }, schedule)
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_page_tasks" }, schedule)
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_pipeline_runs" }, schedule)

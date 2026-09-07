@@ -75,7 +75,7 @@ export default function WaveRunner() {
   useEffect(() => {
     void loadRecent();
     const ch = supabase
-      .channel("seo-jobs-live")
+      .channel(`seo-jobs-live-` + Math.random().toString(36).slice(2))
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_generation_jobs" }, (payload) => {
         const row = payload.new as Job;
         if (job && row.id === job.id) setJob(row);

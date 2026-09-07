@@ -98,7 +98,7 @@ export function useOptimizationState() {
   useEffect(() => {
     void load();
     const ch = supabase
-      .channel("seo-optim-live")
+      .channel(`seo-optim-live-` + Math.random().toString(36).slice(2))
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_optimization_runs" }, schedule)
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_optimization_tasks" }, schedule)
       .subscribe();

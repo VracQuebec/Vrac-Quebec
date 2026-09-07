@@ -70,7 +70,7 @@ export default function AdminOperations() {
   // Realtime : un seul channel
   useEffect(() => {
     const ch = supabase
-      .channel("ops-trips")
+      .channel(`ops-trips-` + Math.random().toString(36).slice(2))
       .on("postgres_changes", { event: "*", schema: "public", table: "trips" }, () => loadTrips())
       .subscribe();
     return () => { supabase.removeChannel(ch); };

@@ -25,7 +25,7 @@ export function useAdminNotifications() {
     if (!isReady || !user || !isAdmin) return;
     const seenAt = new Date().toISOString();
     const channel = supabase
-      .channel("admin-notifications-live")
+      .channel(`admin-notifications-live-` + Math.random().toString(36).slice(2))
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "admin_notifications" },

@@ -83,7 +83,7 @@ const AdminTransportRequests = () => {
   useEffect(() => {
     if (!isAdmin) return;
     const ch = supabase
-      .channel("admin-transport-requests")
+      .channel(`admin-transport-requests-` + Math.random().toString(36).slice(2))
       .on("postgres_changes", { event: "*", schema: "public", table: "transport_requests" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
