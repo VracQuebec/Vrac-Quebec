@@ -195,6 +195,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: true,
+            gestureHandling: "greedy",
           });
           infoRef.current = new g.maps.InfoWindow();
         }
