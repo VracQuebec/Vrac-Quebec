@@ -168,6 +168,10 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [radiusKm, setRadiusKm] = useState<number>(10);
   const [searchValue, setSearchValue] = useState("");
+  const [editMode, setEditMode] = useState(false);
+  const [pendingMove, setPendingMove] = useState<
+    { id: string; label: string; lat: number; lng: number; from: { lat: number; lng: number } } | null
+  >(null);
 
   const geoSubs = submissions.filter(
     (s) =>
