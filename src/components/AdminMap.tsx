@@ -2,10 +2,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
 import { colorForMaterials } from "@/lib/material-colors";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
-import { Crosshair, X, Search } from "lucide-react";
+import { Crosshair, X, Search, Move } from "lucide-react";
 import type { LeadStatus } from "@/hooks/useLeadStatuses";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Submission {
   id: string;
