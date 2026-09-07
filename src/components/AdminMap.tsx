@@ -630,7 +630,24 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
           )}
         </div>
       )}
+
+      <AlertDialog open={!!pendingMove} onOpenChange={(o) => { if (!o) cancelMove(); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer le déplacement</AlertDialogTitle>
+            <AlertDialogDescription>
+              Voulez-vous vraiment déplacer la dompe #{pendingMove?.label} à ce nouvel emplacement
+              {pendingMove ? ` (${pendingMove.lat.toFixed(5)}, ${pendingMove.lng.toFixed(5)})` : ""} ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelMove}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmMove}>Oui, déplacer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 };
 
