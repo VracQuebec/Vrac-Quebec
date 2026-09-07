@@ -282,7 +282,22 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
       });
 
     return () => { cancelled = true; };
-  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}:${s.availability_status || ""}`).join(","), leadStatuses?.map((s) => s.value).join(",")]);
+  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}:${s.availability_status || ""}`).join(","), leadStatuses?.map((s) => s.value).join(","), editMode]);
+
+  const confirmMove = () => {
+    if (!pendingMove) return;
+    onMove?.(pendingMove.id, pendingMove.lat, pendingMove.lng);
+    toast({ title: "Dompe déplacée", description: `#${pendingMove.label} a été repositionnée.` });
+    setPendingMove(null);
+  };
+
+  const cancelMove = () => {
+    if (pendingMove) {
+      markersRef.current.get(pendingMove.id)?.setPosition(pendingMove.from);
+    }
+    setPendingMove(null);
+  };
+
 
   // Distances + in-radius set
   const results = useMemo(() => {
