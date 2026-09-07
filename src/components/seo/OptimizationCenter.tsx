@@ -294,6 +294,7 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
           ) : filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground py-16 text-center">Aucune page ne correspond aux critères.</p>
           ) : (
+            <div className="table-scroll">
             <table className="w-full text-xs">
               <thead className="text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary/50 sticky top-0 z-10">
                 <tr>
@@ -367,6 +368,7 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

@@ -228,6 +228,7 @@ export default function AdminBlogMesh() {
             {state?.history && state.history.length > 0 && (
               <div className="rounded-2xl border border-border bg-card overflow-hidden">
                 <div className="px-4 py-2 bg-muted text-xs uppercase tracking-wide text-muted-foreground font-bold">Historique</div>
+                <div className="table-scroll">
                 <table className="w-full text-sm">
                   <thead className="text-muted-foreground text-xs uppercase">
                     <tr>
@@ -252,6 +253,7 @@ export default function AdminBlogMesh() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </>

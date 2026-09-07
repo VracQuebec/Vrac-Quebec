@@ -82,6 +82,7 @@ export default function OrchMapView({ data }: { data: MapData }) {
         <div className="rounded-xl border border-border bg-card p-4">
           <h3 className="mb-3 text-sm font-semibold">Villes les plus rentables (90 jours)</h3>
           {data.city_stats.length === 0 ? <p className="text-sm text-muted-foreground">Aucune commande géolocalisée.</p> : (
+            <div className="table-scroll">
             <table className="w-full text-sm">
               <thead className="text-xs text-muted-foreground"><tr><th className="text-left">Ville</th><th className="text-right">Commandes</th><th className="text-right">CA</th><th className="text-right">Marge</th></tr></thead>
               <tbody>
@@ -95,6 +96,7 @@ export default function OrchMapView({ data }: { data: MapData }) {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
         <div className="rounded-xl border border-border bg-card p-4">

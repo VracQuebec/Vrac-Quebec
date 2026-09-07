@@ -175,6 +175,7 @@ export default function AdminBlog() {
           </div>
         ) : (
           <div className="rounded-2xl border border-border bg-card overflow-hidden">
+            <div className="table-scroll">
             <table className="w-full text-sm">
               <thead className="bg-muted text-muted-foreground text-xs uppercase">
                 <tr>
@@ -236,6 +237,7 @@ export default function AdminBlog() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>

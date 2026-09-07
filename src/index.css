@@ -189,3 +189,77 @@
   padding: 6px 10px !important;
   color: hsl(220 10% 45%) !important;
 }
+
+/* ============================================================
+   RESPONSIVE GLOBAL — Vrac Québec
+   Règles centrales : aucun débordement horizontal de page,
+   zones sécuritaires iOS, cibles tactiles, tableaux scrollables.
+   ============================================================ */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* Zones sécuritaires (encoche, Dynamic Island, barre iOS) */
+.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-x {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+@layer base {
+  /* Les médias ne débordent jamais de leur conteneur */
+  img, svg, video, canvas, iframe {
+    max-width: 100%;
+  }
+
+  /* Les mots très longs (courriels, URL, numéros) ne cassent pas la mise en page */
+  h1, h2, h3, h4, h5, h6, p, li, td, th, dd, dt, label, span, a {
+    overflow-wrap: anywhere;
+  }
+
+  /* Champs de formulaire : jamais de zoom automatique sur iOS (min 16px) */
+  @media (max-width: 767px) {
+    input, select, textarea {
+      font-size: 16px;
+    }
+    /* Cibles tactiles confortables */
+    button, [role="tab"], a[role="button"] {
+      min-height: 40px;
+    }
+  }
+
+  /* Tableaux : le défilement horizontal reste dans le tableau */
+  table {
+    width: 100%;
+  }
+}
+
+@layer utilities {
+  /* Conteneur standard pour tableaux larges */
+  .table-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Barre d'onglets défilante propre */
+  .tabs-scroll {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tabs-scroll::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}

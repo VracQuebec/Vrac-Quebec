@@ -2170,6 +2170,7 @@ function CompetitorsTab() {
 
       {loading ? <p className="text-sm text-muted-foreground">Chargement…</p> : (
         <div className="border border-border rounded-lg overflow-hidden bg-card">
+          <div className="table-scroll">
           <table className="w-full text-sm">
             <thead className="bg-secondary text-xs uppercase text-muted-foreground">
               <tr><th className="p-2 text-left">Domaine</th><th className="p-2 text-right">Pages</th><th className="p-2 text-left">Dernier crawl</th><th className="p-2"></th></tr>
@@ -2192,6 +2193,7 @@ function CompetitorsTab() {
               {comps.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-xs text-muted-foreground">Aucun concurrent ajouté.</td></tr>}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -2199,6 +2201,7 @@ function CompetitorsTab() {
         <section>
           <h3 className="text-sm font-display font-bold uppercase tracking-wide text-muted-foreground mb-3">Écarts détectés — combinaisons chez les concurrents qui vous manquent</h3>
           <div className="border border-border rounded-lg overflow-hidden bg-card">
+            <div className="table-scroll">
             <table className="w-full text-sm">
               <thead className="bg-secondary text-xs uppercase text-muted-foreground">
                 <tr><th className="p-2 text-left">Ville</th><th className="p-2 text-left">Matériau</th><th className="p-2 text-right">Concurrents</th></tr>
@@ -2213,6 +2216,7 @@ function CompetitorsTab() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </section>
       )}
@@ -2603,6 +2607,7 @@ function ProductionTab() {
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
         <div className="border border-border rounded-lg bg-card overflow-hidden">
+          <div className="table-scroll">
           <table className="w-full text-sm">
             <thead className="bg-secondary/50 text-xs uppercase text-muted-foreground">
               <tr>
@@ -2653,6 +2658,7 @@ function ProductionTab() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
         <aside className="border border-border rounded-lg bg-card p-3 h-fit max-h-[600px] overflow-y-auto">
           <h3 className="text-sm font-display font-bold mb-2">Journal</h3>
