@@ -2,10 +2,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
 import { colorForMaterials } from "@/lib/material-colors";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
-import { Crosshair, X, Search } from "lucide-react";
+import { Crosshair, X, Search, Move } from "lucide-react";
 import type { LeadStatus } from "@/hooks/useLeadStatuses";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Submission {
   id: string;
@@ -158,6 +168,10 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [radiusKm, setRadiusKm] = useState<number>(10);
   const [searchValue, setSearchValue] = useState("");
+  const [editMode, setEditMode] = useState(false);
+  const [pendingMove, setPendingMove] = useState<
+    { id: string; label: string; lat: number; lng: number; from: { lat: number; lng: number } } | null
+  >(null);
 
   const geoSubs = submissions.filter(
     (s) =>
@@ -181,6 +195,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: true,
+            gestureHandling: "greedy",
           });
           infoRef.current = new g.maps.InfoWindow();
         }
@@ -201,26 +216,24 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
               scaledSize: new g.maps.Size(iconCfg.width, iconCfg.height),
               anchor: new g.maps.Point(iconCfg.width / 2, iconCfg.height / 2),
             },
-            draggable: false,
+            draggable: Boolean(onMove) && editMode,
+            cursor: Boolean(onMove) && editMode ? "move" : "pointer",
           });
           marker.addListener("click", () => {
             infoRef.current?.setContent(buildPopup(sub, leadStatuses));
             infoRef.current?.open({ anchor: marker, map: mapRef.current! });
           });
           if (onMove) {
-            // Long-press to enable dragging
-            let pressTimer: ReturnType<typeof setTimeout> | null = null;
-            marker.addListener("mousedown", () => {
-              if (pressTimer) clearTimeout(pressTimer);
-              pressTimer = setTimeout(() => marker.setDraggable(true), 1500);
-            });
-            marker.addListener("mouseup", () => {
-              if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-            });
             marker.addListener("dragend", () => {
               const p = marker.getPosition();
-              if (p) onMove(sub.id, p.lat(), p.lng());
-              marker.setDraggable(false);
+              if (!p) return;
+              setPendingMove({
+                id: sub.id,
+                label: displayNumber(sub),
+                lat: p.lat(),
+                lng: p.lng(),
+                from: pos,
+              });
             });
           }
           markersRef.current.set(sub.id, marker);
@@ -269,7 +282,22 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
       });
 
     return () => { cancelled = true; };
-  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}:${s.availability_status || ""}`).join(","), leadStatuses?.map((s) => s.value).join(",")]);
+  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}:${s.availability_status || ""}`).join(","), leadStatuses?.map((s) => s.value).join(","), editMode]);
+
+  const confirmMove = () => {
+    if (!pendingMove) return;
+    onMove?.(pendingMove.id, pendingMove.lat, pendingMove.lng);
+    toast({ title: "Dompe déplacée", description: `#${pendingMove.label} a été repositionnée.` });
+    setPendingMove(null);
+  };
+
+  const cancelMove = () => {
+    if (pendingMove) {
+      markersRef.current.get(pendingMove.id)?.setPosition(pendingMove.from);
+    }
+    setPendingMove(null);
+  };
+
 
   // Distances + in-radius set
   const results = useMemo(() => {
@@ -543,7 +571,29 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
             )}
           </>
         )}
+
+        {onMove && (
+          <button
+            type="button"
+            onClick={() => setEditMode((v) => !v)}
+            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+              editMode
+                ? "bg-amber-500 text-white border-amber-500"
+                : "bg-card border-border hover:bg-muted"
+            }`}
+          >
+            <Move className="w-4 h-4" />
+            {editMode ? "Quitter le mode déplacement" : "Mode déplacement"}
+          </button>
+        )}
       </div>
+
+      {editMode && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Mode déplacement actif — glissez une dompe pour la repositionner. Une confirmation vous sera demandée.
+        </div>
+      )}
+
 
       <div className="bg-card rounded-xl border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
         <div ref={containerRef} style={{ height: "500px", width: "100%" }} />
@@ -580,7 +630,24 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
           )}
         </div>
       )}
+
+      <AlertDialog open={!!pendingMove} onOpenChange={(o) => { if (!o) cancelMove(); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer le déplacement</AlertDialogTitle>
+            <AlertDialogDescription>
+              Voulez-vous vraiment déplacer la dompe #{pendingMove?.label} à ce nouvel emplacement
+              {pendingMove ? ` (${pendingMove.lat.toFixed(5)}, ${pendingMove.lng.toFixed(5)})` : ""} ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelMove}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmMove}>Oui, déplacer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 };
 
