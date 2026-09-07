@@ -70,17 +70,17 @@ export default function UniversalNav() {
     <>
       <nav
         aria-label="Navigation universelle"
-        className="w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+        className="safe-top safe-x sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
       >
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-2 sm:px-4">
-          <Button variant="ghost" size="sm" onClick={goBack} className="gap-1.5">
+        <div className="no-scrollbar mx-auto flex w-full max-w-7xl items-center gap-1 overflow-x-auto px-2 py-2 sm:gap-2 sm:px-4">
+          <Button variant="ghost" size="sm" onClick={goBack} className="shrink-0 gap-1.5">
             <ArrowLeft className="h-4 w-4" />
             Retour
           </Button>
 
-          <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="gap-1.5">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="shrink-0 gap-1.5">
             <Home className="h-4 w-4" />
-            <span className="hidden xs:inline sm:inline">Accueil</span>
+            <span className="hidden sm:inline">Accueil</span>
           </Button>
 
           {(isEntrepreneur || path.startsWith("/demande-transport")) && (
