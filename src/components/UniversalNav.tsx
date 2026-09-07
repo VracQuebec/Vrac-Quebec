@@ -88,7 +88,7 @@ export default function UniversalNav() {
               variant="ghost"
               size="sm"
               onClick={() => navigate("/entrepreneur")}
-              className="gap-1.5"
+              className="shrink-0 gap-1.5"
             >
               <LayoutDashboard className="h-4 w-4" />
               <span className="hidden sm:inline">Tableau de bord</span>
@@ -101,7 +101,7 @@ export default function UniversalNav() {
               variant="outline"
               size="sm"
               onClick={onExitClick}
-              className="ml-auto gap-1.5"
+              className="ml-auto shrink-0 gap-1.5"
             >
               <X className="h-4 w-4" />
               Quitter
