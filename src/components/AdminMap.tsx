@@ -215,26 +215,24 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
               scaledSize: new g.maps.Size(iconCfg.width, iconCfg.height),
               anchor: new g.maps.Point(iconCfg.width / 2, iconCfg.height / 2),
             },
-            draggable: false,
+            draggable: Boolean(onMove) && editMode,
+            cursor: Boolean(onMove) && editMode ? "move" : "pointer",
           });
           marker.addListener("click", () => {
             infoRef.current?.setContent(buildPopup(sub, leadStatuses));
             infoRef.current?.open({ anchor: marker, map: mapRef.current! });
           });
           if (onMove) {
-            // Long-press to enable dragging
-            let pressTimer: ReturnType<typeof setTimeout> | null = null;
-            marker.addListener("mousedown", () => {
-              if (pressTimer) clearTimeout(pressTimer);
-              pressTimer = setTimeout(() => marker.setDraggable(true), 1500);
-            });
-            marker.addListener("mouseup", () => {
-              if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-            });
             marker.addListener("dragend", () => {
               const p = marker.getPosition();
-              if (p) onMove(sub.id, p.lat(), p.lng());
-              marker.setDraggable(false);
+              if (!p) return;
+              setPendingMove({
+                id: sub.id,
+                label: displayNumber(sub),
+                lat: p.lat(),
+                lng: p.lng(),
+                from: pos,
+              });
             });
           }
           markersRef.current.set(sub.id, marker);
