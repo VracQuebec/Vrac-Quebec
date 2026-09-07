@@ -227,12 +227,12 @@ export default function BillingOverview({ onOpenLead }: Props) {
             className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-border bg-card font-body" />
         </div>
         <select value={status} onChange={(e) => setStatus(e.target.value)}
-          className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+          className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
           <option value="all">Tous statuts</option>
           {PAYMENT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
         <select value={entrepreneurId} onChange={(e) => setEntrepreneurId(e.target.value)}
-          className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body">
+          className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
           <option value="all">Tous entrepreneurs</option>
           {entrepreneursList.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
         </select>
