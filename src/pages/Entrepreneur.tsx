@@ -177,7 +177,7 @@ const Entrepreneur = () => {
           zoom: 8,
           mapTypeControl: false,
           streetViewControl: false,
-          scrollwheel: false,
+          gestureHandling: "greedy",
         });
         infoRef.current = new g.maps.InfoWindow();
       }
