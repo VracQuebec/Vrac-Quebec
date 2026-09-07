@@ -571,7 +571,29 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
             )}
           </>
         )}
+
+        {onMove && (
+          <button
+            type="button"
+            onClick={() => setEditMode((v) => !v)}
+            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+              editMode
+                ? "bg-amber-500 text-white border-amber-500"
+                : "bg-card border-border hover:bg-muted"
+            }`}
+          >
+            <Move className="w-4 h-4" />
+            {editMode ? "Quitter le mode déplacement" : "Mode déplacement"}
+          </button>
+        )}
       </div>
+
+      {editMode && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Mode déplacement actif — glissez une dompe pour la repositionner. Une confirmation vous sera demandée.
+        </div>
+      )}
+
 
       <div className="bg-card rounded-xl border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
         <div ref={containerRef} style={{ height: "500px", width: "100%" }} />
