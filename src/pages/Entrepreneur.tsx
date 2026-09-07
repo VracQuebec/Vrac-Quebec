@@ -150,7 +150,7 @@ const Entrepreneur = () => {
   useEffect(() => {
     if (!isEntrepreneur && !isAdmin) return;
     const channel = supabase
-      .channel("ent-submissions")
+      .channel(`ent-submissions-` + Math.random().toString(36).slice(2))
       .on("postgres_changes", { event: "*", schema: "public", table: "submissions" }, () => fetchLeads())
       .subscribe();
     return () => { supabase.removeChannel(channel); };

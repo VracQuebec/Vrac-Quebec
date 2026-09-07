@@ -61,7 +61,7 @@ export default function StrategicReport() {
     void load();
     // Refresh when a job progresses so the report stays consistent with the pipeline.
     const ch = supabase
-      .channel("strategic-report-live")
+      .channel(`strategic-report-live-` + Math.random().toString(36).slice(2))
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_generation_jobs" }, () => void load())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "strategic_reports" }, () => void load())
       .subscribe();

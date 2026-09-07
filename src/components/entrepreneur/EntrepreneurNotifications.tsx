@@ -33,7 +33,7 @@ const EntrepreneurNotifications = ({ userId }: { userId: string | null | undefin
     };
     load();
     const ch = supabase
-      .channel("entrepreneur-notifications")
+      .channel(`entrepreneur-notifications-` + Math.random().toString(36).slice(2))
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "jsc_notifications", filter: `user_id=eq.${userId}` },

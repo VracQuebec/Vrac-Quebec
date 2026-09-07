@@ -244,7 +244,7 @@ const Admin = () => {
   useEffect(() => {
     if (!isAdmin) return;
     const channel = supabase
-      .channel("admin-submissions-live")
+      .channel(`admin-submissions-live-` + Math.random().toString(36).slice(2))
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "submissions" },

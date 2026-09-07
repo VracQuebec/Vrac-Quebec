@@ -36,18 +36,28 @@ export function useCrmNotifications(enabled = true) {
     mounted.current = true;
     if (!enabled) { setLoading(false); return () => { mounted.current = false; }; }
     reload();
-    const channel = supabase
-      .channel("crm-notifications-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "crm_notifications" }, () => reload())
-      .subscribe();
+    // Un nom de canal UNIQUE par instance : plusieurs composants peuvent utiliser
+    // ce hook en même temps (cloche, page notifications, admin). Réutiliser le même
+    // nom faisait planter l'application ("callbacks after subscribe()").
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`crm-notifications-live-${Math.random().toString(36).slice(2)}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "crm_notifications" }, () => reload())
+        .subscribe();
+    } catch (e) {
+      // Le temps réel est un confort : son échec ne doit jamais casser l'écran.
+      console.warn("Temps réel des notifications indisponible", e);
+    }
     // Filet de sécurité : rafraîchissement périodique si le socket tombe.
     const timer = window.setInterval(reload, 60_000);
     return () => {
       mounted.current = false;
       window.clearInterval(timer);
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [enabled, reload]);
+
 
   const sorted = useMemo(() => sortNotifications(items), [items]);
   const stats = useMemo(() => summarize(items), [items]);

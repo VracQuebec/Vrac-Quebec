@@ -81,7 +81,7 @@ export default function OpsCenter() {
   useEffect(() => {
     if (!isAdmin) return;
     const channel = supabase
-      .channel("ops-deliveries")
+      .channel(`ops-deliveries-` + Math.random().toString(36).slice(2))
       .on("postgres_changes", { event: "*", schema: "public", table: "jsc_deliveries" }, () => { void load(); })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };

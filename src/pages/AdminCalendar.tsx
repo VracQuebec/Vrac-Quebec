@@ -83,7 +83,7 @@ export default function AdminCalendar() {
   useEffect(() => {
     if (!isAdmin) return;
     const ch = supabase
-      .channel("calendar_events_rt")
+      .channel(`calendar_events_rt-` + Math.random().toString(36).slice(2))
       .on("postgres_changes", { event: "*", schema: "public", table: "calendar_events" }, () => loadAll())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
