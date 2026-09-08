@@ -11,6 +11,23 @@ import ImproveDialog from "@/components/seo/ImproveDialog";
 
 export type Scope = "to_optimize" | "zero_impressions";
 
+/** Résumé de triage réel (qualité des pages + données Search Console). */
+export type TriageSummary = {
+  total?: number;
+  by_category?: Record<string, number>;
+  auto_optimizable?: number;
+  gsc_covered?: number;
+  gsc_zero_impressions?: number;
+};
+
+const TRIAGE_LABELS: Record<string, string> = {
+  technique: "Blocage technique",
+  necessaire: "Optimisation nécessaire",
+  recommandee: "Optimisation recommandée",
+  suffisante: "Déjà suffisante",
+  revision_humaine: "Révision humaine",
+};
+
 export type Candidate = {
   id: string; slug: string; title: string;
   meta_title: string | null; meta_description: string | null;
