@@ -221,6 +221,17 @@ Deno.serve(async (req) => {
     if (pErr || !page) return json({ error: pErr?.message || "Page introuvable" }, 404);
     const p = page as Page;
 
+    // Résout les vrais noms (accentués) du référentiel pour ne jamais générer
+    // « Beton à Quebec » à partir d'un slug sans accents.
+    const [cityRow, matRow, svcRow] = await Promise.all([
+      p.city_slug ? supabase.from("seo_cities").select("name").eq("slug", p.city_slug).maybeSingle() : Promise.resolve({ data: null }),
+      p.material_slug ? supabase.from("seo_materials").select("name").eq("slug", p.material_slug).maybeSingle() : Promise.resolve({ data: null }),
+      p.service_slug ? supabase.from("seo_services").select("name").eq("slug", p.service_slug).maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+    p.city_name = (cityRow as { data: { name?: string } | null }).data?.name ?? null;
+    p.material_name = (matRow as { data: { name?: string } | null }).data?.name ?? null;
+    p.service_name = (svcRow as { data: { name?: string } | null }).data?.name ?? null;
+
     // "Fix all" (empty actions) selects deterministic actions only.
     const wantAll = requestedActions.length === 0;
     const deterministicSet = new Set([
