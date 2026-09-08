@@ -17,3 +17,10 @@
   - [x] Une page en erreur ne bloque plus la file; le traitement se clôt tout seul
   - [x] Compteurs recalculés depuis l'état réel des pages
   - [x] Point d'entrée unique (l'ancien traitement séquentiel a été retiré)
+
+## Contrôle qualité final (responsive + moteur SEO)
+- [x] CRM : en-tête, onglets défilants, barre de filtres et bouton « Nouveau » adaptés au mobile
+- [x] Centre d'optimisation SEO : barre d'outils et boutons « Optimiser » utilisables sur téléphone
+- [x] Moteur SEO en lot vérifié (toutes les fonctions de file, contrôle, reprise et historique présentes)
+- [x] Tests : 414 tests passés, compilation sans erreur, aucune barre de défilement horizontale à 375/430/768/1024/1440
+- [ ] Validation visuelle des pages d'administration connectées (nécessite une connexion de votre part)
