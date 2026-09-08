@@ -16046,11 +16046,13 @@ export type Database = {
           title: string
         }[]
       }
+      seo_bulk_housekeeping: { Args: never; Returns: number }
       seo_bulk_overview: { Args: never; Returns: Json }
       seo_bulk_preview: {
         Args: { _mode?: string; _scope?: string }
         Returns: Json
       }
+      seo_bulk_reconcile: { Args: never; Returns: number }
       seo_bulk_retry_task: { Args: { _task_id: string }; Returns: boolean }
       seo_bulk_start: {
         Args: {
@@ -16058,6 +16060,15 @@ export type Database = {
           _limit?: number
           _mode?: string
           _scope?: string
+        }
+        Returns: Json
+      }
+      seo_bulk_start_pages: {
+        Args: {
+          _concurrency?: number
+          _force?: boolean
+          _mode?: string
+          _page_ids: string[]
         }
         Returns: Json
       }

@@ -82,20 +82,28 @@ export default function CommandCenter() {
   }
 
   async function optimizeAll() {
-    if (!confirm("Lancer l'optimisation automatique de toutes les pages sous 90/100 ?\n\nJusqu'à 100 pages seront corrigées en arrière-plan (métadonnées, FAQ, liens internes, contenu). Cela peut prendre plusieurs minutes.")) return;
+    if (!confirm("Lancer l'optimisation automatique de toutes les pages qui en ont besoin ?\n\nLe traitement se fait en arrière-plan, page par page, avec reprise automatique en cas d'interruption.")) return;
     setOptimizing(true);
     try {
-      const { data, error } = await invokeWithFreshSession("seo-optimize-all", { threshold: 90, max: 2000 });
+      // Point d'entrée unique : la file d'attente persistée du moteur SEO.
+      const { data, error } = await supabase.rpc("seo_bulk_start" as never, {
+        _mode: "optimize", _scope: "all", _concurrency: 3, _force: false,
+      } as never);
       if (error) throw new Error(error.message);
-      const d = data as { ok?: boolean; queued?: number; error?: string };
-      if (d.error) throw new Error(d.error);
-      toast.success(`Optimisation lancée sur ${d.queued ?? 0} page(s). Les scores se mettront à jour dans quelques minutes.`);
+      const res = data as unknown as { run_id: string; total: number; already_active?: boolean };
+      if (res.already_active) {
+        toast.message("Un traitement est déjà en cours — il se poursuit automatiquement.");
+      } else {
+        toast.success(`File lancée : ${res.total} page(s) traitées automatiquement.`);
+      }
+      await invokeWithFreshSession("seo-optimize-worker", { run_id: res.run_id });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur");
     } finally {
       setOptimizing(false);
     }
   }
+
 
   useEffect(() => { void loadAll(); }, []);
 
