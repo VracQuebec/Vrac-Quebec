@@ -35,7 +35,11 @@ function humanize(slug: string | null | undefined): string {
 function clip(s: string, min: number, max: number, tail = ""): string {
   let t = s.trim();
   if (t.length > max) {
-    t = t.slice(0, max - tail.length).replace(/[\s.,;:!?-]+$/, "") + tail;
+    // Coupe sur une frontière de mot pour éviter les textes tronqués en plein mot.
+    let cut = t.slice(0, max - tail.length);
+    const lastSpace = cut.lastIndexOf(" ");
+    if (lastSpace > 40) cut = cut.slice(0, lastSpace);
+    t = cut.replace(/[\s.,;:!?-]+$/, "") + tail;
   } else if (t.length < min && tail) {
     t = (t + " " + tail).trim();
   }
