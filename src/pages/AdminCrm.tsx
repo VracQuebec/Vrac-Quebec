@@ -57,25 +57,29 @@ export default function AdminCrm() {
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/admin" className="flex items-center gap-2 text-sm font-display font-semibold text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-4 h-4" /> Retour à l'admin
+      <nav className="border-b border-border bg-card safe-x">
+        <div className="container mx-auto flex min-h-16 items-center gap-3 px-3 py-2 sm:px-6">
+          <Link
+            to="/admin"
+            aria-label="Retour à l'administration"
+            className="flex shrink-0 items-center gap-2 text-sm font-display font-semibold text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Retour à l'admin</span>
           </Link>
-          <h1 className="font-display font-bold">CRM unifié</h1>
-          <div className="w-24" />
+          <h1 className="min-w-0 flex-1 truncate text-center font-display font-bold sm:text-left">CRM unifié</h1>
         </div>
       </nav>
 
       <TransportBanner />
 
-      <main className="container mx-auto px-4 sm:px-6 py-6">
-        <div className="flex flex-wrap gap-2 mb-6">
+      <main className="container mx-auto px-3 py-5 sm:px-6 sm:py-6">
+        <div className="tabs-scroll mb-6 flex gap-2">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`px-4 py-2 rounded-lg text-sm font-display font-semibold inline-flex items-center gap-2 transition-colors ${
+              className={`inline-flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-display font-semibold transition-colors ${
                 tab === key ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground hover:bg-secondary/80"
               }`}
             >
