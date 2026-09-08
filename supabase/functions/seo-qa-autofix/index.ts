@@ -447,9 +447,34 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Content protection: snapshot the previous value of every field we are about to
+    // change, so any optimisation can be rolled back and stays in the page history.
+    const changedKeys = Object.keys(updates);
+    const beforeSnapshot: Record<string, unknown> = {};
+    for (const k of changedKeys) beforeSnapshot[k] = (p as unknown as Record<string, unknown>)[k] ?? null;
+
     updates.updated_at = new Date().toISOString();
     const { error: uErr } = await supabase.from("seo_pages").update(updates).eq("id", pageId);
     if (uErr) return json({ error: uErr.message }, 500);
+
+    let improvementId: string | null = null;
+    try {
+      const { data: imp } = await supabase
+        .from("seo_page_improvements")
+        .insert({
+          page_id: pageId,
+          before_snapshot: beforeSnapshot,
+          after_snapshot: updates,
+          applied: true,
+          applied_at: new Date().toISOString(),
+          model: aiCalls > 0 ? "deterministic-v2+ai" : "deterministic-v2",
+          notes: `Corrections: ${fixedActions.join(", ") || "aucune"}${preserved.length ? ` · Conservé: ${preserved.join(", ")}` : ""}`,
+        })
+        .select("id")
+        .maybeSingle();
+      improvementId = imp?.id ?? null;
+    } catch { /* history is best-effort, never blocks the fix */ }
+
 
     // Re-run QA (deterministic)
     let newScore: number | null = null;
@@ -469,6 +494,7 @@ Deno.serve(async (req) => {
       preserved,
       new_score: newScore,
       ai_calls: aiCalls,
+      improvement_id: improvementId,
       skipped_ai_actions: skippedAi,
       engine: "deterministic-v2",
     });
