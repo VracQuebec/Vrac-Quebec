@@ -462,6 +462,7 @@ Deno.serve(async (req) => {
     return json({
       ok: true,
       fixed: fixedActions,
+      preserved,
       new_score: newScore,
       ai_calls: aiCalls,
       skipped_ai_actions: skippedAi,
