@@ -70,7 +70,7 @@ export default function AdminNotifications() {
       </Helmet>
 
       <nav
-        className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-md"
+        className="sticky-below-nav z-40 border-b border-border bg-card/90 backdrop-blur-md"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div className="container mx-auto px-3 sm:px-6 h-12 flex items-center justify-between gap-2">

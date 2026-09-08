@@ -274,7 +274,7 @@ export default function AdminBlogBatch() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card sticky top-0 z-40">
+      <header className="border-b border-border bg-card sticky-below-nav z-40">
         <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link to="/admin/blogue" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">

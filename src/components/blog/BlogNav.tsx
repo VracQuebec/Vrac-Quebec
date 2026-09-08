@@ -3,7 +3,7 @@ import { Truck, HardHat, Calculator, BookOpen, HelpCircle } from "lucide-react";
 
 export default function BlogNav() {
   return (
-    <nav className="sticky top-0 z-50 bg-foreground text-background border-b border-foreground/20 backdrop-blur">
+    <nav className="sticky-below-nav z-50 bg-foreground text-background border-b border-foreground/20 backdrop-blur">
       <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-2">
           <Truck className="w-5 h-5 text-primary" />

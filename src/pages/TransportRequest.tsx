@@ -802,7 +802,7 @@ const TransportRequest = () => {
         <link rel="canonical" href="https://vracquebec.ca/demande-transport" />
       </Helmet>
       <TransportBanner />
-      <header className="border-b border-border bg-card/95 backdrop-blur sticky top-0 z-30 w-full">
+      <header className="border-b border-border bg-card/95 backdrop-blur sticky-below-nav z-30 w-full">
         <div className="container mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
           <button
             onClick={requestExit}

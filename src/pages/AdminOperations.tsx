@@ -78,7 +78,7 @@ export default function AdminOperations() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card sticky top-0 z-30">
+      <header className="border-b border-border bg-card sticky-below-nav z-30">
         <div className="max-w-[1500px] mx-auto px-4 py-3 flex items-center gap-3 flex-wrap">
           <Link to="/admin" className="p-2 rounded-lg hover:bg-secondary" title="Retour"><ArrowLeft className="w-4 h-4" /></Link>
           <h1 className="text-lg font-display font-bold text-foreground">Moteur opérationnel</h1>

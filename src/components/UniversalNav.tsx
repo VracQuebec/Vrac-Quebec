@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Home, LayoutDashboard, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,8 +34,10 @@ export default function UniversalNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const navRef = useRef<HTMLElement | null>(null);
 
   const dirty = useSyncExternalStore(subscribeUnsavedChanges, hasUnsavedChanges, () => false);
+
 
   const path = location.pathname;
   const isEntrepreneur = path.startsWith("/entrepreneur");
@@ -64,14 +66,34 @@ export default function UniversalNav() {
     else doExit();
   }, [dirty, doExit]);
 
-  if (HIDDEN_PATHS.includes(path)) return null;
+  /* La hauteur réelle de la barre est publiée en variable CSS (--nav-h)
+     pour que tous les en-têtes collants se placent juste en dessous. */
+  const hidden = HIDDEN_PATHS.includes(path);
+  useEffect(() => {
+    const root = document.documentElement;
+    const apply = () => {
+      const h = hidden ? 0 : Math.round(navRef.current?.getBoundingClientRect().height ?? 0);
+      root.style.setProperty("--nav-h", `${h}px`);
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    window.addEventListener("orientationchange", apply);
+    return () => {
+      window.removeEventListener("resize", apply);
+      window.removeEventListener("orientationchange", apply);
+    };
+  }, [hidden, path]);
+
+  if (hidden) return null;
 
   return (
     <>
       <nav
+        ref={navRef}
         aria-label="Navigation universelle"
-        className="safe-top safe-x w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+        className="app-universal-nav safe-top safe-x w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
       >
+
         <div className="no-scrollbar mx-auto flex w-full max-w-7xl items-center gap-1 overflow-x-auto px-2 py-2 sm:gap-2 sm:px-4">
           <Button variant="ghost" size="sm" onClick={goBack} className="shrink-0 gap-1.5">
             <ArrowLeft className="h-4 w-4" />
