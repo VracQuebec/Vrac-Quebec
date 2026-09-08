@@ -146,6 +146,7 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
   const [starting, setStarting] = useState(false);
   const [q, setQ] = useState("");
   const [priority, setPriority] = useState<"all" | "haute" | "moyenne" | "basse">("all");
+  const [triage, setTriage] = useState<TriageSummary | null>(null);
 
   // File d'attente persistée partagée avec le reste du moteur SEO (aucun système parallèle).
   const bulk = useBulkOptimization();
