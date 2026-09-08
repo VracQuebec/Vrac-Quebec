@@ -11,6 +11,23 @@ import ImproveDialog from "@/components/seo/ImproveDialog";
 
 export type Scope = "to_optimize" | "zero_impressions";
 
+/** Résumé de triage réel (qualité des pages + données Search Console). */
+export type TriageSummary = {
+  total?: number;
+  by_category?: Record<string, number>;
+  auto_optimizable?: number;
+  gsc_covered?: number;
+  gsc_zero_impressions?: number;
+};
+
+const TRIAGE_LABELS: Record<string, string> = {
+  technique: "Blocage technique",
+  necessaire: "Optimisation nécessaire",
+  recommandee: "Optimisation recommandée",
+  suffisante: "Déjà suffisante",
+  revision_humaine: "Révision humaine",
+};
+
 export type Candidate = {
   id: string; slug: string; title: string;
   meta_title: string | null; meta_description: string | null;
@@ -146,6 +163,7 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
   const [starting, setStarting] = useState(false);
   const [q, setQ] = useState("");
   const [priority, setPriority] = useState<"all" | "haute" | "moyenne" | "basse">("all");
+  const [triage, setTriage] = useState<TriageSummary | null>(null);
 
   // File d'attente persistée partagée avec le reste du moteur SEO (aucun système parallèle).
   const bulk = useBulkOptimization();
@@ -162,6 +180,8 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
     if (error) toast.error(error.message);
     else setRows((data ?? []) as unknown as Candidate[]);
     setLoading(false);
+    const { data: t } = await supabase.rpc("seo_triage_summary" as never, {} as never);
+    if (t) setTriage(t as unknown as TriageSummary);
   }, [scope]);
 
   useEffect(() => { void load(); }, [load]);
@@ -293,6 +313,19 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
             <span className="sm:hidden">Optimiser en lot</span>
           </button>
         </div>
+
+        {triage && (
+          <div className="px-3 py-2 border-b border-border shrink-0 flex flex-wrap items-center gap-2 text-xs">
+            {Object.entries(TRIAGE_LABELS).map(([key, label]) => (
+              <span key={key} className="rounded-full border border-border px-2.5 py-1">
+                {label} : <strong>{(triage.by_category?.[key] ?? 0).toLocaleString("fr-CA")}</strong>
+              </span>
+            ))}
+            <span className="rounded-full bg-secondary px-2.5 py-1 text-muted-foreground">
+              Sans impression (28 j) : <strong>{(triage.gsc_zero_impressions ?? 0).toLocaleString("fr-CA")}</strong>
+            </span>
+          </div>
+        )}
 
         {counts && queue?.run && (
           <div className="px-3 py-2 border-b border-border shrink-0 bg-secondary/40 space-y-2">

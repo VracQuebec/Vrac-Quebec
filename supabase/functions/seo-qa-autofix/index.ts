@@ -47,6 +47,8 @@ type Page = {
   id: string;
   slug: string;
   title: string | null;
+  h1: string | null;
+  word_count: number | null;
   meta_title: string | null;
   meta_description: string | null;
   content_html: string | null;
@@ -194,7 +196,7 @@ Deno.serve(async (req) => {
 
     const { data: page, error: pErr } = await supabase
       .from("seo_pages")
-      .select("id, slug, title, meta_title, meta_description, content_html, intro, faq, internal_links, keywords, city_slug, material_slug, service_slug, og_title, og_description")
+      .select("id, slug, title, h1, word_count, meta_title, meta_description, content_html, intro, faq, internal_links, keywords, city_slug, material_slug, service_slug, og_title, og_description")
       .eq("id", pageId)
       .maybeSingle();
     if (pErr || !page) return json({ error: pErr?.message || "Page introuvable" }, 404);
@@ -211,6 +213,7 @@ Deno.serve(async (req) => {
       "add_internal_links",
       "fix_images_alt",
       "insert_ctas",
+      "fix_h1",
     ]);
     const actions = wantAll
       ? Array.from(deterministicSet)
@@ -221,27 +224,78 @@ Deno.serve(async (req) => {
 
     const updates: Record<string, unknown> = {};
     const fixedActions: string[] = [];
+    const preserved: string[] = [];
     let aiCalls = 0;
 
-    // ----- Deterministic rewrites -----
+    // Duplicate detection: a title/description shared with another page is a real
+    // SEO defect (cannibalisation), so it justifies a rewrite even when lengths are fine.
+    const isDuplicate = async (column: "meta_title" | "meta_description", value: string | null) => {
+      if (!value) return false;
+      const { count } = await supabase
+        .from("seo_pages")
+        .select("id", { count: "exact", head: true })
+        .eq(column, value)
+        .neq("id", pageId);
+      return (count ?? 0) > 0;
+    };
+    const uniquify = async (column: "meta_title" | "meta_description", value: string, max: number) => {
+      if (!(await isDuplicate(column, value))) return value;
+      const marker = humanize(p.service_slug) || humanize(p.material_slug) || humanize(p.slug.split("-").slice(-1)[0]);
+      if (!marker) return value;
+      const merged = column === "meta_title"
+        ? value.replace(" | Vrac Québec", ` — ${marker} | Vrac Québec`)
+        : `${value} ${marker}.`;
+      return clip(merged, 0, max);
+    };
+
+    // ----- Deterministic rewrites (never overwrite content that is already correct) -----
 
     let newMetaTitle = p.meta_title ?? "";
     if (want("rewrite_meta_title")) {
-      const mt = buildMetaTitle(p);
-      if (mt && mt !== p.meta_title) {
-        updates.meta_title = mt;
-        newMetaTitle = mt;
-        fixedActions.push("rewrite_meta_title");
+      const current = (p.meta_title ?? "").trim();
+      const weak = current.length < 25 || current.length > 65 || await isDuplicate("meta_title", current);
+      if (!weak) {
+        preserved.push("meta_title");
+      } else {
+        const mt = await uniquify("meta_title", buildMetaTitle(p), 65);
+        if (mt && mt !== current) {
+          updates.meta_title = mt;
+          newMetaTitle = mt;
+          fixedActions.push("rewrite_meta_title");
+        }
       }
     }
 
     let newMetaDesc = p.meta_description ?? "";
     if (want("rewrite_meta_description")) {
-      const md = buildMetaDescription(p);
-      if (md && md !== p.meta_description) {
-        updates.meta_description = md;
-        newMetaDesc = md;
-        fixedActions.push("rewrite_meta_description");
+      const current = (p.meta_description ?? "").trim();
+      const weak = current.length < 110 || current.length > 170 || await isDuplicate("meta_description", current);
+      if (!weak) {
+        preserved.push("meta_description");
+      } else {
+        const md = await uniquify("meta_description", buildMetaDescription(p), 170);
+        if (md && md !== current) {
+          updates.meta_description = md;
+          newMetaDesc = md;
+          fixedActions.push("rewrite_meta_description");
+        }
+      }
+    }
+
+    if (want("fix_h1")) {
+      const currentH1 = (p.h1 ?? "").trim();
+      if (currentH1.length >= 15) {
+        preserved.push("h1");
+      } else {
+        const city = humanize(p.city_slug);
+        const topic = humanize(p.material_slug) || humanize(p.service_slug) || "Matériaux en vrac";
+        const h1 = (p.title && p.title.trim().length >= 15)
+          ? p.title.trim()
+          : (city ? `${topic} à ${city}` : `${topic} au Québec`);
+        if (h1 && h1 !== currentH1) {
+          updates.h1 = h1.slice(0, 120);
+          fixedActions.push("fix_h1");
+        }
       }
     }
 
@@ -255,18 +309,37 @@ Deno.serve(async (req) => {
     }
 
     if (want("generate_keywords")) {
-      const kws = buildKeywords(p);
-      if (kws.length >= 5) {
-        updates.keywords = kws;
-        fixedActions.push("generate_keywords");
+      const existing = Array.isArray(p.keywords) ? p.keywords.filter((k) => String(k).trim().length > 2) : [];
+      if (existing.length >= 3) {
+        preserved.push("keywords");
+      } else {
+        // Cap at 8 to stay a topical map, not keyword stuffing.
+        const kws = buildKeywords(p).slice(0, 8);
+        if (kws.length >= 5) {
+          updates.keywords = kws;
+          fixedActions.push("generate_keywords");
+        }
       }
     }
 
     if (want("regenerate_faq")) {
-      const faq = buildFaq(p);
-      updates.faq = faq;
-      fixedActions.push("regenerate_faq");
+      // Never replace an existing FAQ: only fill in a missing or too-short one,
+      // so hand-written answers are preserved and pages don't become near-duplicates.
+      const existingFaq = Array.isArray(p.faq) ? p.faq.filter((f) => f && f.question && f.answer) : [];
+      if (existingFaq.length >= 3) {
+        preserved.push("faq");
+      } else {
+        const generated = buildFaq(p).filter(
+          (g) => !existingFaq.some((e) => e.question.trim().toLowerCase() === g.question.trim().toLowerCase()),
+        );
+        const merged = [...existingFaq, ...generated].slice(0, 6);
+        if (merged.length > existingFaq.length) {
+          updates.faq = merged;
+          fixedActions.push("regenerate_faq");
+        }
+      }
     }
+
 
     if (want("add_internal_links")) {
       const { data: siblings } = await supabase
@@ -361,6 +434,7 @@ Deno.serve(async (req) => {
       return json({
         ok: true,
         fixed: [],
+        preserved,
         ai_calls: aiCalls,
         skipped_ai_actions: skippedAi,
         message: skippedAi.length
@@ -388,6 +462,7 @@ Deno.serve(async (req) => {
     return json({
       ok: true,
       fixed: fixedActions,
+      preserved,
       new_score: newScore,
       ai_calls: aiCalls,
       skipped_ai_actions: skippedAi,
