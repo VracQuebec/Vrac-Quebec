@@ -494,6 +494,7 @@ Deno.serve(async (req) => {
       preserved,
       new_score: newScore,
       ai_calls: aiCalls,
+      improvement_id: improvementId,
       skipped_ai_actions: skippedAi,
       engine: "deterministic-v2",
     });
