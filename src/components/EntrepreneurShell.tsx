@@ -40,7 +40,7 @@ const EntrepreneurShell = ({ title, description, children }: Props) => {
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background flex flex-col">
-      <nav className="sticky top-0 z-30 w-full bg-card/95 backdrop-blur-md border-b border-border">
+      <nav className="sticky-below-nav z-30 w-full bg-card/95 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2">
           <Link to="/entrepreneur" className="flex min-w-0 items-center gap-2">
             <Truck className="w-6 h-6 flex-shrink-0 text-primary" />

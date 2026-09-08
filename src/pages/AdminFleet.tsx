@@ -32,6 +32,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useFleetTenant } from "@/lib/fleet/tenant";
 import { CompanySwitcher, SupportBanner } from "@/components/fleet/FleetTenantBar";
+import PageHeader from "@/components/layout/PageHeader";
 
 const TABS = [
   { key: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
@@ -209,17 +210,14 @@ export default function AdminFleet() {
 
   return (
     <div className="min-h-screen bg-background pb-16">
-      <header className="sticky top-0 z-20 bg-card border-b border-border">
-        <SupportBanner tenant={tenant} />
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
-          <div className="flex items-center gap-2 min-w-0 flex-1 basis-full sm:basis-auto">
-            <Link to="/admin" className="p-2 -ml-2 rounded-lg hover:bg-secondary" aria-label="Retour à l'administration">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <TruckIcon className="w-5 h-5 text-primary shrink-0" />
-            <h1 className="font-display font-bold text-base sm:text-xl truncate">Gestion de la flotte</h1>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
+      <PageHeader
+        above={<SupportBanner tenant={tenant} />}
+        backTo="/admin"
+        backLabel="Retour à l'administration"
+        icon={<TruckIcon className="w-5 h-5" />}
+        title="Gestion de la flotte"
+        actions={
+          <>
             <CompanySwitcher tenant={tenant} />
             <Button variant="outline" size="sm" onClick={runScan}>
               <RefreshCw className="w-4 h-4 sm:mr-1.5" /><span className="hidden sm:inline">Vérifier les échéances</span>
@@ -227,20 +225,13 @@ export default function AdminFleet() {
             <Link to="/admin/calendrier">
               <Button variant="outline" size="sm"><CalendarDays className="w-4 h-4 sm:mr-1.5" /><span className="hidden sm:inline">Calendrier</span></Button>
             </Link>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 overflow-x-auto">
-          <div className="flex gap-1 pb-2 min-w-max">
-            {TABS.map((t) => (
-              <button key={t.key} onClick={() => setTab(t.key)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-body whitespace-nowrap ${
-                  tab === t.key ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:bg-secondary"}`}>
-                <t.icon className="w-4 h-4" /> {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </header>
+          </>
+        }
+        tabs={TABS.map((t) => ({ key: t.key, label: t.label, icon: t.icon }))}
+        activeTab={tab}
+        onTabChange={(k) => setTab(k as typeof tab)}
+      />
+
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-5 space-y-5">
         {/* Actions rapides */}

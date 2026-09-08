@@ -23,6 +23,7 @@ import type { Driver } from "@/lib/calendar-utils";
 import { useToast } from "@/hooks/use-toast";
 import { useFleetTenant } from "@/lib/fleet/tenant";
 import { SupportBanner } from "@/components/fleet/FleetTenantBar";
+import PageHeader from "@/components/layout/PageHeader";
 import FleetDocuments from "@/components/fleet/FleetDocuments";
 import CompleteDialog from "@/components/fleet/CompleteDialog";
 import { Input } from "@/components/ui/input";
@@ -172,42 +173,29 @@ export default function AdminFleetVehicle() {
 
   return (
     <div className="min-h-screen bg-background pb-16">
-      <header className="sticky top-0 z-20 bg-card border-b border-border">
-        <SupportBanner tenant={tenant} />
-        <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <Link to="/admin/flotte?tab=vehicules" className="p-2 -ml-2 rounded-lg hover:bg-secondary" aria-label="Retour à la flotte">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div className="min-w-0">
-              <h1 className="font-display font-bold text-base sm:text-xl truncate">{unitTitle(vehicle)}</h1>
-              <div className="text-xs text-muted-foreground font-body truncate">
-                {[unitSubtitle(vehicle), kmLabel(vehicle?.odometer_km as number | null),
-                  hoursLabel(vehicle?.engine_hours as number | null)].filter(Boolean).join(" • ")}
-              </div>
-            </div>
-            {vehicle && (
-              <span className={`text-[10px] px-2 py-0.5 rounded font-display shrink-0 ${TONE_CLASS[opsStatus(vehicle).tone]}`}>
-                {opsStatus(vehicle).label}
-              </span>
-            )}
-          </div>
+      <PageHeader
+        above={<SupportBanner tenant={tenant} />}
+        maxWidthClass="max-w-5xl"
+        backTo="/admin/flotte?tab=vehicules"
+        backLabel="Retour à la flotte"
+        title={unitTitle(vehicle)}
+        subtitle={[unitSubtitle(vehicle), kmLabel(vehicle?.odometer_km as number | null),
+          hoursLabel(vehicle?.engine_hours as number | null)].filter(Boolean).join(" • ")}
+        badge={vehicle ? (
+          <span className={`text-[10px] px-2 py-0.5 rounded font-display shrink-0 ${TONE_CLASS[opsStatus(vehicle).tone]}`}>
+            {opsStatus(vehicle).label}
+          </span>
+        ) : undefined}
+        actions={
           <Button size="sm" variant="outline" onClick={() => setVehicleDialog(true)}>
             <Pencil className="w-4 h-4 sm:mr-1.5" /><span className="hidden sm:inline">Modifier</span>
           </Button>
-        </div>
-        <div className="max-w-5xl mx-auto px-3 sm:px-6 overflow-x-auto">
-          <div className="flex gap-1 pb-2 min-w-max">
-            {TABS.map((t) => (
-              <button key={t.key} onClick={() => setParams({ tab: t.key }, { replace: true })}
-                className={`px-3 py-2 rounded-lg text-sm font-body whitespace-nowrap ${
-                  tab === t.key ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:bg-secondary"}`}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </header>
+        }
+        tabs={TABS.map((t) => ({ key: t.key, label: t.label }))}
+        activeTab={tab}
+        onTabChange={(k) => setParams({ tab: k }, { replace: true })}
+      />
+
 
       <main className="max-w-5xl mx-auto px-3 sm:px-6 py-5 space-y-4">
         <div className="flex flex-wrap gap-2">
