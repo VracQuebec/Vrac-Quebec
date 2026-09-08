@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
 
     const { data: page, error: pErr } = await supabase
       .from("seo_pages")
-      .select("id, slug, title, meta_title, meta_description, content_html, intro, faq, internal_links, keywords, city_slug, material_slug, service_slug, og_title, og_description")
+      .select("id, slug, title, h1, word_count, meta_title, meta_description, content_html, intro, faq, internal_links, keywords, city_slug, material_slug, service_slug, og_title, og_description")
       .eq("id", pageId)
       .maybeSingle();
     if (pErr || !page) return json({ error: pErr?.message || "Page introuvable" }, 404);
