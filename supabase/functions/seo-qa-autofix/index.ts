@@ -45,6 +45,28 @@ function clip(s: string, min: number, max: number, tail = ""): string {
   }
   return t.slice(0, max);
 }
+// Raccourcit un titre trop long en retirant des segments entiers (séparés par | : -)
+// plutôt qu'en coupant au milieu de la marque.
+function shortenTitle(current: string, max = 63, brand = "Vrac Québec"): string {
+  const parts = current.split(/\s*[|·]\s*/).map((x) => x.trim()).filter(Boolean);
+  const hasBrand = parts.some((x) => x.toLowerCase() === brand.toLowerCase());
+  const core = parts.filter((x) => x.toLowerCase() !== brand.toLowerCase());
+  while (core.length > 1) {
+    const candidate = [...core, ...(hasBrand ? [brand] : [])].join(" | ");
+    if (candidate.length <= max) return candidate;
+    core.pop();
+  }
+  let head = core[0] ?? current;
+  const suffix = hasBrand ? ` | ${brand}` : "";
+  if ((head + suffix).length > max) {
+    let cut = head.slice(0, max - suffix.length);
+    const sp = cut.lastIndexOf(" ");
+    if (sp > 20) cut = cut.slice(0, sp);
+    head = cut.replace(/[\s.,;:!?&-]+$/, "");
+  }
+  return head + suffix;
+}
+
 function dedupe<T>(arr: T[]): T[] { return Array.from(new Set(arr)); }
 
 type Page = {
@@ -290,7 +312,7 @@ Deno.serve(async (req) => {
       if (!needsRewrite && !tooLong) {
         preserved.push("meta_title");
       } else {
-        const candidate = needsRewrite ? buildMetaTitle(p) : clip(current, 40, 63);
+        const candidate = needsRewrite ? buildMetaTitle(p) : shortenTitle(current);
         const mt = await uniquify("meta_title", candidate, 65);
         if (mt && mt !== current) {
           updates.meta_title = mt;
