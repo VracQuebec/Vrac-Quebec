@@ -13243,6 +13243,51 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_test_before_20260908: {
+        Row: {
+          captured_at: string | null
+          content_html: string | null
+          faq: Json | null
+          h1: string | null
+          id: string | null
+          internal_links: Json | null
+          keywords: string[] | null
+          meta_description: string | null
+          meta_title: string | null
+          qa_last_score: number | null
+          slug: string | null
+          word_count: number | null
+        }
+        Insert: {
+          captured_at?: string | null
+          content_html?: string | null
+          faq?: Json | null
+          h1?: string | null
+          id?: string | null
+          internal_links?: Json | null
+          keywords?: string[] | null
+          meta_description?: string | null
+          meta_title?: string | null
+          qa_last_score?: number | null
+          slug?: string | null
+          word_count?: number | null
+        }
+        Update: {
+          captured_at?: string | null
+          content_html?: string | null
+          faq?: Json | null
+          h1?: string | null
+          id?: string | null
+          internal_links?: Json | null
+          keywords?: string[] | null
+          meta_description?: string | null
+          meta_title?: string | null
+          qa_last_score?: number | null
+          slug?: string | null
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       seo_waves: {
         Row: {
           active: boolean
