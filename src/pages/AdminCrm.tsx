@@ -134,7 +134,7 @@ function FilterBar(props: {
       </button>
       <button onClick={() => props.setIncludeArchived(!props.includeArchived)}
         className={`inline-flex min-h-10 items-center gap-1 whitespace-nowrap px-3 py-2 rounded-lg text-sm ${props.includeArchived ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
-        <Archive className="w-4 h-4" /> <span className="hidden xs:inline sm:inline">Inclure archivés</span><span className="xs:hidden sm:hidden">Archivés</span>
+        <Archive className="w-4 h-4" /> <span className="hidden sm:inline">Inclure archivés</span><span className="sm:hidden">Archivés</span>
       </button>
       <div className="text-sm text-muted-foreground font-body">{props.count} {props.label}</div>
       <button onClick={props.onNew}
