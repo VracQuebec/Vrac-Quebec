@@ -180,6 +180,8 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
     if (error) toast.error(error.message);
     else setRows((data ?? []) as unknown as Candidate[]);
     setLoading(false);
+    const { data: t } = await supabase.rpc("seo_triage_summary" as never, {} as never);
+    if (t) setTriage(t as unknown as TriageSummary);
   }, [scope]);
 
   useEffect(() => { void load(); }, [load]);
