@@ -286,13 +286,11 @@ Deno.serve(async (req) => {
       // Un titre descriptif un peu long n'est pas « faible » : on le raccourcit sans
       // perdre son information, au lieu de le remplacer par un titre générique.
       const tooLong = current.length > 65;
-      const weak = current.length < 25 || await isDuplicate("meta_title", current) || current.length > 75;
-      if (!weak && !tooLong) {
+      const needsRewrite = current.length < 25 || await isDuplicate("meta_title", current);
+      if (!needsRewrite && !tooLong) {
         preserved.push("meta_title");
       } else {
-        const candidate = (!weak && tooLong)
-          ? clip(current, 40, 63)
-          : buildMetaTitle(p);
+        const candidate = needsRewrite ? buildMetaTitle(p) : clip(current, 40, 63);
         const mt = await uniquify("meta_title", candidate, 65);
         if (mt && mt !== current) {
           updates.meta_title = mt;
