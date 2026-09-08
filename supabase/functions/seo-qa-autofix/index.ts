@@ -91,8 +91,8 @@ function buildMetaTitle(page: Page): string {
 }
 
 function buildMetaDescription(page: Page): string {
-  const city = humanize(page.city_slug);
-  const topic = humanize(page.material_slug) || humanize(page.service_slug) || "matériaux en vrac et dompes";
+  const city = cityOf(page);
+  const topic = topicOf(page, "matériaux en vrac et dompes");
   const target = city
     ? `Vrac Québec coordonne la livraison de ${topic.toLowerCase()} à ${city} avec Transport JSC. Fournisseurs vérifiés, réponse rapide, aucun engagement.`
     : `Vrac Québec coordonne la livraison de ${topic.toLowerCase()} au Québec avec Transport JSC. Fournisseurs vérifiés, réponse rapide, aucun engagement.`;
@@ -101,8 +101,8 @@ function buildMetaDescription(page: Page): string {
 }
 
 function buildOpenGraph(page: Page, metaTitle: string, metaDesc: string): { og_title: string; og_description: string } {
-  const city = humanize(page.city_slug);
-  const topic = humanize(page.material_slug) || humanize(page.service_slug) || "Matériaux en vrac";
+  const city = cityOf(page);
+  const topic = topicOf(page);
   const ogTitleCore = city ? `${topic} à ${city} — Vrac Québec` : `${topic} — Vrac Québec`;
   const og_title = clip(ogTitleCore, 30, 88);
   const og_description = clip(metaDesc || `Plateforme québécoise pour ${topic.toLowerCase()}${city ? ` à ${city}` : ""}. Coordination Transport JSC, matériaux vérifiés.`, 80, 195);
@@ -110,8 +110,8 @@ function buildOpenGraph(page: Page, metaTitle: string, metaDesc: string): { og_t
 }
 
 function buildKeywords(page: Page): string[] {
-  const city = humanize(page.city_slug).toLowerCase();
-  const topic = humanize(page.material_slug).toLowerCase() || humanize(page.service_slug).toLowerCase();
+  const city = cityOf(page).toLowerCase();
+  const topic = topicOf(page, "").toLowerCase();
   const kws: string[] = [];
   if (topic && city) {
     kws.push(
@@ -149,10 +149,10 @@ function buildKeywords(page: Page): string[] {
 }
 
 function buildFaq(page: Page): Array<{ question: string; answer: string }> {
-  const cityRaw = humanize(page.city_slug);
+  const cityRaw = cityOf(page);
   const city = cityRaw || "votre secteur";
-  const materialRaw = humanize(page.material_slug);
-  const serviceRaw = humanize(page.service_slug);
+  const materialRaw = (page.material_name || "").trim() || humanize(page.material_slug);
+  const serviceRaw = (page.service_name || "").trim() || humanize(page.service_slug);
   const topicHuman = materialRaw || serviceRaw || "matériaux en vrac";
   const topic = topicHuman.toLowerCase();
 
@@ -306,8 +306,8 @@ Deno.serve(async (req) => {
       if (currentH1.length >= 15) {
         preserved.push("h1");
       } else {
-        const city = humanize(p.city_slug);
-        const topic = humanize(p.material_slug) || humanize(p.service_slug) || "Matériaux en vrac";
+        const city = cityOf(p);
+        const topic = topicOf(p);
         const h1 = (p.title && p.title.trim().length >= 15)
           ? p.title.trim()
           : (city ? `${topic} à ${city}` : `${topic} au Québec`);
