@@ -45,6 +45,23 @@ function clip(s: string, min: number, max: number, tail = ""): string {
   }
   return t.slice(0, max);
 }
+// Raccourcit un titre trop long en retirant des segments entiers (séparés par | : -)
+// plutôt qu'en coupant au milieu de la marque.
+function shortenTitle(current: string, max = 65, brand = "Vrac Québec"): string {
+  const parts = current.split(/\s*[|·]\s*/).map((x) => x.trim()).filter(Boolean);
+  const hasBrand = parts.some((x) => x.toLowerCase() === brand.toLowerCase());
+  const core = parts.filter((x) => x.toLowerCase() !== brand.toLowerCase());
+  const withBrand = [...core, ...(hasBrand ? [brand] : [])].join(" | ");
+  if (withBrand.length <= max) return withBrand;
+  // On sacrifie la marque avant l'information utile.
+  const withoutBrand = core.join(" | ");
+  if (withoutBrand.length <= max) return withoutBrand;
+  let cut = withoutBrand.slice(0, max);
+  const sp = cut.lastIndexOf(" ");
+  if (sp > 25) cut = cut.slice(0, sp);
+  return cut.replace(/[\s.,;:!?&|-]+$/, "");
+}
+
 function dedupe<T>(arr: T[]): T[] { return Array.from(new Set(arr)); }
 
 type Page = {
@@ -65,19 +82,34 @@ type Page = {
   service_slug: string | null;
   og_title: string | null;
   og_description: string | null;
+  // Noms réels (avec accents) résolus depuis le référentiel; fallback sur le slug.
+  city_name?: string | null;
+  material_name?: string | null;
+  service_name?: string | null;
 };
 
+function cityOf(page: Page): string {
+  return (page.city_name || "").trim() || humanize(page.city_slug);
+}
+function topicOf(page: Page, fallback = "Matériaux en vrac"): string {
+  return (page.material_name || "").trim()
+    || (page.service_name || "").trim()
+    || humanize(page.material_slug)
+    || humanize(page.service_slug)
+    || fallback;
+}
+
 function buildMetaTitle(page: Page): string {
-  const city = humanize(page.city_slug);
-  const topic = humanize(page.material_slug) || humanize(page.service_slug) || "Matériaux en vrac";
+  const city = cityOf(page);
+  const topic = topicOf(page);
   const suffix = " | Vrac Québec";
   const core = city ? `${topic} à ${city}` : topic;
   return clip(core + suffix, 40, 63);
 }
 
 function buildMetaDescription(page: Page): string {
-  const city = humanize(page.city_slug);
-  const topic = humanize(page.material_slug) || humanize(page.service_slug) || "matériaux en vrac et dompes";
+  const city = cityOf(page);
+  const topic = topicOf(page, "matériaux en vrac et dompes");
   const target = city
     ? `Vrac Québec coordonne la livraison de ${topic.toLowerCase()} à ${city} avec Transport JSC. Fournisseurs vérifiés, réponse rapide, aucun engagement.`
     : `Vrac Québec coordonne la livraison de ${topic.toLowerCase()} au Québec avec Transport JSC. Fournisseurs vérifiés, réponse rapide, aucun engagement.`;
@@ -86,8 +118,8 @@ function buildMetaDescription(page: Page): string {
 }
 
 function buildOpenGraph(page: Page, metaTitle: string, metaDesc: string): { og_title: string; og_description: string } {
-  const city = humanize(page.city_slug);
-  const topic = humanize(page.material_slug) || humanize(page.service_slug) || "Matériaux en vrac";
+  const city = cityOf(page);
+  const topic = topicOf(page);
   const ogTitleCore = city ? `${topic} à ${city} — Vrac Québec` : `${topic} — Vrac Québec`;
   const og_title = clip(ogTitleCore, 30, 88);
   const og_description = clip(metaDesc || `Plateforme québécoise pour ${topic.toLowerCase()}${city ? ` à ${city}` : ""}. Coordination Transport JSC, matériaux vérifiés.`, 80, 195);
@@ -95,8 +127,8 @@ function buildOpenGraph(page: Page, metaTitle: string, metaDesc: string): { og_t
 }
 
 function buildKeywords(page: Page): string[] {
-  const city = humanize(page.city_slug).toLowerCase();
-  const topic = humanize(page.material_slug).toLowerCase() || humanize(page.service_slug).toLowerCase();
+  const city = cityOf(page).toLowerCase();
+  const topic = topicOf(page, "").toLowerCase();
   const kws: string[] = [];
   if (topic && city) {
     kws.push(
@@ -134,10 +166,10 @@ function buildKeywords(page: Page): string[] {
 }
 
 function buildFaq(page: Page): Array<{ question: string; answer: string }> {
-  const cityRaw = humanize(page.city_slug);
+  const cityRaw = cityOf(page);
   const city = cityRaw || "votre secteur";
-  const materialRaw = humanize(page.material_slug);
-  const serviceRaw = humanize(page.service_slug);
+  const materialRaw = (page.material_name || "").trim() || humanize(page.material_slug);
+  const serviceRaw = (page.service_name || "").trim() || humanize(page.service_slug);
   const topicHuman = materialRaw || serviceRaw || "matériaux en vrac";
   const topic = topicHuman.toLowerCase();
 
@@ -206,6 +238,17 @@ Deno.serve(async (req) => {
     if (pErr || !page) return json({ error: pErr?.message || "Page introuvable" }, 404);
     const p = page as Page;
 
+    // Résout les vrais noms (accentués) du référentiel pour ne jamais générer
+    // « Beton à Quebec » à partir d'un slug sans accents.
+    const [cityRow, matRow, svcRow] = await Promise.all([
+      p.city_slug ? supabase.from("seo_cities").select("name").eq("slug", p.city_slug).maybeSingle() : Promise.resolve({ data: null }),
+      p.material_slug ? supabase.from("seo_materials").select("name").eq("slug", p.material_slug).maybeSingle() : Promise.resolve({ data: null }),
+      p.service_slug ? supabase.from("seo_services").select("name").eq("slug", p.service_slug).maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+    p.city_name = (cityRow as { data: { name?: string } | null }).data?.name ?? null;
+    p.material_name = (matRow as { data: { name?: string } | null }).data?.name ?? null;
+    p.service_name = (svcRow as { data: { name?: string } | null }).data?.name ?? null;
+
     // "Fix all" (empty actions) selects deterministic actions only.
     const wantAll = requestedActions.length === 0;
     const deterministicSet = new Set([
@@ -257,11 +300,15 @@ Deno.serve(async (req) => {
     let newMetaTitle = p.meta_title ?? "";
     if (want("rewrite_meta_title")) {
       const current = (p.meta_title ?? "").trim();
-      const weak = current.length < 25 || current.length > 65 || await isDuplicate("meta_title", current);
-      if (!weak) {
+      // Un titre descriptif un peu long n'est pas « faible » : on le raccourcit sans
+      // perdre son information, au lieu de le remplacer par un titre générique.
+      const tooLong = current.length > 65;
+      const needsRewrite = current.length < 25 || await isDuplicate("meta_title", current);
+      if (!needsRewrite && !tooLong) {
         preserved.push("meta_title");
       } else {
-        const mt = await uniquify("meta_title", buildMetaTitle(p), 65);
+        const candidate = needsRewrite ? buildMetaTitle(p) : shortenTitle(current);
+        const mt = await uniquify("meta_title", candidate, 65);
         if (mt && mt !== current) {
           updates.meta_title = mt;
           newMetaTitle = mt;
@@ -291,8 +338,8 @@ Deno.serve(async (req) => {
       if (currentH1.length >= 15) {
         preserved.push("h1");
       } else {
-        const city = humanize(p.city_slug);
-        const topic = humanize(p.material_slug) || humanize(p.service_slug) || "Matériaux en vrac";
+        const city = cityOf(p);
+        const topic = topicOf(p);
         const h1 = (p.title && p.title.trim().length >= 15)
           ? p.title.trim()
           : (city ? `${topic} à ${city}` : `${topic} au Québec`);
