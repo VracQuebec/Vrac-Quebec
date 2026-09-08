@@ -314,6 +314,19 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
           </button>
         </div>
 
+        {triage && (
+          <div className="px-3 py-2 border-b border-border shrink-0 flex flex-wrap items-center gap-2 text-xs">
+            {Object.entries(TRIAGE_LABELS).map(([key, label]) => (
+              <span key={key} className="rounded-full border border-border px-2.5 py-1">
+                {label} : <strong>{(triage.by_category?.[key] ?? 0).toLocaleString("fr-CA")}</strong>
+              </span>
+            ))}
+            <span className="rounded-full bg-secondary px-2.5 py-1 text-muted-foreground">
+              Sans impression (28 j) : <strong>{(triage.gsc_zero_impressions ?? 0).toLocaleString("fr-CA")}</strong>
+            </span>
+          </div>
+        )}
+
         {counts && queue?.run && (
           <div className="px-3 py-2 border-b border-border shrink-0 bg-secondary/40 space-y-2">
             <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs">
