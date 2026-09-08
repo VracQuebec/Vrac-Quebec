@@ -47,6 +47,8 @@ type Page = {
   id: string;
   slug: string;
   title: string | null;
+  h1: string | null;
+  word_count: number | null;
   meta_title: string | null;
   meta_description: string | null;
   content_html: string | null;
