@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Loader2, Sparkles, X, ExternalLink, AlertTriangle, CheckCircle2, Search,
-  RefreshCw, ChevronRight, Check, Ban,
+  RefreshCw, ChevronRight, Ban,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
+import { useBulkOptimization, type BulkTask } from "@/lib/seo/useBulkOptimization";
 import ImproveDialog from "@/components/seo/ImproveDialog";
 
 export type Scope = "to_optimize" | "zero_impressions";
@@ -134,8 +135,6 @@ export function analyzePage(c: Candidate) {
   return { good, bad, reco: Array.from(new Set(reco)), why };
 }
 
-type JobState = "pending" | "analyzing" | "proposed" | "applied" | "error" | "skipped";
-
 export default function OptimizationCenter({ scope, onClose, onChanged }: {
   scope: Scope; onClose: () => void; onChanged: () => void;
 }) {
@@ -144,10 +143,16 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [detail, setDetail] = useState<Candidate | null>(null);
   const [improve, setImprove] = useState<Candidate | null>(null);
-  const [jobs, setJobs] = useState<Record<string, { state: JobState; improvementId?: string; message?: string }>>({});
-  const [running, setRunning] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [q, setQ] = useState("");
   const [priority, setPriority] = useState<"all" | "haute" | "moyenne" | "basse">("all");
+
+  // File d'attente persistée partagée avec le reste du moteur SEO (aucun système parallèle).
+  const bulk = useBulkOptimization();
+  const queue = bulk.state;
+  const counts = queue?.counts ?? null;
+  const runStatus = queue?.run?.status ?? null;
+  const active = bulk.isActive;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -160,6 +165,13 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
   }, [scope]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Quand la file se termine, on rafraîchit les données réelles des pages.
+  const prevActive = useRef(false);
+  useEffect(() => {
+    if (prevActive.current && !active) { void load(); onChanged(); }
+    prevActive.current = active;
+  }, [active, load, onChanged]);
 
   const filtered = useMemo(() => rows.filter((r) => {
     if (priority !== "all" && r.priority_level !== priority) return false;
@@ -176,63 +188,61 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
   const toggleAll = () => setSelected((prev) =>
     prev.size === filtered.length ? new Set() : new Set(filtered.map((r) => r.id)));
 
-  const progress = useMemo(() => {
-    const list = Object.values(jobs);
-    return {
-      selected: selected.size,
-      analyzed: list.filter((j) => j.state === "proposed" || j.state === "applied").length,
-      applied: list.filter((j) => j.state === "applied").length,
-      pendingValidation: list.filter((j) => j.state === "proposed").length,
-      errors: list.filter((j) => j.state === "error").length,
-      skipped: list.filter((j) => j.state === "skipped").length,
-    };
-  }, [jobs, selected]);
+  // État réel (serveur) de chaque page présente dans la file en cours.
+  const taskBySlug = useMemo(() => {
+    const m = new Map<string, BulkTask>();
+    for (const t of queue?.recent ?? []) if (!m.has(t.slug)) m.set(t.slug, t);
+    return m;
+  }, [queue]);
 
-  /** File de production séquentielle : une page à la fois, aucune application automatique. */
-  const runBatch = async () => {
+  const pct = counts && counts.total > 0
+    ? Math.round(((counts.completed + counts.skipped + counts.errors) / counts.total) * 100)
+    : 0;
+
+  /** Lance la file persistée sur la sélection : un seul clic, le serveur fait le reste. */
+  const runSelection = async () => {
     const ids = filtered.filter((r) => selected.has(r.id)).map((r) => r.id);
     if (ids.length === 0) return;
-    setRunning(true);
-    setJobs(Object.fromEntries(ids.map((id) => [id, { state: "pending" as JobState }])));
-    for (const id of ids) {
-      const page = rows.find((r) => r.id === id)!;
-      // Anti-doublon : une page déjà optimisée il y a moins de 24 h est ignorée.
-      if (page.last_improved_at && Date.now() - new Date(page.last_improved_at).getTime() < 86400_000) {
-        setJobs((j) => ({ ...j, [id]: { state: "skipped", message: "Déjà optimisée il y a moins de 24 h" } }));
-        continue;
+    if (!window.confirm(`${ids.length} page(s) seront optimisées automatiquement. Continuer ?`)) return;
+    setStarting(true);
+    try {
+      const { data, error } = await supabase.rpc("seo_bulk_start_pages" as never, {
+        _page_ids: ids, _mode: "optimize", _concurrency: 3, _force: false,
+      } as never);
+      if (error) throw error;
+      const res = data as unknown as { run_id: string; total: number; already_active?: boolean };
+      if (res.already_active) {
+        toast.message("Un traitement est déjà en cours — il se poursuit automatiquement.");
+      } else {
+        toast.success(`File lancée : ${res.total} page(s) en traitement automatique.`);
       }
-      setJobs((j) => ({ ...j, [id]: { state: "analyzing" } }));
-      try {
-        const { data, error } = await invokeWithFreshSession("seo-improve-page", { page_id: id, mode: "propose" });
-        if (error) throw new Error(error.message);
-        const d = data as { improvement_id?: string; error?: string };
-        if (d?.error) throw new Error(d.error);
-        if (!d?.improvement_id) throw new Error("Réponse IA invalide");
-        setJobs((j) => ({ ...j, [id]: { state: "proposed", improvementId: d.improvement_id } }));
-      } catch (e) {
-        setJobs((j) => ({ ...j, [id]: { state: "error", message: e instanceof Error ? e.message : "Erreur" } }));
-      }
+      await invokeWithFreshSession("seo-optimize-worker", { run_id: res.run_id });
+      await bulk.reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Impossible de lancer la file");
+    } finally {
+      setStarting(false);
     }
-    setRunning(false);
-    toast.success("File terminée — les propositions attendent votre validation.");
   };
 
-  const applyJob = async (id: string) => {
-    const job = jobs[id];
-    if (!job?.improvementId) return;
-    setJobs((j) => ({ ...j, [id]: { ...j[id], state: "analyzing" } }));
+  /** « Optimiser toutes les pages nécessitant une optimisation » — sélection automatique côté serveur. */
+  const runAllNeeding = async () => {
+    setStarting(true);
     try {
-      const { data, error } = await invokeWithFreshSession("seo-improve-page", {
-        page_id: id, mode: "apply", improvement_id: job.improvementId,
-      });
-      if (error) throw new Error(error.message);
-      if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
-      setJobs((j) => ({ ...j, [id]: { state: "applied" } }));
-      await load();
-      onChanged();
+      const p = await bulk.preview("optimize", "all");
+      if (p.will_process === 0) { toast.message("Aucune page ne nécessite d'optimisation."); return; }
+      if (!window.confirm(`${p.will_process} page(s) seront optimisées automatiquement. Continuer ?`)) return;
+      const res = await bulk.start("optimize", "all");
+      toast.success(`File lancée : ${res.total} page(s).`);
     } catch (e) {
-      setJobs((j) => ({ ...j, [id]: { state: "error", message: e instanceof Error ? e.message : "Erreur" } }));
+      toast.error(e instanceof Error ? e.message : "Impossible de lancer la file");
+    } finally {
+      setStarting(false);
     }
+  };
+
+  const control = async (action: "pause" | "resume" | "cancel" | "retry") => {
+    try { await bulk.control(action); } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
   };
 
   const title = scope === "zero_impressions" ? "Pages sans impression" : "Centre d'optimisation SEO";
@@ -271,22 +281,54 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
           <button onClick={toggleAll} className="px-3 py-2 rounded-md border border-border text-sm font-display font-semibold hover:bg-secondary">
             {selected.size === filtered.length && filtered.length > 0 ? "Tout désélectionner" : "Tout sélectionner"}
           </button>
-          <button onClick={runBatch} disabled={running || selected.size === 0}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-bold disabled:opacity-50">
-            {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+          <button onClick={runSelection} disabled={starting || active || selected.size === 0}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-border text-sm font-display font-bold disabled:opacity-50">
+            {starting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             Optimiser la sélection ({selected.size})
+          </button>
+          <button onClick={runAllNeeding} disabled={starting || active}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-bold disabled:opacity-50">
+            <Sparkles className="w-4 h-4" />
+            Optimiser en lot — toutes les pages à optimiser
           </button>
         </div>
 
-        {Object.keys(jobs).length > 0 && (
-          <div className="px-3 py-2 border-b border-border grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs shrink-0 bg-secondary/40">
-            <Chip label="Sélectionnées" value={progress.selected} />
-            <Chip label="Analysées" value={progress.analyzed} />
-            <Chip label="Optimisées" value={progress.applied} tone="positive" />
-            <Chip label="À valider" value={progress.pendingValidation} tone="warning" />
-            <Chip label="Erreurs" value={progress.errors} tone={progress.errors ? "danger" : undefined} />
+        {counts && queue?.run && (
+          <div className="px-3 py-2 border-b border-border shrink-0 bg-secondary/40 space-y-2">
+            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs">
+              <Chip label="Total" value={counts.total} />
+              <Chip label="Traitées" value={counts.completed} tone="positive" />
+              <Chip label="En cours" value={counts.in_progress} />
+              <Chip label="En attente" value={counts.pending} />
+              <Chip label="Ignorées" value={counts.skipped} />
+              <Chip label="Erreurs" value={counts.errors} tone={counts.errors ? "danger" : undefined} />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="h-2 flex-1 min-w-[140px] rounded-full bg-border overflow-hidden">
+                <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+              </div>
+              <span className="text-xs font-display font-bold">{pct} %</span>
+              <span className="text-[11px] text-muted-foreground truncate">
+                {runStatus === "running" && queue.current_page ? `En cours : ${queue.current_page.title}` : `Statut : ${runStatus}`}
+              </span>
+              {runStatus === "running" && (
+                <button onClick={() => control("pause")} className="px-2 py-1 rounded border border-border text-xs font-semibold">Pause</button>
+              )}
+              {runStatus === "paused" && (
+                <button onClick={() => control("resume")} className="px-2 py-1 rounded bg-primary text-primary-foreground text-xs font-semibold">Reprendre</button>
+              )}
+              {active && (
+                <button onClick={() => control("cancel")} className="px-2 py-1 rounded border border-border text-xs font-semibold">Annuler le reste</button>
+              )}
+              {counts.errors > 0 && (
+                <button onClick={() => control("retry")} className="px-2 py-1 rounded border border-destructive text-destructive text-xs font-semibold">
+                  Réessayer les {counts.errors} erreurs
+                </button>
+              )}
+            </div>
           </div>
         )}
+
 
         <div className="flex-1 overflow-y-auto">
           {loading ? (
@@ -313,7 +355,7 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.map((r) => {
-                  const job = jobs[r.id];
+                  const task = taskBySlug.get(r.slug);
                   const diag = scope === "zero_impressions" ? diagnoseZeroImpression(r) : null;
                   return (
                     <tr key={r.id} className="hover:bg-secondary/30 align-top">
@@ -353,7 +395,7 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
                       </td>
                       <td className="p-2">
                         <PriorityBadge level={r.priority_level} />
-                        {job && <div className="mt-1"><JobBadge job={job} onApply={() => applyJob(r.id)} /></div>}
+                        {task && <div className="mt-1"><TaskBadge task={task} /></div>}
                       </td>
                       <td className="p-2 text-right whitespace-nowrap">
                         <a href={`/${r.slug}`} target="_blank" rel="noreferrer" className="inline-flex p-1.5 text-primary hover:underline">
@@ -411,17 +453,27 @@ function PriorityBadge({ level }: { level: string }) {
   return <span className={`px-1.5 py-0.5 rounded text-[10px] font-display font-bold uppercase ${cls}`}>{level}</span>;
 }
 
-function JobBadge({ job, onApply }: { job: { state: JobState; message?: string }; onApply: () => void }) {
-  if (job.state === "analyzing") return <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" /> Analyse…</span>;
-  if (job.state === "pending") return <span className="text-[10px] text-muted-foreground">En file…</span>;
-  if (job.state === "applied") return <span className="inline-flex items-center gap-1 text-[10px] text-primary"><CheckCircle2 className="w-3 h-3" /> Optimisée</span>;
-  if (job.state === "skipped") return <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground" title={job.message}><Ban className="w-3 h-3" /> Ignorée</span>;
-  if (job.state === "error") return <span className="inline-flex items-center gap-1 text-[10px] text-destructive" title={job.message}><AlertTriangle className="w-3 h-3" /> Erreur</span>;
-  return (
-    <button onClick={onApply} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary text-primary-foreground text-[10px] font-display font-bold">
-      <Check className="w-3 h-3" /> Appliquer
-    </button>
-  );
+function TaskBadge({ task }: { task: BulkTask }) {
+  const s = task.status;
+  if (["claimed", "analyzing", "optimizing", "qa", "publishing"].includes(s)) {
+    return <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" /> En cours…</span>;
+  }
+  if (s === "pending") return <span className="text-[10px] text-muted-foreground">En file…</span>;
+  if (s === "completed") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] text-primary">
+        <CheckCircle2 className="w-3 h-3" /> Optimisée
+        {task.qa_before != null && task.qa_after != null ? ` ${task.qa_before} → ${task.qa_after}` : ""}
+      </span>
+    );
+  }
+  if (s === "skipped" || s === "cancelled") {
+    return <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground" title={task.skip_reason ?? undefined}><Ban className="w-3 h-3" /> Ignorée</span>;
+  }
+  if (s === "error") {
+    return <span className="inline-flex items-center gap-1 text-[10px] text-destructive" title={task.error ?? undefined}><AlertTriangle className="w-3 h-3" /> À réessayer</span>;
+  }
+  return null;
 }
 
 function PageAnalysis({ page, scope, onClose, onImprove }: {
