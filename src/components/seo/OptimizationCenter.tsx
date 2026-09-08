@@ -270,26 +270,27 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
 
         <div className="p-3 border-b border-border flex flex-wrap items-center gap-2 shrink-0">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher une page…"
-            className="px-3 py-2 rounded-md border border-border bg-background text-sm flex-1 min-w-[180px]" />
+            className="min-h-10 w-full flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm sm:w-auto sm:min-w-[180px]" />
           <select value={priority} onChange={(e) => setPriority(e.target.value as typeof priority)}
-            className="px-3 py-2 rounded-md border border-border bg-background text-sm">
+            className="min-h-10 min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm sm:flex-none">
             <option value="all">Toutes priorités</option>
             <option value="haute">Priorité haute</option>
             <option value="moyenne">Priorité moyenne</option>
             <option value="basse">Priorité basse</option>
           </select>
-          <button onClick={toggleAll} className="px-3 py-2 rounded-md border border-border text-sm font-display font-semibold hover:bg-secondary">
+          <button onClick={toggleAll} className="min-h-10 rounded-md border border-border px-3 py-2 text-sm font-display font-semibold hover:bg-secondary">
             {selected.size === filtered.length && filtered.length > 0 ? "Tout désélectionner" : "Tout sélectionner"}
           </button>
           <button onClick={runSelection} disabled={starting || active || selected.size === 0}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-border text-sm font-display font-bold disabled:opacity-50">
+            className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm font-display font-bold disabled:opacity-50 sm:flex-none">
             {starting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             Optimiser la sélection ({selected.size})
           </button>
           <button onClick={runAllNeeding} disabled={starting || active}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-bold disabled:opacity-50">
-            <Sparkles className="w-4 h-4" />
-            Optimiser en lot — toutes les pages à optimiser
+            className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-display font-bold text-primary-foreground disabled:opacity-50 sm:w-auto">
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline">Optimiser en lot — toutes les pages à optimiser</span>
+            <span className="sm:hidden">Optimiser en lot</span>
           </button>
         </div>
 
