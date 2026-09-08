@@ -65,11 +65,26 @@ type Page = {
   service_slug: string | null;
   og_title: string | null;
   og_description: string | null;
+  // Noms réels (avec accents) résolus depuis le référentiel; fallback sur le slug.
+  city_name?: string | null;
+  material_name?: string | null;
+  service_name?: string | null;
 };
 
+function cityOf(page: Page): string {
+  return (page.city_name || "").trim() || humanize(page.city_slug);
+}
+function topicOf(page: Page, fallback = "Matériaux en vrac"): string {
+  return (page.material_name || "").trim()
+    || (page.service_name || "").trim()
+    || humanize(page.material_slug)
+    || humanize(page.service_slug)
+    || fallback;
+}
+
 function buildMetaTitle(page: Page): string {
-  const city = humanize(page.city_slug);
-  const topic = humanize(page.material_slug) || humanize(page.service_slug) || "Matériaux en vrac";
+  const city = cityOf(page);
+  const topic = topicOf(page);
   const suffix = " | Vrac Québec";
   const core = city ? `${topic} à ${city}` : topic;
   return clip(core + suffix, 40, 63);
