@@ -16291,6 +16291,7 @@ export type Database = {
         }[]
       }
       seo_page_publish: { Args: { _page_id: string }; Returns: Json }
+      seo_page_rollback: { Args: { _improvement_id: string }; Returns: Json }
       seo_page_save: { Args: { _page_id: string; _patch: Json }; Returns: Json }
       seo_pipeline_cancel: { Args: { _run_id: string }; Returns: undefined }
       seo_pipeline_detect_stalls: {
