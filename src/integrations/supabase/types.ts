@@ -854,6 +854,13 @@ export type Database = {
             foreignKeyName: "blog_seo_links_seo_page_id_fkey"
             columns: ["seo_page_id"]
             isOneToOne: false
+            referencedRelation: "seo_page_triage_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_seo_links_seo_page_id_fkey"
+            columns: ["seo_page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -11818,6 +11825,13 @@ export type Database = {
             foreignKeyName: "seo_gsc_metrics_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_page_triage_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_gsc_metrics_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -11997,6 +12011,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "seo_gsc_ga4_merged_v"
             referencedColumns: ["page_id"]
+          },
+          {
+            foreignKeyName: "seo_opportunities_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_page_triage_v"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "seo_opportunities_page_id_fkey"
@@ -12263,6 +12284,13 @@ export type Database = {
             foreignKeyName: "seo_optimization_tasks_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_page_triage_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_optimization_tasks_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -12376,6 +12404,13 @@ export type Database = {
             foreignKeyName: "seo_page_analytics_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_page_triage_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_page_analytics_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -12464,6 +12499,13 @@ export type Database = {
             foreignKeyName: "seo_page_improvements_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_page_triage_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_page_improvements_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -12520,6 +12562,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "seo_gsc_ga4_merged_v"
             referencedColumns: ["page_id"]
+          },
+          {
+            foreignKeyName: "seo_page_scores_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: true
+            referencedRelation: "seo_page_triage_v"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "seo_page_scores_page_id_fkey"
@@ -12901,6 +12950,13 @@ export type Database = {
             foreignKeyName: "seo_pagespeed_snapshots_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_page_triage_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_pagespeed_snapshots_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -13034,6 +13090,13 @@ export type Database = {
             foreignKeyName: "seo_qa_reports_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_page_triage_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_qa_reports_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -13124,6 +13187,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "seo_gsc_ga4_merged_v"
             referencedColumns: ["page_id"]
+          },
+          {
+            foreignKeyName: "seo_recommendations_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "seo_page_triage_v"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "seo_recommendations_page_id_fkey"
@@ -15088,6 +15158,13 @@ export type Database = {
             foreignKeyName: "seo_gsc_metrics_page_id_fkey"
             columns: ["page_id"]
             isOneToOne: false
+            referencedRelation: "seo_page_triage_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_gsc_metrics_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
             referencedRelation: "seo_pages"
             referencedColumns: ["id"]
           },
@@ -15124,6 +15201,36 @@ export type Database = {
           submissions: number | null
           views: number | null
           whatsapp_clicks: number | null
+        }
+        Relationships: []
+      }
+      seo_page_triage_v: {
+        Row: {
+          city_slug: string | null
+          dup_meta: boolean | null
+          dup_title: boolean | null
+          google_index_status: string | null
+          gsc_clicks: number | null
+          gsc_impressions: number | null
+          gsc_position: number | null
+          has_gsc_data: boolean | null
+          id: string | null
+          material_slug: string | null
+          needs_refresh: boolean | null
+          score: number | null
+          slug: string | null
+          status: string | null
+          thin_content: boolean | null
+          title: string | null
+          triage: string | null
+          triage_priority: number | null
+          weak_faq: boolean | null
+          weak_h1: boolean | null
+          weak_headings: boolean | null
+          weak_links: boolean | null
+          weak_meta: boolean | null
+          weak_title: boolean | null
+          word_count: number | null
         }
         Relationships: []
       }
@@ -16249,6 +16356,7 @@ export type Database = {
         }[]
       }
       seo_territorial_coverage: { Args: never; Returns: Json }
+      seo_triage_summary: { Args: never; Returns: Json }
       seo_validate_page_fields: {
         Args: {
           _city_slug: string
