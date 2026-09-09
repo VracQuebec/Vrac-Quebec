@@ -103,7 +103,13 @@ async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: s
     const res = await fetch(`${supaUrl}/functions/v1/seo-qa-autofix`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
-      body: JSON.stringify({ page_id: task.page_id, actions: run.actions ?? [] }),
+      // Les actions IA (enrichissement additif) ne s'exécutent que si le run les
+      // demande explicitement — sinon on reste 100 % déterministe.
+      body: JSON.stringify({
+        page_id: task.page_id,
+        actions: run.actions ?? [],
+        allow_ai: (run.actions ?? []).some((a) => ["enrich_content", "expand_content", "rebuild_headings", "improve_readability"].includes(a)),
+      }),
     });
     const body = await res.json().catch(() => ({}));
     // Edge Function runtime/gateway limits: retry without penalizing the task.

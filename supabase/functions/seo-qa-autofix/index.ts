@@ -20,7 +20,7 @@ const CORS = {
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
 
-const AI_ACTIONS = new Set(["expand_content", "rebuild_headings", "improve_readability"]);
+const AI_ACTIONS = new Set(["expand_content", "rebuild_headings", "improve_readability", "enrich_content"]);
 
 function stripHtml(html: string): string {
   return (html || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -445,6 +445,76 @@ Deno.serve(async (req) => {
       if (html.trim().length > 400 && !/\/transport-request/.test(html)) {
         updates.content_html = html + ctaBlock;
         fixedActions.push("insert_ctas");
+      }
+    }
+
+    // ----- Enrichissement additif (opt-in) : n'écrase JAMAIS le contenu existant -----
+    // On ajoute uniquement de nouvelles sections H2 en fin de page. Le contenu déjà
+    // en ligne (et donc son historique Google) reste intact, mot pour mot.
+    if (allowAi && want("enrich_content")) {
+      const apiKey = Deno.env.get("LOVABLE_API_KEY");
+      if (!apiKey) return json({ error: "LOVABLE_API_KEY manquante pour enrich_content." }, 500);
+      const baseHtml = String(updates.content_html ?? p.content_html ?? "");
+      const existingH2 = (baseHtml.match(/<h2[^>]*>([\s\S]*?)<\/h2>/gi) ?? [])
+        .map((h) => stripHtml(h)).filter(Boolean);
+      // Angles des pages voisines : sert à éviter le contenu quasi identique.
+      const { data: neighbours } = await supabase
+        .from("seo_pages")
+        .select("slug, title")
+        .eq("status", "published")
+        .neq("id", pageId)
+        .eq("city_slug", p.city_slug ?? "___none___")
+        .limit(12);
+      const city = cityOf(p);
+      const topic = topicOf(p);
+      aiCalls++;
+      try {
+        const { callAIChatCached } = await import("../_shared/ai-cache.ts");
+        const ai = await callAIChatCached({
+          supabase,
+          functionName: "seo-qa-autofix:enrich",
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content:
+                "Tu es rédacteur SEO québécois pour Vrac Québec, plateforme de mise en relation (matériaux en vrac, dompes, transport) qui coordonne avec Transport JSC. " +
+                "Tu écris en français du Québec, accents et noms propres exacts. " +
+                "INTERDIT : inventer un prix, une adresse, un numéro de téléphone, un délai garanti, un service non mentionné, une zone desservie non mentionnée, un témoignage ou une statistique. " +
+                "INTERDIT : bourrage de mots-clés, répétitions, paraphrase du contenu existant. " +
+                "Tu produis uniquement des sections NOUVELLES et réellement utiles à un internaute. JSON strict, sans markdown.",
+            },
+            {
+              role: "user",
+              content:
+                `Page : ${p.title ?? p.slug}\nVille : ${city || "non spécifiée"}\nSujet : ${topic}\n` +
+                `Sections déjà présentes (ne pas les refaire) : ${existingH2.join(" ; ") || "aucune"}\n` +
+                `Pages voisines du même secteur (ne pas dupliquer leur angle) : ${(neighbours ?? []).map((n) => n.title).join(" ; ")}\n\n` +
+                `Contenu actuel (à conserver tel quel, tu ne le réécris pas) :\n${stripHtml(baseHtml).slice(0, 5000)}\n\n` +
+                `Rédige 2 à 4 NOUVELLES sections HTML (<h2> + <p>/<ul>) totalisant 350 à 650 mots, qui complètent la page : ` +
+                `contexte local concret (accès, type de chantiers, saisonnalité, contraintes routières régionales), ` +
+                `couverture réelle de l'intention de recherche (quoi demander, comment estimer le volume, quoi préparer avant la livraison), ` +
+                `et usages concrets du matériau ou du service lorsque pertinent. ` +
+                `Format : { "sections_html": "..." }`,
+            },
+          ],
+          response_format: { type: "json_object" },
+          allowAi: true,
+        });
+        const parsed = JSON.parse(ai.content || "{}") as { sections_html?: string };
+        let add = typeof parsed.sections_html === "string" ? parsed.sections_html : "";
+        // Garde-fous : pas de script/style, pas de H1 concurrent, pas de prix inventé.
+        add = add.replace(/<\/?(script|style)[^>]*>/gi, "").replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, "");
+        const hasFakePrice = /\d[\d\s.,]*\s*(\$|dollars)/i.test(stripHtml(add));
+        const words = stripHtml(add).split(/\s+/).filter(Boolean).length;
+        if (add.length > 300 && words >= 200 && !hasFakePrice) {
+          updates.content_html = `${baseHtml}\n${add}`;
+          fixedActions.push("enrich_content");
+        } else {
+          preserved.push("content_html");
+        }
+      } catch {
+        preserved.push("content_html");
       }
     }
 
