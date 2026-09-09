@@ -13288,6 +13288,84 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_wave1_before_20260909: {
+        Row: {
+          captured_at: string | null
+          content_html: string | null
+          faq: Json | null
+          gsc_clicks: number | null
+          gsc_impressions: number | null
+          h1: string | null
+          id: string | null
+          internal_link_count: number | null
+          internal_links: Json | null
+          intro: string | null
+          keywords: string[] | null
+          meta_description: string | null
+          meta_title: string | null
+          needs_refresh: boolean | null
+          seo_score: number | null
+          slug: string | null
+          status: string | null
+          title: string | null
+          triage: string | null
+          triage_priority: number | null
+          updated_at: string | null
+          weak_links: boolean | null
+          word_count: number | null
+        }
+        Insert: {
+          captured_at?: string | null
+          content_html?: string | null
+          faq?: Json | null
+          gsc_clicks?: number | null
+          gsc_impressions?: number | null
+          h1?: string | null
+          id?: string | null
+          internal_link_count?: number | null
+          internal_links?: Json | null
+          intro?: string | null
+          keywords?: string[] | null
+          meta_description?: string | null
+          meta_title?: string | null
+          needs_refresh?: boolean | null
+          seo_score?: number | null
+          slug?: string | null
+          status?: string | null
+          title?: string | null
+          triage?: string | null
+          triage_priority?: number | null
+          updated_at?: string | null
+          weak_links?: boolean | null
+          word_count?: number | null
+        }
+        Update: {
+          captured_at?: string | null
+          content_html?: string | null
+          faq?: Json | null
+          gsc_clicks?: number | null
+          gsc_impressions?: number | null
+          h1?: string | null
+          id?: string | null
+          internal_link_count?: number | null
+          internal_links?: Json | null
+          intro?: string | null
+          keywords?: string[] | null
+          meta_description?: string | null
+          meta_title?: string | null
+          needs_refresh?: boolean | null
+          seo_score?: number | null
+          slug?: string | null
+          status?: string | null
+          title?: string | null
+          triage?: string | null
+          triage_priority?: number | null
+          updated_at?: string | null
+          weak_links?: boolean | null
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       seo_waves: {
         Row: {
           active: boolean
