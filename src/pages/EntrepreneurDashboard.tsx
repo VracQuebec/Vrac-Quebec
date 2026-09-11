@@ -140,6 +140,19 @@ export default function EntrepreneurDashboard() {
           <ErrorState onRetry={refresh} />
         ) : (
           <>
+            {/* ---------- Rien en attente : le dire clairement ---------- */}
+            {todo.length === 0 && (
+              <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <div className="min-w-0">
+                  <p className="font-display text-sm font-bold">Rien ne vous attend</p>
+                  <p className="font-body text-xs text-muted-foreground">
+                    Aucune action de votre part n'est requise pour le moment.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* ---------- À faire ---------- */}
             {todo.length > 0 && (
               <section aria-labelledby="a-faire">
