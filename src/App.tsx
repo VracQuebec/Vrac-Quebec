@@ -34,6 +34,7 @@ const Entrepreneur = lazy(() => import("./pages/Entrepreneur"));
 const EntrepreneurDashboard = lazy(() => import("./pages/EntrepreneurDashboard"));
 const EntrepreneurDemandes = lazy(() => import("./pages/EntrepreneurDemandes"));
 const EntrepreneurChantiers = lazy(() => import("./pages/EntrepreneurChantiers"));
+const EntrepreneurChantierDetail = lazy(() => import("./pages/EntrepreneurChantierDetail"));
 const EntrepreneurFavoris = lazy(() => import("./pages/EntrepreneurFavoris"));
 const EntrepreneurHistorique = lazy(() => import("./pages/EntrepreneurHistorique"));
 const EntrepreneurCompte = lazy(() => import("./pages/EntrepreneurCompte"));
