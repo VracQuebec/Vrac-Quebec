@@ -87,7 +87,7 @@ export const QuickActions = ({ actions }: { actions: QuickAction[] }) => {
           </>,
         )}
       {rest.length > 0 && (
-        <div className={`grid gap-2.5 ${rest.length >= 4 ? "grid-cols-2 sm:grid-cols-4" : `grid-cols-${rest.length}`}`}>
+        <div className={`grid gap-2.5 ${rest.length >= 4 ? "grid-cols-2 sm:grid-cols-4" : rest.length === 3 ? "grid-cols-3" : rest.length === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
           {rest.map((a) =>
             render(
               a,
