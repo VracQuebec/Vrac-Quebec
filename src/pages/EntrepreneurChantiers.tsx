@@ -3,11 +3,11 @@
 // Données : vue calculée partagée (aucune écriture).
 // ============================================================
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import { EmptyState, ErrorState, LoadingSkeleton } from "@/components/entrepreneur-app/AppStates";
+import { ChantierCard } from "@/components/entrepreneur-app/ui";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
-import { HardHat, ChevronRight, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 const FILTERS = [
   { key: "all", label: "Tous" },
@@ -83,26 +83,20 @@ export default function EntrepreneurChantiers() {
           />
         ) : (
           <div className="space-y-2.5">
-            {visible.map((c) => (
-              <Link
-                key={c.key}
-                to={`/entrepreneur/chantiers/${encodeURIComponent(c.key)}`}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 active:scale-[0.99] transition-transform"
-              >
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <HardHat className="h-6 w-6" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-display text-base font-bold">{c.label}</p>
-                  <p className="truncate font-body text-xs text-muted-foreground">
-                    {c.submissions.length} demande{c.submissions.length > 1 ? "s" : ""}
-                    {c.materials.length > 0 && ` · ${c.materials.slice(0, 2).join(", ")}`}
-                    {c.lastActivity && ` · ${new Date(c.lastActivity).toLocaleDateString("fr-CA")}`}
-                  </p>
-                </div>
-                <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-              </Link>
-            ))}
+            {visible.map((c) => {
+              const encours = c.submissions.some((s) => !isDone(s.status));
+              return (
+                <ChantierCard
+                  key={c.key}
+                  to={`/entrepreneur/chantiers/${encodeURIComponent(c.key)}`}
+                  label={c.label}
+                  detail={`${c.submissions.length} demande${c.submissions.length > 1 ? "s" : ""}${
+                    c.materials.length > 0 ? ` · ${c.materials.slice(0, 2).join(", ")}` : ""
+                  }${c.lastActivity ? ` · ${new Date(c.lastActivity).toLocaleDateString("fr-CA")}` : ""}`}
+                  badge={{ label: encours ? "En cours" : "Terminé", tone: encours ? "active" : "done" }}
+                />
+              );
+            })}
           </div>
         )}
       </div>
