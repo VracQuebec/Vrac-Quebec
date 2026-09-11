@@ -4,9 +4,10 @@
 // Aucune carte, aucune distance, aucune messagerie.
 // ============================================================
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Loader2, MapPin, Search, Truck } from "lucide-react";
+import { ChevronRight, Loader2, MapPin, Search, SlidersHorizontal, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { BottomSheet } from "@/components/entrepreneur-app/ui";
 import {
   loadAnnuaire,
   filterAnnuaire,
