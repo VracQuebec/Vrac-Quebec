@@ -184,6 +184,9 @@ const Admin = () => {
   const [rechecking, setRechecking] = useState<{ done: number; total: number } | null>(null);
   const [showStatusManager, setShowStatusManager] = useState(false);
   const [showNewLead, setShowNewLead] = useState(false);
+  // Sur téléphone, les actions secondaires sont regroupées sous un bouton
+  // « Toutes les actions » : rien n'est retiré, tout reste accessible.
+  const [actionsOpen, setActionsOpen] = useState(false);
   const [filterSource, setFilterSource] = useState<string>("all");
   const [showArchivedOnMap, setShowArchivedOnMap] = useState(false);
   const [tab, setTab] = useState<"leads" | "billing" | "entrepreneurs">("leads");
