@@ -146,6 +146,8 @@ export default function AnnuaireList() {
   const [filters, setFilters] = useState<AnnuaireFilters>(EMPTY_FILTERS);
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [reference, setReference] = useState<PublicLocalisation | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selected, setSelected] = useState<AnnuaireProfil | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
