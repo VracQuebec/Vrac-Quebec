@@ -817,6 +817,15 @@ const Admin = () => {
               <Plus className="w-4 h-4" /> Ajouter un Lead
             </button>
             <button
+              type="button"
+              onClick={() => setActionsOpen((v) => !v)}
+              aria-expanded={actionsOpen}
+              className="sm:hidden flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold"
+            >
+              <Settings className="w-4 h-4" /> {actionsOpen ? "Masquer les actions" : "Toutes les actions"}
+            </button>
+            <div className={`${actionsOpen ? "grid" : "hidden"} grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:!contents [&>*]:justify-center`}>
+            <button
               onClick={geocodeMissing}
               disabled={!!geocoding}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-sm font-display font-semibold hover:opacity-90 disabled:opacity-60"
