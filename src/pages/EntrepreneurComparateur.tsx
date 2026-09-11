@@ -76,6 +76,8 @@ export default function EntrepreneurComparateur() {
   const { user, isReady } = useAuthReady();
   const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, isReady);
 
+  // Chantier actif (lecture seule) : rappel du contexte pendant la comparaison.
+  const [activeChantier] = useState(() => loadActiveChantier());
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState("");
