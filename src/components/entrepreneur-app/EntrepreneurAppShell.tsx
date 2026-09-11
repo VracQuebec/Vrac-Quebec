@@ -23,6 +23,7 @@ import {
   ChevronRight,
   ArrowLeft,
   Truck,
+  LifeBuoy,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -55,10 +56,11 @@ const PRIMARY_TABS = [
 ] as const;
 
 const MORE_ITEMS = [
-  { to: "/entrepreneur/comparateur", label: "Comparateur de sites", icon: GitCompareArrows },
-  { to: "/entrepreneur/reseau", label: "Réseau professionnel", icon: Building2 },
-  { to: "/entrepreneur/historique", label: "Historique", icon: History },
-  { to: "/entrepreneur/compte", label: "Mon entreprise", icon: User },
+  { to: "/entrepreneur/compte", label: "Mon entreprise", hint: "Profil, camions, visibilité", icon: User },
+  { to: "/entrepreneur/reseau", label: "Réseau professionnel", hint: "Annuaire des entreprises", icon: Building2 },
+  { to: "/entrepreneur/notifications", label: "Notifications", hint: "Ce qui demande votre attention", icon: Bell },
+  { to: "/entrepreneur/comparateur", label: "Comparateur de sites", hint: "Comparer les dompes", icon: GitCompareArrows },
+  { to: "/entrepreneur/historique", label: "Historique", hint: "Vos demandes passées", icon: History },
 ] as const;
 
 const SIDEBAR_ITEMS = [
@@ -154,7 +156,7 @@ export default function EntrepreneurAppShell({
         </nav>
         <div className="px-3 py-4 border-t border-border space-y-1">
           <Link
-            to="/notifications"
+            to="/entrepreneur/notifications"
             className="flex items-center gap-3 rounded-xl px-3.5 py-3 min-h-11 font-body text-sm text-muted-foreground hover:bg-secondary"
           >
             <span className="relative">
@@ -207,7 +209,7 @@ export default function EntrepreneurAppShell({
             </div>
             {headerActions}
             <Link
-              to="/notifications"
+              to="/entrepreneur/notifications"
               aria-label={`Notifications${badge ? ` (${badge} non lues)` : ""}`}
               className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl hover:bg-secondary"
             >
@@ -285,24 +287,44 @@ export default function EntrepreneurAppShell({
           <SheetTitle className="sr-only">Plus d'options</SheetTitle>
           <div className="mx-auto mt-2 mb-4 h-1.5 w-10 rounded-full bg-border" />
           <nav className="space-y-1" aria-label="Sections secondaires">
-            {MORE_ITEMS.map(({ to, label, icon: Icon }) => (
+            {MORE_ITEMS.map(({ to, label, hint, icon: Icon }) => (
               <Link
                 key={to}
                 to={to}
                 onClick={() => setMoreOpen(false)}
-                className="flex items-center gap-3 rounded-2xl px-4 py-3.5 min-h-11 font-body font-semibold hover:bg-secondary"
+                className="flex items-center gap-3 rounded-2xl px-3 py-3 min-h-14 font-body font-semibold transition-transform active:scale-[0.99] hover:bg-secondary"
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Icon className="w-5 h-5" />
                 </span>
-                <span className="flex-1">{label}</span>
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{label}</span>
+                  <span className="block truncate font-body text-xs font-normal text-muted-foreground">{hint}</span>
+                </span>
+                <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
               </Link>
             ))}
+            <a
+              href="tel:5819947717"
+              onClick={() => setMoreOpen(false)}
+              className="flex items-center gap-3 rounded-2xl px-3 py-3 min-h-14 font-body font-semibold transition-transform active:scale-[0.99] hover:bg-secondary"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <LifeBuoy className="w-5 h-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">Aide</span>
+                <span className="block truncate font-body text-xs font-normal text-muted-foreground">
+                  Parler à quelqu'un : 581-994-7717
+                </span>
+              </span>
+              <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
+            </a>
           </nav>
+          <div className="my-3 h-px bg-border" />
           <button
             onClick={handleLogout}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-border px-4 py-3.5 min-h-11 font-body text-sm text-muted-foreground hover:bg-secondary"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border px-4 py-3.5 min-h-12 font-body text-sm text-muted-foreground transition-transform active:scale-[0.99] hover:bg-secondary"
           >
             <LogOut className="w-4 h-4" /> Déconnexion
           </button>
