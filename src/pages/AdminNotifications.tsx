@@ -101,30 +101,34 @@ export default function AdminNotifications() {
 
         <PushPanel />
 
-        <div className="flex gap-1 overflow-x-auto pb-1.5 mb-1.5 -mx-3 px-3 sm:mx-0 sm:px-0">
+        {/* Filtres : ils passent à la ligne — aucun filtre n'est caché hors de l'écran. */}
+        <div className="mb-1.5 flex flex-wrap gap-1">
           {FILTERS.map((f) => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-display font-bold ${
+              className={`px-2.5 py-1 rounded-full text-[11px] font-display font-bold ${
                 filter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
               {FILTER_LABELS[f]}
             </button>
           ))}
         </div>
 
-        <div className="flex gap-1 overflow-x-auto pb-1.5 mb-2 -mx-3 px-3 sm:mx-0 sm:px-0">
-          <button onClick={() => setCategory("all")}
-            className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-display font-semibold ${
-              category === "all" ? "bg-foreground text-background" : "bg-secondary text-foreground"}`}>
-            Toutes catégories
-          </button>
-          {CATEGORIES.map((c) => (
-            <button key={c} onClick={() => setCategory(c)}
-              className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-display font-semibold ${
-                category === c ? "bg-foreground text-background" : "bg-secondary text-foreground"}`}>
-              {CATEGORY_ICONS[c]} {CATEGORY_LABELS[c]}
-              {stats.byCategory[c] > 0 && <span className="ml-1 opacity-70">({stats.byCategory[c]})</span>}
+        {/* Catégories : elles passent à la ligne, toutes restent visibles. */}
+        <div className="mb-2">
+          <div className="flex flex-wrap gap-1">
+            <button onClick={() => setCategory("all")}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-display font-semibold ${
+                category === "all" ? "bg-foreground text-background" : "bg-secondary text-foreground"}`}>
+              Toutes catégories
             </button>
-          ))}
+            {CATEGORIES.map((c) => (
+              <button key={c} onClick={() => setCategory(c)}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-display font-semibold ${
+                  category === c ? "bg-foreground text-background" : "bg-secondary text-foreground"}`}>
+                {CATEGORY_ICONS[c]} {CATEGORY_LABELS[c]}
+                {stats.byCategory[c] > 0 && <span className="ml-1 opacity-70">({stats.byCategory[c]})</span>}
+              </button>
+            ))}
+          </div>
         </div>
 
         <button
