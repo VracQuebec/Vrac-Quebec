@@ -12,7 +12,7 @@ Trois piliers : **Mon activité**, **Mes chantiers**, **Mes demandes**. Le chant
 ENTREPRENEUR → CHANTIER → DEMANDE → RECHERCHE → SITE → TRANSPORT → SUIVI → HISTORIQUE
 ```
 
-Sections finales : Accueil · Chantiers · Demandes · Carte · Comparateur · Réseau · Avis · Notifications · Profil. Tout le reste (historique, favoris, annuaire, aide) vit dans « Plus » sur mobile, dans la barre latérale sur grand écran.
+Sections finales : Accueil · Chantiers · Demandes · Carte · Comparateur · Réseau · Avis · Notifications · Profil. Tout le reste (historique, annuaire, aide) vit dans « Plus » sur mobile, dans la barre latérale sur grand écran. Seules les fonctionnalités réellement disponibles aujourd'hui apparaissent au menu — rien n'est inventé.
 
 ## 2. Navigation mobile
 
@@ -44,14 +44,19 @@ Les blocs actuels (résumé d'activité, profil réseau, réseau, sites recomman
 
 ## 6. Structure « Mes chantiers »
 
-- Liste en cartes verticales : nom, ville, nombre de demandes, nombre de transports, badge de statut, bouton Ouvrir.
-- Filtres : En cours / Terminés / Tous. Recherche par nom ou ville.
-- Création/renommage d'un chantier possible (nouveau), sans casser les regroupements existants.
-- **Dossier chantier** : en-tête (nom, adresse, statut) puis onglets Aperçu · Demandes · Sites · Transports · Activité · Infos, et barre d'actions collante : Nouvelle demande · Trouver une dompe · Demander un transport.
+**Aucune nouvelle table ne sera créée.** La refonte utilise la vue calculée existante (regroupement des demandes par lieu), telle qu'elle fonctionne aujourd'hui.
+
+- Liste en cartes verticales : lieu, ville, nombre de demandes, nombre de transports, badge de statut, bouton Ouvrir.
+- Filtres : En cours / Terminés / Tous. Recherche par lieu ou ville.
+- **Dossier chantier** : en-tête (lieu, adresse, statut) puis onglets Aperçu · Demandes · Sites · Transports · Activité, et barre d'actions collante : Nouvelle demande · Trouver une dompe · Demander un transport.
+- Pas de création, renommage ni archivage de chantier dans cette refonte : ces actions supposeraient une entité persistée.
+
+**Si une véritable entité chantier devenait nécessaire plus tard** (pour nommer un chantier, l'archiver, y attacher des documents ou regrouper des demandes à des adresses différentes), je présenterai une proposition distincte, à approuver séparément, précisant : la raison exacte, les données reliées (référence facultative depuis les demandes, jamais de copie), les relations conservées, la clé anti-doublon (adresse normalisée + utilisateur), le fait qu'aucune demande existante ne serait modifiée, le traitement des demandes sans chantier (elles restent visibles via le regroupement calculé) et la garantie d'intégrité (ajout seulement, aucune écriture destructive). Rien de tout cela ne sera fait sans votre accord explicite.
 
 ## 7. Relation chantier → demande → site → transport
 
-Chaque demande porte une référence de chantier ; chaque site sélectionné et chaque transport restent rattachés à la demande d'origine. Depuis n'importe quel objet on remonte au chantier en un geste. Les demandes existantes sans chantier sont rattachées automatiquement par correspondance d'adresse (logique déjà présente dans le regroupement actuel), sans écraser les données.
+Le chantier reste une clé calculée (lieu/adresse normalisée) portée par les demandes existantes ; site et transport restent rattachés à la demande d'origine, comme aujourd'hui. Depuis n'importe quel objet on remonte au chantier en un geste. Aucune donnée n'est réécrite pour établir ces liens.
+
 
 ## 8. Unification des demandes
 
@@ -76,7 +81,11 @@ Outil de décision : recommandation en tête (« Meilleur choix » + raison), pu
 
 ## 12. Assistant intelligent
 
-Intégré au produit, plus une page isolée. Lancé depuis un chantier, il connaît déjà chantier, adresse, matériau, quantité et ne repose pas ces questions. Présenté en étapes courtes avec barre de progression, une question par écran sur mobile. Le brouillon persistant et la file d'envoi actuels sont conservés.
+Deux parcours clairement distincts, à partir du même moteur :
+- **Parcours public** (`/demande-transport`, visiteur non connecté) : fonctionnement actuel intégralement conservé, aucune donnée privée, aucun élément de l'espace entrepreneur.
+- **Parcours entrepreneur connecté** : l'assistant s'ouvre dans la coquille de l'application, avec le contexte entrepreneur + chantier + demande + site + transport déjà connu, et ne repose pas les questions déjà répondues.
+
+Dans les deux cas : étapes courtes, barre de progression, une question par écran sur mobile. Le brouillon persistant et la file d'envoi actuels sont conservés.
 
 ## 13. Transport
 
@@ -108,7 +117,7 @@ Contexte de parcours porté par l'URL (`?chantier=…&demande=…`) et l'état d
 
 ## 20. Permissions et accès
 
-Une garde unique pour toutes les routes entrepreneur : session valide + rôle entrepreneur ou admin, sinon redirection vers la connexion. Aucune route privée accessible depuis une autre entrée. `/demande-transport` conserve son accès public actuel (parcours de soumission), mais la coquille entrepreneur et les données privées n'y apparaissent que pour un entrepreneur connecté. Les règles RLS existantes ne sont pas assouplies.
+Une garde unique pour toutes les routes entrepreneur : session valide + rôle entrepreneur ou admin, sinon redirection vers la connexion. Aucune route privée accessible depuis une autre entrée. `/demande-transport` reste **publiquement accessible** aux visiteurs non connectés, exactement comme aujourd'hui ; la coquille entrepreneur et toute donnée privée n'apparaissent que pour un entrepreneur connecté. Les règles RLS existantes ne sont ni assouplies ni modifiées.
 
 ## 21. Stratégie responsive
 
@@ -140,7 +149,7 @@ Les 5 scénarios demandés (nouvel entrepreneur, entrepreneur existant, notifica
 
 **Parcours à fusionner** : demandes (une liste, types explicites) · recherche de dompes (carte + comparateur = deux vues d'un même résultat) · notifications · profil/compte.
 
-**Fonctionnalités déplacées** : profil réseau → Profil ; sites recommandés → dossier chantier ; historique et favoris → « Plus » ; résumé d'activité → « À faire » de l'accueil.
+**Fonctionnalités déplacées** : profil réseau → Profil ; sites recommandés → dossier chantier ; historique → « Plus » ; résumé d'activité → « À faire » de l'accueil. La carte « Mes favoris » actuelle, qui n'est qu'un espace réservé sans fonctionnalité, est retirée du menu (aucune donnée concernée) plutôt que présentée comme disponible.
 
 **Données communes conservées** : entrepreneur, chantier, demande, site, transport restent le même objet partout ; aucune donnée parallèle créée.
 
@@ -160,7 +169,7 @@ Les 5 scénarios demandés (nouvel entrepreneur, entrepreneur existant, notifica
 1. **Fondations** — coquille de navigation, design system entrepreneur, états standards.
 2. **Données** — fournisseur unique, cache, contexte de parcours.
 3. **Accueil** — nouveau home orienté action.
-4. **Chantiers** — liste + dossier + création/renommage (table légère `entrepreneur_chantiers`, RLS par utilisateur, référence aux demandes existantes).
+4. **Chantiers** — liste + dossier, à partir du regroupement calculé existant, sans nouvelle table ni migration.
 5. **Demandes** — liste unifiée, filtres, cartes, prochaine action.
 6. **Création guidée** — parcours en étapes avec progression.
 7. **Carte** — plein écran, filtres en panneau, fiche de site.
@@ -173,3 +182,23 @@ Les 5 scénarios demandés (nouvel entrepreneur, entrepreneur existant, notifica
 14. **Tests et validation** — scénarios, 10 largeurs, captures, tests automatisés.
 
 Aucune modification de l'administration, du CRM, du SEO, des pages publiques ni de la place de marché.
+
+---
+
+## Exigence « nouveau produit »
+
+La refonte doit se voir immédiatement, pas seulement se comprendre : hiérarchie visuelle forte (un seul message principal par écran), cartes modernes avec ombres douces et coins généreux, actions rapides évidentes, navigation persistante, transitions sobres de 150–200 ms, statuts couleur immédiatement lisibles, écrans courts, moins de texte, plus d'action. Professionnel et premium, jamais gadget. Un utilisateur habitué à l'ancienne version doit voir la différence en une seconde.
+
+## Principe produit appliqué à chaque écran
+
+Chaque écran répond sans effort à : **Où suis-je ? Qu'est-ce qui se passe ? Qu'est-ce que je peux faire maintenant ?** Un élément qui ne sert pas ces trois réponses est déplacé, simplifié ou rangé en section secondaire.
+
+## Ordre de priorité
+
+1. Compréhension · 2. Simplicité · 3. Continuité du parcours · 4. Contexte · 5. Rapidité · 6. Confiance · 7. Esthétique.
+Une fonctionnalité simple et évidente l'emporte toujours sur une fonctionnalité complète mais compliquée.
+
+## Validation avant code
+
+Les changements purement visuels et de navigation seront réalisés directement pendant l'implémentation.
+En revanche, **tout changement touchant les données, les relations, les permissions, les règles métier ou les adresses de pages sera présenté et approuvé séparément avant d'être fait.** En l'état, ce plan n'en contient aucun : aucune migration, aucune modification de règle d'accès, aucune adresse changée.
