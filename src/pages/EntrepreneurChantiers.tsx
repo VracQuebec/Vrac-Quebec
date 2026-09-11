@@ -39,7 +39,7 @@ export default function EntrepreneurChantiers() {
   }, [chantiers, filter, query]);
 
   return (
-    <EntrepreneurAppShell title="Chantiers" showFab>
+    <EntrepreneurAppShell title="Chantiers" backTo={null} showFab>
       <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 space-y-4">
         {/* Recherche + filtres */}
         <div className="relative">

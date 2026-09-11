@@ -112,7 +112,7 @@ export default function EntrepreneurDemandes() {
   });
 
   return (
-    <EntrepreneurAppShell title="Mes demandes" subtitle="Toutes vos demandes au même endroit" showFab>
+    <EntrepreneurAppShell title="Demandes" backTo={null} showFab>
       <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 space-y-4">
         <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
           {FILTERS.map((f) => {
