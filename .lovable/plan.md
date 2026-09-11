@@ -202,3 +202,17 @@ Une fonctionnalité simple et évidente l'emporte toujours sur une fonctionnalit
 
 Les changements purement visuels et de navigation seront réalisés directement pendant l'implémentation.
 En revanche, **tout changement touchant les données, les relations, les permissions, les règles métier ou les adresses de pages sera présenté et approuvé séparément avant d'être fait.** En l'état, ce plan n'en contient aucun : aucune migration, aucune modification de règle d'accès, aucune adresse changée.
+
+## Philosophie « application métier mobile »
+
+L'espace est une application, pas un site adapté. Engagements concrets :
+
+- Écrans courts, une intention par écran ; jamais de longue page verticale quand l'information peut être découpée en étapes ou en onglets.
+- Aucun tableau ni interface administrative traditionnelle dans l'espace entrepreneur : cartes, listes, badges, étapes, actions contextuelles, feuilles glissantes.
+- L'action principale est toujours visible sans défiler ; l'utilisateur n'a presque jamais à chercher où continuer.
+- Le contexte du chantier persiste pendant toute l'opération ; les changements de page inutiles sont éliminés au profit de feuilles et de vues empilées.
+- Retour contextuel systématique, zones sûres iOS respectées, aucune action essentielle sur un bouton sous 44 px.
+- Transitions courtes (150–200 ms) et cohérentes ; chaque animation sert la compréhension, la continuité ou le feedback — aucune animation décorative.
+- Le changement doit être visible partout : navigation, hiérarchie, cartes, actions, statuts, formulaires, listes, recherche de dompes, suivi du transport.
+
+Critère principal de réussite : l'entrepreneur rouvre Vrac Québec parce que l'outil lui fait gagner du temps.
