@@ -798,7 +798,7 @@ const Admin = () => {
               </button>
             ))}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid w-full grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center [&>*]:justify-center sm:[&>*]:justify-start">
             <div className="flex bg-secondary rounded-lg p-0.5">
               <button onClick={() => setView("list")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-display font-semibold ${view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
                 <List className="w-4 h-4" /> Liste
@@ -883,8 +883,8 @@ const Admin = () => {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3 mb-5">
-          <div className="relative flex-1 min-w-[220px] max-w-md">
+        <div className="mb-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap [&>select]:w-full sm:[&>select]:w-auto">
+          <div className="relative col-span-full min-w-0 max-w-full sm:max-w-md sm:flex-1 sm:min-w-[220px]">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="text"
