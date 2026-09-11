@@ -3,7 +3,7 @@
 // Données : vue calculée existante (aucune nouvelle structure).
 // ============================================================
 import { useMemo } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import {
   EmptyState,
@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   Circle,
   Clock,
+  Scale,
 } from "lucide-react";
 
 const toneFor = (status: string | null): "pending" | "active" | "done" | "refused" | "neutral" => {
@@ -53,6 +54,23 @@ export default function EntrepreneurChantierDetail() {
   const decoded = key ? decodeURIComponent(key) : "";
   const { loading, error, chantiers, refresh } = useEntrepreneurData();
   const chantier = useMemo(() => chantiers.find((c) => c.key === decoded), [chantiers, decoded]);
+  const navigate = useNavigate();
+
+  // Contexte transmis au comparateur : l'entrepreneur ne ressaisit rien.
+  const prefill = useMemo(() => {
+    const last = chantier?.submissions?.[0];
+    if (!last) return null;
+    return {
+      submissionId: last.id,
+      address: last.address ?? chantier?.address ?? "",
+      coords:
+        last.latitude != null && last.longitude != null
+          ? { lat: last.latitude, lng: last.longitude }
+          : null,
+      material: last.material ?? "",
+      quantityLabel: last.quantity ?? "",
+    };
+  }, [chantier]);
 
   const title = chantier?.label ?? "Chantier";
 
@@ -91,7 +109,7 @@ export default function EntrepreneurChantierDetail() {
             </div>
 
             {/* ---------- Actions ---------- */}
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
               <Link
                 to="/demande-transport"
                 className="flex flex-col items-center gap-2 rounded-2xl bg-primary px-2 py-4 text-center text-primary-foreground shadow-md shadow-primary/25 active:scale-95 transition-transform"
@@ -106,14 +124,25 @@ export default function EntrepreneurChantierDetail() {
                 <MapIcon className="h-5 w-5 text-primary" />
                 <span className="text-[11px] font-display font-bold leading-tight">Trouver<br />une dompe</span>
               </Link>
+              <button
+                type="button"
+                onClick={() =>
+                  navigate("/entrepreneur/comparateur", { state: { vqPrefill: prefill } })
+                }
+                className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card px-2 py-4 text-center active:scale-95 transition-transform"
+              >
+                <Scale className="h-5 w-5 text-primary" />
+                <span className="text-[11px] font-display font-bold leading-tight">Comparer<br />les sites</span>
+              </button>
               <Link
                 to="/entrepreneur/demandes"
                 className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card px-2 py-4 text-center active:scale-95 transition-transform"
               >
                 <Truck className="h-5 w-5 text-primary" />
-                <span className="text-[11px] font-display font-bold leading-tight">Demander<br />un transport</span>
+                <span className="text-[11px] font-display font-bold leading-tight">Suivre le<br />transport</span>
               </Link>
             </div>
+
 
             {/* ---------- Demandes du chantier ---------- */}
             <section aria-labelledby="chantier-demandes">

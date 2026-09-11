@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
-import TransportBanner from "@/components/TransportBanner";
+import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import FullPageState from "@/components/FullPageState";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import { Input } from "@/components/ui/input";
@@ -456,16 +456,25 @@ export default function EntrepreneurComparateur() {
   };
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background">
-      <TransportBanner />
-      <main className="container mx-auto w-full min-w-0 max-w-3xl px-4 py-8">
-        <h1 className="font-display text-2xl font-extrabold text-foreground sm:text-3xl">
-          Comparateur de sites de dépôt
-        </h1>
-        <p className="mt-2 font-body text-sm text-muted-foreground">
-          Indiquez votre chantier, votre matériau et votre camion : nous classons les sites
-          compatibles selon la distance routière réelle (Google Routes).
-        </p>
+    <EntrepreneurAppShell
+      title="Meilleur choix de site"
+      subtitle="Comparaison par distance réelle"
+      backTo="/entrepreneur"
+    >
+      <div className="mx-auto w-full min-w-0 max-w-3xl px-4 py-5 sm:px-6">
+        <div className="rounded-3xl border border-border/70 bg-gradient-to-br from-primary/10 via-card to-card p-5">
+          <p className="font-body text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            Étape 3 · Comparer
+          </p>
+          <h2 className="mt-1 font-display text-xl font-extrabold leading-tight">
+            Trois informations, et nous classons les sites pour vous.
+          </h2>
+          <p className="mt-1.5 font-body text-sm text-muted-foreground">
+            Chantier, matériau, camion : le classement suit la distance routière réelle et la
+            compatibilité de chaque site.
+          </p>
+        </div>
+
 
         {request && (
           <section className="mt-5 rounded-2xl border-2 border-primary/40 bg-primary/5 p-4">
@@ -757,7 +766,7 @@ export default function EntrepreneurComparateur() {
             )}
           </section>
         )}
-      </main>
-    </div>
+      </div>
+    </EntrepreneurAppShell>
   );
 }
