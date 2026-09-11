@@ -114,9 +114,12 @@ export default function EntrepreneurDemandes() {
   return (
     <EntrepreneurAppShell title="Demandes" backTo={null} showFab>
       <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 space-y-4">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-          {FILTERS.map((f) => {
-            const n =
+        {/* Mêmes onglets tactiles que le dossier chantier : cohérence totale. */}
+        <AppTabs
+          tabs={FILTERS.map((f) => ({
+            id: f.key,
+            label: f.label,
+            count:
               f.key === "all"
                 ? list.length
                 : list.filter((r) =>
@@ -125,20 +128,11 @@ export default function EntrepreneurDemandes() {
                       : f.key === "active"
                         ? r.bucket === "accepted"
                         : r.bucket === "completed" || r.bucket === "refused",
-                  ).length;
-            return (
-              <button
-                key={f.key}
-                onClick={() => setFilter(f.key)}
-                className={`min-h-10 shrink-0 rounded-xl px-4 font-display text-sm font-semibold transition-colors ${
-                  filter === f.key ? "bg-primary text-primary-foreground" : "border border-border bg-card text-muted-foreground"
-                }`}
-              >
-                {f.label} ({n})
-              </button>
-            );
-          })}
-        </div>
+                  ).length,
+          }))}
+          value={filter}
+          onChange={(id) => setFilter(id as FilterKey)}
+        />
 
         {loading ? (
           <LoadingSkeleton lines={4} />
