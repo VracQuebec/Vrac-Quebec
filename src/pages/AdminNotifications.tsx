@@ -73,7 +73,7 @@ export default function AdminNotifications() {
         className="sticky-below-nav z-40 border-b border-border bg-card/90 backdrop-blur-md"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
-        <div className="container mx-auto px-3 sm:px-6 h-12 flex items-center justify-between gap-2">
+        <div className="container mx-auto flex min-h-12 flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3 py-1.5 sm:px-6">
           <Link to="/admin" className="inline-flex items-center gap-1.5 text-xs font-display font-semibold text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-4 h-4" /> CRM
           </Link>
