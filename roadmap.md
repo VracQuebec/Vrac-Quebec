@@ -1,7 +1,8 @@
 # Feuille de route — Vrac Québec
 
 ## En cours
-- [ ] Refonte produit de l'Espace entrepreneur (plan détaillé en 24 volets, 14 phases) — en attente d'approbation du plan
+- [x] Refonte produit de l'Espace entrepreneur — coquille d'application, tableau de bord, chantiers, dossier chantier, demandes, carte, comparateur, réseau, historique, mon entreprise migrés dans la nouvelle expérience
+- [ ] Validation visuelle connectée de l'espace entrepreneur — bloquée : aucun compte entrepreneur de test disponible pour ouvrir une session
 
 - [x] Optimisation responsive complète (site public, CRM, administration) — validée 320→1920 px, aucune action hors écran
   - [x] Audit automatisé des débordements horizontaux (site public : aucun débordement global)
