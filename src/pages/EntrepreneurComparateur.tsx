@@ -15,6 +15,8 @@ import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
+import { ChantierContextBar } from "@/components/entrepreneur-app/ui";
+import { loadActiveChantier } from "@/lib/entrepreneur-app/chantier-context";
 import FullPageState from "@/components/FullPageState";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import { Input } from "@/components/ui/input";
@@ -462,6 +464,16 @@ export default function EntrepreneurComparateur() {
       backTo="/entrepreneur"
     >
       <div className="mx-auto w-full min-w-0 max-w-3xl px-4 py-5 sm:px-6">
+        {/* Contexte : le chantier ouvert reste visible pendant la comparaison. */}
+        {activeChantier && (
+          <div className="mb-4">
+            <ChantierContextBar
+              label={activeChantier.label}
+              detail={activeChantier.material ?? activeChantier.address}
+              to={`/entrepreneur/chantiers/${encodeURIComponent(activeChantier.key)}`}
+            />
+          </div>
+        )}
         <div className="rounded-3xl border border-border/70 bg-gradient-to-br from-primary/10 via-card to-card p-5">
           <p className="font-body text-xs uppercase tracking-[0.18em] text-muted-foreground">
             Étape 3 · Comparer
