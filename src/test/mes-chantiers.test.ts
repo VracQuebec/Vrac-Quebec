@@ -65,9 +65,22 @@ describe("Mes chantiers", () => {
     expect(c[0].groupedBy).toBe("single");
   });
 
-  it("clé individuelle si aucune clé fiable (aucune clé artificielle)", () => {
+  it("sans adresse : regroupement par ville normalisée (pas de doublons)", () => {
     expect(groupingKey(S("42", { address: null, formatted_address: null }))).toEqual({
-      key: "s:42",
+      key: "c:sainte foy",
+      groupedBy: "city",
+    });
+    const c = buildChantiers([
+      S("1", { address: null, formatted_address: null }),
+      S("2", { address: null, formatted_address: null }),
+    ]);
+    expect(c).toHaveLength(1);
+    expect(c[0].submissions).toHaveLength(2);
+  });
+
+  it("clé individuelle si aucune clé fiable (aucune clé artificielle)", () => {
+    expect(groupingKey(S("43", { address: null, formatted_address: null, city: null }))).toEqual({
+      key: "s:43",
       groupedBy: "single",
     });
   });
