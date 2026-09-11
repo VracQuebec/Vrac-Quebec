@@ -883,8 +883,8 @@ const Admin = () => {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3 mb-5">
-          <div className="relative flex-1 min-w-[220px] max-w-md">
+        <div className="mb-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap [&>select]:w-full sm:[&>select]:w-auto">
+          <div className="relative col-span-full min-w-0 max-w-full sm:max-w-md sm:flex-1 sm:min-w-[220px]">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="text"
