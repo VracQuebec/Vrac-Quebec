@@ -19,7 +19,7 @@ export interface Chantier {
   /** Clé de navigation locale ; la propriété réelle reste vérifiée en base. */
   key: string;
   /** Origine de la clé de regroupement, pour transparence/tests. */
-  groupedBy: "place_id" | "address" | "single";
+  groupedBy: "place_id" | "address" | "city" | "single";
   label: string;
   city: string | null;
   address: string | null;
