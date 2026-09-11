@@ -39,7 +39,7 @@ export default function EntrepreneurChantiers() {
   }, [chantiers, filter, query]);
 
   return (
-    <EntrepreneurAppShell title="Mes chantiers" subtitle="Regroupés automatiquement par lieu de travail" showFab>
+    <EntrepreneurAppShell title="Chantiers" showFab>
       <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 space-y-4">
         {/* Recherche + filtres */}
         <div className="relative">
