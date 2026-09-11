@@ -117,13 +117,13 @@ function FilterBar(props: {
           className="w-full min-h-10 pl-8 pr-3 py-2 text-sm rounded-lg border border-border bg-card font-body" />
       </div>
       <select value={props.status} onChange={(e) => props.setStatus(e.target.value)}
-        className="min-h-10 min-w-0 flex-1 px-2 py-2 text-sm rounded-lg border border-border bg-card sm:flex-none">
+        className="min-h-10 w-full px-2 py-2 text-sm rounded-lg border border-border bg-card min-[420px]:w-[calc(50%-0.25rem)] sm:w-auto sm:flex-none">
         <option value="all">Tous statuts</option>
         <option value="active">Actif</option><option value="prospect">Prospect</option>
         <option value="vip">VIP</option><option value="pause">En pause</option><option value="lost">Perdu</option>
       </select>
       <select value={props.sort} onChange={(e) => props.setSort(e.target.value as Sort)}
-        className="min-h-10 min-w-0 flex-1 px-2 py-2 text-sm rounded-lg border border-border bg-card sm:flex-none">
+        className="min-h-10 w-full px-2 py-2 text-sm rounded-lg border border-border bg-card min-[420px]:w-[calc(50%-0.25rem)] sm:w-auto sm:flex-none">
         <option value="recent">Récents</option>
         <option value="name">Nom (A-Z)</option>
         <option value="last_activity">Dernière activité</option>
