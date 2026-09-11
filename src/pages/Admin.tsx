@@ -184,6 +184,9 @@ const Admin = () => {
   const [rechecking, setRechecking] = useState<{ done: number; total: number } | null>(null);
   const [showStatusManager, setShowStatusManager] = useState(false);
   const [showNewLead, setShowNewLead] = useState(false);
+  // Sur téléphone, les actions secondaires sont regroupées sous un bouton
+  // « Toutes les actions » : rien n'est retiré, tout reste accessible.
+  const [actionsOpen, setActionsOpen] = useState(false);
   const [filterSource, setFilterSource] = useState<string>("all");
   const [showArchivedOnMap, setShowArchivedOnMap] = useState(false);
   const [tab, setTab] = useState<"leads" | "billing" | "entrepreneurs">("leads");
@@ -814,6 +817,15 @@ const Admin = () => {
               <Plus className="w-4 h-4" /> Ajouter un Lead
             </button>
             <button
+              type="button"
+              onClick={() => setActionsOpen((v) => !v)}
+              aria-expanded={actionsOpen}
+              className="sm:hidden flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold"
+            >
+              <Settings className="w-4 h-4" /> {actionsOpen ? "Masquer les actions" : "Toutes les actions"}
+            </button>
+            <div className={`${actionsOpen ? "grid" : "hidden"} grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:!contents [&>*]:justify-center`}>
+            <button
               onClick={geocodeMissing}
               disabled={!!geocoding}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-sm font-display font-semibold hover:opacity-90 disabled:opacity-60"
@@ -880,6 +892,7 @@ const Admin = () => {
             <button onClick={() => setShowStatusManager(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
               <Settings className="w-4 h-4" /> Statuts
             </button>
+            </div>
           </div>
         </div>
 
@@ -1034,7 +1047,8 @@ const Admin = () => {
         type="button"
         aria-label="Ajouter un Lead"
         onClick={() => setShowNewLead(true)}
-        className="md:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition"
+        style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
+        className="md:hidden fixed right-4 z-40 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition"
       >
         <Plus className="w-6 h-6" />
       </button>
