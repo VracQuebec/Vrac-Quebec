@@ -182,3 +182,23 @@ Les 5 scénarios demandés (nouvel entrepreneur, entrepreneur existant, notifica
 14. **Tests et validation** — scénarios, 10 largeurs, captures, tests automatisés.
 
 Aucune modification de l'administration, du CRM, du SEO, des pages publiques ni de la place de marché.
+
+---
+
+## Exigence « nouveau produit »
+
+La refonte doit se voir immédiatement, pas seulement se comprendre : hiérarchie visuelle forte (un seul message principal par écran), cartes modernes avec ombres douces et coins généreux, actions rapides évidentes, navigation persistante, transitions sobres de 150–200 ms, statuts couleur immédiatement lisibles, écrans courts, moins de texte, plus d'action. Professionnel et premium, jamais gadget. Un utilisateur habitué à l'ancienne version doit voir la différence en une seconde.
+
+## Principe produit appliqué à chaque écran
+
+Chaque écran répond sans effort à : **Où suis-je ? Qu'est-ce qui se passe ? Qu'est-ce que je peux faire maintenant ?** Un élément qui ne sert pas ces trois réponses est déplacé, simplifié ou rangé en section secondaire.
+
+## Ordre de priorité
+
+1. Compréhension · 2. Simplicité · 3. Continuité du parcours · 4. Contexte · 5. Rapidité · 6. Confiance · 7. Esthétique.
+Une fonctionnalité simple et évidente l'emporte toujours sur une fonctionnalité complète mais compliquée.
+
+## Validation avant code
+
+Les changements purement visuels et de navigation seront réalisés directement pendant l'implémentation.
+En revanche, **tout changement touchant les données, les relations, les permissions, les règles métier ou les adresses de pages sera présenté et approuvé séparément avant d'être fait.** En l'état, ce plan n'en contient aucun : aucune migration, aucune modification de règle d'accès, aucune adresse changée.
