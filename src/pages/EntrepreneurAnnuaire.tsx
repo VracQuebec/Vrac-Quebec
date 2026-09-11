@@ -1,7 +1,8 @@
 // Réseau professionnel — annuaire public des entreprises du réseau.
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import AnnuaireList from "@/components/entrepreneur/AnnuaireList";
-import { Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ChevronRight, Users } from "lucide-react";
 
 const EntrepreneurAnnuaire = () => (
   <EntrepreneurAppShell
@@ -21,6 +22,12 @@ const EntrepreneurAnnuaire = () => (
           <p className="mt-1 font-body text-sm text-muted-foreground">
             Identité professionnelle publique uniquement. Aucune coordonnée privée n'est partagée.
           </p>
+          <Link
+            to="/entrepreneur/compte"
+            className="mt-2 inline-flex items-center gap-1 font-display text-sm font-bold text-primary"
+          >
+            Gérer ma visibilité <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
       </section>
       <AnnuaireList />

@@ -4,9 +4,10 @@
 // Aucune carte, aucune distance, aucune messagerie.
 // ============================================================
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Loader2, MapPin, Search, Truck } from "lucide-react";
+import { ChevronRight, Loader2, MapPin, Search, SlidersHorizontal, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { BottomSheet } from "@/components/entrepreneur-app/ui";
 import {
   loadAnnuaire,
   filterAnnuaire,
@@ -51,78 +52,93 @@ const Select = ({
     </label>
   );
 
-const ProfilCard = ({ p }: { p: AnnuaireProfil }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <article className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/60">
-      <h3 className="flex items-center gap-2 font-display text-base font-bold">
-        <Building2 className="h-4 w-4 flex-shrink-0 text-primary" aria-hidden />
-        <span className="truncate">{p.company}</span>
-      </h3>
-
-      <p className="mt-1 flex items-center gap-1 font-body text-xs text-muted-foreground">
-        <MapPin className="h-3 w-3 flex-shrink-0" aria-hidden />
-        {p.locationLabel ?? "Localisation non renseignée"}
-      </p>
-      {proximityLabel(p.proximity) && (
-        <p className="mt-1 inline-flex rounded-full bg-primary/10 px-2 py-0.5 font-body text-[11px] text-primary">
-          {proximityLabel(p.proximity)}
+/** Carte tactile : nom, localisation, proximité, camions. Détails en feuille. */
+const ProfilCard = ({ p, onOpen }: { p: AnnuaireProfil; onOpen: () => void }) => (
+  <button
+    type="button"
+    onClick={onOpen}
+    className="w-full rounded-2xl border border-border bg-card p-4 text-left transition-transform active:scale-[0.99] hover:border-primary/60"
+  >
+    <div className="flex items-start gap-3">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 font-display text-sm font-extrabold text-primary">
+        {p.company.trim().slice(0, 2).toUpperCase()}
+      </span>
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate font-display text-base font-bold">{p.company}</h3>
+        <p className="mt-0.5 flex items-center gap-1 font-body text-xs text-muted-foreground">
+          <MapPin className="h-3 w-3 shrink-0" aria-hidden />
+          <span className="truncate">{p.locationLabel ?? "Localisation non renseignée"}</span>
         </p>
-      )}
-      {p.region && (
-        <p className="mt-0.5 font-body text-xs text-muted-foreground">Région : {p.region}</p>
-      )}
-
-      {p.truckTypes.length > 0 && (
-        <ul className="mt-3 flex flex-wrap gap-1.5">
-          {p.truckTypes.map((t) => (
-            <li
-              key={t}
-              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 font-body text-[11px] text-primary"
-            >
-              <Truck className="h-3 w-3" aria-hidden /> {t}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div className="mt-3 flex items-center justify-between gap-2">
-        {p.truckCount ? (
-          <span className="font-body text-xs text-muted-foreground">{p.truckCount} camion(s)</span>
-        ) : <span />}
-        <Button variant="outline" size="sm" className="h-9" onClick={() => setOpen((v) => !v)}>
-          {open ? "Masquer le profil" : "Voir le profil"}
-        </Button>
+        {proximityLabel(p.proximity) && (
+          <span className="mt-1.5 inline-flex rounded-full bg-primary/10 px-2 py-0.5 font-body text-[11px] text-primary">
+            {proximityLabel(p.proximity)}
+          </span>
+        )}
+        {p.truckTypes.length > 0 && (
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {p.truckTypes.slice(0, 3).map((t) => (
+              <li
+                key={t}
+                className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-body text-[11px] text-muted-foreground"
+              >
+                <Truck className="h-3 w-3" aria-hidden /> {t}
+              </li>
+            ))}
+            {p.truckTypes.length > 3 && (
+              <li className="rounded-full bg-secondary px-2 py-0.5 font-body text-[11px] text-muted-foreground">
+                +{p.truckTypes.length - 3}
+              </li>
+            )}
+          </ul>
+        )}
       </div>
+      <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+    </div>
+  </button>
+);
 
-      {open && (
-        <dl className="mt-3 space-y-1 border-t border-border pt-3 font-body text-xs">
-          <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">Ville</dt>
-            <dd>{p.city ?? "Non renseignée"}</dd>
-          </div>
-          <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">Province</dt>
-            <dd>{p.provinceName ?? p.province ?? "Non renseignée"}</dd>
-          </div>
-          <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">Région</dt>
-            <dd>{p.region ?? "Non renseignée"}</dd>
-          </div>
-          {p.postalSector && (
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">Secteur postal</dt>
-              <dd>{p.postalSector}</dd>
-            </div>
-          )}
-          <p className="pt-2 text-muted-foreground">
-            Les coordonnées privées ne sont jamais diffusées dans l'annuaire.
-          </p>
-        </dl>
-      )}
-    </article>
-  );
-};
+/** Détail d'un profil public — aucune coordonnée privée. */
+const ProfilDetail = ({ p }: { p: AnnuaireProfil }) => (
+  <div className="space-y-3">
+    <div className="flex items-center gap-3">
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 font-display font-extrabold text-primary">
+        {p.company.trim().slice(0, 2).toUpperCase()}
+      </span>
+      <div className="min-w-0">
+        <p className="truncate font-display text-base font-bold">{p.company}</p>
+        <p className="truncate font-body text-xs text-muted-foreground">
+          {p.locationLabel ?? "Localisation non renseignée"}
+        </p>
+      </div>
+    </div>
+    <dl className="divide-y divide-border overflow-hidden rounded-2xl border border-border font-body text-sm">
+      {[
+        ["Ville", p.city ?? "Non renseignée"],
+        ["Province", p.provinceName ?? p.province ?? "Non renseignée"],
+        ["Région", p.region ?? "Non renseignée"],
+        ...(p.postalSector ? [["Secteur postal", p.postalSector]] : []),
+        ...(p.truckCount ? [["Camions", `${p.truckCount}`]] : []),
+      ].map(([k, v]) => (
+        <div key={k as string} className="flex justify-between gap-3 px-3 py-2.5">
+          <dt className="text-muted-foreground">{k}</dt>
+          <dd className="text-right">{v}</dd>
+        </div>
+      ))}
+    </dl>
+    {p.truckTypes.length > 0 && (
+      <ul className="flex flex-wrap gap-1.5">
+        {p.truckTypes.map((t) => (
+          <li key={t} className="rounded-full bg-primary/10 px-2.5 py-1 font-body text-[11px] text-primary">
+            {t}
+          </li>
+        ))}
+      </ul>
+    )}
+    <p className="rounded-2xl bg-secondary/60 p-3 font-body text-xs text-muted-foreground">
+      Les coordonnées privées ne sont jamais diffusées dans l'annuaire.
+    </p>
+  </div>
+);
 
 export default function AnnuaireList() {
   const [res, setRes] = useState<AnnuaireResult | null>(null);
@@ -130,6 +146,8 @@ export default function AnnuaireList() {
   const [filters, setFilters] = useState<AnnuaireFilters>(EMPTY_FILTERS);
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [reference, setReference] = useState<PublicLocalisation | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selected, setSelected] = useState<AnnuaireProfil | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -190,69 +208,122 @@ export default function AnnuaireList() {
     );
   }
 
+  const activeCount = [filters.proximity, filters.province, filters.region, filters.city, filters.truckType]
+    .filter(Boolean).length;
+
   return (
     <div>
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        <Input
-          className="h-11 pl-9"
-          placeholder="Rechercher une entreprise, une ville, une région, un type de camion…"
-          aria-label="Rechercher dans l'annuaire"
-          value={filters.query}
-          onChange={(e) => set({ query: e.target.value })}
-        />
-      </div>
+      {/* Recherche collante — toujours à portée du pouce */}
+      <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 pb-3 pt-1 backdrop-blur sm:-mx-0 sm:px-0">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input
+              className="h-12 rounded-2xl pl-9"
+              placeholder="Entreprise, ville, camion…"
+              aria-label="Rechercher dans l'annuaire"
+              value={filters.query}
+              onChange={(e) => set({ query: e.target.value })}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            aria-label="Filtrer l'annuaire"
+            className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card transition-transform active:scale-95"
+          >
+            <SlidersHorizontal className="h-5 w-5" />
+            {activeCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 font-display text-[10px] font-bold text-primary-foreground">
+                {activeCount}
+              </span>
+            )}
+          </button>
+        </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+        {/* Filtres rapides de proximité */}
         {reference && (
-          <label className="flex-1 min-w-[9rem]">
-            <span className="sr-only">Proximité</span>
-            <select
-              aria-label="Proximité"
-              value={filters.proximity}
-              onChange={(e) => set({ proximity: e.target.value as AnnuaireFilters["proximity"] })}
-              className="h-10 w-full rounded-lg border border-border bg-background px-3 font-body text-sm"
-            >
-              <option value="">Proximité : tous</option>
-              <option value="same_city">Même ville</option>
-              <option value="same_region">Même région</option>
-              <option value="same_province">Même province</option>
-            </select>
-          </label>
+          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
+            {([["", "Tous"], ["same_city", "Ma ville"], ["same_region", "Ma région"], ["same_province", "Ma province"]] as const).map(
+              ([value, label]) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => set({ proximity: value as AnnuaireFilters["proximity"] })}
+                  className={`min-h-9 shrink-0 rounded-full px-3 font-body text-xs transition-transform active:scale-95 ${
+                    filters.proximity === value ? "bg-primary text-primary-foreground" : "border border-border bg-card"
+                  }`}
+                >
+                  {label}
+                </button>
+              ),
+            )}
+          </div>
         )}
-        <Select label="Province" value={filters.province} options={facets.provinces} onChange={(v) => set({ province: v })} />
-        <Select label="Région" value={filters.region} options={facets.regions} onChange={(v) => set({ region: v })} />
-        <Select label="Ville" value={filters.city} options={facets.cities} onChange={(v) => set({ city: v })} />
-        <Select label="Type de camion" value={filters.truckType} options={facets.truckTypes} onChange={(v) => set({ truckType: v })} />
       </div>
 
-      <p className="mt-3 font-body text-xs text-muted-foreground">
-        {filtered.length} entrepreneur(s) sur {profils.length}
+      <p className="mt-1 font-body text-xs text-muted-foreground">
+        {filtered.length} entreprise(s) sur {profils.length}
       </p>
 
       {filtered.length === 0 ? (
-        <div className="mt-4 rounded-xl border border-dashed border-border p-5">
+        <div className="mt-4 rounded-2xl border border-dashed border-border p-5">
           <p className="font-body text-sm text-muted-foreground">
-            Aucun entrepreneur ne correspond à votre recherche.
+            Aucune entreprise ne correspond à votre recherche.
           </p>
-          <Button variant="outline" className="mt-3 h-10" onClick={() => set(EMPTY_FILTERS)}>
+          <Button variant="outline" className="mt-3 h-11" onClick={() => set(EMPTY_FILTERS)}>
             Réinitialiser les filtres
           </Button>
         </div>
       ) : (
         <>
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.slice(0, limit).map((p) => <ProfilCard key={p.id} p={p} />)}
+          <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.slice(0, limit).map((p) => (
+              <ProfilCard key={p.id} p={p} onOpen={() => setSelected(p)} />
+            ))}
           </div>
           {filtered.length > limit && (
             <div className="mt-4 flex justify-center">
-              <Button variant="outline" className="h-10" onClick={() => setLimit((l) => l + PAGE_SIZE)}>
+              <Button variant="outline" className="h-11" onClick={() => setLimit((l) => l + PAGE_SIZE)}>
                 Afficher plus
               </Button>
             </div>
           )}
         </>
       )}
+
+      {/* Feuille de filtres */}
+      <BottomSheet open={filtersOpen} onOpenChange={setFiltersOpen} title="Filtrer l'annuaire">
+        <div className="space-y-4">
+          <Select label="Province" value={filters.province} options={facets.provinces} onChange={(v) => set({ province: v })} />
+          <Select label="Région" value={filters.region} options={facets.regions} onChange={(v) => set({ region: v })} />
+          <Select label="Ville" value={filters.city} options={facets.cities} onChange={(v) => set({ city: v })} />
+          <Select label="Type de camion" value={filters.truckType} options={facets.truckTypes} onChange={(v) => set({ truckType: v })} />
+          <div className="flex gap-2 pt-2">
+            {activeCount > 0 && (
+              <button
+                type="button"
+                onClick={() => set(EMPTY_FILTERS)}
+                className="min-h-12 flex-1 rounded-2xl border border-border font-body text-sm"
+              >
+                Réinitialiser
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(false)}
+              className="min-h-12 flex-1 rounded-2xl bg-primary font-display text-sm font-bold text-primary-foreground"
+            >
+              Voir les résultats
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* Feuille de profil public */}
+      <BottomSheet open={selected !== null} onOpenChange={(v) => !v && setSelected(null)} title="Profil public">
+        {selected && <ProfilDetail p={selected} />}
+      </BottomSheet>
     </div>
   );
 }
