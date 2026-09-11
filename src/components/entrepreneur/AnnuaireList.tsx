@@ -205,69 +205,122 @@ export default function AnnuaireList() {
     );
   }
 
+  const activeCount = [filters.proximity, filters.province, filters.region, filters.city, filters.truckType]
+    .filter(Boolean).length;
+
   return (
     <div>
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        <Input
-          className="h-11 pl-9"
-          placeholder="Rechercher une entreprise, une ville, une région, un type de camion…"
-          aria-label="Rechercher dans l'annuaire"
-          value={filters.query}
-          onChange={(e) => set({ query: e.target.value })}
-        />
-      </div>
+      {/* Recherche collante — toujours à portée du pouce */}
+      <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 pb-3 pt-1 backdrop-blur sm:-mx-0 sm:px-0">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input
+              className="h-12 rounded-2xl pl-9"
+              placeholder="Entreprise, ville, camion…"
+              aria-label="Rechercher dans l'annuaire"
+              value={filters.query}
+              onChange={(e) => set({ query: e.target.value })}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            aria-label="Filtrer l'annuaire"
+            className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card transition-transform active:scale-95"
+          >
+            <SlidersHorizontal className="h-5 w-5" />
+            {activeCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 font-display text-[10px] font-bold text-primary-foreground">
+                {activeCount}
+              </span>
+            )}
+          </button>
+        </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+        {/* Filtres rapides de proximité */}
         {reference && (
-          <label className="flex-1 min-w-[9rem]">
-            <span className="sr-only">Proximité</span>
-            <select
-              aria-label="Proximité"
-              value={filters.proximity}
-              onChange={(e) => set({ proximity: e.target.value as AnnuaireFilters["proximity"] })}
-              className="h-10 w-full rounded-lg border border-border bg-background px-3 font-body text-sm"
-            >
-              <option value="">Proximité : tous</option>
-              <option value="same_city">Même ville</option>
-              <option value="same_region">Même région</option>
-              <option value="same_province">Même province</option>
-            </select>
-          </label>
+          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
+            {([["", "Tous"], ["same_city", "Ma ville"], ["same_region", "Ma région"], ["same_province", "Ma province"]] as const).map(
+              ([value, label]) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => set({ proximity: value as AnnuaireFilters["proximity"] })}
+                  className={`min-h-9 shrink-0 rounded-full px-3 font-body text-xs transition-transform active:scale-95 ${
+                    filters.proximity === value ? "bg-primary text-primary-foreground" : "border border-border bg-card"
+                  }`}
+                >
+                  {label}
+                </button>
+              ),
+            )}
+          </div>
         )}
-        <Select label="Province" value={filters.province} options={facets.provinces} onChange={(v) => set({ province: v })} />
-        <Select label="Région" value={filters.region} options={facets.regions} onChange={(v) => set({ region: v })} />
-        <Select label="Ville" value={filters.city} options={facets.cities} onChange={(v) => set({ city: v })} />
-        <Select label="Type de camion" value={filters.truckType} options={facets.truckTypes} onChange={(v) => set({ truckType: v })} />
       </div>
 
-      <p className="mt-3 font-body text-xs text-muted-foreground">
-        {filtered.length} entrepreneur(s) sur {profils.length}
+      <p className="mt-1 font-body text-xs text-muted-foreground">
+        {filtered.length} entreprise(s) sur {profils.length}
       </p>
 
       {filtered.length === 0 ? (
-        <div className="mt-4 rounded-xl border border-dashed border-border p-5">
+        <div className="mt-4 rounded-2xl border border-dashed border-border p-5">
           <p className="font-body text-sm text-muted-foreground">
-            Aucun entrepreneur ne correspond à votre recherche.
+            Aucune entreprise ne correspond à votre recherche.
           </p>
-          <Button variant="outline" className="mt-3 h-10" onClick={() => set(EMPTY_FILTERS)}>
+          <Button variant="outline" className="mt-3 h-11" onClick={() => set(EMPTY_FILTERS)}>
             Réinitialiser les filtres
           </Button>
         </div>
       ) : (
         <>
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.slice(0, limit).map((p) => <ProfilCard key={p.id} p={p} />)}
+          <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.slice(0, limit).map((p) => (
+              <ProfilCard key={p.id} p={p} onOpen={() => setSelected(p)} />
+            ))}
           </div>
           {filtered.length > limit && (
             <div className="mt-4 flex justify-center">
-              <Button variant="outline" className="h-10" onClick={() => setLimit((l) => l + PAGE_SIZE)}>
+              <Button variant="outline" className="h-11" onClick={() => setLimit((l) => l + PAGE_SIZE)}>
                 Afficher plus
               </Button>
             </div>
           )}
         </>
       )}
+
+      {/* Feuille de filtres */}
+      <BottomSheet open={filtersOpen} onOpenChange={setFiltersOpen} title="Filtrer l'annuaire">
+        <div className="space-y-4">
+          <Select label="Province" value={filters.province} options={facets.provinces} onChange={(v) => set({ province: v })} />
+          <Select label="Région" value={filters.region} options={facets.regions} onChange={(v) => set({ region: v })} />
+          <Select label="Ville" value={filters.city} options={facets.cities} onChange={(v) => set({ city: v })} />
+          <Select label="Type de camion" value={filters.truckType} options={facets.truckTypes} onChange={(v) => set({ truckType: v })} />
+          <div className="flex gap-2 pt-2">
+            {activeCount > 0 && (
+              <button
+                type="button"
+                onClick={() => set(EMPTY_FILTERS)}
+                className="min-h-12 flex-1 rounded-2xl border border-border font-body text-sm"
+              >
+                Réinitialiser
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(false)}
+              className="min-h-12 flex-1 rounded-2xl bg-primary font-display text-sm font-bold text-primary-foreground"
+            >
+              Voir les résultats
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* Feuille de profil public */}
+      <BottomSheet open={selected !== null} onOpenChange={(v) => !v && setSelected(null)} title="Profil public">
+        {selected && <ProfilDetail p={selected} />}
+      </BottomSheet>
     </div>
   );
 }
