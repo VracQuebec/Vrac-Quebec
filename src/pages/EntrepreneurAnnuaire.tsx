@@ -1,7 +1,8 @@
 // Réseau professionnel — annuaire public des entreprises du réseau.
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import AnnuaireList from "@/components/entrepreneur/AnnuaireList";
-import { Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ChevronRight, Users } from "lucide-react";
 
 const EntrepreneurAnnuaire = () => (
   <EntrepreneurAppShell
