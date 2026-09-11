@@ -12,7 +12,7 @@ import {
   ErrorState,
   LoadingSkeleton,
 } from "@/components/entrepreneur-app/AppStates";
-import { RequestCard } from "@/components/entrepreneur-app/ui";
+import { AppTabs, RequestCard } from "@/components/entrepreneur-app/ui";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { statusMeta, statusBucket } from "@/lib/access-requests/status";
 import { formatCad } from "@/lib/transport/pricing";
