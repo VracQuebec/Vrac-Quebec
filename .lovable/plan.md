@@ -1,61 +1,175 @@
-# Refonte de l'Espace entrepreneur — une seule application
+# Refonte produit — Espace entrepreneur Vrac Québec
 
-## Objectif
-Transformer les pages entrepreneur actuelles (tableau de bord, demandes, chantiers, carte, comparateur, assistant, réseau, compte, notifications) en un produit unique, organisé autour du chantier, avec la même logique sur téléphone, tablette et ordinateur.
+Une seule application métier, pensée téléphone d'abord, déclinée iPad et ordinateur. Aucune donnée, fonctionnalité, route ou page publique supprimée.
 
-Rien n'est supprimé : toutes les adresses actuelles continuent de fonctionner, aucune donnée n'est effacée, l'espace administrateur et les pages publiques ne sont pas touchés.
+---
 
-## Ce que l'entrepreneur verra
+## 1. Architecture UX cible
 
-**Une navigation unique**
-- Téléphone : barre fixe en bas — Accueil, Chantiers, Demandes, Carte, Plus.
-- Tablette paysage et ordinateur : menu latéral permanent avec les mêmes sections plus Comparateur, Réseau, Avis, Mon compte.
-- Un seul en-tête partout : retour/menu à gauche, titre au centre, notifications (avec pastille) et profil à droite.
+Trois piliers : **Mon activité**, **Mes chantiers**, **Mes demandes**. Le chantier est le fil conducteur.
 
-**Un accueil orienté action**
-Salutation, actions rapides (Nouvelle demande / Trouver une dompe / Demander un transport), mes chantiers, « À faire », activité récente. Plus de longue page d'accueil dense.
+```text
+ENTREPRENEUR → CHANTIER → DEMANDE → RECHERCHE → SITE → TRANSPORT → SUIVI → HISTORIQUE
+```
 
-**Le chantier comme fil conducteur**
-- Liste de chantiers en cartes (lieu, nombre de demandes, transports, statut).
-- Dossier de chantier : aperçu, demandes, sites, transports, activité, actions. Tout ce qu'on lance depuis un chantier garde l'adresse, le matériau et la demande déjà saisis.
+Sections finales : Accueil · Chantiers · Demandes · Carte · Comparateur · Réseau · Avis · Notifications · Profil. Tout le reste (historique, favoris, annuaire, aide) vit dans « Plus » sur mobile, dans la barre latérale sur grand écran.
 
-**Les demandes clarifiées**
-Une seule liste filtrable (Toutes / En cours / En attente / Terminées). Chaque carte indique le chantier, le type, le statut, la date et la prochaine action. Les deux circuits techniques existants restent, mais sont nommés et distingués clairement.
+## 2. Navigation mobile
 
-**Un parcours guidé** pour créer une demande, en étapes courtes avec progression visible, au lieu d'un grand formulaire.
+- Barre fixe en bas, 5 entrées : **Accueil · Chantiers · Demandes · Carte · Plus**, icône + libellé, zone tactile 44 px, respect des zones sûres iOS.
+- En-tête unique : à gauche retour ou menu, au centre le titre/contexte (ex. « Chantier Résidence ABC »), à droite cloche avec pastille + avatar profil.
+- « Plus » = feuille glissante : Comparateur, Réseau, Avis, Historique, Mon compte, Aide, Déconnexion.
+- Bouton d'action flottant contextuel (nouvelle demande) sur Accueil et Chantiers.
+- Retour toujours contextuel : depuis la carte ouverte à partir d'un chantier, on revient au chantier, pas à l'accueil.
 
-**Une chronologie réelle** (demande créée → site sélectionné → transport → suivi), construite uniquement à partir des événements réellement enregistrés.
+## 3. Navigation iPad
 
-**Carte et comparateur simplifiés**
-Carte plein écran, bouton « Filtres » qui ouvre un panneau, fiche de site en panneau glissant avec un bouton « Sélectionner » qui ramène au chantier. Comparateur présenté comme un outil de décision (recommandation en tête, critères ensuite).
+- **Portrait** : identique au mobile mais en grille 2 colonnes pour les cartes, feuilles glissantes plus larges, barre du bas conservée.
+- **Paysage** : barre latérale compacte (icônes + libellés) et vue à deux colonnes — `Carte | Résultats`, `Liste demandes | Détail`, `Chantier | Activité`. Le détail s'ouvre à droite sans quitter la liste.
 
-**Notifications, profil et réseau**
-Un seul centre de notifications avec pastille, chaque avis renvoyant à l'objet concerné. Un seul écran de profil séparant clairement informations privées et informations publiques. Réseau présenté comme annuaire professionnel, sans inventer favoris/messagerie.
+## 4. Navigation desktop
 
-## Détails techniques
+Barre latérale permanente (Accueil, Mes chantiers, Mes demandes, Carte, Comparateur, Réseau, Avis, Mon compte), en-tête supérieur avec fil d'Ariane, recherche, notifications, profil. Mises en page 2–3 colonnes (liste / détail / activité). Même logique et mêmes composants que le mobile.
 
-- Nouvelle coquille `EntrepreneurAppShell` (en-tête + navigation basse mobile + sidebar desktop + zones sûres iOS), remplaçant `EntrepreneurShell` et les en-têtes ad hoc du tableau de bord.
-- Contexte React `EntrepreneurDataProvider` : chargement unique du profil, des rôles, des demandes, des transports et des notifications, partagé par toutes les pages (fin des rechargements répétés). Cache mémoire + revalidation.
-- Contexte de parcours (`ChantierContext`) transporté via l'état de navigation et l'URL (`?chantier=`), consommé par la carte, le comparateur et l'assistant pour préremplir adresse/matériau/quantité.
-- Chantiers : conservés tels quels (regroupement calculé) en source par défaut, plus une table `entrepreneur_chantiers` légère (nom, adresse, statut, notes) qui **référence** les demandes existantes sans les dupliquer, avec RLS `auth.uid()` et GRANT. Les regroupements calculés sans enregistrement restent affichés.
-- Chronologie alimentée par `transport_requests`, statuts et tables d'événements existantes ; aucun événement inventé.
-- Bibliothèque partagée de composants entrepreneur : carte, badge de statut, état vide/chargement/erreur, panneau glissant, barre d'actions — sur les jetons de couleur existants (vert/noir), aucune couleur en dur.
-- Règles de matériau/camion/distance factorisées dans un module partagé utilisé par la carte, le comparateur et l'assistant.
-- Accès : toutes les routes entrepreneur passent par la même garde (connecté + rôle entrepreneur ou admin). `/demande-transport` conserve son accès public actuel mais affiche la coquille entrepreneur uniquement pour les entrepreneurs connectés.
-- Compatibilité : toutes les routes actuelles (`/entrepreneur/*`, `/espace-entrepreneur`, `/entrepreneur/comparateur`, etc.) restent valides, redirigées vers les nouveaux écrans quand nécessaire.
+## 5. Nouveau tableau de bord
 
-## Déroulement
+Écran court, orienté action :
+1. Salutation + « Voici ce qui se passe aujourd'hui ».
+2. **Actions rapides** : Nouvelle demande · Trouver une dompe · Demander un transport.
+3. **À faire** — uniquement les éléments qui attendent l'entrepreneur (demande à confirmer, site à choisir, transport à valider). Masqué si vide.
+4. **Mes chantiers** — 3 cartes max + « Voir tout ».
+5. **Activité récente** — 5 derniers événements réels, cliquables vers l'objet.
 
-1. Coquille de navigation + design system entrepreneur + états standards.
-2. Contexte de données partagé et préremplissage du contexte chantier.
-3. Nouvel accueil.
-4. Chantiers (liste + dossier + table légère).
-5. Demandes (liste unifiée + parcours guidé + chronologie).
-6. Carte, comparateur, assistant.
-7. Transport et suivi reliés au chantier.
-8. Notifications, profil, réseau, avis.
-9. Adaptation iPad (deux colonnes en paysage) et ordinateur.
-10. Tests : les 5 scénarios demandés, aux 10 largeurs, avec captures réelles, plus vérification des tests automatisés existants.
+Les blocs actuels (résumé d'activité, profil réseau, réseau, sites recommandés, grille de 7 cartes) sont conservés mais déplacés : résumé fusionné dans « À faire », profil vers Profil, sites recommandés dans le dossier chantier, réseau dans Réseau.
 
-## Hors périmètre
-Administration, CRM, SEO, pages publiques, marketplace : aucune modification.
+## 6. Structure « Mes chantiers »
+
+- Liste en cartes verticales : nom, ville, nombre de demandes, nombre de transports, badge de statut, bouton Ouvrir.
+- Filtres : En cours / Terminés / Tous. Recherche par nom ou ville.
+- Création/renommage d'un chantier possible (nouveau), sans casser les regroupements existants.
+- **Dossier chantier** : en-tête (nom, adresse, statut) puis onglets Aperçu · Demandes · Sites · Transports · Activité · Infos, et barre d'actions collante : Nouvelle demande · Trouver une dompe · Demander un transport.
+
+## 7. Relation chantier → demande → site → transport
+
+Chaque demande porte une référence de chantier ; chaque site sélectionné et chaque transport restent rattachés à la demande d'origine. Depuis n'importe quel objet on remonte au chantier en un geste. Les demandes existantes sans chantier sont rattachées automatiquement par correspondance d'adresse (logique déjà présente dans le regroupement actuel), sans écraser les données.
+
+## 8. Unification des demandes
+
+Deux circuits techniques existent (soumission initiale et demande d'accès/transport). Ils sont conservés en base mais présentés dans **une seule liste** avec un type explicite :
+- « Demande de matériau » (soumission initiale)
+- « Demande d'accès à une dompe »
+- « Demande de transport »
+
+Filtres : Toutes · En cours · En attente · Terminées. Chaque carte : chantier, type, statut, date, **prochaine action**. Vocabulaire de statut unifié et lisible (les valeurs anciennes restent normalisées pour l'affichage).
+
+## 9. Recherche de dompes
+
+Aujourd'hui trois entrées (carte, comparateur, assistant). Après refonte : **une seule intention « Trouver une dompe »**, qui ouvre la carte avec le contexte du chantier, et propose « Comparer les sites » comme vue alternative des mêmes résultats. Mêmes règles de compatibilité matériau/camion et même calcul de distance pour les trois surfaces (module partagé).
+
+## 10. Carte
+
+Carte plein écran, un doigt (déjà en place). Barre supérieure : recherche d'adresse + bouton **Filtres** (panneau glissant : matériau, disponibilité, volume, type de camion, distance). Résultats en carrousel bas sur mobile, colonne latérale sur iPad paysage/desktop. Fiche de site en feuille glissante : nom, distance, compatibilité, matériaux, disponibilité, infos, bouton **Sélectionner** qui renvoie au chantier/demande.
+
+## 11. Comparateur
+
+Outil de décision : recommandation en tête (« Meilleur choix » + raison), puis tableau/cartes comparatives (distance, compatibilité, matériau, camion, disponibilité). Maximum 3 sites côte à côte sur mobile via défilement, tableau complet sur desktop. Bouton Sélectionner identique à celui de la carte.
+
+## 12. Assistant intelligent
+
+Intégré au produit, plus une page isolée. Lancé depuis un chantier, il connaît déjà chantier, adresse, matériau, quantité et ne repose pas ces questions. Présenté en étapes courtes avec barre de progression, une question par écran sur mobile. Le brouillon persistant et la file d'envoi actuels sont conservés.
+
+## 13. Transport
+
+Suite logique du chantier : site sélectionné → « Demander un transport » → récapitulatif prérempli → vérification → confirmation → suivi. Le transport reste lié au chantier et à la demande d'origine. Les règles de tarification et la validation côté serveur ne changent pas.
+
+## 14. Notifications
+
+Un seul centre (fusion du bloc du tableau de bord et de `/notifications`). Pastille sur la cloche, liste groupée par jour, filtres Non lues / Toutes, action « Tout marquer comme lu ». Chaque notification pointe vers l'objet concerné (demande, site, transport), pas vers une page générique.
+
+## 15. Suivi chronologique
+
+Chronologie verticale dans chaque demande/transport, alimentée **uniquement** par les événements réellement enregistrés : demande créée, site sélectionné, site validé, transport en traitement, livraison, terminé, annulé. États : fait (✓), en cours (●), à venir (○). Aucune donnée inventée ; une étape sans horodatage réel s'affiche sans heure.
+
+## 16. Profil et paramètres de l'entreprise
+
+Un seul écran, sections : **Mon entreprise · Coordonnées · Camions · Profil public · Visibilité · Confidentialité · Préférences (notifications)**. Séparation visuelle nette « Privé — visible par vous seul » / « Public — visible dans l'annuaire », avec aperçu du profil public. Remplace la double présentation actuelle (Mon compte + Profil réseau), en conservant les deux sources de données.
+
+## 17. Réseau professionnel
+
+Annuaire : recherche, filtres (métier, région, matériaux), cartes de profils, fiche publique. Aucune fonctionnalité inventée : favoris, messagerie, notation et collaboration ne sont pas ajoutés, mais la structure des cartes et de la fiche prévoit leur emplacement pour plus tard. Les protections de confidentialité actuelles restent inchangées.
+
+## 18. États (chargement, vide, erreur, succès, attente)
+
+Composants standards réutilisés partout : squelettes de chargement (jamais d'écran blanc), état vide illustré avec action proposée, état d'erreur avec message clair + « Réessayer », confirmations en toast, badges d'état cohérents (en attente, accepté, en cours, terminé, refusé, annulé, indisponible).
+
+## 19. Conservation du contexte
+
+Contexte de parcours porté par l'URL (`?chantier=…&demande=…`) et l'état de navigation, lu par la carte, le comparateur, l'assistant et le transport. Les champs déjà connus sont préremplis et affichés en rappel (« Chantier Résidence ABC — Québec »). Retour arrière toujours vers l'écran d'origine.
+
+## 20. Permissions et accès
+
+Une garde unique pour toutes les routes entrepreneur : session valide + rôle entrepreneur ou admin, sinon redirection vers la connexion. Aucune route privée accessible depuis une autre entrée. `/demande-transport` conserve son accès public actuel (parcours de soumission), mais la coquille entrepreneur et les données privées n'y apparaissent que pour un entrepreneur connecté. Les règles RLS existantes ne sont pas assouplies.
+
+## 21. Stratégie responsive
+
+Points de rupture : 320 / 375 / 390 / 430 (mobile), 768 / 820 (iPad portrait), 1024 (iPad paysage), 1280 / 1440 / 1920 (desktop). Mobile d'abord, grilles fluides, zones sûres iOS, cibles tactiles ≥ 44 px, aucun tableau brut sur mobile (cartes), feuilles glissantes au lieu de grandes fenêtres. Critère de réussite : l'expérience, pas seulement l'absence de débordement.
+
+## 22. Composants réutilisables
+
+`EntrepreneurAppShell` (en-tête + barre basse + barre latérale), `BottomSheet`, `AppCard`, `StatusBadge`, `Timeline`, `QuickActions`, `FilterSheet`, `SiteCard`, `RequestCard`, `ChantierCard`, `EmptyState`, `ErrorState`, `LoadingSkeleton`, `SectionHeader`, `ActionBar`. Tous bâtis sur les jetons de couleur existants (vert/noir), aucune couleur en dur.
+
+Réutilisés tels quels : carte Google et sa logique un doigt, comparateur (calculs), assistant (moteur et file d'envoi), annuaire, listes de demandes, notifications, profil réseau.
+
+## 23. Performance
+
+- Un seul fournisseur de données (`EntrepreneurDataProvider`) : profil, rôles, chantiers, demandes, transports, notifications chargés une fois et partagés.
+- Cache mémoire + revalidation en arrière-plan, plus de rechargement complet à chaque page.
+- Calculs de distance/compatibilité mémoïsés dans le module partagé.
+- Chargement différé de la carte, du comparateur et de l'assistant.
+- Squelettes plutôt qu'écrans vides ; transitions courtes (150–200 ms).
+
+## 24. Tests
+
+Les 5 scénarios demandés (nouvel entrepreneur, entrepreneur existant, notification → objet, recherche libre, retour contextuel) joués en navigateur automatisé aux 10 largeurs, avec captures réelles. Plus : vérification de types, suite de tests existante (414 tests), contrôle qu'aucune route ne renvoie d'erreur, et test « utilisateur naïf » sur les 7 questions clés (« où sont mes chantiers ? », etc.).
+
+---
+
+## Constats de l'audit repris dans la refonte
+
+**Doublons actuels** : deux circuits de demandes ; trois entrées vers la recherche de dompes ; deux présentations du profil ; deux centres de notifications ; en-têtes multiples ; calculs de distance/compatibilité dupliqués ; chargements répétés des mêmes données sur le tableau de bord.
+
+**Parcours à fusionner** : demandes (une liste, types explicites) · recherche de dompes (carte + comparateur = deux vues d'un même résultat) · notifications · profil/compte.
+
+**Fonctionnalités déplacées** : profil réseau → Profil ; sites recommandés → dossier chantier ; historique et favoris → « Plus » ; résumé d'activité → « À faire » de l'accueil.
+
+**Données communes conservées** : entrepreneur, chantier, demande, site, transport restent le même objet partout ; aucune donnée parallèle créée.
+
+**Relations conservées** : demande ↔ chantier, site ↔ demande, transport ↔ demande, notification ↔ objet, historique ↔ transport.
+
+**Risques identifiés et parades** :
+- Rattachement d'anciennes demandes à un chantier → correspondance non destructive, la demande reste visible même sans chantier.
+- Rupture de la file d'envoi de l'assistant → réutilisation du module existant sans modification.
+- Perte d'accès à une page déplacée → toutes les anciennes adresses restent valides et redirigent.
+- Régression de permissions → garde unique, RLS inchangée, tests d'accès non connecté.
+- Régression responsive administration/public → périmètre strictement limité à l'espace entrepreneur.
+
+---
+
+## Phases de livraison
+
+1. **Fondations** — coquille de navigation, design system entrepreneur, états standards.
+2. **Données** — fournisseur unique, cache, contexte de parcours.
+3. **Accueil** — nouveau home orienté action.
+4. **Chantiers** — liste + dossier + création/renommage (table légère `entrepreneur_chantiers`, RLS par utilisateur, référence aux demandes existantes).
+5. **Demandes** — liste unifiée, filtres, cartes, prochaine action.
+6. **Création guidée** — parcours en étapes avec progression.
+7. **Carte** — plein écran, filtres en panneau, fiche de site.
+8. **Comparateur** — vue décisionnelle partagée avec la carte.
+9. **Assistant** — intégration contextuelle.
+10. **Transport et chronologie** — suite du chantier, suivi visuel.
+11. **Notifications** — centre unique, pastille, liens directs.
+12. **Profil et réseau** — écran unifié privé/public, annuaire.
+13. **iPad et desktop** — deux colonnes, barre latérale.
+14. **Tests et validation** — scénarios, 10 largeurs, captures, tests automatisés.
+
+Aucune modification de l'administration, du CRM, du SEO, des pages publiques ni de la place de marché.
