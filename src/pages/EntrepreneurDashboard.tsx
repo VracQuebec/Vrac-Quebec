@@ -1,264 +1,268 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { statusBucket } from "@/lib/access-requests/status";
-import { useAuthReady } from "@/hooks/useAuthReady";
-import { useUserRoles } from "@/hooks/useUserRole";
-import FullPageState from "@/components/FullPageState";
-import EntrepreneurNotifications from "@/components/entrepreneur/EntrepreneurNotifications";
-import SitesRecommandesList from "@/components/entrepreneur/SitesRecommandesList";
-import ReseauNetwork from "@/components/entrepreneur/ReseauNetwork";
-import ActivitySummary from "@/components/entrepreneur/ActivitySummary";
-import ProfilReseauCard from "@/components/entrepreneur/ProfilReseauCard";
-import TransportBanner from "@/components/TransportBanner";
+// ============================================================
+// ACCUEIL de l'espace entrepreneur — un écran court, orienté action.
+// Priorité : que dois-je faire maintenant ?
+// ============================================================
+import { Link } from "react-router-dom";
+import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import {
-  Truck,
-  LogOut,
-  Sparkles,
-  ClipboardList,
-  Star,
+  EmptyState,
+  ErrorState,
+  LoadingSkeleton,
+  SectionHeader,
+  StatusBadge,
+} from "@/components/entrepreneur-app/AppStates";
+import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
+import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
+import {
+  Plus,
   Map as MapIcon,
-  History,
-  HardHat,
-  Building2,
-  User,
+  Truck,
   ArrowRight,
   Clock,
   CheckCircle2,
-  XCircle,
-  Loader2,
+  ChevronRight,
+  HardHat,
+  ClipboardList,
 } from "lucide-react";
 
-interface StatusCounts {
-  pending: number;
-  accepted: number;
-  completed: number;
-  refused: number;
-}
-
-const EntrepreneurDashboard = () => {
-  const navigate = useNavigate();
-  const { user, isReady: authReady } = useAuthReady();
-  const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
-  const [counts, setCounts] = useState<StatusCounts>({ pending: 0, accepted: 0, completed: 0, refused: 0 });
-  const [loadingCounts, setLoadingCounts] = useState(true);
-
-  useEffect(() => {
-    if (!authReady) return;
-    if (!user) navigate("/login", { replace: true });
-  }, [authReady, user, navigate]);
-
-  useEffect(() => {
-    if (!user) return;
-    let active = true;
-    (async () => {
-      setLoadingCounts(true);
-      const { data } = await supabase
-        .from("transport_requests")
-        .select("status")
-        .eq("user_id", user.id);
-      if (!active) return;
-      const c: StatusCounts = { pending: 0, accepted: 0, completed: 0, refused: 0 };
-      (data || []).forEach((r: { status: string }) => {
-        const bucket = statusBucket(r.status);
-        c[bucket]++;
-      });
-      setCounts(c);
-      setLoadingCounts(false);
-    })();
-    return () => { active = false; };
-  }, [user]);
-
-  const handleLogout = async () => { await supabase.auth.signOut(); navigate("/login"); };
-
-  if (!authReady || !user || roleLoading) {
-    return <FullPageState title="Connexion en cours" message="Votre espace entrepreneur se charge automatiquement." />;
+const statusMeta = (status: string | null): { label: string; tone: "pending" | "active" | "done" | "refused" | "neutral" } => {
+  switch (status) {
+    case "acceptee":
+    case "planifiee":
+    case "en_cours":
+      return { label: "En cours", tone: "active" };
+    case "terminee":
+      return { label: "Terminée", tone: "done" };
+    case "refusee":
+    case "annulee":
+      return { label: status === "refusee" ? "Refusée" : "Annulée", tone: "refused" };
+    case "soumission_envoyee":
+    case "en_attente_proprietaire":
+      return { label: "En attente", tone: "pending" };
+    default:
+      return { label: "Nouvelle", tone: "pending" };
   }
-  if (!isEntrepreneur && !isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-center">
-        <div>
-          <p className="text-muted-foreground mb-4">Accès réservé aux entrepreneurs autorisés.</p>
-          <button onClick={handleLogout} className="text-primary underline">Se déconnecter</button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background flex flex-col">
-      <nav className="sticky-below-nav z-30 w-full bg-card/95 backdrop-blur-md border-b border-border">
-        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2">
-          <Link to="/entrepreneur" className="flex min-w-0 items-center gap-2">
-            <Truck className="w-6 h-6 flex-shrink-0 text-primary" />
-            <span className="truncate font-display font-bold text-lg sm:text-xl text-foreground">Vrac<span className="text-primary">Québec</span></span>
-            <span className="hidden sm:inline ml-1 px-2 py-0.5 rounded text-xs bg-emerald-500/10 text-emerald-700 font-display font-semibold">Entrepreneur</span>
-          </Link>
-          <button onClick={handleLogout} className="flex flex-shrink-0 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-            <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Déconnexion</span>
-          </button>
-        </div>
-      </nav>
-
-      <TransportBanner />
-
-      <main className="flex-1 w-full min-w-0 container mx-auto px-4 sm:px-6 py-8 sm:py-10">
-        <header className="mb-8">
-          <h1 className="text-2xl sm:text-4xl font-display font-bold tracking-tight">
-            Bienvenue sur votre tableau de bord
-          </h1>
-          <p className="mt-2 text-muted-foreground font-body max-w-2xl">
-            Lancez l'assistant intelligent pour trouver la meilleure dompe pour votre chantier en moins de 60 secondes.
-          </p>
-        </header>
-
-        {/* Hero: Assistant intelligent */}
-        <button
-          onClick={() => navigate("/demande-transport")}
-          className="group w-full max-w-full text-left mb-8 rounded-2xl overflow-hidden border-2 border-primary bg-gradient-to-br from-primary/90 via-primary to-primary/80 text-primary-foreground p-5 sm:p-8 lg:p-10 transition-transform hover:scale-[1.005]"
-          style={{ boxShadow: "0 20px 60px -20px rgba(126, 211, 33, 0.5)" }}
-        >
-          <div className="flex flex-col lg:flex-row lg:items-center gap-5 sm:gap-6">
-            <div className="flex-shrink-0 w-14 h-14 sm:w-20 sm:h-20 rounded-2xl bg-black/20 flex items-center justify-center">
-              <Sparkles className="w-8 h-8 sm:w-10 sm:h-10" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/25 text-[10px] uppercase font-display font-bold tracking-wider mb-2">
-                Assistant intelligent
-              </div>
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-display font-bold mb-2 break-words">
-                Trouver une dompe pour mon chantier
-              </h2>
-              <p className="text-sm sm:text-base opacity-95 max-w-2xl font-body break-words">
-                Décrivez votre chantier en moins de 60 secondes. Notre assistant analyse votre demande et recommande automatiquement la meilleure dompe selon la distance, le matériau, la disponibilité et le type de camion.
-              </p>
-            </div>
-            <div className="flex-shrink-0">
-              <span className="inline-flex w-full justify-center lg:w-auto items-center gap-2 bg-black text-white px-6 py-3.5 rounded-xl font-display font-bold text-base group-hover:gap-3 transition-all">
-                Commencer <ArrowRight className="w-5 h-5" />
-              </span>
-            </div>
-          </div>
-        </button>
-
-        <EntrepreneurNotifications userId={user?.id} />
-
-        {/* Résumé d'activité — compteurs calculés depuis les données réelles du compte */}
-        <ActivitySummary />
-
-        {/* Profil réseau — informations professionnelles réellement enregistrées */}
-        <ProfilReseauCard />
-
-        {/* Carte du réseau — vue calculée des chantiers, demandes et sites réellement associés */}
-        <ReseauNetwork />
-
-        {/* Sites recommandés — uniquement des sites réellement rattachés à vos demandes */}
-        <section className="mb-8" aria-labelledby="sites-recommandes">
-          <h2 id="sites-recommandes" className="mb-1 font-display text-xl font-bold sm:text-2xl">
-            Sites recommandés
-          </h2>
-          <p className="mb-4 font-body text-sm text-muted-foreground">
-            Les sites déjà rattachés à vos demandes, avec leur contexte réel.
-          </p>
-          <SitesRecommandesList />
-        </section>
-
-        {/* Secondary tools */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Mes demandes */}
-          <Link
-            to="/entrepreneur/demandes"
-            className="group rounded-xl border border-border bg-card p-5 hover:border-primary/60 hover:shadow-md transition-all"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-11 h-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                <ClipboardList className="w-5 h-5" />
-              </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-            </div>
-            <h3 className="font-display font-bold text-lg">Mes demandes d'accès</h3>
-            <p className="text-xs text-muted-foreground mb-3 font-body">Suivez l'état de vos demandes d'accès aux dompes.</p>
-            {loadingCounts ? (
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-            ) : (
-              <div className="grid grid-cols-2 gap-1.5 text-[11px] font-body">
-                <StatPill icon={<Clock className="w-3 h-3" />} label="En attente" value={counts.pending} color="text-amber-600" />
-                <StatPill icon={<CheckCircle2 className="w-3 h-3" />} label="Acceptées" value={counts.accepted} color="text-emerald-600" />
-                <StatPill icon={<CheckCircle2 className="w-3 h-3" />} label="Terminées" value={counts.completed} color="text-blue-600" />
-                <StatPill icon={<XCircle className="w-3 h-3" />} label="Refusées" value={counts.refused} color="text-red-600" />
-              </div>
-            )}
-          </Link>
-
-          <ActionCard
-            to="/entrepreneur/favoris"
-            icon={<Star className="w-5 h-5" />}
-            title="Mes favoris"
-            description="Retrouvez vos dompes favorites en un clic."
-          />
-
-          <ActionCard
-            to="/entrepreneur/chantiers"
-            icon={<HardHat className="w-5 h-5" />}
-            title="Mes chantiers"
-            description="Vos demandes regroupées par lieu de chantier."
-          />
-
-          <ActionCard
-            to="/entrepreneur/reseau"
-            icon={<Building2 className="w-5 h-5" />}
-            title="Explorer le réseau"
-            description="L'annuaire professionnel des entrepreneurs du réseau."
-          />
-
-          <ActionCard
-            to="/entrepreneur/carte"
-            icon={<MapIcon className="w-5 h-5" />}
-            title="Carte des dompes"
-            description="Consultez toutes les dompes disponibles sans passer par l'assistant."
-          />
-
-          <ActionCard
-            to="/entrepreneur/historique"
-            icon={<History className="w-5 h-5" />}
-            title="Historique"
-            description="Toutes vos anciennes demandes d'accès en un coup d'œil."
-          />
-
-          <ActionCard
-            to="/entrepreneur/compte"
-            icon={<User className="w-5 h-5" />}
-            title="Mon compte"
-            description="Informations de votre entreprise et coordonnées."
-          />
-        </div>
-      </main>
-    </div>
-  );
 };
 
-const StatPill = ({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color: string }) => (
-  <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-background border border-border">
-    <span className={color}>{icon}</span>
-    <span className="text-muted-foreground truncate">{label}</span>
-    <span className="ml-auto font-display font-bold text-foreground">{value}</span>
-  </div>
-);
+const fmtDate = (iso: string | null) =>
+  iso
+    ? new Date(iso).toLocaleDateString("fr-CA", { day: "numeric", month: "short" })
+    : null;
 
-const ActionCard = ({ to, icon, title, description }: { to: string; icon: React.ReactNode; title: string; description: string }) => (
-  <Link
-    to={to}
-    className="group rounded-xl border border-border bg-card p-5 hover:border-primary/60 hover:shadow-md transition-all"
-  >
-    <div className="flex items-center justify-between mb-3">
-      <div className="w-11 h-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-        {icon}
+export default function EntrepreneurDashboard() {
+  const { profile } = useEntrepreneurProfile();
+  const { loading, error, submissions, chantiers, accessRequests, counts, refresh } = useEntrepreneurData();
+
+  const firstName =
+    profile?.contact_name?.split(" ")[0] || profile?.name?.split(" ")[0] || "";
+
+  // « À faire » : uniquement ce qui attend réellement l'entrepreneur.
+  const todo: { id: string; title: string; detail: string; to: string }[] = [];
+  for (const r of accessRequests) {
+    if (["nouvelle", "en_analyse"].includes(r.status)) {
+      todo.push({
+        id: r.id,
+        title: "Demande d'accès en traitement",
+        detail: `Créée le ${fmtDate(r.created_at) ?? "—"}`,
+        to: "/entrepreneur/demandes",
+      });
+    }
+  }
+  for (const s of submissions) {
+    if (s.selectedSiteId && !s.siteValidatedAt) {
+      todo.push({
+        id: s.id,
+        title: "Un site attend votre validation",
+        detail: s.selectedSiteLabel ?? s.location ?? "Site sélectionné",
+        to: "/entrepreneur/demandes",
+      });
+    }
+  }
+
+  // Activité récente : 5 derniers événements réels (demandes + accès).
+  const recent = [
+    ...submissions.map((s) => ({
+      id: `s-${s.id}`,
+      title: s.material ? `Demande — ${s.material}` : "Demande envoyée",
+      detail: s.location ?? "Lieu à confirmer",
+      at: s.createdAt,
+      to: "/entrepreneur/demandes",
+      icon: ClipboardList,
+    })),
+    ...accessRequests.map((r) => ({
+      id: `r-${r.id}`,
+      title: "Demande d'accès à une dompe",
+      detail: statusMeta(r.status).label,
+      at: r.created_at,
+      to: "/entrepreneur/demandes",
+      icon: Truck,
+    })),
+  ]
+    .filter((e) => e.at)
+    .sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""))
+    .slice(0, 5);
+
+  return (
+    <EntrepreneurAppShell title={`Bonjour${firstName ? ` ${firstName}` : ""}`} subtitle="Voici ce qui se passe aujourd'hui" showFab>
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 space-y-8">
+        {/* ---------- Actions rapides ---------- */}
+        <div className="grid grid-cols-3 gap-2.5">
+          <Link
+            to="/demande-transport"
+            className="flex flex-col items-center gap-2 rounded-2xl bg-primary px-2 py-4 text-center text-primary-foreground shadow-md shadow-primary/25 active:scale-95 transition-transform"
+          >
+            <Plus className="h-6 w-6" />
+            <span className="text-xs font-display font-bold leading-tight">Nouvelle<br />demande</span>
+          </Link>
+          <Link
+            to="/entrepreneur/carte"
+            className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card px-2 py-4 text-center active:scale-95 transition-transform"
+          >
+            <MapIcon className="h-6 w-6 text-primary" />
+            <span className="text-xs font-display font-bold leading-tight">Trouver<br />une dompe</span>
+          </Link>
+          <Link
+            to="/entrepreneur/demandes"
+            className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card px-2 py-4 text-center active:scale-95 transition-transform"
+          >
+            <Truck className="h-6 w-6 text-primary" />
+            <span className="text-xs font-display font-bold leading-tight">Mes<br />transports</span>
+          </Link>
+        </div>
+
+        {loading ? (
+          <LoadingSkeleton lines={3} />
+        ) : error ? (
+          <ErrorState onRetry={refresh} />
+        ) : (
+          <>
+            {/* ---------- À faire ---------- */}
+            {todo.length > 0 && (
+              <section aria-labelledby="a-faire">
+                <SectionHeader
+                  title={
+                    <span className="flex items-center gap-2">
+                      À faire
+                      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-display font-bold text-amber-600 dark:text-amber-400">
+                        {todo.length}
+                      </span>
+                    </span>
+                  }
+                />
+                <div className="space-y-2.5">
+                  {todo.slice(0, 4).map((t) => (
+                    <Link
+                      key={t.id}
+                      to={t.to}
+                      className="flex items-center gap-3 rounded-2xl border-l-4 border-l-amber-500 border border-border bg-card p-4 active:scale-[0.99] transition-transform"
+                    >
+                      <Clock className="h-5 w-5 shrink-0 text-amber-500" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-display text-sm font-bold">{t.title}</p>
+                        <p className="truncate font-body text-xs text-muted-foreground">{t.detail}</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ---------- Mes chantiers ---------- */}
+            <section aria-labelledby="mes-chantiers">
+              <SectionHeader
+                title="Mes chantiers"
+                action={
+                  chantiers.length > 0 && (
+                    <Link to="/entrepreneur/chantiers" className="inline-flex items-center gap-1 font-display text-sm font-semibold text-primary">
+                      Tout voir <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  )
+                }
+              />
+              {chantiers.length === 0 ? (
+                <EmptyState
+                  title="Aucun chantier pour l'instant"
+                  message="Vos chantiers apparaîtront ici dès votre première demande."
+                  actionLabel="Créer ma première demande"
+                  actionTo="/demande-transport"
+                />
+              ) : (
+                <div className="space-y-2.5">
+                  {chantiers.slice(0, 3).map((c) => (
+                    <Link
+                      key={c.key}
+                      to={`/entrepreneur/chantiers/${encodeURIComponent(c.key)}`}
+                      className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 active:scale-[0.99] transition-transform"
+                    >
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <HardHat className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-display text-sm font-bold">{c.label}</p>
+                        <p className="truncate font-body text-xs text-muted-foreground">
+                          {c.submissions.length} demande{c.submissions.length > 1 ? "s" : ""}
+                          {c.materials.length > 0 && ` · ${c.materials.slice(0, 2).join(", ")}`}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* ---------- Activité récente ---------- */}
+            <section aria-labelledby="activite-recente">
+              <SectionHeader title="Activité récente" />
+              {recent.length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-border bg-card/60 p-5 text-center font-body text-sm text-muted-foreground">
+                  Aucune activité récente. Tout est calme.
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  {recent.map((e) => (
+                    <Link
+                      key={e.id}
+                      to={e.to}
+                      className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 active:scale-[0.99] transition-transform"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
+                        <e.icon className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-display text-sm font-semibold">{e.title}</p>
+                        <p className="truncate font-body text-xs text-muted-foreground">
+                          {fmtDate(e.at)} · {e.detail}
+                        </p>
+                      </div>
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* ---------- Compteurs discrets ---------- */}
+            <div className="grid grid-cols-4 gap-2 text-center">
+              {[
+                { label: "En attente", value: counts.pending, cls: "text-amber-600 dark:text-amber-400" },
+                { label: "Acceptées", value: counts.accepted, cls: "text-emerald-600 dark:text-emerald-400" },
+                { label: "Terminées", value: counts.completed, cls: "text-blue-600 dark:text-blue-400" },
+                { label: "Refusées", value: counts.refused, cls: "text-destructive" },
+              ].map((s) => (
+                <Link key={s.label} to="/entrepreneur/demandes" className="rounded-2xl border border-border bg-card py-3">
+                  <p className={`font-display text-xl font-bold ${s.cls}`}>{s.value}</p>
+                  <p className="font-body text-[10px] text-muted-foreground">{s.label}</p>
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
       </div>
-      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-    </div>
-    <h3 className="font-display font-bold text-lg">{title}</h3>
-    <p className="text-xs text-muted-foreground font-body">{description}</p>
-  </Link>
-);
+    </EntrepreneurAppShell>
+  );
+}
 
-export default EntrepreneurDashboard;
+// Référence conservée pour les imports existants.
+export { StatusBadge };

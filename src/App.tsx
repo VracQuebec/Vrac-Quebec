@@ -11,6 +11,7 @@ import AppErrorBoundary from "./components/AppErrorBoundary";
 import UniversalNav from "./components/UniversalNav";
 import { trackPageView } from "./lib/analytics/ga4";
 import { useAdminNotifications } from "./hooks/useAdminNotifications";
+import { EntrepreneurDataProvider } from "./lib/entrepreneur-app/EntrepreneurDataProvider";
 
 function AdminNotificationsMount() {
   useAdminNotifications();
@@ -34,6 +35,7 @@ const Entrepreneur = lazy(() => import("./pages/Entrepreneur"));
 const EntrepreneurDashboard = lazy(() => import("./pages/EntrepreneurDashboard"));
 const EntrepreneurDemandes = lazy(() => import("./pages/EntrepreneurDemandes"));
 const EntrepreneurChantiers = lazy(() => import("./pages/EntrepreneurChantiers"));
+const EntrepreneurChantierDetail = lazy(() => import("./pages/EntrepreneurChantierDetail"));
 const EntrepreneurFavoris = lazy(() => import("./pages/EntrepreneurFavoris"));
 const EntrepreneurHistorique = lazy(() => import("./pages/EntrepreneurHistorique"));
 const EntrepreneurCompte = lazy(() => import("./pages/EntrepreneurCompte"));
@@ -150,7 +152,9 @@ const App = () => (
           <AdminNotificationsMount />
           <UniversalNav />
           <Suspense fallback={null}>
+          <EntrepreneurDataProvider>
           <Routes>
+            {/* Fournisseur de données partagé de l'espace entrepreneur */}
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -176,7 +180,8 @@ const App = () => (
             <Route path="/entrepreneur/demandes" element={<EntrepreneurDemandes />} />
             <Route path="/entrepreneur/reseau" element={<EntrepreneurAnnuaire />} />
             <Route path="/entrepreneur/chantiers" element={<EntrepreneurChantiers />} />
-            <Route path="/entrepreneur/favoris" element={<EntrepreneurFavoris />} />
+            <Route path="/entrepreneur/chantiers/:key" element={<EntrepreneurChantierDetail />} />
+            <Route path="/entrepreneur/favoris" element={<Navigate to="/entrepreneur" replace />} />
             <Route path="/entrepreneur/historique" element={<EntrepreneurHistorique />} />
             <Route path="/entrepreneur/compte" element={<EntrepreneurCompte />} />
             <Route path="/entrepreneur/inscription" element={<EntrepreneurSignup />} />
@@ -249,6 +254,7 @@ const App = () => (
             <Route path="/:localSlug" element={<SeoLandingPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </EntrepreneurDataProvider>
           </Suspense>
         </BrowserRouter>
       </TooltipProvider>
