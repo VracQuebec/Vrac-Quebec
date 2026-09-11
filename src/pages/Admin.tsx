@@ -1034,7 +1034,8 @@ const Admin = () => {
         type="button"
         aria-label="Ajouter un Lead"
         onClick={() => setShowNewLead(true)}
-        className="md:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition"
+        style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
+        className="md:hidden fixed right-4 z-40 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition"
       >
         <Plus className="w-6 h-6" />
       </button>
