@@ -39,6 +39,7 @@ const EntrepreneurChantierDetail = lazy(() => import("./pages/EntrepreneurChanti
 const EntrepreneurFavoris = lazy(() => import("./pages/EntrepreneurFavoris"));
 const EntrepreneurHistorique = lazy(() => import("./pages/EntrepreneurHistorique"));
 const EntrepreneurCompte = lazy(() => import("./pages/EntrepreneurCompte"));
+const EntrepreneurNotifications = lazy(() => import("./pages/EntrepreneurNotifications"));
 const EntrepreneurSignup = lazy(() => import("./pages/EntrepreneurSignup"));
 const EspaceEntrepreneur = lazy(() => import("./pages/EspaceEntrepreneur"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
@@ -184,6 +185,7 @@ const App = () => (
             <Route path="/entrepreneur/favoris" element={<Navigate to="/entrepreneur" replace />} />
             <Route path="/entrepreneur/historique" element={<EntrepreneurHistorique />} />
             <Route path="/entrepreneur/compte" element={<EntrepreneurCompte />} />
+            <Route path="/entrepreneur/notifications" element={<EntrepreneurNotifications />} />
             <Route path="/entrepreneur/inscription" element={<EntrepreneurSignup />} />
             <Route path="/espace-entrepreneur" element={<EspaceEntrepreneur />} />
             <Route path="/blog" element={<Blog />} />
