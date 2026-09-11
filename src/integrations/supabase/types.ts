@@ -16039,6 +16039,7 @@ export type Database = {
         Returns: undefined
       }
       mkt_analytics: { Args: { _from?: string; _to?: string }; Returns: Json }
+      mkt_can_manage_photo_object: { Args: { _name: string }; Returns: boolean }
       mkt_can_see_request: { Args: { _request_id: string }; Returns: boolean }
       mkt_client_contact: {
         Args: { _company_id: string; _request_id: string }
