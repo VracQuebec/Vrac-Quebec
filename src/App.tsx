@@ -176,7 +176,8 @@ const App = () => (
             <Route path="/entrepreneur/demandes" element={<EntrepreneurDemandes />} />
             <Route path="/entrepreneur/reseau" element={<EntrepreneurAnnuaire />} />
             <Route path="/entrepreneur/chantiers" element={<EntrepreneurChantiers />} />
-            <Route path="/entrepreneur/favoris" element={<EntrepreneurFavoris />} />
+            <Route path="/entrepreneur/chantiers/:key" element={<EntrepreneurChantierDetail />} />
+            <Route path="/entrepreneur/favoris" element={<Navigate to="/entrepreneur" replace />} />
             <Route path="/entrepreneur/historique" element={<EntrepreneurHistorique />} />
             <Route path="/entrepreneur/compte" element={<EntrepreneurCompte />} />
             <Route path="/entrepreneur/inscription" element={<EntrepreneurSignup />} />
