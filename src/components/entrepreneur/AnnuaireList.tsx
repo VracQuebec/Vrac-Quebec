@@ -250,7 +250,7 @@ export default function AnnuaireList() {
                   key={label}
                   type="button"
                   onClick={() => set({ proximity: value as AnnuaireFilters["proximity"] })}
-                  className={`min-h-9 shrink-0 rounded-full px-3 font-body text-xs transition-transform active:scale-95 ${
+                  className={`min-h-11 shrink-0 rounded-full px-4 font-body text-sm transition-transform active:scale-95 ${
                     filters.proximity === value ? "bg-primary text-primary-foreground" : "border border-border bg-card"
                   }`}
                 >

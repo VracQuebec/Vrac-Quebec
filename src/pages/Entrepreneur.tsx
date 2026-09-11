@@ -386,7 +386,7 @@ const Entrepreneur = () => {
               />
               <button
                 onClick={() => setExpanded((v) => !v)}
-                className="absolute top-3 left-3 z-10 inline-flex items-center gap-1.5 rounded-xl bg-background/95 border border-border px-3 py-2 text-xs font-body shadow-sm hover:border-foreground/30"
+                className="absolute top-3 left-3 z-10 inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-background/95 border border-border px-3.5 py-2 text-xs font-body shadow-sm hover:border-foreground/30"
               >
                 {expanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                 {expanded ? "Réduire la carte" : "Agrandir la carte"}
