@@ -152,6 +152,7 @@ const App = () => (
           <UniversalNav />
           <Suspense fallback={null}>
           <Routes>
+            {/* Fournisseur de données partagé de l'espace entrepreneur */}
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
