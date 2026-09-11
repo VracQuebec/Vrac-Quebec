@@ -3,7 +3,7 @@
 // Données : vue calculée existante (aucune nouvelle structure).
 // ============================================================
 import { useMemo } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import {
   EmptyState,
@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   Circle,
   Clock,
+  Scale,
 } from "lucide-react";
 
 const toneFor = (status: string | null): "pending" | "active" | "done" | "refused" | "neutral" => {
