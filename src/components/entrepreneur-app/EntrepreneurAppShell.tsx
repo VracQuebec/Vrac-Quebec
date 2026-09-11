@@ -230,19 +230,20 @@ export default function EntrepreneurAppShell({
           </div>
         </header>
 
-        <TransportBanner />
-
-        <main className="flex-1 w-full min-w-0 pb-24 lg:pb-10">{children}</main>
+        <main className="flex-1 w-full min-w-0 pb-28 lg:pb-10 animate-in fade-in duration-150">
+          {children}
+        </main>
       </div>
 
-      {/* ---------- Bouton d'action flottant ---------- */}
+      {/* ---------- Bouton d'action flottant (compact, jamais couvrant) ---------- */}
       {showFab && (
         <Link
           to="/demande-transport"
-          className="fixed z-40 lg:hidden right-4 flex items-center gap-2 rounded-2xl bg-primary px-5 py-3.5 font-display font-bold text-primary-foreground shadow-lg shadow-primary/30 active:scale-95 transition-transform"
-          style={{ bottom: "calc(4.5rem + env(safe-area-inset-bottom, 0px) + 0.75rem)" }}
+          aria-label="Nouvelle demande"
+          className="fixed z-40 lg:hidden right-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 active:scale-95 transition-transform"
+          style={{ bottom: "calc(4.25rem + env(safe-area-inset-bottom, 0px) + 0.5rem)" }}
         >
-          <Plus className="w-5 h-5" /> Nouvelle demande
+          <Plus className="w-6 h-6" />
         </Link>
       )}
 
