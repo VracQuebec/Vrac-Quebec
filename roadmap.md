@@ -1,7 +1,7 @@
 # Feuille de route — Vrac Québec
 
 ## En cours
-- [ ] Optimisation responsive complète (site public, CRM, administration)
+- [x] Optimisation responsive complète (site public, CRM, administration) — validée 320→1920 px, aucune action hors écran
   - [x] Audit automatisé des débordements horizontaux (site public : aucun débordement global)
   - [x] En-tête central responsive (Retour / Accueil / titre) + safe areas
   - [x] Onglets, tableaux, cartes, modales, boutons : règles centrales
