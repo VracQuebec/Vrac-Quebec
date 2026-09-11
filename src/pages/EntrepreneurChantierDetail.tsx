@@ -54,6 +54,23 @@ export default function EntrepreneurChantierDetail() {
   const decoded = key ? decodeURIComponent(key) : "";
   const { loading, error, chantiers, refresh } = useEntrepreneurData();
   const chantier = useMemo(() => chantiers.find((c) => c.key === decoded), [chantiers, decoded]);
+  const navigate = useNavigate();
+
+  // Contexte transmis au comparateur : l'entrepreneur ne ressaisit rien.
+  const prefill = useMemo(() => {
+    const last = chantier?.submissions?.[0];
+    if (!last) return null;
+    return {
+      submissionId: last.id,
+      address: last.address ?? chantier?.address ?? "",
+      coords:
+        last.latitude != null && last.longitude != null
+          ? { lat: last.latitude, lng: last.longitude }
+          : null,
+      material: last.material ?? "",
+      quantityLabel: last.quantity ?? "",
+    };
+  }, [chantier]);
 
   const title = chantier?.label ?? "Chantier";
 
