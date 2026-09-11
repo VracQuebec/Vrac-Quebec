@@ -1,29 +1,33 @@
 // ============================================================
-// DOSSIER CHANTIER — tout ce qui touche un chantier, au même endroit.
-// Données : vue calculée existante (aucune nouvelle structure).
+// DOSSIER CHANTIER — le centre de l'application.
+// Statut · Demandes · Sites · Transports · Activité, puis les actions.
+// Données : vue calculée existante (aucune nouvelle structure, lecture seule).
 // ============================================================
-import { useMemo } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import {
   EmptyState,
   ErrorState,
   LoadingSkeleton,
+  SectionHeader,
   StatusBadge,
 } from "@/components/entrepreneur-app/AppStates";
+import {
+  AppCard,
+  QuickActions,
+  RequestCard,
+  Timeline,
+  type TimelineEvent,
+} from "@/components/entrepreneur-app/ui";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import {
-  Plus,
-  Map as MapIcon,
-  Truck,
-  ClipboardList,
-  MapPin,
-  ChevronRight,
-  CheckCircle2,
-  Circle,
-  Clock,
-  Scale,
-} from "lucide-react";
+  prefillFromChantier,
+  saveActiveChantier,
+  toActiveChantier,
+} from "@/lib/entrepreneur-app/chantier-context";
+import { buildHandoff, saveHandoff } from "@/lib/parcours/handoff";
+import { Plus, Map as MapIcon, Truck, Scale, MapPin } from "lucide-react";
 
 const toneFor = (status: string | null): "pending" | "active" | "done" | "refused" | "neutral" => {
   if (!status) return "neutral";
@@ -49,6 +53,9 @@ const labelFor = (status: string | null): string => {
   return (status && map[status]) || "À confirmer";
 };
 
+const dt = (iso: string | null | undefined) =>
+  iso ? new Date(iso).toLocaleString("fr-CA", { dateStyle: "medium", timeStyle: "short" }) : null;
+
 export default function EntrepreneurChantierDetail() {
   const { key } = useParams<{ key: string }>();
   const decoded = key ? decodeURIComponent(key) : "";
@@ -56,31 +63,99 @@ export default function EntrepreneurChantierDetail() {
   const chantier = useMemo(() => chantiers.find((c) => c.key === decoded), [chantiers, decoded]);
   const navigate = useNavigate();
 
-  // Contexte transmis au comparateur : l'entrepreneur ne ressaisit rien.
-  const prefill = useMemo(() => {
-    const last = chantier?.submissions?.[0];
-    if (!last) return null;
-    return {
-      submissionId: last.id,
-      address: last.address ?? chantier?.address ?? "",
-      coords:
-        last.latitude != null && last.longitude != null
-          ? { lat: last.latitude, lng: last.longitude }
-          : null,
-      material: last.material ?? "",
-      quantityLabel: last.quantity ?? "",
-    };
+  const active = useMemo(() => (chantier ? toActiveChantier(chantier) : null), [chantier]);
+
+  // Le chantier ouvert devient le contexte actif : carte, comparateur et
+  // formulaire de demande le reprennent sans aucune ressaisie.
+  useEffect(() => {
+    if (active) saveActiveChantier(active);
+  }, [active]);
+
+  const goNewRequest = () => {
+    if (!active) return navigate("/demande-transport");
+    navigate("/demande-transport", { state: { vqPrefill: prefillFromChantier(active) } });
+  };
+
+  const goComparateur = () => {
+    if (active) {
+      saveHandoff(
+        buildHandoff({
+          submissionId: active.submissionId,
+          address: active.address ?? active.city ?? "",
+          lat: active.coords?.lat ?? null,
+          lng: active.coords?.lng ?? null,
+          materials: active.material ? [active.material] : [],
+          quantityLabel: active.quantity ?? "",
+        }),
+      );
+    }
+    navigate("/entrepreneur/comparateur");
+  };
+
+  // Statut global du chantier : dérivé des demandes réelles, jamais inventé.
+  const globalStatus = useMemo(() => {
+    if (!chantier) return { label: "—", tone: "neutral" as const };
+    const st = chantier.submissions.map((s) => s.status ?? "");
+    if (st.some((s) => ["acceptee", "planifiee", "en_cours"].includes(s)))
+      return { label: "En cours", tone: "active" as const };
+    if (st.length && st.every((s) => ["terminee", "annulee", "refusee"].includes(s)))
+      return { label: "Terminé", tone: "done" as const };
+    return { label: "En traitement", tone: "pending" as const };
   }, [chantier]);
 
-  const title = chantier?.label ?? "Chantier";
+  const events: TimelineEvent[] = useMemo(() => {
+    if (!chantier) return [];
+    const list: { at: string; ev: TimelineEvent }[] = [];
+    for (const s of chantier.submissions) {
+      if (s.createdAt) {
+        list.push({
+          at: s.createdAt,
+          ev: {
+            id: `ev-${s.id}`,
+            title: s.material ? `Demande créée — ${s.material}` : "Demande créée",
+            detail: dt(s.createdAt),
+            done: true,
+          },
+        });
+      }
+      if (s.selectionUpdatedAt && s.selectedSiteLabel) {
+        list.push({
+          at: s.selectionUpdatedAt,
+          ev: {
+            id: `sel-${s.id}`,
+            title: `Site choisi — ${s.selectedSiteLabel}`,
+            detail: dt(s.selectionUpdatedAt),
+            done: true,
+          },
+        });
+      }
+      if (s.siteValidatedAt) {
+        list.push({
+          at: s.siteValidatedAt,
+          ev: { id: `val-${s.id}`, title: "Site validé", detail: dt(s.siteValidatedAt), done: true },
+        });
+      }
+    }
+    list.sort((a, b) => a.at.localeCompare(b.at));
+    const out = list.map((l) => l.ev);
+    if (globalStatus.tone !== "done") {
+      out.push({
+        id: "next",
+        title: "Suivi en cours",
+        detail: "Les prochaines étapes apparaîtront ici.",
+        done: false,
+      });
+    }
+    return out;
+  }, [chantier, globalStatus]);
 
   return (
     <EntrepreneurAppShell
-      title={title}
+      title={chantier?.label ?? "Chantier"}
       subtitle={chantier?.address ?? chantier?.city ?? undefined}
       backTo="/entrepreneur/chantiers"
     >
-      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 space-y-8">
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 space-y-7">
         {loading ? (
           <LoadingSkeleton lines={3} />
         ) : error ? (
@@ -95,159 +170,82 @@ export default function EntrepreneurChantierDetail() {
         ) : (
           <>
             {/* ---------- Statut ---------- */}
-            <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
+            <AppCard accent="primary">
               <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-display text-sm font-bold">{chantier.label}</p>
-                  <p className="font-body text-xs text-muted-foreground">
-                    {chantier.city ?? "Ville à confirmer"}
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <MapPin className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-display text-base font-bold">{chantier.label}</p>
+                  <p className="truncate font-body text-xs text-muted-foreground">
+                    {chantier.submissions.length} demande{chantier.submissions.length > 1 ? "s" : ""}
+                    {chantier.materials.length > 0 && ` · ${chantier.materials.slice(0, 2).join(", ")}`}
                   </p>
                 </div>
+                <StatusBadge label={globalStatus.label} tone={globalStatus.tone} />
               </div>
-              <StatusBadge label="En cours" tone="active" />
-            </div>
+            </AppCard>
 
-            {/* ---------- Actions ---------- */}
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-              <Link
-                to="/demande-transport"
-                className="flex flex-col items-center gap-2 rounded-2xl bg-primary px-2 py-4 text-center text-primary-foreground shadow-md shadow-primary/25 active:scale-95 transition-transform"
-              >
-                <Plus className="h-5 w-5" />
-                <span className="text-[11px] font-display font-bold leading-tight">Nouvelle<br />demande</span>
-              </Link>
-              <Link
-                to={`/entrepreneur/carte?chantier=${encodeURIComponent(chantier.key)}`}
-                className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card px-2 py-4 text-center active:scale-95 transition-transform"
-              >
-                <MapIcon className="h-5 w-5 text-primary" />
-                <span className="text-[11px] font-display font-bold leading-tight">Trouver<br />une dompe</span>
-              </Link>
-              <button
-                type="button"
-                onClick={() =>
-                  navigate("/entrepreneur/comparateur", { state: { vqPrefill: prefill } })
-                }
-                className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card px-2 py-4 text-center active:scale-95 transition-transform"
-              >
-                <Scale className="h-5 w-5 text-primary" />
-                <span className="text-[11px] font-display font-bold leading-tight">Comparer<br />les sites</span>
-              </button>
-              <Link
-                to="/entrepreneur/demandes"
-                className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card px-2 py-4 text-center active:scale-95 transition-transform"
-              >
-                <Truck className="h-5 w-5 text-primary" />
-                <span className="text-[11px] font-display font-bold leading-tight">Suivre le<br />transport</span>
-              </Link>
-            </div>
+            {/* ---------- Actions du chantier ---------- */}
+            <QuickActions
+              actions={[
+                { label: "Nouvelle demande", icon: Plus, onClick: goNewRequest, primary: true },
+                { label: "Trouver une dompe", icon: MapIcon, to: "/entrepreneur/carte" },
+                { label: "Comparer les sites", icon: Scale, onClick: goComparateur },
+                { label: "Suivre le transport", icon: Truck, to: "/entrepreneur/demandes" },
+              ]}
+            />
 
-
-            {/* ---------- Demandes du chantier ---------- */}
+            {/* ---------- Demandes ---------- */}
             <section aria-labelledby="chantier-demandes">
-              <h2 className="mb-3 font-display text-lg font-bold">Demandes ({chantier.submissions.length})</h2>
+              <SectionHeader title={`Demandes (${chantier.submissions.length})`} />
               <div className="space-y-2.5">
                 {chantier.submissions.map((s) => (
-                  <Link
+                  <RequestCard
                     key={s.id}
                     to="/entrepreneur/demandes"
-                    className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 active:scale-[0.99] transition-transform"
-                  >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <ClipboardList className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-display text-sm font-bold">
-                        {s.material ?? "Demande de matériau"}
-                        {s.number ? ` · #${s.number}` : ""}
-                      </p>
-                      <p className="truncate font-body text-xs text-muted-foreground">
-                        {s.quantity ?? "Quantité à confirmer"}
-                        {s.createdAt && ` · ${new Date(s.createdAt).toLocaleDateString("fr-CA")}`}
-                      </p>
-                    </div>
-                    <StatusBadge label={labelFor(s.status)} tone={toneFor(s.status)} />
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </Link>
+                    kind="materiau"
+                    title={`${s.material ?? "Demande de matériau"}${s.number ? ` · #${s.number}` : ""}`}
+                    place={s.location ?? chantier.label}
+                    footer={`${s.quantity ?? "Quantité à confirmer"}${
+                      s.createdAt ? ` · ${new Date(s.createdAt).toLocaleDateString("fr-CA")}` : ""
+                    }`}
+                    nextAction={
+                      s.selectedSiteId && !s.siteValidatedAt ? "Valider le site proposé" : "Suivre la demande"
+                    }
+                    badge={{ label: labelFor(s.status), tone: toneFor(s.status) }}
+                  />
                 ))}
               </div>
             </section>
 
-            {/* ---------- Site sélectionné (si réellement enregistré) ---------- */}
+            {/* ---------- Sites réellement enregistrés ---------- */}
             {chantier.submissions.some((s) => s.selectedSiteLabel) && (
               <section aria-labelledby="chantier-sites">
-                <h2 className="mb-3 font-display text-lg font-bold">Sites</h2>
+                <SectionHeader title="Sites choisis" />
                 <div className="space-y-2.5">
                   {chantier.submissions
                     .filter((s) => s.selectedSiteLabel)
                     .map((s) => (
-                      <div key={s.id} className="rounded-2xl border border-border bg-card p-4">
+                      <AppCard key={`site-${s.id}`}>
                         <p className="font-display text-sm font-bold">{s.selectedSiteLabel}</p>
                         {s.selectedSiteAddress && (
                           <p className="font-body text-xs text-muted-foreground">{s.selectedSiteAddress}</p>
                         )}
-                        {s.distanceKm != null && (
-                          <p className="mt-1 font-body text-xs text-muted-foreground">
-                            {s.distanceKm.toFixed(1)} km du chantier
-                          </p>
-                        )}
-                      </div>
+                        <p className="mt-1 font-body text-xs text-muted-foreground">
+                          {s.distanceKm != null ? `${s.distanceKm.toFixed(1)} km du chantier` : "Distance à confirmer"}
+                          {s.siteValidatedAt ? " · Validé" : " · En attente de validation"}
+                        </p>
+                      </AppCard>
                     ))}
                 </div>
               </section>
             )}
 
-            {/* ---------- Chronologie (événements réels uniquement) ---------- */}
+            {/* ---------- Activité ---------- */}
             <section aria-labelledby="chantier-activite">
-              <h2 className="mb-3 font-display text-lg font-bold">Activité</h2>
-              <ol className="space-y-0">
-                {chantier.submissions
-                  .slice()
-                  .sort((a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""))
-                  .map((s) => (
-                    <li key={`ev-${s.id}`} className="relative flex gap-3 pb-5">
-                      <div className="flex flex-col items-center">
-                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                        <span className="mt-1 w-px flex-1 bg-border" />
-                      </div>
-                      <div className="min-w-0 pb-1">
-                        <p className="font-display text-sm font-semibold">Demande créée</p>
-                        <p className="font-body text-xs text-muted-foreground">
-                          {s.createdAt
-                            ? new Date(s.createdAt).toLocaleString("fr-CA", { dateStyle: "medium", timeStyle: "short" })
-                            : "Date à confirmer"}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                {chantier.submissions
-                  .filter((s) => s.siteValidatedAt)
-                  .map((s) => (
-                    <li key={`val-${s.id}`} className="relative flex gap-3 pb-5">
-                      <div className="flex flex-col items-center">
-                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                        <span className="mt-1 w-px flex-1 bg-border" />
-                      </div>
-                      <div className="min-w-0 pb-1">
-                        <p className="font-display text-sm font-semibold">Site validé</p>
-                        <p className="font-body text-xs text-muted-foreground">
-                          {new Date(s.siteValidatedAt as string).toLocaleString("fr-CA", {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          })}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                <li className="flex gap-3">
-                  <Clock className="h-5 w-5 text-amber-500" />
-                  <div>
-                    <p className="font-display text-sm font-semibold">Suivi en cours</p>
-                    <p className="font-body text-xs text-muted-foreground">Les prochaines étapes apparaîtront ici.</p>
-                  </div>
-                </li>
-              </ol>
+              <SectionHeader title="Activité" />
+              <Timeline events={events} />
             </section>
           </>
         )}
