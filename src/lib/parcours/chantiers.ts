@@ -52,6 +52,9 @@ export const groupingKey = (
   if (addr.length >= 8 && /\d/.test(addr) && city) {
     return { key: `a:${addr}|${city}`, groupedBy: "address" };
   }
+  // Aucune adresse précise : les demandes du même lieu normalisé (ville)
+  // se retrouvent dans un seul chantier calculé plutôt que dupliquées.
+  if (!addr && city) return { key: `c:${city}`, groupedBy: "city" };
   return { key: `s:${s.id}`, groupedBy: "single" };
 };
 
