@@ -21,7 +21,7 @@ const NotificationItem = ({ n, onRead, onChange, onNavigate, compact }: Props) =
 
   return (
     <div
-      className={`w-full max-w-full overflow-hidden rounded-lg border px-2.5 py-2 transition-colors ${
+      className={`rounded-lg border px-2.5 py-2 transition-colors ${
         done ? "border-border bg-background opacity-60"
           : unread ? "border-primary/40 bg-primary/5"
           : "border-border bg-card"
@@ -69,39 +69,36 @@ const NotificationItem = ({ n, onRead, onChange, onNavigate, compact }: Props) =
             {n.due_at && <span>· échéance {formatWhen(n.due_at)}</span>}
           </div>
 
-          {/* Actions : sur petit écran, « Ouvrir » occupe la ligne complète et les
-              autres actions se répartissent en dessous. Aucun bouton n'est coupé. */}
-          <div className="mt-2 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center">
+          <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
             {n.action_url && (
               <Link
                 to={n.action_url}
                 onClick={() => { onRead(n.id); onNavigate?.(); }}
-                className="col-span-2 inline-flex min-h-9 items-center justify-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-xs font-display font-bold text-primary-foreground sm:col-span-1 sm:min-h-8"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-display font-bold"
               >
-                Ouvrir <ExternalLink className="w-3.5 h-3.5" />
+                Ouvrir <ExternalLink className="w-3 h-3" />
               </Link>
             )}
             {!done && (
               <>
                 <button
                   onClick={() => onChange(n.id, n.status === "in_progress" ? "read" : "in_progress")}
-                  className="inline-flex min-h-9 min-w-0 items-center justify-center gap-1 rounded-md bg-secondary px-2.5 py-1.5 text-xs font-display font-semibold text-foreground sm:min-h-8"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-foreground text-[11px] font-display font-semibold"
                 >
-                  <CircleDot className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{n.status === "in_progress" ? "Mettre en attente" : "Je m'en occupe"}</span>
+                  <CircleDot className="w-3 h-3" /> {n.status === "in_progress" ? "Mettre en attente" : "Je m'en occupe"}
                 </button>
                 <button
                   onClick={() => onChange(n.id, "done")}
-                  className="inline-flex min-h-9 items-center justify-center gap-1 rounded-md bg-secondary px-2.5 py-1.5 text-xs font-display font-semibold text-foreground sm:min-h-8"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-foreground text-[11px] font-display font-semibold"
                 >
-                  <Check className="w-3.5 h-3.5 shrink-0" /> Traité
+                  <Check className="w-3 h-3" /> Traité
                 </button>
               </>
             )}
             {done && (
               <button
                 onClick={() => onChange(n.id, "read")}
-                className="col-span-2 inline-flex min-h-9 items-center justify-center gap-1 rounded-md bg-secondary px-2.5 py-1.5 text-xs font-display font-semibold text-foreground sm:col-span-1 sm:min-h-8"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-foreground text-[11px] font-display font-semibold"
               >
                 Rouvrir
               </button>

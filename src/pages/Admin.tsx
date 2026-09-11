@@ -655,8 +655,8 @@ const Admin = () => {
             <span className="ml-2 px-2 py-0.5 rounded text-[10px] sm:text-xs bg-primary/10 text-primary font-display font-semibold hidden sm:inline">Admin CRM</span>
           </div>
 
-          {/* Menu complet : uniquement sur grand écran, sinon menu mobile (tablette incluse) */}
-          <div className="hidden lg:flex items-center gap-3 xl:gap-4">
+          {/* Desktop nav */}
+          <div className="hidden sm:flex items-center gap-3">
             <Link to="/admin/business-intelligence" className="flex items-center gap-1.5 text-sm text-primary hover:opacity-80 font-body font-semibold">
               <TrendingUp className="w-4 h-4" /> BI
             </Link>
@@ -690,8 +690,8 @@ const Admin = () => {
             </button>
           </div>
 
-          {/* Téléphone et tablette : cloche + menu complet dans un panneau */}
-          <div className="lg:hidden flex items-center -mr-2">
+          {/* Mobile : cloche + hamburger */}
+          <div className="sm:hidden flex items-center -mr-2">
             <NotificationBell />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -699,9 +699,9 @@ const Admin = () => {
                 <Menu className="w-5 h-5 text-foreground" />
               </button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[86%] max-w-sm sm:w-80 overflow-y-auto">
+            <SheetContent side="right" className="w-[280px] sm:w-72">
               <SheetTitle className="sr-only">Menu de navigation</SheetTitle>
-              <div className="flex flex-col gap-1 mt-6 pb-8">
+              <div className="flex flex-col gap-1 mt-6">
                 <div className="px-3 py-2 text-xs font-display font-bold uppercase text-muted-foreground tracking-wide">Navigation</div>
                 <button onClick={() => { setTab("leads"); setMobileOpen(false); }} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body ${tab === "leads" ? "bg-primary text-primary-foreground font-semibold" : "text-foreground hover:bg-secondary"}`}>
                   <List className="w-4 h-4" /> Demandes (CRM)

@@ -339,34 +339,3 @@ body,
   }
 }
 
-/* ------------------------------------------------------------
-   FILET DE SÉCURITÉ RESPONSIVE (téléphone et tablette portrait)
-   Aucune fonctionnalité n'est retirée : les éléments à largeur
-   fixe sont simplement contenus dans l'écran disponible.
-   ------------------------------------------------------------ */
-@media (max-width: 767px) {
-  /* Champs, listes déroulantes et blocs à largeur fixe */
-  [class*="w-["],
-  [class*="min-w-["] {
-    max-width: 100%;
-  }
-  /* Tableaux et grilles larges : ils restent défilables dans leur conteneur */
-  table[class*="min-w-["],
-  .grid[class*="min-w-["],
-  [class*="overflow-x-auto"] > [class*="min-w-["] {
-    max-width: none;
-  }
-  /* Les éléments flexibles peuvent rétrécir au lieu de pousser la page */
-  .flex > * {
-    min-width: 0;
-  }
-}
-
-/* Les rangées d'actions passent toujours à la ligne au besoin */
-@media (max-width: 1023px) {
-  .action-row,
-  [data-actions] {
-    flex-wrap: wrap;
-  }
-}
-

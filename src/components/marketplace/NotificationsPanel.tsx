@@ -62,11 +62,11 @@ export default function NotificationsPanel({ userId, audience = "client" }: Prop
 
   return (
     <Card>
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-        <CardTitle className="flex min-w-0 items-center gap-2 text-base">
-          <Bell className="h-4 w-4 shrink-0" /> Notifications {nonLues > 0 && <span className="rounded-full bg-primary px-2 text-xs text-primary-foreground">{nonLues}</span>}
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Bell className="h-4 w-4" /> Notifications {nonLues > 0 && <span className="rounded-full bg-primary px-2 text-xs text-primary-foreground">{nonLues}</span>}
         </CardTitle>
-        <Button size="sm" variant="outline" className="shrink-0" onClick={() => setReglages((v) => !v)}>
+        <Button size="sm" variant="outline" onClick={() => setReglages((v) => !v)}>
           {reglages ? "Voir les avis" : "Réglages"}
         </Button>
       </CardHeader>
@@ -107,7 +107,7 @@ export default function NotificationsPanel({ userId, audience = "client" }: Prop
               <span className="text-xs text-muted-foreground">{dt(n.created_at)}</span>
             </div>
             {n.body && <p className="text-xs text-muted-foreground">{n.body}</p>}
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex gap-2">
               {n.link && <Button size="sm" variant="outline" asChild><Link to={n.link}>Ouvrir</Link></Button>}
               {!n.read_at && (
                 <Button size="sm" variant="ghost" onClick={async () => { await markNotificationRead(n.id); void charger(); }}>
