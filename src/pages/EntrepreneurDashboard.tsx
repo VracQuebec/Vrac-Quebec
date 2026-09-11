@@ -58,6 +58,10 @@ const fmtDate = (iso: string | null) =>
 export default function EntrepreneurDashboard() {
   const { profile } = useEntrepreneurProfile();
   const { loading, error, submissions, chantiers, accessRequests, counts, refresh } = useEntrepreneurData();
+  // Chantier actif mémorisé : l'entrepreneur reprend là où il s'était arrêté.
+  const [active, setActive] = useState<ActiveChantier | null>(null);
+  useEffect(() => { setActive(loadActiveChantier()); }, []);
+
 
   const firstName =
     profile?.contact_name?.split(" ")[0] || profile?.name?.split(" ")[0] || "";
