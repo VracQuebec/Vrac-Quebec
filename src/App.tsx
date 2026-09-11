@@ -11,6 +11,7 @@ import AppErrorBoundary from "./components/AppErrorBoundary";
 import UniversalNav from "./components/UniversalNav";
 import { trackPageView } from "./lib/analytics/ga4";
 import { useAdminNotifications } from "./hooks/useAdminNotifications";
+import { EntrepreneurDataProvider } from "./lib/entrepreneur-app/EntrepreneurDataProvider";
 
 function AdminNotificationsMount() {
   useAdminNotifications();
