@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import TransportBanner from "@/components/TransportBanner";
+import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import FullPageState from "@/components/FullPageState";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -272,87 +272,50 @@ const Entrepreneur = () => {
   );
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background flex flex-col">
-      <nav className="sticky-below-nav z-30 w-full bg-background/95 backdrop-blur-xl border-b border-border/60">
-        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <Truck className="w-6 h-6 flex-shrink-0 text-primary" />
-            <span className="truncate font-display font-bold text-lg sm:text-xl text-foreground">Vrac<span className="text-primary">Québec</span></span>
-            <span className="hidden sm:inline ml-1 px-2 py-0.5 rounded-full text-[11px] bg-secondary text-muted-foreground font-body">Entrepreneur</span>
-          </div>
-          <div className="flex flex-shrink-0 items-center gap-3 sm:gap-4">
-            <a
-              href="/entrepreneur/comparateur"
-              className="hidden sm:inline text-sm font-body text-muted-foreground hover:text-foreground"
+    <EntrepreneurAppShell
+      title="Trouver une dompe"
+      subtitle="Réseau de sites Vrac Québec"
+      backTo="/entrepreneur"
+    >
+      <div className="w-full min-w-0 px-4 sm:px-6 py-5 space-y-5">
+        {/* Carte d'intention : une seule action principale */}
+        <section className="rounded-3xl border border-border/70 bg-gradient-to-br from-primary/10 via-card to-card p-5">
+          <p className="font-body text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            Accès aux dompes
+          </p>
+          <h2 className="mt-1 font-display text-xl font-extrabold leading-tight sm:text-2xl">
+            Repérez un site, nous coordonnons l'accès.
+          </h2>
+          <p className="mt-1.5 font-body text-sm text-muted-foreground">
+            Ne vous présentez jamais sans autorisation : Vrac Québec valide la disponibilité et vous
+            transmet les consignes.
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <button
+              onClick={() => navigate("/demande-transport")}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-4 font-display text-sm font-bold text-primary-foreground active:scale-95 transition-transform"
             >
-              Comparateur de dompes
-            </a>
-            <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Déconnexion</span>
+              Demander l'accès
             </button>
+            <button
+              onClick={() => navigate("/entrepreneur/comparateur")}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-background px-4 font-body text-sm active:scale-95 transition-transform"
+            >
+              <Layers className="h-4 w-4" /> Comparer les sites
+            </button>
+            <a
+              href={`tel:${PHONE_PRIMARY}`}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-background px-4 font-body text-sm active:scale-95 transition-transform"
+            >
+              <Phone className="h-4 w-4" /> Appeler
+            </a>
           </div>
-        </div>
-      </nav>
-
-      <TransportBanner />
-
-      <main className="flex-1 w-full min-w-0 container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-        {/* En-tête + accès aux dompes */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="min-w-0 lg:col-span-2 rounded-2xl border border-border/70 bg-card p-5 sm:p-8">
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-body mb-2">Accès aux dompes</p>
-            <h1 className="font-display font-bold text-2xl sm:text-3xl leading-tight mb-3">
-              Trouvez une dompe, nous nous occupons du reste.
-            </h1>
-            <p className="text-sm sm:text-base text-muted-foreground font-body max-w-2xl">
-              Toutes les demandes sont traitées par Vrac Québec. Nous validons automatiquement la disponibilité
-              avant de vous transmettre votre autorisation d'accès.
-            </p>
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => navigate("/demande-transport")}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm px-5 py-3 hover:opacity-90 transition-opacity"
-              >
-                Faire une demande d'accès
-              </button>
-              <a
-                href={`tel:${PHONE_PRIMARY}`}
-                className="inline-flex items-center gap-2 rounded-xl border border-border bg-background text-foreground font-body text-sm px-4 py-3 hover:border-foreground/30 transition-colors"
-              >
-                <Phone className="w-4 h-4" /> Téléphoner à Vrac Québec
-              </a>
-              <a
-                href="mailto:info@vracquebec.ca"
-                className="inline-flex items-center gap-2 rounded-xl border border-border bg-background text-foreground font-body text-sm px-4 py-3 hover:border-foreground/30 transition-colors"
-              >
-                <Mail className="w-4 h-4" /> Nous écrire
-              </a>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-border/70 bg-secondary/40 p-5">
-              <div className="flex items-center gap-2 mb-1.5">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <p className="font-display font-semibold text-sm">Temps moyen de réponse</p>
-              </div>
-              <p className="text-sm text-muted-foreground font-body">
-                Moins de 30 minutes durant les heures d'ouverture.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/70 bg-secondary/40 p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <Info className="w-4 h-4 text-muted-foreground" />
-                <p className="font-display font-semibold text-sm">À savoir</p>
-              </div>
-              <ul className="text-sm text-muted-foreground font-body space-y-1.5">
-                <li>Ne vous présentez jamais sans autorisation.</li>
-                <li>Vrac Québec coordonne votre accès.</li>
-                <li>Les consignes vous seront envoyées après validation.</li>
-              </ul>
-            </div>
-          </div>
+          <p className="mt-3 flex items-center gap-1.5 font-body text-xs text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" /> Réponse en moins de 30 minutes durant les heures
+            d'ouverture.
+          </p>
         </section>
+
 
         {/* Filtres */}
         <section className="relative z-20 lg:sticky lg:top-[73px] -mx-4 sm:mx-0 px-4 sm:px-0">
@@ -509,7 +472,7 @@ const Entrepreneur = () => {
             </div>
           </section>
         )}
-      </main>
+      </div>
 
       {/* Fiche complète */}
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
@@ -575,7 +538,7 @@ const Entrepreneur = () => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </EntrepreneurAppShell>
   );
 };
 
