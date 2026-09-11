@@ -107,7 +107,7 @@ export default function NotificationsPanel({ userId, audience = "client" }: Prop
               <span className="text-xs text-muted-foreground">{dt(n.created_at)}</span>
             </div>
             {n.body && <p className="text-xs text-muted-foreground">{n.body}</p>}
-            <div className="mt-2 flex gap-2">
+            <div className="action-row mt-2">
               {n.link && <Button size="sm" variant="outline" asChild><Link to={n.link}>Ouvrir</Link></Button>}
               {!n.read_at && (
                 <Button size="sm" variant="ghost" onClick={async () => { await markNotificationRead(n.id); void charger(); }}>
