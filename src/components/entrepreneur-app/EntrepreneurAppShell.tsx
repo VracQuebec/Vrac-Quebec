@@ -283,7 +283,11 @@ export default function EntrepreneurAppShell({
 
       {/* ---------- Feuille « Plus » ---------- */}
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent side="bottom" className="rounded-t-3xl px-2 pb-6" aria-describedby={undefined}>
+        <SheetContent
+          side="bottom"
+          className="max-h-[88vh] overflow-y-auto rounded-t-3xl px-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+          aria-describedby={undefined}
+        >
           <SheetTitle className="sr-only">Plus d'options</SheetTitle>
           <div className="mx-auto mt-2 mb-4 h-1.5 w-10 rounded-full bg-border" />
           <nav className="space-y-1" aria-label="Sections secondaires">
