@@ -51,78 +51,93 @@ const Select = ({
     </label>
   );
 
-const ProfilCard = ({ p }: { p: AnnuaireProfil }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <article className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/60">
-      <h3 className="flex items-center gap-2 font-display text-base font-bold">
-        <Building2 className="h-4 w-4 flex-shrink-0 text-primary" aria-hidden />
-        <span className="truncate">{p.company}</span>
-      </h3>
-
-      <p className="mt-1 flex items-center gap-1 font-body text-xs text-muted-foreground">
-        <MapPin className="h-3 w-3 flex-shrink-0" aria-hidden />
-        {p.locationLabel ?? "Localisation non renseignée"}
-      </p>
-      {proximityLabel(p.proximity) && (
-        <p className="mt-1 inline-flex rounded-full bg-primary/10 px-2 py-0.5 font-body text-[11px] text-primary">
-          {proximityLabel(p.proximity)}
+/** Carte tactile : nom, localisation, proximité, camions. Détails en feuille. */
+const ProfilCard = ({ p, onOpen }: { p: AnnuaireProfil; onOpen: () => void }) => (
+  <button
+    type="button"
+    onClick={onOpen}
+    className="w-full rounded-2xl border border-border bg-card p-4 text-left transition-transform active:scale-[0.99] hover:border-primary/60"
+  >
+    <div className="flex items-start gap-3">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 font-display text-sm font-extrabold text-primary">
+        {p.company.trim().slice(0, 2).toUpperCase()}
+      </span>
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate font-display text-base font-bold">{p.company}</h3>
+        <p className="mt-0.5 flex items-center gap-1 font-body text-xs text-muted-foreground">
+          <MapPin className="h-3 w-3 shrink-0" aria-hidden />
+          <span className="truncate">{p.locationLabel ?? "Localisation non renseignée"}</span>
         </p>
-      )}
-      {p.region && (
-        <p className="mt-0.5 font-body text-xs text-muted-foreground">Région : {p.region}</p>
-      )}
-
-      {p.truckTypes.length > 0 && (
-        <ul className="mt-3 flex flex-wrap gap-1.5">
-          {p.truckTypes.map((t) => (
-            <li
-              key={t}
-              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 font-body text-[11px] text-primary"
-            >
-              <Truck className="h-3 w-3" aria-hidden /> {t}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div className="mt-3 flex items-center justify-between gap-2">
-        {p.truckCount ? (
-          <span className="font-body text-xs text-muted-foreground">{p.truckCount} camion(s)</span>
-        ) : <span />}
-        <Button variant="outline" size="sm" className="h-9" onClick={() => setOpen((v) => !v)}>
-          {open ? "Masquer le profil" : "Voir le profil"}
-        </Button>
+        {proximityLabel(p.proximity) && (
+          <span className="mt-1.5 inline-flex rounded-full bg-primary/10 px-2 py-0.5 font-body text-[11px] text-primary">
+            {proximityLabel(p.proximity)}
+          </span>
+        )}
+        {p.truckTypes.length > 0 && (
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {p.truckTypes.slice(0, 3).map((t) => (
+              <li
+                key={t}
+                className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-body text-[11px] text-muted-foreground"
+              >
+                <Truck className="h-3 w-3" aria-hidden /> {t}
+              </li>
+            ))}
+            {p.truckTypes.length > 3 && (
+              <li className="rounded-full bg-secondary px-2 py-0.5 font-body text-[11px] text-muted-foreground">
+                +{p.truckTypes.length - 3}
+              </li>
+            )}
+          </ul>
+        )}
       </div>
+      <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+    </div>
+  </button>
+);
 
-      {open && (
-        <dl className="mt-3 space-y-1 border-t border-border pt-3 font-body text-xs">
-          <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">Ville</dt>
-            <dd>{p.city ?? "Non renseignée"}</dd>
-          </div>
-          <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">Province</dt>
-            <dd>{p.provinceName ?? p.province ?? "Non renseignée"}</dd>
-          </div>
-          <div className="flex justify-between gap-2">
-            <dt className="text-muted-foreground">Région</dt>
-            <dd>{p.region ?? "Non renseignée"}</dd>
-          </div>
-          {p.postalSector && (
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">Secteur postal</dt>
-              <dd>{p.postalSector}</dd>
-            </div>
-          )}
-          <p className="pt-2 text-muted-foreground">
-            Les coordonnées privées ne sont jamais diffusées dans l'annuaire.
-          </p>
-        </dl>
-      )}
-    </article>
-  );
-};
+/** Détail d'un profil public — aucune coordonnée privée. */
+const ProfilDetail = ({ p }: { p: AnnuaireProfil }) => (
+  <div className="space-y-3">
+    <div className="flex items-center gap-3">
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 font-display font-extrabold text-primary">
+        {p.company.trim().slice(0, 2).toUpperCase()}
+      </span>
+      <div className="min-w-0">
+        <p className="truncate font-display text-base font-bold">{p.company}</p>
+        <p className="truncate font-body text-xs text-muted-foreground">
+          {p.locationLabel ?? "Localisation non renseignée"}
+        </p>
+      </div>
+    </div>
+    <dl className="divide-y divide-border overflow-hidden rounded-2xl border border-border font-body text-sm">
+      {[
+        ["Ville", p.city ?? "Non renseignée"],
+        ["Province", p.provinceName ?? p.province ?? "Non renseignée"],
+        ["Région", p.region ?? "Non renseignée"],
+        ...(p.postalSector ? [["Secteur postal", p.postalSector]] : []),
+        ...(p.truckCount ? [["Camions", `${p.truckCount}`]] : []),
+      ].map(([k, v]) => (
+        <div key={k as string} className="flex justify-between gap-3 px-3 py-2.5">
+          <dt className="text-muted-foreground">{k}</dt>
+          <dd className="text-right">{v}</dd>
+        </div>
+      ))}
+    </dl>
+    {p.truckTypes.length > 0 && (
+      <ul className="flex flex-wrap gap-1.5">
+        {p.truckTypes.map((t) => (
+          <li key={t} className="rounded-full bg-primary/10 px-2.5 py-1 font-body text-[11px] text-primary">
+            {t}
+          </li>
+        ))}
+      </ul>
+    )}
+    <p className="rounded-2xl bg-secondary/60 p-3 font-body text-xs text-muted-foreground">
+      Les coordonnées privées ne sont jamais diffusées dans l'annuaire.
+    </p>
+  </div>
+);
 
 export default function AnnuaireList() {
   const [res, setRes] = useState<AnnuaireResult | null>(null);
