@@ -231,14 +231,15 @@ export default function AdminCalendar() {
           <div className="text-sm sm:text-base font-display font-semibold capitalize">{cursorLabel}</div>
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-0.5 bg-secondary rounded-lg p-0.5">
+            <div className="flex max-w-full flex-wrap items-center gap-0.5 rounded-lg bg-secondary p-0.5">
               {(Object.keys(VIEW_LABELS) as CalendarView[]).map((v) => (
                 <button key={v} onClick={() => setView(v)}
-                  className={`px-3 py-1.5 rounded-md text-xs sm:text-sm font-display font-semibold ${view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                  className={`min-h-9 rounded-md px-2.5 py-1.5 text-xs font-display font-semibold sm:px-3 sm:text-sm ${view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                   {VIEW_LABELS[v]}
                 </button>
               ))}
             </div>
+
             <Button variant="outline" size="sm" onClick={() => setShowFilters((s) => !s)}>
               <FilterIcon className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Filtres</span>
             </Button>
