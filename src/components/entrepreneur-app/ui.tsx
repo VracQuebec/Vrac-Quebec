@@ -62,28 +62,47 @@ export interface QuickAction {
   primary?: boolean;
 }
 
-export const QuickActions = ({ actions }: { actions: QuickAction[] }) => (
-  <div className={`grid gap-2.5 ${actions.length >= 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
-    {actions.map((a) => {
-      const cls = `flex min-h-[5.25rem] flex-col items-center justify-center gap-2 rounded-2xl px-2 py-3 text-center transition-transform active:scale-95 ${
-        a.primary
-          ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-          : "border border-border bg-card"
-      }`;
-      const inner = (
-        <>
-          <a.icon className={`h-6 w-6 ${a.primary ? "" : "text-primary"}`} />
-          <span className="font-display text-[11px] font-bold leading-tight">{a.label}</span>
-        </>
-      );
-      return a.to ? (
-        <Link key={a.label} to={a.to} className={cls}>{inner}</Link>
-      ) : (
-        <button key={a.label} type="button" onClick={a.onClick} className={cls}>{inner}</button>
-      );
-    })}
-  </div>
-);
+/* Une seule action dominante : la principale occupe toute la largeur,
+   les secondaires se partagent la ligne suivante. */
+export const QuickActions = ({ actions }: { actions: QuickAction[] }) => {
+  const primary = actions.find((a) => a.primary);
+  const rest = actions.filter((a) => a !== primary);
+
+  const render = (a: QuickAction, cls: string, inner: ReactNode) =>
+    a.to ? (
+      <Link key={a.label} to={a.to} className={cls}>{inner}</Link>
+    ) : (
+      <button key={a.label} type="button" onClick={a.onClick} className={cls}>{inner}</button>
+    );
+
+  return (
+    <div className="space-y-2.5">
+      {primary &&
+        render(
+          primary,
+          "flex min-h-[3.5rem] w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 font-display text-[15px] font-bold text-primary-foreground shadow-md shadow-primary/25 transition-transform duration-150 active:scale-[0.98]",
+          <>
+            <primary.icon className="h-5 w-5" />
+            {primary.label}
+          </>,
+        )}
+      {rest.length > 0 && (
+        <div className={`grid gap-2.5 ${rest.length >= 4 ? "grid-cols-2 sm:grid-cols-4" : `grid-cols-${rest.length}`}`}>
+          {rest.map((a) =>
+            render(
+              a,
+              "flex min-h-[3.5rem] flex-col items-center justify-center gap-1 rounded-2xl border border-border bg-card px-2 py-2 text-center transition-transform duration-150 active:scale-[0.97]",
+              <>
+                <a.icon className="h-5 w-5 text-primary" />
+                <span className="font-display text-[11px] font-semibold leading-tight">{a.label}</span>
+              </>,
+            ),
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 /* ---------------------------------------------------------- */
 /*  BottomSheet — feuille glissante générique                 */
