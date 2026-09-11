@@ -52,7 +52,7 @@ export function EntrepreneurDataProvider({ children }: { children: ReactNode }) 
       setError(null);
       const [subs, reqs] = await Promise.all([
         loadMySubmissions(),
-        supabase.from("transport_requests").select("id,status,created_at,site_name,site_address").eq("user_id", user.id),
+        supabase.from("transport_requests").select("id,status,created_at").eq("user_id", user.id),
       ]);
       if (!active) return;
       if (subs.state === "error") setError(subs.message);
