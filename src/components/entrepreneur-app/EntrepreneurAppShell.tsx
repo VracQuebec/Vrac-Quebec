@@ -126,12 +126,14 @@ export default function EntrepreneurAppShell({
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background">
       {/* ---------- Barre latérale (tablette paysage / ordinateur) ---------- */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 z-30 w-64 flex-col border-r border-border bg-card">
-        <Link to="/entrepreneur" className="flex items-center gap-2 px-5 py-5">
-          <Truck className="w-6 h-6 text-primary" />
-          <span className="font-display font-bold text-lg text-foreground">
-            Vrac<span className="text-primary">Québec</span>
+        <Link to="/entrepreneur" className="block px-5 py-5">
+          <span className="flex items-center gap-2">
+            <Truck className="w-6 h-6 shrink-0 text-primary" />
+            <span className="font-display font-bold text-lg text-foreground whitespace-nowrap">
+              Vrac<span className="text-primary">Québec</span>
+            </span>
           </span>
-          <span className="ml-1 px-2 py-0.5 rounded text-[10px] bg-primary/10 text-primary font-display font-semibold">
+          <span className="mt-1.5 ml-8 inline-block rounded px-2 py-0.5 text-[10px] bg-primary/10 text-primary font-display font-semibold">
             Entrepreneur
           </span>
         </Link>

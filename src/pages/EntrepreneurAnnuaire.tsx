@@ -24,7 +24,7 @@ const EntrepreneurAnnuaire = () => (
           </p>
           <Link
             to="/entrepreneur/compte"
-            className="mt-2 inline-flex items-center gap-1 font-display text-sm font-bold text-primary"
+            className="mt-1 inline-flex min-h-[44px] items-center gap-1 py-2 font-display text-sm font-bold text-primary"
           >
             Gérer ma visibilité <ChevronRight className="h-4 w-4" />
           </Link>
