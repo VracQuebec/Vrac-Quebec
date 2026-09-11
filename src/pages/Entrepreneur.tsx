@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import {
-  Truck, LogOut, Loader2, Phone, MapPin, Info, Clock, ShieldCheck,
-  Mail, Maximize2, Minimize2, Search, SlidersHorizontal, X, Layers,
+  Loader2, Phone, MapPin, Info, Clock, ShieldCheck,
+  Maximize2, Minimize2, Search, SlidersHorizontal, X, Layers,
 } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
