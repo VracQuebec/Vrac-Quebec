@@ -386,3 +386,58 @@ export const Timeline = ({ events }: { events: TimelineEvent[] }) => (
     ))}
   </ol>
 );
+
+/* ---------------------------------------------------------- */
+/*  AppTabs — onglets tactiles défilables (dossier chantier)   */
+/*  Présentation seule : réorganise des données existantes.    */
+/* ---------------------------------------------------------- */
+export interface AppTab {
+  id: string;
+  label: string;
+  count?: number;
+}
+
+export const AppTabs = ({
+  tabs,
+  value,
+  onChange,
+}: {
+  tabs: AppTab[];
+  value: string;
+  onChange: (id: string) => void;
+}) => (
+  <div
+    role="tablist"
+    aria-label="Sections du chantier"
+    className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+  >
+    {tabs.map((t) => {
+      const activeTab = t.id === value;
+      return (
+        <button
+          key={t.id}
+          role="tab"
+          type="button"
+          aria-selected={activeTab}
+          onClick={() => onChange(t.id)}
+          className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-2xl px-4 font-display text-sm font-semibold transition-colors duration-150 ${
+            activeTab
+              ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+              : "border border-border bg-card text-muted-foreground"
+          }`}
+        >
+          {t.label}
+          {t.count != null && t.count > 0 && (
+            <span
+              className={`rounded-full px-1.5 text-[11px] font-bold ${
+                activeTab ? "bg-primary-foreground/20" : "bg-secondary text-foreground"
+              }`}
+            >
+              {t.count}
+            </span>
+          )}
+        </button>
+      );
+    })}
+  </div>
+);
