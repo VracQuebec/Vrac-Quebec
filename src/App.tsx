@@ -151,6 +151,7 @@ const App = () => (
           <AdminNotificationsMount />
           <UniversalNav />
           <Suspense fallback={null}>
+          <EntrepreneurDataProvider>
           <Routes>
             {/* Fournisseur de données partagé de l'espace entrepreneur */}
             <Route path="/" element={<Index />} />
@@ -252,6 +253,7 @@ const App = () => (
             <Route path="/:localSlug" element={<SeoLandingPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </EntrepreneurDataProvider>
           </Suspense>
         </BrowserRouter>
       </TooltipProvider>
