@@ -139,7 +139,7 @@ export default function AdminJsc() {
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <Link to="/admin" className="mb-2 inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
+            <Link to="/admin" className="min-h-10 mb-2 inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft className="mr-1.5 h-4 w-4" /> Retour à l'administration
             </Link>
             <h1 className="text-2xl font-bold">Vrac Québec OS — Back Office</h1>

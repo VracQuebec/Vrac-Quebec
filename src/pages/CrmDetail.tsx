@@ -107,7 +107,7 @@ export default function CrmDetail() {
     <div className="min-h-screen bg-background">
       <nav className="border-b border-border bg-card">
         <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <Link to="/admin/crm" className="flex items-center gap-2 text-sm font-display font-semibold text-muted-foreground hover:text-foreground">
+          <Link to="/admin/crm" className="min-h-10 flex items-center gap-2 text-sm font-display font-semibold text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-4 h-4" /> Retour au CRM
           </Link>
           <div className="flex items-center gap-2 min-w-0">

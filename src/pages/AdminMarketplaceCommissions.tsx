@@ -171,7 +171,8 @@ export default function AdminMarketplaceCommissions() {
           </Button>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+
           <Button variant={onglet === "regles" ? "default" : "outline"} size="sm" onClick={() => setOnglet("regles")}>
             Règles tarifaires
           </Button>

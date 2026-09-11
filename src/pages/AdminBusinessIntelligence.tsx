@@ -315,7 +315,7 @@ export default function AdminBusinessIntelligence() {
     <div className="min-h-screen bg-background">
       <nav className="sticky-below-nav z-40 bg-card/80 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
-          <Link to="/admin" className="flex items-center gap-2 text-sm font-display font-semibold text-muted-foreground hover:text-foreground">
+          <Link to="/admin" className="min-h-10 flex items-center gap-2 text-sm font-display font-semibold text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-4 h-4" /> Retour au CRM
           </Link>
           <div className="flex items-center gap-2">

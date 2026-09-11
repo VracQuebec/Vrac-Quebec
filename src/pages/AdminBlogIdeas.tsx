@@ -191,8 +191,8 @@ export default function AdminBlogIdeas() {
         ) : view === "list" ? (
           <div className="grid gap-3">
             {filtered.map((i) => (
-              <div key={i.id} className="bg-white border rounded-lg p-4 hover:shadow-md transition">
-                <div className="flex items-start justify-between gap-4">
+              <div key={i.id} className="min-w-0 rounded-lg border bg-white p-4 transition hover:shadow-md">
+                <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap sm:gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[#111] text-[#7ED321]">{i.category}</span>
@@ -211,18 +211,19 @@ export default function AdminBlogIdeas() {
                       ))}
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2 shrink-0">
+                  <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-col sm:items-end">
                     {i.planned_publish_date && (
                       <span className="text-xs text-gray-500 whitespace-nowrap">📅 {i.planned_publish_date}</span>
                     )}
                     {i.created_post_id ? (
-                      <Link to={`/admin/blogue/editer/${i.created_post_id}`} className="text-xs px-3 py-1.5 bg-gray-900 text-white rounded hover:bg-gray-800">Ouvrir</Link>
+                      <Link to={`/admin/blogue/editer/${i.created_post_id}`} className="inline-flex min-h-9 items-center rounded bg-gray-900 px-3 py-1.5 text-xs text-white hover:bg-gray-800">Ouvrir</Link>
                     ) : (
-                      <button onClick={() => createDraft(i)} className="text-xs px-3 py-1.5 bg-[#7ED321] text-black font-semibold rounded hover:brightness-110 flex items-center gap-1">
+                      <button onClick={() => createDraft(i)} className="inline-flex min-h-9 items-center gap-1 rounded bg-[#7ED321] px-3 py-1.5 text-xs font-semibold text-black hover:brightness-110">
                         <Sparkles className="w-3 h-3" /> Créer brouillon
                       </button>
                     )}
                   </div>
+
                 </div>
               </div>
             ))}
