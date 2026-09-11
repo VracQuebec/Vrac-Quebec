@@ -113,7 +113,7 @@ export default function EntrepreneurDashboard() {
     .slice(0, 5);
 
   return (
-    <EntrepreneurAppShell title={`Bonjour${firstName ? ` ${firstName}` : ""}`} subtitle="Voici ce qui se passe aujourd'hui">
+    <EntrepreneurAppShell title={`Bonjour${firstName ? ` ${firstName}` : ""}`} subtitle="Aujourd'hui">
       <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-4 space-y-6">
         {/* ---------- Chantier actif : on reprend là où on était ---------- */}
         {active && (

@@ -291,11 +291,7 @@ const Entrepreneur = () => {
   );
 
   return (
-    <EntrepreneurAppShell
-      title="Trouver une dompe"
-      subtitle="Réseau de sites Vrac Québec"
-      backTo="/entrepreneur"
-    >
+    <EntrepreneurAppShell title="Trouver une dompe" backTo={null}>
       <div className="w-full min-w-0 px-4 sm:px-6 py-5 space-y-5">
         {/* Contexte : le chantier suit l'entrepreneur */}
         {activeChantier && (

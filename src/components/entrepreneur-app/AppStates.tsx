@@ -30,12 +30,12 @@ export const EmptyState = ({
   actionTo?: string;
   onAction?: () => void;
 }) => (
-  <div className="rounded-3xl border border-dashed border-border bg-card/60 px-6 py-12 text-center">
-    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-      <Inbox className="h-7 w-7" />
+  <div className="rounded-3xl border border-dashed border-border bg-card/60 px-5 py-7 text-center">
+    <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+      <Inbox className="h-5 w-5" />
     </div>
-    <h3 className="font-display text-lg font-bold">{title}</h3>
-    <p className="mx-auto mt-1.5 max-w-sm font-body text-sm text-muted-foreground">{message}</p>
+    <h3 className="font-display text-base font-bold">{title}</h3>
+    <p className="mx-auto mt-1 max-w-xs font-body text-sm text-muted-foreground">{message}</p>
     {actionLabel && actionTo && (
       <Link
         to={actionTo}
