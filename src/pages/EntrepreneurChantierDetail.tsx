@@ -189,10 +189,10 @@ export default function EntrepreneurChantierDetail() {
             {/* ---------- Actions du chantier ---------- */}
             <QuickActions
               actions={[
-                { label: "Nouvelle demande", icon: Plus, onClick: goNewRequest, primary: true },
-                { label: "Trouver une dompe", icon: MapIcon, to: "/entrepreneur/carte" },
-                { label: "Comparer les sites", icon: Scale, onClick: goComparateur },
-                { label: "Suivre le transport", icon: Truck, to: "/entrepreneur/demandes" },
+                { label: "Trouver une dompe", icon: MapIcon, to: "/entrepreneur/carte", primary: true },
+                { label: "Nouvelle demande", icon: Plus, onClick: goNewRequest },
+                { label: "Comparer", icon: Scale, onClick: goComparateur },
+                { label: "Transports", icon: Truck, to: "/entrepreneur/demandes" },
               ]}
             />
 

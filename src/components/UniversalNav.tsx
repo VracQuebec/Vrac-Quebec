@@ -68,7 +68,10 @@ export default function UniversalNav() {
 
   /* La hauteur réelle de la barre est publiée en variable CSS (--nav-h)
      pour que tous les en-têtes collants se placent juste en dessous. */
-  const hidden = HIDDEN_PATHS.includes(path);
+  // L'espace entrepreneur possède sa propre coquille applicative :
+  // un seul en-tête, jamais deux barres de navigation empilées.
+  const inEntrepreneurApp = isEntrepreneur && !path.startsWith("/entrepreneur/inscription");
+  const hidden = HIDDEN_PATHS.includes(path) || inEntrepreneurApp;
   useEffect(() => {
     const root = document.documentElement;
     const apply = () => {
