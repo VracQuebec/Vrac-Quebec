@@ -5,7 +5,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useCrmNotifications } from "@/hooks/useCrmNotifications";
 import FullPageState from "@/components/FullPageState";
-import TransportBanner from "@/components/TransportBanner";
+
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   Home,
