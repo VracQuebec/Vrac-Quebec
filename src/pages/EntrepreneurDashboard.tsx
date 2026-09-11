@@ -2,6 +2,7 @@
 // ACCUEIL de l'espace entrepreneur — un écran court, orienté action.
 // Priorité : que dois-je faire maintenant ?
 // ============================================================
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import {
@@ -11,6 +12,12 @@ import {
   SectionHeader,
   StatusBadge,
 } from "@/components/entrepreneur-app/AppStates";
+import { ChantierCard, ChantierContextBar, QuickActions } from "@/components/entrepreneur-app/ui";
+import {
+  loadActiveChantier,
+  saveActiveChantier,
+  type ActiveChantier,
+} from "@/lib/entrepreneur-app/chantier-context";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
 import {
@@ -21,7 +28,6 @@ import {
   Clock,
   CheckCircle2,
   ChevronRight,
-  HardHat,
   ClipboardList,
 } from "lucide-react";
 
@@ -52,6 +58,10 @@ const fmtDate = (iso: string | null) =>
 export default function EntrepreneurDashboard() {
   const { profile } = useEntrepreneurProfile();
   const { loading, error, submissions, chantiers, accessRequests, counts, refresh } = useEntrepreneurData();
+  // Chantier actif mémorisé : l'entrepreneur reprend là où il s'était arrêté.
+  const [active, setActive] = useState<ActiveChantier | null>(null);
+  useEffect(() => { setActive(loadActiveChantier()); }, []);
+
 
   const firstName =
     profile?.contact_name?.split(" ")[0] || profile?.name?.split(" ")[0] || "";
@@ -105,30 +115,24 @@ export default function EntrepreneurDashboard() {
   return (
     <EntrepreneurAppShell title={`Bonjour${firstName ? ` ${firstName}` : ""}`} subtitle="Voici ce qui se passe aujourd'hui" showFab>
       <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 space-y-8">
+        {/* ---------- Chantier actif : on reprend là où on était ---------- */}
+        {active && (
+          <ChantierContextBar
+            label={active.label}
+            detail={active.material ?? active.address}
+            to={`/entrepreneur/chantiers/${encodeURIComponent(active.key)}`}
+            onClear={() => { saveActiveChantier(null); setActive(null); }}
+          />
+        )}
+
         {/* ---------- Actions rapides ---------- */}
-        <div className="grid grid-cols-3 gap-2.5">
-          <Link
-            to="/demande-transport"
-            className="flex flex-col items-center gap-2 rounded-2xl bg-primary px-2 py-4 text-center text-primary-foreground shadow-md shadow-primary/25 active:scale-95 transition-transform"
-          >
-            <Plus className="h-6 w-6" />
-            <span className="text-xs font-display font-bold leading-tight">Nouvelle<br />demande</span>
-          </Link>
-          <Link
-            to="/entrepreneur/carte"
-            className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card px-2 py-4 text-center active:scale-95 transition-transform"
-          >
-            <MapIcon className="h-6 w-6 text-primary" />
-            <span className="text-xs font-display font-bold leading-tight">Trouver<br />une dompe</span>
-          </Link>
-          <Link
-            to="/entrepreneur/demandes"
-            className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card px-2 py-4 text-center active:scale-95 transition-transform"
-          >
-            <Truck className="h-6 w-6 text-primary" />
-            <span className="text-xs font-display font-bold leading-tight">Mes<br />transports</span>
-          </Link>
-        </div>
+        <QuickActions
+          actions={[
+            { label: "Nouvelle demande", icon: Plus, to: "/demande-transport", primary: true },
+            { label: "Trouver une dompe", icon: MapIcon, to: "/entrepreneur/carte" },
+            { label: "Mes transports", icon: Truck, to: "/entrepreneur/demandes" },
+          ]}
+        />
 
         {loading ? (
           <LoadingSkeleton lines={3} />
@@ -190,23 +194,14 @@ export default function EntrepreneurDashboard() {
               ) : (
                 <div className="space-y-2.5">
                   {chantiers.slice(0, 3).map((c) => (
-                    <Link
+                    <ChantierCard
                       key={c.key}
                       to={`/entrepreneur/chantiers/${encodeURIComponent(c.key)}`}
-                      className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 active:scale-[0.99] transition-transform"
-                    >
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <HardHat className="h-5 w-5" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-display text-sm font-bold">{c.label}</p>
-                        <p className="truncate font-body text-xs text-muted-foreground">
-                          {c.submissions.length} demande{c.submissions.length > 1 ? "s" : ""}
-                          {c.materials.length > 0 && ` · ${c.materials.slice(0, 2).join(", ")}`}
-                        </p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    </Link>
+                      label={c.label}
+                      detail={`${c.submissions.length} demande${c.submissions.length > 1 ? "s" : ""}${
+                        c.materials.length > 0 ? ` · ${c.materials.slice(0, 2).join(", ")}` : ""
+                      }`}
+                    />
                   ))}
                 </div>
               )}

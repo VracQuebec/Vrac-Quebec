@@ -3,12 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import {
-  Loader2, Phone, MapPin, Info, Clock, ShieldCheck,
-  Maximize2, Minimize2, Search, SlidersHorizontal, X, Layers,
+  Loader2, Phone, ShieldCheck,
+  Maximize2, Minimize2, Search, SlidersHorizontal,
 } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
+import { ChantierContextBar, FilterSheet, SiteCard } from "@/components/entrepreneur-app/ui";
+import {
+  loadActiveChantier,
+  prefillFromChantier,
+  saveActiveChantier,
+  type ActiveChantier,
+} from "@/lib/entrepreneur-app/chantier-context";
 import FullPageState from "@/components/FullPageState";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -94,6 +101,18 @@ const Entrepreneur = () => {
   const [expanded, setExpanded] = useState(false);
   const [detail, setDetail] = useState<EntLead | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Chantier actif : suit l'entrepreneur depuis son dossier de chantier.
+  const [activeChantier, setActiveChantier] = useState<ActiveChantier | null>(null);
+  useEffect(() => { setActiveChantier(loadActiveChantier()); }, []);
+
+  /** Demande d'accès : le contexte connu part avec la demande. */
+  const requestAccess = () => {
+    setDetail(null);
+    navigate(
+      "/demande-transport",
+      activeChantier ? { state: { vqPrefill: prefillFromChantier(activeChantier) } } : undefined,
+    );
+  };
 
   const toggleFilter = (k: MaterialColorKey) => {
     setActiveFilters((prev) => {
@@ -278,97 +297,86 @@ const Entrepreneur = () => {
       backTo="/entrepreneur"
     >
       <div className="w-full min-w-0 px-4 sm:px-6 py-5 space-y-5">
-        {/* Carte d'intention : une seule action principale */}
-        <section className="rounded-3xl border border-border/70 bg-gradient-to-br from-primary/10 via-card to-card p-5">
-          <p className="font-body text-xs uppercase tracking-[0.18em] text-muted-foreground">
-            Accès aux dompes
-          </p>
-          <h2 className="mt-1 font-display text-xl font-extrabold leading-tight sm:text-2xl">
-            Repérez un site, nous coordonnons l'accès.
-          </h2>
-          <p className="mt-1.5 font-body text-sm text-muted-foreground">
-            Ne vous présentez jamais sans autorisation : Vrac Québec valide la disponibilité et vous
-            transmet les consignes.
-          </p>
-          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {/* Contexte : le chantier suit l'entrepreneur */}
+        {activeChantier && (
+          <ChantierContextBar
+            label={activeChantier.label}
+            detail={activeChantier.material ?? activeChantier.address}
+            to={`/entrepreneur/chantiers/${encodeURIComponent(activeChantier.key)}`}
+            onClear={() => { saveActiveChantier(null); setActiveChantier(null); }}
+          />
+        )}
+
+        {/* Recherche : l'outil principal de l'écran */}
+        <section className="sticky top-[57px] z-20 -mx-4 bg-background/95 px-4 py-2 backdrop-blur-xl sm:mx-0 sm:rounded-2xl sm:px-2">
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Secteur, matériau, numéro de dompe…"
+                aria-label="Rechercher une dompe"
+                className="h-12 w-full rounded-2xl border border-border bg-card pl-11 pr-3 font-body text-sm outline-none focus:border-primary"
+              />
+            </div>
             <button
-              onClick={() => navigate("/demande-transport")}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-4 font-display text-sm font-bold text-primary-foreground active:scale-95 transition-transform"
+              onClick={() => setShowFilters(true)}
+              aria-label="Filtrer les dompes"
+              className="relative inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card"
             >
-              Demander l'accès
+              <SlidersHorizontal className="h-5 w-5" />
+              {activeCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 font-display text-[10px] font-bold text-primary-foreground">
+                  {activeCount}
+                </span>
+              )}
             </button>
-            <button
-              onClick={() => navigate("/entrepreneur/comparateur")}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-background px-4 font-body text-sm active:scale-95 transition-transform"
-            >
-              <Layers className="h-4 w-4" /> Comparer les sites
-            </button>
-            <a
-              href={`tel:${PHONE_PRIMARY}`}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-background px-4 font-body text-sm active:scale-95 transition-transform"
-            >
-              <Phone className="h-4 w-4" /> Appeler
-            </a>
           </div>
-          <p className="mt-3 flex items-center gap-1.5 font-body text-xs text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" /> Réponse en moins de 30 minutes durant les heures
-            d'ouverture.
-          </p>
         </section>
 
-
-        {/* Filtres */}
-        <section className="relative z-20 lg:sticky lg:top-[73px] -mx-4 sm:mx-0 px-4 sm:px-0">
-          <div className="rounded-2xl border border-border/70 bg-background/90 backdrop-blur-xl p-3 sm:p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex-1 min-w-[180px]">
-                <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Rechercher une dompe, un secteur, un matériau"
-                  className="w-full rounded-xl border border-border bg-background pl-9 pr-3 py-2.5 text-sm font-body outline-none focus:border-foreground/30"
-                />
-              </div>
+        {/* Feuille de filtres : tout au même endroit, au pouce */}
+        <FilterSheet
+          open={showFilters}
+          onOpenChange={setShowFilters}
+          activeCount={activeCount}
+          onReset={resetFilters}
+        >
+          <div>
+            <p className="mb-2 font-display text-sm font-bold">Disponibilité et accès</p>
+            <div className="flex flex-wrap gap-2">
               {filterChip(onlyAvailable, "Disponible aujourd'hui", () => setOnlyAvailable((v) => !v))}
               {filterChip(onlyBigVolume, "Gros volumes", () => setOnlyBigVolume((v) => !v))}
               {filterChip(only12, "Accessible 12 roues", () => setOnly12((v) => !v))}
               {filterChip(onlySemi, "Accessible semi-remorque", () => setOnlySemi((v) => !v))}
-              <button
-                onClick={() => setShowFilters((v) => !v)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-body border border-border hover:border-foreground/30"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" /> Matériaux
-              </button>
-              {activeCount > 0 && (
-                <button onClick={resetFilters} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-body">
-                  <X className="w-3.5 h-3.5" /> Réinitialiser
-                </button>
-              )}
             </div>
-            {showFilters && (
-              <div className="mt-3 pt-3 border-t border-border/60 flex flex-wrap gap-1.5">
-                {MATERIAL_LEGEND.map((k) => {
-                  const active = activeFilters.has(k);
-                  const c = MATERIAL_COLORS[k];
-                  return (
-                    <button
-                      key={k}
-                      onClick={() => toggleFilter(k)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-body border transition-all ${
-                        active ? "border-transparent text-white" : "bg-background text-foreground border-border hover:border-foreground/30"
-                      }`}
-                      style={active ? { background: c.color } : undefined}
-                    >
-                      <span className="w-2 h-2 rounded-full" style={{ background: active ? "rgba(255,255,255,0.85)" : c.color }} />
-                      {c.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
-        </section>
+          <div>
+            <p className="mb-2 font-display text-sm font-bold">Matériaux acceptés</p>
+            <div className="flex flex-wrap gap-1.5">
+              {MATERIAL_LEGEND.map((k) => {
+                const active = activeFilters.has(k);
+                const c = MATERIAL_COLORS[k];
+                return (
+                  <button
+                    key={k}
+                    onClick={() => toggleFilter(k)}
+                    className={`flex min-h-10 items-center gap-1.5 rounded-full border px-3 font-body text-xs transition-all ${
+                      active ? "border-transparent text-white" : "border-border bg-background text-foreground"
+                    }`}
+                    style={active ? { background: c.color } : undefined}
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ background: active ? "rgba(255,255,255,0.85)" : c.color }}
+                    />
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </FilterSheet>
 
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
@@ -406,66 +414,19 @@ const Entrepreneur = () => {
                 {filteredLeads.map((l) => {
                   const av = availMeta(l.availability_status);
                   const keys = leadMaterialKeys(l);
-                  const selected = selectedId === l.id;
                   return (
-                    <article
+                    <SiteCard
                       key={l.id}
-                      onMouseEnter={() => setSelectedId(l.id)}
-                      className={`rounded-2xl border bg-card overflow-hidden transition-all ${
-                        selected ? "border-primary/60 shadow-[0_8px_24px_-16px_rgba(0,0,0,0.35)]" : "border-border/70 hover:border-foreground/20"
-                      }`}
-                    >
-                      <button onClick={() => focusLead(l)} className="w-full text-left">
-                        <div
-                          className="h-24 w-full relative"
-                          style={{ background: `linear-gradient(135deg, ${MATERIAL_COLORS[keys[0] ?? "remblai"].color}22, hsl(var(--secondary)))` }}
-                        >
-                          <div className="absolute inset-0 flex items-center justify-center opacity-30">
-                            <Layers className="w-10 h-10" />
-                          </div>
-                          <span
-                            className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 text-[11px] font-body px-2.5 py-1 rounded-full bg-background/90 border border-border"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: av.color }} /> {av.label}
-                          </span>
-                        </div>
-                        <div className="p-4 space-y-2">
-                          <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-display font-bold text-sm">Dompe #{dompeLabel(l)}</h3>
-                            <span className="text-[11px] text-muted-foreground font-body whitespace-nowrap">{l.quantity || "—"}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground font-body flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5" /> Secteur {l.postal_prefix || "—"}
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {keys.slice(0, 3).map((k) => (
-                              <span key={k} className="text-[10px] font-body px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
-                                {MATERIAL_COLORS[k].label}
-                              </span>
-                            ))}
-                            {keys.length > 3 && (
-                              <span className="text-[10px] font-body px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
-                                +{keys.length - 3}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                      <div className="px-4 pb-4 flex items-center gap-2">
-                        <button
-                          onClick={() => setDetail(l)}
-                          className="flex-1 rounded-xl border border-border bg-background text-xs font-body py-2.5 hover:border-foreground/30 transition-colors"
-                        >
-                          Voir la fiche complète
-                        </button>
-                        <button
-                          onClick={() => navigate("/demande-transport")}
-                          className="flex-1 rounded-xl bg-primary text-primary-foreground text-xs font-display font-semibold py-2.5 hover:opacity-90 transition-opacity"
-                        >
-                          Faire une demande d'accès
-                        </button>
-                      </div>
-                    </article>
+                      title={`Dompe #${dompeLabel(l)}`}
+                      sector={`Secteur ${l.postal_prefix || "—"}${l.quantity ? ` · ${l.quantity}` : ""}`}
+                      availability={{ label: av.label, color: av.color }}
+                      tags={keys.map((k) => MATERIAL_COLORS[k].label)}
+                      accentColor={MATERIAL_COLORS[keys[0] ?? "remblai"].color}
+                      selected={selectedId === l.id}
+                      onOpen={() => focusLead(l)}
+                      onDetail={() => setDetail(l)}
+                      onRequest={requestAccess}
+                    />
                   );
                 })}
               </div>
@@ -521,7 +482,7 @@ const Entrepreneur = () => {
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 pt-1">
                   <button
-                    onClick={() => { setDetail(null); navigate("/demande-transport"); }}
+                    onClick={requestAccess}
                     className="flex-1 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm py-3 hover:opacity-90 transition-opacity"
                   >
                     Faire une demande d'accès

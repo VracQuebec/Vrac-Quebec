@@ -6,18 +6,16 @@
 // Chaque carte : chantier, type, statut, date, prochaine action.
 // ============================================================
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import {
   EmptyState,
   ErrorState,
   LoadingSkeleton,
-  StatusBadge,
 } from "@/components/entrepreneur-app/AppStates";
+import { RequestCard } from "@/components/entrepreneur-app/ui";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { statusMeta, statusBucket } from "@/lib/access-requests/status";
 import { formatCad } from "@/lib/transport/pricing";
-import { ClipboardList, Truck, MapPin, ChevronRight } from "lucide-react";
 
 const FILTERS = [
   { key: "all", label: "Toutes" },
@@ -160,39 +158,22 @@ export default function EntrepreneurDemandes() {
         ) : (
           <div className="space-y-2.5">
             {visible.map((r) => (
-              <Link
+              <RequestCard
                 key={r.id}
-                to={r.chantierKey ? `/entrepreneur/chantiers/${encodeURIComponent(r.chantierKey)}` : "/entrepreneur/demandes"}
-                className="block rounded-2xl border border-border bg-card p-4 active:scale-[0.99] transition-transform"
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                      r.type === "accès" ? "bg-primary/10 text-primary" : "bg-secondary text-foreground"
-                    }`}
-                  >
-                    {r.type === "accès" ? <Truck className="h-5 w-5" /> : <ClipboardList className="h-5 w-5" />}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-display text-sm font-bold">{r.title}</p>
-                    <p className="flex items-center gap-1 truncate font-body text-xs text-muted-foreground">
-                      <MapPin className="h-3 w-3 shrink-0" /> {r.chantier}
-                    </p>
-                  </div>
-                  <StatusBadge label={r.statusLabel} tone={r.tone} />
-                </div>
-                <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-body text-xs text-muted-foreground">
-                      {r.type === "accès" ? "Demande d'accès à une dompe" : "Demande de matériau"}
-                      {r.date && ` · ${new Date(r.date).toLocaleDateString("fr-CA")}`}
-                    </p>
-                    <p className="truncate font-display text-xs font-semibold text-primary">{r.nextAction}</p>
-                    {r.price && <p className="truncate font-body text-xs text-muted-foreground">{r.price}</p>}
-                  </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </div>
-              </Link>
+                to={
+                  r.chantierKey
+                    ? `/entrepreneur/chantiers/${encodeURIComponent(r.chantierKey)}`
+                    : "/entrepreneur/demandes"
+                }
+                kind={r.type === "accès" ? "acces" : "materiau"}
+                title={r.title}
+                place={r.chantier}
+                footer={`${r.type === "accès" ? "Demande d'accès à une dompe" : "Demande de matériau"}${
+                  r.date ? ` · ${new Date(r.date).toLocaleDateString("fr-CA")}` : ""
+                }${r.price ? ` · ${r.price}` : ""}`}
+                nextAction={r.nextAction}
+                badge={{ label: r.statusLabel, tone: r.tone }}
+              />
             ))}
           </div>
         )}
