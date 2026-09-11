@@ -656,7 +656,7 @@ const Admin = () => {
           </div>
 
           {/* Desktop nav */}
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden lg:flex flex-wrap items-center gap-x-3 gap-y-1 justify-end">
             <Link to="/admin/business-intelligence" className="flex items-center gap-1.5 text-sm text-primary hover:opacity-80 font-body font-semibold">
               <TrendingUp className="w-4 h-4" /> BI
             </Link>
@@ -691,7 +691,7 @@ const Admin = () => {
           </div>
 
           {/* Mobile : cloche + hamburger */}
-          <div className="sm:hidden flex items-center -mr-2">
+          <div className="lg:hidden flex items-center -mr-2">
             <NotificationBell />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -699,7 +699,7 @@ const Admin = () => {
                 <Menu className="w-5 h-5 text-foreground" />
               </button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[280px] sm:w-72">
+            <SheetContent side="right" className="w-[86%] max-w-xs sm:max-w-sm safe-bottom">
               <SheetTitle className="sr-only">Menu de navigation</SheetTitle>
               <div className="flex flex-col gap-1 mt-6">
                 <div className="px-3 py-2 text-xs font-display font-bold uppercase text-muted-foreground tracking-wide">Navigation</div>
