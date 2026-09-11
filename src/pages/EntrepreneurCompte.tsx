@@ -276,21 +276,21 @@ const EntrepreneurCompte = () => {
               <>
                 <Field label="Nom de l'entreprise" error={errors.company}>
                   <input
-                    className="app-input"
+                    className="min-h-12 w-full rounded-xl border border-border bg-background px-3 font-body text-sm"
                     value={form.company}
                     onChange={(ev) => setForm({ ...form, company: ev.target.value })}
                   />
                 </Field>
                 <Field label="Personne-ressource" error={errors.contact_name}>
                   <input
-                    className="app-input"
+                    className="min-h-12 w-full rounded-xl border border-border bg-background px-3 font-body text-sm"
                     value={form.contact_name}
                     onChange={(ev) => setForm({ ...form, contact_name: ev.target.value })}
                   />
                 </Field>
                 <Field label="Téléphone" error={errors.phone}>
                   <input
-                    className="app-input"
+                    className="min-h-12 w-full rounded-xl border border-border bg-background px-3 font-body text-sm"
                     inputMode="tel"
                     value={form.phone}
                     onChange={(ev) => setForm({ ...form, phone: ev.target.value })}
@@ -302,7 +302,7 @@ const EntrepreneurCompte = () => {
             {sheet === "adresse" && (
               <Field label="Adresse (privée)" error={errors.address}>
                 <input
-                  className="app-input"
+                  className="min-h-12 w-full rounded-xl border border-border bg-background px-3 font-body text-sm"
                   value={form.address}
                   onChange={(ev) => setForm({ ...form, address: ev.target.value })}
                 />
@@ -339,7 +339,7 @@ const EntrepreneurCompte = () => {
                 </Field>
                 <Field label="Nombre de camions" error={errors.truck_count}>
                   <input
-                    className="app-input"
+                    className="min-h-12 w-full rounded-xl border border-border bg-background px-3 font-body text-sm"
                     inputMode="numeric"
                     value={form.truck_count}
                     onChange={(ev) => setForm({ ...form, truck_count: ev.target.value })}
