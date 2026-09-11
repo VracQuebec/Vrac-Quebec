@@ -798,7 +798,7 @@ const Admin = () => {
               </button>
             ))}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid w-full grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center [&>*]:justify-center sm:[&>*]:justify-start">
             <div className="flex bg-secondary rounded-lg p-0.5">
               <button onClick={() => setView("list")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-display font-semibold ${view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
                 <List className="w-4 h-4" /> Liste
