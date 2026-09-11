@@ -160,7 +160,7 @@ export default function AdminMarketplaceRequests() {
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <Link to="/admin" className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <Link to="/admin" className="min-h-10 mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4" /> Retour à l'administration
             </Link>
             <h1 className="text-2xl font-bold md:text-3xl">Gestion des soumissions</h1>

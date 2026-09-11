@@ -109,7 +109,7 @@ export default function AdminAiEconomy() {
             les résultats identiques et la déduplication regroupe les demandes concurrentes.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Rafraîchir

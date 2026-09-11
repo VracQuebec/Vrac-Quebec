@@ -107,7 +107,7 @@ export default function AdminMarketplaceAnalytics() {
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <Link to="/admin/marche/soumissions" className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <Link to="/admin/marche/soumissions" className="min-h-10 mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4" /> Gestion des soumissions
             </Link>
             <h1 className="text-2xl font-bold md:text-3xl">Analytique de la place de marché</h1>

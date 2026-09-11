@@ -71,7 +71,7 @@ export default function AdminData() {
     <div className="min-h-screen bg-background">
       <nav className="border-b border-border bg-card">
         <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/admin" className="flex items-center gap-2 text-sm font-display font-semibold text-muted-foreground hover:text-foreground">
+          <Link to="/admin" className="min-h-10 flex items-center gap-2 text-sm font-display font-semibold text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-4 h-4" /> Retour à l'admin
           </Link>
           <h1 className="font-display font-bold">Données importées</h1>
