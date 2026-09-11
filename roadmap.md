@@ -1,6 +1,8 @@
 # Feuille de route — Vrac Québec
 
 ## En cours
+- [ ] Refonte produit de l'Espace entrepreneur (plan détaillé en 24 volets, 14 phases) — en attente d'approbation du plan
+
 - [x] Optimisation responsive complète (site public, CRM, administration) — validée 320→1920 px, aucune action hors écran
   - [x] Audit automatisé des débordements horizontaux (site public : aucun débordement global)
   - [x] En-tête central responsive (Retour / Accueil / titre) + safe areas
