@@ -1354,6 +1354,23 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               </div>
             </div>
           </div>
+          {/* Bloc unique de disponibilité — visible immédiatement, hors des sections repliées */}
+          {normalizeRequestType(sub.request_type) === "remblai" && (
+            <DompeAvailabilityPanel
+              crmStatus={sub.status}
+              data={{
+                id: sub.id,
+                availability_status: sub.availability_status ?? null,
+                availability_updated_at: sub.availability_updated_at ?? null,
+                availability_note: sub.availability_note ?? null,
+                remaining_capacity: sub.remaining_capacity ?? null,
+                opening_hours: sub.opening_hours ?? null,
+                materials: sub.materials ?? null,
+                truck_types_allowed: sub.truck_types_allowed ?? null,
+              }}
+              onChanged={onRefresh}
+            />
+          )}
           <LeadSection title="Client et coordonnées" defaultOpen={true}>
             <div className="text-[10px] text-muted-foreground italic">Sauvegarde automatique à chaque modification.</div>
           {/* Quick actions */}
