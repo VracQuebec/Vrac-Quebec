@@ -45,17 +45,7 @@ import TransportBanner from "@/components/TransportBanner";
 import {
   ACCESS_RESTRICTION_OPTIONS,
   TRUCK_OPTIONS,
-  availabilityInfo,
-  type SiteLike,
 } from "@/lib/entrepreneur/site-match";
-
-/** Champs « site de dépôt » exposés aux entrepreneurs (remblai uniquement). */
-const SITE_AVAILABILITY_OPTIONS = [
-  { value: "available", label: "Disponible" },
-  { value: "limited", label: "Disponibilité limitée" },
-  { value: "approval", label: "Sur approbation" },
-  { value: "unavailable", label: "Indisponible" },
-];
 
 /** Champs réellement essentiels à la fiche site : sans eux, la fiche n'est pas
  *  exploitable par les entrepreneurs. */
@@ -1354,6 +1344,22 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               </div>
             </div>
           </div>
+          {/* Bloc unique de disponibilité — visible immédiatement, hors des sections repliées */}
+          {normalizeRequestType(sub.request_type) === "remblai" && (
+            <DompeAvailabilityPanel
+              crmStatus={sub.status}
+              data={{
+                id: sub.id,
+                availability_status: sub.availability_status ?? null,
+                availability_updated_at: sub.availability_updated_at ?? null,
+                availability_note: sub.availability_note ?? null,
+                remaining_capacity: sub.remaining_capacity ?? null,
+                opening_hours: sub.opening_hours ?? null,
+                materials: sub.materials ?? null,
+                truck_types_allowed: sub.truck_types_allowed ?? null,
+              }}
+            />
+          )}
           <LeadSection title="Client et coordonnées" defaultOpen={true}>
             <div className="text-[10px] text-muted-foreground italic">Sauvegarde automatique à chaque modification.</div>
           {/* Quick actions */}
@@ -1562,17 +1568,6 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
           <LeadSection title="Dompe / site" defaultOpen={false}>
             {/* Budget & machinerie */}
             {normalizeRequestType(sub.request_type) === "remblai" && (() => {
-              const site: SiteLike = {
-                materials: sub.materials ?? null,
-                other_material: sub.other_material,
-                truck_types_allowed: sub.truck_types_allowed ?? null,
-                accessibility: sub.accessibility ?? null,
-                access_heavy_truck: sub.access_heavy_truck ?? null,
-                access_details: sub.access_details ?? null,
-                availability_status: sub.availability_status ?? null,
-                availability_updated_at: sub.availability_updated_at ?? null,
-              };
-              const info = availabilityInfo(site);
               const details = (sub.access_details ?? {}) as Record<string, unknown>;
               const activeRestrictions = ACCESS_RESTRICTION_OPTIONS
                 .map((o) => o.key)
@@ -1581,37 +1576,20 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               const toConfirm = siteToConfirm(sub);
               return (
                 <>
-                <DompeAvailabilityPanel
-                  data={{
-                    id: sub.id,
-                    availability_status: sub.availability_status ?? null,
-                    availability_updated_at: sub.availability_updated_at ?? null,
-                    availability_note: sub.availability_note ?? null,
-                    remaining_capacity: sub.remaining_capacity ?? null,
-                    opening_hours: sub.opening_hours ?? null,
-                    materials: sub.materials ?? null,
-                    truck_types_allowed: sub.truck_types_allowed ?? null,
-                  }}
-                />
                 <MaterialInterpretationPanel
                   submissionId={sub.id}
                   historicalMaterials={sub.materials ?? null}
                   otherMaterial={sub.other_material ?? null}
                 />
                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-3">
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <div className="text-[10px] uppercase tracking-wide font-display font-bold text-foreground">
-                      Fiche site (dompe) — visible par les entrepreneurs
-                    </div>
-                    <span className="text-[10px] font-body text-muted-foreground">{info.label} • {info.freshness}</span>
-                    <button
-                      type="button"
-                      onClick={() => onUpdate({ availability_updated_at: new Date().toISOString() } as Partial<Submission>)}
-                      className="ml-auto px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-display font-bold uppercase"
-                    >
-                      Confirmer la disponibilité aujourd'hui
-                    </button>
-                  </div>
+                   <div className="flex flex-wrap items-center gap-2 mb-2">
+                     <div className="text-[10px] uppercase tracking-wide font-display font-bold text-foreground">
+                       Fiche site (dompe) — visible par les entrepreneurs
+                     </div>
+                     <span className="text-[10px] font-body text-muted-foreground">
+                       Disponibilité et fraîcheur : voir le bloc « Disponibilité du remblai » en haut de la fiche
+                     </span>
+                   </div>
                   {(gaps.length > 0 || toConfirm.length > 0) && (
                     <div className="flex flex-wrap gap-1.5 mb-3">
                       {gaps.map((g) => (
@@ -1626,17 +1604,9 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                       ))}
                     </div>
                   )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <InlineField
-                      label="Statut de disponibilité"
-                      type="select"
-                      value={sub.availability_status || ""}
-                      allowEmpty
-                      options={SITE_AVAILABILITY_OPTIONS}
-                      onSave={(v) => onUpdate({ availability_status: v || null } as Partial<Submission>)}
-                    />
-                    <InlineField
-                      label="Capacité restante"
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                     <InlineField
+                       label="Capacité restante"
                       type="text"
                       value={sub.remaining_capacity || ""}
                       onSave={(v) => onUpdate({ remaining_capacity: v || null } as Partial<Submission>)}
