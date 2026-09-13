@@ -195,7 +195,7 @@ export default function PreviewDemandeRemblai() {
       setSimulation({ count: ranked.length, top: ranked[0]?.score ?? null });
       await supabase.from("matching_simulation_log").insert({
         algorithm_version: `${MATCHING_ALGORITHM_VERSION}+besoin-preview`,
-        criteria: { preview: true, direction: "besoin_de_materiaux", structured: structured.structured },
+        criteria: JSON.parse(JSON.stringify({ preview: true, direction: "besoin_de_materiaux", structured: structured.structured })),
         results: ranked.slice(0, 20).map((r) => ({ id: r.candidate.id, score: r.score, confidence: r.confidence })),
         result_count: ranked.length,
         top_score: ranked[0]?.score ?? null,
