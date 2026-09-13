@@ -1368,7 +1368,6 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                 materials: sub.materials ?? null,
                 truck_types_allowed: sub.truck_types_allowed ?? null,
               }}
-              onChanged={onRefresh}
             />
           )}
           <LeadSection title="Client et coordonnées" defaultOpen={true}>
