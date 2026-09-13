@@ -56,6 +56,11 @@ interface Draft {
   projectUsage: string;
   materials: string[];
   otherMaterial: string;
+  // Champs additifs de l'assistant (utilisés seulement si le drapeau est actif).
+  materialDescription: string;
+  refusedMaterials: string[];
+  soilCharacterized: string;
+  soilCharacterizedDetails: string;
   truckType: string;
   desiredDate: string;
   timeframe: string;
@@ -72,6 +77,7 @@ const emptyDraft: Draft = {
   address: "", postalCode: "", lat: null, lng: null,
   quantityValue: "", quantityUnit: "voyages", quantityUnknown: false,
   projectUsage: "", materials: [], otherMaterial: "", truckType: "",
+  materialDescription: "", refusedMaterials: [], soilCharacterized: "", soilCharacterizedDetails: "",
   desiredDate: "", timeframe: "", accessHeavyTruck: "", accessDetails: [],
   photos: [], name: "", phone: "", email: "", notes: "",
 };
