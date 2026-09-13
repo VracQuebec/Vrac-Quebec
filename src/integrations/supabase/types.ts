@@ -8739,6 +8739,63 @@ export type Database = {
           },
         ]
       }
+      matching_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      matching_simulation_log: {
+        Row: {
+          algorithm_version: string
+          created_at: string
+          criteria: Json
+          id: string
+          result_count: number | null
+          results: Json
+          run_by: string | null
+          top_score: number | null
+        }
+        Insert: {
+          algorithm_version?: string
+          created_at?: string
+          criteria?: Json
+          id?: string
+          result_count?: number | null
+          results?: Json
+          run_by?: string | null
+          top_score?: number | null
+        }
+        Update: {
+          algorithm_version?: string
+          created_at?: string
+          criteria?: Json
+          id?: string
+          result_count?: number | null
+          results?: Json
+          run_by?: string | null
+          top_score?: number | null
+        }
+        Relationships: []
+      }
       material_action_log: {
         Row: {
           action: string
@@ -17579,6 +17636,10 @@ export type Database = {
           supplier_type: string
         }[]
       }
+      jsc_user_controls_company: {
+        Args: { _company_id: string }
+        Returns: boolean
+      }
       list_users_with_roles: {
         Args: never
         Returns: {
@@ -17587,6 +17648,29 @@ export type Database = {
           email: string
           roles: Database["public"]["Enums"]["app_role"][]
           user_id: string
+        }[]
+      }
+      matching_lab_candidates: {
+        Args: { _lat?: number; _limit?: number; _lng?: number }
+        Returns: {
+          accepted_materials: Json
+          access: Json
+          address: string
+          availability_confirmed_at: string
+          availability_status: string
+          city: string
+          distance_kind: string
+          distance_km: number
+          dompe_number: string
+          id: string
+          latitude: number
+          longitude: number
+          materials: string
+          other_material: string
+          remaining_capacity: string
+          status: string
+          submission_number: string
+          truck_types_allowed: string[]
         }[]
       }
       material_normalization_preview: {
