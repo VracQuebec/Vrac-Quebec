@@ -218,7 +218,24 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
           access_heavy_truck: data.accessHeavyTruck || null,
           access_details: data.accessDetails,
           photos: data.photos,
-          contact: { name: data.name, phone: data.phone, email: data.email, notes: data.notes },
+          contact: {
+            name: data.name,
+            phone: data.phone,
+            email: data.email,
+            // Le résumé de l'assistant n'est ajouté que si le drapeau est actif.
+            notes: assistantOn
+              ? [
+                  data.notes,
+                  assistantNotes({
+                    description: data.materialDescription,
+                    materials: data.materials,
+                    refused: data.refusedMaterials,
+                    environment: data.soilCharacterized as EnvironmentAnswer,
+                    environmentDetails: data.soilCharacterizedDetails,
+                  }),
+                ].filter(Boolean).join("\n").trim()
+              : data.notes,
+          },
           website: honeypot.current?.value ?? "",
           form_started_at: startedAt.current,
           attribution: getAttribution(),
