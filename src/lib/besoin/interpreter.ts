@@ -349,7 +349,7 @@ export function interpretBesoin(
   const toConfirm = [...lowConfidence, ...suggestAdditionalMaterials(accepted, refused)];
 
   const quantityUnknown = /je sais pas combien|je ne sais pas combien|sais pas combien|aucune idee de la quantite/.test(normalized);
-  const quantityLarge = /beaucoup|pas mal de|en masse|illimite|autant que|le plus possible|gros volume/.test(normalized);
+  const quantityLarge = /beaucoup|pas mal|en masse|illimite|autant que|le plus possible|gros volume/.test(normalized);
 
   const schedule = detectSchedule(originalText, normalized);
   const access = detectAccess(originalText, normalized);

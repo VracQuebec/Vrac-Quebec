@@ -94,7 +94,7 @@ describe("interprétation du langage québécois — demandes de remblai", () =>
   });
 
   it("fautes et phrases incomplètes restent interprétables", () => {
-    const r = interpretBesoin("terre pi du sable, 10 pi 12 roues ok, glaize accepte");
+    const r = interpretBesoin("terre pi du sable, 10 et 12 roues ok, glaize accepte");
     expect(keys(r.accepted)).toEqual(expect.arrayContaining(["terre", "sable", "argile"]));
     expect(r.trucks.porteur_10_roues).toBe("ACCEPTE");
     expect(r.trucks.porteur_12_roues).toBe("ACCEPTE");
