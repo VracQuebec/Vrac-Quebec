@@ -203,7 +203,7 @@ export function detectConditions(text: string, negatedSpans: Array<[number, numb
 // ---------------- Négations / restrictions ----------------
 
 const NEGATION_CUES = [
-  "pas de", "pas d", "sans", "aucune", "aucun", "rien de", "rien d", "sauf",
+  "pas de", "pas d", "mais pas", "sans", "aucune", "aucun", "rien de", "rien d", "sauf",
   "excepte", "a part", "pas mal de rien", "exclu", "exclus", "refuse", "je ne prends pas",
 ];
 

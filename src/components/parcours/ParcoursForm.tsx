@@ -37,6 +37,9 @@ import {
   type PhotoCategoryKey,
 } from "@/lib/parcours/normalisation";
 import { buildHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff } from "@/lib/parcours/handoff";
+import { isFeatureEnabled } from "@/lib/flags";
+import MaterialAssistantStep from "@/components/parcours/MaterialAssistantStep";
+import { assistantNotes, type EnvironmentAnswer } from "@/lib/parcours/assistant-materiaux";
 
 export type ParcoursVariant = "reception" | "evacuation";
 
@@ -53,6 +56,11 @@ interface Draft {
   projectUsage: string;
   materials: string[];
   otherMaterial: string;
+  // Champs additifs de l'assistant (utilisés seulement si le drapeau est actif).
+  materialDescription: string;
+  refusedMaterials: string[];
+  soilCharacterized: string;
+  soilCharacterizedDetails: string;
   truckType: string;
   desiredDate: string;
   timeframe: string;
@@ -69,6 +77,7 @@ const emptyDraft: Draft = {
   address: "", postalCode: "", lat: null, lng: null,
   quantityValue: "", quantityUnit: "voyages", quantityUnknown: false,
   projectUsage: "", materials: [], otherMaterial: "", truckType: "",
+  materialDescription: "", refusedMaterials: [], soilCharacterized: "", soilCharacterizedDetails: "",
   desiredDate: "", timeframe: "", accessHeavyTruck: "", accessDetails: [],
   photos: [], name: "", phone: "", email: "", notes: "",
 };
@@ -107,6 +116,8 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
   const navigate = useNavigate();
   const { user } = useAuthReady();
   const steps = STEPS[variant];
+  // Drapeau material_assistant_v2 : désactivé par défaut (production inchangée).
+  const assistantOn = useMemo(() => isFeatureEnabled("material_assistant_v2"), []);
   const [index, setIndex] = useState(0);
   const [data, setData] = useState<Draft>(() => {
     try {
@@ -207,7 +218,24 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
           access_heavy_truck: data.accessHeavyTruck || null,
           access_details: data.accessDetails,
           photos: data.photos,
-          contact: { name: data.name, phone: data.phone, email: data.email, notes: data.notes },
+          contact: {
+            name: data.name,
+            phone: data.phone,
+            email: data.email,
+            // Le résumé de l'assistant n'est ajouté que si le drapeau est actif.
+            notes: assistantOn
+              ? [
+                  data.notes,
+                  assistantNotes({
+                    description: data.materialDescription,
+                    materials: data.materials,
+                    refused: data.refusedMaterials,
+                    environment: data.soilCharacterized as EnvironmentAnswer,
+                    environmentDetails: data.soilCharacterizedDetails,
+                  }),
+                ].filter(Boolean).join("\n").trim()
+              : data.notes,
+          },
           website: honeypot.current?.value ?? "",
           form_started_at: startedAt.current,
           attribution: getAttribution(),
@@ -287,6 +315,59 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
       </div>
     );
   }
+
+  // Grille de cartes historique — inchangée, réutilisée par l'assistant.
+  const renderManualMaterials = () => (
+    <div className="space-y-5">
+      <p className="font-body text-sm text-muted-foreground">
+        {variant === "reception"
+          ? "Sélectionnez le ou les matériaux qui pourraient convenir. Le choix final dépend des disponibilités."
+          : "Sélectionnez le ou les matériaux à sortir de votre chantier."}
+      </p>
+      {REMBLAI_MATERIAL_CATEGORIES.map((cat) => (
+        <div key={cat.title}>
+          <p className="mb-2 font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {cat.title}
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {cat.materials.map((m) => {
+              const active = data.materials.includes(m);
+              return (
+                <button key={m} type="button" aria-pressed={active} onClick={() => toggle("materials", m)}
+                  className={`group flex h-full flex-col overflow-hidden rounded-xl border-4 bg-card text-left font-body transition-all ${
+                    active ? "border-primary bg-primary/5 shadow-lg shadow-primary/20" : "border-border hover:border-primary/60"
+                  }`}>
+                  <div className="relative aspect-square w-full overflow-hidden bg-muted">
+                    <img src={REMBLAI_MATERIAL_IMAGES[m]} alt={`Matériau : ${m}`} loading="lazy"
+                      width={480} height={480} className="h-full w-full object-cover" />
+                    {active && (
+                      <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <Check className="h-4 w-4" strokeWidth={3} />
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 px-3 py-2.5">
+                    <span className="block text-sm font-semibold leading-tight text-foreground">{m}</span>
+                    <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
+                      {REMBLAI_MATERIAL_DESCRIPTIONS[m]}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      {(data.materials.includes("Autre") || data.materials.includes("Je ne suis pas certain")) && (
+        <input
+          value={data.otherMaterial}
+          onChange={(e) => set({ otherMaterial: e.target.value })}
+          placeholder="Précisez votre matériau"
+          className={inputCls}
+        />
+      )}
+    </div>
+  );
 
   // ---------- Étapes ----------
   const renderStep = () => {
@@ -372,57 +453,37 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
         );
 
       case "material":
-        return (
-          <div className="space-y-5">
-            <p className="font-body text-sm text-muted-foreground">
-              {variant === "reception"
-                ? "Sélectionnez le ou les matériaux qui pourraient convenir. Le choix final dépend des disponibilités."
-                : "Sélectionnez le ou les matériaux à sortir de votre chantier."}
-            </p>
-            {REMBLAI_MATERIAL_CATEGORIES.map((cat) => (
-              <div key={cat.title}>
-                <p className="mb-2 font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  {cat.title}
-                </p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {cat.materials.map((m) => {
-                    const active = data.materials.includes(m);
-                    return (
-                      <button key={m} type="button" aria-pressed={active} onClick={() => toggle("materials", m)}
-                        className={`group flex h-full flex-col overflow-hidden rounded-xl border-4 bg-card text-left font-body transition-all ${
-                          active ? "border-primary bg-primary/5 shadow-lg shadow-primary/20" : "border-border hover:border-primary/60"
-                        }`}>
-                        <div className="relative aspect-square w-full overflow-hidden bg-muted">
-                          <img src={REMBLAI_MATERIAL_IMAGES[m]} alt={`Matériau : ${m}`} loading="lazy"
-                            width={480} height={480} className="h-full w-full object-cover" />
-                          {active && (
-                            <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                              <Check className="h-4 w-4" strokeWidth={3} />
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex-1 px-3 py-2.5">
-                          <span className="block text-sm font-semibold leading-tight text-foreground">{m}</span>
-                          <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
-                            {REMBLAI_MATERIAL_DESCRIPTIONS[m]}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-            {(data.materials.includes("Autre") || data.materials.includes("Je ne suis pas certain")) && (
-              <input
-                value={data.otherMaterial}
-                onChange={(e) => set({ otherMaterial: e.target.value })}
-                placeholder="Précisez votre matériau"
-                className={inputCls}
-              />
-            )}
-          </div>
-        );
+        if (assistantOn) {
+          return (
+            <MaterialAssistantStep
+              variant={variant}
+              value={{
+                description: data.materialDescription,
+                materials: data.materials,
+                refused: data.refusedMaterials,
+                environment: data.soilCharacterized as EnvironmentAnswer,
+                environmentDetails: data.soilCharacterizedDetails,
+              }}
+              onChange={(patch) =>
+                set({
+                  ...(patch.description !== undefined ? { materialDescription: patch.description } : {}),
+                  ...(patch.materials !== undefined ? { materials: patch.materials } : {}),
+                  ...(patch.refused !== undefined ? { refusedMaterials: patch.refused } : {}),
+                  ...(patch.environment !== undefined ? { soilCharacterized: patch.environment } : {}),
+                  ...(patch.environmentDetails !== undefined
+                    ? { soilCharacterizedDetails: patch.environmentDetails }
+                    : {}),
+                })
+              }
+              onGoToPhotos={() => {
+                const i = steps.indexOf("photos");
+                if (i >= 0) setIndex(i);
+              }}
+              renderManual={renderManualMaterials}
+            />
+          );
+        }
+        return renderManualMaterials();
 
       case "truck":
         return (
