@@ -179,6 +179,81 @@ export default function AdminTransportCapacities() {
     void load();
   };
 
+  const DIM_FIELDS = [
+    ["label", "Identification"],
+    ["overall_length_m", "Longueur réelle (m)"],
+    ["body_width_m", "Largeur carrosserie, sans rétroviseurs (m)"],
+    ["mirror_left_offset_m", "Débord rétroviseur gauche (m)"],
+    ["mirror_right_offset_m", "Débord rétroviseur droit (m)"],
+    ["mirror_to_mirror_width_m", "Largeur miroir à miroir mesurée (m)"],
+    ["overall_height_m", "Hauteur réelle (m)"],
+    ["wheelbase_m", "Empattement (m)"],
+    ["front_overhang_m", "Porte-à-faux avant (m)"],
+    ["rear_overhang_m", "Porte-à-faux arrière (m)"],
+    ["turning_radius_m", "Rayon de braquage (m)"],
+    ["ground_clearance_m", "Garde au sol (m)"],
+    ["tractor_length_m", "Tracteur — longueur (m)"],
+    ["tractor_wheelbase_m", "Tracteur — empattement (m)"],
+    ["trailer_axle_count", "Semi — nombre d'essieux"],
+    ["trailer_length_m", "Semi — longueur (m)"],
+    ["kingpin_setback_m", "Semi — pivot d'attelage (m)"],
+    ["combo_measured_length_m", "Ensemble — longueur mesurée (m)"],
+    ["data_source", "Source (ACTUAL_MEASURED, MANUFACTURER_SPEC, OPERATIONAL_ESTIMATE, DEFAULT_ESTIMATE)"],
+    ["validated_at", "Date de validation (AAAA-MM-JJ)"],
+    ["notes", "Notes"],
+  ] as const;
+
+  const saveDimension = async (row: DimensionRow) => {
+    setSavingId(row.id);
+    const patch: Record<string, unknown> = {};
+    for (const [key] of DIM_FIELDS) {
+      const raw = field(row.id, key, (row as unknown as Record<string, unknown>)[key]);
+      if (key === "label" || key === "notes" || key === "data_source" || key === "validated_at") {
+        patch[key] = raw.trim() === "" ? (key === "data_source" ? "DEFAULT_ESTIMATE" : null) : raw.trim();
+      } else {
+        patch[key] = numOrNull(raw);
+      }
+    }
+    const { error } = await supabase
+      .from("transport_vehicle_dimensions").update(patch).eq("id", row.id);
+    setSavingId(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Gabarit enregistré.");
+    setDraft((d) => ({ ...d, [row.id]: {} }));
+    void load();
+  };
+
+  const addDimension = async (capacityRow: CapacityRow) => {
+    const { error } = await supabase.from("transport_vehicle_dimensions").insert({
+      capacity_id: capacityRow.id, config_id: capacityRow.config_id,
+      label: capacityRow.label ?? "Nouveau gabarit", data_source: "DEFAULT_ESTIMATE",
+    });
+    if (error) { toast.error(error.message); return; }
+    setTab("dimensions");
+    void load();
+  };
+
+  const dimComputed = (row: DimensionRow) => {
+    const n = (k: keyof DimensionRow) =>
+      numOrNull(field(row.id, k as string, row[k] as unknown));
+    const mirror = mirrorToMirrorWidthM({
+      measuredMirrorWidthM: n("mirror_to_mirror_width_m"),
+      bodyWidthM: n("body_width_m"),
+      mirrorLeftOffsetM: n("mirror_left_offset_m"),
+      mirrorRightOffsetM: n("mirror_right_offset_m"),
+    });
+    const combo = comboOverallLengthM({
+      measuredComboLengthM: n("combo_measured_length_m"),
+      tractorLengthM: n("tractor_length_m"),
+      trailerLengthM: n("trailer_length_m"),
+      kingpinSetbackM: n("kingpin_setback_m"),
+      tractorWheelbaseM: n("tractor_wheelbase_m"),
+    });
+    return { mirror, combo };
+  };
+
+
+
   if (!ready || rolesLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
