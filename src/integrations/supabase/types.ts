@@ -14027,6 +14027,7 @@ export type Database = {
       }
       submission_accepted_materials: {
         Row: {
+          composition_role: string | null
           confidence: string
           confirmation_status: string
           confirmed_at: string | null
@@ -14048,6 +14049,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          composition_role?: string | null
           confidence?: string
           confirmation_status: string
           confirmed_at?: string | null
@@ -14069,6 +14071,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          composition_role?: string | null
           confidence?: string
           confirmation_status?: string
           confirmed_at?: string | null
@@ -14438,6 +14441,81 @@ export type Database = {
           },
           {
             foreignKeyName: "submission_environmental_info_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_fill_profile: {
+        Row: {
+          acceptance_scope: string
+          accepted_truck_codes: string[] | null
+          access_notes: string | null
+          capacity_kind: string
+          capacity_unit: string | null
+          capacity_value: number | null
+          confidence: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          environment_status: string
+          heavy_truck_access: string | null
+          id: string
+          original_text: string | null
+          source: string
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          acceptance_scope?: string
+          accepted_truck_codes?: string[] | null
+          access_notes?: string | null
+          capacity_kind?: string
+          capacity_unit?: string | null
+          capacity_value?: number | null
+          confidence?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          environment_status?: string
+          heavy_truck_access?: string | null
+          id?: string
+          original_text?: string | null
+          source?: string
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          acceptance_scope?: string
+          accepted_truck_codes?: string[] | null
+          access_notes?: string | null
+          capacity_kind?: string
+          capacity_unit?: string | null
+          capacity_value?: number | null
+          confidence?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          environment_status?: string
+          heavy_truck_access?: string | null
+          id?: string
+          original_text?: string | null
+          source?: string
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_fill_profile_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_fill_profile_submission_id_fkey"
             columns: ["submission_id"]
             isOneToOne: true
             referencedRelation: "submissions"
