@@ -243,7 +243,7 @@ export function candidateToProfile(c: PipelineCandidate): FillRequestProfile {
     scope: c.acceptance_scope ?? (materials.length ? "explicit" : "unknown"),
     materials,
     restrictions: c.max_inches != null
-      ? [{ kind: "DIMENSION", label: `max ${c.max_inches} po`, maxInches: c.max_inches, originalExpression: null } as never]
+      ? [{ kind: "DIMENSION" as const, label: `max ${c.max_inches} po`, maxInches: c.max_inches, originalExpression: "" }]
       : [],
     conditions: (c.conditions ?? []).map(norm),
     environmentStatus: "UNKNOWN",
