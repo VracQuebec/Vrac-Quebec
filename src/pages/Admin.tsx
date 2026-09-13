@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LeadPhotos } from "@/components/admin/LeadPhotos";
+import LeadParcoursPanel from "@/components/admin/LeadParcoursPanel";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES, serviceTypeMeta, normalizeRequestType, requestTypeMeta } from "@/lib/questionnaire-data";
@@ -128,6 +129,24 @@ interface Submission {
   truck_types_allowed?: string[] | null;
   access_details?: Record<string, unknown> | null;
   access_heavy_truck?: string | null;
+  access_criteria?: string[] | null;
+  photos_meta?: unknown;
+  quantity_value?: number | string | null;
+  quantity_unit?: string | null;
+  parcours_direction?: string | null;
+  truck_type_key?: string | null;
+  service_type?: string | null;
+  city?: string | null;
+  province?: string | null;
+  formatted_address?: string | null;
+  place_id?: string | null;
+  location_type?: string | null;
+  geocoding_provider?: string | null;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  landing_referrer?: string | null;
+  desired_date?: string | null;
   selected_site_id?: string | null;
   selected_site_label?: string | null;
   selected_site_address?: string | null;
@@ -1422,6 +1441,9 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               <LeadPhotos photos={sub.photos} />
             </div>
           )}
+          </LeadSection>
+          <LeadSection title="Demande complète (formulaire)" defaultOpen={true}>
+            <LeadParcoursPanel lead={sub} />
           </LeadSection>
           <LeadSection title="Statut et suivi" defaultOpen={true}>
           {/* Status selector */}
