@@ -405,6 +405,105 @@ export default function AdminTransportCapacities() {
           </div>
         )}
 
+        {!loading && tab === "dimensions" && (
+          <div className="space-y-4">
+            <p className="rounded-lg border bg-card p-3 text-sm text-muted-foreground">
+              Les dimensions <strong>réelles du véhicule</strong> (MESURÉ ou CONSTRUCTEUR) ont toujours
+              priorité. Une dimension typique n'est jamais une limite légale, et la largeur
+              réglementaire (rétroviseurs exclus) ne remplace jamais la largeur miroir à miroir
+              utilisée pour l'accessibilité d'un chantier.
+            </p>
+
+            <div className="rounded-lg border bg-card p-4">
+              <p className="mb-2 text-sm font-medium">Limites réglementaires versionnées</p>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                {dimRules.map((r) => (
+                  <div key={r.id} className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border px-2 py-0.5">RÉGLEMENTAIRE</span>
+                    <span className="font-medium text-foreground">{r.label}</span>
+                    <span>v{r.version} · {r.applies_to}</span>
+                    {r.max_height_m != null && <span>hauteur {r.max_height_m} m</span>}
+                    {r.max_regulatory_width_m != null && <span>largeur {r.max_regulatory_width_m} m (miroirs exclus)</span>}
+                    {r.max_vehicle_length_m != null && <span>longueur véhicule {r.max_vehicle_length_m} m</span>}
+                    {r.max_combination_length_m != null && <span>ensemble {r.max_combination_length_m} m</span>}
+                    {r.max_trailer_length_m != null && <span>semi {r.max_trailer_length_m} m</span>}
+                    <span className="rounded-full border px-2 py-0.5">{r.validation_status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {dimensions.length === 0 && (
+              <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+                Aucun gabarit enregistré. Ajoutez-en un depuis l'onglet « Capacités ».
+              </p>
+            )}
+
+            {dimensions.map((row) => {
+              const { mirror, combo } = dimComputed(row);
+              const cap = capacities.find((c) => c.id === row.capacity_id);
+              return (
+                <div key={row.id} className="space-y-3 rounded-lg border bg-card p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                      <span>{row.config_id ? configLabel[row.config_id] ?? "—" : "—"}</span>
+                      <span className="rounded-full border px-2 py-0.5 text-xs">
+                        {field(row.id, "data_source", row.data_source) || "DEFAULT_ESTIMATE"}
+                      </span>
+                      {!row.validated_at && (
+                        <span className="rounded-full border px-2 py-0.5 text-xs">À VALIDER</span>
+                      )}
+                    </div>
+                    <Button size="sm" disabled={savingId === row.id} onClick={() => saveDimension(row)}>
+                      {savingId === row.id
+                        ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        : <Save className="mr-2 h-4 w-4" />}
+                      Enregistrer
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {DIM_FIELDS.map(([key, label]) => (
+                      <div key={key} className="space-y-1">
+                        <Label htmlFor={`${row.id}-${key}`} className="text-xs">{label}</Label>
+                        <Input
+                          id={`${row.id}-${key}`}
+                          value={field(row.id, key, (row as unknown as Record<string, unknown>)[key])}
+                          onChange={(e) => setField(row.id, key, e.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid gap-2 rounded-md bg-muted/50 p-3 text-sm sm:grid-cols-4">
+                    <div>
+                      <p className="text-xs uppercase text-muted-foreground">Largeur miroir à miroir</p>
+                      <p className="font-medium">{mirror == null ? "—" : `${mirror.toFixed(2)} m`}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-muted-foreground">Longueur de l'ensemble</p>
+                      <p className="font-medium">
+                        {combo.lengthM == null ? "—" : `${combo.lengthM.toFixed(2)} m (${combo.method === "measured" ? "mesurée" : "géométrique"})`}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-muted-foreground">Charge utile</p>
+                      <p className="font-medium">{cap?.payload_kg == null ? "—" : kg(cap.payload_kg)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-muted-foreground">Capacité opérationnelle</p>
+                      <p className="font-medium">{kg(cap?.operational_capacity_kg ?? null)}</p>
+                    </div>
+                  </div>
+                  {combo.note && <p className="text-xs text-muted-foreground">{combo.note}</p>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+
+
         {!loading && tab === "rules" && (
           <div className="space-y-3">
             <p className="rounded-lg border bg-card p-3 text-sm text-muted-foreground">
