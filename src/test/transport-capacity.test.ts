@@ -14,9 +14,9 @@ import {
 } from "@/lib/transport/capacity";
 
 describe("capacités réelles de transport", () => {
-  it("supporte les cinq configurations demandées", () => {
+  it("supporte les six configurations demandées", () => {
     expect(VEHICLE_CONFIG_CODES).toEqual([
-      "porteur_10_roues", "porteur_12_roues",
+      "porteur_6_roues", "porteur_10_roues", "porteur_12_roues",
       "semi_2_essieux", "semi_3_essieux", "semi_4_essieux",
     ]);
   });

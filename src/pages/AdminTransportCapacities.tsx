@@ -9,7 +9,7 @@
 // ============================================================
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Scale, Truck, Gauge, Layers, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Scale, Truck, Gauge, Layers, Save, Ruler } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import {
   computePayloadKg, kgToTonnes, validateOperationalCapacityKg,
 } from "@/lib/transport/capacity";
+import { mirrorToMirrorWidthM, comboOverallLengthM } from "@/lib/transport/dimensions";
 
 type ConfigRow = {
   id: string; code: string; label: string; vehicle_class: string;
@@ -45,10 +46,30 @@ type DensityRow = {
   density_min_kg_m3: number | null; density_max_kg_m3: number | null;
   is_estimate: boolean; data_source: string | null;
 };
+type DimensionRow = {
+  id: string; capacity_id: string | null; config_id: string | null; label: string | null;
+  overall_length_m: number | null; body_width_m: number | null;
+  mirror_left_offset_m: number | null; mirror_right_offset_m: number | null;
+  mirror_to_mirror_width_m: number | null; overall_height_m: number | null;
+  wheelbase_m: number | null; front_overhang_m: number | null; rear_overhang_m: number | null;
+  turning_radius_m: number | null; ground_clearance_m: number | null;
+  tractor_length_m: number | null; tractor_wheelbase_m: number | null;
+  trailer_axle_count: number | null; trailer_length_m: number | null;
+  kingpin_setback_m: number | null; combo_measured_length_m: number | null;
+  data_source: string; validated_at: string | null; notes: string | null;
+};
+type DimensionRuleRow = {
+  id: string; rule_code: string; label: string; applies_to: string; version: number;
+  max_height_m: number | null; max_regulatory_width_m: number | null;
+  max_vehicle_length_m: number | null; max_combination_length_m: number | null;
+  max_trailer_length_m: number | null; regulatory_source: string | null;
+  regulatory_article: string | null; effective_from: string | null; validation_status: string;
+};
 
 const TABS = [
   { id: "configs", label: "Configurations", icon: Truck },
   { id: "capacities", label: "Capacités", icon: Gauge },
+  { id: "dimensions", label: "Dimensions / Gabarits", icon: Ruler },
   { id: "rules", label: "Règles Québec", icon: Scale },
   { id: "densities", label: "Densités", icon: Layers },
 ] as const;
@@ -76,21 +97,27 @@ export default function AdminTransportCapacities() {
   const [rules, setRules] = useState<RuleRow[]>([]);
   const [capacities, setCapacities] = useState<CapacityRow[]>([]);
   const [densities, setDensities] = useState<DensityRow[]>([]);
+  const [dimensions, setDimensions] = useState<DimensionRow[]>([]);
+  const [dimRules, setDimRules] = useState<DimensionRuleRow[]>([]);
   const [draft, setDraft] = useState<Record<string, Record<string, string>>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [c, r, cap, d] = await Promise.all([
+    const [c, r, cap, d, dim, dr] = await Promise.all([
       supabase.from("transport_vehicle_configs").select("*").order("sort_order"),
       supabase.from("transport_weight_rules").select("*").order("version"),
       supabase.from("transport_vehicle_capacities").select("*").order("created_at"),
       supabase.from("transport_material_densities").select("*").order("created_at"),
+      supabase.from("transport_vehicle_dimensions").select("*").order("created_at"),
+      supabase.from("transport_dimension_rules").select("*").order("rule_code"),
     ]);
     setConfigs((c.data ?? []) as ConfigRow[]);
     setRules((r.data ?? []) as RuleRow[]);
     setCapacities((cap.data ?? []) as CapacityRow[]);
     setDensities((d.data ?? []) as DensityRow[]);
+    setDimensions((dim.data ?? []) as DimensionRow[]);
+    setDimRules((dr.data ?? []) as DimensionRuleRow[]);
     setLoading(false);
   }, []);
 
@@ -152,6 +179,81 @@ export default function AdminTransportCapacities() {
     setTab("capacities");
     void load();
   };
+
+  const DIM_FIELDS = [
+    ["label", "Identification"],
+    ["overall_length_m", "Longueur réelle (m)"],
+    ["body_width_m", "Largeur carrosserie, sans rétroviseurs (m)"],
+    ["mirror_left_offset_m", "Débord rétroviseur gauche (m)"],
+    ["mirror_right_offset_m", "Débord rétroviseur droit (m)"],
+    ["mirror_to_mirror_width_m", "Largeur miroir à miroir mesurée (m)"],
+    ["overall_height_m", "Hauteur réelle (m)"],
+    ["wheelbase_m", "Empattement (m)"],
+    ["front_overhang_m", "Porte-à-faux avant (m)"],
+    ["rear_overhang_m", "Porte-à-faux arrière (m)"],
+    ["turning_radius_m", "Rayon de braquage (m)"],
+    ["ground_clearance_m", "Garde au sol (m)"],
+    ["tractor_length_m", "Tracteur — longueur (m)"],
+    ["tractor_wheelbase_m", "Tracteur — empattement (m)"],
+    ["trailer_axle_count", "Semi — nombre d'essieux"],
+    ["trailer_length_m", "Semi — longueur (m)"],
+    ["kingpin_setback_m", "Semi — pivot d'attelage (m)"],
+    ["combo_measured_length_m", "Ensemble — longueur mesurée (m)"],
+    ["data_source", "Source (ACTUAL_MEASURED, MANUFACTURER_SPEC, OPERATIONAL_ESTIMATE, DEFAULT_ESTIMATE)"],
+    ["validated_at", "Date de validation (AAAA-MM-JJ)"],
+    ["notes", "Notes"],
+  ] as const;
+
+  const saveDimension = async (row: DimensionRow) => {
+    setSavingId(row.id);
+    const patch: Record<string, unknown> = {};
+    for (const [key] of DIM_FIELDS) {
+      const raw = field(row.id, key, (row as unknown as Record<string, unknown>)[key]);
+      if (key === "label" || key === "notes" || key === "data_source" || key === "validated_at") {
+        patch[key] = raw.trim() === "" ? (key === "data_source" ? "DEFAULT_ESTIMATE" : null) : raw.trim();
+      } else {
+        patch[key] = numOrNull(raw);
+      }
+    }
+    const { error } = await supabase
+      .from("transport_vehicle_dimensions").update(patch as never).eq("id", row.id);
+    setSavingId(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Gabarit enregistré.");
+    setDraft((d) => ({ ...d, [row.id]: {} }));
+    void load();
+  };
+
+  const addDimension = async (capacityRow: CapacityRow) => {
+    const { error } = await supabase.from("transport_vehicle_dimensions").insert({
+      capacity_id: capacityRow.id, config_id: capacityRow.config_id,
+      label: capacityRow.label ?? "Nouveau gabarit", data_source: "DEFAULT_ESTIMATE",
+    });
+    if (error) { toast.error(error.message); return; }
+    setTab("dimensions");
+    void load();
+  };
+
+  const dimComputed = (row: DimensionRow) => {
+    const n = (k: keyof DimensionRow) =>
+      numOrNull(field(row.id, k as string, row[k] as unknown));
+    const mirror = mirrorToMirrorWidthM({
+      measuredMirrorWidthM: n("mirror_to_mirror_width_m"),
+      bodyWidthM: n("body_width_m"),
+      mirrorLeftOffsetM: n("mirror_left_offset_m"),
+      mirrorRightOffsetM: n("mirror_right_offset_m"),
+    });
+    const combo = comboOverallLengthM({
+      measuredComboLengthM: n("combo_measured_length_m"),
+      tractorLengthM: n("tractor_length_m"),
+      trailerLengthM: n("trailer_length_m"),
+      kingpinSetbackM: n("kingpin_setback_m"),
+      tractorWheelbaseM: n("tractor_wheelbase_m"),
+    });
+    return { mirror, combo };
+  };
+
+
 
   if (!ready || rolesLoading) {
     return (
@@ -246,12 +348,17 @@ export default function AdminTransportCapacities() {
                 <div key={row.id} className="space-y-3 rounded-lg border bg-card p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm text-muted-foreground">{configLabel[row.config_id] ?? "—"}</p>
-                    <Button size="sm" disabled={savingId === row.id} onClick={() => saveCapacity(row)}>
-                      {savingId === row.id
-                        ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        : <Save className="mr-2 h-4 w-4" />}
-                      Enregistrer
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => addDimension(row)}>
+                        <Ruler className="mr-2 h-4 w-4" />Ajouter un gabarit
+                      </Button>
+                      <Button size="sm" disabled={savingId === row.id} onClick={() => saveCapacity(row)}>
+                        {savingId === row.id
+                          ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          : <Save className="mr-2 h-4 w-4" />}
+                        Enregistrer
+                      </Button>
+                    </div>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {([
@@ -297,6 +404,105 @@ export default function AdminTransportCapacities() {
             })}
           </div>
         )}
+
+        {!loading && tab === "dimensions" && (
+          <div className="space-y-4">
+            <p className="rounded-lg border bg-card p-3 text-sm text-muted-foreground">
+              Les dimensions <strong>réelles du véhicule</strong> (MESURÉ ou CONSTRUCTEUR) ont toujours
+              priorité. Une dimension typique n'est jamais une limite légale, et la largeur
+              réglementaire (rétroviseurs exclus) ne remplace jamais la largeur miroir à miroir
+              utilisée pour l'accessibilité d'un chantier.
+            </p>
+
+            <div className="rounded-lg border bg-card p-4">
+              <p className="mb-2 text-sm font-medium">Limites réglementaires versionnées</p>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                {dimRules.map((r) => (
+                  <div key={r.id} className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border px-2 py-0.5">RÉGLEMENTAIRE</span>
+                    <span className="font-medium text-foreground">{r.label}</span>
+                    <span>v{r.version} · {r.applies_to}</span>
+                    {r.max_height_m != null && <span>hauteur {r.max_height_m} m</span>}
+                    {r.max_regulatory_width_m != null && <span>largeur {r.max_regulatory_width_m} m (miroirs exclus)</span>}
+                    {r.max_vehicle_length_m != null && <span>longueur véhicule {r.max_vehicle_length_m} m</span>}
+                    {r.max_combination_length_m != null && <span>ensemble {r.max_combination_length_m} m</span>}
+                    {r.max_trailer_length_m != null && <span>semi {r.max_trailer_length_m} m</span>}
+                    <span className="rounded-full border px-2 py-0.5">{r.validation_status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {dimensions.length === 0 && (
+              <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+                Aucun gabarit enregistré. Ajoutez-en un depuis l'onglet « Capacités ».
+              </p>
+            )}
+
+            {dimensions.map((row) => {
+              const { mirror, combo } = dimComputed(row);
+              const cap = capacities.find((c) => c.id === row.capacity_id);
+              return (
+                <div key={row.id} className="space-y-3 rounded-lg border bg-card p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                      <span>{row.config_id ? configLabel[row.config_id] ?? "—" : "—"}</span>
+                      <span className="rounded-full border px-2 py-0.5 text-xs">
+                        {field(row.id, "data_source", row.data_source) || "DEFAULT_ESTIMATE"}
+                      </span>
+                      {!row.validated_at && (
+                        <span className="rounded-full border px-2 py-0.5 text-xs">À VALIDER</span>
+                      )}
+                    </div>
+                    <Button size="sm" disabled={savingId === row.id} onClick={() => saveDimension(row)}>
+                      {savingId === row.id
+                        ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        : <Save className="mr-2 h-4 w-4" />}
+                      Enregistrer
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {DIM_FIELDS.map(([key, label]) => (
+                      <div key={key} className="space-y-1">
+                        <Label htmlFor={`${row.id}-${key}`} className="text-xs">{label}</Label>
+                        <Input
+                          id={`${row.id}-${key}`}
+                          value={field(row.id, key, (row as unknown as Record<string, unknown>)[key])}
+                          onChange={(e) => setField(row.id, key, e.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid gap-2 rounded-md bg-muted/50 p-3 text-sm sm:grid-cols-4">
+                    <div>
+                      <p className="text-xs uppercase text-muted-foreground">Largeur miroir à miroir</p>
+                      <p className="font-medium">{mirror == null ? "—" : `${mirror.toFixed(2)} m`}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-muted-foreground">Longueur de l'ensemble</p>
+                      <p className="font-medium">
+                        {combo.lengthM == null ? "—" : `${combo.lengthM.toFixed(2)} m (${combo.method === "measured" ? "mesurée" : "géométrique"})`}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-muted-foreground">Charge utile</p>
+                      <p className="font-medium">{cap?.payload_kg == null ? "—" : kg(cap.payload_kg)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-muted-foreground">Capacité opérationnelle</p>
+                      <p className="font-medium">{kg(cap?.operational_capacity_kg ?? null)}</p>
+                    </div>
+                  </div>
+                  {combo.note && <p className="text-xs text-muted-foreground">{combo.note}</p>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+
 
         {!loading && tab === "rules" && (
           <div className="space-y-3">

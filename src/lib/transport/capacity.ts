@@ -11,6 +11,7 @@ export type VehicleClass = "porteur" | "semi_remorque" | "autre";
 
 /** Codes de configuration officiels (table `transport_vehicle_configs`). */
 export const VEHICLE_CONFIG_CODES = [
+  "porteur_6_roues",
   "porteur_10_roues",
   "porteur_12_roues",
   "semi_2_essieux",

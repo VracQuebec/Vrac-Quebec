@@ -7,3 +7,4 @@
 - [Taxonomie matériaux](mem://features/taxonomie-materiaux) — Catalogue canonique, alias, relations demande↔matériau, conditions, règles de non-fusion.
 - [Confidentialité partenaires](mem://features/confidentialite-partenaires) — Vues publiques, grants colonnes annonces, photos privées, test de garde.
 - [Capacités de transport](mem://features/capacites-transport) — Configurations 10/12 roues et semi 2/3/4 essieux, poids à vide, charge utile, capacité opérationnelle, règles Québec versionnées, densités estimées.
+- [Gabarits & dimensions](mem://features/gabarits-dimensions) — Lot 3 : 6/10/12 roues et semi 2/3/4 essieux, dimensions réelles, largeur miroir à miroir, règles QC de dimensions, contraintes d'accès (inactif publiquement).
