@@ -166,6 +166,17 @@ export function detectGranulometries(text: string): GranulometryRead[] {
       });
     }
   }
+  // Dimension nue déclarée : « roche 24 pouces », « pierre de 12 po ».
+  if (!out.length) {
+    const bare = text.match(/(\d+(?:[.,]\d+)?)\s*(pouces?|po)\b/);
+    if (bare) {
+      const n = Number(bare[1].replace(",", "."));
+      out.push({
+        code: null, label: `${n} pouces (déclaré)`, canonical: false,
+        minInches: null, maxInches: n, originalExpression: bare[0].trim(),
+      });
+    }
+  }
   if (/petits? cailloux|petites? roches?|petites? pierres?/.test(text)) {
     out.push({ code: null, label: "petites pierres", canonical: false, minInches: null, maxInches: 6, originalExpression: "petites pierres" });
   }
@@ -179,7 +190,7 @@ export function detectGranulometries(text: string): GranulometryRead[] {
 
 const CONDITION_PATTERNS: { re: RegExp; key: string; label: string }[] = [
   { re: /\bs\s*egoutte bien\b|\begoutte bien\b|\bdrainant\b|\bse draine bien\b/, key: "drainant", label: "s'égoutte bien (déclaré)" },
-  { re: /\bmouille\b|\btrempe\b|\bdetrempe\b/, key: "mouille", label: "mouillé (déclaré)" },
+  { re: /\bmouillees?\b|\bmouilles?\b|\btrempes?\b|\bdetrempees?\b|\bdetrempes?\b/, key: "mouille", label: "mouillé (déclaré)" },
   { re: /\bhumide\b/, key: "humide", label: "humide (déclaré)" },
   { re: /\bsecs?\b|\bseche?s?\b|\bbien sec\b/, key: "sec", label: "sec (déclaré)" },
   { re: /\bgele\b/, key: "gele", label: "gelé (déclaré)" },
