@@ -54,24 +54,39 @@ interface EntLead {
   availability_status?: string | null;
   availability_note?: string | null;
   availability_updated_at?: string | null;
+  /** Niveau de confiance calculé par la base (jamais saisi à la main). */
+  freshness?: string | null;
 }
 
-/** Point 42 — fraîcheur de la donnée de disponibilité (jamais inventée). */
-const freshnessLabel = (iso?: string | null) => {
-  if (!iso) return "Disponibilité à confirmer";
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (days <= 0) return "Mis à jour aujourd'hui";
-  if (days === 1) return "Mis à jour hier";
-  if (days <= 7) return `Mis à jour il y a ${days} jours`;
-  return "À confirmer";
+/** Fraîcheur de la donnée de disponibilité (calculée par la base, jamais inventée). */
+const freshnessLabel = (f?: string | null, iso?: string | null) => {
+  if (f === "confirmed" && iso) return `Disponibilité confirmée le ${new Date(iso).toLocaleDateString("fr-CA")}`;
+  if (f === "aging") return "Disponibilité à reconfirmer — dernière confirmation ancienne";
+  if (f === "needs_revalidation") return "Disponibilité à reconfirmer";
+  return "Disponibilité à reconfirmer — dernière validation inconnue";
 };
 
 const AVAIL_META: Record<string, { label: string; color: string; dot: string }> = {
   available: { label: "Disponible", color: "#16a34a", dot: "🟢" },
   limited: { label: "Capacité limitée", color: "#ca8a04", dot: "🟡" },
   unavailable: { label: "Indisponible", color: "#dc2626", dot: "🔴" },
+  completed: { label: "Terminée", color: "#6b7280", dot: "⚪" },
+  suspended: { label: "Suspendue", color: "#6b7280", dot: "⚪" },
+  owner_closed: { label: "Fermée par le propriétaire", color: "#6b7280", dot: "⚪" },
 };
 const availMeta = (v?: string | null) => AVAIL_META[v || "available"] || AVAIL_META.available;
+
+/** Étiquette combinant disponibilité et niveau de confiance. */
+const availabilityBadge = (l: { availability_status?: string | null; freshness?: string | null }) => {
+  const meta = availMeta(l.availability_status);
+  const status = l.availability_status || "available";
+  if (status !== "available") return meta;
+  return {
+    ...meta,
+    label: l.freshness === "confirmed" ? "Disponible — confirmée" : "Disponible — à revalider",
+    color: l.freshness === "confirmed" ? meta.color : "#ca8a04",
+  };
+};
 
 const accessText = (l: EntLead) => (l.accessibility || []).join(" ").toLowerCase();
 const hasBigVolume = (l: EntLead) => /gros|grand|illimit|vrac|volume/.test(`${l.quantity} ${l.tonnage}`.toLowerCase());
