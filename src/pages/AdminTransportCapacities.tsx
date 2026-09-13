@@ -66,8 +66,8 @@ const numOrNull = (v: string) => {
 };
 
 export default function AdminTransportCapacities() {
-  const { ready, session } = useAuthReady();
-  const { roles, loading: rolesLoading } = useUserRoles();
+  const { user, isReady: ready } = useAuthReady();
+  const { roles, loading: rolesLoading } = useUserRoles(user, ready);
   const isAdmin = roles.includes("admin");
 
   const [tab, setTab] = useState<TabId>("configs");
