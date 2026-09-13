@@ -8711,6 +8711,202 @@ export type Database = {
           },
         ]
       }
+      material_action_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          details: Json
+          entity_id: string | null
+          entity_type: string
+          id: string
+          submission_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          submission_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          submission_id?: string | null
+        }
+        Relationships: []
+      }
+      material_aliases: {
+        Row: {
+          alias_norm: string
+          alias_raw: string
+          confidence: string
+          created_at: string
+          human_validated: boolean
+          id: string
+          is_active: boolean
+          match_type: string
+          material_id: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          alias_norm: string
+          alias_raw: string
+          confidence?: string
+          created_at?: string
+          human_validated?: boolean
+          id?: string
+          is_active?: boolean
+          match_type?: string
+          material_id: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          alias_norm?: string
+          alias_raw?: string
+          confidence?: string
+          created_at?: string
+          human_validated?: boolean
+          id?: string
+          is_active?: boolean
+          match_type?: string
+          material_id?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_aliases_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_catalog: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          family: string
+          id: string
+          is_active: boolean
+          name_fr: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          family: string
+          id?: string
+          is_active?: boolean
+          name_fr: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          family?: string
+          id?: string
+          is_active?: boolean
+          name_fr?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      material_review_queue: {
+        Row: {
+          confidence: string
+          created_at: string
+          id: string
+          original_text: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_field: string
+          status: string
+          submission_id: string
+          suggestions: Json
+          updated_at: string
+        }
+        Insert: {
+          confidence?: string
+          created_at?: string
+          id?: string
+          original_text: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_field: string
+          status?: string
+          submission_id: string
+          suggestions?: Json
+          updated_at?: string
+        }
+        Update: {
+          confidence?: string
+          created_at?: string
+          id?: string
+          original_text?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_field?: string
+          status?: string
+          submission_id?: string
+          suggestions?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_review_queue_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_review_terms: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          term_norm: string
+          term_raw: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason: string
+          term_norm: string
+          term_raw: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          term_norm?: string
+          term_raw?: string
+        }
+        Relationships: []
+      }
       mkt_activity_log: {
         Row: {
           action: string
@@ -13504,6 +13700,69 @@ export type Database = {
         }
         Relationships: []
       }
+      submission_accepted_materials: {
+        Row: {
+          confidence: string
+          confirmation_status: string
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          id: string
+          material_id: string
+          original_value: string | null
+          rule_applied: string | null
+          source: string
+          stance: string
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          confidence?: string
+          confirmation_status: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          material_id: string
+          original_value?: string | null
+          rule_applied?: string | null
+          source: string
+          stance?: string
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          confidence?: string
+          confirmation_status?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          material_id?: string
+          original_value?: string | null
+          rule_applied?: string | null
+          source?: string
+          stance?: string
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_accepted_materials_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_accepted_materials_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submission_audit_log: {
         Row: {
           changed_at: string
@@ -13636,6 +13895,109 @@ export type Database = {
           },
           {
             foreignKeyName: "submission_custom_values_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_environmental_info: {
+        Row: {
+          characterization_available: string
+          contamination_known: string
+          created_at: string
+          documents: Json
+          id: string
+          notes: string | null
+          provenance: string | null
+          restrictions: string | null
+          soil_quality: string | null
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          characterization_available?: string
+          contamination_known?: string
+          created_at?: string
+          documents?: Json
+          id?: string
+          notes?: string | null
+          provenance?: string | null
+          restrictions?: string | null
+          soil_quality?: string | null
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          characterization_available?: string
+          contamination_known?: string
+          created_at?: string
+          documents?: Json
+          id?: string
+          notes?: string | null
+          provenance?: string | null
+          restrictions?: string | null
+          soil_quality?: string | null
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_environmental_info_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submission_material_conditions: {
+        Row: {
+          condition_key: string
+          confidence: string
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          detail: string | null
+          id: string
+          original_text: string | null
+          source: string
+          stance: string
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          condition_key: string
+          confidence?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          original_text?: string | null
+          source?: string
+          stance?: string
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          condition_key?: string
+          confidence?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          original_text?: string | null
+          source?: string
+          stance?: string
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_material_conditions_submission_id_fkey"
             columns: ["submission_id"]
             isOneToOne: false
             referencedRelation: "submissions"
@@ -16154,6 +16516,33 @@ export type Database = {
           email: string
           roles: Database["public"]["Enums"]["app_role"][]
           user_id: string
+        }[]
+      }
+      material_normalization_preview: {
+        Args: never
+        Returns: {
+          confidence: string
+          match_type: string
+          material_id: string
+          name_fr: string
+          original_value: string
+          outcome: string
+          rule_applied: string
+          slug: string
+          submission_id: string
+          submission_number: string
+        }[]
+      }
+      material_normalize_text: { Args: { p: string }; Returns: string }
+      material_resolve: {
+        Args: { p_raw: string }
+        Returns: {
+          confidence: string
+          match_type: string
+          material_id: string
+          name_fr: string
+          rule_applied: string
+          slug: string
         }[]
       }
       mkt_admin_board: {
