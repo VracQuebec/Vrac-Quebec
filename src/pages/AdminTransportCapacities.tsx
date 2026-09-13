@@ -360,7 +360,6 @@ export default function AdminTransportCapacities() {
                       </Button>
                     </div>
                   </div>
-                  </div>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {([
                       ["label", "Identification", row.label],
