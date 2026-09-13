@@ -45,17 +45,7 @@ import TransportBanner from "@/components/TransportBanner";
 import {
   ACCESS_RESTRICTION_OPTIONS,
   TRUCK_OPTIONS,
-  availabilityInfo,
-  type SiteLike,
 } from "@/lib/entrepreneur/site-match";
-
-/** Champs « site de dépôt » exposés aux entrepreneurs (remblai uniquement). */
-const SITE_AVAILABILITY_OPTIONS = [
-  { value: "available", label: "Disponible" },
-  { value: "limited", label: "Disponibilité limitée" },
-  { value: "approval", label: "Sur approbation" },
-  { value: "unavailable", label: "Indisponible" },
-];
 
 /** Champs réellement essentiels à la fiche site : sans eux, la fiche n'est pas
  *  exploitable par les entrepreneurs. */
