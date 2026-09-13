@@ -1597,18 +1597,6 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               const toConfirm = siteToConfirm(sub);
               return (
                 <>
-                <DompeAvailabilityPanel
-                  data={{
-                    id: sub.id,
-                    availability_status: sub.availability_status ?? null,
-                    availability_updated_at: sub.availability_updated_at ?? null,
-                    availability_note: sub.availability_note ?? null,
-                    remaining_capacity: sub.remaining_capacity ?? null,
-                    opening_hours: sub.opening_hours ?? null,
-                    materials: sub.materials ?? null,
-                    truck_types_allowed: sub.truck_types_allowed ?? null,
-                  }}
-                />
                 <MaterialInterpretationPanel
                   submissionId={sub.id}
                   historicalMaterials={sub.materials ?? null}
