@@ -190,7 +190,7 @@ export function detectGranulometries(text: string): GranulometryRead[] {
 
 const CONDITION_PATTERNS: { re: RegExp; key: string; label: string }[] = [
   { re: /\bs\s*egoutte bien\b|\begoutte bien\b|\bdrainant\b|\bse draine bien\b/, key: "drainant", label: "s'égoutte bien (déclaré)" },
-  { re: /\bmouille\b|\btrempe\b|\bdetrempe\b/, key: "mouille", label: "mouillé (déclaré)" },
+  { re: /\bmouillees?\b|\bmouilles?\b|\btrempes?\b|\bdetrempees?\b|\bdetrempes?\b/, key: "mouille", label: "mouillé (déclaré)" },
   { re: /\bhumide\b/, key: "humide", label: "humide (déclaré)" },
   { re: /\bsecs?\b|\bseche?s?\b|\bbien sec\b/, key: "sec", label: "sec (déclaré)" },
   { re: /\bgele\b/, key: "gele", label: "gelé (déclaré)" },
