@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LeadPhotos } from "@/components/admin/LeadPhotos";
 import LeadParcoursPanel from "@/components/admin/LeadParcoursPanel";
 import DompeAvailabilityPanel from "@/components/admin/DompeAvailabilityPanel";
+import MaterialInterpretationPanel from "@/components/admin/MaterialInterpretationPanel";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES, serviceTypeMeta, normalizeRequestType, requestTypeMeta } from "@/lib/questionnaire-data";
