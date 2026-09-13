@@ -42,7 +42,8 @@ export default function PlaceDeMarche() {
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
-      .from("jsc_listings")
+      // Vue publique : aucune coordonnée (téléphone/courriel) n'est envoyée au navigateur.
+      .from("jsc_listings_public")
       .select("id,title,listing_type,material_label,quantity,quantity_unit,price,price_unit,city,description,available_from,created_at")
       .order("created_at", { ascending: false })
       .limit(200);
