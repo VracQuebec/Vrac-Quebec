@@ -1578,6 +1578,19 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               const gaps = siteGaps(sub);
               const toConfirm = siteToConfirm(sub);
               return (
+                <>
+                <DompeAvailabilityPanel
+                  data={{
+                    id: sub.id,
+                    availability_status: sub.availability_status ?? null,
+                    availability_updated_at: sub.availability_updated_at ?? null,
+                    availability_note: sub.availability_note ?? null,
+                    remaining_capacity: sub.remaining_capacity ?? null,
+                    opening_hours: sub.opening_hours ?? null,
+                    materials: sub.materials ?? null,
+                    truck_types_allowed: sub.truck_types_allowed ?? null,
+                  }}
+                />
                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-3">
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <div className="text-[10px] uppercase tracking-wide font-display font-bold text-foreground">
