@@ -8751,8 +8751,10 @@ export type Database = {
         Row: {
           alias_norm: string
           alias_raw: string
+          auto_match_allowed: boolean
           confidence: string
           created_at: string
+          granulometry_id: string | null
           human_validated: boolean
           id: string
           is_active: boolean
@@ -8764,8 +8766,10 @@ export type Database = {
         Insert: {
           alias_norm: string
           alias_raw: string
+          auto_match_allowed?: boolean
           confidence?: string
           created_at?: string
+          granulometry_id?: string | null
           human_validated?: boolean
           id?: string
           is_active?: boolean
@@ -8777,8 +8781,10 @@ export type Database = {
         Update: {
           alias_norm?: string
           alias_raw?: string
+          auto_match_allowed?: boolean
           confidence?: string
           created_at?: string
+          granulometry_id?: string | null
           human_validated?: boolean
           id?: string
           is_active?: boolean
@@ -8788,6 +8794,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "material_aliases_granulometry_id_fkey"
+            columns: ["granulometry_id"]
+            isOneToOne: false
+            referencedRelation: "material_granulometries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "material_aliases_material_id_fkey"
             columns: ["material_id"]
@@ -8801,34 +8814,97 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          destination_types: string[]
           display_order: number
           family: string
           id: string
           is_active: boolean
+          legacy_key: string | null
           name_fr: string
+          regulatory_level: string
+          requires_dimensions: boolean
+          requires_granulometry: boolean
+          requires_qualification: boolean
+          search_terms: string[]
+          short_name: string | null
           slug: string
+          subfamily: string | null
           updated_at: string
+          visible_detailed: boolean
+          visible_simple: boolean
         }
         Insert: {
           created_at?: string
           description?: string | null
+          destination_types?: string[]
           display_order?: number
           family: string
           id?: string
           is_active?: boolean
+          legacy_key?: string | null
           name_fr: string
+          regulatory_level?: string
+          requires_dimensions?: boolean
+          requires_granulometry?: boolean
+          requires_qualification?: boolean
+          search_terms?: string[]
+          short_name?: string | null
           slug: string
+          subfamily?: string | null
           updated_at?: string
+          visible_detailed?: boolean
+          visible_simple?: boolean
         }
         Update: {
           created_at?: string
           description?: string | null
+          destination_types?: string[]
           display_order?: number
           family?: string
           id?: string
           is_active?: boolean
+          legacy_key?: string | null
           name_fr?: string
+          regulatory_level?: string
+          requires_dimensions?: boolean
+          requires_granulometry?: boolean
+          requires_qualification?: boolean
+          search_terms?: string[]
+          short_name?: string | null
           slug?: string
+          subfamily?: string | null
+          updated_at?: string
+          visible_detailed?: boolean
+          visible_simple?: boolean
+        }
+        Relationships: []
+      }
+      material_granulometries: {
+        Row: {
+          code: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          label_fr: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          label_fr: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          label_fr?: string
           updated_at?: string
         }
         Relationships: []
@@ -8836,9 +8912,11 @@ export type Database = {
       material_review_queue: {
         Row: {
           confidence: string
+          context: Json
           created_at: string
           id: string
           original_text: string
+          reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           source_field: string
@@ -8849,9 +8927,11 @@ export type Database = {
         }
         Insert: {
           confidence?: string
+          context?: Json
           created_at?: string
           id?: string
           original_text: string
+          reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           source_field: string
@@ -8862,9 +8942,11 @@ export type Database = {
         }
         Update: {
           confidence?: string
+          context?: Json
           created_at?: string
           id?: string
           original_text?: string
+          reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           source_field?: string
@@ -13707,11 +13789,17 @@ export type Database = {
           confirmed_at: string | null
           confirmed_by: string | null
           created_at: string
+          granulometry_id: string | null
           id: string
           material_id: string
           original_value: string | null
+          percentage: number | null
+          resolution_method: string | null
           rule_applied: string | null
+          size_max_mm: number | null
+          size_min_mm: number | null
           source: string
+          source_field: string | null
           stance: string
           submission_id: string
           updated_at: string
@@ -13722,11 +13810,17 @@ export type Database = {
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
+          granulometry_id?: string | null
           id?: string
           material_id: string
           original_value?: string | null
+          percentage?: number | null
+          resolution_method?: string | null
           rule_applied?: string | null
+          size_max_mm?: number | null
+          size_min_mm?: number | null
           source: string
+          source_field?: string | null
           stance?: string
           submission_id: string
           updated_at?: string
@@ -13737,16 +13831,29 @@ export type Database = {
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
+          granulometry_id?: string | null
           id?: string
           material_id?: string
           original_value?: string | null
+          percentage?: number | null
+          resolution_method?: string | null
           rule_applied?: string | null
+          size_max_mm?: number | null
+          size_min_mm?: number | null
           source?: string
+          source_field?: string | null
           stance?: string
           submission_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "submission_accepted_materials_granulometry_id_fkey"
+            columns: ["granulometry_id"]
+            isOneToOne: false
+            referencedRelation: "material_granulometries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "submission_accepted_materials_material_id_fkey"
             columns: ["material_id"]
@@ -13908,6 +14015,7 @@ export type Database = {
           contamination_known: string
           created_at: string
           documents: Json
+          environmental_status: string
           id: string
           notes: string | null
           provenance: string | null
@@ -13921,6 +14029,7 @@ export type Database = {
           contamination_known?: string
           created_at?: string
           documents?: Json
+          environmental_status?: string
           id?: string
           notes?: string | null
           provenance?: string | null
@@ -13934,6 +14043,7 @@ export type Database = {
           contamination_known?: string
           created_at?: string
           documents?: Json
+          environmental_status?: string
           id?: string
           notes?: string | null
           provenance?: string | null
@@ -13962,6 +14072,7 @@ export type Database = {
           detail: string | null
           id: string
           original_text: string | null
+          regulatory_level: string
           source: string
           stance: string
           submission_id: string
@@ -13976,6 +14087,7 @@ export type Database = {
           detail?: string | null
           id?: string
           original_text?: string | null
+          regulatory_level?: string
           source?: string
           stance?: string
           submission_id: string
@@ -13990,6 +14102,7 @@ export type Database = {
           detail?: string | null
           id?: string
           original_text?: string | null
+          regulatory_level?: string
           source?: string
           stance?: string
           submission_id?: string
