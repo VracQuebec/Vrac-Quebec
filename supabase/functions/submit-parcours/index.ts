@@ -28,6 +28,18 @@ const ACCESS_KEYS = [
 ] as const;
 const PHOTO_KEYS = ['materiau', 'acces', 'chantier', 'autre'] as const;
 
+// Libellés affichés UNIQUEMENT dans le texte lisible; les clés restent la référence.
+const TRUCK_LABELS: Record<string, string> = {
+  '6_roues': 'Camion 6 roues', '10_roues': 'Camion 10 roues', '12_roues': 'Camion 12 roues',
+  semi_remorque: 'Semi-dompeur', fardier: 'Fardier', autre: 'Autre',
+};
+const ACCESS_LABELS: Record<string, string> = {
+  pente_prononcee: 'Pente prononcée', fils_electriques_bas: 'Fils électriques bas',
+  branches_basses: "Branches d'arbres basses", sol_mou: 'Sol mou ou boueux',
+  recul_limite: 'Espace de recul limité', demi_tour_possible: 'Demi-tour possible sur le terrain',
+  entree_asphaltee: 'Entrée asphaltée ou pavée', voisinage_rapproche: 'Voisinage rapproché',
+};
+
 const inList = <T extends readonly string[]>(v: unknown, list: T): T[number] | null => {
   const s = typeof v === 'string' ? v.trim().toLowerCase() : '';
   return (list as readonly string[]).includes(s) ? (s as T[number]) : null;
@@ -145,12 +157,12 @@ Deno.serve(async (req) => {
         : 'Demande provenant de /remblai (besoin de matériel de remplissage).',
       projectUsage ? `Projet : ${projectUsage}` : '',
       `Quantité : ${quantityLabel}`,
-      truckType ? `Camion : ${truckType}` : '',
+      truckTypeKey ? `Camion : ${TRUCK_LABELS[truckTypeKey]}` : '',
       desiredDate ? `Date souhaitée : ${desiredDate}` : '',
       timeframe ? `Délai : ${timeframe}` : '',
       otherMaterial ? `Précision matériau : ${otherMaterial}` : '',
       accessHeavyTruck ? `Accès camion lourd : ${accessHeavyTruck}` : '',
-      accessDetails.length ? `Restrictions : ${accessDetails.join(', ')}` : '',
+      accessDetails.length ? `Restrictions : ${accessDetails.map((k) => ACCESS_LABELS[k] ?? k).join(', ')}` : '',
       photoEntries.length
         ? `Photos : ${photoEntries.map((p) => `${p.category}`).join(', ')}`
         : '',
