@@ -9139,6 +9139,72 @@ export type Database = {
         }
         Relationships: []
       }
+      material_synonyms: {
+        Row: {
+          confidence: string
+          created_at: string
+          expression: string
+          expression_norm: string
+          id: string
+          is_active: boolean
+          language: string
+          material_keys: string[]
+          normalized_family_id: string | null
+          normalized_material_id: string | null
+          notes: string | null
+          region: string
+          updated_at: string
+          validated_by_admin: boolean
+        }
+        Insert: {
+          confidence?: string
+          created_at?: string
+          expression: string
+          expression_norm: string
+          id?: string
+          is_active?: boolean
+          language?: string
+          material_keys?: string[]
+          normalized_family_id?: string | null
+          normalized_material_id?: string | null
+          notes?: string | null
+          region?: string
+          updated_at?: string
+          validated_by_admin?: boolean
+        }
+        Update: {
+          confidence?: string
+          created_at?: string
+          expression?: string
+          expression_norm?: string
+          id?: string
+          is_active?: boolean
+          language?: string
+          material_keys?: string[]
+          normalized_family_id?: string | null
+          normalized_material_id?: string | null
+          notes?: string | null
+          region?: string
+          updated_at?: string
+          validated_by_admin?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_synonyms_normalized_family_id_fkey"
+            columns: ["normalized_family_id"]
+            isOneToOne: false
+            referencedRelation: "material_families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_synonyms_normalized_material_id_fkey"
+            columns: ["normalized_material_id"]
+            isOneToOne: false
+            referencedRelation: "material_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mkt_activity_log: {
         Row: {
           action: string
