@@ -87,7 +87,7 @@ export default function AdminMatchingEngine() {
         supabase.from("transport_vehicle_dimensions")
           .select("overall_length_m, mirror_to_mirror_width_m, overall_height_m, turning_radius_m, combo_measured_length_m, combo_max_width_m, combo_max_height_m, transport_vehicle_configs(code)")
           .eq("is_active", true),
-        supabase.from("material_synonyms").select("expression, material_keys, confidence, note").eq("is_active", true),
+        supabase.from("material_synonyms").select("expression, material_keys, confidence, notes").eq("is_active", true),
       ]);
 
       setPublicFlag(Boolean((flag?.value as { enabled?: boolean } | null)?.enabled));
