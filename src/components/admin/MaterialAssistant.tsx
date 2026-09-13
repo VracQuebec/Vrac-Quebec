@@ -22,6 +22,7 @@ import {
   estimateTonnesFromTrips,
   publicMatchLabel,
   type Interpretation,
+  type FieldConfidence,
   type MaterialKey,
   type SynonymEntry,
 } from "@/lib/matching/interpreter";
@@ -67,7 +68,7 @@ export default function MaterialAssistant({ vehicles, inspectorMode = false }: P
         expression: r.expression,
         materialKeys: (r.material_keys ?? []) as MaterialKey[],
         confidence: (String(r.confidence).toUpperCase() === "ELEVEE" ? "ELEVEE"
-          : String(r.confidence).toUpperCase() === "FAIBLE" ? "FAIBLE" : "MOYENNE"),
+          : String(r.confidence).toUpperCase() === "FAIBLE" ? "FAIBLE" : "MOYENNE") as FieldConfidence,
         note: r.notes ?? undefined,
       })).filter((e) => e.materialKeys.length > 0);
       setSynonyms([...DEFAULT_SYNONYMS, ...extra]);
