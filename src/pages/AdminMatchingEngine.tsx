@@ -117,7 +117,7 @@ export default function AdminMatchingEngine() {
             expression: s.expression as string,
             materialKeys: (s.material_keys ?? []) as SynonymEntry["materialKeys"],
             confidence: (s.confidence ?? "MOYENNE") as SynonymEntry["confidence"],
-            note: (s.note ?? undefined) as string | undefined,
+            note: (s.notes ?? undefined) as string | undefined,
           })),
         ]);
       }
@@ -152,7 +152,7 @@ export default function AdminMatchingEngine() {
   const logSimulation = async (direction: string, res: MatchV2Result[]) => {
     await supabase.from("matching_simulation_log").insert({
       algorithm_version: MATCHING_V2_VERSION,
-      criteria: { direction, text, lat, lng, configCode, weights } as unknown as Record<string, unknown>,
+      criteria: JSON.parse(JSON.stringify({ direction, text, lat, lng, configCode, weights })),
       results: res.slice(0, 20).map((r) => ({
         demand_id: r.demandId, score: r.score, category: r.category,
         distance_km: r.distance.km, missing: r.missingData.length,
