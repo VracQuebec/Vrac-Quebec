@@ -423,7 +423,7 @@ const Entrepreneur = () => {
                   </p>
                 )}
                 {filteredLeads.map((l) => {
-                  const av = availMeta(l.availability_status);
+                  const av = availabilityBadge(l);
                   const keys = leadMaterialKeys(l);
                   return (
                     <SiteCard
@@ -458,12 +458,12 @@ const Entrepreneur = () => {
                 <span
                   className="inline-flex items-center gap-1.5 text-xs font-body px-2.5 py-1 rounded-full bg-secondary"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: availMeta(detail.availability_status).color }} />
-                  {availMeta(detail.availability_status).label}
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: availabilityBadge(detail).color }} />
+                  {availabilityBadge(detail).label}
                   {detail.availability_note ? ` — ${detail.availability_note}` : ""}
                 </span>
                 <span className="ml-2 text-[11px] font-body text-muted-foreground">
-                  {freshnessLabel(detail.availability_updated_at)}
+                  {freshnessLabel(detail.freshness, detail.availability_updated_at)}
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {leadMaterialKeys(detail).map((k) => (
@@ -525,7 +525,7 @@ const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 const buildPopupHtml = (l: EntLead) => {
-  const av = availMeta(l.availability_status);
+  const av = availabilityBadge(l);
   const matKeys = Array.from(new Set((l.materials || []).map(materialKeyForId)));
   const matBadges = matKeys
     .map((k) => `<span class="ent-pop-mat" style="background:${MATERIAL_COLORS[k].color}">${escapeHtml(MATERIAL_COLORS[k].label)}</span>`)
