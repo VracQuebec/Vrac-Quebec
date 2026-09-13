@@ -115,7 +115,8 @@ describe("scénarios réels de chantier", () => {
 describe("restrictions et environnement", () => {
   it("les restrictions proposées ne sont pas des matériaux du catalogue", () => {
     const risky = RESTRICTION_OPTIONS.filter((r) => KNOWN.has(r as string));
-    expect(risky).toEqual(["Béton", "Asphalte"]); // volontairement partagés, traités comme refus
+    // Volontairement partagés avec le catalogue, mais traités comme des refus.
+    expect(risky).toEqual(["Béton", "Asphalte", "Autre"]);
   });
 
   it("les familles de réception restent courtes et simples", () => {
