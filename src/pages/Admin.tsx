@@ -1578,17 +1578,6 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
           <LeadSection title="Dompe / site" defaultOpen={false}>
             {/* Budget & machinerie */}
             {normalizeRequestType(sub.request_type) === "remblai" && (() => {
-              const site: SiteLike = {
-                materials: sub.materials ?? null,
-                other_material: sub.other_material,
-                truck_types_allowed: sub.truck_types_allowed ?? null,
-                accessibility: sub.accessibility ?? null,
-                access_heavy_truck: sub.access_heavy_truck ?? null,
-                access_details: sub.access_details ?? null,
-                availability_status: sub.availability_status ?? null,
-                availability_updated_at: sub.availability_updated_at ?? null,
-              };
-              const info = availabilityInfo(site);
               const details = (sub.access_details ?? {}) as Record<string, unknown>;
               const activeRestrictions = ACCESS_RESTRICTION_OPTIONS
                 .map((o) => o.key)
