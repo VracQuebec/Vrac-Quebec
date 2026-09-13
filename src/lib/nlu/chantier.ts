@@ -166,6 +166,17 @@ export function detectGranulometries(text: string): GranulometryRead[] {
       });
     }
   }
+  // Dimension nue déclarée : « roche 24 pouces », « pierre de 12 po ».
+  if (!out.length) {
+    const bare = text.match(/(\d+(?:[.,]\d+)?)\s*(pouces?|po)\b/);
+    if (bare) {
+      const n = Number(bare[1].replace(",", "."));
+      out.push({
+        code: null, label: `${n} pouces (déclaré)`, canonical: false,
+        minInches: null, maxInches: n, originalExpression: bare[0].trim(),
+      });
+    }
+  }
   if (/petits? cailloux|petites? roches?|petites? pierres?/.test(text)) {
     out.push({ code: null, label: "petites pierres", canonical: false, minInches: null, maxInches: 6, originalExpression: "petites pierres" });
   }
