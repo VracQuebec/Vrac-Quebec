@@ -23,18 +23,23 @@ import {
   REMBLAI_MATERIAL_IMAGES,
   REMBLAI_MATERIAL_DESCRIPTIONS,
   REMBLAI_TIMEFRAME_OPTIONS,
-  ACCESS_DETAIL_OPTIONS,
-  ACCESS_TRUCK_SIMPLE_OPTIONS,
   PROJECT_USAGE_OPTIONS,
-  QUANTITY_UNIT_OPTIONS,
-  PHOTO_CATEGORIES,
 } from "@/lib/questionnaire-data";
 import { BULK_TRUCK_TYPES } from "@/lib/trucks/catalog";
+import {
+  ACCESS_CRITERIA,
+  HEAVY_TRUCK_ACCESS,
+  PHOTO_CATEGORY_DEFS,
+  SELECTABLE_QUANTITY_UNITS,
+  formatQuantity,
+  parseQuantityValue,
+  type PhotoCategoryKey,
+} from "@/lib/parcours/normalisation";
 import { buildHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff } from "@/lib/parcours/handoff";
 
 export type ParcoursVariant = "reception" | "evacuation";
 
-interface PhotoEntry { url: string; category: string }
+interface PhotoEntry { url: string; category: PhotoCategoryKey }
 
 interface Draft {
   address: string;
@@ -109,7 +114,7 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
     } catch { return emptyDraft; }
   });
   const [uploading, setUploading] = useState(false);
-  const [photoCategory, setPhotoCategory] = useState<string>(PHOTO_CATEGORIES[0]);
+  const [photoCategory, setPhotoCategory] = useState<PhotoCategoryKey>("materiau");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [handoff, setHandoff] = useState<ParcoursHandoff | null>(null);
@@ -133,8 +138,7 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
 
   const quantityLabel = useMemo(() => {
     if (data.quantityUnknown || !data.quantityValue.trim()) return "Je ne sais pas";
-    const unit = QUANTITY_UNIT_OPTIONS.find((u) => u.value === data.quantityUnit)?.label ?? data.quantityUnit;
-    return `${data.quantityValue.trim()} ${unit}`;
+    return formatQuantity(data.quantityValue, data.quantityUnit);
   }, [data.quantityValue, data.quantityUnit, data.quantityUnknown]);
 
   const canContinue = (): boolean => {
@@ -190,6 +194,8 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
           other_material: data.otherMaterial,
           project_usage: data.projectUsage || null,
           quantity_label: quantityLabel,
+          quantity_value: data.quantityUnknown ? null : parseQuantityValue(data.quantityValue),
+          quantity_unit: data.quantityUnknown ? "inconnu" : data.quantityUnit,
           truck_type: data.truckType || null,
           desired_date: data.desiredDate || null,
           timeframe: data.timeframe || null,
@@ -330,8 +336,8 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
                 className={`${inputCls} w-auto`}
                 aria-label="Unité"
               >
-                {QUANTITY_UNIT_OPTIONS.map((u) => (
-                  <option key={u.value} value={u.value}>{u.label}</option>
+                {SELECTABLE_QUANTITY_UNITS.map((u) => (
+                  <option key={u.key} value={u.key}>{u.label}</option>
                 ))}
               </select>
             </div>
@@ -418,16 +424,16 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
           <div className="grid gap-2">
             {BULK_TRUCK_TYPES.map((t) => (
               <button key={t.key} type="button"
-                onClick={() => set({ truckType: data.truckType === t.label ? "" : t.label })}
-                className={choiceCls(data.truckType === t.label)}>
+                onClick={() => set({ truckType: data.truckType === t.key ? "" : t.key })}
+                className={choiceCls(data.truckType === t.key)}>
                 <span className="flex-1">
                   <span className="block font-semibold">{t.label}</span>
                   <span className="block text-xs text-muted-foreground">{t.description}</span>
                 </span>
               </button>
             ))}
-            <button type="button" onClick={() => set({ truckType: "Je ne sais pas" })}
-              className={choiceCls(data.truckType === "Je ne sais pas")}>
+            <button type="button" onClick={() => set({ truckType: "inconnu" })}
+              className={choiceCls(data.truckType === "inconnu")}>
               Je ne sais pas
             </button>
           </div>
@@ -459,23 +465,23 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
               Un camion lourd peut-il accéder facilement au terrain ?
             </p>
             <div className="grid gap-2">
-              {ACCESS_TRUCK_SIMPLE_OPTIONS.map((o) => (
-                <button key={o} type="button"
-                  onClick={() => set({ accessHeavyTruck: data.accessHeavyTruck === o ? "" : o })}
-                  className={choiceCls(data.accessHeavyTruck === o)}>
-                  {o}
+              {HEAVY_TRUCK_ACCESS.map((o) => (
+                <button key={o.key} type="button"
+                  onClick={() => set({ accessHeavyTruck: data.accessHeavyTruck === o.key ? "" : o.key })}
+                  className={choiceCls(data.accessHeavyTruck === o.key)}>
+                  {o.label}
                 </button>
               ))}
             </div>
             {data.accessHeavyTruck && (
               <div className="grid gap-2 pt-2 sm:grid-cols-2">
-                {ACCESS_DETAIL_OPTIONS.map((o) => (
-                  <button key={o} type="button" onClick={() => toggle("accessDetails", o)}
-                    className={choiceCls(data.accessDetails.includes(o))}>
+                {ACCESS_CRITERIA.map((o) => (
+                  <button key={o.key} type="button" onClick={() => toggle("accessDetails", o.key)}
+                    className={choiceCls(data.accessDetails.includes(o.key))}>
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 border-primary text-xs">
-                      {data.accessDetails.includes(o) ? "✓" : ""}
+                      {data.accessDetails.includes(o.key) ? "✓" : ""}
                     </span>
-                    {o}
+                    {o.label}
                   </button>
                 ))}
               </div>
@@ -490,19 +496,19 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
               Aucune photo n'est obligatoire. Choisissez d'abord la catégorie, puis ajoutez vos photos.
             </p>
             <div className="flex flex-wrap gap-2">
-              {PHOTO_CATEGORIES.map((c) => (
-                <button key={c} type="button" onClick={() => setPhotoCategory(c)}
+              {PHOTO_CATEGORY_DEFS.map((c) => (
+                <button key={c.key} type="button" onClick={() => setPhotoCategory(c.key)}
                   className={`rounded-full border-2 px-3 py-2 font-body text-sm ${
-                    photoCategory === c ? "border-primary bg-primary/10 font-semibold text-foreground" : "border-border text-muted-foreground"
+                    photoCategory === c.key ? "border-primary bg-primary/10 font-semibold text-foreground" : "border-border text-muted-foreground"
                   }`}>
-                  {c}
+                  {c.label}
                 </button>
               ))}
             </div>
             <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-5 hover:border-primary/50">
               {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
               <span className="font-body text-sm font-semibold">
-                {uploading ? "Téléversement..." : `Ajouter des photos — ${photoCategory}`}
+                {uploading ? "Téléversement..." : `Ajouter des photos — ${PHOTO_CATEGORY_DEFS.find((c) => c.key === photoCategory)?.label}`}
               </span>
               <input type="file" accept="image/*" multiple capture="environment" className="hidden"
                 onChange={(e) => uploadPhotos(e.target.files)} />
