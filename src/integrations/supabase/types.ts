@@ -11569,6 +11569,33 @@ export type Database = {
         }
         Relationships: []
       }
+      parcours_preview_events: {
+        Row: {
+          created_at: string
+          event_name: string
+          id: string
+          payload: Json
+          session_key: string
+          step: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          id?: string
+          payload?: Json
+          session_key: string
+          step?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          id?: string
+          payload?: Json
+          session_key?: string
+          step?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           charged_to_entrepreneur: number | null
