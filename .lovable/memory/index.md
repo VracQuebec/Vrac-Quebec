@@ -6,3 +6,4 @@
 - [Place de marché soumissions](mem://features/place-de-marche-soumissions) — Fondations mkt_* : taxonomie, profils partenaires, demandes VQ, lots, invitations, soumissions, attribution, commissions, messagerie.
 - [Taxonomie matériaux](mem://features/taxonomie-materiaux) — Catalogue canonique, alias, relations demande↔matériau, conditions, règles de non-fusion.
 - [Confidentialité partenaires](mem://features/confidentialite-partenaires) — Vues publiques, grants colonnes annonces, photos privées, test de garde.
+- [Capacités de transport](mem://features/capacites-transport) — Configurations 10/12 roues et semi 2/3/4 essieux, poids à vide, charge utile, capacité opérationnelle, règles Québec versionnées, densités estimées.
