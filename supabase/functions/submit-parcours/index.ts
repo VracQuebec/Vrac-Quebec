@@ -110,7 +110,6 @@ Deno.serve(async (req) => {
     const projectUsage = clean(body?.project_usage, 160);
     const quantityLabel = clean(body?.quantity_label, 160) ?? 'Je ne sais pas';
     const truckTypeKey = inList(body?.truck_type, TRUCK_KEYS);
-    const truckType = clean(body?.truck_type, 80);
     const quantityUnit = inList(body?.quantity_unit, QUANTITY_UNITS) ?? 'inconnu';
     const quantityValue = quantityUnit === 'inconnu' ? null : numOrNull(body?.quantity_value);
     const desiredDate = clean(body?.desired_date, 20);
