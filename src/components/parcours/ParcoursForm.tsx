@@ -372,7 +372,44 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
         );
 
       case "material":
-        return (
+        if (assistantOn) {
+          return (
+            <MaterialAssistantStep
+              variant={variant}
+              value={{
+                description: data.materialDescription,
+                materials: data.materials,
+                refused: data.refusedMaterials,
+                environment: data.soilCharacterized as EnvironmentAnswer,
+                environmentDetails: data.soilCharacterizedDetails,
+              }}
+              onChange={(patch) =>
+                set({
+                  ...(patch.description !== undefined ? { materialDescription: patch.description } : {}),
+                  ...(patch.materials !== undefined ? { materials: patch.materials } : {}),
+                  ...(patch.refused !== undefined ? { refusedMaterials: patch.refused } : {}),
+                  ...(patch.environment !== undefined ? { soilCharacterized: patch.environment } : {}),
+                  ...(patch.environmentDetails !== undefined
+                    ? { soilCharacterizedDetails: patch.environmentDetails }
+                    : {}),
+                })
+              }
+              onGoToPhotos={() => {
+                const i = steps.indexOf("photos");
+                if (i >= 0) setIndex(i);
+              }}
+              renderManual={renderManualMaterials}
+            />
+          );
+        }
+        return renderManualMaterials();
+
+    }
+  };
+
+  // Grille de cartes historique — inchangée, réutilisée par l'assistant.
+  const renderManualMaterials = () => {
+    return (
           <div className="space-y-5">
             <p className="font-body text-sm text-muted-foreground">
               {variant === "reception"
