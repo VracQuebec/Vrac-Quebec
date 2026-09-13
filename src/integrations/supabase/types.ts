@@ -17766,6 +17766,7 @@ export type Database = {
           truck_types_allowed: string[]
         }[]
       }
+      matching_v2_network_overview: { Args: never; Returns: Json }
       material_normalization_preview: {
         Args: never
         Returns: {
