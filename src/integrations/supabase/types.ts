@@ -14678,6 +14678,65 @@ export type Database = {
         }
         Relationships: []
       }
+      transport_material_densities: {
+        Row: {
+          created_at: string
+          data_source: string | null
+          density_avg_kg_m3: number | null
+          density_max_kg_m3: number | null
+          density_min_kg_m3: number | null
+          id: string
+          is_active: boolean
+          is_estimate: boolean
+          material_catalog_id: string | null
+          material_slug: string | null
+          moisture_note: string | null
+          notes: string | null
+          updated_at: string
+          validated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_source?: string | null
+          density_avg_kg_m3?: number | null
+          density_max_kg_m3?: number | null
+          density_min_kg_m3?: number | null
+          id?: string
+          is_active?: boolean
+          is_estimate?: boolean
+          material_catalog_id?: string | null
+          material_slug?: string | null
+          moisture_note?: string | null
+          notes?: string | null
+          updated_at?: string
+          validated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_source?: string | null
+          density_avg_kg_m3?: number | null
+          density_max_kg_m3?: number | null
+          density_min_kg_m3?: number | null
+          id?: string
+          is_active?: boolean
+          is_estimate?: boolean
+          material_catalog_id?: string | null
+          material_slug?: string | null
+          moisture_note?: string | null
+          notes?: string | null
+          updated_at?: string
+          validated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_material_densities_material_catalog_id_fkey"
+            columns: ["material_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "material_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transport_request_errors: {
         Row: {
           attempt: number
@@ -15057,6 +15116,240 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      transport_vehicle_capacities: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          axle_configuration: string | null
+          axle_count: number | null
+          carrier_id: string | null
+          combo_tare_kg: number | null
+          company_id: string | null
+          config_id: string
+          created_at: string
+          data_source: string | null
+          gross_admissible_kg: number | null
+          id: string
+          is_active: boolean
+          label: string | null
+          notes: string | null
+          operational_capacity_kg: number | null
+          payload_kg: number | null
+          tractor_tare_kg: number | null
+          trailer_tare_kg: number | null
+          truck_id: string | null
+          updated_at: string
+          validated_at: string | null
+          volume_capacity: number | null
+          volume_unit: string | null
+          weight_rule_id: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          axle_configuration?: string | null
+          axle_count?: number | null
+          carrier_id?: string | null
+          combo_tare_kg?: number | null
+          company_id?: string | null
+          config_id: string
+          created_at?: string
+          data_source?: string | null
+          gross_admissible_kg?: number | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          notes?: string | null
+          operational_capacity_kg?: number | null
+          payload_kg?: number | null
+          tractor_tare_kg?: number | null
+          trailer_tare_kg?: number | null
+          truck_id?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          volume_capacity?: number | null
+          volume_unit?: string | null
+          weight_rule_id?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          axle_configuration?: string | null
+          axle_count?: number | null
+          carrier_id?: string | null
+          combo_tare_kg?: number | null
+          company_id?: string | null
+          config_id?: string
+          created_at?: string
+          data_source?: string | null
+          gross_admissible_kg?: number | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          notes?: string | null
+          operational_capacity_kg?: number | null
+          payload_kg?: number | null
+          tractor_tare_kg?: number | null
+          trailer_tare_kg?: number | null
+          truck_id?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          volume_capacity?: number | null
+          volume_unit?: string | null
+          weight_rule_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_vehicle_capacities_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "transport_vehicle_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_vehicle_capacities_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_trucks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_vehicle_capacities_weight_rule_id_fkey"
+            columns: ["weight_rule_id"]
+            isOneToOne: false
+            referencedRelation: "transport_weight_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transport_vehicle_configs: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          axle_configuration: string | null
+          axle_count: number | null
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+          trailer_axle_count: number | null
+          truck_type: string | null
+          updated_at: string
+          vehicle_class: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          axle_configuration?: string | null
+          axle_count?: number | null
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          trailer_axle_count?: number | null
+          truck_type?: string | null
+          updated_at?: string
+          vehicle_class: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          axle_configuration?: string | null
+          axle_count?: number | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          trailer_axle_count?: number | null
+          truck_type?: string | null
+          updated_at?: string
+          vehicle_class?: string
+        }
+        Relationships: []
+      }
+      transport_weight_rules: {
+        Row: {
+          axle_group: string | null
+          axle_spacing_m: number | null
+          config_id: string | null
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          jurisdiction: string
+          last_verified_at: string | null
+          max_group_mass_kg: number | null
+          max_total_mass_kg: number | null
+          notes: string | null
+          regulatory_source: string | null
+          restrictions: string | null
+          season: string
+          special_permit_notes: string | null
+          updated_at: string
+          validation_status: string
+          version: number
+        }
+        Insert: {
+          axle_group?: string | null
+          axle_spacing_m?: number | null
+          config_id?: string | null
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          jurisdiction?: string
+          last_verified_at?: string | null
+          max_group_mass_kg?: number | null
+          max_total_mass_kg?: number | null
+          notes?: string | null
+          regulatory_source?: string | null
+          restrictions?: string | null
+          season?: string
+          special_permit_notes?: string | null
+          updated_at?: string
+          validation_status?: string
+          version?: number
+        }
+        Update: {
+          axle_group?: string | null
+          axle_spacing_m?: number | null
+          config_id?: string | null
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          jurisdiction?: string
+          last_verified_at?: string | null
+          max_group_mass_kg?: number | null
+          max_total_mass_kg?: number | null
+          notes?: string | null
+          regulatory_source?: string | null
+          restrictions?: string | null
+          season?: string
+          special_permit_notes?: string | null
+          updated_at?: string
+          validation_status?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_weight_rules_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "transport_vehicle_configs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trip_status_history: {
         Row: {
