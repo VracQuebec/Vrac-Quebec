@@ -311,13 +311,18 @@ export function interpretChantier(
     });
   });
 
-  // --- Pourcentages uniquement s'ils sont écrits ---
+  // --- Pourcentages uniquement s'ils sont écrits (lus sur le texte d'origine) ---
+  const pctText = originalText
+    .toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9%]+/g, " ").trim();
   for (const c of accepted) {
-    const re = new RegExp(`(\\d{1,3})\\s*%[^a-z]{0,6}${normalize(c.matchedExpression)}|${normalize(c.matchedExpression)}[^a-z0-9]{0,6}(\\d{1,3})\\s*%`);
-    const m = text.match(re);
+    const expr = normalize(c.matchedExpression);
+    const re = new RegExp(`(\\d{1,3})\\s*%[^a-z%]{0,8}${expr}|${expr}[^a-z%]{0,8}(\\d{1,3})\\s*%`);
+    const m = pctText.match(re);
     const pct = m ? Number(m[1] ?? m[2]) : null;
     if (pct != null && pct > 0 && pct <= 100) c.sharePct = pct;
   }
+
 
   // --- Restrictions environnementales et dimensionnelles ---
   for (const [s, e] of spans) {
