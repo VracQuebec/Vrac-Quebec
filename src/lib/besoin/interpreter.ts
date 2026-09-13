@@ -200,7 +200,17 @@ const TRUCK_PATTERNS: { code: TruckCode; re: RegExp }[] = [
 ];
 const GENERIC_SEMI = /\bsemis?\b|\bsemi\s*remorques?\b|\bfardiers?\b|\btracteurs?\s*remorques?\b/;
 
-export function detectTrucks(normalized: string): Record<TruckCode, Stance> {
+/** « 10 et 12 roues » → « 10 roues 12 roues » pour que chaque camion soit détecté. */
+export function expandTruckEnumerations(text: string): string {
+  let out = text;
+  for (let i = 0; i < 3; i++) {
+    out = out.replace(/\b(6|10|12)\s*(?:,|et|ou|\/)\s*(6|10|12)\s*roues?/g, "$1 roues $2 roues");
+  }
+  return out;
+}
+
+export function detectTrucks(input: string): Record<TruckCode, Stance> {
+  const normalized = expandTruckEnumerations(input);
   const state = {} as Record<TruckCode, Stance>;
   for (const t of BESOIN_TRUCKS) state[t.code] = "A_CONFIRMER";
 
