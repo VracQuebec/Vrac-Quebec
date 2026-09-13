@@ -348,12 +348,18 @@ export default function AdminTransportCapacities() {
                 <div key={row.id} className="space-y-3 rounded-lg border bg-card p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm text-muted-foreground">{configLabel[row.config_id] ?? "—"}</p>
-                    <Button size="sm" disabled={savingId === row.id} onClick={() => saveCapacity(row)}>
-                      {savingId === row.id
-                        ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        : <Save className="mr-2 h-4 w-4" />}
-                      Enregistrer
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => addDimension(row)}>
+                        <Ruler className="mr-2 h-4 w-4" />Ajouter un gabarit
+                      </Button>
+                      <Button size="sm" disabled={savingId === row.id} onClick={() => saveCapacity(row)}>
+                        {savingId === row.id
+                          ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          : <Save className="mr-2 h-4 w-4" />}
+                        Enregistrer
+                      </Button>
+                    </div>
+                  </div>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {([
