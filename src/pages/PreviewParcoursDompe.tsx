@@ -76,7 +76,7 @@ export default function PreviewParcoursDompe() {
         session_key: session.current,
         event_name: event,
         step: String(step),
-        payload: anonymizePayload(payload),
+        payload: JSON.parse(JSON.stringify(anonymizePayload(payload))),
       });
     } catch {
       /* la mesure ne doit jamais bloquer le parcours */
