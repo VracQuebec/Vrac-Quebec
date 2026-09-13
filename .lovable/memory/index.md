@@ -5,3 +5,4 @@
 - [Super Admin & multi-entreprises](mem://features/super-admin-multi-entreprises) — Rôles entreprise, mode support Vrac Québec, journal avec origine de l'action.
 - [Place de marché soumissions](mem://features/place-de-marche-soumissions) — Fondations mkt_* : taxonomie, profils partenaires, demandes VQ, lots, invitations, soumissions, attribution, commissions, messagerie.
 - [Taxonomie matériaux](mem://features/taxonomie-materiaux) — Catalogue canonique, alias, relations demande↔matériau, conditions, règles de non-fusion.
+- [Confidentialité partenaires](mem://features/confidentialite-partenaires) — Vues publiques, grants colonnes annonces, photos privées, test de garde.

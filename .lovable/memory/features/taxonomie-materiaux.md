@@ -14,3 +14,9 @@ Règles métier non négociables :
 - Absence d'un matériau ≠ refus : stances `accepted` / `refused` / `unknown`.
 - Les champs historiques (`materials`, `other_material`, description, notes) restent la source de rollback et ne sont jamais écrasés.
 - Aucune bascule des surfaces publiques/matching tant que l'utilisateur n'a pas autorisé la population.
+
+Préparation évolutive (lot 2026-09-13, non activée) :
+- `material_families` : familles + sous-familles (terres, sables, granulats, remblai, roche, béton/maçonnerie, asphalte, organique, spéciaux, à qualifier), gérables par l'admin (ajout/renommage/ordre/désactivation).
+- `material_catalog.family_id` : lien facultatif vers la famille (nullable).
+- `submission_accepted_materials` reste la relation many-to-many demande ↔ matériaux acceptés (une demande peut accepter plusieurs matériaux).
+- Vue `material_matching_candidates` (service_role uniquement) : préparation du futur moteur (localisation, disponibilité, matériaux/familles acceptés). Non branchée aux surfaces publiques.
