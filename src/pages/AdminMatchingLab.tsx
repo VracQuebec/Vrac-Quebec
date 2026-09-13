@@ -26,6 +26,7 @@ import {
   type VehicleProfileLite,
 } from "@/lib/matching/engine";
 import { VEHICLE_CONFIG_CODES, kgToTonnes } from "@/lib/transport/capacity";
+import MaterialAssistant from "@/components/admin/MaterialAssistant";
 
 const UNITS: { value: QuantityUnit; label: string }[] = [
   { value: "tonnes", label: "tonnes" },
@@ -48,6 +49,7 @@ export default function AdminMatchingLab() {
   const [results, setResults] = useState<MatchResult[]>([]);
   const [vehicles, setVehicles] = useState<Record<string, VehicleProfileLite>>({});
   const [publicFlag, setPublicFlag] = useState<boolean | null>(null);
+  const [tab, setTab] = useState<"recherche" | "assistant" | "interpreteur">("recherche");
 
   useEffect(() => {
     if (!ready || !isAdmin) return;
@@ -162,6 +164,23 @@ export default function AdminMatchingLab() {
           </p>
         </div>
 
+        <div className="flex flex-wrap gap-2">
+          {([
+            ["recherche", "Recherche"],
+            ["assistant", "Assistant IA matériaux"],
+            ["interpreteur", "Interpréteur IA"],
+          ] as const).map(([key, label]) => (
+            <Button key={key} size="sm" variant={tab === key ? "default" : "outline"} onClick={() => setTab(key)}>
+              {label}
+            </Button>
+          ))}
+        </div>
+
+        {tab !== "recherche" && (
+          <MaterialAssistant vehicles={vehicles} inspectorMode={tab === "interpreteur"} />
+        )}
+
+        {tab === "recherche" && (<>
         <div className="grid gap-3 rounded-lg border border-border p-4 md:grid-cols-6">
           <div className="md:col-span-2">
             <Label>Matériau à évacuer</Label>
@@ -254,6 +273,7 @@ export default function AdminMatchingLab() {
             <p className="text-sm text-muted-foreground">Aucun résultat pour l'instant.</p>
           )}
         </div>
+        </>)}
       </div>
     </div>
   );
