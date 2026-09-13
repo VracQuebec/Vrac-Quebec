@@ -10,6 +10,8 @@
 export const FEATURE_FLAGS = {
   /** Nouvel assistant « Décrivez votre matériel » branché au parcours. */
   material_assistant_v2: false,
+  /** Compatibilité matériaux structurée (chargement ↔ demande de remblai). */
+  material_matching_v2: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS;
