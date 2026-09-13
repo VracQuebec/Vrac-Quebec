@@ -54,24 +54,39 @@ interface EntLead {
   availability_status?: string | null;
   availability_note?: string | null;
   availability_updated_at?: string | null;
+  /** Niveau de confiance calculé par la base (jamais saisi à la main). */
+  freshness?: string | null;
 }
 
-/** Point 42 — fraîcheur de la donnée de disponibilité (jamais inventée). */
-const freshnessLabel = (iso?: string | null) => {
-  if (!iso) return "Disponibilité à confirmer";
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (days <= 0) return "Mis à jour aujourd'hui";
-  if (days === 1) return "Mis à jour hier";
-  if (days <= 7) return `Mis à jour il y a ${days} jours`;
-  return "À confirmer";
+/** Fraîcheur de la donnée de disponibilité (calculée par la base, jamais inventée). */
+const freshnessLabel = (f?: string | null, iso?: string | null) => {
+  if (f === "confirmed" && iso) return `Disponibilité confirmée le ${new Date(iso).toLocaleDateString("fr-CA")}`;
+  if (f === "aging") return "Disponibilité à reconfirmer — dernière confirmation ancienne";
+  if (f === "needs_revalidation") return "Disponibilité à reconfirmer";
+  return "Disponibilité à reconfirmer — dernière validation inconnue";
 };
 
 const AVAIL_META: Record<string, { label: string; color: string; dot: string }> = {
   available: { label: "Disponible", color: "#16a34a", dot: "🟢" },
   limited: { label: "Capacité limitée", color: "#ca8a04", dot: "🟡" },
   unavailable: { label: "Indisponible", color: "#dc2626", dot: "🔴" },
+  completed: { label: "Terminée", color: "#6b7280", dot: "⚪" },
+  suspended: { label: "Suspendue", color: "#6b7280", dot: "⚪" },
+  owner_closed: { label: "Fermée par le propriétaire", color: "#6b7280", dot: "⚪" },
 };
 const availMeta = (v?: string | null) => AVAIL_META[v || "available"] || AVAIL_META.available;
+
+/** Étiquette combinant disponibilité et niveau de confiance. */
+const availabilityBadge = (l: { availability_status?: string | null; freshness?: string | null }) => {
+  const meta = availMeta(l.availability_status);
+  const status = l.availability_status || "available";
+  if (status !== "available") return meta;
+  return {
+    ...meta,
+    label: l.freshness === "confirmed" ? "Disponible — confirmée" : "Disponible — à revalider",
+    color: l.freshness === "confirmed" ? meta.color : "#ca8a04",
+  };
+};
 
 const accessText = (l: EntLead) => (l.accessibility || []).join(" ").toLowerCase();
 const hasBigVolume = (l: EntLead) => /gros|grand|illimit|vrac|volume/.test(`${l.quantity} ${l.tonnage}`.toLowerCase());
@@ -408,7 +423,7 @@ const Entrepreneur = () => {
                   </p>
                 )}
                 {filteredLeads.map((l) => {
-                  const av = availMeta(l.availability_status);
+                  const av = availabilityBadge(l);
                   const keys = leadMaterialKeys(l);
                   return (
                     <SiteCard
@@ -443,12 +458,12 @@ const Entrepreneur = () => {
                 <span
                   className="inline-flex items-center gap-1.5 text-xs font-body px-2.5 py-1 rounded-full bg-secondary"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: availMeta(detail.availability_status).color }} />
-                  {availMeta(detail.availability_status).label}
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: availabilityBadge(detail).color }} />
+                  {availabilityBadge(detail).label}
                   {detail.availability_note ? ` — ${detail.availability_note}` : ""}
                 </span>
                 <span className="ml-2 text-[11px] font-body text-muted-foreground">
-                  {freshnessLabel(detail.availability_updated_at)}
+                  {freshnessLabel(detail.freshness, detail.availability_updated_at)}
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {leadMaterialKeys(detail).map((k) => (
@@ -510,7 +525,7 @@ const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 const buildPopupHtml = (l: EntLead) => {
-  const av = availMeta(l.availability_status);
+  const av = availabilityBadge(l);
   const matKeys = Array.from(new Set((l.materials || []).map(materialKeyForId)));
   const matBadges = matKeys
     .map((k) => `<span class="ent-pop-mat" style="background:${MATERIAL_COLORS[k].color}">${escapeHtml(MATERIAL_COLORS[k].label)}</span>`)

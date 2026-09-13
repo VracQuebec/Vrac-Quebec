@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LeadPhotos } from "@/components/admin/LeadPhotos";
 import LeadParcoursPanel from "@/components/admin/LeadParcoursPanel";
+import DompeAvailabilityPanel from "@/components/admin/DompeAvailabilityPanel";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES, serviceTypeMeta, normalizeRequestType, requestTypeMeta } from "@/lib/questionnaire-data";
@@ -1578,6 +1579,19 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
               const gaps = siteGaps(sub);
               const toConfirm = siteToConfirm(sub);
               return (
+                <>
+                <DompeAvailabilityPanel
+                  data={{
+                    id: sub.id,
+                    availability_status: sub.availability_status ?? null,
+                    availability_updated_at: sub.availability_updated_at ?? null,
+                    availability_note: sub.availability_note ?? null,
+                    remaining_capacity: sub.remaining_capacity ?? null,
+                    opening_hours: sub.opening_hours ?? null,
+                    materials: sub.materials ?? null,
+                    truck_types_allowed: sub.truck_types_allowed ?? null,
+                  }}
+                />
                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-3">
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <div className="text-[10px] uppercase tracking-wide font-display font-bold text-foreground">
@@ -1678,6 +1692,7 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                     />
                   </div>
                 </div>
+                </>
               );
             })()}
             {/* Sélection du comparateur — rattachée à cette demande (lecture seule) */}
