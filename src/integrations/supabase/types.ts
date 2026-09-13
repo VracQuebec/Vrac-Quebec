@@ -1006,6 +1006,13 @@ export type Database = {
             foreignKeyName: "calendar_events_submission_id_fkey"
             columns: ["submission_id"]
             isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "calendar_events_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
             referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
@@ -1902,6 +1909,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "entrepreneurs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dumps_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
           },
           {
             foreignKeyName: "dumps_submission_id_fkey"
@@ -8565,6 +8579,13 @@ export type Database = {
             foreignKeyName: "lead_notes_submission_id_fkey"
             columns: ["submission_id"]
             isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "lead_notes_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
             referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
@@ -8706,6 +8727,13 @@ export type Database = {
             foreignKeyName: "lead_trips_submission_id_fkey"
             columns: ["submission_id"]
             isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "lead_trips_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
             referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
@@ -8817,6 +8845,7 @@ export type Database = {
           destination_types: string[]
           display_order: number
           family: string
+          family_id: string | null
           id: string
           is_active: boolean
           legacy_key: string | null
@@ -8839,6 +8868,7 @@ export type Database = {
           destination_types?: string[]
           display_order?: number
           family: string
+          family_id?: string | null
           id?: string
           is_active?: boolean
           legacy_key?: string | null
@@ -8861,6 +8891,7 @@ export type Database = {
           destination_types?: string[]
           display_order?: number
           family?: string
+          family_id?: string | null
           id?: string
           is_active?: boolean
           legacy_key?: string | null
@@ -8877,7 +8908,62 @@ export type Database = {
           visible_detailed?: boolean
           visible_simple?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "material_catalog_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "material_families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_families: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          level: string
+          name_fr: string
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          level?: string
+          name_fr: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          level?: string
+          name_fr?: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_families_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "material_families"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       material_granulometries: {
         Row: {
@@ -8956,6 +9042,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "material_review_queue_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
           {
             foreignKeyName: "material_review_queue_submission_id_fkey"
             columns: ["submission_id"]
@@ -13865,6 +13958,13 @@ export type Database = {
             foreignKeyName: "submission_accepted_materials_submission_id_fkey"
             columns: ["submission_id"]
             isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_accepted_materials_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
             referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
@@ -13905,6 +14005,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "submission_audit_log_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
           {
             foreignKeyName: "submission_audit_log_submission_id_fkey"
             columns: ["submission_id"]
@@ -13965,6 +14072,13 @@ export type Database = {
             foreignKeyName: "submission_availability_log_submission_id_fkey"
             columns: ["submission_id"]
             isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_availability_log_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
             referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
@@ -13999,6 +14113,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "custom_fields"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_custom_values_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
           },
           {
             foreignKeyName: "submission_custom_values_submission_id_fkey"
@@ -14057,6 +14178,13 @@ export type Database = {
             foreignKeyName: "submission_environmental_info_submission_id_fkey"
             columns: ["submission_id"]
             isOneToOne: true
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_environmental_info_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
             referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
@@ -14109,6 +14237,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "submission_material_conditions_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
           {
             foreignKeyName: "submission_material_conditions_submission_id_fkey"
             columns: ["submission_id"]
@@ -14445,6 +14580,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "crm_clients_v"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_selected_site_id_fkey"
+            columns: ["selected_site_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
           },
           {
             foreignKeyName: "submissions_selected_site_id_fkey"
@@ -14810,6 +14952,13 @@ export type Database = {
             foreignKeyName: "transport_requests_dump_submission_id_fkey"
             columns: ["dump_submission_id"]
             isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "transport_requests_dump_submission_id_fkey"
+            columns: ["dump_submission_id"]
+            isOneToOne: false
             referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
@@ -14819,6 +14968,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "jsc_requests"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_requests_origin_submission_id_fkey"
+            columns: ["origin_submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
           },
           {
             foreignKeyName: "transport_requests_origin_submission_id_fkey"
@@ -15114,6 +15270,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "dumps"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
           },
           {
             foreignKeyName: "trips_submission_id_fkey"
@@ -15554,10 +15717,71 @@ export type Database = {
             foreignKeyName: "dumps_submission_id_fkey"
             columns: ["submission_id"]
             isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "dumps_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
             referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
         ]
+      }
+      jsc_listings_public: {
+        Row: {
+          available_from: string | null
+          city: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          listing_type: string | null
+          material_label: string | null
+          price: number | null
+          price_unit: string | null
+          quantity: number | null
+          quantity_unit: string | null
+          region: string | null
+          status: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          available_from?: string | null
+          city?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          listing_type?: string | null
+          material_label?: string | null
+          price?: number | null
+          price_unit?: string | null
+          quantity?: number | null
+          quantity_unit?: string | null
+          region?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          available_from?: string | null
+          city?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          listing_type?: string | null
+          material_label?: string | null
+          price?: number | null
+          price_unit?: string | null
+          quantity?: number | null
+          quantity_unit?: string | null
+          region?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       jsc_marketplace_profiles_public: {
         Row: {
@@ -15709,6 +15933,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      material_matching_candidates: {
+        Row: {
+          accepted_families: string[] | null
+          accepted_material_ids: string[] | null
+          availability_status: string | null
+          availability_updated_at: string | null
+          city: string | null
+          crm_status: string | null
+          is_usable: boolean | null
+          latitude: number | null
+          longitude: number | null
+          submission_id: string | null
+        }
+        Relationships: []
       }
       mkt_partners_public: {
         Row: {
@@ -16875,6 +17114,7 @@ export type Database = {
       }
       mkt_partner_is_public: { Args: { _company_id: string }; Returns: boolean }
       mkt_partner_public: { Args: { _company_id: string }; Returns: Json }
+      mkt_photo_object_is_public: { Args: { _name: string }; Returns: boolean }
       mkt_recipient_email: {
         Args: { _company_id: string; _user_id: string }
         Returns: string
