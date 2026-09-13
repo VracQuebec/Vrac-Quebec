@@ -1,0 +1,107 @@
+// Comparateur administrateur : ANCIENNE interprétation (production) vs NOUVELLE (canonique, parallèle).
+// Lecture seule. Aucun basculement : la production continue d'utiliser submissions.materials.
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Row {
+  material_id: string;
+  stance: string;
+  original_value: string | null;
+  granulometry_id: string | null;
+  material_catalog: { name_fr: string; family: string } | null;
+  material_granulometries: { label_fr: string } | null;
+}
+
+export default function MaterialInterpretationPanel({
+  submissionId, historicalMaterials, otherMaterial,
+}: { submissionId: string; historicalMaterials: string[] | null; otherMaterial?: string | null }) {
+  const [rows, setRows] = useState<Row[] | null>(null);
+  const [conditions, setConditions] = useState<{ condition_key: string; stance: string; original_text: string | null }[]>([]);
+  const [pending, setPending] = useState<{ original_text: string; source_field: string; reason: string | null }[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const [rel, cond, rev] = await Promise.all([
+        supabase.from("submission_accepted_materials")
+          .select("material_id,stance,original_value,granulometry_id,material_catalog(name_fr,family),material_granulometries(label_fr)")
+          .eq("submission_id", submissionId),
+        supabase.from("submission_material_conditions")
+          .select("condition_key,stance,original_text").eq("submission_id", submissionId),
+        supabase.from("material_review_queue")
+          .select("original_text,source_field,reason").eq("submission_id", submissionId).eq("status", "pending"),
+      ]);
+      if (!alive) return;
+      setRows((rel.data ?? []) as unknown as Row[]);
+      setConditions(cond.data ?? []);
+      setPending(rev.data ?? []);
+    })();
+    return () => { alive = false; };
+  }, [submissionId]);
+
+  const hist = historicalMaterials ?? [];
+
+  return (
+    <div className="mb-3 rounded-lg border border-border bg-muted/20 p-3">
+      <div className="mb-2 text-[10px] font-display font-bold uppercase tracking-wide text-foreground">
+        Interprétation des matériaux — comparaison (lecture seule, hors production)
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground">Ancienne interprétation (en production)</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {hist.length === 0 && <span className="text-xs text-muted-foreground">Aucun matériau historique.</span>}
+            {hist.map((m, i) => <Badge key={`${m}-${i}`} variant="outline" className="text-[10px]">{m}</Badge>)}
+          </div>
+          {otherMaterial && <p className="mt-1 text-xs text-muted-foreground">Texte libre : « {otherMaterial} »</p>}
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground">Nouvelle interprétation (canonique)</p>
+          {rows === null ? (
+            <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Chargement…</div>
+          ) : (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {rows.length === 0 && <span className="text-xs text-muted-foreground">Aucune correspondance certaine.</span>}
+              {rows.map((r, i) => (
+                <Badge key={i} className="text-[10px]">
+                  {r.material_catalog?.name_fr ?? "?"}
+                  {r.material_granulometries?.label_fr ? ` · ${r.material_granulometries.label_fr}` : ""}
+                  {r.stance !== "accepted" ? ` (${r.stance})` : ""}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {conditions.length > 0 && (
+        <div className="mt-2">
+          <p className="text-xs font-semibold text-muted-foreground">Conditions détectées</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {conditions.map((c, i) => (
+              <Badge key={i} variant="secondary" className="text-[10px]" title={c.original_text ?? ""}>
+                {c.condition_key} : {c.stance === "forbidden" ? "refusé" : c.stance === "accepted" ? "exigé" : "inconnu"}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {pending.length > 0 && (
+        <div className="mt-2">
+          <p className="text-xs font-semibold text-muted-foreground">À valider par un humain ({pending.length})</p>
+          <ul className="mt-1 space-y-0.5">
+            {pending.map((p, i) => (
+              <li key={i} className="text-xs text-muted-foreground">« {p.original_text} » — {p.source_field}{p.reason ? ` · ${p.reason}` : ""}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <p className="mt-2 text-[10px] text-muted-foreground">
+        Aucune donnée historique modifiée. Absence de relation = inconnu, jamais refusé.
+      </p>
+    </div>
+  );
+}

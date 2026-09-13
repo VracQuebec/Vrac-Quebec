@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LeadPhotos } from "@/components/admin/LeadPhotos";
 import LeadParcoursPanel from "@/components/admin/LeadParcoursPanel";
 import DompeAvailabilityPanel from "@/components/admin/DompeAvailabilityPanel";
+import MaterialInterpretationPanel from "@/components/admin/MaterialInterpretationPanel";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES, serviceTypeMeta, normalizeRequestType, requestTypeMeta } from "@/lib/questionnaire-data";
@@ -1591,6 +1592,11 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                     materials: sub.materials ?? null,
                     truck_types_allowed: sub.truck_types_allowed ?? null,
                   }}
+                />
+                <MaterialInterpretationPanel
+                  submissionId={sub.id}
+                  historicalMaterials={sub.materials ?? null}
+                  otherMaterial={sub.other_material ?? null}
                 />
                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-3">
                   <div className="flex flex-wrap items-center gap-2 mb-2">
