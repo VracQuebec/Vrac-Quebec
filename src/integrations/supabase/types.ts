@@ -13568,6 +13568,7 @@ export type Database = {
       }
       submissions: {
         Row: {
+          access_criteria: string[] | null
           access_details: Json | null
           access_heavy_truck: string | null
           accessibility: string[] | null
@@ -13614,8 +13615,10 @@ export type Database = {
           name: string
           opening_hours: string | null
           other_material: string | null
+          parcours_direction: string | null
           phone: string | null
           photos: string[] | null
+          photos_meta: Json | null
           place_id: string | null
           postal_code: string | null
           postal_latitude: number | null
@@ -13626,6 +13629,8 @@ export type Database = {
           property_type: string
           province: string | null
           quantity: string
+          quantity_unit: string | null
+          quantity_value: number | null
           quote_distance_km: number | null
           quote_duration_minutes: number | null
           quote_id: string | null
@@ -13653,6 +13658,7 @@ export type Database = {
           status: string
           submission_number: number
           tonnage: string
+          truck_type_key: string | null
           truck_types_allowed: string[] | null
           utm_campaign: string | null
           utm_medium: string | null
@@ -13661,6 +13667,7 @@ export type Database = {
           width_ft: string | null
         }
         Insert: {
+          access_criteria?: string[] | null
           access_details?: Json | null
           access_heavy_truck?: string | null
           accessibility?: string[] | null
@@ -13707,8 +13714,10 @@ export type Database = {
           name: string
           opening_hours?: string | null
           other_material?: string | null
+          parcours_direction?: string | null
           phone?: string | null
           photos?: string[] | null
+          photos_meta?: Json | null
           place_id?: string | null
           postal_code?: string | null
           postal_latitude?: number | null
@@ -13719,6 +13728,8 @@ export type Database = {
           property_type: string
           province?: string | null
           quantity: string
+          quantity_unit?: string | null
+          quantity_value?: number | null
           quote_distance_km?: number | null
           quote_duration_minutes?: number | null
           quote_id?: string | null
@@ -13746,6 +13757,7 @@ export type Database = {
           status?: string
           submission_number?: number
           tonnage: string
+          truck_type_key?: string | null
           truck_types_allowed?: string[] | null
           utm_campaign?: string | null
           utm_medium?: string | null
@@ -13754,6 +13766,7 @@ export type Database = {
           width_ft?: string | null
         }
         Update: {
+          access_criteria?: string[] | null
           access_details?: Json | null
           access_heavy_truck?: string | null
           accessibility?: string[] | null
@@ -13800,8 +13813,10 @@ export type Database = {
           name?: string
           opening_hours?: string | null
           other_material?: string | null
+          parcours_direction?: string | null
           phone?: string | null
           photos?: string[] | null
+          photos_meta?: Json | null
           place_id?: string | null
           postal_code?: string | null
           postal_latitude?: number | null
@@ -13812,6 +13827,8 @@ export type Database = {
           property_type?: string
           province?: string | null
           quantity?: string
+          quantity_unit?: string | null
+          quantity_value?: number | null
           quote_distance_km?: number | null
           quote_duration_minutes?: number | null
           quote_id?: string | null
@@ -13839,6 +13856,7 @@ export type Database = {
           status?: string
           submission_number?: number
           tonnage?: string
+          truck_type_key?: string | null
           truck_types_allowed?: string[] | null
           utm_campaign?: string | null
           utm_medium?: string | null
