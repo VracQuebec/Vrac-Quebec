@@ -35,7 +35,7 @@ const UNITS: { value: QuantityUnit; label: string }[] = [
 ];
 
 export default function AdminMatchingLab() {
-  const { ready } = useAuthReady();
+  const { isReady: ready } = useAuthReady();
   const { isAdmin, loading: rolesLoading } = useUserRoles();
 
   const [material, setMaterial] = useState("");
