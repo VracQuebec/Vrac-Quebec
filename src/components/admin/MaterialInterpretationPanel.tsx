@@ -134,8 +134,79 @@ export default function MaterialInterpretationPanel({
           </ul>
         </div>
       )}
+
+      <div className="mt-3 grid gap-2 rounded-md border border-border bg-background/60 p-2 sm:grid-cols-2">
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground">Matériaux acceptés</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {byStance("accepted").length === 0 && <span className="text-xs text-muted-foreground">Aucun.</span>}
+            {byStance("accepted").map((r, i) => <Badge key={i} className="text-[10px]">{nameOf(r)}</Badge>)}
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground">Matériaux refusés</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {byStance("refused").length === 0 && <span className="text-xs text-muted-foreground">Aucun.</span>}
+            {byStance("refused").map((r, i) => <Badge key={i} variant="destructive" className="text-[10px]">{nameOf(r)}</Badge>)}
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground">À confirmer</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {byStance("unknown").length === 0 && pending.length === 0 && <span className="text-xs text-muted-foreground">Aucun.</span>}
+            {byStance("unknown").map((r, i) => <Badge key={i} variant="outline" className="text-[10px]">{nameOf(r)}</Badge>)}
+            {pending.length > 0 && <Badge variant="outline" className="text-[10px]">{pending.length} à valider</Badge>}
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground">Restrictions</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {restrictions.length === 0 && <span className="text-xs text-muted-foreground">Aucune.</span>}
+            {restrictions.map((c, i) => <Badge key={i} variant="destructive" className="text-[10px]">{c.condition_key}</Badge>)}
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground">Granulométries</p>
+          <p className="mt-1 text-xs text-muted-foreground">{granulometries.length ? granulometries.join(", ") : "Non précisées."}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground">Conditions déclarées</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {conditions.length ? conditions.map((c) => c.condition_key).join(", ") : "Aucune."}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground">Environnement</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {profile?.environment_status ?? "UNKNOWN"} — aucune déduction automatique.
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground">Capacité</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {profile
+              ? `${CAPACITY_LABEL[profile.capacity_kind] ?? profile.capacity_kind}${profile.capacity_value != null ? ` — ${profile.capacity_value} ${profile.capacity_unit ?? ""}` : ""}`
+              : "Capacité inconnue (aucune fiche structurée)."}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground">Camions</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {profile?.accepted_truck_codes?.length ? profile.accepted_truck_codes.join(", ") : "Non précisés."}
+            {profile?.heavy_truck_access ? ` · accès camion lourd : ${profile.heavy_truck_access}` : ""}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground">Portée de l'acceptation</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {profile ? SCOPE_LABEL[profile.acceptance_scope] ?? profile.acceptance_scope : "Inconnue (aucune fiche structurée)."}
+            {profile && !profile.confirmed_at ? " · jamais confirmée par un humain" : ""}
+          </p>
+        </div>
+      </div>
+
       <p className="mt-2 text-[10px] text-muted-foreground">
-        Aucune donnée historique modifiée. Absence de relation = inconnu, jamais refusé.
+        Lecture seule. Aucune donnée historique modifiée. Absence de relation = inconnu, jamais refusé.
       </p>
     </div>
   );
