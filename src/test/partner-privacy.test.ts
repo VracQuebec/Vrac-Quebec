@@ -2,8 +2,9 @@
 // de données privées (coordonnées directes, notes internes, métadonnées admin).
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
-const read = (p: string) => readFileSync(new URL(`../../${p}`, import.meta.url), "utf8");
+const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 
 const PRIVATE_FIELDS = ["contact_phone", "contact_email", "created_by", "internal_notes"];
 
