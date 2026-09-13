@@ -1709,6 +1709,27 @@ export type Database = {
           },
         ]
       }
+      dompe_availability_settings: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          value_int: number | null
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          value_int?: number | null
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value_int?: number | null
+        }
+        Relationships: []
+      }
       drivers: {
         Row: {
           carrier_id: string | null
@@ -13527,6 +13548,62 @@ export type Database = {
           },
         ]
       }
+      submission_availability_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          id: string
+          new_confirmed_at: string | null
+          new_status: string | null
+          note: string | null
+          old_confirmed_at: string | null
+          old_status: string | null
+          reason: string | null
+          source: string | null
+          submission_id: string
+        }
+        Insert: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          new_confirmed_at?: string | null
+          new_status?: string | null
+          note?: string | null
+          old_confirmed_at?: string | null
+          old_status?: string | null
+          reason?: string | null
+          source?: string | null
+          submission_id: string
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          new_confirmed_at?: string | null
+          new_status?: string | null
+          note?: string | null
+          old_confirmed_at?: string | null
+          old_status?: string | null
+          reason?: string | null
+          source?: string | null
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_availability_log_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submission_custom_values: {
         Row: {
           field_id: string
@@ -13574,7 +13651,10 @@ export type Database = {
           accessibility: string[] | null
           address: string
           assigned_entrepreneur: string | null
+          availability_confirmed_by: string | null
           availability_note: string | null
+          availability_reason: string | null
+          availability_source: string | null
           availability_status: string
           availability_updated_at: string | null
           budget_max: string | null
@@ -13644,6 +13724,8 @@ export type Database = {
           quote_unit: string | null
           remaining_capacity: string | null
           request_type: string
+          revalidation_days_override: number | null
+          revalidation_requested_at: string | null
           selected_site_address: string | null
           selected_site_id: string | null
           selected_site_label: string | null
@@ -13673,7 +13755,10 @@ export type Database = {
           accessibility?: string[] | null
           address: string
           assigned_entrepreneur?: string | null
+          availability_confirmed_by?: string | null
           availability_note?: string | null
+          availability_reason?: string | null
+          availability_source?: string | null
           availability_status?: string
           availability_updated_at?: string | null
           budget_max?: string | null
@@ -13743,6 +13828,8 @@ export type Database = {
           quote_unit?: string | null
           remaining_capacity?: string | null
           request_type?: string
+          revalidation_days_override?: number | null
+          revalidation_requested_at?: string | null
           selected_site_address?: string | null
           selected_site_id?: string | null
           selected_site_label?: string | null
@@ -13772,7 +13859,10 @@ export type Database = {
           accessibility?: string[] | null
           address?: string
           assigned_entrepreneur?: string | null
+          availability_confirmed_by?: string | null
           availability_note?: string | null
+          availability_reason?: string | null
+          availability_source?: string | null
           availability_status?: string
           availability_updated_at?: string | null
           budget_max?: string | null
@@ -13842,6 +13932,8 @@ export type Database = {
           quote_unit?: string | null
           remaining_capacity?: string | null
           request_type?: string
+          revalidation_days_override?: number | null
+          revalidation_requested_at?: string | null
           selected_site_address?: string | null
           selected_site_id?: string | null
           selected_site_label?: string | null
@@ -15582,6 +15674,36 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      dompe_freshness: {
+        Args: {
+          _confirmed_at: string
+          _days: number
+          _revalidation_requested_at?: string
+        }
+        Returns: string
+      }
+      dompe_revalidation_days: {
+        Args: { _s: Database["public"]["Tables"]["submissions"]["Row"] }
+        Returns: number
+      }
+      dompe_revalidation_queue: {
+        Args: { _limit?: number }
+        Returns: {
+          availability_status: string
+          availability_updated_at: string
+          city: string
+          cohort: string
+          dompe_number: string
+          freshness: string
+          id: string
+          materials: string[]
+          priority_score: number
+          remaining_capacity: string
+          status: string
+          submission_number: number
+          tonnage: string
+        }[]
+      }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
@@ -15633,6 +15755,7 @@ export type Database = {
           created_at: string
           deliver_or_remove: string
           dompe_number: string
+          freshness: string
           id: string
           is_assigned: boolean
           latitude: number
@@ -15690,7 +15813,9 @@ export type Database = {
         Returns: {
           accessibility: string[]
           availability_status: string
+          availability_updated_at: string
           dompe_number: string
+          freshness: string
           id: string
           latitude: number
           longitude: number
@@ -15715,6 +15840,17 @@ export type Database = {
       is_approved_entrepreneur: { Args: { _uid: string }; Returns: boolean }
       is_blacklisted: {
         Args: { _entity_id: string; _entity_type: string }
+        Returns: boolean
+      }
+      is_fill_request_type: {
+        Args: { _request_type: string }
+        Returns: boolean
+      }
+      is_usable_fill_request: {
+        Args: {
+          _require_gps?: boolean
+          _s: Database["public"]["Tables"]["submissions"]["Row"]
+        }
         Returns: boolean
       }
       jsc_add_company_member: {
@@ -16568,6 +16704,127 @@ export type Database = {
           _slug: string
         }
         Returns: string[]
+      }
+      set_dompe_availability: {
+        Args: {
+          _confirm?: boolean
+          _note?: string
+          _reason?: string
+          _request_revalidation?: boolean
+          _source?: string
+          _status?: string
+          _submission_id: string
+        }
+        Returns: {
+          access_criteria: string[] | null
+          access_details: Json | null
+          access_heavy_truck: string | null
+          accessibility: string[] | null
+          address: string
+          assigned_entrepreneur: string | null
+          availability_confirmed_by: string | null
+          availability_note: string | null
+          availability_reason: string | null
+          availability_source: string | null
+          availability_status: string
+          availability_updated_at: string | null
+          budget_max: string | null
+          budget_unit: string | null
+          callara_call_id: string | null
+          city: string | null
+          client_id: string | null
+          company: string | null
+          contamination: string | null
+          created_at: string
+          created_by: string | null
+          creation_origin: string
+          deliver_or_remove: string | null
+          delivery_deadline: string | null
+          delivery_timeframe: string | null
+          depth_in: string | null
+          description: string | null
+          desired_date: string | null
+          dompe_number: string | null
+          email: string
+          formatted_address: string | null
+          geocoding_provider: string | null
+          geocoding_status: string
+          id: string
+          internal_notes: string
+          landing_referrer: string | null
+          latitude: number | null
+          latitude_old: number | null
+          lead_category: string | null
+          lead_source: string | null
+          length_ft: string | null
+          location_type: string | null
+          longitude: number | null
+          longitude_old: number | null
+          machinery_available: boolean | null
+          machinery_description: string | null
+          materials: string[]
+          name: string
+          opening_hours: string | null
+          other_material: string | null
+          parcours_direction: string | null
+          phone: string | null
+          photos: string[] | null
+          photos_meta: Json | null
+          place_id: string | null
+          postal_code: string | null
+          postal_latitude: number | null
+          postal_latitude_old: number | null
+          postal_longitude: number | null
+          postal_longitude_old: number | null
+          priority: string
+          property_type: string
+          province: string | null
+          quantity: string
+          quantity_unit: string | null
+          quantity_value: number | null
+          quote_distance_km: number | null
+          quote_duration_minutes: number | null
+          quote_id: string | null
+          quote_material: string | null
+          quote_number: string | null
+          quote_quantity: number | null
+          quote_tonnage: number | null
+          quote_total: number | null
+          quote_trips: number | null
+          quote_truck: string | null
+          quote_unit: string | null
+          remaining_capacity: string | null
+          request_type: string
+          revalidation_days_override: number | null
+          revalidation_requested_at: string | null
+          selected_site_address: string | null
+          selected_site_id: string | null
+          selected_site_label: string | null
+          selected_site_latitude: number | null
+          selected_site_longitude: number | null
+          selection_updated_at: string | null
+          service_type: string | null
+          sheet_backup_at: string | null
+          show_on_admin_map: boolean
+          site_validated_at: string | null
+          site_validated_by: string | null
+          status: string
+          submission_number: number
+          tonnage: string
+          truck_type_key: string | null
+          truck_types_allowed: string[] | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          visible_to_entrepreneur: boolean
+          width_ft: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       set_my_network_visibility: {
         Args: { _visible: boolean }
