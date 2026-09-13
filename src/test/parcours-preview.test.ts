@@ -10,7 +10,7 @@ import type { MatchResult } from "@/lib/matching/engine";
 function fakeResult(over: Partial<MatchResult> = {}): MatchResult {
   return {
     candidate: { id: "c1", city: "Québec" } as MatchResult["candidate"],
-    material: { compatibility: "COMPATIBLE_CONFIRME", reason: "Matériau accepté" } as MatchResult["material"],
+    material: { compatibility: "COMPATIBLE_CONFIRME", reason: "Matériau accepté" } as unknown as MatchResult["material"],
     availability: { state: "OUI", label: "Disponible" } as MatchResult["availability"],
     distance: { km: 12 } as MatchResult["distance"],
     access: { verdict: "ACCESSIBLE" } as MatchResult["access"],
@@ -71,12 +71,12 @@ describe("E — regroupement des résultats", () => {
       fakeResult({
         candidate: { id: "c2", city: "Lévis" } as MatchResult["candidate"],
         score: 50,
-        material: { compatibility: "COMPATIBLE_PROBABLE", reason: "Probable" } as MatchResult["material"],
+        material: { compatibility: "COMPATIBLE_PROBABLE", reason: "Probable" } as unknown as MatchResult["material"],
       }),
       fakeResult({
         candidate: { id: "c3", city: "Beauport" } as MatchResult["candidate"],
         score: 20,
-        material: { compatibility: "INCONNU", reason: "À confirmer" } as MatchResult["material"],
+        material: { compatibility: "INCONNU", reason: "À confirmer" } as unknown as MatchResult["material"],
       }),
     ];
     const g = groupResults(results);
@@ -88,7 +88,7 @@ describe("E — regroupement des résultats", () => {
 
   it("donne une étiquette simple sans score technique", () => {
     expect(simpleMatchLabel(fakeResult({ score: 90 }))).toBe("Excellent match");
-    expect(simpleMatchLabel(fakeResult({ score: 30, material: { compatibility: "INCONNU", reason: "" } as MatchResult["material"] }))).toBe("À confirmer");
+    expect(simpleMatchLabel(fakeResult({ score: 30, material: { compatibility: "INCONNU", reason: "" } as unknown as MatchResult["material"] }))).toBe("À confirmer");
   });
 });
 
