@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import {
   computePayloadKg, kgToTonnes, validateOperationalCapacityKg,
 } from "@/lib/transport/capacity";
+import { mirrorToMirrorWidthM, comboOverallLengthM } from "@/lib/transport/dimensions";
 
 type ConfigRow = {
   id: string; code: string; label: string; vehicle_class: string;
@@ -215,7 +216,7 @@ export default function AdminTransportCapacities() {
       }
     }
     const { error } = await supabase
-      .from("transport_vehicle_dimensions").update(patch).eq("id", row.id);
+      .from("transport_vehicle_dimensions").update(patch as never).eq("id", row.id);
     setSavingId(null);
     if (error) { toast.error(error.message); return; }
     toast.success("Gabarit enregistré.");
