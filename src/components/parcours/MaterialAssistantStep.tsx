@@ -318,8 +318,13 @@ const MaterialAssistantStep = ({ variant, value, onChange, renderManual, onGoToP
         </label>
         <input
           id="assistant-precision"
-          value={value.environmentDetails && value.environment === "oui" ? "" : undefined}
-          onChange={(e) => onChange({ description: `${value.description} ${e.target.value}`.trim() })}
+          defaultValue=""
+          onBlur={(e) => {
+            const extra = e.target.value.trim();
+            if (!extra) return;
+            onChange({ description: `${value.description} ${extra}`.trim() });
+            e.target.value = "";
+          }}
           placeholder="Ex. il y a des grosses roches par endroits"
           className="mt-1 w-full rounded-xl border-2 border-border bg-background px-4 py-3 font-body text-base focus:border-primary focus:outline-none"
         />
