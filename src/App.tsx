@@ -240,6 +240,7 @@ const App = () => (
             <Route path="/admin/configuration-soumissions" element={<AdminSoumissionConfig />} />
             <Route path="/admin/capacites-transport" element={<AdminTransportCapacities />} />
             <Route path="/admin/matching-lab" element={<AdminMatchingLab />} />
+            <Route path="/admin/apercu-parcours" element={<PreviewParcoursDompe />} />
             <Route path="/admin/notifications" element={<AdminNotifications />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/parametres" element={<Navigate to="/admin/settings" replace />} />
