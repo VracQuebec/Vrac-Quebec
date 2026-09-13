@@ -70,6 +70,7 @@ const ClientPortal = lazy(() => import("./pages/ClientPortal"));
 const DriverPortal = lazy(() => import("./pages/DriverPortal"));
 const AdminSoumissionConfig = lazy(() => import("./pages/AdminSoumissionConfig"));
 const AdminTransportCapacities = lazy(() => import("./pages/AdminTransportCapacities"));
+const AdminMatchingLab = lazy(() => import("./pages/AdminMatchingLab"));
 const AdminSoumissions = lazy(() => import("./pages/AdminSoumissions"));
 const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
@@ -237,6 +238,7 @@ const App = () => (
             <Route path="/admin/jsc" element={<AdminJsc />} />
             <Route path="/admin/configuration-soumissions" element={<AdminSoumissionConfig />} />
             <Route path="/admin/capacites-transport" element={<AdminTransportCapacities />} />
+            <Route path="/admin/matching-lab" element={<AdminMatchingLab />} />
             <Route path="/admin/notifications" element={<AdminNotifications />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/parametres" element={<Navigate to="/admin/settings" replace />} />
