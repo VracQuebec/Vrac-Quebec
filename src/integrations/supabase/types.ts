@@ -13970,6 +13970,111 @@ export type Database = {
           },
         ]
       }
+      submission_access_constraints: {
+        Row: {
+          accepts_10_roues: boolean | null
+          accepts_12_roues: boolean | null
+          accepts_6_roues: boolean | null
+          accepts_semi_trailer: boolean | null
+          access_width_m: number | null
+          backing_required: boolean | null
+          bridge_or_culvert: boolean | null
+          clear_height_m: number | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          data_source: Database["public"]["Enums"]["transport_dimension_source"]
+          driver_access_notes: string | null
+          gate: boolean | null
+          gate_width_m: number | null
+          id: string
+          maneuvering_space_m2: number | null
+          max_practical_length_m: number | null
+          narrow_entrance: boolean | null
+          overhead_obstacles: boolean | null
+          slope_percent: number | null
+          submission_id: string
+          surface_type: string | null
+          turnaround_space: boolean | null
+          turning_radius_m: number | null
+          updated_at: string
+          weight_restriction_kg: number | null
+        }
+        Insert: {
+          accepts_10_roues?: boolean | null
+          accepts_12_roues?: boolean | null
+          accepts_6_roues?: boolean | null
+          accepts_semi_trailer?: boolean | null
+          access_width_m?: number | null
+          backing_required?: boolean | null
+          bridge_or_culvert?: boolean | null
+          clear_height_m?: number | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          data_source?: Database["public"]["Enums"]["transport_dimension_source"]
+          driver_access_notes?: string | null
+          gate?: boolean | null
+          gate_width_m?: number | null
+          id?: string
+          maneuvering_space_m2?: number | null
+          max_practical_length_m?: number | null
+          narrow_entrance?: boolean | null
+          overhead_obstacles?: boolean | null
+          slope_percent?: number | null
+          submission_id: string
+          surface_type?: string | null
+          turnaround_space?: boolean | null
+          turning_radius_m?: number | null
+          updated_at?: string
+          weight_restriction_kg?: number | null
+        }
+        Update: {
+          accepts_10_roues?: boolean | null
+          accepts_12_roues?: boolean | null
+          accepts_6_roues?: boolean | null
+          accepts_semi_trailer?: boolean | null
+          access_width_m?: number | null
+          backing_required?: boolean | null
+          bridge_or_culvert?: boolean | null
+          clear_height_m?: number | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          data_source?: Database["public"]["Enums"]["transport_dimension_source"]
+          driver_access_notes?: string | null
+          gate?: boolean | null
+          gate_width_m?: number | null
+          id?: string
+          maneuvering_space_m2?: number | null
+          max_practical_length_m?: number | null
+          narrow_entrance?: boolean | null
+          overhead_obstacles?: boolean | null
+          slope_percent?: number | null
+          submission_id?: string
+          surface_type?: string | null
+          turnaround_space?: boolean | null
+          turning_radius_m?: number | null
+          updated_at?: string
+          weight_restriction_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_access_constraints_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_access_constraints_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submission_audit_log: {
         Row: {
           changed_at: string
@@ -14678,6 +14783,136 @@ export type Database = {
         }
         Relationships: []
       }
+      transport_dimension_rules: {
+        Row: {
+          applies_to: string
+          conditions: Json
+          config_id: string | null
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          label: string
+          last_verified_at: string | null
+          max_combination_length_m: number | null
+          max_height_m: number | null
+          max_regulatory_width_m: number | null
+          max_trailer_length_m: number | null
+          max_vehicle_length_m: number | null
+          mirrors_excluded: boolean
+          notes: string | null
+          regulatory_article: string | null
+          regulatory_source: string | null
+          rule_code: string
+          updated_at: string
+          validation_status: string
+          version: number
+        }
+        Insert: {
+          applies_to: string
+          conditions?: Json
+          config_id?: string | null
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          label: string
+          last_verified_at?: string | null
+          max_combination_length_m?: number | null
+          max_height_m?: number | null
+          max_regulatory_width_m?: number | null
+          max_trailer_length_m?: number | null
+          max_vehicle_length_m?: number | null
+          mirrors_excluded?: boolean
+          notes?: string | null
+          regulatory_article?: string | null
+          regulatory_source?: string | null
+          rule_code: string
+          updated_at?: string
+          validation_status?: string
+          version?: number
+        }
+        Update: {
+          applies_to?: string
+          conditions?: Json
+          config_id?: string | null
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          label?: string
+          last_verified_at?: string | null
+          max_combination_length_m?: number | null
+          max_height_m?: number | null
+          max_regulatory_width_m?: number | null
+          max_trailer_length_m?: number | null
+          max_vehicle_length_m?: number | null
+          mirrors_excluded?: boolean
+          notes?: string | null
+          regulatory_article?: string | null
+          regulatory_source?: string | null
+          rule_code?: string
+          updated_at?: string
+          validation_status?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_dimension_rules_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "transport_vehicle_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transport_dimension_typicals: {
+        Row: {
+          config_id: string
+          created_at: string
+          data_source: Database["public"]["Enums"]["transport_dimension_source"]
+          dimension_key: string
+          id: string
+          max_m: number | null
+          min_m: number | null
+          notes: string | null
+          typical_m: number | null
+          updated_at: string
+        }
+        Insert: {
+          config_id: string
+          created_at?: string
+          data_source?: Database["public"]["Enums"]["transport_dimension_source"]
+          dimension_key: string
+          id?: string
+          max_m?: number | null
+          min_m?: number | null
+          notes?: string | null
+          typical_m?: number | null
+          updated_at?: string
+        }
+        Update: {
+          config_id?: string
+          created_at?: string
+          data_source?: Database["public"]["Enums"]["transport_dimension_source"]
+          dimension_key?: string
+          id?: string
+          max_m?: number | null
+          min_m?: number | null
+          notes?: string | null
+          typical_m?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_dimension_typicals_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "transport_vehicle_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transport_material_densities: {
         Row: {
           created_at: string
@@ -15051,6 +15286,56 @@ export type Database = {
           },
         ]
       }
+      transport_safety_margins: {
+        Row: {
+          config_id: string | null
+          created_at: string
+          height_margin_m: number | null
+          id: string
+          is_active: boolean
+          is_regulatory: boolean
+          length_margin_m: number | null
+          notes: string | null
+          scope: string
+          updated_at: string
+          width_margin_m: number | null
+        }
+        Insert: {
+          config_id?: string | null
+          created_at?: string
+          height_margin_m?: number | null
+          id?: string
+          is_active?: boolean
+          is_regulatory?: boolean
+          length_margin_m?: number | null
+          notes?: string | null
+          scope?: string
+          updated_at?: string
+          width_margin_m?: number | null
+        }
+        Update: {
+          config_id?: string | null
+          created_at?: string
+          height_margin_m?: number | null
+          id?: string
+          is_active?: boolean
+          is_regulatory?: boolean
+          length_margin_m?: number | null
+          notes?: string | null
+          scope?: string
+          updated_at?: string
+          width_margin_m?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_safety_margins_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "transport_vehicle_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transport_tax_rates: {
         Row: {
           code: string
@@ -15276,6 +15561,147 @@ export type Database = {
           vehicle_class?: string
         }
         Relationships: []
+      }
+      transport_vehicle_dimensions: {
+        Row: {
+          body_width_m: number | null
+          capacity_id: string | null
+          combo_max_height_m: number | null
+          combo_max_width_m: number | null
+          combo_measured_length_m: number | null
+          combo_turning_radius_m: number | null
+          config_id: string | null
+          created_at: string
+          data_source: Database["public"]["Enums"]["transport_dimension_source"]
+          front_overhang_m: number | null
+          ground_clearance_m: number | null
+          id: string
+          is_active: boolean
+          kingpin_setback_m: number | null
+          label: string | null
+          measured_unit: string
+          mirror_left_offset_m: number | null
+          mirror_right_offset_m: number | null
+          mirror_to_mirror_width_m: number | null
+          notes: string | null
+          overall_height_m: number | null
+          overall_length_m: number | null
+          rear_overhang_m: number | null
+          tractor_body_width_m: number | null
+          tractor_height_m: number | null
+          tractor_length_m: number | null
+          tractor_mirror_to_mirror_width_m: number | null
+          tractor_wheelbase_m: number | null
+          trailer_axle_count: number | null
+          trailer_body_width_m: number | null
+          trailer_height_m: number | null
+          trailer_length_m: number | null
+          trailer_overhang_m: number | null
+          trailer_wheelbase_m: number | null
+          turning_diameter_m: number | null
+          turning_radius_m: number | null
+          updated_at: string
+          validated_at: string | null
+          wheelbase_m: number | null
+        }
+        Insert: {
+          body_width_m?: number | null
+          capacity_id?: string | null
+          combo_max_height_m?: number | null
+          combo_max_width_m?: number | null
+          combo_measured_length_m?: number | null
+          combo_turning_radius_m?: number | null
+          config_id?: string | null
+          created_at?: string
+          data_source?: Database["public"]["Enums"]["transport_dimension_source"]
+          front_overhang_m?: number | null
+          ground_clearance_m?: number | null
+          id?: string
+          is_active?: boolean
+          kingpin_setback_m?: number | null
+          label?: string | null
+          measured_unit?: string
+          mirror_left_offset_m?: number | null
+          mirror_right_offset_m?: number | null
+          mirror_to_mirror_width_m?: number | null
+          notes?: string | null
+          overall_height_m?: number | null
+          overall_length_m?: number | null
+          rear_overhang_m?: number | null
+          tractor_body_width_m?: number | null
+          tractor_height_m?: number | null
+          tractor_length_m?: number | null
+          tractor_mirror_to_mirror_width_m?: number | null
+          tractor_wheelbase_m?: number | null
+          trailer_axle_count?: number | null
+          trailer_body_width_m?: number | null
+          trailer_height_m?: number | null
+          trailer_length_m?: number | null
+          trailer_overhang_m?: number | null
+          trailer_wheelbase_m?: number | null
+          turning_diameter_m?: number | null
+          turning_radius_m?: number | null
+          updated_at?: string
+          validated_at?: string | null
+          wheelbase_m?: number | null
+        }
+        Update: {
+          body_width_m?: number | null
+          capacity_id?: string | null
+          combo_max_height_m?: number | null
+          combo_max_width_m?: number | null
+          combo_measured_length_m?: number | null
+          combo_turning_radius_m?: number | null
+          config_id?: string | null
+          created_at?: string
+          data_source?: Database["public"]["Enums"]["transport_dimension_source"]
+          front_overhang_m?: number | null
+          ground_clearance_m?: number | null
+          id?: string
+          is_active?: boolean
+          kingpin_setback_m?: number | null
+          label?: string | null
+          measured_unit?: string
+          mirror_left_offset_m?: number | null
+          mirror_right_offset_m?: number | null
+          mirror_to_mirror_width_m?: number | null
+          notes?: string | null
+          overall_height_m?: number | null
+          overall_length_m?: number | null
+          rear_overhang_m?: number | null
+          tractor_body_width_m?: number | null
+          tractor_height_m?: number | null
+          tractor_length_m?: number | null
+          tractor_mirror_to_mirror_width_m?: number | null
+          tractor_wheelbase_m?: number | null
+          trailer_axle_count?: number | null
+          trailer_body_width_m?: number | null
+          trailer_height_m?: number | null
+          trailer_length_m?: number | null
+          trailer_overhang_m?: number | null
+          trailer_wheelbase_m?: number | null
+          turning_diameter_m?: number | null
+          turning_radius_m?: number | null
+          updated_at?: string
+          validated_at?: string | null
+          wheelbase_m?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_vehicle_dimensions_capacity_id_fkey"
+            columns: ["capacity_id"]
+            isOneToOne: false
+            referencedRelation: "transport_vehicle_capacities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_vehicle_dimensions_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "transport_vehicle_configs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transport_weight_rules: {
         Row: {
@@ -17896,6 +18322,12 @@ export type Database = {
         | "reporte"
         | "annule"
       driver_status: "disponible" | "occupe" | "inactif"
+      transport_dimension_source:
+        | "ACTUAL_MEASURED"
+        | "MANUFACTURER_SPEC"
+        | "REGULATORY_LIMIT"
+        | "OPERATIONAL_ESTIMATE"
+        | "DEFAULT_ESTIMATE"
       transport_request_status:
         | "nouvelle"
         | "a_rappeler"
@@ -18072,6 +18504,13 @@ export const Constants = {
         "annule",
       ],
       driver_status: ["disponible", "occupe", "inactif"],
+      transport_dimension_source: [
+        "ACTUAL_MEASURED",
+        "MANUFACTURER_SPEC",
+        "REGULATORY_LIMIT",
+        "OPERATIONAL_ESTIMATE",
+        "DEFAULT_ESTIMATE",
+      ],
       transport_request_status: [
         "nouvelle",
         "a_rappeler",
