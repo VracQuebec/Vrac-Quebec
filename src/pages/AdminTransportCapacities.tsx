@@ -9,7 +9,7 @@
 // ============================================================
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Scale, Truck, Gauge, Layers, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Scale, Truck, Gauge, Layers, Save, Ruler } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
@@ -45,10 +45,30 @@ type DensityRow = {
   density_min_kg_m3: number | null; density_max_kg_m3: number | null;
   is_estimate: boolean; data_source: string | null;
 };
+type DimensionRow = {
+  id: string; capacity_id: string | null; config_id: string | null; label: string | null;
+  overall_length_m: number | null; body_width_m: number | null;
+  mirror_left_offset_m: number | null; mirror_right_offset_m: number | null;
+  mirror_to_mirror_width_m: number | null; overall_height_m: number | null;
+  wheelbase_m: number | null; front_overhang_m: number | null; rear_overhang_m: number | null;
+  turning_radius_m: number | null; ground_clearance_m: number | null;
+  tractor_length_m: number | null; tractor_wheelbase_m: number | null;
+  trailer_axle_count: number | null; trailer_length_m: number | null;
+  kingpin_setback_m: number | null; combo_measured_length_m: number | null;
+  data_source: string; validated_at: string | null; notes: string | null;
+};
+type DimensionRuleRow = {
+  id: string; rule_code: string; label: string; applies_to: string; version: number;
+  max_height_m: number | null; max_regulatory_width_m: number | null;
+  max_vehicle_length_m: number | null; max_combination_length_m: number | null;
+  max_trailer_length_m: number | null; regulatory_source: string | null;
+  regulatory_article: string | null; effective_from: string | null; validation_status: string;
+};
 
 const TABS = [
   { id: "configs", label: "Configurations", icon: Truck },
   { id: "capacities", label: "Capacités", icon: Gauge },
+  { id: "dimensions", label: "Dimensions / Gabarits", icon: Ruler },
   { id: "rules", label: "Règles Québec", icon: Scale },
   { id: "densities", label: "Densités", icon: Layers },
 ] as const;
