@@ -33,6 +33,7 @@ import {
   SELECTABLE_QUANTITY_UNITS,
   formatQuantity,
   parseQuantityValue,
+  normalizeQuantityUnit,
   type PhotoCategoryKey,
 } from "@/lib/parcours/normalisation";
 import { buildHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff } from "@/lib/parcours/handoff";
@@ -110,7 +111,11 @@ const ParcoursForm = ({ variant }: { variant: ParcoursVariant }) => {
   const [data, setData] = useState<Draft>(() => {
     try {
       const raw = localStorage.getItem(storageKey);
-      return raw ? { ...emptyDraft, ...JSON.parse(raw) } : emptyDraft;
+      if (!raw) return emptyDraft;
+      const saved = { ...emptyDraft, ...JSON.parse(raw) } as Draft;
+      // Compatibilité : les brouillons plus anciens contiennent d'anciennes clés.
+      const unit = normalizeQuantityUnit(saved.quantityUnit);
+      return { ...saved, quantityUnit: unit === "inconnu" ? "voyages" : unit };
     } catch { return emptyDraft; }
   });
   const [uploading, setUploading] = useState(false);
