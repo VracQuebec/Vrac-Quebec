@@ -1592,6 +1592,11 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                     truck_types_allowed: sub.truck_types_allowed ?? null,
                   }}
                 />
+                <MaterialInterpretationPanel
+                  submissionId={sub.id}
+                  historicalMaterials={sub.materials ?? null}
+                  otherMaterial={sub.other_material ?? null}
+                />
                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-3">
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <div className="text-[10px] uppercase tracking-wide font-display font-bold text-foreground">
