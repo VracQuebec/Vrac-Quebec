@@ -20,6 +20,24 @@ const clean = (v: unknown, max: number) => {
   return s ? s.slice(0, max) : null;
 };
 
+const QUANTITY_UNITS = ['tonnes', 'verges3', 'm3', 'voyages', 'inconnu'] as const;
+const TRUCK_KEYS = ['6_roues', '10_roues', '12_roues', 'semi_remorque', 'fardier', 'autre'] as const;
+const ACCESS_KEYS = [
+  'pente_prononcee', 'fils_electriques_bas', 'branches_basses', 'sol_mou',
+  'recul_limite', 'demi_tour_possible', 'entree_asphaltee', 'voisinage_rapproche',
+] as const;
+const PHOTO_KEYS = ['materiau', 'acces', 'chantier', 'autre'] as const;
+
+const inList = <T extends readonly string[]>(v: unknown, list: T): T[number] | null => {
+  const s = typeof v === 'string' ? v.trim().toLowerCase() : '';
+  return (list as readonly string[]).includes(s) ? (s as T[number]) : null;
+};
+
+const numOrNull = (v: unknown): number | null => {
+  const n = typeof v === 'number' ? v : Number(String(v ?? '').replace(',', '.'));
+  return Number.isFinite(n) && n >= 0 && n < 1_000_000 ? n : null;
+};
+
 const strArray = (v: unknown, max = 20, len = 200): string[] =>
   Array.isArray(v) ? v.filter((x) => typeof x === 'string').map((x) => x.trim().slice(0, len)).filter(Boolean).slice(0, max) : [];
 
@@ -79,18 +97,23 @@ Deno.serve(async (req) => {
     const otherMaterial = clean(body?.other_material, 300);
     const projectUsage = clean(body?.project_usage, 160);
     const quantityLabel = clean(body?.quantity_label, 160) ?? 'Je ne sais pas';
+    const truckTypeKey = inList(body?.truck_type, TRUCK_KEYS);
     const truckType = clean(body?.truck_type, 80);
+    const quantityUnit = inList(body?.quantity_unit, QUANTITY_UNITS) ?? 'inconnu';
+    const quantityValue = quantityUnit === 'inconnu' ? null : numOrNull(body?.quantity_value);
     const desiredDate = clean(body?.desired_date, 20);
     const timeframe = clean(body?.timeframe, 120);
     const accessHeavyTruck = clean(body?.access_heavy_truck, 120);
-    const accessDetails = strArray(body?.access_details, 20, 120);
+    const accessDetails = strArray(body?.access_details, 20, 120)
+      .map((v) => inList(v, ACCESS_KEYS))
+      .filter((v): v is string => Boolean(v));
     const photoEntries = Array.isArray(body?.photos)
       ? body.photos
           .filter((p: unknown) => p && typeof (p as { url?: string }).url === 'string')
           .slice(0, 20)
           .map((p: { url: string; category?: string }) => ({
             url: String(p.url).slice(0, 600),
-            category: clean(p.category, 60) ?? 'Autre',
+            category: inList(p.category, PHOTO_KEYS) ?? 'autre',
           }))
       : [];
 
@@ -139,6 +162,12 @@ Deno.serve(async (req) => {
       other_material: otherMaterial,
       property_type: projectUsage ?? 'Remplissage / remblai',
       quantity: quantityLabel,
+      quantity_value: quantityValue,
+      quantity_unit: quantityUnit,
+      parcours_direction: variant,
+      truck_type_key: truckTypeKey,
+      access_criteria: accessDetails.length ? accessDetails : null,
+      photos_meta: photoEntries.length ? photoEntries : null,
       tonnage: '',
       address,
       postal_code: geo?.postal_code ?? clean(body?.postal_code, 12) ?? '',
@@ -151,8 +180,8 @@ Deno.serve(async (req) => {
       service_type: variant === 'evacuation' ? 'remblai_disposition' : 'materiel_remplissage',
       deliver_or_remove: variant === 'evacuation' ? 'À sortir du chantier' : 'À livrer',
       photos: photoEntries.map((p) => p.url),
-      accessibility: truckType ? [truckType] : [],
-      truck_types_allowed: truckType ? [truckType] : null,
+      accessibility: truckTypeKey ? [truckTypeKey] : [],
+      truck_types_allowed: truckTypeKey ? [truckTypeKey] : null,
       access_heavy_truck: accessHeavyTruck,
       access_details: (accessDetails.length || photoEntries.length)
         ? { criteres: accessDetails, photos: photoEntries }
