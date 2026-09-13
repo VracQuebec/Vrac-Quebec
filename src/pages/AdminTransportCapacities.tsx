@@ -96,21 +96,27 @@ export default function AdminTransportCapacities() {
   const [rules, setRules] = useState<RuleRow[]>([]);
   const [capacities, setCapacities] = useState<CapacityRow[]>([]);
   const [densities, setDensities] = useState<DensityRow[]>([]);
+  const [dimensions, setDimensions] = useState<DimensionRow[]>([]);
+  const [dimRules, setDimRules] = useState<DimensionRuleRow[]>([]);
   const [draft, setDraft] = useState<Record<string, Record<string, string>>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [c, r, cap, d] = await Promise.all([
+    const [c, r, cap, d, dim, dr] = await Promise.all([
       supabase.from("transport_vehicle_configs").select("*").order("sort_order"),
       supabase.from("transport_weight_rules").select("*").order("version"),
       supabase.from("transport_vehicle_capacities").select("*").order("created_at"),
       supabase.from("transport_material_densities").select("*").order("created_at"),
+      supabase.from("transport_vehicle_dimensions").select("*").order("created_at"),
+      supabase.from("transport_dimension_rules").select("*").order("rule_code"),
     ]);
     setConfigs((c.data ?? []) as ConfigRow[]);
     setRules((r.data ?? []) as RuleRow[]);
     setCapacities((cap.data ?? []) as CapacityRow[]);
     setDensities((d.data ?? []) as DensityRow[]);
+    setDimensions((dim.data ?? []) as DimensionRow[]);
+    setDimRules((dr.data ?? []) as DimensionRuleRow[]);
     setLoading(false);
   }, []);
 
