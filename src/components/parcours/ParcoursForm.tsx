@@ -37,6 +37,9 @@ import {
   type PhotoCategoryKey,
 } from "@/lib/parcours/normalisation";
 import { buildHandoff, saveHandoff, tripsFromHandoff, type ParcoursHandoff } from "@/lib/parcours/handoff";
+import { isFeatureEnabled } from "@/lib/flags";
+import MaterialAssistantStep from "@/components/parcours/MaterialAssistantStep";
+import { assistantNotes, type EnvironmentAnswer } from "@/lib/parcours/assistant-materiaux";
 
 export type ParcoursVariant = "reception" | "evacuation";
 
