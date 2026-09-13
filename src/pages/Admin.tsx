@@ -1592,19 +1592,14 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                   otherMaterial={sub.other_material ?? null}
                 />
                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-3">
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <div className="text-[10px] uppercase tracking-wide font-display font-bold text-foreground">
-                      Fiche site (dompe) — visible par les entrepreneurs
-                    </div>
-                    <span className="text-[10px] font-body text-muted-foreground">{info.label} • {info.freshness}</span>
-                    <button
-                      type="button"
-                      onClick={() => onUpdate({ availability_updated_at: new Date().toISOString() } as Partial<Submission>)}
-                      className="ml-auto px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-display font-bold uppercase"
-                    >
-                      Confirmer la disponibilité aujourd'hui
-                    </button>
-                  </div>
+                   <div className="flex flex-wrap items-center gap-2 mb-2">
+                     <div className="text-[10px] uppercase tracking-wide font-display font-bold text-foreground">
+                       Fiche site (dompe) — visible par les entrepreneurs
+                     </div>
+                     <span className="text-[10px] font-body text-muted-foreground">
+                       Disponibilité et fraîcheur : voir le bloc « Disponibilité du remblai » en haut de la fiche
+                     </span>
+                   </div>
                   {(gaps.length > 0 || toConfirm.length > 0) && (
                     <div className="flex flex-wrap gap-1.5 mb-3">
                       {gaps.map((g) => (
@@ -1619,17 +1614,9 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                       ))}
                     </div>
                   )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <InlineField
-                      label="Statut de disponibilité"
-                      type="select"
-                      value={sub.availability_status || ""}
-                      allowEmpty
-                      options={SITE_AVAILABILITY_OPTIONS}
-                      onSave={(v) => onUpdate({ availability_status: v || null } as Partial<Submission>)}
-                    />
-                    <InlineField
-                      label="Capacité restante"
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                     <InlineField
+                       label="Capacité restante"
                       type="text"
                       value={sub.remaining_capacity || ""}
                       onSave={(v) => onUpdate({ remaining_capacity: v || null } as Partial<Submission>)}
