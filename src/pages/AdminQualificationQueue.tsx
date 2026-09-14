@@ -53,6 +53,8 @@ function CallMode({
   const [current, setCurrent] = useState(profile);
   const [skipped, setSkipped] = useState<string[]>([]);
   const [log, setLog] = useState<string[]>([]);
+  // LOT 17 — les réponses vivent uniquement en mémoire de session.
+  const [session, setSession] = useState<SessionAnswer[]>([]);
   const loads = useMemo(() => card.questions.length ? [] : [], [card]);
   void loads;
 
