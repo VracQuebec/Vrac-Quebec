@@ -274,14 +274,16 @@ export function buildFillProfileFromInterpretation(
 
   for (const r of i.restrictions) {
     if (r.kind !== "MATERIAU" || !r.materialKey) continue;
+    // LOT 12 — « pas trop de glaise » n'est pas un refus : statut inconnu, à confirmer.
+    const status: AcceptanceStatus = r.ambiguous ? "UNKNOWN" : "REFUSED";
     const existing = materials.find((m) => m.materialKey === r.materialKey);
-    if (existing) { existing.status = "REFUSED"; continue; }
+    if (existing) { existing.status = status; continue; }
     materials.push({
       materialKey: r.materialKey,
       label: MATERIAL_LABELS[r.materialKey],
-      status: "REFUSED",
+      status,
       granulometryCode: null, maxInches: null, role: null,
-      source, confidence: "high", confirmedAt: null, confirmedBy: null,
+      source, confidence: r.ambiguous ? "low" : "high", confirmedAt: null, confirmedBy: null,
       originalExpression: r.originalExpression,
     });
   }
