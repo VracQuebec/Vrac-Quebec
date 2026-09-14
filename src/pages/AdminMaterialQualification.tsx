@@ -164,6 +164,20 @@ export default function AdminMaterialQualification() {
       .sort((a, b) => b.priority - a.priority);
   }, [rows]);
 
+  // LOT 13 — lignes du centre de contrôle (lecture seule).
+  const centerRows: CenterRow[] = useMemo(
+    () => (rows ?? []).map((r) => ({
+      id: r.id,
+      reference: r.dompe_number,
+      text: textOf(r),
+      available: r.availability_status === "available",
+      // Une disponibilité héritée sans confirmation humaine n'est JAMAIS une confirmation.
+      lastConfirmedAt: r.availability_confirmed_by ? r.availability_updated_at ?? null : null,
+      hasRelations: (r.materials ?? []).length > 0,
+    })),
+    [rows],
+  );
+
   const fast = entries.filter((e) => e.proposal.confidence === "high");
   const ambiguous = entries.filter((e) => e.proposal.confidence !== "high");
   const noMaterial = entries.filter((e) => relevantMaterialKeys(e.proposal).length === 0);
