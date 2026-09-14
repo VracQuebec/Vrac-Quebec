@@ -323,6 +323,7 @@ export function negationSpans(text: string): Array<[number, number]> {
       if (!isWordStart) continue;
       if (/^pas mal/.test(after)) continue; // « pas mal de terre » = beaucoup
       const rest = text.slice(from);
+      if (/^\s*trop\b/.test(rest)) continue; // « sans trop de glaise » = ambigu, pas un refus
       const stop = rest.search(/(?:\bmais\b|\.|;|\bpar contre\b)/);
       spans.push([from, stop < 0 ? text.length : from + stop]);
     }
