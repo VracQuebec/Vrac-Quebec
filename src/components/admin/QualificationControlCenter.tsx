@@ -43,9 +43,14 @@ function Counter({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ProfileCard({ p, potential }: { p: AcceptanceProfile; potential: number }) {
+function ProfileCard({ p, potential, entries, userId, onCommit, loads }: {
+  p: AcceptanceProfile; potential: number; entries: JournalEntry[];
+  userId: string | null; onCommit: (d: JournalDraft[]) => void;
+  loads: ReturnType<typeof buildLoadFromInterpretation>[];
+}) {
   const prio = computePriority(p, { potentialMatches: potential });
   const bulk = bulkConfirmEligibility(p);
+  const delta = matchingDelta(p, entries, loads.slice(0, 60));
   return (
     <div className="rounded-lg border border-border p-3 text-sm">
       <div className="flex flex-wrap items-center gap-2">
