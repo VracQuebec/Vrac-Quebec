@@ -18,6 +18,8 @@ export const FEATURE_FLAGS = {
   qualification_control_center_v2: false,
   /** Écritures réelles des confirmations humaines (LOT 14) — FAUX en production. */
   qualification_writes_v2: false,
+  /** Enrichissement progressif + matching explicable (LOT 15) — interne. */
+  material_enrichment_v2: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS;
