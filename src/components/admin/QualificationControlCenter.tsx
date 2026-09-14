@@ -290,12 +290,25 @@ export default function QualificationControlCenter({ rows }: { rows: CenterRow[]
           ))}
         </TabsContent>
 
-        <TabsContent value="termes" className="mt-3 space-y-1 text-xs">
-          <p className="text-muted-foreground">Aucun alias n'est créé automatiquement : proposition seulement.</p>
+        <TabsContent value="termes" className="mt-3 space-y-2 text-xs">
+          <p className="text-muted-foreground">
+            Aucun alias n'est créé automatiquement : un administrateur doit décider, terme par terme.
+          </p>
           {terms.map((t) => (
-            <p key={t.term}>
-              « {t.term} » — {t.frequency} demande(s) · proposition : {t.proposedClassification}
-            </p>
+            <div key={t.term} className="flex flex-col gap-2 border-t border-border pt-2 sm:flex-row sm:items-center sm:justify-between">
+              <span>« {t.term} » — {t.frequency} demande(s) · proposition : {t.proposedClassification}</span>
+              <Button
+                size="sm" variant="outline" className="h-9"
+                disabled={!writesEnabled() || !userId}
+                onClick={() => {
+                  upsertTermProposal({ term: t.term, occurrences: t.frequency, contextSamples: t.examples ?? [] })
+                    .then(() => toast.success("Terme envoyé à la file de décision administrateur."))
+                    .catch((e) => toast.error(e instanceof Error ? e.message : "Envoi impossible."));
+                }}
+              >
+                Mettre en file de décision
+              </Button>
+            </div>
           ))}
         </TabsContent>
 
