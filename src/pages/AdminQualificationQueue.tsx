@@ -80,6 +80,7 @@ function CallMode({
       (draft ? ` · journal simulé (${draft.category}:${draft.subject})` : " · aucune écriture"),
       ...l,
     ]);
+    setSession((s) => recordSessionAnswer(s, question.id, kind, detail));
     setCurrent(simulateAnswer(current, question, kind, detail));
     setSkipped((s) => [...s, question.id]);
   };
