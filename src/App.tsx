@@ -72,6 +72,7 @@ const AdminSoumissionConfig = lazy(() => import("./pages/AdminSoumissionConfig")
 const AdminTransportCapacities = lazy(() => import("./pages/AdminTransportCapacities"));
 const AdminMatchingLab = lazy(() => import("./pages/AdminMatchingLab"));
 const AdminMatchingSimulation = lazy(() => import("./pages/AdminMatchingSimulation"));
+const AdminMaterialQualification = lazy(() => import("./pages/AdminMaterialQualification"));
 const AdminMatchingEngine = lazy(() => import("./pages/AdminMatchingEngine"));
 const PreviewParcoursDompe = lazy(() => import("./pages/PreviewParcoursDompe"));
 const PreviewDemandeRemblai = lazy(() => import("./pages/PreviewDemandeRemblai"));
@@ -244,6 +245,7 @@ const App = () => (
             <Route path="/admin/capacites-transport" element={<AdminTransportCapacities />} />
             <Route path="/admin/matching-lab" element={<AdminMatchingLab />} />
             <Route path="/admin/matching-simulation" element={<AdminMatchingSimulation />} />
+            <Route path="/admin/qualification" element={<AdminMaterialQualification />} />
             <Route path="/admin/matching-engine" element={<AdminMatchingEngine />} />
             <Route path="/admin/apercu-parcours" element={<PreviewParcoursDompe />} />
             <Route path="/admin/apercu-besoin" element={<PreviewDemandeRemblai />} />

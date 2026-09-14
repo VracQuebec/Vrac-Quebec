@@ -47,6 +47,12 @@ export interface Restriction {
   label: string;
   materialKey?: MaterialKey;
   maxInches?: number | null;
+  /**
+   * LOT 12 — vrai quand la formulation n'est PAS un refus certain
+   * (« pas trop de glaise »). Une restriction ambiguë ne bloque jamais :
+   * elle demande une validation humaine.
+   */
+  ambiguous?: boolean;
   /** Extrait du texte original ayant produit la restriction. */
   originalExpression: string;
 }
@@ -112,6 +118,90 @@ export const CHANTIER_EXTRA_SYNONYMS: SynonymEntry[] = [
   { expression: "mg-56", materialKeys: ["pierre"], confidence: "MOYENNE" },
   { expression: "poussiere", materialKeys: ["pierre"], confidence: "MOYENNE" },
   { expression: "poussiere de pierre", materialKeys: ["pierre"], confidence: "ELEVEE" },
+  // --- LOT 12 : glaise / argile et vocabulaire québécois complémentaire ---
+  { expression: "sol argileux", materialKeys: ["argile"], confidence: "ELEVEE" },
+  { expression: "materiel argileux", materialKeys: ["argile"], confidence: "ELEVEE" },
+  { expression: "materiau argileux", materialKeys: ["argile"], confidence: "ELEVEE" },
+  { expression: "clay", materialKeys: ["argile"], confidence: "ELEVEE" },
+  { expression: "terre glaise", materialKeys: ["terre", "argile"], confidence: "ELEVEE" },
+  { expression: "glaiseuse", materialKeys: ["argile"], confidence: "MOYENNE" },
+  { expression: "argileuse", materialKeys: ["argile"], confidence: "MOYENNE" },
+  { expression: "shale", materialKeys: ["roche"], confidence: "MOYENNE", note: "roche sédimentaire" },
+  { expression: "schiste", materialKeys: ["roche"], confidence: "MOYENNE", note: "roche sédimentaire" },
+  { expression: "pierre des champs", materialKeys: ["roche"], confidence: "ELEVEE" },
+  { expression: "petite pierre", materialKeys: ["pierre"], confidence: "ELEVEE" },
+  { expression: "petites pierres", materialKeys: ["pierre"], confidence: "ELEVEE" },
+  { expression: "terre vegetale", materialKeys: ["terre", "organique"], confidence: "ELEVEE" },
+  { expression: "top soil", materialKeys: ["terre", "organique"], confidence: "ELEVEE" },
+  { expression: "topsoil", materialKeys: ["terre", "organique"], confidence: "ELEVEE" },
+  { expression: "criblure", materialKeys: ["pierre"], confidence: "ELEVEE" },
+  { expression: "criblures", materialKeys: ["pierre"], confidence: "ELEVEE" },
+  { expression: "screening", materialKeys: ["pierre"], confidence: "MOYENNE" },
+  { expression: "mg 112", materialKeys: ["pierre"], confidence: "MOYENNE" },
+  { expression: "mg-112", materialKeys: ["pierre"], confidence: "MOYENNE" },
+  { expression: "pierre nette", materialKeys: ["pierre"], confidence: "ELEVEE" },
+  { expression: "pierre dynamitee", materialKeys: ["roche"], confidence: "ELEVEE" },
+  { expression: "roc dynamite", materialKeys: ["roche"], confidence: "ELEVEE" },
+  { expression: "roche dynamitee", materialKeys: ["roche"], confidence: "ELEVEE" },
+  { expression: "beton arme", materialKeys: ["beton"], confidence: "ELEVEE", note: "présence d'acier à valider" },
+  { expression: "fraisat", materialKeys: ["asphalte"], confidence: "ELEVEE" },
+  { expression: "asphalte recycle", materialKeys: ["asphalte"], confidence: "ELEVEE" },
+  { expression: "matiere organique", materialKeys: ["organique"], confidence: "ELEVEE" },
+  { expression: "debris de construction", materialKeys: ["materiel_inconnu"], confidence: "FAIBLE", note: "à qualifier" },
+  { expression: "rebus", materialKeys: ["materiel_inconnu"], confidence: "FAIBLE", note: "à qualifier" },
+];
+
+/**
+ * LOT 12 — audit du vocabulaire québécois : classement de chaque terme.
+ * Aucun matériau canonique n'est créé automatiquement à partir de cette table.
+ */
+export type TermClass =
+  | "MATERIAL" | "SUBTYPE" | "ALIAS" | "COMPOSITION" | "GRANULOMETRY"
+  | "CONDITION" | "RESTRICTION" | "USAGE" | "UNKNOWN";
+
+export const QUEBEC_TERM_AUDIT: { term: string; classification: TermClass; note?: string }[] = [
+  { term: "glaise", classification: "MATERIAL", note: "canonique Argile / glaise (existant)" },
+  { term: "argile", classification: "ALIAS", note: "→ Argile / glaise" },
+  { term: "terre glaiseuse", classification: "COMPOSITION", note: "terre + argile" },
+  { term: "terre argileuse", classification: "COMPOSITION", note: "terre + argile" },
+  { term: "sol argileux", classification: "ALIAS" },
+  { term: "materiel argileux", classification: "ALIAS" },
+  { term: "materiau argileux", classification: "ALIAS" },
+  { term: "clay", classification: "ALIAS" },
+  { term: "tuff", classification: "UNKNOWN", note: "terme régional, catégorie à valider" },
+  { term: "tuf", classification: "UNKNOWN", note: "terme régional, catégorie à valider" },
+  { term: "shale", classification: "SUBTYPE", note: "sous-type de roche" },
+  { term: "schiste", classification: "SUBTYPE", note: "sous-type de roche" },
+  { term: "cailloux", classification: "ALIAS", note: "→ pierre" },
+  { term: "petite pierre", classification: "GRANULOMETRY", note: "pierre + calibre qualitatif" },
+  { term: "grosses roches", classification: "GRANULOMETRY", note: "roche + calibre qualitatif" },
+  { term: "pierre des champs", classification: "SUBTYPE" },
+  { term: "terre noire", classification: "SUBTYPE", note: "terre + matière organique" },
+  { term: "top soil", classification: "ALIAS", note: "→ terre végétale" },
+  { term: "terre vegetale", classification: "SUBTYPE" },
+  { term: "terre de remplissage", classification: "USAGE", note: "usage, pas un matériau" },
+  { term: "terre d excavation", classification: "SUBTYPE" },
+  { term: "materiel d excavation", classification: "USAGE" },
+  { term: "criblure", classification: "SUBTYPE" },
+  { term: "screening", classification: "ALIAS", note: "→ criblure" },
+  { term: "0-3/4", classification: "GRANULOMETRY" },
+  { term: "0-2 1/2", classification: "GRANULOMETRY" },
+  { term: "mg-20", classification: "GRANULOMETRY" },
+  { term: "mg-56", classification: "GRANULOMETRY" },
+  { term: "mg-112", classification: "GRANULOMETRY" },
+  { term: "pierre nette", classification: "SUBTYPE" },
+  { term: "pierre dynamitee", classification: "SUBTYPE" },
+  { term: "roc dynamite", classification: "SUBTYPE" },
+  { term: "beton casse", classification: "SUBTYPE" },
+  { term: "beton arme", classification: "SUBTYPE", note: "présence d'acier à valider" },
+  { term: "asphalte", classification: "MATERIAL" },
+  { term: "planage d asphalte", classification: "SUBTYPE" },
+  { term: "fraisat", classification: "ALIAS", note: "→ planage d'asphalte" },
+  { term: "souches", classification: "MATERIAL", note: "organique, souvent refusé" },
+  { term: "racines", classification: "MATERIAL", note: "organique" },
+  { term: "matiere organique", classification: "MATERIAL" },
+  { term: "propre", classification: "CONDITION", note: "déclaration, jamais une certification" },
+  { term: "contamine", classification: "RESTRICTION", note: "déclaration environnementale" },
 ];
 
 export const chantierSynonyms = (extra: SynonymEntry[] = []): SynonymEntry[] => [
@@ -232,8 +322,40 @@ export function negationSpans(text: string): Array<[number, number]> {
       const isWordStart = idx === 0 || /[\s,.;]/.test(before.slice(-1));
       if (!isWordStart) continue;
       if (/^pas mal/.test(after)) continue; // « pas mal de terre » = beaucoup
+      // « si possible pas de béton » / « de préférence pas de » = souhait, pas un refus ferme
+      if (/(?:si possible|de preference|idealement)\s*$/.test(text.slice(0, idx))) continue;
       const rest = text.slice(from);
+      if (/^\s*trop\b/.test(rest)) continue; // « sans trop de glaise » = ambigu, pas un refus
       const stop = rest.search(/(?:\bmais\b|\.|;|\bpar contre\b)/);
+      spans.push([from, stop < 0 ? text.length : from + stop]);
+    }
+  }
+  return spans;
+}
+
+/**
+ * LOT 12 — formulations AMBIGUËS (« pas trop de glaise », « le moins possible de roche »).
+ * Ce n'est ni une acceptation ni un refus : la donnée doit être validée par un humain.
+ * « pas mal de glaise » n'est PAS ambigu : c'est « beaucoup ».
+ */
+const AMBIGUOUS_CUES = [
+  "pas trop de", "pas trop d", "pas beaucoup de", "le moins possible de",
+  "le moins de", "eviter la", "eviter le", "eviter les", "de preference pas de",
+  "si possible pas de", "sans trop de",
+];
+
+export function ambiguousSpans(text: string): Array<[number, number]> {
+  const spans: Array<[number, number]> = [];
+  for (const cue of AMBIGUOUS_CUES) {
+    let from = 0;
+    for (;;) {
+      const idx = text.indexOf(cue, from);
+      if (idx < 0) break;
+      from = idx + cue.length;
+      const before = text.slice(Math.max(0, idx - 2), idx);
+      if (!(idx === 0 || /[\s,.;]/.test(before.slice(-1)))) continue;
+      const rest = text.slice(from);
+      const stop = rest.search(/(?:\bmais\b|\.|;|\bpar contre\b|,)/);
       spans.push([from, stop < 0 ? text.length : from + stop]);
     }
   }
@@ -290,6 +412,7 @@ export function interpretChantier(
   const base = interpretDescription(originalText, synonyms);
   const text = base.normalizedText;
   const spans = negationSpans(text);
+  const ambiguous = ambiguousSpans(text);
   const half = HALF_CUES.test(text);
 
   // --- Matériaux acceptés vs refusés (les négations deviennent des restrictions) ---
@@ -306,6 +429,17 @@ export function interpretChantier(
         kind: "MATERIAU",
         label: `pas de ${MATERIAL_LABELS[m.key]}`,
         materialKey: m.key,
+        originalExpression: m.matchedExpression,
+      });
+      return;
+    }
+    const uncertainNeg = idx >= 0 && ambiguous.some(([s, e]) => idx >= s && idx < e);
+    if (uncertainNeg) {
+      restrictions.push({
+        kind: "MATERIAU",
+        label: `limite possible sur ${MATERIAL_LABELS[m.key]} — à confirmer`,
+        materialKey: m.key,
+        ambiguous: true,
         originalExpression: m.matchedExpression,
       });
       return;

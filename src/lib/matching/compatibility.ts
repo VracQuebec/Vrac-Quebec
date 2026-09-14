@@ -103,10 +103,23 @@ export interface CompatibilityEvaluation {
 
 const inches = (n: number | null | undefined) => (typeof n === "number" ? n : null);
 
+/**
+ * LOT 12 — matériaux pour lesquels une limite de calibre est PERTINENTE.
+ * Une limite « roche maximum 18 po » ne concerne pas un chargement de terre :
+ * elle ne doit donc jamais provoquer de « à confirmer ».
+ */
+export const SIZE_RELEVANT_KEYS: MaterialKey[] = ["pierre", "roche", "beton", "asphalte", "materiel_inconnu"];
+
+export const isSizeRelevant = (key: MaterialKey) => SIZE_RELEVANT_KEYS.includes(key);
+
 /** Dimension maximale imposée par la demande (restrictions + règles matériau). */
 export function maxAcceptedInches(profile: FillRequestProfile, key?: MaterialKey): number | null {
+  if (key && !isSizeRelevant(key)) return null;
   const values = [
-    ...profile.restrictions.filter((r) => r.kind === "DIMENSION").map((r) => inches(r.maxInches)),
+    ...profile.restrictions
+      .filter((r) => r.kind === "DIMENSION" && !r.ambiguous)
+      .filter((r) => !key || !r.materialKey || r.materialKey === key)
+      .map((r) => inches(r.maxInches)),
     ...profile.materials
       .filter((m) => (key ? m.materialKey === key : true) && m.status === "ACCEPTED")
       .map((m) => inches(m.maxInches)),
@@ -142,12 +155,24 @@ export function evaluateMaterialCompatibility(
 
     // 1) Un refus explicite (restriction ou règle REFUSED) bat tout le reste.
     const restricted = request.restrictions.some(
-      (r) => r.kind === "MATERIAU" && r.materialKey === c.materialKey,
+      (r) => r.kind === "MATERIAU" && r.materialKey === c.materialKey && !r.ambiguous,
+    );
+    const restrictedMaybe = request.restrictions.some(
+      (r) => r.kind === "MATERIAU" && r.materialKey === c.materialKey && r.ambiguous,
     );
     const rule = request.materials.find((m) => m.materialKey === c.materialKey);
     if (restricted || rule?.status === "REFUSED") {
       refused.push(c.materialKey);
       reasons.push({ level: "BLOCKER", code: "MATERIAL_REFUSED", label: `${label} explicitement refusé`, materialKey: c.materialKey });
+      continue;
+    }
+    if (restrictedMaybe && rule?.status !== "ACCEPTED") {
+      unknown.push(c.materialKey);
+      reasons.push({
+        level: "REVIEW", code: "MATERIAL_UNKNOWN",
+        label: `${label} : limite évoquée sans refus clair — à confirmer`,
+        materialKey: c.materialKey,
+      });
       continue;
     }
 
@@ -249,14 +274,16 @@ export function buildFillProfileFromInterpretation(
 
   for (const r of i.restrictions) {
     if (r.kind !== "MATERIAU" || !r.materialKey) continue;
+    // LOT 12 — « pas trop de glaise » n'est pas un refus : statut inconnu, à confirmer.
+    const status: AcceptanceStatus = r.ambiguous ? "UNKNOWN" : "REFUSED";
     const existing = materials.find((m) => m.materialKey === r.materialKey);
-    if (existing) { existing.status = "REFUSED"; continue; }
+    if (existing) { existing.status = status; continue; }
     materials.push({
       materialKey: r.materialKey,
       label: MATERIAL_LABELS[r.materialKey],
-      status: "REFUSED",
+      status,
       granulometryCode: null, maxInches: null, role: null,
-      source, confidence: "high", confirmedAt: null, confirmedBy: null,
+      source, confidence: r.ambiguous ? "low" : "high", confirmedAt: null, confirmedBy: null,
       originalExpression: r.originalExpression,
     });
   }

@@ -127,10 +127,11 @@ describe("LOT 11 — 15 cas terrain", () => {
   });
 
   it("CAS 13 — chargement plus grand qu'une seule demande → split simulé", () => {
-    const r = run("40 voyages de terre");
-    const split = simulateSplit(r, 40);
+    // 90 voyages dépassent la capacité de n'importe quelle demande du jeu d'essai.
+    const r = run("90 voyages de terre");
+    const split = simulateSplit(r, 90);
     expect(split.lines.length).toBeGreaterThan(1);
-    expect(split.lines.reduce((s, l) => s + l.trips, 0)).toBeLessThanOrEqual(40);
+    expect(split.lines.reduce((s, l) => s + l.trips, 0)).toBeLessThanOrEqual(90);
   });
 
   it("CAS 14 — chargement compatible avec plusieurs demandes", () => {
