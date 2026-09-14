@@ -14,6 +14,8 @@ export const FEATURE_FLAGS = {
   material_matching_v2: false,
   /** Qualification administrateur des demandes de remblai (LOT 12) — interne. */
   material_qualification_v2: false,
+  /** Centre de contrôle intelligent des demandes de remblai (LOT 13) — interne. */
+  qualification_control_center_v2: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS;

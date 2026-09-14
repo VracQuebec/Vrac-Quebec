@@ -21,12 +21,16 @@ import {
   type QualificationProposal,
 } from "@/lib/qualification/lot12";
 
+import QualificationControlCenter, { type CenterRow } from "@/components/admin/QualificationControlCenter";
+
 interface Row {
   id: string;
   dompe_number: string | null;
   city: string | null;
   status: string | null;
   availability_status: string | null;
+  availability_confirmed_by?: string | null;
+  availability_updated_at?: string | null;
   description: string | null;
   other_material: string | null;
   materials: string[] | null;
@@ -114,13 +118,14 @@ export default function AdminMaterialQualification() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [loading, setLoading] = useState(false);
   const flagOn = isFeatureEnabled("material_qualification_v2");
+  const centerOn = isFeatureEnabled("qualification_control_center_v2");
 
   useEffect(() => {
     if (!isReady || !isAdmin) return;
     setLoading(true);
     supabase
       .from("submissions")
-      .select("id,dompe_number,city,status,availability_status,description,other_material,materials")
+      .select("id,dompe_number,city,status,availability_status,availability_confirmed_by,availability_updated_at,description,other_material,materials")
       .eq("request_type", "remblai")
       .order("created_at", { ascending: false })
       .limit(300)
@@ -159,6 +164,20 @@ export default function AdminMaterialQualification() {
       .sort((a, b) => b.priority - a.priority);
   }, [rows]);
 
+  // LOT 13 — lignes du centre de contrôle (lecture seule).
+  const centerRows: CenterRow[] = useMemo(
+    () => (rows ?? []).map((r) => ({
+      id: r.id,
+      reference: r.dompe_number,
+      text: textOf(r),
+      available: r.availability_status === "available",
+      // Une disponibilité héritée sans confirmation humaine n'est JAMAIS une confirmation.
+      lastConfirmedAt: r.availability_confirmed_by ? r.availability_updated_at ?? null : null,
+      hasRelations: (r.materials ?? []).length > 0,
+    })),
+    [rows],
+  );
+
   const fast = entries.filter((e) => e.proposal.confidence === "high");
   const ambiguous = entries.filter((e) => e.proposal.confidence !== "high");
   const noMaterial = entries.filter((e) => relevantMaterialKeys(e.proposal).length === 0);
@@ -190,6 +209,8 @@ export default function AdminMaterialQualification() {
       </div>
 
       {loading && <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Chargement…</div>}
+
+      {centerOn && <QualificationControlCenter rows={centerRows} />}
 
       <Tabs defaultValue="fast" className="mt-4">
         <TabsList className="flex w-full flex-wrap">
