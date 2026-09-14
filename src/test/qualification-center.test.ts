@@ -187,7 +187,10 @@ describe("Mode 30 secondes et actions", () => {
   });
 
   it("file triée", () => {
-    const list = thirtySecondQueue([profile("Remplissage", { submissionId: "x" }), profile("terre et sable", { submissionId: "y" })]);
+    const list = thirtySecondQueue(
+      [profile("Remplissage", { submissionId: "x" }), profile("terre et sable", { submissionId: "y" })],
+      new Map([["y", 8]]),
+    );
     expect(list[0].submissionId).toBe("y");
   });
 });
