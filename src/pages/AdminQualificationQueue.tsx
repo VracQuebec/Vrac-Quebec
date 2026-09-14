@@ -26,6 +26,12 @@ import {
 import {
   TEST_MODE_BADGE, buildOperatorCard, recordSessionAnswer, type SessionAnswer,
 } from "@/lib/qualification/lot17";
+// LOT 18 — impact réel des réponses sur les matchs (simulation, aucune écriture).
+import {
+  buildExplorerRows, countStates, evaluateQualificationImpact,
+  MATCH_STATE_LABELS, type QualificationImpact, type StateCounts,
+} from "@/lib/matching/impact";
+import { displayCity } from "@/lib/text/display";
 
 interface Row {
   id: string;
