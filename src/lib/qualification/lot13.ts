@@ -180,9 +180,23 @@ export function detectContradictions(
   const out: Contradiction[] = [];
   const t = norm(i.originalText);
 
+  // Un matériau à la fois affirmé et nié dans le même texte.
+  const nt = i.normalizedText;
+  const spans = negationSpans(nt);
+  const seen = new Set<MaterialKey>();
   for (const m of i.materials) {
-    const refused = profile.materials.some((r) => r.materialKey === m.key && r.status === "REFUSED");
-    if (refused) {
+    const refusedRule = profile.materials.some((r) => r.materialKey === m.key && r.status === "REFUSED");
+    const expr = norm(m.matchedExpression);
+    let positive = false, negative = false;
+    if (expr) {
+      let idx = nt.indexOf(expr);
+      while (idx >= 0) {
+        if (spans.some(([s, e]) => idx >= s && idx < e)) negative = true; else positive = true;
+        idx = nt.indexOf(expr, idx + expr.length);
+      }
+    }
+    if ((refusedRule || negative) && positive && !seen.has(m.key)) {
+      seen.add(m.key);
       out.push({
         code: "MATERIAL_ACCEPT_AND_REFUSE",
         label: `${MATERIAL_LABELS[m.key]} semble à la fois accepté et refusé`,
@@ -191,15 +205,10 @@ export function detectContradictions(
     }
   }
 
-  const limits = i.restrictions
-    .filter((r) => r.kind === "DIMENSION" && typeof r.maxInches === "number")
-    .map((r) => r.maxInches as number);
-  const stated = Array.from(t.matchAll(/(\d{1,3})\s*(?:po|pouces?)/g)).map((m) => Number(m[1]));
-  if (limits.length) {
-    const min = Math.min(...limits);
-    if (stated.some((s) => s > min)) {
-      out.push({ code: "SIZE_CONFLICT", label: `Une dimension supérieure à la limite de ${min} po est mentionnée` });
-    }
+  const limit = maxAcceptedInches(profile);
+  const stated = Array.from(t.matchAll(/(\d{1,3})\s*(?:po\b|pouces?)/g)).map((m) => Number(m[1]));
+  if (limit != null && stated.some((s) => s > limit)) {
+    out.push({ code: "SIZE_CONFLICT", label: `Une dimension supérieure à la limite de ${limit} po est mentionnée` });
   }
 
   const semiOk = /\bsemi(?:[- ]remorque)?\b/.test(t) && !/\b(?:pas|aucun|sans)\b[^.]{0,20}semi/.test(t);
