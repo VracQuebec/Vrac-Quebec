@@ -80,13 +80,20 @@ function ProfileCard({ p, potential, entries, userId, onCommit, loads }: {
         {" · "}Confirmation rapide : {bulk.eligible ? "admissible" : bulk.blockers.join(", ")}
       </p>
 
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        Matching interne AVANT : {delta.before.certain} certain(s) / {delta.before.potential} potentiel(s)
+        {" · "}APRÈS : {delta.after.certain} certain(s) / {delta.after.potential} potentiel(s)
+      </p>
+
       <div className="mt-2 flex flex-wrap gap-2">
-        {(["CONFIRMER", "CORRIGER", "PLUS_TARD", "IMPOSSIBLE"] as const).map((a) => (
+        {(["PLUS_TARD", "IMPOSSIBLE"] as const).map((a) => (
           <Button key={a} size="sm" variant="outline" disabled title={simulateQuickAction(p, a).description}>
-            {a === "CONFIRMER" ? "Confirmer tel quel" : a === "CORRIGER" ? "Corriger" : a === "PLUS_TARD" ? "Plus tard" : "Impossible à déterminer"}
+            {a === "PLUS_TARD" ? "Plus tard" : "Impossible à déterminer"}
           </Button>
         ))}
       </div>
+
+      <QualificationDecisionPanel p={p} entries={entries} confirmedBy={userId} onCommit={onCommit} />
     </div>
   );
 }
