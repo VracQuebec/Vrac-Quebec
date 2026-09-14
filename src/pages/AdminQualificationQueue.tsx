@@ -332,7 +332,7 @@ export default function AdminQualificationQueue() {
           <div key={card.submissionId} className="rounded-lg border border-border p-3 text-sm">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold">{card.reference ?? card.submissionId.slice(0, 8)}</span>
-              {card.city && <span className="text-muted-foreground">{card.city}</span>}
+              {card.city && <span className="text-muted-foreground">{displayCity(card.city)}</span>}
               <Badge variant={card.available ? "default" : "outline"}>
                 {card.available ? "Disponible" : "Non disponible"}
                 {card.freshness.state === "CONFIRMEE" ? "" : card.freshness.state === "A_REVALIDER" ? " — À revalider" : " — Jamais confirmée"}
