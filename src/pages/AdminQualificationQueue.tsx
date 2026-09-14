@@ -23,6 +23,9 @@ import {
   ANSWER_LABELS, answerImpact, answerToJournalDraft, buildQueue, nextQuestion, queueIndicators,
   simulateAnswer, type AnswerDetail, type AnswerKind, type QueueCard,
 } from "@/lib/qualification/lot16";
+import {
+  TEST_MODE_BADGE, buildOperatorCard, recordSessionAnswer, type SessionAnswer,
+} from "@/lib/qualification/lot17";
 
 interface Row {
   id: string;
