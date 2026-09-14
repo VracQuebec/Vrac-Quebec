@@ -103,6 +103,32 @@ export default function QualificationControlCenter({ rows }: { rows: CenterRow[]
   const [filters, setFilters] = useState<CenterFilters>({});
   const [page, setPage] = useState(0);
   const [cardIndex, setCardIndex] = useState(0);
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const { user } = useAuthReady();
+  const userId = user?.id ?? null;
+
+  // LOT 14 — lecture du journal (aucune écriture ici).
+  useEffect(() => {
+    if (rows.length === 0) return;
+    let active = true;
+    fetchJournal(rows.map((r) => r.id))
+      .then((list) => { if (active) setEntries(list); })
+      .catch(() => { /* journal indisponible : le centre reste utilisable en lecture */ });
+    return () => { active = false; };
+  }, [rows]);
+
+  const commit = (drafts: JournalDraft[]) => {
+    if (!writesEnabled()) {
+      toast.error("Écritures désactivées (qualification_writes_v2 = FALSE).");
+      return;
+    }
+    appendJournal(drafts)
+      .then((saved) => {
+        setEntries((prev) => [...prev, ...saved]);
+        toast.success(`${saved.length} décision(s) ajoutée(s) au journal.`);
+      })
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Enregistrement impossible."));
+  };
 
   const profiles = useMemo(
     () => rows.map((r) => buildAcceptanceProfile({
