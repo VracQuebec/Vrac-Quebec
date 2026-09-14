@@ -186,7 +186,8 @@ describe("LOT 16 — file, questions adaptatives et indicateurs", () => {
     expect(cards[0].priority.score).toBeGreaterThanOrEqual(cards[1].priority.score);
     const total = cards[0].counts.compatible + cards[0].counts.toConfirm + cards[0].counts.incompatible;
     expect(total).toBe(loads.length);
-    expect(countMatches(profileOf("terre acceptée"), loads)).toEqual(cards[0].counts);
+    const terre = cards.find((c) => c.reference === "DOMPE-1")!;
+    expect(countMatches(profileOf("terre acceptée"), loads)).toEqual(terre.counts);
   });
 
   it("calcule les indicateurs administrateur", () => {
