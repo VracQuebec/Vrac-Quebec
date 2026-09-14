@@ -11794,6 +11794,113 @@ export type Database = {
         }
         Relationships: []
       }
+      qualification_confirmations: {
+        Row: {
+          category: string
+          confidence_before_confirmation: string | null
+          confirmed_at: string
+          confirmed_by: string
+          confirmed_value: Json | null
+          created_at: string
+          decision: string
+          id: string
+          note: string | null
+          original_text: string | null
+          previous_value: Json | null
+          proposed_value: Json | null
+          source: string
+          subject: string
+          submission_id: string
+          supersedes_id: string | null
+        }
+        Insert: {
+          category: string
+          confidence_before_confirmation?: string | null
+          confirmed_at?: string
+          confirmed_by: string
+          confirmed_value?: Json | null
+          created_at?: string
+          decision: string
+          id?: string
+          note?: string | null
+          original_text?: string | null
+          previous_value?: Json | null
+          proposed_value?: Json | null
+          source?: string
+          subject: string
+          submission_id: string
+          supersedes_id?: string | null
+        }
+        Update: {
+          category?: string
+          confidence_before_confirmation?: string | null
+          confirmed_at?: string
+          confirmed_by?: string
+          confirmed_value?: Json | null
+          created_at?: string
+          decision?: string
+          id?: string
+          note?: string | null
+          original_text?: string | null
+          previous_value?: Json | null
+          proposed_value?: Json | null
+          source?: string
+          subject?: string
+          submission_id?: string
+          supersedes_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualification_confirmations_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "qualification_confirmations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qualification_term_proposals: {
+        Row: {
+          context: string | null
+          created_at: string
+          decision: string | null
+          id: string
+          occurrences: number
+          proposed_material_key: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          term: string
+          term_norm: string
+          updated_at: string
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          decision?: string | null
+          id?: string
+          occurrences?: number
+          proposed_material_key?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          term: string
+          term_norm: string
+          updated_at?: string
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          decision?: string | null
+          id?: string
+          occurrences?: number
+          proposed_material_key?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          term?: string
+          term_norm?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       route_cache: {
         Row: {
           cache_key: string

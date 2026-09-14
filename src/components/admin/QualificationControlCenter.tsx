@@ -4,7 +4,8 @@
 // qualification_control_center_v2 (faux par défaut).
 // Aucune écriture, aucune confirmation réelle, aucune communication.
 // ============================================================
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,10 @@ import {
 } from "@/lib/qualification/lot13";
 import { buildLoadFromInterpretation } from "@/lib/matching/compatibility";
 import { interpretChantier } from "@/lib/nlu/chantier";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import QualificationDecisionPanel from "@/components/admin/QualificationDecisionPanel";
+import { buildTermProposal, matchingDelta, type JournalDraft, type JournalEntry } from "@/lib/qualification/lot14";
+import { appendJournal, fetchJournal, upsertTermProposal, writesEnabled } from "@/lib/qualification/writes";
 
 export interface CenterRow {
   id: string;
@@ -38,9 +43,14 @@ function Counter({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ProfileCard({ p, potential }: { p: AcceptanceProfile; potential: number }) {
+function ProfileCard({ p, potential, entries, userId, onCommit, loads }: {
+  p: AcceptanceProfile; potential: number; entries: JournalEntry[];
+  userId: string | null; onCommit: (d: JournalDraft[]) => void;
+  loads: ReturnType<typeof buildLoadFromInterpretation>[];
+}) {
   const prio = computePriority(p, { potentialMatches: potential });
   const bulk = bulkConfirmEligibility(p);
+  const delta = matchingDelta(p, entries, loads.slice(0, 60));
   return (
     <div className="rounded-lg border border-border p-3 text-sm">
       <div className="flex flex-wrap items-center gap-2">
@@ -70,13 +80,20 @@ function ProfileCard({ p, potential }: { p: AcceptanceProfile; potential: number
         {" · "}Confirmation rapide : {bulk.eligible ? "admissible" : bulk.blockers.join(", ")}
       </p>
 
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        Matching interne AVANT : {delta.before.certain} certain(s) / {delta.before.potential} potentiel(s)
+        {" · "}APRÈS : {delta.after.certain} certain(s) / {delta.after.potential} potentiel(s)
+      </p>
+
       <div className="mt-2 flex flex-wrap gap-2">
-        {(["CONFIRMER", "CORRIGER", "PLUS_TARD", "IMPOSSIBLE"] as const).map((a) => (
+        {(["PLUS_TARD", "IMPOSSIBLE"] as const).map((a) => (
           <Button key={a} size="sm" variant="outline" disabled title={simulateQuickAction(p, a).description}>
-            {a === "CONFIRMER" ? "Confirmer tel quel" : a === "CORRIGER" ? "Corriger" : a === "PLUS_TARD" ? "Plus tard" : "Impossible à déterminer"}
+            {a === "PLUS_TARD" ? "Plus tard" : "Impossible à déterminer"}
           </Button>
         ))}
       </div>
+
+      <QualificationDecisionPanel profile={p} entries={entries} confirmedBy={userId} onCommit={onCommit} />
     </div>
   );
 }
@@ -86,6 +103,32 @@ export default function QualificationControlCenter({ rows }: { rows: CenterRow[]
   const [filters, setFilters] = useState<CenterFilters>({});
   const [page, setPage] = useState(0);
   const [cardIndex, setCardIndex] = useState(0);
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const { user } = useAuthReady();
+  const userId = user?.id ?? null;
+
+  // LOT 14 — lecture du journal (aucune écriture ici).
+  useEffect(() => {
+    if (rows.length === 0) return;
+    let active = true;
+    fetchJournal(rows.map((r) => r.id))
+      .then((list) => { if (active) setEntries(list); })
+      .catch(() => { /* journal indisponible : le centre reste utilisable en lecture */ });
+    return () => { active = false; };
+  }, [rows]);
+
+  const commit = (drafts: JournalDraft[]) => {
+    if (!writesEnabled()) {
+      toast.error("Écritures désactivées (qualification_writes_v2 = FALSE).");
+      return;
+    }
+    appendJournal(drafts)
+      .then((saved) => {
+        setEntries((prev) => [...prev, ...saved]);
+        toast.success(`${saved.length} décision(s) ajoutée(s) au journal.`);
+      })
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Enregistrement impossible."));
+  };
 
   const profiles = useMemo(
     () => rows.map((r) => buildAcceptanceProfile({
@@ -180,7 +223,10 @@ export default function QualificationControlCenter({ rows }: { rows: CenterRow[]
 
         <TabsContent value="liste" className="mt-3 space-y-3">
           {pageItems.map((p) => (
-            <ProfileCard key={p.submissionId} p={p} potential={potential.get(p.submissionId) ?? 0} />
+            <ProfileCard
+              key={p.submissionId} p={p} potential={potential.get(p.submissionId) ?? 0}
+              entries={entries} userId={userId} onCommit={commit} loads={loads}
+            />
           ))}
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage((n) => n - 1)}>Précédent</Button>
@@ -244,12 +290,27 @@ export default function QualificationControlCenter({ rows }: { rows: CenterRow[]
           ))}
         </TabsContent>
 
-        <TabsContent value="termes" className="mt-3 space-y-1 text-xs">
-          <p className="text-muted-foreground">Aucun alias n'est créé automatiquement : proposition seulement.</p>
+        <TabsContent value="termes" className="mt-3 space-y-2 text-xs">
+          <p className="text-muted-foreground">
+            Aucun alias n'est créé automatiquement : un administrateur doit décider, terme par terme.
+          </p>
           {terms.map((t) => (
-            <p key={t.term}>
-              « {t.term} » — {t.frequency} demande(s) · proposition : {t.proposedClassification}
-            </p>
+            <div key={t.term} className="flex flex-col gap-2 border-t border-border pt-2 sm:flex-row sm:items-center sm:justify-between">
+              <span>« {t.term} » — {t.frequency} demande(s) · proposition : {t.proposedClassification}</span>
+              <Button
+                size="sm" variant="outline" className="h-9"
+                disabled={!writesEnabled() || !userId}
+                onClick={() => {
+                  upsertTermProposal(buildTermProposal({
+                    term: t.term, occurrences: t.frequency, context: t.contexts[0] ?? null,
+                  }))
+                    .then(() => toast.success("Terme envoyé à la file de décision administrateur."))
+                    .catch((e) => toast.error(e instanceof Error ? e.message : "Envoi impossible."));
+                }}
+              >
+                Mettre en file de décision
+              </Button>
+            </div>
           ))}
         </TabsContent>
 
