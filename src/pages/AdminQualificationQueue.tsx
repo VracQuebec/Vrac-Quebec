@@ -276,26 +276,58 @@ export default function AdminQualificationQueue() {
               </span>
             </div>
 
-            <p className="mt-2 text-xs text-muted-foreground">
-              {card.potential} chargement(s) simulé(s) · {card.counts.compatible} probable(s) ·{" "}
-              {card.counts.toConfirm} bloqué(s) par une information manquante · {card.counts.incompatible} incompatible(s)
-            </p>
+            {(() => {
+              const p = profiles.get(card.submissionId);
+              const op = p ? buildOperatorCard(card, p) : null;
+              if (!op) return null;
+              return (
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    {op.sector} · {op.availabilityLabel} · {op.freshnessLabel} · {op.capacityLabel}
+                  </p>
 
-            {card.recommended && (
-              <div className="mt-2 rounded-md bg-muted/40 p-2">
-                <p className="text-sm font-medium">Question recommandée : {card.recommended.text}</p>
-                <p className="text-xs text-muted-foreground">
-                  Impact estimé : +{Math.max(0, card.estimatedGain)} match(s) potentiel(s) · {card.recommended.reason}
-                </p>
-              </div>
-            )}
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-md bg-muted/30 p-2">
+                      <p className="text-xs font-semibold">Ce qui est certain</p>
+                      <p className="text-xs text-muted-foreground">
+                        {op.confirmedMaterials.length ? op.confirmedMaterials.join(", ") : "Rien de confirmé avec le client."}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold">Refusé</p>
+                      <p className="text-xs text-muted-foreground">
+                        {op.refusedMaterials.length ? op.refusedMaterials.join(", ") : "Aucun refus au dossier."}
+                      </p>
+                    </div>
+                    <div className="rounded-md bg-muted/30 p-2">
+                      <p className="text-xs font-semibold">Possible, à valider</p>
+                      <p className="text-xs text-muted-foreground">
+                        {op.possibleMaterials.length ? op.possibleMaterials.join(", ") : "Rien à valider pour l'instant."}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold">Ce qui manque</p>
+                      <p className="text-xs text-muted-foreground">
+                        {op.missingInformation.length ? op.missingInformation.join(", ") : "Rien ne manque."}
+                      </p>
+                    </div>
+                  </div>
 
-            <p className="mt-1 text-[11px] text-muted-foreground">{card.priority.reasons.join(" · ")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {op.probableMatches} chargement(s) qui passeraient · {op.blockedMatches} bloqué(s) faute d'information ·{" "}
+                    jusqu'à {op.unlockPotential} de plus avec une réponse · {op.confidenceLabel}
+                  </p>
+
+                  {op.nextQuestion && (
+                    <div className="rounded-md border border-primary/30 bg-primary/5 p-2">
+                      <p className="text-sm font-semibold leading-snug">À demander : {op.nextQuestion}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Pourquoi cet appel : {op.whyThisCall}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <Button
-              size="sm"
+              size="lg"
               variant="outline"
-              className="mt-2"
+              className="mt-3 w-full sm:w-auto"
               onClick={() => setOpenId(openId === card.submissionId ? null : card.submissionId)}
             >
               {openId === card.submissionId ? "Fermer" : "Qualification rapide (simulation)"}
