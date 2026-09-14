@@ -300,12 +300,14 @@ export function buildAcceptanceProfile(input: ProfileInput): AcceptanceProfile {
   const unknown: ProfiledMaterial[] = [];
 
   for (const d of proposal.detected) {
+    if (isUsageExpression(d.originalExpression)) continue; // 18. usage ≠ matériau
     const item = toProfiled(d.materialKey, d.status, d.source, d.confidence, d.originalExpression);
     if (d.status === "REFUSED") refused.push(item);
     else if (d.status === "ACCEPTED") accepted.push(item);
     else unknown.push(item);
   }
   for (const d of proposal.toConfirm) {
+    if (isUsageExpression(d.originalExpression)) continue;
     unknown.push(toProfiled(d.materialKey, "UNKNOWN", d.source, d.confidence, d.originalExpression));
   }
 
