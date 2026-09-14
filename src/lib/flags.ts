@@ -22,6 +22,8 @@ export const FEATURE_FLAGS = {
   material_enrichment_v2: false,
   /** File intelligente de qualification des demandes de remblai (LOT 16) — interne. */
   qualification_queue_v2: false,
+  /** Moteur d'impact « qualification → match » (LOT 18) — simulation interne. */
+  match_impact_v2: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS;

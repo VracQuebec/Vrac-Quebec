@@ -26,6 +26,12 @@ import {
 import {
   TEST_MODE_BADGE, buildOperatorCard, recordSessionAnswer, type SessionAnswer,
 } from "@/lib/qualification/lot17";
+// LOT 18 — impact réel des réponses sur les matchs (simulation, aucune écriture).
+import {
+  buildExplorerRows, countStates, evaluateQualificationImpact,
+  MATCH_STATE_LABELS, type QualificationImpact, type StateCounts,
+} from "@/lib/matching/impact";
+import { displayCity } from "@/lib/text/display";
 
 interface Row {
   id: string;
@@ -55,8 +61,9 @@ function CallMode({
   const [log, setLog] = useState<string[]>([]);
   // LOT 17 — les réponses vivent uniquement en mémoire de session.
   const [session, setSession] = useState<SessionAnswer[]>([]);
-  const loads = useMemo(() => card.questions.length ? [] : [], [card]);
-  void loads;
+  // LOT 18 — dernier impact calculé (avant / après) et explorateur de matchs.
+  const [lastImpact, setLastImpact] = useState<QualificationImpact | null>(null);
+  const [showExplorer, setShowExplorer] = useState(false);
 
   const simulationLoads = useMemo(
     () => [
@@ -66,12 +73,22 @@ function CallMode({
     ],
     [],
   );
+  const impactLoads = useMemo(() => simulationLoads.map((load) => ({ load })), [simulationLoads]);
 
   const question = nextQuestion(current, simulationLoads, skipped);
+
+  // Impact estimé AVANT que l'employé réponde (réponse favorable simulée).
+  const preview = useMemo(
+    () => (question ? evaluateQualificationImpact({ profile: current, loads: impactLoads, question, answer: "OUI" }) : null),
+    [current, impactLoads, question],
+  );
 
   const answer = (kind: AnswerKind, detail: AnswerDetail = {}) => {
     if (!question) return;
     const impact = answerImpact(current, simulationLoads, question, kind, detail);
+    const matchImpact = evaluateQualificationImpact({
+      profile: current, loads: impactLoads, question, answer: kind, detail,
+    });
     const draft = answerToJournalDraft({
       profile: current, question, answer: kind, detail, confirmedBy: "simulation",
     });
@@ -80,10 +97,13 @@ function CallMode({
       (draft ? ` · journal simulé (${draft.category}:${draft.subject})` : " · aucune écriture"),
       ...l,
     ]);
+    setLastImpact(matchImpact);
     setSession((s) => recordSessionAnswer(s, question.id, kind, detail));
     setCurrent(simulateAnswer(current, question, kind, detail));
     setSkipped((s) => [...s, question.id]);
   };
+
+  const explorerRows = showExplorer ? buildExplorerRows(current, impactLoads) : [];
 
   return (
     <div className="mt-3 rounded-lg border border-primary/40 bg-muted/20 p-3">
@@ -91,7 +111,8 @@ function CallMode({
         <PhoneCall className="h-4 w-4" />
         <span className="font-semibold">Qualification rapide</span>
         <span className="text-muted-foreground">
-          {card.contactName ?? "Contact inconnu"} · {card.phone ?? "téléphone inconnu"} · {card.city ?? "ville inconnue"}
+          {card.contactName ?? "Contact inconnu"} · {card.phone ?? "téléphone inconnu"} ·{" "}
+          {displayCity(card.city, "ville inconnue")}
         </span>
         <Button size="sm" variant="ghost" className="ml-auto" onClick={onClose}>Terminer</Button>
       </div>
@@ -107,6 +128,11 @@ function CallMode({
           <p className="text-xs text-muted-foreground">
             Cette réponse pourrait débloquer environ {question.unlocked} match(s). ({question.reason})
           </p>
+          {preview && (
+            <p className="text-xs text-muted-foreground">
+              Impact simulé si la réponse est « oui » : {preview.summary}
+            </p>
+          )}
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
             {ANSWERS.map((a) => (
               <Button key={a} size="lg" variant={a === "OUI" ? "default" : "outline"} onClick={() => answer(a)}>
@@ -127,6 +153,47 @@ function CallMode({
         </>
       ) : (
         <p className="mt-3 text-sm text-muted-foreground">Aucune autre question utile pour l'instant.</p>
+      )}
+
+      {/* LOT 18 — effet réel de la dernière réponse sur les chargements simulés. */}
+      {lastImpact && (
+        <div className="mt-3 rounded-md border border-border bg-background/60 p-2">
+          <p className="text-xs font-semibold">Avant / après cette réponse</p>
+          <p className="text-xs text-muted-foreground">{lastImpact.summary}</p>
+          <div className="mt-2 grid gap-1 sm:grid-cols-2">
+            {(Object.keys(MATCH_STATE_LABELS) as (keyof StateCounts)[]).map((state) => (
+              <p key={state} className="text-[11px] text-muted-foreground">
+                {MATCH_STATE_LABELS[state]} : {lastImpact.before[state]} → {lastImpact.after[state]}
+              </p>
+            ))}
+          </div>
+          {lastImpact.transitions.length > 0 && (
+            <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground">
+              {lastImpact.transitions.map((t, i) => <li key={i}>• {t.reason}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <Button
+        size="sm"
+        variant="ghost"
+        className="mt-2 w-full sm:w-auto"
+        onClick={() => setShowExplorer((v) => !v)}
+      >
+        {showExplorer ? "Masquer les matchs concernés" : "Voir les matchs concernés"}
+      </Button>
+
+      {showExplorer && (
+        <div className="mt-2 space-y-1">
+          {explorerRows.map((row) => (
+            <div key={row.loadId} className="rounded-md bg-muted/30 p-2 text-[11px] text-muted-foreground">
+              <p className="font-semibold text-foreground">{row.source} — {row.stateLabel}</p>
+              <p>{row.quantity} · {row.location} · {row.distance} · {row.capacity}</p>
+              <p>Blocage : {row.blockingReason} · À clarifier : {row.nextClarification}</p>
+            </div>
+          ))}
+        </div>
       )}
 
       {log.length > 0 && (
@@ -265,7 +332,7 @@ export default function AdminQualificationQueue() {
           <div key={card.submissionId} className="rounded-lg border border-border p-3 text-sm">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold">{card.reference ?? card.submissionId.slice(0, 8)}</span>
-              {card.city && <span className="text-muted-foreground">{card.city}</span>}
+              {card.city && <span className="text-muted-foreground">{displayCity(card.city)}</span>}
               <Badge variant={card.available ? "default" : "outline"}>
                 {card.available ? "Disponible" : "Non disponible"}
                 {card.freshness.state === "CONFIRMEE" ? "" : card.freshness.state === "A_REVALIDER" ? " — À revalider" : " — Jamais confirmée"}
