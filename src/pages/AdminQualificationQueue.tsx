@@ -98,6 +98,7 @@ function CallMode({
       <p className="mt-1 text-xs text-muted-foreground">
         Disponibilité : {card.available ? "disponible" : "non disponible"} · Dernière confirmation :{" "}
         {card.freshness.lastConfirmedAt ?? "jamais"} · Aucun appel n'est déclenché automatiquement.
+        {session.length > 0 && ` · ${session.length} réponse(s) gardée(s) en mémoire seulement.`}
       </p>
 
       {question ? (
