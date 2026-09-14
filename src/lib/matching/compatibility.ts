@@ -155,12 +155,24 @@ export function evaluateMaterialCompatibility(
 
     // 1) Un refus explicite (restriction ou règle REFUSED) bat tout le reste.
     const restricted = request.restrictions.some(
-      (r) => r.kind === "MATERIAU" && r.materialKey === c.materialKey,
+      (r) => r.kind === "MATERIAU" && r.materialKey === c.materialKey && !r.ambiguous,
+    );
+    const restrictedMaybe = request.restrictions.some(
+      (r) => r.kind === "MATERIAU" && r.materialKey === c.materialKey && r.ambiguous,
     );
     const rule = request.materials.find((m) => m.materialKey === c.materialKey);
     if (restricted || rule?.status === "REFUSED") {
       refused.push(c.materialKey);
       reasons.push({ level: "BLOCKER", code: "MATERIAL_REFUSED", label: `${label} explicitement refusé`, materialKey: c.materialKey });
+      continue;
+    }
+    if (restrictedMaybe && rule?.status !== "ACCEPTED") {
+      unknown.push(c.materialKey);
+      reasons.push({
+        level: "REVIEW", code: "MATERIAL_UNKNOWN",
+        label: `${label} : limite évoquée sans refus clair — à confirmer`,
+        materialKey: c.materialKey,
+      });
       continue;
     }
 
