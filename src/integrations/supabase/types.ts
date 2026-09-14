@@ -9052,6 +9052,126 @@ export type Database = {
         }
         Relationships: []
       }
+      material_offers: {
+        Row: {
+          address: string | null
+          availability_end: string | null
+          availability_start: string | null
+          city: string | null
+          created_at: string
+          declared_clean: boolean | null
+          declared_contaminated: boolean | null
+          environmental_status: string
+          geocoding_source: string | null
+          granulometry_approximate: boolean
+          granulometry_max_inches: number | null
+          granulometry_min_inches: number | null
+          id: string
+          latitude: number | null
+          location_raw: string | null
+          longitude: number | null
+          max_radius_km: number | null
+          notes: string | null
+          owner_user_id: string | null
+          parser_confidence: number | null
+          parser_version: string | null
+          principal_material: string | null
+          qualification_status: string
+          quantity_approximate: boolean
+          quantity_unit: string | null
+          quantity_value: number | null
+          raw_description: string | null
+          region: string | null
+          secondary_materials: string[]
+          sector: string | null
+          source_id: string | null
+          source_type: string
+          status: string
+          trace_materials: string[]
+          trip_count: number | null
+          updated_at: string
+          vehicle_type: string | null
+        }
+        Insert: {
+          address?: string | null
+          availability_end?: string | null
+          availability_start?: string | null
+          city?: string | null
+          created_at?: string
+          declared_clean?: boolean | null
+          declared_contaminated?: boolean | null
+          environmental_status?: string
+          geocoding_source?: string | null
+          granulometry_approximate?: boolean
+          granulometry_max_inches?: number | null
+          granulometry_min_inches?: number | null
+          id?: string
+          latitude?: number | null
+          location_raw?: string | null
+          longitude?: number | null
+          max_radius_km?: number | null
+          notes?: string | null
+          owner_user_id?: string | null
+          parser_confidence?: number | null
+          parser_version?: string | null
+          principal_material?: string | null
+          qualification_status?: string
+          quantity_approximate?: boolean
+          quantity_unit?: string | null
+          quantity_value?: number | null
+          raw_description?: string | null
+          region?: string | null
+          secondary_materials?: string[]
+          sector?: string | null
+          source_id?: string | null
+          source_type?: string
+          status?: string
+          trace_materials?: string[]
+          trip_count?: number | null
+          updated_at?: string
+          vehicle_type?: string | null
+        }
+        Update: {
+          address?: string | null
+          availability_end?: string | null
+          availability_start?: string | null
+          city?: string | null
+          created_at?: string
+          declared_clean?: boolean | null
+          declared_contaminated?: boolean | null
+          environmental_status?: string
+          geocoding_source?: string | null
+          granulometry_approximate?: boolean
+          granulometry_max_inches?: number | null
+          granulometry_min_inches?: number | null
+          id?: string
+          latitude?: number | null
+          location_raw?: string | null
+          longitude?: number | null
+          max_radius_km?: number | null
+          notes?: string | null
+          owner_user_id?: string | null
+          parser_confidence?: number | null
+          parser_version?: string | null
+          principal_material?: string | null
+          qualification_status?: string
+          quantity_approximate?: boolean
+          quantity_unit?: string | null
+          quantity_value?: number | null
+          raw_description?: string | null
+          region?: string | null
+          secondary_materials?: string[]
+          sector?: string | null
+          source_id?: string | null
+          source_type?: string
+          status?: string
+          trace_materials?: string[]
+          trip_count?: number | null
+          updated_at?: string
+          vehicle_type?: string | null
+        }
+        Relationships: []
+      }
       material_review_queue: {
         Row: {
           confidence: string

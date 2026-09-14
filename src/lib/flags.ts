@@ -26,6 +26,8 @@ export const FEATURE_FLAGS = {
   match_impact_v2: false,
   /** Interpréteur de langage de chantier (LOT 19) — admin/test seulement. */
   material_language_parser_v1: false,
+  /** Offres de matériaux réelles (LOT 20) — admin/test seulement. */
+  material_offers_v1: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS;
