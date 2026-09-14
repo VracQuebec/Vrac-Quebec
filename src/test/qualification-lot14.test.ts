@@ -292,8 +292,8 @@ describe("Lot 14 — termes non reconnus et apprentissage contrôlé", () => {
 
   it("alias créé seulement après décision humaine", () => {
     const p = buildTermProposal({ term: "garnotte", occurrences: 4 });
-    const alias = buildAliasFromDecision(p, "ALIAS_CREATED", "gravier", author())!;
-    expect(alias.material_keys).toEqual(["gravier"]);
+    const alias = buildAliasFromDecision(p, "ALIAS_CREATED", "pierre", author())!;
+    expect(alias.material_keys).toEqual(["pierre"]);
     expect(alias.validated_by_admin).toBe(true);
     expect(alias.notes).toContain("admin-1");
   });
