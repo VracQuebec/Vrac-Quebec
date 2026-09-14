@@ -605,7 +605,7 @@ export function classifyNoRelation(text: string): NoRelationClass {
   const t = (text || "").trim();
   if (!t) return "E";
   const i = interpretChantier(t, { direction: "RECEPTION" });
-  const mats = i.materials.filter((m) => m.key !== "materiel_inconnu");
+  const mats = usableMaterials(i);
   if (mats.length) {
     const best = Math.max(...mats.map((m) => m.confidence));
     if (best >= 0.9 && !hasUnknownCue(t)) return "A";
