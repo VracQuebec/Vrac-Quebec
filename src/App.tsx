@@ -247,6 +247,7 @@ const App = () => (
             <Route path="/admin/matching-lab" element={<AdminMatchingLab />} />
             <Route path="/admin/matching-simulation" element={<AdminMatchingSimulation />} />
             <Route path="/admin/qualification" element={<AdminMaterialQualification />} />
+            <Route path="/admin/qualification-remblai" element={<AdminQualificationQueue />} />
             <Route path="/admin/matching-engine" element={<AdminMatchingEngine />} />
             <Route path="/admin/apercu-parcours" element={<PreviewParcoursDompe />} />
             <Route path="/admin/apercu-besoin" element={<PreviewDemandeRemblai />} />
