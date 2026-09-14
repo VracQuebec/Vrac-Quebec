@@ -24,6 +24,8 @@ export const FEATURE_FLAGS = {
   qualification_queue_v2: false,
   /** Moteur d'impact « qualification → match » (LOT 18) — simulation interne. */
   match_impact_v2: false,
+  /** Interpréteur de langage de chantier (LOT 19) — admin/test seulement. */
+  material_language_parser_v1: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS;

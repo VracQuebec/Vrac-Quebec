@@ -32,6 +32,9 @@ import {
   MATCH_STATE_LABELS, type QualificationImpact, type StateCounts,
 } from "@/lib/matching/impact";
 import { displayCity } from "@/lib/text/display";
+// LOT 19 — explorateur de matchs débloquables + interpréteur de langage de chantier.
+import UnlockableMatchesPanel from "@/components/admin/UnlockableMatchesPanel";
+import MaterialLanguageLab from "@/components/admin/MaterialLanguageLab";
 
 interface Row {
   id: string;
@@ -213,6 +216,9 @@ export default function AdminQualificationQueue() {
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const enabled = isFeatureEnabled("qualification_queue_v2");
+  // LOT 19 — explorateur (toujours en simulation) et interpréteur (drapeau dédié).
+  const [showUnlockable, setShowUnlockable] = useState(false);
+  const parserEnabled = isFeatureEnabled("material_language_parser_v1");
 
   useEffect(() => {
     if (!isReady || !isAdmin) return;
@@ -266,6 +272,13 @@ export default function AdminQualificationQueue() {
 
   const indicators = queueIndicators(cards, 0);
 
+  // LOT 19 — profils transmis à l'explorateur et à l'interpréteur (lecture seule).
+  const profileEntries = useMemo(
+    () => cards.map((c) => ({ profile: profiles.get(c.submissionId)!, reference: c.reference ?? null }))
+      .filter((e) => e.profile),
+    [cards, profiles],
+  );
+
   if (!isReady || rolesLoading) {
     return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   }
@@ -297,7 +310,6 @@ export default function AdminQualificationQueue() {
           ["Suffisamment qualifiées", indicators.sufficientlyQualified],
           ["À enrichir", indicators.toEnrich],
           ["Questions prioritaires", indicators.priorityQuestions],
-          ["Matchs débloquables", indicators.unlockableMatches],
           ["Confirmées aujourd'hui", indicators.confirmedToday],
         ].map(([label, value]) => (
           <div key={label as string} className="rounded-lg border border-border p-2 text-center">
@@ -305,7 +317,23 @@ export default function AdminQualificationQueue() {
             <p className="text-[11px] text-muted-foreground">{label as string}</p>
           </div>
         ))}
+        {/* LOT 19 — le compteur devient une porte d'entrée vers l'explorateur. */}
+        <button
+          type="button"
+          onClick={() => setShowUnlockable((v) => !v)}
+          className="rounded-lg border border-primary/40 bg-primary/5 p-2 text-center"
+        >
+          <p className="text-lg font-bold">{indicators.unlockableMatches}</p>
+          <p className="text-[11px] text-muted-foreground">
+            Matchs débloquables {showUnlockable ? "— fermer" : "— ouvrir"}
+          </p>
+        </button>
       </div>
+
+      {showUnlockable && <UnlockableMatchesPanel entries={profileEntries} />}
+
+      {/* LOT 19 — interpréteur de langage de chantier (admin/test, drapeau dédié). */}
+      {parserEnabled && <MaterialLanguageLab requests={profileEntries} />}
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
         <Badge variant={enabled ? "secondary" : "outline"}>
