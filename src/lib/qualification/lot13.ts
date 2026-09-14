@@ -15,7 +15,7 @@
 // ============================================================
 
 import { MATERIAL_LABELS, type MaterialKey } from "@/lib/matching/interpreter";
-import { interpretChantier, type ChantierInterpretation } from "@/lib/nlu/chantier";
+import { interpretChantier, negationSpans, type ChantierInterpretation } from "@/lib/nlu/chantier";
 import {
   evaluateMaterialCompatibility, isSizeRelevant, maxAcceptedInches,
   type AcceptanceStatus, type CapacityKind, type CapacityUnit,
@@ -66,6 +66,16 @@ const norm = (t: string) =>
   (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
 
 export const isUsageOnlyTerm = (text: string) => USAGE_PATTERNS.some((r) => r.test(norm(text)));
+
+/** 18. Une expression d'usage (« remplissage ») ne devient jamais un matériau. */
+export const isUsageExpression = (expression: string) => {
+  const t = norm(expression);
+  return t.length > 0 && USAGE_PATTERNS.some((r) => r.test(t));
+};
+
+/** Matériaux réellement exploitables : usage et « matériel inconnu » exclus. */
+export const usableMaterials = (i: ChantierInterpretation) =>
+  i.materials.filter((m) => m.key !== "materiel_inconnu" && !isUsageExpression(m.matchedExpression));
 export const hasUnknownCue = (text: string) => UNKNOWN_PATTERNS.some((r) => r.test(norm(text)));
 
 // ---------------- 6. Acceptation large ----------------
