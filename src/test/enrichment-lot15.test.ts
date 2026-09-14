@@ -37,7 +37,7 @@ describe("LOT 15 — profil d'acceptation enrichi", () => {
       decision: "ACCEPTED", confirmedValue: { status: "ACCEPTED" },
       author: { confirmedBy: "admin", now: new Date("2026-09-01T00:00:00Z") },
     });
-    const q = buildQualifiedProfile(base, [entry]);
+    const q = buildQualifiedProfile(base, [{ ...entry, id: "j1", createdAt: entry.createdAt ?? new Date().toISOString() }]);
     const p = buildEnrichedProfile(base, q);
     expect(stanceForMaterial(p, "terre")).toBe("ACCEPTE_CONFIRME");
   });
