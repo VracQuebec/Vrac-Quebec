@@ -20,6 +20,8 @@ export const FEATURE_FLAGS = {
   qualification_writes_v2: false,
   /** Enrichissement progressif + matching explicable (LOT 15) — interne. */
   material_enrichment_v2: false,
+  /** File intelligente de qualification des demandes de remblai (LOT 16) — interne. */
+  qualification_queue_v2: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS;
