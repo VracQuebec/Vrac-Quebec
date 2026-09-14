@@ -47,6 +47,12 @@ export interface Restriction {
   label: string;
   materialKey?: MaterialKey;
   maxInches?: number | null;
+  /**
+   * LOT 12 — vrai quand la formulation n'est PAS un refus certain
+   * (« pas trop de glaise »). Une restriction ambiguë ne bloque jamais :
+   * elle demande une validation humaine.
+   */
+  ambiguous?: boolean;
   /** Extrait du texte original ayant produit la restriction. */
   originalExpression: string;
 }
@@ -112,6 +118,90 @@ export const CHANTIER_EXTRA_SYNONYMS: SynonymEntry[] = [
   { expression: "mg-56", materialKeys: ["pierre"], confidence: "MOYENNE" },
   { expression: "poussiere", materialKeys: ["pierre"], confidence: "MOYENNE" },
   { expression: "poussiere de pierre", materialKeys: ["pierre"], confidence: "ELEVEE" },
+  // --- LOT 12 : glaise / argile et vocabulaire québécois complémentaire ---
+  { expression: "sol argileux", materialKeys: ["argile"], confidence: "ELEVEE" },
+  { expression: "materiel argileux", materialKeys: ["argile"], confidence: "ELEVEE" },
+  { expression: "materiau argileux", materialKeys: ["argile"], confidence: "ELEVEE" },
+  { expression: "clay", materialKeys: ["argile"], confidence: "ELEVEE" },
+  { expression: "terre glaise", materialKeys: ["terre", "argile"], confidence: "ELEVEE" },
+  { expression: "glaiseuse", materialKeys: ["argile"], confidence: "MOYENNE" },
+  { expression: "argileuse", materialKeys: ["argile"], confidence: "MOYENNE" },
+  { expression: "shale", materialKeys: ["roche"], confidence: "MOYENNE", note: "roche sédimentaire" },
+  { expression: "schiste", materialKeys: ["roche"], confidence: "MOYENNE", note: "roche sédimentaire" },
+  { expression: "pierre des champs", materialKeys: ["roche"], confidence: "ELEVEE" },
+  { expression: "petite pierre", materialKeys: ["pierre"], confidence: "ELEVEE" },
+  { expression: "petites pierres", materialKeys: ["pierre"], confidence: "ELEVEE" },
+  { expression: "terre vegetale", materialKeys: ["terre", "organique"], confidence: "ELEVEE" },
+  { expression: "top soil", materialKeys: ["terre", "organique"], confidence: "ELEVEE" },
+  { expression: "topsoil", materialKeys: ["terre", "organique"], confidence: "ELEVEE" },
+  { expression: "criblure", materialKeys: ["pierre"], confidence: "ELEVEE" },
+  { expression: "criblures", materialKeys: ["pierre"], confidence: "ELEVEE" },
+  { expression: "screening", materialKeys: ["pierre"], confidence: "MOYENNE" },
+  { expression: "mg 112", materialKeys: ["pierre"], confidence: "MOYENNE" },
+  { expression: "mg-112", materialKeys: ["pierre"], confidence: "MOYENNE" },
+  { expression: "pierre nette", materialKeys: ["pierre"], confidence: "ELEVEE" },
+  { expression: "pierre dynamitee", materialKeys: ["roche"], confidence: "ELEVEE" },
+  { expression: "roc dynamite", materialKeys: ["roche"], confidence: "ELEVEE" },
+  { expression: "roche dynamitee", materialKeys: ["roche"], confidence: "ELEVEE" },
+  { expression: "beton arme", materialKeys: ["beton"], confidence: "ELEVEE", note: "présence d'acier à valider" },
+  { expression: "fraisat", materialKeys: ["asphalte"], confidence: "ELEVEE" },
+  { expression: "asphalte recycle", materialKeys: ["asphalte"], confidence: "ELEVEE" },
+  { expression: "matiere organique", materialKeys: ["organique"], confidence: "ELEVEE" },
+  { expression: "debris de construction", materialKeys: ["materiel_inconnu"], confidence: "FAIBLE", note: "à qualifier" },
+  { expression: "rebus", materialKeys: ["materiel_inconnu"], confidence: "FAIBLE", note: "à qualifier" },
+];
+
+/**
+ * LOT 12 — audit du vocabulaire québécois : classement de chaque terme.
+ * Aucun matériau canonique n'est créé automatiquement à partir de cette table.
+ */
+export type TermClass =
+  | "MATERIAL" | "SUBTYPE" | "ALIAS" | "COMPOSITION" | "GRANULOMETRY"
+  | "CONDITION" | "RESTRICTION" | "USAGE" | "UNKNOWN";
+
+export const QUEBEC_TERM_AUDIT: { term: string; classification: TermClass; note?: string }[] = [
+  { term: "glaise", classification: "MATERIAL", note: "canonique Argile / glaise (existant)" },
+  { term: "argile", classification: "ALIAS", note: "→ Argile / glaise" },
+  { term: "terre glaiseuse", classification: "COMPOSITION", note: "terre + argile" },
+  { term: "terre argileuse", classification: "COMPOSITION", note: "terre + argile" },
+  { term: "sol argileux", classification: "ALIAS" },
+  { term: "materiel argileux", classification: "ALIAS" },
+  { term: "materiau argileux", classification: "ALIAS" },
+  { term: "clay", classification: "ALIAS" },
+  { term: "tuff", classification: "UNKNOWN", note: "terme régional, catégorie à valider" },
+  { term: "tuf", classification: "UNKNOWN", note: "terme régional, catégorie à valider" },
+  { term: "shale", classification: "SUBTYPE", note: "sous-type de roche" },
+  { term: "schiste", classification: "SUBTYPE", note: "sous-type de roche" },
+  { term: "cailloux", classification: "ALIAS", note: "→ pierre" },
+  { term: "petite pierre", classification: "GRANULOMETRY", note: "pierre + calibre qualitatif" },
+  { term: "grosses roches", classification: "GRANULOMETRY", note: "roche + calibre qualitatif" },
+  { term: "pierre des champs", classification: "SUBTYPE" },
+  { term: "terre noire", classification: "SUBTYPE", note: "terre + matière organique" },
+  { term: "top soil", classification: "ALIAS", note: "→ terre végétale" },
+  { term: "terre vegetale", classification: "SUBTYPE" },
+  { term: "terre de remplissage", classification: "USAGE", note: "usage, pas un matériau" },
+  { term: "terre d excavation", classification: "SUBTYPE" },
+  { term: "materiel d excavation", classification: "USAGE" },
+  { term: "criblure", classification: "SUBTYPE" },
+  { term: "screening", classification: "ALIAS", note: "→ criblure" },
+  { term: "0-3/4", classification: "GRANULOMETRY" },
+  { term: "0-2 1/2", classification: "GRANULOMETRY" },
+  { term: "mg-20", classification: "GRANULOMETRY" },
+  { term: "mg-56", classification: "GRANULOMETRY" },
+  { term: "mg-112", classification: "GRANULOMETRY" },
+  { term: "pierre nette", classification: "SUBTYPE" },
+  { term: "pierre dynamitee", classification: "SUBTYPE" },
+  { term: "roc dynamite", classification: "SUBTYPE" },
+  { term: "beton casse", classification: "SUBTYPE" },
+  { term: "beton arme", classification: "SUBTYPE", note: "présence d'acier à valider" },
+  { term: "asphalte", classification: "MATERIAL" },
+  { term: "planage d asphalte", classification: "SUBTYPE" },
+  { term: "fraisat", classification: "ALIAS", note: "→ planage d'asphalte" },
+  { term: "souches", classification: "MATERIAL", note: "organique, souvent refusé" },
+  { term: "racines", classification: "MATERIAL", note: "organique" },
+  { term: "matiere organique", classification: "MATERIAL" },
+  { term: "propre", classification: "CONDITION", note: "déclaration, jamais une certification" },
+  { term: "contamine", classification: "RESTRICTION", note: "déclaration environnementale" },
 ];
 
 export const chantierSynonyms = (extra: SynonymEntry[] = []): SynonymEntry[] => [
