@@ -223,7 +223,10 @@ export default function QualificationControlCenter({ rows }: { rows: CenterRow[]
 
         <TabsContent value="liste" className="mt-3 space-y-3">
           {pageItems.map((p) => (
-            <ProfileCard key={p.submissionId} p={p} potential={potential.get(p.submissionId) ?? 0} />
+            <ProfileCard
+              key={p.submissionId} p={p} potential={potential.get(p.submissionId) ?? 0}
+              entries={entries} userId={userId} onCommit={commit} loads={loads}
+            />
           ))}
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage((n) => n - 1)}>Précédent</Button>
