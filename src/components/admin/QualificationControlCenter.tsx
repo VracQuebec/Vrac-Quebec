@@ -20,7 +20,7 @@ import { buildLoadFromInterpretation } from "@/lib/matching/compatibility";
 import { interpretChantier } from "@/lib/nlu/chantier";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import QualificationDecisionPanel from "@/components/admin/QualificationDecisionPanel";
-import { matchingDelta, type JournalDraft, type JournalEntry } from "@/lib/qualification/lot14";
+import { buildTermProposal, matchingDelta, type JournalDraft, type JournalEntry } from "@/lib/qualification/lot14";
 import { appendJournal, fetchJournal, upsertTermProposal, writesEnabled } from "@/lib/qualification/writes";
 
 export interface CenterRow {
