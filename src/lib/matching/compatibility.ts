@@ -103,10 +103,23 @@ export interface CompatibilityEvaluation {
 
 const inches = (n: number | null | undefined) => (typeof n === "number" ? n : null);
 
+/**
+ * LOT 12 — matériaux pour lesquels une limite de calibre est PERTINENTE.
+ * Une limite « roche maximum 18 po » ne concerne pas un chargement de terre :
+ * elle ne doit donc jamais provoquer de « à confirmer ».
+ */
+export const SIZE_RELEVANT_KEYS: MaterialKey[] = ["pierre", "roche", "beton", "asphalte", "materiel_inconnu"];
+
+export const isSizeRelevant = (key: MaterialKey) => SIZE_RELEVANT_KEYS.includes(key);
+
 /** Dimension maximale imposée par la demande (restrictions + règles matériau). */
 export function maxAcceptedInches(profile: FillRequestProfile, key?: MaterialKey): number | null {
+  if (key && !isSizeRelevant(key)) return null;
   const values = [
-    ...profile.restrictions.filter((r) => r.kind === "DIMENSION").map((r) => inches(r.maxInches)),
+    ...profile.restrictions
+      .filter((r) => r.kind === "DIMENSION" && !r.ambiguous)
+      .filter((r) => !key || !r.materialKey || r.materialKey === key)
+      .map((r) => inches(r.maxInches)),
     ...profile.materials
       .filter((m) => (key ? m.materialKey === key : true) && m.status === "ACCEPTED")
       .map((m) => inches(m.maxInches)),
