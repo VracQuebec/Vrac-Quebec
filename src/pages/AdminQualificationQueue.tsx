@@ -212,7 +212,12 @@ export default function AdminQualificationQueue() {
         <ArrowLeft className="h-4 w-4" /> Administration
       </Link>
 
-      <h1 className="mt-3 flex items-center gap-2 font-display text-2xl font-bold">
+      {/* LOT 17 — bandeau permanent : rien n'est jamais enregistré depuis cet écran. */}
+      <div className="sticky top-0 z-20 -mx-4 mt-3 border-y border-primary/40 bg-primary/10 px-4 py-2 text-center text-xs font-semibold uppercase tracking-wide sm:-mx-6 sm:px-6">
+        {TEST_MODE_BADGE}
+      </div>
+
+      <h1 className="mt-3 flex items-center gap-2 font-display text-xl font-bold sm:text-2xl">
         <ListFilter className="h-6 w-6" /> File de qualification des demandes de remblai
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
