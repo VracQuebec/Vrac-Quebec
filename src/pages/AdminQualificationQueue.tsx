@@ -155,6 +155,47 @@ function CallMode({
         <p className="mt-3 text-sm text-muted-foreground">Aucune autre question utile pour l'instant.</p>
       )}
 
+      {/* LOT 18 — effet réel de la dernière réponse sur les chargements simulés. */}
+      {lastImpact && (
+        <div className="mt-3 rounded-md border border-border bg-background/60 p-2">
+          <p className="text-xs font-semibold">Avant / après cette réponse</p>
+          <p className="text-xs text-muted-foreground">{lastImpact.summary}</p>
+          <div className="mt-2 grid gap-1 sm:grid-cols-2">
+            {(Object.keys(MATCH_STATE_LABELS) as (keyof StateCounts)[]).map((state) => (
+              <p key={state} className="text-[11px] text-muted-foreground">
+                {MATCH_STATE_LABELS[state]} : {lastImpact.before[state]} → {lastImpact.after[state]}
+              </p>
+            ))}
+          </div>
+          {lastImpact.transitions.length > 0 && (
+            <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground">
+              {lastImpact.transitions.map((t, i) => <li key={i}>• {t.reason}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <Button
+        size="sm"
+        variant="ghost"
+        className="mt-2 w-full sm:w-auto"
+        onClick={() => setShowExplorer((v) => !v)}
+      >
+        {showExplorer ? "Masquer les matchs concernés" : "Voir les matchs concernés"}
+      </Button>
+
+      {showExplorer && (
+        <div className="mt-2 space-y-1">
+          {explorerRows.map((row) => (
+            <div key={row.loadId} className="rounded-md bg-muted/30 p-2 text-[11px] text-muted-foreground">
+              <p className="font-semibold text-foreground">{row.source} — {row.stateLabel}</p>
+              <p>{row.quantity} · {row.location} · {row.distance} · {row.capacity}</p>
+              <p>Blocage : {row.blockingReason} · À clarifier : {row.nextClarification}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {log.length > 0 && (
         <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
           {log.map((l, i) => <li key={i}>• {l}</li>)}
