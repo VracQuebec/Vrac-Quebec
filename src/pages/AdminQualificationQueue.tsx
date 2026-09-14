@@ -61,8 +61,9 @@ function CallMode({
   const [log, setLog] = useState<string[]>([]);
   // LOT 17 — les réponses vivent uniquement en mémoire de session.
   const [session, setSession] = useState<SessionAnswer[]>([]);
-  const loads = useMemo(() => card.questions.length ? [] : [], [card]);
-  void loads;
+  // LOT 18 — dernier impact calculé (avant / après) et explorateur de matchs.
+  const [lastImpact, setLastImpact] = useState<QualificationImpact | null>(null);
+  const [showExplorer, setShowExplorer] = useState(false);
 
   const simulationLoads = useMemo(
     () => [
@@ -72,12 +73,22 @@ function CallMode({
     ],
     [],
   );
+  const impactLoads = useMemo(() => simulationLoads.map((load) => ({ load })), [simulationLoads]);
 
   const question = nextQuestion(current, simulationLoads, skipped);
+
+  // Impact estimé AVANT que l'employé réponde (réponse favorable simulée).
+  const preview = useMemo(
+    () => (question ? evaluateQualificationImpact({ profile: current, loads: impactLoads, question, answer: "OUI" }) : null),
+    [current, impactLoads, question],
+  );
 
   const answer = (kind: AnswerKind, detail: AnswerDetail = {}) => {
     if (!question) return;
     const impact = answerImpact(current, simulationLoads, question, kind, detail);
+    const matchImpact = evaluateQualificationImpact({
+      profile: current, loads: impactLoads, question, answer: kind, detail,
+    });
     const draft = answerToJournalDraft({
       profile: current, question, answer: kind, detail, confirmedBy: "simulation",
     });
@@ -86,10 +97,13 @@ function CallMode({
       (draft ? ` · journal simulé (${draft.category}:${draft.subject})` : " · aucune écriture"),
       ...l,
     ]);
+    setLastImpact(matchImpact);
     setSession((s) => recordSessionAnswer(s, question.id, kind, detail));
     setCurrent(simulateAnswer(current, question, kind, detail));
     setSkipped((s) => [...s, question.id]);
   };
+
+  const explorerRows = showExplorer ? buildExplorerRows(current, impactLoads) : [];
 
   return (
     <div className="mt-3 rounded-lg border border-primary/40 bg-muted/20 p-3">
@@ -97,7 +111,8 @@ function CallMode({
         <PhoneCall className="h-4 w-4" />
         <span className="font-semibold">Qualification rapide</span>
         <span className="text-muted-foreground">
-          {card.contactName ?? "Contact inconnu"} · {card.phone ?? "téléphone inconnu"} · {card.city ?? "ville inconnue"}
+          {card.contactName ?? "Contact inconnu"} · {card.phone ?? "téléphone inconnu"} ·{" "}
+          {displayCity(card.city, "ville inconnue")}
         </span>
         <Button size="sm" variant="ghost" className="ml-auto" onClick={onClose}>Terminer</Button>
       </div>
