@@ -269,7 +269,7 @@ export function buildQualifiedProfile(
   };
 
   // Base : propositions NLU / texte explicite / historique (jamais modifiées).
-  for (const m of profile.accepted) push(m.materialKey, "ACCEPTED", m.source === "historical_materials" ? "historical" : m.source === "original_text" ? "explicit_text" : m.confidence === "HAUTE" ? "nlu_high" : "nlu_medium", m.confidence, null);
+  for (const m of profile.accepted) push(m.materialKey, "ACCEPTED", m.source === "structured_historical" ? "historical" : m.source === "original_text" ? "explicit_text" : m.confidence === "HAUTE" ? "nlu_high" : "nlu_medium", m.confidence, null);
   for (const m of profile.refused) push(m.materialKey, "REFUSED", m.source === "original_text" ? "explicit_text" : "nlu_high", m.confidence, null);
   for (const m of profile.unknown) push(m.materialKey, "UNKNOWN", "unknown", "INCONNU", null);
 
