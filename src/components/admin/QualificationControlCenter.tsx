@@ -21,7 +21,7 @@ import { interpretChantier } from "@/lib/nlu/chantier";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import QualificationDecisionPanel from "@/components/admin/QualificationDecisionPanel";
 import { matchingDelta, type JournalDraft, type JournalEntry } from "@/lib/qualification/lot14";
-import { appendJournal, fetchJournal, writesEnabled } from "@/lib/qualification/writes";
+import { appendJournal, fetchJournal, upsertTermProposal, writesEnabled } from "@/lib/qualification/writes";
 
 export interface CenterRow {
   id: string;
@@ -301,7 +301,7 @@ export default function QualificationControlCenter({ rows }: { rows: CenterRow[]
                 size="sm" variant="outline" className="h-9"
                 disabled={!writesEnabled() || !userId}
                 onClick={() => {
-                  upsertTermProposal({ term: t.term, occurrences: t.frequency, contextSamples: t.examples ?? [] })
+                  upsertTermProposal({ term: t.term, occurrences: t.frequency, contextSamples: t.contexts })
                     .then(() => toast.success("Terme envoyé à la file de décision administrateur."))
                     .catch((e) => toast.error(e instanceof Error ? e.message : "Envoi impossible."));
                 }}
