@@ -93,7 +93,7 @@ function ProfileCard({ p, potential, entries, userId, onCommit, loads }: {
         ))}
       </div>
 
-      <QualificationDecisionPanel p={p} entries={entries} confirmedBy={userId} onCommit={onCommit} />
+      <QualificationDecisionPanel profile={p} entries={entries} confirmedBy={userId} onCommit={onCommit} />
     </div>
   );
 }
