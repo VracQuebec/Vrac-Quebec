@@ -322,6 +322,8 @@ export function negationSpans(text: string): Array<[number, number]> {
       const isWordStart = idx === 0 || /[\s,.;]/.test(before.slice(-1));
       if (!isWordStart) continue;
       if (/^pas mal/.test(after)) continue; // « pas mal de terre » = beaucoup
+      // « si possible pas de béton » / « de préférence pas de » = souhait, pas un refus ferme
+      if (/(?:si possible|de preference|idealement)\s*$/.test(text.slice(0, idx))) continue;
       const rest = text.slice(from);
       if (/^\s*trop\b/.test(rest)) continue; // « sans trop de glaise » = ambigu, pas un refus
       const stop = rest.search(/(?:\bmais\b|\.|;|\bpar contre\b)/);
