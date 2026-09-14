@@ -118,6 +118,7 @@ export default function AdminMaterialQualification() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [loading, setLoading] = useState(false);
   const flagOn = isFeatureEnabled("material_qualification_v2");
+  const centerOn = isFeatureEnabled("qualification_control_center_v2");
 
   useEffect(() => {
     if (!isReady || !isAdmin) return;
