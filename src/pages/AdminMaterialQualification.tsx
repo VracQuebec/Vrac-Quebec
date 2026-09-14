@@ -21,12 +21,15 @@ import {
   type QualificationProposal,
 } from "@/lib/qualification/lot12";
 
+import QualificationControlCenter, { type CenterRow } from "@/components/admin/QualificationControlCenter";
+
 interface Row {
   id: string;
   dompe_number: string | null;
   city: string | null;
   status: string | null;
   availability_status: string | null;
+  availability_confirmed_at?: string | null;
   description: string | null;
   other_material: string | null;
   materials: string[] | null;
