@@ -4,7 +4,8 @@
 // qualification_control_center_v2 (faux par défaut).
 // Aucune écriture, aucune confirmation réelle, aucune communication.
 // ============================================================
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,10 @@ import {
 } from "@/lib/qualification/lot13";
 import { buildLoadFromInterpretation } from "@/lib/matching/compatibility";
 import { interpretChantier } from "@/lib/nlu/chantier";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import QualificationDecisionPanel from "@/components/admin/QualificationDecisionPanel";
+import { matchingDelta, type JournalDraft, type JournalEntry } from "@/lib/qualification/lot14";
+import { appendJournal, fetchJournal, writesEnabled } from "@/lib/qualification/writes";
 
 export interface CenterRow {
   id: string;
