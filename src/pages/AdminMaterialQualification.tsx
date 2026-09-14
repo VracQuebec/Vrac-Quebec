@@ -22,6 +22,7 @@ import {
 } from "@/lib/qualification/lot12";
 
 import QualificationControlCenter, { type CenterRow } from "@/components/admin/QualificationControlCenter";
+import EnrichmentPanel from "@/components/admin/EnrichmentPanel";
 
 interface Row {
   id: string;
@@ -211,6 +212,8 @@ export default function AdminMaterialQualification() {
       {loading && <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Chargement…</div>}
 
       {centerOn && <QualificationControlCenter rows={centerRows} />}
+
+      {isFeatureEnabled("material_enrichment_v2") && <EnrichmentPanel rows={centerRows} />}
 
       <Tabs defaultValue="fast" className="mt-4">
         <TabsList className="flex w-full flex-wrap">
