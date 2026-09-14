@@ -224,8 +224,8 @@ export function toNormalizedConstraint(args: {
   const { profile, question, answer, detail = {}, testMode = true } = args;
   const material = question.category === "material" ? (question.subject as MaterialKey) : null;
   const reinforcement =
-    detail.note?.includes("sans armature") ? "WITHOUT"
-    : detail.note?.includes("avec armature") ? "WITH"
+    detail.rebar === true ? "WITH"
+    : detail.rebar === false ? "WITHOUT"
     : "UNKNOWN";
 
   return {
