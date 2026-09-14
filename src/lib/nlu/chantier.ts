@@ -410,6 +410,7 @@ export function interpretChantier(
   const base = interpretDescription(originalText, synonyms);
   const text = base.normalizedText;
   const spans = negationSpans(text);
+  const ambiguous = ambiguousSpans(text);
   const half = HALF_CUES.test(text);
 
   // --- Matériaux acceptés vs refusés (les négations deviennent des restrictions) ---
@@ -426,6 +427,17 @@ export function interpretChantier(
         kind: "MATERIAU",
         label: `pas de ${MATERIAL_LABELS[m.key]}`,
         materialKey: m.key,
+        originalExpression: m.matchedExpression,
+      });
+      return;
+    }
+    const uncertainNeg = idx >= 0 && ambiguous.some(([s, e]) => idx >= s && idx < e);
+    if (uncertainNeg) {
+      restrictions.push({
+        kind: "MATERIAU",
+        label: `limite possible sur ${MATERIAL_LABELS[m.key]} — à confirmer`,
+        materialKey: m.key,
+        ambiguous: true,
         originalExpression: m.matchedExpression,
       });
       return;
