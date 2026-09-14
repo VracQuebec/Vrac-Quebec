@@ -12,6 +12,8 @@ export const FEATURE_FLAGS = {
   material_assistant_v2: false,
   /** Compatibilité matériaux structurée (chargement ↔ demande de remblai). */
   material_matching_v2: false,
+  /** Qualification administrateur des demandes de remblai (LOT 12) — interne. */
+  material_qualification_v2: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS;
