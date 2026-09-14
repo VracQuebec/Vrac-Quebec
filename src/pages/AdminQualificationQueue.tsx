@@ -32,6 +32,9 @@ import {
   MATCH_STATE_LABELS, type QualificationImpact, type StateCounts,
 } from "@/lib/matching/impact";
 import { displayCity } from "@/lib/text/display";
+// LOT 19 — explorateur de matchs débloquables + interpréteur de langage de chantier.
+import UnlockableMatchesPanel from "@/components/admin/UnlockableMatchesPanel";
+import MaterialLanguageLab from "@/components/admin/MaterialLanguageLab";
 
 interface Row {
   id: string;
