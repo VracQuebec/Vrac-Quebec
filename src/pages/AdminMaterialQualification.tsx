@@ -123,7 +123,7 @@ export default function AdminMaterialQualification() {
     setLoading(true);
     supabase
       .from("submissions")
-      .select("id,dompe_number,city,status,availability_status,description,other_material,materials")
+      .select("id,dompe_number,city,status,availability_status,availability_confirmed_at,description,other_material,materials")
       .eq("request_type", "remblai")
       .order("created_at", { ascending: false })
       .limit(300)
