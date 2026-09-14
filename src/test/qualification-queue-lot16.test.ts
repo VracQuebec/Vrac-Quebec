@@ -200,7 +200,13 @@ describe("LOT 16 — file, questions adaptatives et indicateurs", () => {
   it("classe les cas à valider en A / B / C", () => {
     const c = classifyValidationCase(profileOf("terre acceptée"));
     expect(["A_ERREUR_INTERPRETATION", "B_INFORMATION_MANQUANTE", "C_CONFIRMATION_CLIENT"]).toContain(c.kind);
-    expect(classifyValidationCase(profileOf("on prend du matériel")).kind).toBe("A_ERREUR_INTERPRETATION");
+    expect(classifyValidationCase(profileOf("on prend du matériel")).kind).toBe("B_INFORMATION_MANQUANTE");
+    expect(
+      classifyValidationCase(profileOf("terre acceptée"), {
+        contradictions: [{ code: "SIZE_CONFLICT", label: "grosseurs contradictoires" }],
+        usageOnly: false,
+      } as never).kind,
+    ).toBe("A_ERREUR_INTERPRETATION");
   });
 
   it("produit un brouillon de journal traçable sans écrire", () => {
