@@ -216,6 +216,9 @@ export default function AdminQualificationQueue() {
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const enabled = isFeatureEnabled("qualification_queue_v2");
+  // LOT 19 — explorateur (toujours en simulation) et interpréteur (drapeau dédié).
+  const [showUnlockable, setShowUnlockable] = useState(false);
+  const parserEnabled = isFeatureEnabled("material_language_parser_v1");
 
   useEffect(() => {
     if (!isReady || !isAdmin) return;
