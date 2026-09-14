@@ -301,7 +301,9 @@ export default function QualificationControlCenter({ rows }: { rows: CenterRow[]
                 size="sm" variant="outline" className="h-9"
                 disabled={!writesEnabled() || !userId}
                 onClick={() => {
-                  upsertTermProposal({ term: t.term, occurrences: t.frequency, contextSamples: t.contexts })
+                  upsertTermProposal(buildTermProposal({
+                    term: t.term, occurrences: t.frequency, context: t.contexts[0] ?? null,
+                  }))
                     .then(() => toast.success("Terme envoyé à la file de décision administrateur."))
                     .catch((e) => toast.error(e instanceof Error ? e.message : "Envoi impossible."));
                 }}
