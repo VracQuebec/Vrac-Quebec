@@ -112,7 +112,12 @@ describe("LOT 17 — qualification rapide", () => {
     const q = buildQuestions(p, loads).find((x) => x.subject === "pierre")!;
     const after = simulateAnswer(p, q, "CA_DEPEND", { maxInches: 12 });
     const pierre = after.materials.find((m) => m.materialKey === "pierre");
-    expect(pierre?.stance).not.toBe("ACCEPTE_CONFIRME");
+    // Acceptation CONDITIONNELLE seulement : bornée par la grosseur donnée, jamais générale.
+    expect(pierre?.maxInches).toBe(12);
+    expect(after.granulometry.maxInches).toBe(12);
+    // Sans précision de grosseur, « ça dépend » reste à confirmer.
+    const vague = simulateAnswer(p, q, "CA_DEPEND", {});
+    expect(vague.materials.find((m) => m.materialKey === "pierre")?.stance).toBe("A_CONFIRMER");
   });
 
   it("le béton distingue avec et sans armature", () => {
