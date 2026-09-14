@@ -272,6 +272,13 @@ export default function AdminQualificationQueue() {
 
   const indicators = queueIndicators(cards, 0);
 
+  // LOT 19 — profils transmis à l'explorateur et à l'interpréteur (lecture seule).
+  const profileEntries = useMemo(
+    () => cards.map((c) => ({ profile: profiles.get(c.submissionId)!, reference: c.reference ?? null }))
+      .filter((e) => e.profile),
+    [cards, profiles],
+  );
+
   if (!isReady || rolesLoading) {
     return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   }
