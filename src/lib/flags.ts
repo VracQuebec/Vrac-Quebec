@@ -16,6 +16,8 @@ export const FEATURE_FLAGS = {
   material_qualification_v2: false,
   /** Centre de contrôle intelligent des demandes de remblai (LOT 13) — interne. */
   qualification_control_center_v2: false,
+  /** Écritures réelles des confirmations humaines (LOT 14) — FAUX en production. */
+  qualification_writes_v2: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS;
