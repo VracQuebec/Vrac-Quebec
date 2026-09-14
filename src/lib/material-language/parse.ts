@@ -74,7 +74,7 @@ function roleFromContext(segment: string, fallback: ParsedRole): ParsedRole {
   return best?.role ?? fallback;
 }
 
-function extractMaterials(text: string): ParsedMaterial[] {
+function extractMaterials(text: string, rawText = text): ParsedMaterial[] {
   const hits = findMaterialHits(text);
   const out: ParsedMaterial[] = [];
   let cursor = 0;
@@ -105,7 +105,7 @@ function extractMaterials(text: string): ParsedMaterial[] {
   }
 
   // Pourcentages explicitement exprimés par l'utilisateur uniquement.
-  const pct = [...text.matchAll(/(\d{1,3})\s*(?:%|pour cent)/g)];
+  const pct = [...rawText.matchAll(/(\d{1,3})\s*(?:%|pour cent)/gi)];
   if (pct.length === 1 && out.length) out[0].sharePct = Number(pct[0][1]);
 
   if (out.length > 1 && !out.some((m) => m.role === "principal")) out[0].role = "principal";
@@ -156,7 +156,7 @@ function extractVehicle(text: string): { vehicleType: VehicleType; vehicleLabel:
 function extractGranulometry(text: string): { value: ParsedGranulometry | undefined; vague: string | null } {
   const vague = VAGUE_SIZE_MARKERS.find((m) => text.includes(m)) ?? null;
 
-  const range = text.match(/(\d+)\s*-\s*(\d+(?:\s+\d\/\d)?|\d\/\d)\s*(?:po\b|pouces?\b)?/);
+  const range = text.match(/(\d+)\s*-\s*(\d+\s+\d\/\d|\d\/\d|\d+)\s*(?:po\b|pouces?\b)?/);
   if (range) {
     const min = parseInches(range[1]);
     const max = parseInches(range[2]);
@@ -228,7 +228,7 @@ function unknownWords(text: string, consumed: string[]): string[] {
 
 export function parseMaterialDescription(rawText: string): ParsedMaterialDescription {
   const text = normalize(rawText);
-  const materials = extractMaterials(text);
+  const materials = extractMaterials(text, rawText);
   const quantity = extractQuantity(text);
   const vehicle = extractVehicle(text);
   const { value: granulometry, vague } = extractGranulometry(text);
