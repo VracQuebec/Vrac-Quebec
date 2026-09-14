@@ -195,6 +195,8 @@ export default function AdminMaterialQualification() {
 
       {loading && <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Chargement…</div>}
 
+      {centerOn && <QualificationControlCenter rows={centerRows} />}
+
       <Tabs defaultValue="fast" className="mt-4">
         <TabsList className="flex w-full flex-wrap">
           <TabsTrigger value="fast">Confirmations rapides ({fast.length})</TabsTrigger>
