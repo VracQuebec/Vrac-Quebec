@@ -29,7 +29,8 @@ interface Row {
   city: string | null;
   status: string | null;
   availability_status: string | null;
-  availability_confirmed_at?: string | null;
+  availability_confirmed_by?: string | null;
+  availability_updated_at?: string | null;
   description: string | null;
   other_material: string | null;
   materials: string[] | null;
