@@ -128,6 +128,11 @@ function CallMode({
           <p className="text-xs text-muted-foreground">
             Cette réponse pourrait débloquer environ {question.unlocked} match(s). ({question.reason})
           </p>
+          {preview && (
+            <p className="text-xs text-muted-foreground">
+              Impact simulé si la réponse est « oui » : {preview.summary}
+            </p>
+          )}
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
             {ANSWERS.map((a) => (
               <Button key={a} size="lg" variant={a === "OUI" ? "default" : "outline"} onClick={() => answer(a)}>
