@@ -330,6 +330,35 @@ export function negationSpans(text: string): Array<[number, number]> {
   return spans;
 }
 
+/**
+ * LOT 12 — formulations AMBIGUËS (« pas trop de glaise », « le moins possible de roche »).
+ * Ce n'est ni une acceptation ni un refus : la donnée doit être validée par un humain.
+ * « pas mal de glaise » n'est PAS ambigu : c'est « beaucoup ».
+ */
+const AMBIGUOUS_CUES = [
+  "pas trop de", "pas trop d", "pas beaucoup de", "le moins possible de",
+  "le moins de", "eviter la", "eviter le", "eviter les", "de preference pas de",
+  "si possible pas de", "sans trop de",
+];
+
+export function ambiguousSpans(text: string): Array<[number, number]> {
+  const spans: Array<[number, number]> = [];
+  for (const cue of AMBIGUOUS_CUES) {
+    let from = 0;
+    for (;;) {
+      const idx = text.indexOf(cue, from);
+      if (idx < 0) break;
+      from = idx + cue.length;
+      const before = text.slice(Math.max(0, idx - 2), idx);
+      if (!(idx === 0 || /[\s,.;]/.test(before.slice(-1)))) continue;
+      const rest = text.slice(from);
+      const stop = rest.search(/(?:\bmais\b|\.|;|\bpar contre\b|,)/);
+      spans.push([from, stop < 0 ? text.length : from + stop]);
+    }
+  }
+  return spans;
+}
+
 const ENV_TERMS: { re: RegExp; label: string }[] = [
   { re: /\bcontamine\w*\b/, label: "rien de contaminé (déclaration de l'utilisateur)" },
   { re: /\bhydrocarbures?\b/, label: "aucun hydrocarbure (déclaration de l'utilisateur)" },
