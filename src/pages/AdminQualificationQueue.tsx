@@ -297,7 +297,6 @@ export default function AdminQualificationQueue() {
           ["Suffisamment qualifiées", indicators.sufficientlyQualified],
           ["À enrichir", indicators.toEnrich],
           ["Questions prioritaires", indicators.priorityQuestions],
-          ["Matchs débloquables", indicators.unlockableMatches],
           ["Confirmées aujourd'hui", indicators.confirmedToday],
         ].map(([label, value]) => (
           <div key={label as string} className="rounded-lg border border-border p-2 text-center">
@@ -305,7 +304,23 @@ export default function AdminQualificationQueue() {
             <p className="text-[11px] text-muted-foreground">{label as string}</p>
           </div>
         ))}
+        {/* LOT 19 — le compteur devient une porte d'entrée vers l'explorateur. */}
+        <button
+          type="button"
+          onClick={() => setShowUnlockable((v) => !v)}
+          className="rounded-lg border border-primary/40 bg-primary/5 p-2 text-center"
+        >
+          <p className="text-lg font-bold">{indicators.unlockableMatches}</p>
+          <p className="text-[11px] text-muted-foreground">
+            Matchs débloquables {showUnlockable ? "— fermer" : "— ouvrir"}
+          </p>
+        </button>
       </div>
+
+      {showUnlockable && <UnlockableMatchesPanel entries={profileEntries} />}
+
+      {/* LOT 19 — interpréteur de langage de chantier (admin/test, drapeau dédié). */}
+      {parserEnabled && <MaterialLanguageLab requests={profileEntries} />}
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
         <Badge variant={enabled ? "secondary" : "outline"}>
