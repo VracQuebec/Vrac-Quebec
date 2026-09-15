@@ -28,7 +28,7 @@ import {
 } from "@/lib/parcours/validation";
 import {
   Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List,
-  Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings,
+  Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings, Building2,
 } from "lucide-react";
 import AdminMap from "@/components/AdminMap";
 import BillingSection from "@/components/BillingSection";
@@ -790,6 +790,12 @@ const Admin = () => {
                 <Link to="/admin/settings" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
                   <Settings className="w-4 h-4" /> Paramètres
                 </Link>
+                <Link to="/admin/plateforme" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
+                  <Settings className="w-4 h-4" /> Paramètres plateforme
+                </Link>
+                <Link to="/admin/jsc" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
+                  <Building2 className="w-4 h-4" /> Back office de l'entreprise
+                </Link>
                 <div className="border-t border-border my-2" />
                 <button onClick={() => { setMobileOpen(false); handleLogout(); }} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-muted-foreground hover:text-foreground hover:bg-secondary">
                   <LogOut className="w-4 h-4" /> Déconnexion
@@ -915,8 +921,11 @@ const Admin = () => {
             <Link to="/admin/operations" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90">
               <Truck className="w-4 h-4" /> Opérations
             </Link>
-            <Link to="/admin/jsc" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
+            <Link to="/admin/plateforme" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
               <Settings className="w-4 h-4" /> Paramètres plateforme
+            </Link>
+            <Link to="/admin/jsc" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
+              <Building2 className="w-4 h-4" /> Back office de l'entreprise
             </Link>
             <Link to="/admin/configuration-soumissions" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
               <Settings className="w-4 h-4" /> Configuration des soumissions

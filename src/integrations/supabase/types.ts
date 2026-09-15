@@ -11845,6 +11845,81 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_change_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          changes: Json
+          company_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_table: string
+          id: string
+          scope: string
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          changes?: Json
+          company_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_table: string
+          id?: string
+          scope: string
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          changes?: Json
+          company_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_table?: string
+          id?: string
+          scope?: string
+        }
+        Relationships: []
+      }
+      platform_company_sectors: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          sector_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          sector_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          sector_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_company_sectors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_company_sectors_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "platform_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_logs: {
         Row: {
           context: Json
@@ -11886,6 +11961,144 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      platform_plans: {
+        Row: {
+          audience: string
+          billing_interval: string
+          created_at: string
+          currency: string
+          description: string | null
+          features: Json
+          id: string
+          name: string
+          notes: string | null
+          price_cents: number | null
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: string
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          name: string
+          notes?: string | null
+          price_cents?: number | null
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          name?: string
+          notes?: string | null
+          price_cents?: number | null
+          slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_sectors: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_subscriptions: {
+        Row: {
+          amount_cents: number | null
+          company_id: string
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          id: string
+          is_test: boolean
+          last_payment_failed_at: string | null
+          plan_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents?: number | null
+          company_id: string
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          id?: string
+          is_test?: boolean
+          last_payment_failed_at?: string | null
+          plan_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number | null
+          company_id?: string
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          id?: string
+          is_test?: boolean
+          last_payment_failed_at?: string | null
+          plan_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "platform_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       public_request_guard: {
         Row: {
