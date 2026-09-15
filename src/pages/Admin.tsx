@@ -790,6 +790,12 @@ const Admin = () => {
                 <Link to="/admin/settings" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
                   <Settings className="w-4 h-4" /> Paramètres
                 </Link>
+                <Link to="/admin/plateforme" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
+                  <Settings className="w-4 h-4" /> Paramètres plateforme
+                </Link>
+                <Link to="/admin/jsc" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
+                  <Building2 className="w-4 h-4" /> Back office de l'entreprise
+                </Link>
                 <div className="border-t border-border my-2" />
                 <button onClick={() => { setMobileOpen(false); handleLogout(); }} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-muted-foreground hover:text-foreground hover:bg-secondary">
                   <LogOut className="w-4 h-4" /> Déconnexion
