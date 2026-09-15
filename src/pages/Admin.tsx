@@ -914,6 +914,7 @@ const Admin = () => {
             <button onClick={() => setShowExcelImport(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 text-white text-sm font-display font-semibold hover:opacity-90">
               <Upload className="w-4 h-4" /> Importer Excel (.xlsx)
             </button>
+            <p className="sm:hidden col-span-full mt-2 text-[11px] font-display font-bold uppercase tracking-wide text-muted-foreground">Navigation</p>
             <Link to="/admin/donnees" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
               <DatabaseIcon className="w-4 h-4" /> Données importées
             </Link>
