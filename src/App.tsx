@@ -244,6 +244,7 @@ const App = () => (
             <Route path="/admin/crm/:ownerType/:id" element={<CrmDetail />} />
             <Route path="/admin/operations" element={<AdminOperations />} />
             <Route path="/admin/jsc" element={<AdminJsc />} />
+            <Route path="/admin/plateforme" element={<AdminPlatformSettings />} />
             <Route path="/admin/configuration-soumissions" element={<AdminSoumissionConfig />} />
             <Route path="/admin/capacites-transport" element={<AdminTransportCapacities />} />
             <Route path="/admin/matching-lab" element={<AdminMatchingLab />} />
