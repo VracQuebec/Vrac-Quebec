@@ -898,6 +898,7 @@ const Admin = () => {
                 ? `Vérification ${rechecking.done}/${rechecking.total}…`
                 : "Re-vérifier adresses"}
             </button>
+            <p className="sm:hidden col-span-full mt-2 text-[11px] font-display font-bold uppercase tracking-wide text-muted-foreground">Import et export</p>
             <button onClick={exportCSVAdmin} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground text-background text-sm font-display font-semibold hover:opacity-90">
               <Download className="w-4 h-4" /> CSV admin
             </button>
