@@ -9,3 +9,4 @@
 - [Capacités de transport](mem://features/capacites-transport) — Configurations 10/12 roues et semi 2/3/4 essieux, poids à vide, charge utile, capacité opérationnelle, règles Québec versionnées, densités estimées.
 - [Gabarits & dimensions](mem://features/gabarits-dimensions) — Lot 3 : 6/10/12 roues et semi 2/3/4 essieux, dimensions réelles, largeur miroir à miroir, règles QC de dimensions, contraintes d'accès (inactif publiquement).
 - [Offres de matériaux](mem://features/offres-materiaux) — Table material_offers, géocodage abstrait, distance Haversine, branchement matching interne (LOT 20, drapeau false).
+- [Paramètres plateforme & forfaits](mem://features/parametres-plateforme-forfaits) — /admin/plateforme vs /admin/jsc, tables platform_*, règles « à définir » et « à configurer ».
