@@ -9,6 +9,11 @@ import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES, serviceTypeMeta, normalizeRequestType, requestTypeMeta } from "@/lib/questionnaire-data";
 import { CONTAMINATION_OPTIONS, DELIVER_OR_REMOVE_OPTIONS, PROJECT_TYPES, TRUCK_ACCESS_OPTIONS } from "@/lib/questionnaire-data";
 import InlineField from "@/components/InlineField";
+import {
+  SORT_GROUPS, parseLeadSort, sortLabel, sortLeads, estimateMatchCounts,
+  isClientOnlySort, type LeadSort,
+} from "@/lib/crm/leadSort";
+import { fetchLeadsPage, needsClientMode, LEADS_PAGE_SIZE, type LeadFilters } from "@/lib/crm/leadsQuery";
 import { useLeadStatuses, findStatus, type LeadStatus } from "@/hooks/useLeadStatuses";
 import { Switch } from "@/components/ui/switch";
 import StatusManagerModal from "@/components/StatusManagerModal";
@@ -139,6 +144,11 @@ interface Submission {
   utm_campaign?: string | null;
   landing_referrer?: string | null;
   desired_date?: string | null;
+  /** Dernière modification (rempli automatiquement lors des mises à jour). */
+  updated_at?: string | null;
+  /** Prochaine relance planifiée par l'administration. */
+  next_follow_up_at?: string | null;
+  
   selected_site_id?: string | null;
   selected_site_label?: string | null;
   selected_site_address?: string | null;
@@ -202,7 +212,7 @@ const Admin = () => {
   const [showArchivedOnMap, setShowArchivedOnMap] = useState(false);
   const [tab, setTab] = useState<"leads" | "billing" | "entrepreneurs">("leads");
   const [filterTrips, setFilterTrips] = useState<string>("all");
-  const [sortTrips, setSortTrips] = useState<string>("default");
+  
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterAssigned, setFilterAssigned] = useState<string>("all");
   const [filterMaterial, setFilterMaterial] = useState<string>("all");
@@ -217,6 +227,25 @@ const Admin = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isReady: authReady } = useAuthReady();
   const { isAdmin, isEntrepreneur, loading: roleLoading } = useUserRoles(user, authReady);
+
+  // Tri et page conservés dans l'URL : le retour arrière du navigateur
+  // restaure exactement la même vue.
+  const sort = parseLeadSort(searchParams.get("tri"));
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+  const setSort = (v: LeadSort) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("tri", v);
+    next.delete("page");
+    setSearchParams(next);
+  };
+  const setPage = (p: number) => {
+    const next = new URLSearchParams(searchParams);
+    if (p <= 1) next.delete("page"); else next.set("page", String(p));
+    setSearchParams(next);
+  };
+  const [serverRows, setServerRows] = useState<Submission[]>([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [pageLoading, setPageLoading] = useState(false);
 
   useEffect(() => {
     if (!authReady || roleLoading) return;
@@ -613,35 +642,40 @@ const Admin = () => {
       if (qDigits && normPhone(s.dompe_number).includes(qDigits)) return true;
       return false;
     });
-    const dompeNum = (s: Submission) => {
-      const m = (s.dompe_number || "").match(/\d+/);
-      return m ? parseInt(m[0], 10) : NaN;
-    };
-    const sorted = [...list].sort((a, b) => {
-      const na = dompeNum(a);
-      const nb = dompeNum(b);
-      const aHas = !isNaN(na);
-      const bHas = !isNaN(nb);
-      if (aHas && bHas) return na - nb;
-      if (aHas) return -1;
-      if (bHas) return 1;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
-    if (sortTrips === "trips-desc") {
-      sorted.sort((a, b) => {
-        const ta = parseEstimatedTrips(a.quantity) ?? -1;
-        const tb = parseEstimatedTrips(b.quantity) ?? -1;
-        return tb - ta;
-      });
-    } else if (sortTrips === "trips-asc") {
-      sorted.sort((a, b) => {
-        const ta = parseEstimatedTrips(a.quantity) ?? Number.MAX_SAFE_INTEGER;
-        const tb = parseEstimatedTrips(b.quantity) ?? Number.MAX_SAFE_INTEGER;
-        return ta - tb;
-      });
-    }
-    return sorted;
-  }, [submissions, filterStatus, filterType, filterSource, searchQuery, filterTrips, sortTrips, filterPriority, filterAssigned, filterMaterial, filterDateFrom, filterDateTo]);
+    // Le tri n'influence jamais le filtrage : il ordonne seulement les résultats.
+    const matchCounts = estimateMatchCounts(list as any);
+    return sortLeads(list as any, sort, { matchCounts }) as Submission[];
+  }, [submissions, filterStatus, filterType, filterSource, searchQuery, filterTrips, sort, filterPriority, filterAssigned, filterMaterial, filterDateFrom, filterDateTo]);
+
+  // Filtres transmis à la base pour la pagination côté serveur.
+  const leadFilters: LeadFilters = useMemo(() => ({
+    status: filterStatus, type: filterType, source: filterSource, priority: filterPriority,
+    assigned: filterAssigned, material: filterMaterial, dateFrom: filterDateFrom,
+    dateTo: filterDateTo, search: searchQuery, trips: filterTrips,
+  }), [filterStatus, filterType, filterSource, filterPriority, filterAssigned, filterMaterial, filterDateFrom, filterDateTo, searchQuery, filterTrips]);
+
+  const clientMode = needsClientMode(leadFilters, sort);
+
+  useEffect(() => {
+    if (!isAdmin || tab !== "leads" || view !== "list" || clientMode) return;
+    let cancelled = false;
+    setPageLoading(true);
+    fetchLeadsPage(leadFilters, sort, page)
+      .then(({ rows, total }) => {
+        if (cancelled) return;
+        setServerRows(rows as Submission[]);
+        setServerTotal(total);
+      })
+      .catch(() => { if (!cancelled) toast({ title: "Erreur", description: "Impossible de charger cette page.", variant: "destructive" }); })
+      .finally(() => { if (!cancelled) setPageLoading(false); });
+    return () => { cancelled = true; };
+  }, [isAdmin, tab, view, clientMode, leadFilters, sort, page, submissions]);
+
+  const totalResults = clientMode ? filtered.length : serverTotal;
+  const totalPages = Math.max(1, Math.ceil(totalResults / LEADS_PAGE_SIZE));
+  const pageItems = clientMode
+    ? filtered.slice((page - 1) * LEADS_PAGE_SIZE, page * LEADS_PAGE_SIZE)
+    : serverRows;
 
   if (!authReady || !user || roleLoading) {
     return <FullPageState title="Connexion en cours" message="Votre session est en vérification, la page va s’ouvrir automatiquement." />;
@@ -949,10 +983,19 @@ const Admin = () => {
             <option value="50-100">50 à 100 voyages</option>
             <option value="100+">100+ voyages</option>
           </select>
-          <select value={sortTrips} onChange={(e) => setSortTrips(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
-            <option value="default">Trier par…</option>
-            <option value="trips-desc">Plus grand nombre de voyages</option>
-            <option value="trips-asc">Plus petit nombre de voyages</option>
+          <select
+            aria-label="Trier les leads"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as LeadSort)}
+            className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body font-semibold max-w-full min-w-0 max-h-[60vh]"
+          >
+            {SORT_GROUPS.map((g) => (
+              <optgroup key={g.group} label={g.group}>
+                {g.options.map((o) => (
+                  <option key={o.value} value={o.value}>{`Trier : ${o.label}`}</option>
+                ))}
+              </optgroup>
+            ))}
           </select>
           <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
             <option value="all">Toutes priorités</option>
@@ -1018,11 +1061,18 @@ const Admin = () => {
               }}
             />
           </>
-        ) : filtered.length === 0 ? (
+        ) : pageItems.length === 0 ? (
           <div className="text-center py-20"><p className="text-muted-foreground font-body">Aucune demande.</p></div>
         ) : (
           <div className="space-y-3">
-            {filtered.map((sub) => (
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground font-body">
+              <span>
+                {totalResults} demande{totalResults > 1 ? "s" : ""} — page {page} sur {totalPages}
+                {pageLoading ? " — chargement…" : ""}
+              </span>
+              <span className="font-semibold text-foreground">Trier : {sortLabel(sort)}</span>
+            </div>
+            {pageItems.map((sub) => (
               <LeadCard
                 key={sub.id}
                 sub={sub}
@@ -1036,6 +1086,27 @@ const Admin = () => {
                 leadStatuses={leadStatuses}
               />
             ))}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage(page - 1)}
+                  className="px-4 py-2 rounded-lg border border-border text-sm font-display font-semibold disabled:opacity-40"
+                >
+                  Précédent
+                </button>
+                <span className="text-xs text-muted-foreground font-body">Page {page} / {totalPages}</span>
+                <button
+                  type="button"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(page + 1)}
+                  className="px-4 py-2 rounded-lg border border-border text-sm font-display font-semibold disabled:opacity-40"
+                >
+                  Suivant
+                </button>
+              </div>
+            )}
           </div>
         )}
         </>
@@ -1553,6 +1624,12 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                 <InlineField label="Profondeur (po)" type="text" value={sub.depth_in || ""} onSave={(v) => onUpdate({ depth_in: v || null })} />
                 <InlineField label="Date limite" type="date" value={sub.delivery_deadline || ""} onSave={(v) => onUpdate({ delivery_deadline: v || null })} />
                 <InlineField label="Délai souhaité" type="text" value={sub.delivery_timeframe || ""} onSave={(v) => onUpdate({ delivery_timeframe: v || null })} />
+                <InlineField
+                  label="Prochain suivi"
+                  type="date"
+                  value={(sub.next_follow_up_at || "").slice(0, 10)}
+                  onSave={(v) => onUpdate({ next_follow_up_at: v ? `${v}T09:00:00` : null })}
+                />
               </div>
               <div className="mt-3">
                 <InlineField

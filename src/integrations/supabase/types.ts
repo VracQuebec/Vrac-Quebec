@@ -14863,6 +14863,7 @@ export type Database = {
           machinery_description: string | null
           materials: string[]
           name: string
+          next_follow_up_at: string | null
           opening_hours: string | null
           other_material: string | null
           parcours_direction: string | null
@@ -14912,6 +14913,7 @@ export type Database = {
           tonnage: string
           truck_type_key: string | null
           truck_types_allowed: string[] | null
+          updated_at: string | null
           utm_campaign: string | null
           utm_medium: string | null
           utm_source: string | null
@@ -14967,6 +14969,7 @@ export type Database = {
           machinery_description?: string | null
           materials: string[]
           name: string
+          next_follow_up_at?: string | null
           opening_hours?: string | null
           other_material?: string | null
           parcours_direction?: string | null
@@ -15016,6 +15019,7 @@ export type Database = {
           tonnage: string
           truck_type_key?: string | null
           truck_types_allowed?: string[] | null
+          updated_at?: string | null
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
@@ -15071,6 +15075,7 @@ export type Database = {
           machinery_description?: string | null
           materials?: string[]
           name?: string
+          next_follow_up_at?: string | null
           opening_hours?: string | null
           other_material?: string | null
           parcours_direction?: string | null
@@ -15120,6 +15125,7 @@ export type Database = {
           tonnage?: string
           truck_type_key?: string | null
           truck_types_allowed?: string[] | null
+          updated_at?: string | null
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
@@ -18708,6 +18714,7 @@ export type Database = {
           machinery_description: string | null
           materials: string[]
           name: string
+          next_follow_up_at: string | null
           opening_hours: string | null
           other_material: string | null
           parcours_direction: string | null
@@ -18757,6 +18764,7 @@ export type Database = {
           tonnage: string
           truck_type_key: string | null
           truck_types_allowed: string[] | null
+          updated_at: string | null
           utm_campaign: string | null
           utm_medium: string | null
           utm_source: string | null
