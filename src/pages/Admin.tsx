@@ -867,6 +867,7 @@ const Admin = () => {
             >
               <Plus className="w-4 h-4" /> Ajouter un Lead
             </button>
+            <p className="sm:hidden col-span-full text-[11px] font-display font-bold uppercase tracking-wide text-muted-foreground">Maintenance</p>
             <button
               type="button"
               onClick={() => setActionsOpen((v) => !v)}
@@ -897,6 +898,7 @@ const Admin = () => {
                 ? `Vérification ${rechecking.done}/${rechecking.total}…`
                 : "Re-vérifier adresses"}
             </button>
+            <p className="sm:hidden col-span-full mt-2 text-[11px] font-display font-bold uppercase tracking-wide text-muted-foreground">Import et export</p>
             <button onClick={exportCSVAdmin} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground text-background text-sm font-display font-semibold hover:opacity-90">
               <Download className="w-4 h-4" /> CSV admin
             </button>
@@ -912,6 +914,7 @@ const Admin = () => {
             <button onClick={() => setShowExcelImport(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 text-white text-sm font-display font-semibold hover:opacity-90">
               <Upload className="w-4 h-4" /> Importer Excel (.xlsx)
             </button>
+            <p className="sm:hidden col-span-full mt-2 text-[11px] font-display font-bold uppercase tracking-wide text-muted-foreground">Navigation</p>
             <Link to="/admin/donnees" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
               <DatabaseIcon className="w-4 h-4" /> Données importées
             </Link>
