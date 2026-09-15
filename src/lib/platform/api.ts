@@ -152,16 +152,14 @@ export interface PlatformCounters {
 }
 
 const count = async (
-  table: "submissions" | "jsc_requests" | "jsc_clients" | "jsc_quotes" | "jsc_orders" | "jsc_companies",
-  apply: (q: ReturnType<typeof baseCount>) => ReturnType<typeof baseCount>,
+  p: PromiseLike<{ count: number | null; error: { message: string } | null }>,
 ) => {
-  const { count: n, error } = await apply(baseCount(table));
-  if (error) throw error;
+  const { count: n, error } = await p;
+  if (error) throw new Error(error.message);
   return n ?? 0;
 };
 
-const baseCount = (table: "submissions" | "jsc_requests" | "jsc_clients" | "jsc_quotes" | "jsc_orders" | "jsc_companies") =>
-  supabase.from(table).select("id", { count: "exact", head: true });
+const head = { count: "exact" as const, head: true };
 
 /** Compteurs réels. Chaque chiffre correspond exactement à une liste filtrée. */
 export async function fetchPlatformCounters(): Promise<PlatformCounters> {
@@ -170,15 +168,15 @@ export async function fetchPlatformCounters(): Promise<PlatformCounters> {
     submissionsTotal, remblai, vrac, jscRequestsPending, jscClientsActive,
     followUpsOverdue, quotesToFollow, ordersToPlan, companies,
   ] = await Promise.all([
-    count("submissions", (q) => q),
-    count("submissions", (q) => q.eq("request_type", "remblai")),
-    count("submissions", (q) => q.neq("request_type", "remblai")),
-    count("jsc_requests", (q) => q.eq("status", "nouvelle")),
-    count("jsc_clients", (q) => q.not("is_active", "is", false)),
-    count("submissions", (q) => q.lt("next_follow_up_at", nowIso)),
-    count("jsc_quotes", (q) => q.eq("status", "envoyee")),
-    count("jsc_orders", (q) => q.eq("status", "a_planifier")),
-    count("jsc_companies", (q) => q.is("archived_at", null)),
+    count(supabase.from("submissions").select("id", head)),
+    count(supabase.from("submissions").select("id", head).eq("request_type", "remblai")),
+    count(supabase.from("submissions").select("id", head).neq("request_type", "remblai")),
+    count(supabase.from("jsc_requests").select("id", head).eq("status", "nouvelle")),
+    count(supabase.from("jsc_clients").select("id", head).not("is_active", "is", false)),
+    count(supabase.from("submissions").select("id", head).lt("next_follow_up_at", nowIso)),
+    count(supabase.from("jsc_quotes").select("id", head).eq("status", "envoyee")),
+    count(supabase.from("jsc_orders").select("id", head).eq("status", "a_planifier")),
+    count(supabase.from("jsc_companies").select("id", head).is("archived_at", null)),
   ]);
   return {
     submissionsTotal, remblai, vrac, jscRequestsPending, jscClientsActive,
