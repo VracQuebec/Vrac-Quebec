@@ -28,7 +28,7 @@ import {
 } from "@/lib/parcours/validation";
 import {
   Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List,
-  Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings,
+  Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings, Building2,
 } from "lucide-react";
 import AdminMap from "@/components/AdminMap";
 import BillingSection from "@/components/BillingSection";
