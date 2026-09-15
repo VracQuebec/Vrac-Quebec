@@ -867,6 +867,7 @@ const Admin = () => {
             >
               <Plus className="w-4 h-4" /> Ajouter un Lead
             </button>
+            <p className="sm:hidden col-span-full text-[11px] font-display font-bold uppercase tracking-wide text-muted-foreground">Maintenance</p>
             <button
               type="button"
               onClick={() => setActionsOpen((v) => !v)}
