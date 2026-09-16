@@ -41,7 +41,9 @@ import GoogleSheetImportModal from "@/components/GoogleSheetImportModal";
 import ExcelImportModal from "@/components/ExcelImportModal";
 import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Database as DatabaseIcon } from "lucide-react";
-import { Search } from "lucide-react";
+import { Search, CalendarClock } from "lucide-react";
+import TodayPanel from "@/components/crm/TodayPanel";
+
 import { Activity } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import {
