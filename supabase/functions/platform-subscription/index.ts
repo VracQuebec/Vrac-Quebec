@@ -114,6 +114,7 @@ async function statusHandler(userId: string, env: StripeEnv) {
         }
       : null,
     subscription: sub ?? null,
+    invoices,
   };
 }
 
