@@ -388,7 +388,6 @@ function MaterialCityFallback({
   const title = `${material.name} à ${city.name} — Livraison en vrac | Vrac Québec`;
   const description = `${material.name} livré à ${city.name} : soumission gratuite auprès des fournisseurs et entrepreneurs partenaires de Vrac Québec. Camions adaptés, réponse rapide.`.slice(0, 158);
   const h1 = `${material.name} livré à ${city.name}`;
-  const unit = material.delivery_unit || "tonne";
   const cityMap = Object.fromEntries(cities.map((c) => [c.slug, c])) as Record<string, SeoCity>;
   const neighborCities = (city.neighbors || []).map((s) => cityMap[s]).filter(Boolean);
   const otherMaterials = materials.filter((m) => m.slug !== material.slug).slice(0, 8);
