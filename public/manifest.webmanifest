@@ -1,17 +1,25 @@
 {
-  "name": "Vrac Québec — CRM",
+  "name": "Vrac Québec",
   "short_name": "Vrac Québec",
-  "description": "Centre de contrôle Vrac Québec : leads, soumissions, livraisons, paiements et notifications.",
-  "start_url": "/admin?source=pwa",
+  "description": "Espace entrepreneur Vrac Québec : chantiers, demandes de remblai, carte des dompes et notifications.",
+  "id": "/",
+  "start_url": "/entrepreneur?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#111111",
   "theme_color": "#7ED321",
   "lang": "fr-CA",
+  "categories": ["business", "productivity"],
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Mes chantiers", "url": "/entrepreneur/chantiers" },
+    { "name": "Mes demandes", "url": "/entrepreneur/demandes" },
+    { "name": "Carte des dompes", "url": "/entrepreneur/carte" }
   ]
 }
