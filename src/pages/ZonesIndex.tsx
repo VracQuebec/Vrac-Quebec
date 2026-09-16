@@ -65,13 +65,54 @@ export default function ZonesIndex() {
       </nav>
       <header className="container mx-auto px-4 sm:px-6 pt-6 pb-8">
         <h1 className="text-3xl md:text-5xl font-display font-extrabold text-foreground">
-          Livraison de vrac — Québec, Lévis et environs
+          Livraison de matériaux en vrac — Québec, Lévis et environs
         </h1>
         <p className="mt-3 text-base md:text-lg text-muted-foreground font-body max-w-2xl">
-          Terre, sable, gravier, pierre concassée, remblai : Vrac Québec dessert les municipalités de la région de Québec et de Lévis. Sélectionnez votre ville pour découvrir les matériaux disponibles.
+          Terre, sable, gravier, pierre concassée, remblai : décrivez votre besoin et les
+          fournisseurs et transporteurs disponibles dans votre secteur vous transmettent leur prix.
+          Vrac Québec est une plateforme de mise en relation, sans engagement de votre part.
         </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link to="/soumission" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold shadow-lg hover:opacity-90">
+            <FileText className="w-4 h-4" /> Obtenir une soumission
+          </Link>
+          <Link to="/calculateur" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-border font-display font-bold text-foreground hover:border-primary">
+            <Calculator className="w-4 h-4" /> Calculer ma quantité
+          </Link>
+        </div>
       </header>
       <main className="container mx-auto px-4 sm:px-6 pb-12 space-y-8">
+        <section>
+          <h2 className="text-xl font-display font-bold text-foreground mb-3">Matériaux livrés</h2>
+          <ul className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {MATERIAL_LINKS.map((m) => (
+              <li key={m.slug}>
+                <Link to={`/materiaux/${m.slug}`} className="block rounded-lg border border-border bg-card p-3 hover:border-primary font-body text-foreground">
+                  {m.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <Link to="/materiaux" className="mt-3 inline-flex items-center gap-2 text-primary font-display font-semibold hover:underline">
+            Tous les matériaux <ChevronRight className="w-4 h-4" />
+          </Link>
+        </section>
+
+        <section className="grid gap-3 sm:grid-cols-3">
+          <Link to="/transport-en-vrac" className="rounded-xl border border-border bg-card p-4 hover:border-primary">
+            <p className="font-display font-bold text-foreground">Transport en vrac</p>
+            <p className="font-body text-sm text-muted-foreground mt-1">Faire déplacer des matériaux entre deux points.</p>
+          </Link>
+          <Link to="/depot-materiaux" className="rounded-xl border border-border bg-card p-4 hover:border-primary">
+            <p className="font-display font-bold text-foreground">Disposer de matériaux</p>
+            <p className="font-body text-sm text-muted-foreground mt-1">Trouver un point de dépôt ou une dompe.</p>
+          </Link>
+          <Link to="/blog/guides" className="rounded-xl border border-border bg-card p-4 hover:border-primary">
+            <p className="font-display font-bold text-foreground">Guides pratiques</p>
+            <p className="font-body text-sm text-muted-foreground mt-1">Choisir le bon matériau et la bonne quantité.</p>
+          </Link>
+        </section>
+
         {loading ? (
           <div className="text-center py-10 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin inline" /></div>
         ) : (
