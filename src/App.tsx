@@ -114,6 +114,7 @@ const CrmDetail = lazy(() => import("./pages/CrmDetail"));
 const AdminOperations = lazy(() => import("./pages/AdminOperations"));
 const AdminJsc = lazy(() => import("./pages/AdminJsc"));
 const AdminPlatformSettings = lazy(() => import("./pages/AdminPlatformSettings"));
+const MonAbonnement = lazy(() => import("./pages/MonAbonnement"));
 const OpsCenter = lazy(() => import("./pages/OpsCenter"));
 const AdminIaCenter = lazy(() => import("./pages/AdminIaCenter"));
 const AdminOrchestrator = lazy(() => import("./pages/AdminOrchestrator"));
@@ -195,6 +196,7 @@ const App = () => (
             <Route path="/entrepreneur/favoris" element={<Navigate to="/entrepreneur" replace />} />
             <Route path="/entrepreneur/historique" element={<EntrepreneurHistorique />} />
             <Route path="/entrepreneur/compte" element={<EntrepreneurCompte />} />
+            <Route path="/entrepreneur/abonnement" element={<MonAbonnement />} />
             <Route path="/entrepreneur/notifications" element={<EntrepreneurNotifications />} />
             <Route path="/entrepreneur/inscription" element={<EntrepreneurSignup />} />
             <Route path="/espace-entrepreneur" element={<EspaceEntrepreneur />} />
