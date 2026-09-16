@@ -54,6 +54,15 @@ export default function EntrepreneurDemandes() {
     setFilter("all");
   }, [targetId]);
 
+  useEffect(() => {
+    if (!targetId || loading) return;
+    const t = window.setTimeout(
+      () => targetRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
+      150,
+    );
+    return () => window.clearTimeout(t);
+  }, [targetId, loading]);
+
   const chantierBySubmission = useMemo(() => {
     const map = new Map<string, string>();
     for (const c of chantiers) for (const s of c.submissions) map.set(s.id, c.key);
