@@ -402,6 +402,19 @@ function MaterialCityFallback({
     { q: `Quel délai prévoir pour une livraison à ${city.name} ?`,
       a: `Le délai est confirmé par le fournisseur ou le transporteur qui prend votre demande, selon ses disponibilités. Si votre chantier est urgent, précisez-le dans le formulaire.` },
   ];
+  // Service + Organization : Vrac Québec est une plateforme de mise en relation,
+  // sans établissement physique dans chaque ville (aucun LocalBusiness, aucun priceRange).
+  const jsonLdService = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "@id": `${url}#service`,
+    name: `${material.name} à ${city.name}`,
+    serviceType: material.name,
+    url,
+    description,
+    areaServed: { "@type": "City", name: city.name, addressRegion: "QC", addressCountry: "CA" },
+    provider: { "@type": "Organization", name: "Vrac Québec", url: SITE },
+  };
   const jsonLdBreadcrumb = {
     "@context": "https://schema.org", "@type": "BreadcrumbList",
     itemListElement: [
@@ -429,7 +442,7 @@ function MaterialCityFallback({
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
-        <script type="application/ld+json">{JSON.stringify(jsonLdLocalBusiness)}</script>
+        <script type="application/ld+json">{JSON.stringify(jsonLdService)}</script>
         <script type="application/ld+json">{JSON.stringify(jsonLdBreadcrumb)}</script>
         <script type="application/ld+json">{JSON.stringify(jsonLdFaq)}</script>
       </Helmet>
