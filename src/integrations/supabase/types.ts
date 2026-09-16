@@ -18644,6 +18644,22 @@ export type Database = {
             }
             Returns: string
           }
+        | {
+            Args: {
+              _audience: string
+              _body?: string
+              _company_id?: string
+              _data?: Json
+              _dedupe_key?: string
+              _event: string
+              _level?: string
+              _link?: string
+              _request_id?: string
+              _title: string
+              _user_id?: string
+            }
+            Returns: string
+          }
       mkt_owns_request: { Args: { _request_id: string }; Returns: boolean }
       mkt_partner_contact: {
         Args: { _company_id: string; _request_id: string }
