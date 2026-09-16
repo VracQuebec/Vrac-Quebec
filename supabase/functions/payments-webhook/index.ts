@@ -59,14 +59,22 @@ Deno.serve(async (req) => {
         await applySubscription(object, env, event.created);
         break;
       }
+      case "checkout.session.expired":
       case "checkout.session.completed": {
-        if (object.payment_status !== "unpaid" && subscriptionId) {
+        // Le verrou de paiement est libéré dès que la session se termine.
+        const companyId = object?.metadata?.companyId ?? null;
+        if (companyId) {
+          await db.from("platform_checkout_locks").delete()
+            .eq("company_id", companyId).eq("environment", env);
+        }
+        if (event.type === "checkout.session.completed" && object.payment_status !== "unpaid" && subscriptionId) {
           const stripe = createStripeClient(env);
           const remote = await stripe.subscriptions.retrieve(subscriptionId);
           await applySubscription(remote, env, event.created);
         }
         break;
       }
+
       case "invoice.paid":
       case "invoice.payment_succeeded": {
         if (subscriptionId) {
