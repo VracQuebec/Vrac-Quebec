@@ -395,21 +395,13 @@ function MaterialCityFallback({
   const faqs = [
     { q: `Comment obtenir un prix pour du ${material.name.toLowerCase()} à ${city.name} ?`,
       a: `Vrac Québec est une plateforme de mise en relation : remplissez le formulaire ci-dessus et des fournisseurs ou entrepreneurs locaux de la région de ${city.name} vous transmettront leur prix directement selon la quantité, l'accès au terrain et la distance.` },
-    { q: `Livrez-vous du ${material.name.toLowerCase()} directement à ${city.name} ?`,
-      a: `Oui, Vrac Québec livre du ${material.name.toLowerCase()} partout à ${city.name} et dans les municipalités voisines, avec des camions 6, 10 ou 12 roues selon l'accès.` },
-    { q: `Quelle quantité minimum de ${material.name.toLowerCase()} puis-je commander ?`,
-      a: `La quantité minimum correspond généralement à un voyage de camion (environ 10 ${unit}s). Pour des besoins plus petits, on peut combiner avec un autre matériau.` },
-    { q: `En combien de temps le ${material.name.toLowerCase()} peut-il être livré à ${city.name} ?`,
-      a: `Selon les disponibilités, une livraison à ${city.name} peut souvent être planifiée en 24 à 72 heures. Pour un chantier urgent, précisez-le dans le formulaire.` },
+    { q: `Est-il possible de faire livrer du ${material.name.toLowerCase()} à ${city.name} ?`,
+      a: `Les livraisons à ${city.name} et dans les municipalités voisines dépendent des fournisseurs et transporteurs disponibles dans le secteur. Faites une demande et les partenaires en mesure de desservir votre adresse vous répondront.` },
+    { q: `Quelle quantité de ${material.name.toLowerCase()} puis-je commander ?`,
+      a: `La quantité possible dépend du fournisseur et du camion utilisé pour votre secteur. Indiquez la quantité souhaitée dans le formulaire : les partenaires vous confirmeront ce qui est réalisable.` },
+    { q: `Quel délai prévoir pour une livraison à ${city.name} ?`,
+      a: `Le délai est confirmé par le fournisseur ou le transporteur qui prend votre demande, selon ses disponibilités. Si votre chantier est urgent, précisez-le dans le formulaire.` },
   ];
-  const jsonLdLocalBusiness = {
-    "@context": "https://schema.org", "@type": "LocalBusiness", "@id": `${url}#business`,
-    name: `Vrac Québec — ${material.name} à ${city.name}`, url, telephone: "+1-581-994-7717", priceRange: "$$",
-    areaServed: { "@type": "City", name: city.name },
-    address: { "@type": "PostalAddress", addressLocality: city.name, addressRegion: "QC", addressCountry: "CA" },
-    geo: city.latitude != null && city.longitude != null ? { "@type": "GeoCoordinates", latitude: city.latitude, longitude: city.longitude } : undefined,
-    description,
-  };
   const jsonLdBreadcrumb = {
     "@context": "https://schema.org", "@type": "BreadcrumbList",
     itemListElement: [
