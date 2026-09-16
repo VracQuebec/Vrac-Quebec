@@ -11940,6 +11940,36 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_checkout_locks: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          environment: string
+          expires_at: string
+          id: string
+          provider_session_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          environment: string
+          expires_at?: string
+          id?: string
+          provider_session_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          expires_at?: string
+          id?: string
+          provider_session_id?: string | null
+        }
+        Relationships: []
+      }
       platform_company_sectors: {
         Row: {
           company_id: string

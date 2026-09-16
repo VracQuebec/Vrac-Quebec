@@ -228,10 +228,35 @@ async function checkoutHandler(user: { id: string; email?: string }, env: Stripe
     throw new Error("Un abonnement est déjà actif pour cette entreprise.");
   }
 
+  // Verrou court : deux tentatives simultanées (double clic, deux onglets,
+  // deux sessions) ne peuvent pas ouvrir deux paiements pour la même entreprise.
+  await db.from("platform_checkout_locks")
+    .delete()
+    .eq("company_id", company.companyId)
+    .eq("environment", env)
+    .lt("expires_at", new Date().toISOString());
+  const { error: lockError } = await db.from("platform_checkout_locks").insert({
+    company_id: company.companyId, environment: env, created_by: user.id,
+  });
+  if (lockError) {
+    throw new Error("Un paiement est déjà en cours pour cette entreprise. Terminez-le ou réessayez dans quelques minutes.");
+  }
+
+  const releaseLock = () =>
+    db.from("platform_checkout_locks").delete()
+      .eq("company_id", company.companyId).eq("environment", env);
+
   const stripe = createStripeClient(env);
-  const prices = await stripe.prices.list({ lookup_keys: [plan.provider_price_id] });
-  if (!prices.data.length) throw new Error("Prix introuvable chez le prestataire.");
-  const price = prices.data[0];
+  let price;
+  try {
+    const prices = await stripe.prices.list({ lookup_keys: [plan.provider_price_id] });
+    if (!prices.data.length) throw new Error("Prix introuvable chez le prestataire.");
+    price = prices.data[0];
+  } catch (e) {
+    await releaseLock();
+    throw e;
+  }
+
 
   // Client de facturation résolu côté serveur et porteur des métadonnées.
   const found = await stripe.customers.search({
@@ -269,17 +294,28 @@ async function checkoutHandler(user: { id: string; email?: string }, env: Stripe
   let session;
   let taxMode = "automatique";
   try {
-    session = await stripe.checkout.sessions.create({
-      ...base,
-      automatic_tax: { enabled: true },
-      customer_update: { address: "auto", name: "auto" },
-    });
-  } catch (_e) {
-    taxMode = "non_configure";
-    session = await stripe.checkout.sessions.create(base);
+    try {
+      session = await stripe.checkout.sessions.create({
+        ...base,
+        automatic_tax: { enabled: true },
+        customer_update: { address: "auto", name: "auto" },
+      });
+    } catch (_e) {
+      taxMode = "non_configure";
+      session = await stripe.checkout.sessions.create(base);
+    }
+  } catch (e) {
+    await releaseLock();
+    throw e;
   }
 
+  await db.from("platform_checkout_locks")
+    .update({ provider_session_id: session.id })
+    .eq("company_id", company.companyId)
+    .eq("environment", env);
+
   return { clientSecret: session.client_secret, sessionId: session.id, taxMode };
+
 }
 
 async function portalHandler(userId: string, env: StripeEnv, returnUrl?: string) {
