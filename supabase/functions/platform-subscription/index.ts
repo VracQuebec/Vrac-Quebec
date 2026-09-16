@@ -294,17 +294,28 @@ async function checkoutHandler(user: { id: string; email?: string }, env: Stripe
   let session;
   let taxMode = "automatique";
   try {
-    session = await stripe.checkout.sessions.create({
-      ...base,
-      automatic_tax: { enabled: true },
-      customer_update: { address: "auto", name: "auto" },
-    });
-  } catch (_e) {
-    taxMode = "non_configure";
-    session = await stripe.checkout.sessions.create(base);
+    try {
+      session = await stripe.checkout.sessions.create({
+        ...base,
+        automatic_tax: { enabled: true },
+        customer_update: { address: "auto", name: "auto" },
+      });
+    } catch (_e) {
+      taxMode = "non_configure";
+      session = await stripe.checkout.sessions.create(base);
+    }
+  } catch (e) {
+    await releaseLock();
+    throw e;
   }
 
+  await db.from("platform_checkout_locks")
+    .update({ provider_session_id: session.id })
+    .eq("company_id", company.companyId)
+    .eq("environment", env);
+
   return { clientSecret: session.client_secret, sessionId: session.id, taxMode };
+
 }
 
 async function portalHandler(userId: string, env: StripeEnv, returnUrl?: string) {
