@@ -4,7 +4,7 @@ import { LeadPhotos } from "@/components/admin/LeadPhotos";
 import LeadParcoursPanel from "@/components/admin/LeadParcoursPanel";
 import DompeAvailabilityPanel from "@/components/admin/DompeAvailabilityPanel";
 import MaterialInterpretationPanel from "@/components/admin/MaterialInterpretationPanel";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES, serviceTypeMeta, normalizeRequestType, requestTypeMeta } from "@/lib/questionnaire-data";
 import { CONTAMINATION_OPTIONS, DELIVER_OR_REMOVE_OPTIONS, PROJECT_TYPES, TRUCK_ACCESS_OPTIONS } from "@/lib/questionnaire-data";
@@ -27,7 +27,7 @@ import {
 } from "@/lib/parcours/validation";
 import {
   Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List,
-  Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings,
+  Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings, Building2, CalendarDays, TrendingUp,
 } from "lucide-react";
 import AdminMap from "@/components/AdminMap";
 import BillingSection from "@/components/BillingSection";
