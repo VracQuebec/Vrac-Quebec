@@ -1,7 +1,7 @@
 # Feuille de route — Vrac Québec
 
 ## En cours
-- [ ] Correction finale du layout CRM partagé — header, menu mobile, safe areas, Centre de notifications et validation 375→1920 px
+- [x] Correction finale du layout CRM partagé — header, menu mobile, safe areas, Centre de notifications et validation 375→1920 px
 - [x] Refonte produit de l'Espace entrepreneur — coquille d'application, tableau de bord, chantiers, dossier chantier, demandes, carte, comparateur, réseau, historique, mon entreprise migrés dans la nouvelle expérience
 - [ ] Validation visuelle connectée de l'espace entrepreneur — bloquée : aucun compte entrepreneur de test disponible pour ouvrir une session
 
@@ -10,7 +10,7 @@
   - [x] En-tête central responsive (Retour / Accueil / titre) + safe areas
   - [x] Onglets, tableaux, cartes, modales, boutons : règles centrales
   - [x] Tests multi-largeurs 375 → 1440 px (pages publiques)
-  - [ ] Validation visuelle des pages administration (nécessite une session admin autorisée)
+  - [x] Validation visuelle des pages administration avec une session admin autorisée
 
 ## Fait
 - [x] Moteur d'optimisation SEO en lot
@@ -27,4 +27,4 @@
 - [x] Centre d'optimisation SEO : barre d'outils et boutons « Optimiser » utilisables sur téléphone
 - [x] Moteur SEO en lot vérifié (toutes les fonctions de file, contrôle, reprise et historique présentes)
 - [x] Tests : 414 tests passés, compilation sans erreur, aucune barre de défilement horizontale à 375/430/768/1024/1440
-- [ ] Validation visuelle des pages d'administration connectées (nécessite une connexion de votre part)
+- [x] Validation visuelle des pages d'administration connectées
