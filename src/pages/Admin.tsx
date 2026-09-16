@@ -922,7 +922,10 @@ const Admin = () => {
 
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+        ) : view === "today" ? (
+          <TodayPanel userId={user?.id ?? null} />
         ) : view === "map" ? (
+
           <>
             <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground font-body">
               <span>💡 Glissez une pin pour corriger sa position.</span>
