@@ -32,6 +32,21 @@
 ## CRM-02 — Abonnement mensuel de test (terminé)
 - Offre technique « TEST — Entrepreneur Pro » 10 $/mois, environnement de test uniquement.
 - Page « Mon abonnement » (/entrepreneur/abonnement) : état, échéance, services, factures, portail, resynchronisation.
-- Cycle vérifié en test : paiement réussi, facture payée 10,00 $, abonnement actif jusqu'au 16 octobre 2026.
+- Paiement initial vérifié en test : facture payée 10,00 $, abonnement actif jusqu'au 16 octobre 2026.
 - Prix commercial Entrepreneur Pro toujours « À définir ». Aucun lancement réel activé.
-- Reste à décider : adresse fiscale du prestataire (calcul de taxes), tarif commercial, activation réelle.
+
+## CRM-02B — Vérifications et lisibilité (en cours)
+- [x] Services affichés en langage clair, avec explication et bouton « Ouvrir » vers la fonction existante.
+- [x] Fonctions à venir distinguées (export entrepreneur inexistant, jumelage interne désactivé).
+- [x] Taxes : état réel lu chez le prestataire. Observé « non configurées » (adresse vendeur absente, 0 inscription).
+- [x] Échec de performance du LOT 11 corrigé à la source (limite du lanceur alignée sur le seuil, seuil inchangé) — 1 103 tests, 0 échec.
+- [ ] Renouvellement réel, échec/régularisation, annulation et reprise : bloqués — nécessitent une horloge de test chez le prestataire (l'abonnement existant n'en a pas).
+- [ ] Isolation A/B avec sessions ordinaires : bloquée — l'entreprise de test B n'a aucun compte utilisateur, et aucun membre sans droit de facturation n'existe.
+
+## CRM-03 — Inventaire préalable (à réutiliser, ne pas refaire)
+- Tris : 20 options groupées déjà livrées (src/lib/crm/leadSort.ts), tri par défaut « Plus récents », persistance dans l'URL.
+- Filtres serveur : statut, type, matériau, entrepreneur, plage de dates, recherche (src/lib/crm/leadsQuery.ts), pagination 50.
+- Prochaines actions : colonne next_follow_up_at déjà en place et triable.
+- Historiques : crm_audit_log, crm_activities, jsc_status_history, platform_change_log.
+- Responsables : appartenance par jsc_company_members et rôles ; notifications automatiques sur toutes les sources de demandes.
+
