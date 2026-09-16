@@ -3,18 +3,21 @@
 // Le navigateur n'accorde jamais de droits : il affiche l'état du serveur.
 // ============================================================
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, CreditCard, ExternalLink, FileText, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, CreditCard, ExternalLink, FileText, Loader2, Receipt, RefreshCw, ShieldCheck } from "lucide-react";
 import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
 import UniversalNav from "@/components/UniversalNav";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { getStripe, paymentsConfigured } from "@/lib/stripe";
+import { describeCapabilities, NEVER_INCLUDED } from "@/lib/platform/capabilities";
+import { invoiceTaxLabel, TAX_LABELS, TAX_TONES, taxGuidance } from "@/lib/platform/tax";
 import {
   fetchSubscriptionStatus, formatAmount, formatDate, hasPaidAccess, openBillingPortal,
   resyncSubscription, startCheckout, stateGuidance, subscriptionState,
   STATE_LABELS, STATE_TONES, type SubscriptionStatusResponse,
 } from "@/lib/platform/subscription";
+
 
 const card = "rounded-xl border border-border bg-card p-4";
 
@@ -30,10 +33,11 @@ function TestBanner() {
   if (token.startsWith("pk_test_")) {
     return (
       <div className="w-full border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-700">
-        Mode test : aucun paiement réel n'est effectué.
+        Environnement de test — aucun prélèvement réel. 10 CAD/mois — tarif de test.
       </div>
     );
   }
+
   return null;
 }
 
@@ -167,9 +171,15 @@ export default function MonAbonnement() {
                   <p className="font-display text-lg font-semibold">{sub?.platform_plans?.name ?? offer?.name ?? "Aucun forfait"}</p>
                   <p className="text-sm text-muted-foreground">
                     {formatAmount(sub?.amount_cents ?? offer?.price_cents ?? null, sub?.currency ?? offer?.currency ?? "CAD")} par mois
-                    {offer?.is_test && " — offre technique de test"}
+                    {offer?.is_test && " — tarif de test"}
                   </p>
+                  {offer?.is_test && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Le tarif commercial d'Entrepreneur Pro reste « À définir ».
+                    </p>
+                  )}
                 </div>
+
                 <span className={`rounded-full border px-3 py-1 text-xs font-medium ${STATE_TONES[st]}`}>{STATE_LABELS[st]}</span>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">{stateGuidance(st)}</p>
@@ -188,20 +198,67 @@ export default function MonAbonnement() {
 
             <section className={card}>
               <h2 className="flex items-center gap-2 font-display font-semibold"><ShieldCheck className="h-4 w-4" /> Services inclus</h2>
-              <ul className="mt-2 space-y-1 text-sm">
-                {(sub?.platform_plans?.features ?? offer?.features ?? []).map((f) => (
-                  <li key={f} className="flex items-center gap-2">
-                    {hasPaidAccess(sub)
-                      ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      : <span className="inline-block h-4 w-4 rounded-full border border-border" />}
-                    {f}
-                  </li>
-                ))}
+              <ul className="mt-3 space-y-3">
+                {describeCapabilities(sub?.platform_plans?.features ?? offer?.features ?? []).map((cap) => {
+                  const open = cap.available && hasPaidAccess(sub);
+                  return (
+                    <li key={cap.key} className="rounded-lg border border-border/70 p-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="flex items-center gap-2 font-medium">
+                            {cap.available
+                              ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                              : <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                            {cap.label}
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">{cap.description}</p>
+                          {!cap.available && (
+                            <p className="mt-1 text-xs text-muted-foreground">{cap.unavailableReason}</p>
+                          )}
+                        </div>
+                        {open && cap.route && (
+                          <Link to={cap.route}
+                            className="inline-flex min-h-[44px] shrink-0 items-center rounded-lg border border-border px-3 text-sm font-medium">
+                            Ouvrir
+                          </Link>
+                        )}
+                        {!cap.available && (
+                          <span className="shrink-0 rounded-full border border-border px-2 py-1 text-xs text-muted-foreground">À venir</span>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
-              <p className="mt-2 text-xs text-muted-foreground">
-                L'abonnement n'ouvre jamais les notes privées, les coordonnées protégées ni les exports d'administration.
+              <p className="mt-3 text-xs text-muted-foreground">
+                L'abonnement n'ouvre jamais : {NEVER_INCLUDED.join(" · ")}.
               </p>
             </section>
+
+            <section className={card}>
+              <h2 className="flex items-center gap-2 font-display font-semibold"><Receipt className="h-4 w-4" /> Taxes</h2>
+              {!data.tax && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  État des taxes non lu : aucune taxe n'est annoncée pour ce dossier.
+                </p>
+              )}
+              {data.tax && (
+                <>
+                  <span className={`mt-2 inline-block rounded-full border px-3 py-1 text-xs font-medium ${TAX_TONES[data.tax.state]}`}>
+                    {TAX_LABELS[data.tax.state]}
+                  </span>
+                  <p className="mt-2 text-sm text-muted-foreground">{taxGuidance(data.tax.state)}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{data.tax.detail}</p>
+                  <dl className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                    <div>Adresse du vendeur : {data.tax.sellerAddressConfigured ? "configurée" : "absente"}</div>
+                    <div>Classification du service : {data.tax.serviceTaxCodeConfigured ? "configurée" : "absente"}</div>
+                    <div>Inscriptions fiscales actives : {data.tax.registrations ?? "inconnu"}</div>
+                    <div>Calcul actif sur l'abonnement : {data.tax.automaticTaxOnSubscription === null ? "inconnu" : data.tax.automaticTaxOnSubscription ? "oui" : "non"}</div>
+                  </dl>
+                </>
+              )}
+            </section>
+
 
             <section className={card}>
               <h2 className="flex items-center gap-2 font-display font-semibold"><CreditCard className="h-4 w-4" /> Gestion</h2>
@@ -243,6 +300,9 @@ export default function MonAbonnement() {
                   <li key={inv.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                     <span>{formatDate(inv.created)}</span>
                     <span>{formatAmount(inv.amount_paid, inv.currency.toUpperCase())}</span>
+                    <span className="text-xs text-muted-foreground">
+                      Taxes : {invoiceTaxLabel(inv.tax, inv.tax_status, inv.currency.toUpperCase())}
+                    </span>
                     <span className="text-xs text-muted-foreground">{inv.status}</span>
                     {inv.hosted_invoice_url && (
                       <a href={inv.hosted_invoice_url} target="_blank" rel="noopener noreferrer"
@@ -251,8 +311,8 @@ export default function MonAbonnement() {
                   </li>
                 ))}
               </ul>
-              {offer?.tax_note && <p className="mt-2 text-xs text-muted-foreground">{offer.tax_note}</p>}
             </section>
+
           </>
         )}
       </main>
