@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
-import { useCrmNotifications } from "@/hooks/useCrmNotifications";
+import { useEntrepreneurNotifications } from "@/hooks/useEntrepreneurNotifications";
 import FullPageState from "@/components/FullPageState";
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -87,7 +87,7 @@ export default function EntrepreneurAppShell({
   const location = useLocation();
   const { user, isReady: authReady } = useAuthReady();
   const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
-  const { stats } = useCrmNotifications(true);
+  const { unread: unreadCount } = useEntrepreneurNotifications(true);
   const [moreOpen, setMoreOpen] = useState(false);
 
   const isHome = location.pathname === "/entrepreneur";
@@ -119,7 +119,7 @@ export default function EntrepreneurAppShell({
     );
   }
 
-  const badge = stats.unread;
+  const badge = unreadCount;
   const moreActive = MORE_ITEMS.some((i) => isActive(location.pathname, i.to));
 
   return (
@@ -215,7 +215,7 @@ export default function EntrepreneurAppShell({
               aria-label={`Notifications${badge ? ` (${badge} non lues)` : ""}`}
               className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl hover:bg-secondary"
             >
-              <Bell className={`h-5 w-5 ${stats.urgent > 0 ? "text-destructive" : "text-foreground"}`} />
+              <Bell className={`h-5 w-5 ${unreadCount > 0 ? "text-primary" : "text-foreground"}`} />
               {badge > 0 && (
                 <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-display font-bold flex items-center justify-center">
                   {badge > 99 ? "99+" : badge}

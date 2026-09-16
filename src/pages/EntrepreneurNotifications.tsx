@@ -8,7 +8,8 @@ import { useNavigate } from "react-router-dom";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import { EmptyState, ErrorState, LoadingSkeleton } from "@/components/entrepreneur-app/AppStates";
 import { AppCard } from "@/components/entrepreneur-app/ui";
-import { fetchNotifications, markNotificationRead, type MktNotification } from "@/lib/marketplace/api";
+import { markNotificationRead, type MktNotification } from "@/lib/marketplace/api";
+import { useEntrepreneurNotifications } from "@/hooks/useEntrepreneurNotifications";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCheck, ChevronRight, Bell, Truck, ClipboardList, MapPin, AlertTriangle } from "lucide-react";
 
@@ -36,41 +37,25 @@ const kindOf = (n: MktNotification) => {
 export default function EntrepreneurNotifications() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [rows, setRows] = useState<MktNotification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
   const [tab, setTab] = useState<"unread" | "all">("unread");
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setFailed(false);
-    try {
-      setRows(await fetchNotifications(50));
-    } catch {
-      setFailed(true);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
+  // Flux partagé avec la cloche : mise à jour automatique (temps réel existant).
+  const { items: rows, loading, error, reload, read } = useEntrepreneurNotifications(true);
+  const failed = Boolean(error);
+  const load = reload;
 
   const unread = rows.filter((r) => !r.read_at);
   const visible = useMemo(() => (tab === "unread" ? unread : rows), [tab, rows, unread]);
 
   const open = async (n: MktNotification) => {
-    if (!n.read_at) {
-      setRows((p) => p.map((r) => (r.id === n.id ? { ...r, read_at: new Date().toISOString() } : r)));
-      try { await markNotificationRead(n.id); } catch { /* l'avis reste non lu côté serveur */ }
-    }
+    if (!n.read_at) await read(n.id);
     if (n.link) navigate(n.link);
   };
 
   const readAll = async () => {
     const ids = unread.map((n) => n.id);
     if (ids.length === 0) return;
-    setRows((p) => p.map((r) => (r.read_at ? r : { ...r, read_at: new Date().toISOString() })));
     await Promise.allSettled(ids.map((id) => markNotificationRead(id)));
+    await reload();
     toast({ title: "Tout est marqué comme lu" });
   };
 
