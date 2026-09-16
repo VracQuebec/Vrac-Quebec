@@ -55,6 +55,7 @@ export default function ZonesIndex() {
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         <meta property="og:url" content={url} />
+        <script type="application/ld+json">{JSON.stringify(jsonLdService)}</script>
       </Helmet>
       <TransportBanner />
       <nav aria-label="Fil d'Ariane" className="container mx-auto px-4 sm:px-6 pt-4 flex items-center gap-1 text-xs text-muted-foreground font-body">
