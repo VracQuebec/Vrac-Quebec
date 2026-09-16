@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, Home, LayoutDashboard, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Bell, BookOpen, Building2, CalendarDays, Database, Home, LayoutDashboard, LogOut, Menu, Settings, Truck, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import NotificationBell from "@/components/notifications/NotificationBell";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +37,7 @@ export default function UniversalNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const navRef = useRef<HTMLElement | null>(null);
 
   const dirty = useSyncExternalStore(subscribeUnsavedChanges, hasUnsavedChanges, () => false);
@@ -88,6 +92,90 @@ export default function UniversalNav() {
   }, [hidden, path]);
 
   if (hidden) return null;
+
+  const adminLinks = [
+    { to: "/admin", label: "Demandes (CRM)", icon: LayoutDashboard },
+    { to: "/admin/notifications", label: "Centre de notifications", icon: Bell },
+    { to: "/admin/demandes-acces", label: "Demandes d'accès", icon: Truck },
+    { to: "/admin/calendrier", label: "Calendrier", icon: CalendarDays },
+    { to: "/admin/flotte", label: "Gestion de la flotte", icon: Truck },
+    { to: "/admin/business-intelligence", label: "Business Intelligence", icon: BarChart3 },
+    { to: "/admin/blogue", label: "Blogue", icon: BookOpen },
+    { to: "/admin/donnees", label: "Données", icon: Database },
+    { to: "/admin/settings", label: "Paramètres", icon: Settings },
+    { to: "/admin/plateforme", label: "Paramètres plateforme", icon: Settings },
+    { to: "/admin/jsc", label: "Back office de l'entreprise", icon: Building2 },
+  ];
+
+  if (isAdmin) {
+    return (
+      <nav
+        ref={navRef}
+        aria-label="Navigation du CRM"
+        className="app-universal-nav safe-top safe-x w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90"
+      >
+        <div className="mx-auto flex min-h-14 w-full max-w-7xl items-center gap-1 px-2 sm:px-4">
+          <Button variant="ghost" size="icon" onClick={goBack} className="h-11 w-11 shrink-0" aria-label="Retour">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="hidden h-11 w-11 shrink-0 sm:inline-flex" aria-label="Accueil">
+            <Home className="h-5 w-5" />
+          </Button>
+
+          <button
+            type="button"
+            onClick={() => navigate("/admin")}
+            className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left hover:bg-secondary/80 sm:flex-none"
+          >
+            <Truck className="h-5 w-5 shrink-0 text-primary" />
+            <span className="min-w-0 truncate font-display text-sm font-bold sm:text-base">
+              Vrac<span className="text-primary">Québec</span> <span className="text-muted-foreground">CRM</span>
+            </span>
+          </button>
+
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            <NotificationBell />
+            <Sheet open={adminMenuOpen} onOpenChange={setAdminMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Ouvrir le menu CRM">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="safe-top safe-bottom w-[min(88vw,22rem)] gap-0 p-0">
+                <div className="flex min-h-16 items-center border-b border-border px-4 pr-14">
+                  <SheetTitle className="font-display text-base font-bold">Navigation CRM</SheetTitle>
+                </div>
+                <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-3">
+                  {adminLinks.map(({ to, label, icon: Icon }) => (
+                    <Button
+                      key={to}
+                      type="button"
+                      variant={path === to ? "secondary" : "ghost"}
+                      onClick={() => { setAdminMenuOpen(false); navigate(to); }}
+                      className="min-h-11 w-full justify-start gap-3 whitespace-normal text-left"
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span>{label}</span>
+                    </Button>
+                  ))}
+                </div>
+                <div className="border-t border-border p-3 pb-[max(.75rem,env(safe-area-inset-bottom))]">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={async () => { setAdminMenuOpen(false); await supabase.auth.signOut(); navigate("/login"); }}
+                    className="min-h-11 w-full justify-start gap-3 text-muted-foreground"
+                  >
+                    <LogOut className="h-4 w-4" /> Déconnexion
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <>

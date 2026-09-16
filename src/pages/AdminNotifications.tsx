@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, Bell, BellRing, CheckCheck, Loader2, Send, Smartphone } from "lucide-react";
+import { Bell, BellRing, CheckCheck, Loader2, Send, Smartphone } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import FullPageState from "@/components/FullPageState";
@@ -69,28 +69,22 @@ export default function AdminNotifications() {
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
-      <nav
-        className="sticky-below-nav z-40 border-b border-border bg-card/90 backdrop-blur-md"
-        style={{ paddingTop: "env(safe-area-inset-top)" }}
-      >
-        <div className="container mx-auto flex min-h-12 flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3 py-1.5 sm:px-6">
-          <Link to="/admin" className="inline-flex items-center gap-1.5 text-xs font-display font-semibold text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-4 h-4" /> CRM
-          </Link>
-          <h1 className="font-display font-bold text-base inline-flex items-center gap-1.5">
+      <header className="border-b border-border bg-card">
+        <div className="container mx-auto flex min-h-14 items-center justify-between gap-3 px-3 py-2 sm:px-6">
+          <h1 className="min-w-0 font-display font-bold text-base inline-flex items-center gap-1.5 sm:text-lg">
             <Bell className="w-4 h-4 text-primary" /> Notifications
           </h1>
           <button
             onClick={readAll}
             disabled={stats.unread === 0}
-            className="inline-flex items-center gap-1 text-[11px] font-display font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1 px-2 text-xs font-display font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
           >
             <CheckCheck className="w-3.5 h-3.5" /> Tout lire
           </button>
         </div>
-      </nav>
+      </header>
 
-      <main className="container mx-auto px-3 sm:px-6 py-3 max-w-4xl">
+      <main className="container mx-auto max-w-4xl px-3 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
         <div className="flex flex-wrap items-center gap-1.5 mb-3">
           <KpiBadge icon="🔴" label="urgentes" value={stats.urgent} alert />
           <KpiBadge icon="⏰" label="en retard" value={stats.overdue} alert />
@@ -104,7 +98,7 @@ export default function AdminNotifications() {
         <div className="flex gap-1 overflow-x-auto pb-1.5 mb-1.5 -mx-3 px-3 sm:mx-0 sm:px-0">
           {FILTERS.map((f) => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-display font-bold ${
+              className={`shrink-0 min-h-11 px-3 py-2 rounded-full text-xs font-display font-bold ${
                 filter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
               {FILTER_LABELS[f]}
             </button>
@@ -113,13 +107,13 @@ export default function AdminNotifications() {
 
         <div className="flex gap-1 overflow-x-auto pb-1.5 mb-2 -mx-3 px-3 sm:mx-0 sm:px-0">
           <button onClick={() => setCategory("all")}
-            className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-display font-semibold ${
+            className={`shrink-0 min-h-11 px-3 py-2 rounded-full text-xs font-display font-semibold ${
               category === "all" ? "bg-foreground text-background" : "bg-secondary text-foreground"}`}>
             Toutes catégories
           </button>
           {CATEGORIES.map((c) => (
             <button key={c} onClick={() => setCategory(c)}
-              className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-display font-semibold ${
+              className={`shrink-0 min-h-11 px-3 py-2 rounded-full text-xs font-display font-semibold ${
                 category === c ? "bg-foreground text-background" : "bg-secondary text-foreground"}`}>
               {CATEGORY_ICONS[c]} {CATEGORY_LABELS[c]}
               {stats.byCategory[c] > 0 && <span className="ml-1 opacity-70">({stats.byCategory[c]})</span>}
@@ -129,7 +123,7 @@ export default function AdminNotifications() {
 
         <button
           onClick={() => setShowSettings((v) => !v)}
-          className="mb-2 text-[11px] font-display font-bold text-primary"
+          className="mb-2 min-h-11 px-1 text-xs font-display font-bold text-primary"
         >
           {showSettings ? "Masquer les réglages" : "Réglages des alertes et délais"}
         </button>
