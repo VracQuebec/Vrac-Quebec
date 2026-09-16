@@ -48,7 +48,7 @@ const NotificationItem = ({ n, onRead, onChange, onNavigate, compact }: Props) =
             {unread && (
               <button
                 onClick={() => onRead(n.id)}
-                className="ml-auto inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground font-display"
+                className="ml-auto inline-flex min-h-11 items-center gap-1 px-1 text-xs text-muted-foreground hover:text-foreground font-display"
               >
                 <X className="w-3 h-3" /> Marquer lue
               </button>
@@ -71,12 +71,12 @@ const NotificationItem = ({ n, onRead, onChange, onNavigate, compact }: Props) =
 
           {/* Actions : jamais coupées — elles passent à la ligne et occupent
               toute la largeur disponible sur les petits écrans. */}
-          <div className="mt-2 flex flex-wrap items-stretch gap-1.5">
+          <div className="mt-2 grid grid-cols-1 gap-1.5 min-[390px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-stretch">
             {n.action_url && (
               <Link
                 to={n.action_url}
                 onClick={() => { onRead(n.id); onNavigate?.(); }}
-                className="inline-flex min-h-9 flex-1 basis-full items-center justify-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-[12px] font-display font-bold text-primary-foreground sm:basis-auto sm:flex-none"
+                className="inline-flex min-h-11 items-center justify-center gap-1 rounded-md bg-primary px-3 py-2 text-xs font-display font-bold text-primary-foreground min-[390px]:col-span-2 sm:flex-none"
               >
                 Ouvrir <ExternalLink className="w-3 h-3" />
               </Link>
@@ -85,14 +85,14 @@ const NotificationItem = ({ n, onRead, onChange, onNavigate, compact }: Props) =
               <>
                 <button
                   onClick={() => onChange(n.id, n.status === "in_progress" ? "read" : "in_progress")}
-                  className="inline-flex min-h-9 min-w-0 flex-1 basis-[9rem] items-center justify-center gap-1 rounded-md bg-secondary px-2.5 py-1.5 text-[12px] font-display font-semibold text-foreground sm:basis-auto sm:flex-none"
+                  className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-md bg-secondary px-3 py-2 text-xs font-display font-semibold text-foreground sm:flex-none"
                 >
                   <CircleDot className="w-3 h-3 shrink-0" />
                   <span className="truncate">{n.status === "in_progress" ? "Mettre en attente" : "Je m'en occupe"}</span>
                 </button>
                 <button
                   onClick={() => onChange(n.id, "done")}
-                  className="inline-flex min-h-9 min-w-0 flex-1 basis-[6rem] items-center justify-center gap-1 rounded-md bg-secondary px-2.5 py-1.5 text-[12px] font-display font-semibold text-foreground sm:basis-auto sm:flex-none"
+                  className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-md bg-secondary px-3 py-2 text-xs font-display font-semibold text-foreground sm:flex-none"
                 >
                   <Check className="w-3 h-3 shrink-0" /> Traité
                 </button>
@@ -101,7 +101,7 @@ const NotificationItem = ({ n, onRead, onChange, onNavigate, compact }: Props) =
             {done && (
               <button
                 onClick={() => onChange(n.id, "read")}
-                className="inline-flex min-h-9 flex-1 basis-full items-center justify-center gap-1 rounded-md bg-secondary px-2.5 py-1.5 text-[12px] font-display font-semibold text-foreground sm:basis-auto sm:flex-none"
+                className="inline-flex min-h-11 items-center justify-center gap-1 rounded-md bg-secondary px-3 py-2 text-xs font-display font-semibold text-foreground sm:flex-none"
               >
                 Rouvrir
               </button>

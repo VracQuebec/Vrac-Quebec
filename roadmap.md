@@ -1,6 +1,7 @@
 # Feuille de route — Vrac Québec
 
 ## En cours
+- [ ] Correction finale du layout CRM partagé — header, menu mobile, safe areas, Centre de notifications et validation 375→1920 px
 - [x] Refonte produit de l'Espace entrepreneur — coquille d'application, tableau de bord, chantiers, dossier chantier, demandes, carte, comparateur, réseau, historique, mon entreprise migrés dans la nouvelle expérience
 - [ ] Validation visuelle connectée de l'espace entrepreneur — bloquée : aucun compte entrepreneur de test disponible pour ouvrir une session
 

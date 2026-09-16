@@ -61,9 +61,8 @@ export default function AdminSettings() {
 
       <nav
         className="sticky-below-nav z-40 border-b border-border bg-card/90 backdrop-blur-md"
-        style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
-        <div className="container mx-auto px-3 sm:px-6 h-12 flex items-center justify-between gap-2 max-w-3xl">
+        <div className="container mx-auto px-3 sm:px-6 min-h-14 flex items-center justify-between gap-2 max-w-3xl">
           <Link to="/admin" className="inline-flex items-center gap-1.5 text-xs font-display font-semibold text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-4 h-4" /> CRM
           </Link>

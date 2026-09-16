@@ -233,7 +233,7 @@ body,
     }
     /* Cibles tactiles confortables */
     button, [role="tab"], a[role="button"] {
-      min-height: 40px;
+      min-height: 44px;
     }
   }
 
@@ -286,11 +286,11 @@ body,
 }
 
 @layer base {
-  /* Un en-tête de page ne doit jamais dépasser la moitié de l'écran en hauteur */
+  /* Les en-têtes restent dans le flux; seul leur contenu interne peut défiler. */
   header.sticky-below-nav,
   nav.sticky-below-nav {
     max-height: 60vh;
-    overflow-y: auto;
+    overflow-y: visible;
   }
 
   /* Aucun élément positionné ne sort de l'écran horizontalement */

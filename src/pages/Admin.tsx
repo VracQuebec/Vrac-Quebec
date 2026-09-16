@@ -4,7 +4,7 @@ import { LeadPhotos } from "@/components/admin/LeadPhotos";
 import LeadParcoursPanel from "@/components/admin/LeadParcoursPanel";
 import DompeAvailabilityPanel from "@/components/admin/DompeAvailabilityPanel";
 import MaterialInterpretationPanel from "@/components/admin/MaterialInterpretationPanel";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { MATERIAL_TYPES, REQUEST_TYPES, LEAD_PRIORITIES, serviceTypeMeta, normalizeRequestType, requestTypeMeta } from "@/lib/questionnaire-data";
 import { CONTAMINATION_OPTIONS, DELIVER_OR_REMOVE_OPTIONS, PROJECT_TYPES, TRUCK_ACCESS_OPTIONS } from "@/lib/questionnaire-data";
@@ -18,7 +18,6 @@ import { useLeadStatuses, findStatus, type LeadStatus } from "@/hooks/useLeadSta
 import { Switch } from "@/components/ui/switch";
 import StatusManagerModal from "@/components/StatusManagerModal";
 import FullPageState from "@/components/FullPageState";
-import NotificationBell from "@/components/notifications/NotificationBell";
 import {
   validateSelectedSite,
   buildTransportPrefill,
@@ -28,7 +27,7 @@ import {
 } from "@/lib/parcours/validation";
 import {
   Truck, LogOut, Trash2, Loader2, ChevronDown, ChevronUp, Map, List,
-  Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings, Building2,
+  Phone, MessageSquare, Mail, MapPin, Archive, Download, Upload, Users, Plus, Eye, EyeOff, Save, Settings, Building2, CalendarDays, TrendingUp,
 } from "lucide-react";
 import AdminMap from "@/components/AdminMap";
 import BillingSection from "@/components/BillingSection";
@@ -41,11 +40,9 @@ import CsvImportModal from "@/components/CsvImportModal";
 import GoogleSheetImportModal from "@/components/GoogleSheetImportModal";
 import ExcelImportModal from "@/components/ExcelImportModal";
 import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
-import { Link } from "react-router-dom";
 import { Database as DatabaseIcon } from "lucide-react";
-import { Search, CalendarDays, Menu, BookOpen as BookOpenIcon, TrendingUp } from "lucide-react";
-import { Ban, Activity } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { Search } from "lucide-react";
+import { Activity } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import {
   ACCESS_RESTRICTION_OPTIONS,
@@ -221,7 +218,6 @@ const Admin = () => {
   const [entrepreneursList, setEntrepreneursList] = useState<{ user_id: string; email: string }[]>([]);
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
   const overdueNotifiedRef = useRef(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const { statuses: leadStatuses } = useLeadStatuses();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -693,120 +689,6 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      <nav className="sticky-below-nav z-50 bg-card/80 backdrop-blur-md border-b border-border">
-        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <Truck className="w-5 h-5 sm:w-6 sm:h-6 text-primary shrink-0" />
-            <span className="font-display font-bold text-base sm:text-xl text-foreground">
-              Vrac<span className="text-primary">Québec</span>
-            </span>
-            <span className="ml-2 px-2 py-0.5 rounded text-[10px] sm:text-xs bg-primary/10 text-primary font-display font-semibold hidden sm:inline">Admin CRM</span>
-          </div>
-
-          {/* Desktop nav */}
-          <div className="hidden lg:flex flex-wrap items-center gap-x-3 gap-y-1 justify-end">
-            <Link to="/admin/business-intelligence" className="flex items-center gap-1.5 text-sm text-primary hover:opacity-80 font-body font-semibold">
-              <TrendingUp className="w-4 h-4" /> BI
-            </Link>
-            <Link to="/admin/calendrier" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <CalendarDays className="w-4 h-4" /> Calendrier
-            </Link>
-            <Link to="/admin/flotte" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <Truck className="w-4 h-4" /> Flotte
-            </Link>
-            <Link to="/admin/demandes-acces" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <Truck className="w-4 h-4" /> Demandes d'accès
-            </Link>
-            <Link to="/admin/blogue" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <BookOpenIcon className="w-4 h-4" /> Blogue
-            </Link>
-            <Link to="/admin/liste-noire" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <Ban className="w-4 h-4" /> Liste noire
-            </Link>
-            <Link to="/admin/seo" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <MapPin className="w-4 h-4" /> SEO
-            </Link>
-            <button onClick={() => setShowUsers(true)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <Users className="w-4 h-4" /> Entrepreneurs
-            </button>
-            <Link to="/admin/settings" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <Settings className="w-4 h-4" /> Paramètres
-            </Link>
-            <NotificationBell />
-            <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground font-body">
-              <LogOut className="w-4 h-4" /> Déconnexion
-            </button>
-          </div>
-
-          {/* Mobile : cloche + hamburger */}
-          <div className="lg:hidden flex items-center -mr-2">
-            <NotificationBell />
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild>
-              <button className="p-2 rounded-md hover:bg-secondary/80" aria-label="Menu">
-                <Menu className="w-5 h-5 text-foreground" />
-              </button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[86%] max-w-xs sm:max-w-sm safe-bottom">
-              <SheetTitle className="sr-only">Menu de navigation</SheetTitle>
-              <div className="flex flex-col gap-1 mt-6">
-                <div className="px-3 py-2 text-xs font-display font-bold uppercase text-muted-foreground tracking-wide">Navigation</div>
-                <button onClick={() => { setTab("leads"); setMobileOpen(false); }} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body ${tab === "leads" ? "bg-primary text-primary-foreground font-semibold" : "text-foreground hover:bg-secondary"}`}>
-                  <List className="w-4 h-4" /> Demandes (CRM)
-                </button>
-                <button onClick={() => { setTab("billing"); setMobileOpen(false); }} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body ${tab === "billing" ? "bg-primary text-primary-foreground font-semibold" : "text-foreground hover:bg-secondary"}`}>
-                  <DatabaseIcon className="w-4 h-4" /> Facturation
-                </button>
-                <button onClick={() => { setTab("entrepreneurs"); setMobileOpen(false); }} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body ${tab === "entrepreneurs" ? "bg-primary text-primary-foreground font-semibold" : "text-foreground hover:bg-secondary"}`}>
-                  <Users className="w-4 h-4" /> Entrepreneurs
-                </button>
-                <button onClick={() => { setShowUsers(true); setMobileOpen(false); }} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
-                  <Settings className="w-4 h-4" /> Gestion entrepreneurs
-                </button>
-                <Link to="/admin/calendrier" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
-                  <CalendarDays className="w-4 h-4" /> Calendrier
-                </Link>
-                <Link to="/admin/flotte" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
-                  <Truck className="w-4 h-4" /> Gestion de la flotte
-                </Link>
-                <Link to="/admin/business-intelligence" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-primary font-semibold hover:bg-secondary">
-                  <TrendingUp className="w-4 h-4" /> Business Intelligence
-                </Link>
-                <Link to="/admin/demandes-acces" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
-                  <Truck className="w-4 h-4" /> Demandes d'accès aux dompes
-                </Link>
-                <Link to="/admin/blogue" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
-                  <BookOpenIcon className="w-4 h-4" /> Blogue
-                </Link>
-                <Link to="/admin/liste-noire" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
-                  <Ban className="w-4 h-4" /> Liste noire
-                </Link>
-                <Link to="/admin/seo" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
-                  <MapPin className="w-4 h-4" /> SEO
-                </Link>
-                <Link to="/admin/donnees" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
-                  <DatabaseIcon className="w-4 h-4" /> Données
-                </Link>
-                <Link to="/admin/settings" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
-                  <Settings className="w-4 h-4" /> Paramètres
-                </Link>
-                <Link to="/admin/plateforme" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
-                  <Settings className="w-4 h-4" /> Paramètres plateforme
-                </Link>
-                <Link to="/admin/jsc" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-foreground hover:bg-secondary">
-                  <Building2 className="w-4 h-4" /> Back office de l'entreprise
-                </Link>
-                <div className="border-t border-border my-2" />
-                <button onClick={() => { setMobileOpen(false); handleLogout(); }} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body text-muted-foreground hover:text-foreground hover:bg-secondary">
-                  <LogOut className="w-4 h-4" /> Déconnexion
-                </button>
-              </div>
-            </SheetContent>
-          </Sheet>
-          </div>
-        </div>
-      </nav>
-
       <TransportBanner />
 
       <main className="container mx-auto px-4 sm:px-6 py-8">
