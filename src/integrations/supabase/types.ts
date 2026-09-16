@@ -11845,6 +11845,62 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_billing_events: {
+        Row: {
+          company_id: string | null
+          environment: string
+          error: string | null
+          event_created_at: string | null
+          event_type: string
+          id: string
+          payload: Json
+          processed_at: string | null
+          provider: string
+          provider_event_id: string
+          provider_subscription_id: string | null
+          received_at: string
+          status: string
+        }
+        Insert: {
+          company_id?: string | null
+          environment: string
+          error?: string | null
+          event_created_at?: string | null
+          event_type: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider?: string
+          provider_event_id: string
+          provider_subscription_id?: string | null
+          received_at?: string
+          status?: string
+        }
+        Update: {
+          company_id?: string | null
+          environment?: string
+          error?: string | null
+          event_created_at?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider?: string
+          provider_event_id?: string
+          provider_subscription_id?: string | null
+          received_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_billing_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_change_log: {
         Row: {
           action: string
@@ -11971,12 +12027,16 @@ export type Database = {
           description: string | null
           features: Json
           id: string
+          is_test: boolean
           name: string
           notes: string | null
           price_cents: number | null
+          provider_price_id: string | null
           slug: string
           status: string
+          tax_note: string | null
           updated_at: string
+          version: number
         }
         Insert: {
           audience?: string
@@ -11986,12 +12046,16 @@ export type Database = {
           description?: string | null
           features?: Json
           id?: string
+          is_test?: boolean
           name: string
           notes?: string | null
           price_cents?: number | null
+          provider_price_id?: string | null
           slug: string
           status?: string
+          tax_note?: string | null
           updated_at?: string
+          version?: number
         }
         Update: {
           audience?: string
@@ -12001,12 +12065,16 @@ export type Database = {
           description?: string | null
           features?: Json
           id?: string
+          is_test?: boolean
           name?: string
           notes?: string | null
           price_cents?: number | null
+          provider_price_id?: string | null
           slug?: string
           status?: string
+          tax_note?: string | null
           updated_at?: string
+          version?: number
         }
         Relationships: []
       }
@@ -12043,42 +12111,90 @@ export type Database = {
       platform_subscriptions: {
         Row: {
           amount_cents: number | null
+          billing_email: string | null
+          billing_status: string | null
+          cancel_at: string | null
+          cancel_at_period_end: boolean
           company_id: string
           created_at: string
+          created_by: string | null
           currency: string
           current_period_end: string | null
+          current_period_start: string | null
+          ended_at: string | null
+          environment: string
           id: string
           is_test: boolean
+          last_error: string | null
+          last_event_at: string | null
           last_payment_failed_at: string | null
+          last_synced_at: string | null
           plan_id: string
+          plan_version: number | null
+          price_ref: string | null
+          provider: string
+          provider_customer_id: string | null
+          provider_subscription_id: string | null
           started_at: string | null
           status: string
           updated_at: string
         }
         Insert: {
           amount_cents?: number | null
+          billing_email?: string | null
+          billing_status?: string | null
+          cancel_at?: string | null
+          cancel_at_period_end?: boolean
           company_id: string
           created_at?: string
+          created_by?: string | null
           currency?: string
           current_period_end?: string | null
+          current_period_start?: string | null
+          ended_at?: string | null
+          environment?: string
           id?: string
           is_test?: boolean
+          last_error?: string | null
+          last_event_at?: string | null
           last_payment_failed_at?: string | null
+          last_synced_at?: string | null
           plan_id: string
+          plan_version?: number | null
+          price_ref?: string | null
+          provider?: string
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
           started_at?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           amount_cents?: number | null
+          billing_email?: string | null
+          billing_status?: string | null
+          cancel_at?: string | null
+          cancel_at_period_end?: boolean
           company_id?: string
           created_at?: string
+          created_by?: string | null
           currency?: string
           current_period_end?: string | null
+          current_period_start?: string | null
+          ended_at?: string | null
+          environment?: string
           id?: string
           is_test?: boolean
+          last_error?: string | null
+          last_event_at?: string | null
           last_payment_failed_at?: string | null
+          last_synced_at?: string | null
           plan_id?: string
+          plan_version?: number | null
+          price_ref?: string | null
+          provider?: string
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
           started_at?: string | null
           status?: string
           updated_at?: string
@@ -18602,7 +18718,23 @@ export type Database = {
         Returns: Json
       }
       platform_cleanup: { Args: never; Returns: Json }
+      platform_has_capability: {
+        Args: {
+          _capability: string
+          _company_id: string
+          _environment?: string
+        }
+        Returns: boolean
+      }
       platform_health: { Args: never; Returns: Json }
+      platform_is_billing_manager: {
+        Args: { _company_id: string }
+        Returns: boolean
+      }
+      platform_is_company_member: {
+        Args: { _company_id: string }
+        Returns: boolean
+      }
       platform_log_event: {
         Args: {
           _context?: Json
@@ -18615,6 +18747,10 @@ export type Database = {
           _status_code?: number
         }
         Returns: number
+      }
+      platform_subscription_covers: {
+        Args: { _company_id: string; _environment?: string }
+        Returns: boolean
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
