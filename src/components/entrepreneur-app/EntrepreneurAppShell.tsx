@@ -57,7 +57,7 @@ const PRIMARY_TABS = [
 
 const MORE_ITEMS = [
   { to: "/entrepreneur/compte", label: "Mon entreprise", hint: "Profil, camions, visibilité", icon: User },
-  { to: "/entrepreneur/reseau", label: "Réseau professionnel", hint: "Annuaire des entreprises", icon: Building2 },
+  
   { to: "/entrepreneur/notifications", label: "Notifications", hint: "Ce qui demande votre attention", icon: Bell },
   { to: "/entrepreneur/comparateur", label: "Comparateur de sites", hint: "Comparer les dompes", icon: GitCompareArrows },
   { to: "/entrepreneur/historique", label: "Historique", hint: "Vos demandes passées", icon: History },
