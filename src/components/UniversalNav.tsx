@@ -143,7 +143,7 @@ export default function UniversalNav() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="safe-top safe-bottom w-[min(88vw,22rem)] gap-0 p-0">
+              <SheetContent side="right" className="w-[min(88vw,22rem)] gap-0 p-0">
                 <div className="flex min-h-16 items-center border-b border-border px-4 pr-14">
                   <SheetTitle className="font-display text-base font-bold">Navigation CRM</SheetTitle>
                 </div>

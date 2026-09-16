@@ -36,7 +36,7 @@ const NotificationBell = ({ className = "" }: { className?: string }) => {
         </button>
       </SheetTrigger>
 
-      <SheetContent side="right" className="safe-top safe-bottom w-full gap-0 p-0 sm:w-[420px] flex flex-col">
+      <SheetContent side="right" className="w-full gap-0 p-0 sm:w-[420px] flex flex-col">
         <SheetTitle className="sr-only">Centre de notifications</SheetTitle>
 
         <div className="border-b border-border px-4 pb-3 pt-4 pr-14">
