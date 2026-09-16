@@ -229,6 +229,12 @@ export async function prerenderPilot(distDir: string) {
 
   const written: string[] = [];
   for (const page of pages) {
+    // Certaines FAQ historiques utilisent d'autres clés : on ne garde que les
+    // entrées réellement complètes (aucune invention de contenu).
+    const rawFaq = (page.faq ?? []) as Array<Record<string, string>>;
+    page.faq = rawFaq
+      .map((f) => ({ question: f?.question ?? f?.q ?? "", answer: f?.answer ?? f?.a ?? "" }))
+      .filter((f) => f.question && f.answer);
     const html = renderPage(
       shell,
       page,
