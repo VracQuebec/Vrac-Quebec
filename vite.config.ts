@@ -24,12 +24,12 @@ export default defineConfig(({ mode }) => ({
         try {
           const { prerenderPilot } = await import("./scripts/prerender-seo-pilot");
           const slugs = await prerenderPilot(path.resolve(__dirname, "dist"));
-          this.warn?.(`[prerender-pilot] ${slugs.length} pages pré-rendues`);
+          console.log(`[prerender-pilot] ${slugs.length} pages pré-rendues`);
         } catch (e) {
           console.warn("[prerender-pilot] ignoré :", (e as Error)?.message);
         }
       },
-    },
+    } satisfies Plugin,
   ].filter(Boolean),
   resolve: {
     alias: {
