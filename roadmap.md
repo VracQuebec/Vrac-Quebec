@@ -35,13 +35,22 @@
 - Paiement initial vérifié en test : facture payée 10,00 $, abonnement actif jusqu'au 16 octobre 2026.
 - Prix commercial Entrepreneur Pro toujours « À définir ». Aucun lancement réel activé.
 
-## CRM-02B — Vérifications et lisibilité (en cours)
+## CRM-02B — Vérifications et lisibilité (terminé en test)
 - [x] Services affichés en langage clair, avec explication et bouton « Ouvrir » vers la fonction existante.
 - [x] Fonctions à venir distinguées (export entrepreneur inexistant, jumelage interne désactivé).
 - [x] Taxes : état réel lu chez le prestataire. Observé « non configurées » (adresse vendeur absente, 0 inscription).
 - [x] Échec de performance du LOT 11 corrigé à la source (limite du lanceur alignée sur le seuil, seuil inchangé) — 1 103 tests, 0 échec.
-- [ ] Renouvellement réel, échec/régularisation, annulation et reprise : bloqués — nécessitent une horloge de test chez le prestataire (l'abonnement existant n'en a pas).
-- [ ] Isolation A/B avec sessions ordinaires : bloquée — l'entreprise de test B n'a aucun compte utilisateur, et aucun membre sans droit de facturation n'existe.
+- [x] Renouvellement prouvé avec horloge de test : 2e facture 10,00 $ payée, période actualisée dans l'application.
+- [x] Échec de paiement (carte refusée) : état « paiement en retard », puis régularisation vérifiée (facture payée, retour à actif).
+- [x] Annulation en fin de période : droits maintenus jusqu'à la fin, puis état « terminé ».
+- [x] Isolation A/B avec sessions ordinaires + membre sans droit de facturation : chaque compte ne voit que son entreprise ; paiement, portail et resynchronisation refusés au membre sans droit ; aucune lecture directe des dossiers, notes privées ou verrous.
+- [x] Double paiement impossible : verrou court par entreprise (platform_checkout_locks) — deux tentatives simultanées, une seule session ouverte.
+- [ ] Conditions commerciales restantes : prix réel « À définir », configuration fiscale réelle et passage en direct non décidés.
+
+## CRM-03 — Suivi quotidien (livré en prévisualisation)
+- Vue « Aujourd'hui » dans le CRM : actions échues et du jour, compteurs alignés sur la liste affichée.
+- Terminer une relance, en planifier une suivante, historique conservé dans crm_activities.
+- Statut commercial et disponibilité réelle de la demande restent indépendants ; aucune relance automatique par courriel ou SMS.
 
 ## CRM-03 — Inventaire préalable (à réutiliser, ne pas refaire)
 - Tris : 20 options groupées déjà livrées (src/lib/crm/leadSort.ts), tri par défaut « Plus récents », persistance dans l'URL.
