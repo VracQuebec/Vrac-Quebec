@@ -246,7 +246,7 @@ const EntrepreneurCompte = () => {
               </p>
               <div className="space-y-2">
                 <NavRow to="/entrepreneur/notifications" icon={<Bell className="h-5 w-5" />} label="Notifications" hint="Ce que vous recevez" />
-                <NavRow to="/entrepreneur/reseau" icon={<Users className="h-5 w-5" />} label="Réseau professionnel" hint="Voir l'annuaire" />
+                
               </div>
             </section>
 
