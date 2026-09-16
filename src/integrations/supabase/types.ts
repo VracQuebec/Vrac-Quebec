@@ -10192,6 +10192,7 @@ export type Database = {
           company_id: string | null
           created_at: string
           data: Json
+          dedupe_key: string | null
           event: string
           id: string
           level: string
@@ -10208,6 +10209,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           data?: Json
+          dedupe_key?: string | null
           event: string
           id?: string
           level?: string
@@ -10224,6 +10226,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           data?: Json
+          dedupe_key?: string | null
           event?: string
           id?: string
           level?: string
@@ -17962,6 +17965,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      entr_status_label: { Args: { _status: string }; Returns: string }
       exec_claim_optim_tasks: {
         Args: { _run_id: string; _size: number }
         Returns: {
@@ -18610,20 +18614,36 @@ export type Database = {
         }[]
       }
       mkt_next_request_number: { Args: never; Returns: string }
-      mkt_notify: {
-        Args: {
-          _audience: string
-          _body?: string
-          _company_id?: string
-          _event: string
-          _level?: string
-          _link?: string
-          _request_id?: string
-          _title: string
-          _user_id?: string
-        }
-        Returns: string
-      }
+      mkt_notify:
+        | {
+            Args: {
+              _audience: string
+              _body?: string
+              _company_id?: string
+              _event: string
+              _level?: string
+              _link?: string
+              _request_id?: string
+              _title: string
+              _user_id?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _audience: string
+              _body?: string
+              _company_id?: string
+              _dedupe_key?: string
+              _event: string
+              _level?: string
+              _link?: string
+              _request_id?: string
+              _title: string
+              _user_id?: string
+            }
+            Returns: string
+          }
       mkt_owns_request: { Args: { _request_id: string }; Returns: boolean }
       mkt_partner_contact: {
         Args: { _company_id: string; _request_id: string }
