@@ -41,7 +41,9 @@ import GoogleSheetImportModal from "@/components/GoogleSheetImportModal";
 import ExcelImportModal from "@/components/ExcelImportModal";
 import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Database as DatabaseIcon } from "lucide-react";
-import { Search } from "lucide-react";
+import { Search, CalendarClock } from "lucide-react";
+import TodayPanel from "@/components/crm/TodayPanel";
+
 import { Activity } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import {
@@ -190,7 +192,7 @@ const Admin = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [view, setView] = useState<"list" | "map">("list");
+  const [view, setView] = useState<"list" | "map" | "today">("list");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -742,7 +744,11 @@ const Admin = () => {
               <button onClick={() => setView("map")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-display font-semibold ${view === "map" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
                 <Map className="w-4 h-4" /> Carte
               </button>
+              <button onClick={() => setView("today")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-display font-semibold ${view === "today" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
+                <CalendarClock className="w-4 h-4" /> Aujourd'hui
+              </button>
             </div>
+
             <button
               onClick={() => setShowNewLead(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90"
@@ -916,7 +922,10 @@ const Admin = () => {
 
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+        ) : view === "today" ? (
+          <TodayPanel userId={user?.id ?? null} />
         ) : view === "map" ? (
+
           <>
             <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground font-body">
               <span>💡 Glissez une pin pour corriger sa position.</span>
