@@ -5,6 +5,8 @@
 // ============================================================
 import { supabase } from "@/integrations/supabase/client";
 import { paymentsEnvironment } from "@/lib/stripe";
+import type { TaxInfo } from "@/lib/platform/tax";
+
 
 export type SubscriptionState =
   | "none" | "incomplete" | "trialing" | "active" | "past_due" | "canceled" | "ended";
@@ -37,7 +39,10 @@ export interface SubscriptionOffer {
 
 export interface SubscriptionInvoice {
   id: string; status: string | null; amount_paid: number; currency: string;
-  created: string | null; hosted_invoice_url: string | null; pdf_url: string | null; tax: number | null;
+  created: string | null; hosted_invoice_url: string | null; pdf_url: string | null;
+  /** null = taxe non calculée (jamais transformée en zéro). */
+  tax: number | null;
+  tax_status?: string | null;
 }
 
 export interface SubscriptionStatusResponse {
@@ -48,7 +53,9 @@ export interface SubscriptionStatusResponse {
   offer?: SubscriptionOffer | null;
   subscription?: SubscriptionRow | null;
   invoices?: SubscriptionInvoice[];
+  tax?: TaxInfo | null;
 }
+
 
 /** État affichable, déduit sans jamais transformer une absence en zéro. */
 export function subscriptionState(sub: SubscriptionRow | null | undefined, now = new Date()): SubscriptionState {

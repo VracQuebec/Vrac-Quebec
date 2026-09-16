@@ -60,16 +60,17 @@ export const metricLabel = (m: Metric): string => {
 
 /** Fonctionnalités réellement disponibles dans la plateforme. */
 export const PLATFORM_FEATURES: { key: string; label: string; available: boolean }[] = [
-  { key: "crm_demandes", label: "Demandes et suivi CRM", available: true },
-  { key: "carte_dompes", label: "Carte des dompes", available: true },
-  { key: "annuaire_reseau", label: "Annuaire et réseau", available: true },
-  { key: "exports", label: "Exports CSV", available: true },
-  { key: "facturation", label: "Facturation et paiements", available: true },
-  { key: "flotte", label: "Gestion de la flotte", available: true },
-  { key: "jumelage_remblai", label: "Jumelage remblai (interne)", available: false },
+  { key: "crm_demandes", label: "Demandes et suivi", available: true },
+  { key: "carte_dompes", label: "Carte des demandes de remblai", available: true },
+  { key: "annuaire_reseau", label: "Annuaire des entrepreneurs", available: true },
+  { key: "exports", label: "Export de ses propres demandes en fichier", available: false },
+  { key: "facturation", label: "Facturation et paiements (interne)", available: true },
+  { key: "flotte", label: "Gestion de la flotte (interne)", available: true },
+  { key: "jumelage_remblai", label: "Jumelage automatique des remblais (interne)", available: false },
   { key: "assistant_materiaux", label: "Assistant matériaux (interne)", available: false },
   { key: "abonnements_paiement", label: "Paiement d'abonnement en ligne", available: false },
 ];
+
 
 export interface FeatureMatrixRow {
   key: string;

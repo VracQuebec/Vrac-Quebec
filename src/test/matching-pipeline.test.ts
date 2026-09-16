@@ -185,13 +185,17 @@ describe("LOT 11 — distance, score, fraîcheur", () => {
     expect(r.results.every((x) => (x.distanceKm ?? 0) <= 20)).toBe(true);
   });
 
+  // Le seuil de performance reste 15 s (inchangé). Seule la limite technique du
+  // harnais est alignée sur ce seuil : par défaut elle était de 5 s, ce qui
+  // interrompait le test avant même qu'il puisse mesurer, en exécution parallèle.
   it("performance : 5 000 demandes évaluées rapidement", () => {
     const many = Array.from({ length: 5000 }, (_, i) => base({ id: `m${i}`, accepted_materials: [mat("terre")] }));
     const t0 = Date.now();
     const r = runMatchingPipeline({ text: "terre", origin }, many);
     expect(r.evaluated).toBe(5000);
     expect(Date.now() - t0).toBeLessThan(15000);
-  });
+  }, 30000);
+
 
   it("buildLoad conserve le texte original", () => {
     const l = buildLoad({ text: "Terre sablonneuse AVEC tuff" });

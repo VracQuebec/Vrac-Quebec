@@ -66,6 +66,78 @@ async function resolvePlan(env: StripeEnv) {
   return data;
 }
 
+/**
+ * État réel des taxes chez le prestataire, jamais supposé.
+ * Un montant nul ne vaut pas exemption : seul un calcul « complete » compte.
+ */
+async function resolveTax(env: StripeEnv, stripe: any, subscriptionId: string | null, lastInvoice: any) {
+  const info: Record<string, unknown> = {
+    state: "not_configured",
+    detail: "Configuration fiscale non lue chez le prestataire.",
+    sellerAddressConfigured: false,
+    serviceTaxCodeConfigured: false,
+    automaticTaxOnSubscription: null,
+    registrations: null,
+    lastInvoiceStatus: null,
+  };
+
+  let settings: any = null;
+  try {
+    settings = await stripe.tax.settings.retrieve();
+  } catch (e) {
+    info.detail = "Le prestataire n'expose pas de configuration fiscale pour cet environnement.";
+    return info;
+  }
+
+  info.sellerAddressConfigured = !!settings?.head_office?.address?.country;
+  info.serviceTaxCodeConfigured = !!settings?.defaults?.tax_code;
+
+  try {
+    const regs = await stripe.tax.registrations.list({ status: "active", limit: 100 });
+    info.registrations = regs.data.length;
+  } catch (_e) {
+    info.registrations = null;
+  }
+
+  if (subscriptionId) {
+    try {
+      const sub = await stripe.subscriptions.retrieve(subscriptionId);
+      info.automaticTaxOnSubscription = !!sub?.automatic_tax?.enabled;
+    } catch (_e) {
+      info.automaticTaxOnSubscription = null;
+    }
+  }
+
+  const status = lastInvoice?.automatic_tax?.status ?? null;
+  info.lastInvoiceStatus = status;
+  const taxAmount = lastInvoice?.__tax ?? null;
+
+  const configured = settings?.status === "active" && info.sellerAddressConfigured;
+  if (!configured) {
+    info.state = "not_configured";
+    info.detail = info.sellerAddressConfigured
+      ? "Le calcul des taxes n'est pas activé chez le prestataire dans cet environnement."
+      : "Adresse de l'établissement vendeur absente : le calcul des taxes est impossible dans cet environnement.";
+    return info;
+  }
+
+  if (status !== "complete") {
+    info.state = "unavailable";
+    info.detail = "Le calcul n'a pas abouti sur la dernière facture : aucune taxe n'est perçue.";
+    return info;
+  }
+
+  if (!taxAmount) {
+    info.state = "zero_justified";
+    info.detail = "Le calcul a été effectué et conclut à aucune taxe applicable.";
+    return info;
+  }
+
+  info.state = "computed";
+  info.detail = "Les taxes proviennent du calcul du prestataire, sans taux saisi manuellement.";
+  return info;
+}
+
 async function statusHandler(userId: string, env: StripeEnv) {
   const company = await resolveCompany(userId);
   if (!company) return { source: "not_connected", reason: "Aucune entreprise liée à ce compte." };
@@ -81,23 +153,39 @@ async function statusHandler(userId: string, env: StripeEnv) {
     resolvePlan(env),
   ]);
 
-  let invoices: unknown[] = [];
+  let invoices: any[] = [];
+  let tax: unknown = null;
   if (sub?.provider_customer_id) {
+    const stripe = createStripeClient(env);
+    let rawInvoices: any[] = [];
     try {
-      const stripe = createStripeClient(env);
       const list = await stripe.invoices.list({ customer: sub.provider_customer_id, limit: 12 });
-      invoices = list.data.map((i) => ({
-        id: i.id,
-        status: i.status,
-        amount_paid: i.amount_paid,
-        currency: i.currency,
-        created: i.created ? new Date(i.created * 1000).toISOString() : null,
-        hosted_invoice_url: i.hosted_invoice_url,
-        pdf_url: i.invoice_pdf,
-        tax: (i as any).total_taxes?.reduce?.((s: number, t: any) => s + (t.amount ?? 0), 0) ?? null,
-      }));
+      rawInvoices = list.data;
+      invoices = list.data.map((i: any) => {
+        const computed = i.automatic_tax?.status === "complete";
+        const amount = i.total_taxes?.reduce?.((s: number, t: any) => s + (t.amount ?? 0), 0) ?? null;
+        return {
+          id: i.id,
+          status: i.status,
+          amount_paid: i.amount_paid,
+          currency: i.currency,
+          created: i.created ? new Date(i.created * 1000).toISOString() : null,
+          hosted_invoice_url: i.hosted_invoice_url,
+          pdf_url: i.invoice_pdf,
+          // Jamais de zéro par défaut : null signifie « non calculé ».
+          tax: computed ? amount ?? 0 : null,
+          tax_status: i.automatic_tax?.status ?? null,
+        };
+      });
     } catch (_e) {
       invoices = [];
+    }
+    const latest = rawInvoices[0] ?? null;
+    if (latest) latest.__tax = latest.total_taxes?.reduce?.((s: number, t: any) => s + (t.amount ?? 0), 0) ?? null;
+    try {
+      tax = await resolveTax(env, createStripeClient(env), sub.provider_subscription_id ?? null, latest);
+    } catch (_e) {
+      tax = null;
     }
   }
 
@@ -115,8 +203,10 @@ async function statusHandler(userId: string, env: StripeEnv) {
       : null,
     subscription: sub ?? null,
     invoices,
+    tax,
   };
 }
+
 
 async function checkoutHandler(user: { id: string; email?: string }, env: StripeEnv, returnUrl: string) {
   const company = await resolveCompany(user.id);
