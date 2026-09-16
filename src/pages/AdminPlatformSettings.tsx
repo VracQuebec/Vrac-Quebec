@@ -18,9 +18,10 @@ import { isFeatureEnabled, type FeatureFlag, FEATURE_FLAGS } from "@/lib/flags";
 import {
   fetchPlans, savePlan, fetchSectors, createSector, setSectorActive,
   fetchCompanies, fetchCompanySectors, toggleCompanySector,
-  fetchSubscriptions, fetchPlatformCounters, fetchChangeLog,
+  fetchSubscriptions, fetchPlatformCounters, fetchChangeLog, fetchBillingEvents,
   type Sector, type Company, type PlatformCounters,
 } from "@/lib/platform/api";
+import { resyncSubscription } from "@/lib/platform/subscription";
 import {
   featureMatrix, formatBusinessDateTime, formatPrice, intervalLabel,
   planCompleteness, subscriptionMetrics, type PlatformPlan, type PlatformSubscription,
@@ -78,6 +79,7 @@ export default function AdminPlatformSettings() {
   const [plans, setPlans] = useState<PlatformPlan[]>([]);
   const [subs, setSubs] = useState<PlatformSubscription[]>([]);
   const [log, setLog] = useState<Awaited<ReturnType<typeof fetchChangeLog>>>([]);
+  const [events, setEvents] = useState<Awaited<ReturnType<typeof fetchBillingEvents>>>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newSector, setNewSector] = useState("");
@@ -94,12 +96,13 @@ export default function AdminPlatformSettings() {
     setLoading(true);
     setCountersState("loading");
     try {
-      const [cs, sec, pl, sb, lg] = await Promise.all([
+      const [cs, sec, pl, sb, lg, ev] = await Promise.all([
         fetchCompanies(), fetchSectors(), fetchPlans(), fetchSubscriptions(), fetchChangeLog(),
+        fetchBillingEvents().catch(() => []),
       ]);
       setCompanies(cs);
       setCompanyId((prev) => prev ?? cs.find((c) => c.is_default)?.id ?? cs[0]?.id ?? null);
-      setSectors(sec); setPlans(pl); setSubs(sb); setLog(lg);
+      setSectors(sec); setPlans(pl); setSubs(sb); setLog(lg); setEvents(ev);
       const first = pl.find((p) => p.slug === "entrepreneur-pro") ?? pl[0] ?? null;
       setDraft(first);
       setPriceInput(first?.price_cents != null ? String(first.price_cents / 100) : "");
@@ -460,6 +463,62 @@ export default function AdminPlatformSettings() {
                     </button>
                   ))}
                 </div>
+
+                {/* CRM-02 — Suivi des abonnements de test (aucune facture déclarée payée sans preuve). */}
+                <div className={`${card} space-y-2`}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-display text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                      Abonnements (suivi)
+                    </h3>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const r = await resyncSubscription();
+                          toast.success(`Resynchronisation : ${r.synced} abonnement(s).`);
+                          setSubs(await fetchSubscriptions());
+                          setEvents(await fetchBillingEvents());
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : "Resynchronisation impossible");
+                        }
+                      }}
+                      className="min-h-[44px] rounded-lg border border-border px-3 text-sm inline-flex items-center gap-2"
+                    >
+                      <RefreshCw className="h-4 w-4" /> Resynchroniser
+                    </button>
+                  </div>
+                  {subs.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Aucun abonnement enregistré. Les essais ne comptent pas dans les revenus réels.</p>
+                  )}
+                  <div className="overflow-x-auto">
+                    {subs.length > 0 && (
+                      <table className="w-full min-w-[640px] text-sm">
+                        <thead className="text-left text-xs text-muted-foreground">
+                          <tr>
+                            <th className="py-1">Entreprise</th><th>Environnement</th><th>Version</th>
+                            <th>État</th><th>Échéance</th><th>Annulation</th><th>Dernière synchro.</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {subs.map((s) => (
+                            <tr key={s.id} className="border-t border-border">
+                              <td className="py-1">{companies.find((c) => c.id === s.company_id)?.name ?? s.company_id}</td>
+                              <td>{s.environment ?? "—"}</td>
+                              <td>{s.plan_version ?? "—"}</td>
+                              <td>{s.status}{s.last_error ? " (erreur)" : ""}</td>
+                              <td>{s.current_period_end ? new Date(s.current_period_end).toLocaleDateString("fr-CA") : "—"}</td>
+                              <td>{s.cancel_at_period_end ? "programmée" : "—"}</td>
+                              <td>{s.last_synced_at ? new Date(s.last_synced_at).toLocaleString("fr-CA") : "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Derniers événements du prestataire : {events.length === 0 ? "aucun" : events.slice(0, 5).map((e) => `${e.event_type} (${e.status})`).join(" · ")}
+                  </p>
+                </div>
+
 
                 <div className={`${card} space-y-3`}>
                   <div className="grid gap-3 sm:grid-cols-2">

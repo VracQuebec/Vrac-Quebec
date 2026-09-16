@@ -31,6 +31,13 @@ export interface PlatformSubscription {
   current_period_end: string | null;
   last_payment_failed_at: string | null;
   is_test: boolean;
+  /** CRM-02 — suivi du cycle mensuel chez le prestataire. */
+  environment?: string;
+  plan_version?: number | null;
+  cancel_at_period_end?: boolean;
+  last_synced_at?: string | null;
+  last_error?: string | null;
+  provider_subscription_id?: string | null;
 }
 
 /** État d'une source de données : jamais de faux zéro. */

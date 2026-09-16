@@ -83,9 +83,23 @@ export async function savePlan(plan: Partial<PlatformPlan> & { slug: string }): 
 export async function fetchSubscriptions(): Promise<PlatformSubscription[]> {
   const { data, error } = await supabase
     .from("platform_subscriptions")
-    .select("id, company_id, plan_id, status, amount_cents, currency, current_period_end, last_payment_failed_at, is_test");
+    .select(
+      "id, company_id, plan_id, status, amount_cents, currency, current_period_end, last_payment_failed_at, is_test," +
+      " environment, plan_version, cancel_at_period_end, last_synced_at, last_error, provider_subscription_id",
+    );
   if (error) throw error;
-  return (data ?? []) as PlatformSubscription[];
+  return (data ?? []) as unknown as PlatformSubscription[];
+}
+
+/** CRM-02 — Journal des événements du prestataire (lecture administrateur). */
+export async function fetchBillingEvents(limit = 20) {
+  const { data, error } = await supabase
+    .from("platform_billing_events")
+    .select("id, environment, event_type, status, error, provider_subscription_id, received_at, processed_at")
+    .order("received_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
 }
 
 /* ------------------------------ Secteurs ------------------------------ */
