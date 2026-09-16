@@ -8,7 +8,8 @@ import { useNavigate } from "react-router-dom";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import { EmptyState, ErrorState, LoadingSkeleton } from "@/components/entrepreneur-app/AppStates";
 import { AppCard } from "@/components/entrepreneur-app/ui";
-import { fetchNotifications, markNotificationRead, type MktNotification } from "@/lib/marketplace/api";
+import { markNotificationRead, type MktNotification } from "@/lib/marketplace/api";
+import { useEntrepreneurNotifications } from "@/hooks/useEntrepreneurNotifications";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCheck, ChevronRight, Bell, Truck, ClipboardList, MapPin, AlertTriangle } from "lucide-react";
 
