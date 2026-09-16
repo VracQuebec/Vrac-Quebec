@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, BarChart3, Bell, BookOpen, Building2, CalendarDays, Database, Home, LayoutDashboard, LogOut, Menu, Settings, Truck, Users, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Ban, Bell, BookOpen, Building2, CalendarDays, Database, Home, LayoutDashboard, LogOut, MapPin, Menu, Settings, Truck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import NotificationBell from "@/components/notifications/NotificationBell";
@@ -101,6 +101,8 @@ export default function UniversalNav() {
     { to: "/admin/flotte", label: "Gestion de la flotte", icon: Truck },
     { to: "/admin/business-intelligence", label: "Business Intelligence", icon: BarChart3 },
     { to: "/admin/blogue", label: "Blogue", icon: BookOpen },
+    { to: "/admin/liste-noire", label: "Liste noire", icon: Ban },
+    { to: "/admin/seo", label: "SEO", icon: MapPin },
     { to: "/admin/donnees", label: "Données", icon: Database },
     { to: "/admin/settings", label: "Paramètres", icon: Settings },
     { to: "/admin/plateforme", label: "Paramètres plateforme", icon: Settings },
