@@ -146,11 +146,7 @@ async function waitClock(stripe: any, clockId: string) {
 async function advance(clockId: string, subscriptionId: string, seconds: number) {
   const stripe = createStripeClient(ENV);
   const clock = await stripe.testHelpers.testClocks.retrieve(clockId);
-  await stripe.testHelpers.testClocks.advance({ frozen_time: clock.frozen_time + seconds } as any, {
-    // deno-lint-ignore no-explicit-any
-  } as any).catch(async () => {
-    await (stripe.testHelpers.testClocks as any).advance(clockId, { frozen_time: clock.frozen_time + seconds });
-  });
+  await stripe.testHelpers.testClocks.advance(clockId, { frozen_time: clock.frozen_time + seconds });
   await waitClock(stripe, clockId);
   const sub = await stripe.subscriptions.retrieve(subscriptionId);
   await applySubscription(sub, ENV, Math.floor(Date.now() / 1000));
