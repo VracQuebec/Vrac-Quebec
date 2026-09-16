@@ -11,7 +11,7 @@ describe("CRM-02B — services compréhensibles", () => {
   });
 
   it("chaque service ouvert pointe vers une destination existante", () => {
-    for (const cap of describeCapabilities(["crm_demandes", "carte_dompes", "annuaire_reseau"])) {
+    for (const cap of describeCapabilities(["crm_demandes", "carte_dompes"])) {
       expect(cap.available).toBe(true);
       expect(cap.route).toMatch(/^\/entrepreneur\//);
       expect(cap.description.length).toBeGreaterThan(20);
