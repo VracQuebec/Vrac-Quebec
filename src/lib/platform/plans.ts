@@ -62,7 +62,7 @@ export const metricLabel = (m: Metric): string => {
 export const PLATFORM_FEATURES: { key: string; label: string; available: boolean }[] = [
   { key: "crm_demandes", label: "Demandes et suivi", available: true },
   { key: "carte_dompes", label: "Carte des demandes de remblai", available: true },
-  { key: "annuaire_reseau", label: "Annuaire des entrepreneurs", available: true },
+  { key: "annuaire_reseau", label: "Annuaire des entrepreneurs (administration)", available: false },
   { key: "exports", label: "Export de ses propres demandes en fichier", available: false },
   { key: "facturation", label: "Facturation et paiements (interne)", available: true },
   { key: "flotte", label: "Gestion de la flotte (interne)", available: true },
