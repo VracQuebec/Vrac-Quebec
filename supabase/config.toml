@@ -46,3 +46,9 @@ verify_jwt = false
 
 [functions.mkt-request-submit]
 verify_jwt = false
+
+[functions.platform-subscription]
+verify_jwt = false
+
+[functions.payments-webhook]
+verify_jwt = false
