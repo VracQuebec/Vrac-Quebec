@@ -71,6 +71,7 @@ async function build(): Promise<Entry[]> {
     { path: "/blog/faq", changefreq: "weekly", priority: "0.8" },
     { path: "/livraison", changefreq: "weekly", priority: "0.8" },
     { path: "/calculateur", changefreq: "monthly", priority: "0.8" },
+    { path: "/transport-en-vrac", changefreq: "weekly", priority: "0.9" },
     { path: "/types-de-camions", changefreq: "monthly", priority: "0.7" },
   ];
 

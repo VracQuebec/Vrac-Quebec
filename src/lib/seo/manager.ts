@@ -41,7 +41,7 @@ export interface SeoMaterialUse {
 /** Top-level slugs that must never be interpreted as a landing page slug. */
 export const RESERVED_TOP_LEVEL_SLUGS = new Set([
   "", "index", "login", "forgot-password", "reset-password",
-  "admin", "entrepreneur", "blog", "livraison",
+  "admin", "entrepreneur", "blog", "livraison", "transport-en-vrac",
   "sitemap.xml", "robots.txt", "favicon.ico",
   "not-found", "unsubscribe", "404",
 ]);
