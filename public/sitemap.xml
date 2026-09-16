@@ -407,30 +407,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/excavation-saint-etienne-de-lauzon</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/excavation-sainte-foy-sillery-cap-rouge</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/nivellement-la-cite-limoilou</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/gravier-0-3-4-beaupre</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/transport-vrac-montcalm</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
@@ -456,6 +432,12 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/saint-jean-chrysostome</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/excavation-saint-etienne-de-lauzon</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -611,6 +593,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vracquebec.ca/nivellement-la-cite-limoilou</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vracquebec.ca/neige-loretteville</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
@@ -624,6 +612,12 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/recherche-point-de-depot-la-haute-saint-charles</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/gravier-0-3-4-beaupre</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -719,6 +713,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vracquebec.ca/excavation-sainte-foy-sillery-cap-rouge</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vracquebec.ca/livraison-gravier-neuville</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
@@ -732,6 +732,246 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/pierre-concassee-beauport</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/mg-20-chateau-richer</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/mg-56-boischatel</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/pierre-nette-l-ancienne-lorette</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/brique-l-ancienne-lorette</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/transport-vrac-vanier</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/terre-contaminee-vanier</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/sable-l-ancienne-lorette</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/excavation-limoilou</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/pierre-limoilou</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison-gravier-sainte-foy</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison-terre-saint-augustin-de-desmaures</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/asphalte-saint-augustin-de-desmaures</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/mg-20-cap-rouge</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/nivellement-chateau-richer</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/asphalte-sainte-brigitte-de-laval</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/roche-sillery</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/pierre-nette-chateau-richer</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/terre-contaminee-chateau-richer</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/transport-vrac-l-ancienne-lorette</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/recherche-point-de-depot-vanier</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/mg-20-vanier</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison-gravier-sillery</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison-gravier-lac-beauport</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/neige-vanier</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/roche-sainte-brigitte-de-laval</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/pierre-saint-gabriel-de-valcartier</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/remblai-l-ancienne-lorette</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/mg-56-vanier</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/dompe-shannon</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/brique-wendake</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/recherche-point-de-depot-cap-rouge</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/brique-chateau-richer</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/beton-wendake</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/gravier-vanier</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/roche-boischatel</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/dompe-vanier</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/excavation-chateau-richer</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/remblai-boischatel</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/livraison-terre-boischatel</loc>
+    <lastmod>2026-09-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/dompe-boischatel</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -4301,18 +4541,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/pierre-nette-l-ancienne-lorette</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/pierre-limoilou</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/nivellement-cap-rouge</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
@@ -4331,18 +4559,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/dompe-boischatel</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/transport-vrac-l-ancienne-lorette</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/poussiere-de-pierre-saint-gabriel-de-valcartier</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
@@ -4356,12 +4572,6 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/gravier-0-3-4-shannon</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/livraison-terre-saint-augustin-de-desmaures</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -4589,12 +4799,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/brique-chateau-richer</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/recherche-point-de-depot-lac-saint-joseph</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
@@ -4740,12 +4944,6 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/brique-neufchatel</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/livraison-gravier-sainte-foy</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -5183,12 +5381,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/dompe-vanier</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/excavation-saint-ferreol-les-neiges</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
@@ -5441,12 +5633,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/asphalte-sainte-brigitte-de-laval</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/nivellement-laurier-station</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
@@ -5483,12 +5669,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/beton-wendake</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/nivellement-boischatel</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
@@ -5514,12 +5694,6 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/mg-56-beaupre</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/terre-contaminee-vanier</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -5693,12 +5867,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/pierre-nette-chateau-richer</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/livraison-terre-cap-rouge</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
@@ -5736,12 +5904,6 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/remblai-beaupre</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/mg-56-vanier</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -6425,18 +6587,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/mg-20-chateau-richer</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/mg-56-boischatel</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/beton-lauzon</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
@@ -6449,37 +6599,13 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/transport-vrac-vanier</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/asphalte-saint-augustin-de-desmaures</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/remblai-limoilou</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/nivellement-chateau-richer</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/asphalte-la-cite-limoilou</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/roche-sillery</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -6497,12 +6623,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/livraison-gravier-sillery</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/pierre-concassee-fossambault-sur-le-lac</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
@@ -6510,12 +6630,6 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/courtage-materiaux-fossambault-sur-le-lac</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/livraison-gravier-lac-beauport</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -6533,19 +6647,7 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/neige-vanier</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/brique-montcalm</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/pierre-saint-gabriel-de-valcartier</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -6564,12 +6666,6 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/gravier-saint-romuald</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/gravier-vanier</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -6654,12 +6750,6 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/poussiere-de-pierre-beaupre</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/dompe-shannon</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -6821,19 +6911,7 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/excavation-chateau-richer</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/roche-cap-sante</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/livraison-terre-boischatel</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -8723,84 +8801,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/brique-l-ancienne-lorette</loc>
-    <lastmod>2026-09-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/sable-l-ancienne-lorette</loc>
-    <lastmod>2026-09-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/excavation-limoilou</loc>
-    <lastmod>2026-09-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/mg-20-cap-rouge</loc>
-    <lastmod>2026-09-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/terre-contaminee-chateau-richer</loc>
-    <lastmod>2026-09-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/recherche-point-de-depot-vanier</loc>
-    <lastmod>2026-09-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/mg-20-vanier</loc>
-    <lastmod>2026-09-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/roche-sainte-brigitte-de-laval</loc>
-    <lastmod>2026-09-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/remblai-l-ancienne-lorette</loc>
-    <lastmod>2026-09-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/brique-wendake</loc>
-    <lastmod>2026-09-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/recherche-point-de-depot-cap-rouge</loc>
-    <lastmod>2026-09-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/roche-boischatel</loc>
-    <lastmod>2026-09-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/remblai-boischatel</loc>
-    <lastmod>2026-09-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/courtage-materiaux-cap-sante</loc>
     <lastmod>2026-09-15</lastmod>
     <changefreq>monthly</changefreq>
@@ -9083,13 +9083,13 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/recherche-point-de-depot-sainte-catherine-de-la-jacques-cartier</loc>
+    <loc>https://vracquebec.ca/livraison-gravier-sainte-catherine-de-la-jacques-cartier</loc>
     <lastmod>2026-09-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/livraison-gravier-sainte-catherine-de-la-jacques-cartier</loc>
+    <loc>https://vracquebec.ca/recherche-point-de-depot-sainte-catherine-de-la-jacques-cartier</loc>
     <lastmod>2026-09-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -9119,6 +9119,18 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://vracquebec.ca/livraison-sable-sainte-anne-de-beaupre</loc>
+    <lastmod>2026-09-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vracquebec.ca/dompe-sainte-anne-de-beaupre</loc>
+    <lastmod>2026-09-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://vracquebec.ca/mg-56-sainte-anne-de-beaupre</loc>
     <lastmod>2026-09-10</lastmod>
     <changefreq>monthly</changefreq>
@@ -9137,19 +9149,7 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vracquebec.ca/dompe-sainte-anne-de-beaupre</loc>
-    <lastmod>2026-09-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://vracquebec.ca/neige-sainte-anne-de-beaupre</loc>
-    <lastmod>2026-09-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vracquebec.ca/livraison-sable-sainte-anne-de-beaupre</loc>
     <lastmod>2026-09-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -9898,7 +9898,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/combien-tonnes-10-roues-quebec-4pf5</loc>
-    <lastmod>2026-07-21</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -10120,7 +10120,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/test-terre-excavation-lac-beauport-analyse-gestion</loc>
-    <lastmod>2026-07-14</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -10180,7 +10180,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/asphalte-recycle-lotbiniere-guide</loc>
-    <lastmod>2026-07-14</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -10246,7 +10246,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/remblayer-terrain-charlesbourg-guide-vrac-quebec</loc>
-    <lastmod>2026-07-14</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -10282,7 +10282,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/poids-verge-cube-sable-beauport-zugq</loc>
-    <lastmod>2026-07-14</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -10336,7 +10336,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/livraison-de-terre-beauport-service-rapide-fiable-j3fh</loc>
-    <lastmod>2026-07-14</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -10390,7 +10390,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/calcul-tonnage-remblai-wendake-vtta-h3xl</loc>
-    <lastmod>2026-07-14</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -10402,7 +10402,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/combien-tonnes-10-roues-quebec-t0xb</loc>
-    <lastmod>2026-07-14</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -10732,7 +10732,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/remblayer-fondation-sainte-foy-guide-services</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -10774,7 +10774,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/poids-verge-cube-sable-beauport-n8f8</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -10786,7 +10786,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/combien-tonnes-10-roues-quebec</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -11032,7 +11032,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/combien-de-tonnes-dans-un-10-roues-quebec</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -11056,7 +11056,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/cout-transport-en-vrac-charlesbourg-estimation-soumission</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -11140,7 +11140,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/calcul-tonnage-remblai-wendake-vtta</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -11206,7 +11206,7 @@
   </url>
   <url>
     <loc>https://vracquebec.ca/blog/calcul-tonnage-remblai-donnacona</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
