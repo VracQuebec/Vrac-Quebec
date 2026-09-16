@@ -28,3 +28,10 @@
 - [x] Moteur SEO en lot vérifié (toutes les fonctions de file, contrôle, reprise et historique présentes)
 - [x] Tests : 414 tests passés, compilation sans erreur, aucune barre de défilement horizontale à 375/430/768/1024/1440
 - [x] Validation visuelle des pages d'administration connectées
+
+## CRM-02 — Abonnement mensuel de test (terminé)
+- Offre technique « TEST — Entrepreneur Pro » 10 $/mois, environnement de test uniquement.
+- Page « Mon abonnement » (/entrepreneur/abonnement) : état, échéance, services, factures, portail, resynchronisation.
+- Cycle vérifié en test : paiement réussi, facture payée 10,00 $, abonnement actif jusqu'au 16 octobre 2026.
+- Prix commercial Entrepreneur Pro toujours « À définir ». Aucun lancement réel activé.
+- Reste à décider : adresse fiscale du prestataire (calcul de taxes), tarif commercial, activation réelle.
