@@ -70,8 +70,9 @@ async function rest<T>(path: string): Promise<T[]> {
   return (await res.json()) as T[];
 }
 
-const esc = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const esc = (s: unknown) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /** Autorise uniquement le HTML éditorial simple déjà utilisé par les pages. */
 function sanitize(html: string): string {
