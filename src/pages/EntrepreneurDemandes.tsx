@@ -184,7 +184,9 @@ export default function EntrepreneurDemandes() {
                 nextAction={r.nextAction}
                 badge={{ label: r.statusLabel, tone: r.tone }}
               />
-            ))}
+              </div>
+              );
+            })}
           </div>
         )}
       </div>
