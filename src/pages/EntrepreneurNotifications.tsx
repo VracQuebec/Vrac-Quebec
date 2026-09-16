@@ -36,41 +36,25 @@ const kindOf = (n: MktNotification) => {
 export default function EntrepreneurNotifications() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [rows, setRows] = useState<MktNotification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
   const [tab, setTab] = useState<"unread" | "all">("unread");
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setFailed(false);
-    try {
-      setRows(await fetchNotifications(50));
-    } catch {
-      setFailed(true);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
+  // Flux partagé avec la cloche : mise à jour automatique (temps réel existant).
+  const { items: rows, loading, error, reload, read } = useEntrepreneurNotifications(true);
+  const failed = Boolean(error);
+  const load = reload;
 
   const unread = rows.filter((r) => !r.read_at);
   const visible = useMemo(() => (tab === "unread" ? unread : rows), [tab, rows, unread]);
 
   const open = async (n: MktNotification) => {
-    if (!n.read_at) {
-      setRows((p) => p.map((r) => (r.id === n.id ? { ...r, read_at: new Date().toISOString() } : r)));
-      try { await markNotificationRead(n.id); } catch { /* l'avis reste non lu côté serveur */ }
-    }
+    if (!n.read_at) await read(n.id);
     if (n.link) navigate(n.link);
   };
 
   const readAll = async () => {
     const ids = unread.map((n) => n.id);
     if (ids.length === 0) return;
-    setRows((p) => p.map((r) => (r.read_at ? r : { ...r, read_at: new Date().toISOString() })));
     await Promise.allSettled(ids.map((id) => markNotificationRead(id)));
+    await reload();
     toast({ title: "Tout est marqué comme lu" });
   };
 
