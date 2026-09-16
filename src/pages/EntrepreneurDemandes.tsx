@@ -5,7 +5,8 @@
 //   « Demande d'accès à une dompe » (avec estimation transport)
 // Chaque carte : chantier, type, statut, date, prochaine action.
 // ============================================================
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import {
   EmptyState,
