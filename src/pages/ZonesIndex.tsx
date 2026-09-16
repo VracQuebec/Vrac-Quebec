@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { MapPin, ChevronRight, Home, Loader2 } from "lucide-react";
+import { MapPin, ChevronRight, Home, Loader2, FileText, Calculator } from "lucide-react";
+
+const MATERIAL_LINKS = [
+  { slug: "terre-tamisee", name: "Terre tamisée" },
+  { slug: "sable", name: "Sable" },
+  { slug: "gravier", name: "Gravier" },
+  { slug: "pierre-concassee", name: "Pierre concassée" },
+  { slug: "remblai", name: "Remblai" },
+  { slug: "mg-20", name: "MG-20" },
+  { slug: "pierre-nette", name: "Pierre nette" },
+  { slug: "poussiere-de-pierre", name: "Poussière de pierre" },
+];
 import TransportBanner from "@/components/TransportBanner";
 import { supabase } from "@/integrations/supabase/client";
 import type { SeoCity } from "@/lib/seo/manager";
