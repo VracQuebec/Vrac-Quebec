@@ -23,7 +23,7 @@ import {
 } from "@/lib/parcours/profil";
 import {
   Building2, Phone, User as UserIcon, MapPin, ShieldCheck, Bell, Truck,
-  ChevronRight, LogOut, Eye, EyeOff, Pencil, Users, Lock, Globe,
+  ChevronRight, LogOut, Eye, EyeOff, Pencil, Lock, Globe,
 } from "lucide-react";
 
 type SheetKey = "contact" | "adresse" | "camions" | null;

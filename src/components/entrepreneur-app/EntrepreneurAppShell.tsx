@@ -15,7 +15,7 @@ import {
   Menu,
   Bell,
   GitCompareArrows,
-  Building2,
+
   History,
   User,
   LogOut,
