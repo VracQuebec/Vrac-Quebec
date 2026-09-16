@@ -30,10 +30,21 @@ export default function ZonesIndex() {
     return acc;
   }, [cities]);
 
-  const title = "Zones desservies — Livraison de vrac à Québec, Lévis et environs | Vrac Québec";
+  const title = "Livraison de matériaux en vrac — Québec, Lévis et environs | Vrac Québec";
   const description =
-    "Vrac Québec livre terre, sable, gravier, pierre concassée et remblai à Québec, Lévis, Beauport, Charlesbourg, Sainte-Foy et les villes environnantes. Trouvez votre municipalité.";
+    "Faire livrer terre, sable, gravier, pierre concassée ou remblai dans la région de Québec et de Lévis : fonctionnement, matériaux, villes desservies et demande gratuite.";
   const url = `${SITE}/livraison`;
+  const jsonLdService = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "@id": `${url}#service`,
+    name: "Livraison de matériaux en vrac",
+    serviceType: "Livraison de matériaux en vrac",
+    url,
+    description,
+    areaServed: { "@type": "AdministrativeArea", name: "Région de Québec et Chaudière-Appalaches" },
+    provider: { "@type": "Organization", name: "Vrac Québec", url: SITE },
+  };
 
   return (
     <div className="min-h-screen bg-background">
