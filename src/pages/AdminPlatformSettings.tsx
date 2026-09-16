@@ -79,6 +79,7 @@ export default function AdminPlatformSettings() {
   const [plans, setPlans] = useState<PlatformPlan[]>([]);
   const [subs, setSubs] = useState<PlatformSubscription[]>([]);
   const [log, setLog] = useState<Awaited<ReturnType<typeof fetchChangeLog>>>([]);
+  const [events, setEvents] = useState<Awaited<ReturnType<typeof fetchBillingEvents>>>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newSector, setNewSector] = useState("");
@@ -95,12 +96,13 @@ export default function AdminPlatformSettings() {
     setLoading(true);
     setCountersState("loading");
     try {
-      const [cs, sec, pl, sb, lg] = await Promise.all([
+      const [cs, sec, pl, sb, lg, ev] = await Promise.all([
         fetchCompanies(), fetchSectors(), fetchPlans(), fetchSubscriptions(), fetchChangeLog(),
+        fetchBillingEvents().catch(() => []),
       ]);
       setCompanies(cs);
       setCompanyId((prev) => prev ?? cs.find((c) => c.is_default)?.id ?? cs[0]?.id ?? null);
-      setSectors(sec); setPlans(pl); setSubs(sb); setLog(lg);
+      setSectors(sec); setPlans(pl); setSubs(sb); setLog(lg); setEvents(ev);
       const first = pl.find((p) => p.slug === "entrepreneur-pro") ?? pl[0] ?? null;
       setDraft(first);
       setPriceInput(first?.price_cents != null ? String(first.price_cents / 100) : "");
