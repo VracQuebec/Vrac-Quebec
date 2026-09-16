@@ -18,9 +18,10 @@ import { isFeatureEnabled, type FeatureFlag, FEATURE_FLAGS } from "@/lib/flags";
 import {
   fetchPlans, savePlan, fetchSectors, createSector, setSectorActive,
   fetchCompanies, fetchCompanySectors, toggleCompanySector,
-  fetchSubscriptions, fetchPlatformCounters, fetchChangeLog,
+  fetchSubscriptions, fetchPlatformCounters, fetchChangeLog, fetchBillingEvents,
   type Sector, type Company, type PlatformCounters,
 } from "@/lib/platform/api";
+import { resyncSubscription } from "@/lib/platform/subscription";
 import {
   featureMatrix, formatBusinessDateTime, formatPrice, intervalLabel,
   planCompleteness, subscriptionMetrics, type PlatformPlan, type PlatformSubscription,
