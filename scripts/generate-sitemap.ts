@@ -60,7 +60,6 @@ async function build(): Promise<Entry[]> {
     { path: "/materiaux", changefreq: "weekly", priority: "0.9" },
     { path: "/acheter-materiaux", changefreq: "monthly", priority: "0.8" },
     { path: "/soumission", changefreq: "monthly", priority: "0.8" },
-    { path: "/espace-entrepreneur", changefreq: "monthly", priority: "0.6" },
     { path: "/blog", changefreq: "daily", priority: "0.9" },
     { path: "/blog/outils", changefreq: "monthly", priority: "0.8" },
     { path: "/blog/outils/tonnage", changefreq: "monthly", priority: "0.7" },
@@ -72,6 +71,7 @@ async function build(): Promise<Entry[]> {
     { path: "/blog/faq", changefreq: "weekly", priority: "0.8" },
     { path: "/livraison", changefreq: "weekly", priority: "0.8" },
     { path: "/calculateur", changefreq: "monthly", priority: "0.8" },
+    { path: "/transport-en-vrac", changefreq: "weekly", priority: "0.9" },
     { path: "/types-de-camions", changefreq: "monthly", priority: "0.7" },
   ];
 
