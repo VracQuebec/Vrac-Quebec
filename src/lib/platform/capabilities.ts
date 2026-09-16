@@ -47,9 +47,11 @@ export const CAPABILITIES: CapabilityInfo[] = [
     key: "annuaire_reseau",
     label: "Annuaire des entrepreneurs",
     description:
-      "Consulter l'identité professionnelle publique des entreprises du réseau. Aucune coordonnée privée n'est partagée.",
-    available: true,
-    route: "/entrepreneur/reseau",
+      "Consulter l'identité professionnelle publique des entreprises du réseau.",
+    available: false,
+    route: null,
+    unavailableReason:
+      "Réservé à l'administration : les entreprises inscrites ne sont pas visibles entre elles.",
   },
   {
     key: "exports",

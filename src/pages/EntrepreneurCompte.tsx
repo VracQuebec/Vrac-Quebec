@@ -23,7 +23,7 @@ import {
 } from "@/lib/parcours/profil";
 import {
   Building2, Phone, User as UserIcon, MapPin, ShieldCheck, Bell, Truck,
-  ChevronRight, LogOut, Eye, EyeOff, Pencil, Users, Lock, Globe,
+  ChevronRight, LogOut, Eye, EyeOff, Pencil, Lock, Globe,
 } from "lucide-react";
 
 type SheetKey = "contact" | "adresse" | "camions" | null;
@@ -246,7 +246,7 @@ const EntrepreneurCompte = () => {
               </p>
               <div className="space-y-2">
                 <NavRow to="/entrepreneur/notifications" icon={<Bell className="h-5 w-5" />} label="Notifications" hint="Ce que vous recevez" />
-                <NavRow to="/entrepreneur/reseau" icon={<Users className="h-5 w-5" />} label="Réseau professionnel" hint="Voir l'annuaire" />
+                
               </div>
             </section>
 
