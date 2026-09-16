@@ -742,7 +742,11 @@ const Admin = () => {
               <button onClick={() => setView("map")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-display font-semibold ${view === "map" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
                 <Map className="w-4 h-4" /> Carte
               </button>
+              <button onClick={() => setView("today")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-display font-semibold ${view === "today" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
+                <CalendarClock className="w-4 h-4" /> Aujourd'hui
+              </button>
             </div>
+
             <button
               onClick={() => setShowNewLead(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90"
