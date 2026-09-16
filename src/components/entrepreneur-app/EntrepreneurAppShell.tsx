@@ -66,7 +66,7 @@ const MORE_ITEMS = [
 const SIDEBAR_ITEMS = [
   ...PRIMARY_TABS,
   { to: "/entrepreneur/comparateur", label: "Comparateur", icon: GitCompareArrows },
-  { to: "/entrepreneur/reseau", label: "Réseau", icon: Building2 },
+  
   { to: "/entrepreneur/historique", label: "Historique", icon: History },
   { to: "/entrepreneur/compte", label: "Mon entreprise", icon: User },
 ] as const;
