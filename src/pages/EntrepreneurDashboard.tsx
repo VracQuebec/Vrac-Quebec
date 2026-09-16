@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
+import InstallAppCard from "@/components/entrepreneur-app/InstallAppCard";
 import {
   EmptyState,
   ErrorState,
@@ -124,6 +125,9 @@ export default function EntrepreneurDashboard() {
             onClear={() => { saveActiveChantier(null); setActive(null); }}
           />
         )}
+
+        {/* ---------- Ajouter à l'écran d'accueil ---------- */}
+        <InstallAppCard />
 
         {/* ---------- Actions rapides ---------- */}
         <QuickActions
