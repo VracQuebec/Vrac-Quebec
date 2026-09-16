@@ -154,14 +154,13 @@ async function checkoutHandler(user: { id: string; email?: string }, env: Stripe
         metadata: { companyId: company.companyId, userId: user.id },
       })).id;
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    ui_mode: "embedded_page",
+  const base = {
+    mode: "subscription" as const,
+    ui_mode: "embedded_page" as const,
     return_url: returnUrl,
     customer: customerId,
     line_items: [{ price: price.id, quantity: 1 }],
-    automatic_tax: { enabled: true },
-    customer_update: { address: "auto", name: "auto" },
+    billing_address_collection: "required" as const,
     subscription_data: {
       metadata: {
         companyId: company.companyId,
@@ -172,9 +171,24 @@ async function checkoutHandler(user: { id: string; email?: string }, env: Stripe
       },
     },
     metadata: { companyId: company.companyId, planId: plan.id, userId: user.id },
-  });
+  };
 
-  return { clientSecret: session.client_secret, sessionId: session.id };
+  // Le calcul automatique des taxes n'est utilisé que si le prestataire est configuré
+  // pour cela : aucun taux n'est inventé, et le parcours reste utilisable sans.
+  let session;
+  let taxMode = "automatique";
+  try {
+    session = await stripe.checkout.sessions.create({
+      ...base,
+      automatic_tax: { enabled: true },
+      customer_update: { address: "auto", name: "auto" },
+    });
+  } catch (_e) {
+    taxMode = "non_configure";
+    session = await stripe.checkout.sessions.create(base);
+  }
+
+  return { clientSecret: session.client_secret, sessionId: session.id, taxMode };
 }
 
 async function portalHandler(userId: string, env: StripeEnv, returnUrl?: string) {
