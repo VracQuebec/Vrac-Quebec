@@ -44,6 +44,15 @@ interface UnifiedRequest {
 export default function EntrepreneurDemandes() {
   const { loading, error, submissions, chantiers, accessRequests, refresh } = useEntrepreneurData();
   const [filter, setFilter] = useState<FilterKey>("all");
+  // Lien direct depuis un avis : ?demande=<identifiant> ouvre la bonne demande.
+  const [searchParams] = useSearchParams();
+  const targetId = searchParams.get("demande");
+  const targetRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!targetId) return;
+    setFilter("all");
+  }, [targetId]);
 
   const chantierBySubmission = useMemo(() => {
     const map = new Map<string, string>();
@@ -152,9 +161,15 @@ export default function EntrepreneurDemandes() {
           />
         ) : (
           <div className="space-y-2.5">
-            {visible.map((r) => (
-              <RequestCard
+            {visible.map((r) => {
+              const highlighted = Boolean(targetId) && r.id.slice(2) === targetId;
+              return (
+              <div
                 key={r.id}
+                ref={highlighted ? targetRef : undefined}
+                className={highlighted ? "rounded-2xl ring-2 ring-primary" : undefined}
+              >
+              <RequestCard
                 to={
                   r.chantierKey
                     ? `/entrepreneur/chantiers/${encodeURIComponent(r.chantierKey)}`
