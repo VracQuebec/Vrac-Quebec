@@ -16,14 +16,18 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import FullPageState from "@/components/FullPageState";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
 import {
-  MATRIX_STATUS_LABELS, SERVICE_CATEGORY_LABELS, fetchMatrix, fetchQueue, fetchServices,
+  MATRIX_STATUS_LABELS, SERVICE_CATEGORY_LABELS, attachSubmission, createTerritory,
+  fetchHistory, fetchMatrix, fetchPendingSubmissions, fetchQueue, fetchServices,
   fetchTerritories, fetchTerritoryDetail,
-  type QueueItem, type ServiceDef, type Territory, type TerritoryDetail, type TerritoryService,
+  type HistoryEntry, type PendingSubmission, type QueueItem, type ServiceDef, type Territory,
+  type TerritoryDetail, type TerritoryService,
 } from "@/lib/territories/api";
 
 const STATUS_VARIANT: Record<string, string> = {
