@@ -3430,6 +3430,234 @@ export type Database = {
         }
         Relationships: []
       }
+      geo_services: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          label: string
+          service_key: string
+          sort_order: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          label: string
+          service_key: string
+          sort_order?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          label?: string
+          service_key?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      geo_territories: {
+        Row: {
+          created_at: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          merged_into_id: string | null
+          municipality: string | null
+          name: string
+          normalized_name: string
+          notes: string | null
+          province: string
+          region: string | null
+          request_count: number
+          sector: string | null
+          seo_city_slug: string | null
+          source: string
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          merged_into_id?: string | null
+          municipality?: string | null
+          name: string
+          normalized_name: string
+          notes?: string | null
+          province?: string
+          region?: string | null
+          request_count?: number
+          sector?: string | null
+          seo_city_slug?: string | null
+          source?: string
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          merged_into_id?: string | null
+          municipality?: string | null
+          name?: string
+          normalized_name?: string
+          notes?: string | null
+          province?: string
+          region?: string | null
+          request_count?: number
+          sector?: string | null
+          seo_city_slug?: string | null
+          source?: string
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geo_territories_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "geo_territories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      geo_territory_aliases: {
+        Row: {
+          alias: string
+          created_at: string
+          id: string
+          normalized_alias: string
+          source: string
+          territory_id: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          id?: string
+          normalized_alias: string
+          source?: string
+          territory_id: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          id?: string
+          normalized_alias?: string
+          source?: string
+          territory_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geo_territory_aliases_territory_id_fkey"
+            columns: ["territory_id"]
+            isOneToOne: false
+            referencedRelation: "geo_territories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      geo_territory_queue: {
+        Row: {
+          created_at: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          normalized_city: string
+          raw_city: string
+          request_count: number
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          suggested_territory_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          normalized_city: string
+          raw_city: string
+          request_count?: number
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          suggested_territory_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          normalized_city?: string
+          raw_city?: string
+          request_count?: number
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          suggested_territory_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geo_territory_queue_suggested_territory_id_fkey"
+            columns: ["suggested_territory_id"]
+            isOneToOne: false
+            referencedRelation: "geo_territories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      geo_territory_services: {
+        Row: {
+          evidence: Json
+          id: string
+          request_count: number
+          service_key: string
+          status: string
+          territory_id: string
+          updated_at: string
+        }
+        Insert: {
+          evidence?: Json
+          id?: string
+          request_count?: number
+          service_key: string
+          status?: string
+          territory_id: string
+          updated_at?: string
+        }
+        Update: {
+          evidence?: Json
+          id?: string
+          request_count?: number
+          service_key?: string
+          status?: string
+          territory_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geo_territory_services_service_key_fkey"
+            columns: ["service_key"]
+            isOneToOne: false
+            referencedRelation: "geo_services"
+            referencedColumns: ["service_key"]
+          },
+          {
+            foreignKeyName: "geo_territory_services_territory_id_fkey"
+            columns: ["territory_id"]
+            isOneToOne: false
+            referencedRelation: "geo_territories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jsc_ai_insights: {
         Row: {
           body: string | null
@@ -15272,6 +15500,9 @@ export type Database = {
           site_validated_by: string | null
           status: string
           submission_number: number
+          territory_confidence: string | null
+          territory_id: string | null
+          territory_status: string | null
           tonnage: string
           truck_type_key: string | null
           truck_types_allowed: string[] | null
@@ -15378,6 +15609,9 @@ export type Database = {
           site_validated_by?: string | null
           status?: string
           submission_number?: number
+          territory_confidence?: string | null
+          territory_id?: string | null
+          territory_status?: string | null
           tonnage: string
           truck_type_key?: string | null
           truck_types_allowed?: string[] | null
@@ -15484,6 +15718,9 @@ export type Database = {
           site_validated_by?: string | null
           status?: string
           submission_number?: number
+          territory_confidence?: string | null
+          territory_id?: string | null
+          territory_status?: string | null
           tonnage?: string
           truck_type_key?: string | null
           truck_types_allowed?: string[] | null
@@ -15521,6 +15758,13 @@ export type Database = {
             columns: ["selected_site_id"]
             isOneToOne: false
             referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_territory_id_fkey"
+            columns: ["territory_id"]
+            isOneToOne: false
+            referencedRelation: "geo_territories"
             referencedColumns: ["id"]
           },
         ]
@@ -17981,6 +18225,8 @@ export type Database = {
       fleet_can_manage: { Args: { _company_id: string }; Returns: boolean }
       fleet_member_role: { Args: { _company_id: string }; Returns: string }
       fleet_scan_due: { Args: never; Returns: Json }
+      geo_normalize: { Args: { _txt: string }; Returns: string }
+      geo_resolve_territory: { Args: { _city: string }; Returns: string }
       get_comparateur_selection: {
         Args: { p_submission_id: string }
         Returns: Json
@@ -19180,6 +19426,9 @@ export type Database = {
           site_validated_by: string | null
           status: string
           submission_number: number
+          territory_confidence: string | null
+          territory_id: string | null
+          territory_status: string | null
           tonnage: string
           truck_type_key: string | null
           truck_types_allowed: string[] | null
