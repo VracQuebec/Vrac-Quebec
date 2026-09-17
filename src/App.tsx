@@ -143,6 +143,20 @@ const Ga4RouteTracker = () => {
   return null;
 };
 
+/** Les espaces privés ne doivent jamais être indexables (en plus du robots.txt). */
+const PRIVATE_PREFIXES = ["/admin", "/entrepreneur", "/ops", "/portail", "/chauffeur", "/login", "/reset-password", "/forgot-password", "/unsubscribe", "/mes-soumissions", "/notifications"];
+const PrivateNoIndex = () => {
+  const location = useLocation();
+  const isPrivate = PRIVATE_PREFIXES.some((p) => location.pathname === p || location.pathname.startsWith(`${p}/`));
+  if (!isPrivate) return null;
+  return (
+    <Helmet>
+      <meta name="robots" content="noindex, nofollow" />
+      <meta name="googlebot" content="noindex, nofollow" />
+    </Helmet>
+  );
+};
+
 const App = () => (
   <AppErrorBoundary>
     {/* Métadonnées par défaut : chaque page peut les remplacer avec son propre <Helmet>. */}
@@ -161,6 +175,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ScrollToTop />
+          <PrivateNoIndex />
           <Ga4RouteTracker />
           <SessionKeeper />
           <AdminNotificationsMount />
