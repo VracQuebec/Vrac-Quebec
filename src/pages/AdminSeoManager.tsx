@@ -859,7 +859,7 @@ function GeneratorTab() {
   useEffect(() => {
     (async () => {
       const [c, m, s, p] = await Promise.all([
-        supabase.from("seo_cities").select("id,slug,name,region,active,sort_order").eq("active", true).order("sort_order"),
+        supabase.from("seo_cities").select("id,slug,name,region,active,sort_order").eq("active", true).order("name").limit(1000),
         supabase.from("seo_materials").select("id,slug,name,short_name,description,active,sort_order").eq("active", true).order("sort_order"),
         supabase.from("seo_services").select("*").eq("active", true).order("sort_order"),
         supabase.from("seo_pages").select("slug"),
@@ -1077,7 +1077,7 @@ function SuggestionsTab() {
   const load = async () => {
     setLoading(true);
     const [c, m, s, p] = await Promise.all([
-      supabase.from("seo_cities").select("id,slug,name,region,active,sort_order").eq("active", true).order("sort_order").limit(30),
+      supabase.from("seo_cities").select("id,slug,name,region,active,sort_order").eq("active", true).order("sort_order").limit(200),
       supabase.from("seo_materials").select("id,slug,name,short_name,description,active,sort_order").eq("active", true).order("sort_order").limit(20),
       supabase.from("seo_services").select("*").eq("active", true).order("sort_order").limit(20),
       supabase.from("seo_pages").select("slug"),
