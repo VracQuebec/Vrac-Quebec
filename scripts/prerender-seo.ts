@@ -334,7 +334,7 @@ export async function prerenderSeo(distDir: string) {
 
   const [pages, posts, cities, materials] = await Promise.all([
     restAll<SeoPage>(
-      "seo_pages?select=id,slug,city_slug,material_slug,service_slug,title,meta_title,meta_description,h1,intro,content_html,faq,cover_image_url,cover_image_alt,internal_links&status=eq.published&order=slug",
+      "seo_pages?select=id,slug,city_slug,material_slug,service_slug,title,meta_title,meta_description,h1,intro,content_html,faq,cover_image_url,cover_image_alt,internal_links&status=eq.published&noindex=eq.false&order=slug",
     ),
     restAll<BlogPost>(
       "blog_posts?select=slug,title,excerpt,content,meta_title,meta_description,canonical_url,cover_image_url,cover_image_alt,published_at,updated_at&status=eq.published&noindex=eq.false&order=slug",
