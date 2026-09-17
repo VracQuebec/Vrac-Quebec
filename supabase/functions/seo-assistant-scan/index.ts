@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       supabase.from("seo_pages").select("id,slug,title,city_slug,material_slug,service_slug,word_count,seo_score,internal_link_count,status,google_index_status,updated_at").limit(2000),
       supabase.from("blog_posts").select("id,slug,title,updated_at,view_count,status").eq("status", "published").limit(1000),
       supabase.from("seo_gsc_metrics").select("page_id,clicks,impressions,ctr,position,period").eq("period", "28d").limit(5000),
-      supabase.from("seo_cities").select("slug,name,population,active"),
+      supabase.rpc("seo_generator_catalog"),
       supabase.from("seo_materials").select("slug,name,active"),
       supabase.from("seo_services").select("slug,name,active"),
     ]);
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     const blogs = blogRes.data ?? [];
     const gsc = new Map<string, { clicks: number; impressions: number; ctr: number; position: number }>();
     for (const g of gscRes.data ?? []) gsc.set(g.page_id, g);
-    const cities = (citiesRes.data ?? []).filter((c) => c.active);
+    const cities = (citiesRes.data?.cities ?? []).filter((c: any) => c.request_count > 0);
     const materials = (materialsRes.data ?? []).filter((m) => m.active);
     const services = (servicesRes.data ?? []).filter((s) => s.active);
 
@@ -178,16 +178,16 @@ Deno.serve(async (req) => {
 
     // 6) Missing city pages
     const existingCombos = new Set(pages.map((p) => `${p.city_slug}|${p.material_slug ?? ""}`));
-    const topMaterials = materials.slice(0, 5);
-    for (const c of cities.slice(0, 15)) {
-      for (const m of topMaterials) {
+    for (const c of cities) {
+      const relevantMaterials = new Set((c.materials ?? []).map((m: any) => m.slug));
+      for (const m of materials.filter((m) => relevantMaterials.has(m.slug))) {
         if (!existingCombos.has(`${c.slug}|${m.slug}`)) {
           recos.push({
             reco_type: "missing_city_page", entity_type: "city", entity_slug: c.slug,
             priority: c.population && c.population > 20000 ? 4 : 3,
             impact_estimate: 55, effort_estimate: 20,
             title: `Créer la page ${m.name} × ${c.name}`,
-            rationale: `Combinaison ciblée absente — population ${(c.population ?? 0).toLocaleString()}.`,
+            rationale: `Combinaison ciblée absente — ${c.request_count} demande(s) CRM et matériau observé.`,
             action_type: "create",
             payload: { city_slug: c.slug, material_slug: m.slug },
           });
@@ -198,13 +198,13 @@ Deno.serve(async (req) => {
             entity_type: "combo",
             target_city_slug: c.slug, target_material_slug: m.slug,
             title: `Créer « ${m.name} à ${c.name} »`,
-            rationale: `Combinaison ciblée absente — population ${pop.toLocaleString()}.`,
+            rationale: `Combinaison ciblée absente — ${c.request_count} demande(s) CRM et matériau observé.`,
             suggested_action: "create",
             impact_score: pop > 20000 ? 80 : 55, effort_score: 20,
             potential_searches: potSearches,
             potential_clicks: Math.round(potSearches * 0.08),
             potential_leads: Math.round(potSearches * 0.08 * 0.03),
-            evidence: { population: pop, material: m.name, city: c.name },
+            evidence: { population: pop, requests: c.request_count, material: m.name, city: c.name },
           });
         }
       }

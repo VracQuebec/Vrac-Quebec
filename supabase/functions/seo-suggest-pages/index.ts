@@ -42,14 +42,14 @@ Deno.serve(async (req) => {
     }
 
     const [citiesRes, materialsRes, servicesRes, pagesRes, gscRes] = await Promise.all([
-      supabase.from("seo_cities").select("slug,name,population,region,active").eq("active", true),
+      supabase.rpc("seo_generator_catalog"),
       supabase.from("seo_materials").select("slug,name,active").eq("active", true),
       supabase.from("seo_services").select("slug,name,active").eq("active", true),
       supabase.from("seo_pages").select("id,slug,title,city_slug,material_slug,service_slug,status"),
       supabase.from("seo_gsc_metrics").select("page_id,impressions,position").eq("period", "28d"),
     ]);
 
-    const cities = citiesRes.data ?? [];
+    const cities = (citiesRes.data?.cities ?? []).filter((c: any) => c.request_count > 0);
     const materials = materialsRes.data ?? [];
     const services = servicesRes.data ?? [];
     const pages = pagesRes.data ?? [];
@@ -88,7 +88,9 @@ Deno.serve(async (req) => {
 
     for (const c of cities) {
       const pop = c.population ?? 5000;
-      for (const m of materials) {
+      const relevantMaterials = new Set((c.materials ?? []).map((m: any) => m.slug));
+      const relevantServices = new Set((c.services ?? []).map((s: any) => s.slug));
+      for (const m of materials.filter((m) => relevantMaterials.has(m.slug))) {
         const key = `${c.slug}|${m.slug}`;
         if (existingMat.has(key)) continue;
         const candidateTitle = `${m.name} à ${c.name}`;
@@ -124,7 +126,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      for (const s of services) {
+      for (const s of services.filter((s) => relevantServices.has(s.slug))) {
         const key = `${c.slug}|${s.slug}`;
         if (existingSvc.has(key)) continue;
         const potential = Math.min(80, Math.round((pop / 4000) * 25));
