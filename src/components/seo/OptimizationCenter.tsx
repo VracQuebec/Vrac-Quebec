@@ -405,7 +405,7 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
                       <td className="p-2">
                         {r.indexed_at
                           ? <span className="text-primary font-semibold">Indexée</span>
-                          : <span className="text-destructive font-semibold">Non indexée</span>}
+                          : <span className="text-muted-foreground font-semibold">Statut inconnu</span>}
                       </td>
                       <td className="p-2 text-right font-mono">{r.impressions}</td>
                       <td className="p-2 text-right font-mono">{r.clicks}</td>
@@ -537,7 +537,7 @@ function PageAnalysis({ page, scope, onClose, onImprove }: {
             <Metric label="Mots" value={String(page.word_count)} />
             <Metric label="Liens internes" value={String(page.internal_link_count)} />
             <Metric label="Score SEO" value={page.seo_score != null ? `${page.seo_score}/100` : "—"} />
-            <Metric label="Indexation" value={page.indexed_at ? "Indexée" : "Non indexée"} />
+            <Metric label="Indexation" value={page.indexed_at ? "Indexée — confirmé" : "Statut Search Console inconnu"} />
           </div>
 
           {diag && (
