@@ -236,7 +236,13 @@ export default function CommandCenter() {
             <Stat label="Publiées" value={stats.pages_published} tone="good" />
             <Stat label="Brouillons" value={stats.pages_draft} />
             <Stat label="À corriger" value={stats.pages_needs_fix} tone={stats.pages_needs_fix > 0 ? "warn" : "good"} />
-            <Stat label="Villes couvertes" value={`${stats.cities_covered}/${stats.cities_total} (${stats.coverage_cities_pct}%)`} />
+            <Stat label="Pages orphelines" value={stats.pages_orphans} tone={stats.pages_orphans > 0 ? "warn" : "good"} />
+            <Stat label="Municipalités CRM" value={stats.crm_cities_total} />
+            <Stat label="CRM avec page publiée" value={stats.crm_cities_with_published} tone="good" />
+            <Stat label="CRM brouillon seulement" value={stats.crm_cities_draft_only} />
+            <Stat label="CRM sans page" value={stats.crm_cities_without_page} />
+            <Stat label="Villes historiques (hors registre)" value={stats.cities_historical} />
+            <Stat label="Slugs ville avec page publiée" value={`${stats.cities_covered}/${stats.cities_total} (${stats.coverage_cities_pct}%)`} />
             <Stat label="Matériaux couverts" value={`${stats.materials_covered}/${stats.materials_total} (${stats.coverage_materials_pct}%)`} />
             <Stat label="Services couverts" value={`${stats.services_covered}/${stats.services_total} (${stats.coverage_services_pct}%)`} />
             <Stat label="Combinaisons" value={`${stats.combinations_created}/${stats.combinations_possible} (${stats.coverage_combinations_pct}%)`} />
