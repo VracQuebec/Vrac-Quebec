@@ -293,23 +293,61 @@ function PageList({ title, rows, emptyText }: { title: string; rows: Page[]; emp
 /* =========================================================================
  * CITIES / MATERIALS / SERVICES — simple lists with toggle + delete
  * ========================================================================= */
+type CityMeta = {
+  slug: string; in_registry: boolean; requests: number;
+  pages_total: number; pages_published: number; page_state: "published" | "draft" | "none";
+  served: boolean;
+};
+
 function CitiesTab() {
   const [rows, setRows] = useState<City[]>([]);
+  const [meta, setMeta] = useState<Record<string, CityMeta>>({});
+  const [counts, setCounts] = useState<{ territories_total: number; missing_in_seo: number }>({ territories_total: 0, missing_in_seo: 0 });
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [editing, setEditing] = useState<City | null>(null);
   const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<"all" | "none" | "published" | "registry" | "legacy">("all");
+
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("seo_cities").select("*").order("sort_order");
-    setRows((data ?? []) as City[]);
+    const [citiesRes, metaRes] = await Promise.all([
+      supabase.from("seo_cities").select("*").order("name"),
+      supabase.rpc("seo_manager_cities" as never),
+    ]);
+    setRows((citiesRes.data ?? []) as City[]);
+    const payload = (metaRes.data ?? null) as { cities?: CityMeta[]; territories_total?: number; missing_in_seo?: number } | null;
+    const map: Record<string, CityMeta> = {};
+    for (const c of payload?.cities ?? []) map[c.slug] = c;
+    setMeta(map);
+    setCounts({ territories_total: payload?.territories_total ?? 0, missing_in_seo: payload?.missing_in_seo ?? 0 });
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  const sync = async () => {
+    setSyncing(true);
+    const { data, error } = await supabase.rpc("seo_sync_cities_from_territories" as never);
+    setSyncing(false);
+    if (error) return toast.error(error.message);
+    const r = (data ?? {}) as { inserted?: number; linked?: number };
+    toast.success(`Synchronisation CRM → SEO : ${r.inserted ?? 0} ville(s) ajoutée(s), ${r.linked ?? 0} rattachée(s)`);
+    load();
+  };
+
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
-    if (!t) return rows;
-    return rows.filter((r) => r.name.toLowerCase().includes(t) || r.slug.toLowerCase().includes(t) || (r.region || "").toLowerCase().includes(t));
-  }, [rows, q]);
+    return rows.filter((r) => {
+      const m = meta[r.slug];
+      if (filter === "none" && (m?.pages_total ?? 0) > 0) return false;
+      if (filter === "published" && (m?.pages_published ?? 0) === 0) return false;
+      if (filter === "registry" && !m?.in_registry) return false;
+      if (filter === "legacy" && m?.in_registry) return false;
+      if (!t) return true;
+      return r.name.toLowerCase().includes(t) || r.slug.toLowerCase().includes(t) || (r.region || "").toLowerCase().includes(t);
+    });
+  }, [rows, meta, q, filter]);
+
   const save = async (form: City) => {
     if (!form.name.trim()) return toast.error("Nom requis");
     const slug = (form.slug.trim() || slugify(form.name));
@@ -323,35 +361,82 @@ function CitiesTab() {
     toast.success(form.id ? "Ville mise à jour" : "Ville créée");
     setEditing(null); load();
   };
+
+  const FILTERS: Array<{ k: typeof filter; label: string }> = [
+    { k: "all", label: `Toutes (${rows.length})` },
+    { k: "registry", label: "Dans le registre CRM" },
+    { k: "legacy", label: "Hors registre (historique)" },
+    { k: "none", label: "Sans page SEO" },
+    { k: "published", label: "Avec page publiée" },
+  ];
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher..." className="flex-1 max-w-md px-3 py-2 rounded-md border border-border bg-card text-sm" />
+      <div className="rounded-lg border border-border bg-card p-3 text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+        <span>Source de vérité : <strong className="text-foreground">registre territorial du CRM</strong></span>
+        <span>Municipalités actives au CRM : <strong className="text-foreground">{counts.territories_total}</strong></span>
+        <span>Villes disponibles au SEO : <strong className="text-foreground">{rows.length}</strong></span>
+        <span className={counts.missing_in_seo > 0 ? "text-destructive" : ""}>Manquantes : <strong>{counts.missing_in_seo}</strong></span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher..." className="flex-1 min-w-[180px] max-w-md px-3 py-2 rounded-md border border-border bg-card text-sm" />
+        <button onClick={sync} disabled={syncing}
+          className="px-3 py-2 rounded-md border border-border text-sm font-display font-semibold disabled:opacity-60">
+          {syncing ? "Synchronisation..." : "Synchroniser avec le CRM"}
+        </button>
+        <button onClick={load} className="px-3 py-2 rounded-md border border-border text-sm">Actualiser</button>
         <button
           onClick={() => setEditing({ id: "", slug: "", name: "", region: "", latitude: null, longitude: null, population: null, intro: "", neighbors: [], active: true, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 })}
           className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold">
           <Plus className="w-4 h-4" /> Ajouter
         </button>
       </div>
+
+      <div className="flex flex-wrap gap-2">
+        {FILTERS.map((f) => (
+          <button key={f.k} onClick={() => setFilter(f.k)}
+            className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${filter === f.k ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? <Spinner /> : (
         <ul className="rounded-lg border border-border bg-card divide-y divide-border">
-          {filtered.map((r) => (
-            <li key={r.id} className="p-3 flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="font-body text-foreground truncate">{r.name}</div>
-                <div className="text-xs text-muted-foreground font-mono truncate">{r.region} · /{r.slug} · {r.neighbors?.length ?? 0} voisines</div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button onClick={async () => { await supabase.from("seo_cities").update({ active: !r.active }).eq("id", r.id); load(); }}
-                  className={`px-2 py-0.5 rounded text-xs font-semibold ${r.active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  {r.active ? "Active" : "Inactive"}
-                </button>
-                <button onClick={() => setEditing(r)} className="text-xs text-primary hover:underline">Modifier</button>
-                <button onClick={async () => { if (confirm(`Supprimer ${r.name} ?`)) { await supabase.from("seo_cities").delete().eq("id", r.id); load(); } }}
-                  className="text-destructive hover:opacity-80"><Trash2 className="w-4 h-4" /></button>
-              </div>
-            </li>
-          ))}
+          {filtered.map((r) => {
+            const m = meta[r.slug];
+            const pageLabel = !m || m.page_state === "none" ? "Page SEO non créée"
+              : m.page_state === "draft" ? `${m.pages_total} page(s) brouillon`
+              : `${m.pages_published} page(s) publiée(s)`;
+            return (
+              <li key={r.id} className="p-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-body text-foreground truncate flex items-center gap-2">
+                    {r.name}
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${m?.in_registry ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                      {m?.in_registry ? "CRM" : "Historique"}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground font-mono truncate">
+                    {r.region} · /{r.slug} · {pageLabel}{m?.requests ? ` · ${m.requests} demande(s)` : ""}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`px-2 py-0.5 rounded text-xs font-semibold ${!m || m.page_state === "none" ? "bg-amber-500/15 text-amber-700" : "bg-green-500/15 text-green-700"}`}>
+                    {!m || m.page_state === "none" ? "Sans page" : `${m.pages_total}`}
+                  </span>
+                  <button onClick={async () => { await supabase.from("seo_cities").update({ active: !r.active }).eq("id", r.id); load(); }}
+                    className={`px-2 py-0.5 rounded text-xs font-semibold ${r.active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                    {r.active ? "Active" : "Inactive"}
+                  </button>
+                  <button onClick={() => setEditing(r)} className="text-xs text-primary hover:underline">Modifier</button>
+                  <button onClick={async () => { if (confirm(`Supprimer ${r.name} ?`)) { await supabase.from("seo_cities").delete().eq("id", r.id); load(); } }}
+                    className="text-destructive hover:opacity-80"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              </li>
+            );
+          })}
           {filtered.length === 0 && <li className="p-6 text-center text-muted-foreground text-sm">Aucune ville.</li>}
         </ul>
       )}
