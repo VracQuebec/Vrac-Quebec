@@ -18,11 +18,12 @@ export default function CoverageMatrix() {
     (async () => {
       setLoading(true);
       const [c, m, p] = await Promise.all([
-        supabase.from("seo_cities").select("slug,name,population").eq("active", true).order("population", { ascending: false, nullsFirst: false }),
+        supabase.rpc("seo_generator_catalog" as never),
         supabase.from("seo_materials").select("slug,name,short_name").eq("active", true).order("sort_order"),
         supabase.from("seo_pages").select("slug,city_slug,material_slug,status").not("material_slug", "is", null),
       ]);
-      setCities((c.data ?? []) as City[]);
+      const catalog = c.data as unknown as { cities?: City[] };
+      setCities((catalog?.cities ?? []).sort((a, b) => (b.population ?? 0) - (a.population ?? 0)));
       setMaterials((m.data ?? []) as Material[]);
       setPages((p.data ?? []) as PageRow[]);
       setLoading(false);
