@@ -50,22 +50,35 @@ export default function IndexDiagnosis() {
         <div>
           <h2 className="text-lg font-display font-bold flex items-center gap-2"><Search className="w-5 h-5 text-primary" /> Diagnostic d'indexation</h2>
           <p className="text-xs text-muted-foreground">
-            {data.published} pages publiées · {data.indexed} indexées · {data.not_indexed} non indexées.
-            {data.gsc_connected ? " Données Search Console présentes." : " Aucune donnée Search Console : les causes exactes ne peuvent pas être déterminées."}
+            {data.published} pages publiées ={" "}
+            {data.indexed} indexées confirmées + {data.not_indexed} non indexées confirmées +{" "}
+            {data.unknown_status} sans statut Search Console + {data.never_checked} jamais vérifiées +{" "}
+            {data.not_tracked} non suivies.
+            {data.gsc_connected ? " Données Search Console présentes." : " Aucune donnée Search Console : aucun statut d'indexation n'est déduit."}
           </p>
         </div>
         <Button size="sm" variant="outline" className="gap-2" onClick={load}><RefreshCw className="w-4 h-4" /> Actualiser</Button>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-        {data.causes.map((c) => (
+        {data.buckets.map((c) => (
           <div key={c.cause} className="flex items-center justify-between rounded-md border border-border bg-background/50 p-2 text-xs">
             <span>{CAUSE_LABELS[c.cause] ?? c.cause}</span>
             <Badge variant="outline">{c.count}</Badge>
           </div>
         ))}
-        {data.causes.length === 0 && <div className="text-xs text-muted-foreground">Aucune page non indexée.</div>}
       </div>
+
+      {data.content_flags.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {data.content_flags.map((c) => (
+            <div key={c.cause} className="flex items-center justify-between rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs">
+              <span>Signalement contenu : {CAUSE_LABELS[c.cause] ?? c.cause}</span>
+              <Badge variant="outline">{c.count}</Badge>
+            </div>
+          ))}
+        </div>
+      )}
 
       {data.orphans.length > 0 && (
         <div>
