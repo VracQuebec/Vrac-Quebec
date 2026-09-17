@@ -19236,6 +19236,7 @@ export type Database = {
           top_queries: Json
         }[]
       }
+      seo_manager_cities: { Args: never; Returns: Json }
       seo_optimization_autotune: { Args: { _run_id: string }; Returns: number }
       seo_optimization_cancel: { Args: { _run_id: string }; Returns: undefined }
       seo_optimization_candidates: {
@@ -19381,6 +19382,8 @@ export type Database = {
           word_count: number
         }[]
       }
+      seo_slugify: { Args: { _s: string }; Returns: string }
+      seo_sync_cities_from_territories: { Args: never; Returns: Json }
       seo_territorial_coverage: { Args: never; Returns: Json }
       seo_triage_summary: { Args: never; Returns: Json }
       seo_validate_page_fields: {
@@ -19537,6 +19540,7 @@ export type Database = {
         Returns: undefined
       }
       unaccent_immutable: { Args: { _text: string }; Returns: string }
+      unaccent_less: { Args: { _s: string }; Returns: string }
       unaccent_string: { Args: { input: string }; Returns: string }
       validate_selected_site: {
         Args: { p_submission_id: string }
