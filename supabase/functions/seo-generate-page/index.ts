@@ -136,9 +136,6 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization") || "";
-    const jwt = authHeader.replace("Bearer ", "");
-    if (!jwt) return json({ error: "Non autorisé" }, 401);
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -146,7 +143,10 @@ Deno.serve(async (req) => {
     );
     // Allow service-role calls (from orchestrator / pipeline) to bypass
     // the user admin check.
-    const isService = jwt === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const jwt = authHeader.replace("Bearer ", "");
+    const isService = req.headers.get("apikey") === serviceKey;
+    if (!jwt && !isService) return json({ error: "Non autorisé" }, 401);
     if (!isService) {
       const { data: userData } = await supabase.auth.getUser(jwt);
       const uid = userData?.user?.id;
