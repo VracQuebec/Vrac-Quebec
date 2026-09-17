@@ -15,18 +15,18 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
-    // PHASE 3C — pré-rendu pilote (10 pages SEO seulement). Jamais bloquant :
-    // si la base est injoignable, le build produit le SPA normal.
+    // Pré-rendu SEO global (pages SEO publiées + articles de blogue publiés).
+    // Jamais bloquant : si la base est injoignable, le build produit le SPA normal.
     {
-      name: "vrac-prerender-seo-pilot",
+      name: "vrac-prerender-seo",
       apply: "build",
       async closeBundle() {
         try {
-          const { prerenderPilot } = await import("./scripts/prerender-seo-pilot");
-          const slugs = await prerenderPilot(path.resolve(__dirname, "dist"));
-          console.log(`[prerender-pilot] ${slugs.length} pages pré-rendues`);
+          const { prerenderSeo } = await import("./scripts/prerender-seo");
+          const r = await prerenderSeo(path.resolve(__dirname, "dist"));
+          console.log(`[prerender] ${r.written.length} pages pré-rendues, ${r.skipped.length} ignorées`);
         } catch (e) {
-          console.warn("[prerender-pilot] ignoré :", (e as Error)?.message);
+          console.warn("[prerender] ignoré :", (e as Error)?.message);
         }
       },
     } satisfies Plugin,
