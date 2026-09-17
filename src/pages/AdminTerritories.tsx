@@ -186,6 +186,89 @@ export default function AdminTerritories() {
         </Card>
       )}
 
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">File de validation · {pending.length} demande(s)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {pending.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Toutes les demandes sont rattachées à un territoire.
+            </p>
+          )}
+          {pending.map((p) => (
+            <div key={p.id} className="rounded-lg border p-3 space-y-2">
+              <div className="text-sm font-medium break-words">{p.address ?? "Adresse non renseignée"}</div>
+              <div className="text-xs text-muted-foreground">
+                Ville saisie : {p.city?.trim() || "aucune"} · Raison : {p.territory_reason ?? "à déterminer"}
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Select
+                  value={choice[p.id] ?? ""}
+                  onValueChange={(v) => setChoice((c) => ({ ...c, [p.id]: v }))}
+                >
+                  <SelectTrigger className="h-11 sm:max-w-xs"><SelectValue placeholder="Choisir un territoire" /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {territories.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  className="h-11"
+                  disabled={!choice[p.id] || busy === p.id}
+                  onClick={() => void handleAttach(p.id)}
+                >
+                  {busy === p.id ? "…" : "Rattacher"}
+                </Button>
+              </div>
+            </div>
+          ))}
+
+          <div className="flex flex-col gap-2 border-t pt-3 sm:flex-row">
+            <Input
+              className="h-11 sm:max-w-xs"
+              placeholder="Créer un territoire (nom officiel)"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+            />
+            <Input
+              className="h-11 sm:max-w-xs"
+              placeholder="Région administrative (optionnel)"
+              value={newRegion}
+              onChange={(e) => setNewRegion(e.target.value)}
+            />
+            <Button
+              variant="outline"
+              className="h-11"
+              disabled={!newName.trim() || busy === "new"}
+              onClick={() => void handleCreate()}
+            >
+              Créer le territoire
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Créer un territoire ici n'affecte jamais le site public : aucune page, URL ou métadonnée n'est générée.
+          </p>
+        </CardContent>
+      </Card>
+
+      {history.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Historique des corrections</CardTitle></CardHeader>
+          <CardContent className="max-h-72 space-y-1 overflow-y-auto text-sm">
+            {history.map((h) => (
+              <div key={h.id} className="flex flex-wrap items-center justify-between gap-2 border-b py-1 last:border-0">
+                <span>{h.action.replace(/_/g, " ")}</span>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(h.created_at).toLocaleString("fr-CA")}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <Card>
           <CardHeader className="pb-2">
