@@ -16,14 +16,18 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import FullPageState from "@/components/FullPageState";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
 import {
-  MATRIX_STATUS_LABELS, SERVICE_CATEGORY_LABELS, fetchMatrix, fetchQueue, fetchServices,
+  MATRIX_STATUS_LABELS, SERVICE_CATEGORY_LABELS, attachSubmission, createTerritory,
+  fetchHistory, fetchMatrix, fetchPendingSubmissions, fetchQueue, fetchServices,
   fetchTerritories, fetchTerritoryDetail,
-  type QueueItem, type ServiceDef, type Territory, type TerritoryDetail, type TerritoryService,
+  type HistoryEntry, type PendingSubmission, type QueueItem, type ServiceDef, type Territory,
+  type TerritoryDetail, type TerritoryService,
 } from "@/lib/territories/api";
 
 const STATUS_VARIANT: Record<string, string> = {
@@ -55,6 +59,14 @@ export default function AdminTerritories() {
   const [detail, setDetail] = useState<TerritoryDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  // File de validation et historique des corrections.
+  const [pending, setPending] = useState<PendingSubmission[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [choice, setChoice] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
+  const [newRegion, setNewRegion] = useState("");
+
   useEffect(() => {
     if (!isReady || roleLoading) return;
     if (!user || !isAdmin) navigate("/login", { replace: true });
@@ -65,11 +77,13 @@ export default function AdminTerritories() {
     let cancelled = false;
     (async () => {
       try {
-        const [t, s, m, q] = await Promise.all([
+        const [t, s, m, q, p, h] = await Promise.all([
           fetchTerritories(), fetchServices(), fetchMatrix(), fetchQueue(),
+          fetchPendingSubmissions(), fetchHistory(),
         ]);
         if (cancelled) return;
         setTerritories(t); setServices(s); setMatrix(m); setQueue(q);
+        setPending(p); setHistory(h);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Erreur de chargement");
       } finally {
@@ -78,6 +92,46 @@ export default function AdminTerritories() {
     })();
     return () => { cancelled = true; };
   }, [allowed]);
+
+  const handleAttach = async (submissionId: string) => {
+    const territoryId = choice[submissionId];
+    if (!territoryId) return;
+    setBusy(submissionId);
+    try {
+      await attachSubmission(submissionId, territoryId);
+      setPending((rows) => rows.filter((r) => r.id !== submissionId));
+      setHistory(await fetchHistory());
+      setTerritories(await fetchTerritories());
+      toast({ title: "Demande rattachée", description: "L'adresse d'origine est inchangée." });
+    } catch (e) {
+      toast({
+        title: "Rattachement impossible",
+        description: e instanceof Error ? e.message : "Erreur inattendue",
+        variant: "destructive",
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleCreate = async () => {
+    setBusy("new");
+    try {
+      await createTerritory(newName, newRegion.trim() || null);
+      setTerritories(await fetchTerritories());
+      setHistory(await fetchHistory());
+      setNewName(""); setNewRegion("");
+      toast({ title: "Territoire créé", description: "Aucune page publique n'a été générée." });
+    } catch (e) {
+      toast({
+        title: "Création impossible",
+        description: e instanceof Error ? e.message : "Erreur inattendue",
+        variant: "destructive",
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
 
   useEffect(() => {
     if (!selected) { setDetail(null); return; }
@@ -181,6 +235,89 @@ export default function AdminTerritories() {
           <CardContent className="flex flex-wrap gap-2">
             {queue.map((q) => (
               <Badge key={q.id} variant="outline">{q.raw_city} · {q.request_count}</Badge>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">File de validation · {pending.length} demande(s)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {pending.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Toutes les demandes sont rattachées à un territoire.
+            </p>
+          )}
+          {pending.map((p) => (
+            <div key={p.id} className="rounded-lg border p-3 space-y-2">
+              <div className="text-sm font-medium break-words">{p.address ?? "Adresse non renseignée"}</div>
+              <div className="text-xs text-muted-foreground">
+                Ville saisie : {p.city?.trim() || "aucune"} · Raison : {p.territory_reason ?? "à déterminer"}
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Select
+                  value={choice[p.id] ?? ""}
+                  onValueChange={(v) => setChoice((c) => ({ ...c, [p.id]: v }))}
+                >
+                  <SelectTrigger className="h-11 sm:max-w-xs"><SelectValue placeholder="Choisir un territoire" /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {territories.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  className="h-11"
+                  disabled={!choice[p.id] || busy === p.id}
+                  onClick={() => void handleAttach(p.id)}
+                >
+                  {busy === p.id ? "…" : "Rattacher"}
+                </Button>
+              </div>
+            </div>
+          ))}
+
+          <div className="flex flex-col gap-2 border-t pt-3 sm:flex-row">
+            <Input
+              className="h-11 sm:max-w-xs"
+              placeholder="Créer un territoire (nom officiel)"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+            />
+            <Input
+              className="h-11 sm:max-w-xs"
+              placeholder="Région administrative (optionnel)"
+              value={newRegion}
+              onChange={(e) => setNewRegion(e.target.value)}
+            />
+            <Button
+              variant="outline"
+              className="h-11"
+              disabled={!newName.trim() || busy === "new"}
+              onClick={() => void handleCreate()}
+            >
+              Créer le territoire
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Créer un territoire ici n'affecte jamais le site public : aucune page, URL ou métadonnée n'est générée.
+          </p>
+        </CardContent>
+      </Card>
+
+      {history.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Historique des corrections</CardTitle></CardHeader>
+          <CardContent className="max-h-72 space-y-1 overflow-y-auto text-sm">
+            {history.map((h) => (
+              <div key={h.id} className="flex flex-wrap items-center justify-between gap-2 border-b py-1 last:border-0">
+                <span>{h.action.replace(/_/g, " ")}</span>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(h.created_at).toLocaleString("fr-CA")}
+                </span>
+              </div>
             ))}
           </CardContent>
         </Card>

@@ -141,3 +141,112 @@ export async function fetchTerritoryDetail(territoryId: string): Promise<Territo
     ),
   };
 }
+
+// ------------------------------------------------------------
+// FILE DE VALIDATION — rattachement manuel d'une demande.
+// L'adresse d'origine n'est JAMAIS modifiée : seules les colonnes
+// de rattachement territorial le sont, avec trace dans l'historique.
+// ------------------------------------------------------------
+export type PendingSubmission = {
+  id: string;
+  address: string | null;
+  city: string | null;
+  territory_reason: string | null;
+  created_at: string;
+};
+
+export type HistoryEntry = {
+  id: string;
+  submission_id: string | null;
+  territory_id: string | null;
+  action: string;
+  reason: string | null;
+  created_at: string;
+};
+
+export async function fetchPendingSubmissions(): Promise<PendingSubmission[]> {
+  const { data, error } = await supabase
+    .from("submissions")
+    .select("id,address,city,territory_reason,created_at")
+    .eq("territory_status", "TERRITOIRE_A_VALIDER")
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  return (data ?? []) as PendingSubmission[];
+}
+
+export async function attachSubmission(
+  submissionId: string,
+  territoryId: string,
+  previousTerritoryId: string | null = null,
+): Promise<void> {
+  const { error } = await supabase
+    .from("submissions")
+    .update({
+      territory_id: territoryId,
+      territory_status: "RATTACHE",
+      territory_confidence: "manuelle",
+      territory_source: "admin",
+      territory_reason: "Rattachement validé manuellement par un administrateur",
+    })
+    .eq("id", submissionId);
+  if (error) throw error;
+  const { error: hErr } = await supabase.from("geo_territory_history").insert({
+    submission_id: submissionId,
+    territory_id: territoryId,
+    previous_territory_id: previousTerritoryId,
+    action: "rattachement_manuel",
+    reason: "Choisi par un administrateur dans la file de validation",
+  });
+  if (hErr) throw hErr;
+}
+
+export async function createTerritory(name: string, region: string | null): Promise<string> {
+  const normalized = name
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const { data, error } = await supabase
+    .from("geo_territories")
+    .insert({
+      name: name.trim(),
+      normalized_name: normalized,
+      type: "municipalite",
+      municipality: name.trim(),
+      region,
+      province: "QC",
+      status: "active",
+      source: "creation_admin",
+      notes: "Créé manuellement depuis la file de validation (aucune page SEO créée)",
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  await supabase.from("geo_territory_history").insert({
+    territory_id: data.id,
+    action: "creation_territoire",
+    reason: `Territoire « ${name.trim()} » créé manuellement`,
+  });
+  return data.id as string;
+}
+
+export async function resolveQueueItem(
+  queueId: string,
+  territoryId: string,
+  status: "accepted" | "merged" = "accepted",
+): Promise<void> {
+  const { error } = await supabase
+    .from("geo_territory_queue")
+    .update({ status, suggested_territory_id: territoryId, resolved_at: new Date().toISOString() })
+    .eq("id", queueId);
+  if (error) throw error;
+}
+
+export async function fetchHistory(limit = 50): Promise<HistoryEntry[]> {
+  const { data, error } = await supabase
+    .from("geo_territory_history")
+    .select("id,submission_id,territory_id,action,reason,created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as HistoryEntry[];
+}

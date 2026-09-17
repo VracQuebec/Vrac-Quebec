@@ -8,6 +8,27 @@
       "when": 1789663339884,
       "tag": "0000_geo_territory_registry",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789665062617,
+      "tag": "0001_geo_territorial_correction",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789665161877,
+      "tag": "0002_fix_geo_hay_padding",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789665756247,
+      "tag": "0003_geo_resolve_city_variants",
+      "breakpoints": true
     }
   ]
 }
