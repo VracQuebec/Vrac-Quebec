@@ -59,6 +59,14 @@ export default function AdminTerritories() {
   const [detail, setDetail] = useState<TerritoryDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  // File de validation et historique des corrections.
+  const [pending, setPending] = useState<PendingSubmission[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [choice, setChoice] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
+  const [newRegion, setNewRegion] = useState("");
+
   useEffect(() => {
     if (!isReady || roleLoading) return;
     if (!user || !isAdmin) navigate("/login", { replace: true });
@@ -69,11 +77,13 @@ export default function AdminTerritories() {
     let cancelled = false;
     (async () => {
       try {
-        const [t, s, m, q] = await Promise.all([
+        const [t, s, m, q, p, h] = await Promise.all([
           fetchTerritories(), fetchServices(), fetchMatrix(), fetchQueue(),
+          fetchPendingSubmissions(), fetchHistory(),
         ]);
         if (cancelled) return;
         setTerritories(t); setServices(s); setMatrix(m); setQueue(q);
+        setPending(p); setHistory(h);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Erreur de chargement");
       } finally {
@@ -82,6 +92,46 @@ export default function AdminTerritories() {
     })();
     return () => { cancelled = true; };
   }, [allowed]);
+
+  const handleAttach = async (submissionId: string) => {
+    const territoryId = choice[submissionId];
+    if (!territoryId) return;
+    setBusy(submissionId);
+    try {
+      await attachSubmission(submissionId, territoryId);
+      setPending((rows) => rows.filter((r) => r.id !== submissionId));
+      setHistory(await fetchHistory());
+      setTerritories(await fetchTerritories());
+      toast({ title: "Demande rattachée", description: "L'adresse d'origine est inchangée." });
+    } catch (e) {
+      toast({
+        title: "Rattachement impossible",
+        description: e instanceof Error ? e.message : "Erreur inattendue",
+        variant: "destructive",
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleCreate = async () => {
+    setBusy("new");
+    try {
+      await createTerritory(newName, newRegion.trim() || null);
+      setTerritories(await fetchTerritories());
+      setHistory(await fetchHistory());
+      setNewName(""); setNewRegion("");
+      toast({ title: "Territoire créé", description: "Aucune page publique n'a été générée." });
+    } catch (e) {
+      toast({
+        title: "Création impossible",
+        description: e instanceof Error ? e.message : "Erreur inattendue",
+        variant: "destructive",
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
 
   useEffect(() => {
     if (!selected) { setDetail(null); return; }
