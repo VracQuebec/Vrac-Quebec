@@ -173,7 +173,6 @@ export default function CommandCenter() {
     const orphanHealth: Health = orphans === 0 ? "green" : orphans < 5 ? "yellow" : "red";
     const notIndexed = overview.notIndexed;
     const idxHealth: Health = notIndexed === 0 ? "green" : notIndexed < 5 ? "yellow" : "red";
-    void notIndexed;
     const brokenHealth: Health = brokenLinks === 0 ? "green" : brokenLinks < 5 ? "yellow" : "red";
     return [
       { label: "Maillage interne", state: linksHealth, detail: `${linkAvg.toFixed(1)} liens / page en moyenne` },
