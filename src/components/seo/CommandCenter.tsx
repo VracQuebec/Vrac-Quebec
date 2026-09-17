@@ -113,7 +113,8 @@ export default function CommandCenter() {
     const drafts = pages.filter((p) => p.status === "draft").length;
     const rejected = pages.filter((p) => p.status === "rejected").length;
     const indexed = pages.filter((p) => p.google_index_status === "indexed").length;
-    const notIndexed = pages.filter((p) => p.status === "published" && p.google_index_status && p.google_index_status !== "indexed").length;
+    const CONFIRMED_NOT_INDEXED = ["not_indexed", "crawled_not_indexed", "discovered_not_indexed", "excluded", "blocked"];
+    const notIndexed = pages.filter((p) => p.status === "published" && CONFIRMED_NOT_INDEXED.includes(p.google_index_status ?? "")).length;
     const seoAvg = avg(pages.map((p) => p.seo_score).filter((n): n is number => typeof n === "number"));
     const qaAvg = avg(pages.map((p) => p.qa_last_score).filter((n): n is number => typeof n === "number"));
     const lastGen = maxDate(pages.map((p) => p.last_generated_at));
@@ -178,7 +179,7 @@ export default function CommandCenter() {
       { label: "Métadonnées", state: metaHealth, detail: `${missingMeta} pages sans meta complète` },
       { label: "Contenu dupliqué", state: dupHealth, detail: `${dupes} titres partagés` },
       { label: "Pages orphelines", state: orphanHealth, detail: `${orphans} pages sans lien entrant` },
-      { label: "Pages non indexées", state: idxHealth, detail: `${notIndexed} publiées non indexées` },
+      { label: "Pages non indexées — confirmé", state: idxHealth, detail: `${notIndexed} confirmées non indexées par Search Console` },
       { label: "Search Console — liens cassés", state: brokenHealth, detail: `${brokenLinks} liens à corriger` },
     ];
   }, [pages, overview, brokenLinks]);
@@ -235,7 +236,13 @@ export default function CommandCenter() {
             <Stat label="Publiées" value={stats.pages_published} tone="good" />
             <Stat label="Brouillons" value={stats.pages_draft} />
             <Stat label="À corriger" value={stats.pages_needs_fix} tone={stats.pages_needs_fix > 0 ? "warn" : "good"} />
-            <Stat label="Villes couvertes" value={`${stats.cities_covered}/${stats.cities_total} (${stats.coverage_cities_pct}%)`} />
+            <Stat label="Pages orphelines" value={stats.pages_orphans} tone={stats.pages_orphans > 0 ? "warn" : "good"} />
+            <Stat label="Municipalités CRM" value={stats.crm_cities_total} />
+            <Stat label="CRM avec page publiée" value={stats.crm_cities_with_published} tone="good" />
+            <Stat label="CRM brouillon seulement" value={stats.crm_cities_draft_only} />
+            <Stat label="CRM sans page" value={stats.crm_cities_without_page} />
+            <Stat label="Villes historiques (hors registre)" value={stats.cities_historical} />
+            <Stat label="Slugs ville avec page publiée" value={`${stats.cities_covered}/${stats.cities_total} (${stats.coverage_cities_pct}%)`} />
             <Stat label="Matériaux couverts" value={`${stats.materials_covered}/${stats.materials_total} (${stats.coverage_materials_pct}%)`} />
             <Stat label="Services couverts" value={`${stats.services_covered}/${stats.services_total} (${stats.coverage_services_pct}%)`} />
             <Stat label="Combinaisons" value={`${stats.combinations_created}/${stats.combinations_possible} (${stats.coverage_combinations_pct}%)`} />
@@ -262,12 +269,22 @@ export default function CommandCenter() {
           On conserve ici uniquement les indicateurs qui ne sont pas déjà dans le bloc unifié. */}
       <section>
         <SectionTitle>Indexation Google</SectionTitle>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Stat label="Indexées Google" value={overview.indexed} tone="good" />
-          <Stat label="Non indexées" value={overview.notIndexed} tone={overview.notIndexed > 0 ? "warn" : "good"} />
-          <Stat label="Dernière génération" value={fmtRel(overview.lastGen)} />
-          <Stat label="Dernière indexation" value={fmtRel(overview.lastIdx)} />
-        </div>
+        {stats?.indexation && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Stat label="Indexées — confirmé" value={stats.indexation.indexee_confirmee} tone="good" />
+            <Stat label="Non indexées — confirmé" value={stats.indexation.non_indexee_confirmee} tone={stats.indexation.non_indexee_confirmee > 0 ? "warn" : "good"} />
+            <Stat label="Statut Search Console inconnu" value={stats.indexation.sans_statut_gsc} />
+            <Stat label="Jamais vérifiées" value={stats.indexation.jamais_verifiee} />
+            <Stat label="Non suivies (noindex/brouillon)" value={stats.indexation.non_suivie} />
+            <Stat label="Total pages" value={stats.indexation.total} />
+            <Stat label="Dernière génération" value={fmtRel(overview.lastGen)} />
+            <Stat label="Dernière vérification" value={fmtRel(overview.lastIdx)} />
+          </div>
+        )}
+        <p className="text-[11px] text-muted-foreground mt-2">
+          Définitions : « indexée » et « non indexée » proviennent uniquement de Search Console. Une page sans donnée
+          Search Console est affichée « statut inconnu », jamais « non indexée ».
+        </p>
       </section>
 
       {/* Santé SEO */}

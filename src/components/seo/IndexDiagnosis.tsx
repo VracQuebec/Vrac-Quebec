@@ -9,21 +9,22 @@ import { toast } from "sonner";
 type Sample = { slug: string; cause: string; city: string | null; material: string | null; service: string | null; words: number | null; internal_links: number };
 type Payload = {
   computed_at: string; published: number; indexed: number; not_indexed: number;
+  unknown_status: number; never_checked: number; not_tracked: number;
   gsc_connected: boolean;
-  causes: Array<{ cause: string; count: number }>;
+  buckets: Array<{ cause: string; count: number }>;
+  content_flags: Array<{ cause: string; count: number }>;
   samples: Sample[];
   orphans: Array<{ slug: string; city: string | null; material: string | null; service: string | null }>;
 };
 
 const CAUSE_LABELS: Record<string, string> = {
-  noindex: "Non indexable (noindex assumé)",
+  indexee_confirmee: "Indexée — confirmé par Search Console",
+  non_indexee_confirmee: "Non indexée — confirmé par Search Console",
+  sans_statut_gsc: "Statut Search Console inconnu",
+  jamais_verifiee: "Jamais vérifiée",
+  non_suivie: "Non suivie (noindex volontaire)",
   page_orpheline: "Page orpheline (aucun lien interne)",
-  contenu_insuffisant: "Contenu insuffisant (< 800 mots)",
-  duplication_potentielle: "Duplication / cannibalisation potentielle",
-  publiee_recemment: "Publiée récemment (découverte en cours)",
-  exploree_non_indexee: "Explorée mais non indexée",
-  statut_google_indetermine: "Statut Google indéterminé (aucune donnée d'indexation retournée)",
-  cause_inconnue: "Cause inconnue",
+  contenu_insuffisant: "Contenu insuffisant (< 300 mots)",
 };
 
 export default function IndexDiagnosis() {
@@ -49,22 +50,35 @@ export default function IndexDiagnosis() {
         <div>
           <h2 className="text-lg font-display font-bold flex items-center gap-2"><Search className="w-5 h-5 text-primary" /> Diagnostic d'indexation</h2>
           <p className="text-xs text-muted-foreground">
-            {data.published} pages publiées · {data.indexed} indexées · {data.not_indexed} non indexées.
-            {data.gsc_connected ? " Données Search Console présentes." : " Aucune donnée Search Console : les causes exactes ne peuvent pas être déterminées."}
+            {data.published} pages publiées ={" "}
+            {data.indexed} indexées confirmées + {data.not_indexed} non indexées confirmées +{" "}
+            {data.unknown_status} sans statut Search Console + {data.never_checked} jamais vérifiées +{" "}
+            {data.not_tracked} non suivies.
+            {data.gsc_connected ? " Données Search Console présentes." : " Aucune donnée Search Console : aucun statut d'indexation n'est déduit."}
           </p>
         </div>
         <Button size="sm" variant="outline" className="gap-2" onClick={load}><RefreshCw className="w-4 h-4" /> Actualiser</Button>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-        {data.causes.map((c) => (
+        {data.buckets.map((c) => (
           <div key={c.cause} className="flex items-center justify-between rounded-md border border-border bg-background/50 p-2 text-xs">
             <span>{CAUSE_LABELS[c.cause] ?? c.cause}</span>
             <Badge variant="outline">{c.count}</Badge>
           </div>
         ))}
-        {data.causes.length === 0 && <div className="text-xs text-muted-foreground">Aucune page non indexée.</div>}
       </div>
+
+      {data.content_flags.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {data.content_flags.map((c) => (
+            <div key={c.cause} className="flex items-center justify-between rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs">
+              <span>Signalement contenu : {CAUSE_LABELS[c.cause] ?? c.cause}</span>
+              <Badge variant="outline">{c.count}</Badge>
+            </div>
+          ))}
+        </div>
+      )}
 
       {data.orphans.length > 0 && (
         <div>

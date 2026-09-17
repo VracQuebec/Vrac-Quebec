@@ -107,7 +107,7 @@ export function analyzePage(c: Candidate) {
   const reco: string[] = [];
 
   if (c.indexed_at) good.push("Page indexée par Google.");
-  else bad.push("Page non indexée (aucune date d'indexation enregistrée).");
+  else bad.push("Statut d'indexation inconnu (aucune donnée Search Console pour cette page).");
 
   if (c.impressions > 0) good.push(`${c.impressions.toLocaleString("fr-CA")} impressions sur 28 jours.`);
   else bad.push("Aucune impression sur les 28 derniers jours.");
@@ -405,7 +405,7 @@ export default function OptimizationCenter({ scope, onClose, onChanged }: {
                       <td className="p-2">
                         {r.indexed_at
                           ? <span className="text-primary font-semibold">Indexée</span>
-                          : <span className="text-destructive font-semibold">Non indexée</span>}
+                          : <span className="text-muted-foreground font-semibold">Statut inconnu</span>}
                       </td>
                       <td className="p-2 text-right font-mono">{r.impressions}</td>
                       <td className="p-2 text-right font-mono">{r.clicks}</td>
@@ -537,7 +537,7 @@ function PageAnalysis({ page, scope, onClose, onImprove }: {
             <Metric label="Mots" value={String(page.word_count)} />
             <Metric label="Liens internes" value={String(page.internal_link_count)} />
             <Metric label="Score SEO" value={page.seo_score != null ? `${page.seo_score}/100` : "—"} />
-            <Metric label="Indexation" value={page.indexed_at ? "Indexée" : "Non indexée"} />
+            <Metric label="Indexation" value={page.indexed_at ? "Indexée — confirmé" : "Statut Search Console inconnu"} />
           </div>
 
           {diag && (

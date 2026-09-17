@@ -39,10 +39,23 @@ export async function invokeSeo<T = unknown>(
   throw new SeoApiError(0, lastErr, msg);
 }
 
+export type SeoIndexation = {
+  indexee_confirmee: number;
+  non_indexee_confirmee: number;
+  sans_statut_gsc: number;
+  jamais_verifiee: number;
+  non_suivie: number;
+  total: number;
+};
+
 export type SeoStats = {
   computed_at: string;
   cities_total: number; materials_total: number; services_total: number;
   pages_total: number; pages_published: number; pages_draft: number; pages_needs_fix: number;
+  pages_orphans: number;
+  crm_cities_total: number; crm_cities_with_published: number;
+  crm_cities_draft_only: number; crm_cities_without_page: number; cities_historical: number;
+  indexation: SeoIndexation;
   cities_covered: number; materials_covered: number; services_covered: number;
   combinations_possible: number; combinations_created: number;
   qa_avg: number; seo_avg: number;
