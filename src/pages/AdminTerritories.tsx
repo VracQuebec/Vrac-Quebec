@@ -123,7 +123,7 @@ export default function AdminTerritories() {
 
   const serviceLabel = (key: string) => services.find((s) => s.service_key === key)?.label ?? key;
 
-  if (!allowed) return <FullPageState title="Accès réservé" description="Connexion administrateur requise." />;
+  if (!allowed) return <FullPageState title="Accès réservé" message="Connexion administrateur requise." showSpinner={false} />;
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -131,7 +131,7 @@ export default function AdminTerritories() {
       </div>
     );
   }
-  if (error) return <FullPageState title="Erreur" description={error} />;
+  if (error) return <FullPageState title="Erreur" message={error} showSpinner={false} />;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 space-y-6">
