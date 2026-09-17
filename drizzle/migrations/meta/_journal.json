@@ -43,6 +43,13 @@
       "when": 1789677094449,
       "tag": "0005_seo_cities_sync_from_territories",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789678275350,
+      "tag": "0006_seo_generator_registry_eligibility",
+      "breakpoints": true
     }
   ]
 }
