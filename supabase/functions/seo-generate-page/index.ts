@@ -32,6 +32,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
+function jwtRole(token: string): string | null {
+  try {
+    const payload = token.split(".")[1]?.replace(/-/g, "+").replace(/_/g, "/");
+    if (!payload) return null;
+    return JSON.parse(atob(payload.padEnd(Math.ceil(payload.length / 4) * 4, "=")))?.role ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function cleanSlug(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const slug = value.trim();
@@ -145,7 +155,9 @@ Deno.serve(async (req) => {
     // the user admin check.
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const jwt = authHeader.replace("Bearer ", "");
-    const isService = req.headers.get("apikey") === serviceKey;
+    // The gateway verifies this bearer token before invocation; the role
+    // claim also supports managed service keys whose serialized value differs.
+    const isService = req.headers.get("apikey") === serviceKey || jwtRole(jwt) === "service_role";
     if (!jwt && !isService) return json({ error: "Non autorisé" }, 401);
     if (!isService) {
       const { data: userData } = await supabase.auth.getUser(jwt);
