@@ -14105,6 +14105,7 @@ export type Database = {
           meta_description: string | null
           meta_title: string | null
           needs_refresh: boolean
+          noindex: boolean
           og_description: string | null
           og_title: string | null
           priority: number
@@ -14164,6 +14165,7 @@ export type Database = {
           meta_description?: string | null
           meta_title?: string | null
           needs_refresh?: boolean
+          noindex?: boolean
           og_description?: string | null
           og_title?: string | null
           priority?: number
@@ -14223,6 +14225,7 @@ export type Database = {
           meta_description?: string | null
           meta_title?: string | null
           needs_refresh?: boolean
+          noindex?: boolean
           og_description?: string | null
           og_title?: string | null
           priority?: number
