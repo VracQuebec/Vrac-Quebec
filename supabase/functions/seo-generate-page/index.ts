@@ -32,6 +32,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
+function jwtRole(token: string): string | null {
+  try {
+    const payload = token.split(".")[1]?.replace(/-/g, "+").replace(/_/g, "/");
+    if (!payload) return null;
+    return JSON.parse(atob(payload.padEnd(Math.ceil(payload.length / 4) * 4, "=")))?.role ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function cleanSlug(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const slug = value.trim();
@@ -136,9 +146,6 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization") || "";
-    const jwt = authHeader.replace("Bearer ", "");
-    if (!jwt) return json({ error: "Non autorisé" }, 401);
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -146,7 +153,12 @@ Deno.serve(async (req) => {
     );
     // Allow service-role calls (from orchestrator / pipeline) to bypass
     // the user admin check.
-    const isService = jwt === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const jwt = authHeader.replace("Bearer ", "");
+    // The gateway verifies this bearer token before invocation; the role
+    // claim also supports managed service keys whose serialized value differs.
+    const isService = req.headers.get("apikey") === serviceKey || jwtRole(jwt) === "service_role";
+    if (!jwt && !isService) return json({ error: "Non autorisé" }, 401);
     if (!isService) {
       const { data: userData } = await supabase.auth.getUser(jwt);
       const uid = userData?.user?.id;
@@ -164,6 +176,7 @@ Deno.serve(async (req) => {
     const citySlug = cleanSlug(bodyCity?.slug) ?? cleanSlug(body?.city_slug);
     const materialSlug = cleanSlug(bodyMaterial?.slug) ?? cleanSlug(body?.material_slug);
     const serviceSlug = cleanSlug(bodyService?.slug) ?? cleanSlug(body?.service_slug);
+    const usage = typeof body?.usage === "string" ? body.usage.trim().slice(0, 180) : "";
 
     let city: { slug: string; name: string; region?: string } | null = citySlug
       ? {
@@ -213,8 +226,16 @@ Deno.serve(async (req) => {
       if (row) service = row;
     }
 
-    const forceRegenerate = Boolean(body?.force);
+    const forceRegenerate = Boolean(body?.force && body?.confirm_overwrite === true);
     if (!city?.slug) return json({ error: "Ville requise" }, 400);
+
+    // New pages may only be created for active municipalities from the CRM
+    // registry. Historical SEO cities remain readable, but are not silently
+    // reused as generation candidates.
+    const { data: isGenerable, error: eligibilityError } = await supabase
+      .rpc("seo_city_is_generable", { _city_slug: city.slug });
+    if (eligibilityError) return json({ error: eligibilityError.message }, 500);
+    if (!isGenerable) return json({ error: "Cette ville n’est pas une municipalité active du registre CRM" }, 400);
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) return json({ error: "LOVABLE_API_KEY manquante" }, 500);
@@ -269,6 +290,7 @@ RÈGLES content_html :
 Ville : ${city.name} (${city.region ?? ""}).
 ${material ? `Matériau : ${material.name}${material.description ? ` — ${material.description}` : ""}.` : ""}
 ${service ? `Service : ${service.name}${service.description ? ` — ${service.description}` : ""}.` : ""}
+${usage ? `Usage ciblé : ${usage}.` : ""}
 ${!material && !service ? "Type de page : hub local général sur les matériaux en vrac, l'accès aux dompes et la coordination locale." : ""}
 Objectif : positionner cette page en tête de Google pour ce mot-clé local et convertir vers le formulaire de demande de Vrac Québec.
 Respecte STRICTEMENT le schéma JSON et les règles content_html du system prompt.`;
@@ -376,10 +398,11 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
       needs_refresh: false,
       refresh_reason: null,
       last_analyzed_at: new Date().toISOString(),
-      status: "published",
+      status: "draft",
+      noindex: true,
       ai_model: "google/gemini-2.5-flash",
       last_generated_at: new Date().toISOString(),
-      published_at: new Date().toISOString(),
+      published_at: null,
     };
 
     let pageRow: { id: string; slug: string } | null = null;

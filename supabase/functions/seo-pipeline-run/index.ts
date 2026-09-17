@@ -262,18 +262,29 @@ Deno.serve(async (req) => {
     const qaThreshold = Number.isFinite(body?.qa_threshold) ? Number(body.qa_threshold) : 80;
     const autoFix = body?.auto_fix !== false;
     const limitCombinations = Number.isFinite(body?.limit) ? Number(body.limit) : 500;
+    const requestedCities = Array.isArray(body?.city_slugs)
+      ? body.city_slugs.filter((value: unknown): value is string => typeof value === "string" && value.length > 0)
+      : [];
 
     let combinations: Array<{ city_slug: string; material_slug: string | null; service_slug: string | null }> = [];
     let toPublishIds: string[] = [];
     let draftIds: string[] = [];
 
     if (mode === "generate" || mode === "pipeline") {
-      const [{ data: cities }, { data: mats }, { data: svcs }, { data: existingPages }] = await Promise.all([
-        supabase.from("seo_cities").select("slug, population").eq("active", true),
+      if (requestedCities.length === 0) {
+        return json({ error: "Sélectionnez explicitement au moins une municipalité active du registre CRM." }, 400);
+      }
+      const [{ data: cities }, { data: mats }, { data: svcs }, { data: existingPages }, { data: territories }] = await Promise.all([
+        supabase.from("seo_cities").select("slug, population").eq("active", true).in("slug", requestedCities),
         supabase.from("seo_materials").select("slug").eq("active", true),
         supabase.from("seo_services").select("slug").eq("active", true),
         supabase.from("seo_pages").select("city_slug, material_slug, service_slug"),
+        supabase.from("geo_territories").select("seo_city_slug").eq("type", "municipalite").eq("status", "active").in("seo_city_slug", requestedCities),
       ]);
+      const registrySlugs = new Set((territories ?? []).map((row) => row.seo_city_slug));
+      if (registrySlugs.size !== new Set(requestedCities).size) {
+        return json({ error: "La sélection contient une ville inactive, historique ou absente du registre CRM." }, 400);
+      }
       const existing = new Set(
         (existingPages ?? []).map((p) => `${p.city_slug}|${p.material_slug ?? ""}|${p.service_slug ?? ""}`),
       );
@@ -300,7 +311,7 @@ Deno.serve(async (req) => {
       // Pipeline mode also reprocesses existing drafts (QA → autofix → publish).
       // Without this, once every combination has a page, the queue is always empty even if drafts remain.
       if (mode === "pipeline") {
-        let draftQuery = supabase.from("seo_pages").select("id, wave").eq("status", "draft");
+        let draftQuery = supabase.from("seo_pages").select("id, wave").eq("status", "draft").in("city_slug", requestedCities);
         if (wave) draftQuery = draftQuery.eq("wave", wave);
         const { data: drafts } = await draftQuery.limit(1000);
         draftIds = (drafts ?? []).map((r: { id: string }) => r.id);
@@ -401,7 +412,7 @@ Deno.serve(async (req) => {
           if (!isExistingPage && (mode === "generate" || mode === "pipeline")) {
             step = "génération";
             await markStep(supabase, jobId, target, step, attempt);
-            const genRes = await callFn("seo-generate-page", target, authHeader, step, STEP_TIMEOUT_MS);
+            const genRes = await callFn("seo-generate-page", { ...target, publish: false }, authHeader, step, STEP_TIMEOUT_MS);
             pageId = (genRes as { page?: { id?: string } })?.page?.id || "";
             if (!pageId && mode === "pipeline") throw new Error("Page générée sans identifiant");
 
@@ -428,9 +439,8 @@ Deno.serve(async (req) => {
                 throw new Error(`QA insuffisant (${qaScore}/100)`);
               }
 
-              step = "publication";
+              step = "brouillon prêt";
               await markStep(supabase, jobId, target, step, attempt);
-              await publishPage(supabase, pageId);
             }
           } else {
             // Existing page (draft) path — used by mode=publish and by mode=pipeline

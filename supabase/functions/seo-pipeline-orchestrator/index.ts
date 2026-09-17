@@ -99,7 +99,9 @@ async function materializeBatch(sb: SupabaseClient, run: any, batch: any) {
   // unless the run explicitly requested a force regeneration. This keeps
   // the pipeline resumable and prevents overwriting content, slugs, SEO
   // metadata or generated_at timestamps of pages already produced.
-  const force = !!run.force_regenerate;
+  // Existing pages are never re-queued by the bulk generator. A targeted
+  // repair remains available through the dedicated, explicitly confirmed path.
+  const force = false;
   const existingKeys = new Set<string>();
   const activeKeys = new Set<string>();
   if (!force) {
@@ -244,7 +246,8 @@ async function runOneTask(sb: SupabaseClient, run: any, batch: any, task: any) {
       const gen = await withTimeout(
         callFn("seo-generate-page", {
           city: ctx.city, material: ctx.material, service: ctx.service,
-          force: !!run.force_regenerate,
+          force: false,
+          publish: false,
           // The previous response may have been cached before structural
           // validation. A retry must request a genuinely fresh completion.
           bypass_cache: task.attempts > 0,
@@ -281,9 +284,10 @@ async function runOneTask(sb: SupabaseClient, run: any, batch: any, task: any) {
       }
     }
 
-    // PUBLISH if score >= threshold (or republish kind)
-    await sb.from("seo_page_tasks").update({ step: "publication" }).eq("id", task.id);
-    if (task.kind === "publish" || (typeof qaScore === "number" && qaScore >= qaThreshold)) {
+    // Publication is always an explicit task. Generation and QA leave new
+    // pages as non-indexable drafts, even when the score is high.
+    await sb.from("seo_page_tasks").update({ step: task.kind === "publish" ? "publication" : "brouillon prêt" }).eq("id", task.id);
+    if (task.kind === "publish") {
       await sb.from("seo_pages").update({ status: "published", published_at: nowIso() }).eq("id", pageId);
     }
 

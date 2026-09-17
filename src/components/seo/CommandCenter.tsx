@@ -51,7 +51,7 @@ export default function CommandCenter() {
       supabase.from("seo_gsc_metrics").select("page_id,impressions,clicks,ctr,position").eq("period", "28d"),
       supabase.from("seo_page_events").select("page_slug,event_type").gte("occurred_at", since30).limit(50000),
       supabase.from("transport_requests").select("id", { count: "exact", head: true }).gte("created_at", since30),
-      supabase.from("seo_cities").select("slug,name").eq("active", true),
+      supabase.rpc("seo_generator_catalog" as never),
       supabase.from("seo_materials").select("slug,name").eq("active", true),
       supabase.from("seo_services").select("slug,name").eq("active", true),
       supabase.from("blog_posts").select("id,title,slug,status,published_at,updated_at").order("updated_at", { ascending: false }).limit(20),
@@ -73,7 +73,7 @@ export default function CommandCenter() {
     }
     setEvents(eMap);
     setTransportReqCount(trRes.count ?? 0);
-    setCities((citiesRes.data ?? []) as { slug: string; name: string }[]);
+    setCities(((citiesRes.data as unknown as { cities?: Array<{ slug: string; name: string }> })?.cities ?? []));
     setMaterials((matsRes.data ?? []) as { slug: string; name: string }[]);
     setServices((svcRes.data ?? []) as { slug: string; name: string }[]);
     setBlogPosts((blogRes.data ?? []) as typeof blogPosts);

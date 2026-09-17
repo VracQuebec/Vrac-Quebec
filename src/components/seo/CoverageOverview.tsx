@@ -14,12 +14,12 @@ export default function CoverageOverview() {
   useEffect(() => {
     (async () => {
       const [cRes, mRes, sRes, pRes] = await Promise.all([
-        supabase.from("seo_cities").select("slug").eq("active", true),
+        supabase.rpc("seo_generator_catalog" as never),
         supabase.from("seo_materials").select("slug").eq("active", true),
         supabase.from("seo_services").select("slug").eq("active", true),
         supabase.from("seo_pages").select("city_slug, material_slug, service_slug").eq("status", "published"),
       ]);
-      const cities = cRes.data ?? [];
+      const cities = ((cRes.data as unknown as { cities?: Array<{ slug: string }> })?.cities ?? []);
       const materials = mRes.data ?? [];
       const services = sRes.data ?? [];
       const pages = pRes.data ?? [];

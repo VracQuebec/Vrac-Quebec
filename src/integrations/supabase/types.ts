@@ -19205,6 +19205,7 @@ export type Database = {
         Returns: Json
       }
       seo_bulk_state: { Args: never; Returns: Json }
+      seo_city_is_generable: { Args: { _city_slug: string }; Returns: boolean }
       seo_city_matrix: { Args: { _city_slug: string }; Returns: Json }
       seo_city_publish_missing: { Args: { _city_slug: string }; Returns: Json }
       seo_city_retry_errors: { Args: { _city_slug: string }; Returns: number }
@@ -19213,6 +19214,7 @@ export type Database = {
       seo_executive_dashboard: { Args: never; Returns: Json }
       seo_final_coverage_report: { Args: never; Returns: Json }
       seo_final_report: { Args: { _run_id?: string }; Returns: Json }
+      seo_generator_catalog: { Args: never; Returns: Json }
       seo_intelligence_dashboard: { Args: never; Returns: Json }
       seo_intelligence_pages: {
         Args: { _filter?: string; _limit?: number }

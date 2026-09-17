@@ -1,5 +1,5 @@
-- [ ] Audit remaining 56-city generator limits and indirect filters
-- [ ] Make every active CRM municipality selectable and generable
-- [ ] Add data-backed opportunity statuses and controlled batch preview
-- [ ] Verify draft creation for three new cities without publishing
-- [ ] Confirm counts, duplicates, preserved pages, and remaining errors
+- [x] Audit remaining 56-city generator limits and indirect filters
+- [x] Make every active CRM municipality selectable and generable
+- [x] Add data-backed opportunity statuses and controlled batch preview
+- [x] Verify draft creation for three new cities without publishing
+- [x] Confirm counts, duplicates, preserved pages, and remaining errors

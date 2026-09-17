@@ -1,7 +1,7 @@
 // Deno edge function — Réparation ciblée des pages SEO.
 // Régénère UNE page précise (ville × matériau/service) ou toutes les pages
 // réellement en erreur d'une ville. Aucune page valide n'est touchée,
-// aucun doublon n'est créé (seo-generate-page fait un update sur slug existant).
+// aucun doublon n'est créé. Une réparation exige une confirmation explicite.
 // Chaque tentative est journalisée dans seo_page_tasks (historique conservé).
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -38,6 +38,8 @@ async function generate(slot: Slot): Promise<{ ok: boolean; error?: string }> {
         material_slug: slot.material_slug,
         service_slug: slot.service_slug,
         force: true,
+        confirm_overwrite: true,
+        publish: false,
       }),
     });
     const text = await resp.text();
