@@ -19215,6 +19215,7 @@ export type Database = {
       seo_final_coverage_report: { Args: never; Returns: Json }
       seo_final_report: { Args: { _run_id?: string }; Returns: Json }
       seo_generator_catalog: { Args: never; Returns: Json }
+      seo_index_diagnosis: { Args: never; Returns: Json }
       seo_intelligence_dashboard: { Args: never; Returns: Json }
       seo_intelligence_pages: {
         Args: { _filter?: string; _limit?: number }
@@ -19239,6 +19240,7 @@ export type Database = {
         }[]
       }
       seo_manager_cities: { Args: never; Returns: Json }
+      seo_opportunity_analysis: { Args: never; Returns: Json }
       seo_optimization_autotune: { Args: { _run_id: string }; Returns: number }
       seo_optimization_cancel: { Args: { _run_id: string }; Returns: undefined }
       seo_optimization_candidates: {

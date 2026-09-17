@@ -64,6 +64,20 @@
       "when": 1789679232745,
       "tag": "0008_blog_seo_structural_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789680372738,
+      "tag": "0009_seo_opportunity_and_index_diagnosis",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789680441294,
+      "tag": "0010_seo_index_causes_refine_and_orphan_links",
+      "breakpoints": true
     }
   ]
 }
