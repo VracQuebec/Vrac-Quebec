@@ -172,6 +172,7 @@ export default function CommandCenter() {
     const orphanHealth: Health = orphans === 0 ? "green" : orphans < 5 ? "yellow" : "red";
     const notIndexed = overview.notIndexed;
     const idxHealth: Health = notIndexed === 0 ? "green" : notIndexed < 5 ? "yellow" : "red";
+    void notIndexed;
     const brokenHealth: Health = brokenLinks === 0 ? "green" : brokenLinks < 5 ? "yellow" : "red";
     return [
       { label: "Maillage interne", state: linksHealth, detail: `${linkAvg.toFixed(1)} liens / page en moyenne` },
@@ -262,12 +263,22 @@ export default function CommandCenter() {
           On conserve ici uniquement les indicateurs qui ne sont pas déjà dans le bloc unifié. */}
       <section>
         <SectionTitle>Indexation Google</SectionTitle>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Stat label="Indexées Google" value={overview.indexed} tone="good" />
-          <Stat label="Non indexées" value={overview.notIndexed} tone={overview.notIndexed > 0 ? "warn" : "good"} />
-          <Stat label="Dernière génération" value={fmtRel(overview.lastGen)} />
-          <Stat label="Dernière indexation" value={fmtRel(overview.lastIdx)} />
-        </div>
+        {stats?.indexation && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Stat label="Indexées — confirmé" value={stats.indexation.indexee_confirmee} tone="good" />
+            <Stat label="Non indexées — confirmé" value={stats.indexation.non_indexee_confirmee} tone={stats.indexation.non_indexee_confirmee > 0 ? "warn" : "good"} />
+            <Stat label="Statut Search Console inconnu" value={stats.indexation.sans_statut_gsc} />
+            <Stat label="Jamais vérifiées" value={stats.indexation.jamais_verifiee} />
+            <Stat label="Non suivies (noindex/brouillon)" value={stats.indexation.non_suivie} />
+            <Stat label="Total pages" value={stats.indexation.total} />
+            <Stat label="Dernière génération" value={fmtRel(overview.lastGen)} />
+            <Stat label="Dernière vérification" value={fmtRel(overview.lastIdx)} />
+          </div>
+        )}
+        <p className="text-[11px] text-muted-foreground mt-2">
+          Définitions : « indexée » et « non indexée » proviennent uniquement de Search Console. Une page sans donnée
+          Search Console est affichée « statut inconnu », jamais « non indexée ».
+        </p>
       </section>
 
       {/* Santé SEO */}
