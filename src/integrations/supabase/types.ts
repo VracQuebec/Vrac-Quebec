@@ -19390,6 +19390,7 @@ export type Database = {
       seo_sync_cities_from_territories: { Args: never; Returns: Json }
       seo_territorial_coverage: { Args: never; Returns: Json }
       seo_triage_summary: { Args: never; Returns: Json }
+      seo_truth_metrics: { Args: never; Returns: Json }
       seo_validate_page_fields: {
         Args: {
           _city_slug: string
