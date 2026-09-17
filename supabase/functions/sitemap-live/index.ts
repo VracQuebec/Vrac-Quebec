@@ -41,6 +41,7 @@ Deno.serve(async () => {
     .from("blog_posts")
     .select("slug, updated_at, published_at")
     .eq("status", "published")
+    .eq("noindex", false)
     .lte("published_at", new Date().toISOString())
     .range(0, 9999);
   for (const p of posts ?? []) {

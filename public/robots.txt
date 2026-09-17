@@ -12,5 +12,14 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /entrepreneur
+Disallow: /ops
+Disallow: /portail
+Disallow: /chauffeur
+Disallow: /login
+Disallow: /reset-password
+Disallow: /forgot-password
+Disallow: /unsubscribe
 
 Sitemap: https://vracquebec.ca/sitemap.xml

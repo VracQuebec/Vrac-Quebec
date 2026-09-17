@@ -114,7 +114,7 @@ async function build(): Promise<Entry[]> {
   // no seo_pages row exists, and Google penalizes ghost URLs in sitemaps.
   try {
     const pages = await fetchAll<{ slug: string; updated_at: string }>(
-      `${SUPABASE_URL}/rest/v1/seo_pages?select=slug,updated_at&status=eq.published&order=updated_at.desc`,
+      `${SUPABASE_URL}/rest/v1/seo_pages?select=slug,updated_at&status=eq.published&noindex=eq.false&order=updated_at.desc`,
     );
     for (const p of pages) {
       entries.push({

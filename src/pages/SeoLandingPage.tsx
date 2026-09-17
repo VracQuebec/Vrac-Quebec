@@ -34,6 +34,7 @@ type SeoPage = {
   cover_image_alt?: string | null;
   internal_links?: InternalLink[];
   status: string;
+  noindex?: boolean | null;
 };
 
 export default function SeoLandingPage() {
@@ -200,6 +201,10 @@ export default function SeoLandingPage() {
         <title>{title}</title>
         <meta name="description" content={description} />
         <link rel="canonical" href={url} />
+        <meta
+          name="robots"
+          content={page.noindex ? "noindex, follow" : "index, follow, max-image-preview:large"}
+        />
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         <meta property="og:type" content="website" />
