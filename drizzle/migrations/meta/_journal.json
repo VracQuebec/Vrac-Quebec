@@ -50,6 +50,13 @@
       "when": 1789678275350,
       "tag": "0006_seo_generator_registry_eligibility",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789678363532,
+      "tag": "0007_seo_control_center_registry_counts",
+      "breakpoints": true
     }
   ]
 }
