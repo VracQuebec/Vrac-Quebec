@@ -261,6 +261,7 @@ const App = () => (
             <Route path="/admin/apercu-parcours" element={<PreviewParcoursDompe />} />
             <Route path="/admin/apercu-besoin" element={<PreviewDemandeRemblai />} />
             <Route path="/admin/notifications" element={<AdminNotifications />} />
+            <Route path="/admin/territoires" element={<AdminTerritories />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/parametres" element={<Navigate to="/admin/settings" replace />} />
             <Route path="/admin/soumissions" element={<AdminSoumissions />} />
