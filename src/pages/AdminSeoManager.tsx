@@ -915,7 +915,7 @@ function GeneratorTab() {
   const missingCombos = combos.filter((c) => !existingPages.has(comboKey(c)));
   const toCreate = missingCombos.filter(isRelevant);
   const rejected = missingCombos.filter((c) => !isRelevant(c));
-  const existingCount = combos.length - toCreate.length;
+  const existingCount = combos.filter((c) => existingPages.has(comboKey(c))).length;
   const draftCount = combos.filter((c) => existingPages.get(comboKey(c))?.status === "draft").length;
   const reviewCount = combos.filter((c) => ["needs_review", "rejected"].includes(existingPages.get(comboKey(c))?.status ?? "")).length;
 
@@ -2459,7 +2459,7 @@ function ProductionTab() {
       });
     }
     // P3 — Villes / secteurs (une page par ville, sans matériau ni service → hub local)
-    for (const c of cts ?? []) {
+    for (const c of cts.filter((city) => city.request_count > 0)) {
       const key = ["", "", c.slug].join("|");
       queue.push({
         key: `p3:${c.slug}`,

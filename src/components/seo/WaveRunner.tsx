@@ -55,7 +55,6 @@ const WAVES: Array<{ code: string | null; label: string }> = [
 ];
 
 export default function WaveRunner() {
-  const [autoPipeline, setAutoPipeline] = useState(true);
   const [running, setRunning] = useState<string | null>(null);
   const [job, setJob] = useState<Job | null>(null);
   const [history, setHistory] = useState<Job[]>([]);
@@ -148,18 +147,12 @@ export default function WaveRunner() {
         <div className="flex items-center gap-3 flex-wrap">
           {newestJob && <LogsDialog job={newestJob} />}
           <button
-            onClick={() => launch("pipeline", null)}
-            disabled={running !== null}
-            title="Reconstruit la file à partir de l'état réel de la base : combinaisons manquantes + brouillons à corriger/publier."
+            disabled
+            title="Sélectionnez d’abord les municipalités et prévisualisez le lot dans le Générateur."
             className="inline-flex items-center gap-2 rounded-md border border-primary/40 px-3 py-1.5 text-xs font-display font-semibold text-primary hover:bg-primary/10 disabled:opacity-50"
           >
-            {running === "pipeline-all" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
-            Recalculer & relancer
+            <RotateCcw className="w-3.5 h-3.5" /> Sélection requise dans Générateur
           </button>
-          <label className="flex items-center gap-2 text-xs font-display font-semibold cursor-pointer">
-            <input type="checkbox" checked={autoPipeline} onChange={(e) => setAutoPipeline(e.target.checked)} className="accent-primary" />
-            Pipeline automatique
-          </label>
         </div>
       </header>
 
@@ -197,35 +190,8 @@ export default function WaveRunner() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {WAVES.map((w) => (
-            <div key={w.label} className="rounded-lg border border-border p-3 space-y-2">
-              <div className="font-display font-bold text-sm text-foreground">{w.label}</div>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  onClick={() => launch("generate", w.code)}
-                  disabled={running !== null}
-                  className="text-[11px] font-display font-semibold px-2 py-1.5 rounded-md border border-border hover:border-primary hover:text-primary disabled:opacity-50"
-                >
-                  {running === `generate-${w.code ?? "all"}` ? <Loader2 className="w-3 h-3 animate-spin inline" /> : "Générer"}
-                </button>
-                <button
-                  onClick={() => launch("publish", w.code)}
-                  disabled={running !== null}
-                  className="text-[11px] font-display font-semibold px-2 py-1.5 rounded-md border border-border hover:border-primary hover:text-primary disabled:opacity-50"
-                >
-                  {running === `publish-${w.code ?? "all"}` ? <Loader2 className="w-3 h-3 animate-spin inline" /> : "Publier"}
-                </button>
-                <button
-                  onClick={() => launch(autoPipeline ? "pipeline" : "generate", w.code)}
-                  disabled={running !== null}
-                  className="text-[11px] font-display font-extrabold px-2 py-1.5 rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1"
-                >
-                  {running === `pipeline-${w.code ?? "all"}` ? <Loader2 className="w-3 h-3 animate-spin" /> : (<><Sparkles className="w-3 h-3" /> Pipeline</>)}
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+          La génération et la publication globales par vague sont désactivées. Utilisez le Générateur pour choisir les municipalités, vérifier les signaux CRM et créer uniquement des brouillons.
         </div>
       )}
 
