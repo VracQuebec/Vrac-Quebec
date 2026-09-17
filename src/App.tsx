@@ -80,6 +80,7 @@ const PreviewParcoursDompe = lazy(() => import("./pages/PreviewParcoursDompe"));
 const PreviewDemandeRemblai = lazy(() => import("./pages/PreviewDemandeRemblai"));
 const AdminSoumissions = lazy(() => import("./pages/AdminSoumissions"));
 const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
+const AdminTerritories = lazy(() => import("./pages/AdminTerritories"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const AdminMonitoring = lazy(() => import("./pages/AdminMonitoring"));
 
