@@ -103,8 +103,8 @@ export default function PipelineControlCenter() {
               <RefreshCw className="w-4 h-4" /> Rafraîchir
             </Button>
             {!run && (
-              <Button size="sm" onClick={() => act("start", async () => { await start({ mode: "all_cities" }); }, "Génération lancée (pages manquantes uniquement)")} disabled={busy === "start"} className="gap-2">
-                <Play className="w-4 h-4" /> Générer les pages manquantes
+              <Button size="sm" variant="outline" disabled className="gap-2" title="Utilisez le Générateur pour sélectionner explicitement les municipalités et prévisualiser le lot">
+                <Play className="w-4 h-4" /> Sélection requise dans Générateur
               </Button>
             )}
             {run && ["running", "queued"].includes(run.status) && (

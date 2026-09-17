@@ -299,6 +299,13 @@ type CityMeta = {
   served: boolean;
 };
 
+type GeneratorSignal = { slug: string; name: string; requests: number; availability?: string };
+type GeneratorCity = City & {
+  request_count: number; pages_total: number; pages_published: number; pages_draft: number; pages_review: number;
+  status: "existing" | "to_create" | "draft" | "needs_review" | "no_opportunity";
+  services: GeneratorSignal[]; materials: GeneratorSignal[];
+};
+
 function CitiesTab() {
   const [rows, setRows] = useState<City[]>([]);
   const [meta, setMeta] = useState<Record<string, CityMeta>>({});
@@ -844,10 +851,10 @@ function buildSlug(c: Combo) {
 }
 
 function GeneratorTab() {
-  const [cities, setCities] = useState<City[]>([]);
+  const [cities, setCities] = useState<GeneratorCity[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-  const [existingSlugs, setExistingSlugs] = useState<Set<string>>(new Set());
+  const [existingPages, setExistingPages] = useState<Map<string, { slug: string; status: string }>>(new Map());
   const [selCities, setSelCities] = useState<Set<string>>(new Set());
   const [selMaterials, setSelMaterials] = useState<Set<string>>(new Set());
   const [selServices, setSelServices] = useState<Set<string>>(new Set());
@@ -855,21 +862,28 @@ function GeneratorTab() {
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, errors: 0 });
   const [log, setLog] = useState<string[]>([]);
+  const [cityQuery, setCityQuery] = useState("");
+  const [selectedUsage, setSelectedUsage] = useState("");
+  const [catalogCounts, setCatalogCounts] = useState({ crm: 0, generable: 0, historical: 0 });
 
-  useEffect(() => {
-    (async () => {
-      const [c, m, s, p] = await Promise.all([
-        supabase.from("seo_cities").select("id,slug,name,region,active,sort_order").eq("active", true).order("name").limit(1000),
+  const load = useCallback(async () => {
+      const [catalog, m, s, p] = await Promise.all([
+        supabase.rpc("seo_generator_catalog" as never),
         supabase.from("seo_materials").select("id,slug,name,short_name,description,active,sort_order").eq("active", true).order("sort_order"),
         supabase.from("seo_services").select("*").eq("active", true).order("sort_order"),
-        supabase.from("seo_pages").select("slug"),
+        supabase.from("seo_pages").select("slug,city_slug,material_slug,service_slug,status"),
       ]);
-      setCities((c.data ?? []) as City[]);
+      if (catalog.error) throw catalog.error;
+      const payload = catalog.data as unknown as { cities: GeneratorCity[]; crm_active: number; generable: number; historical_retained: number };
+      setCities(payload.cities ?? []);
+      setCatalogCounts({ crm: payload.crm_active ?? 0, generable: payload.generable ?? 0, historical: payload.historical_retained ?? 0 });
       setMaterials((m.data ?? []) as Material[]);
       setServices((s.data ?? []) as Service[]);
-      setExistingSlugs(new Set((p.data ?? []).map((r) => r.slug)));
-    })();
+      const index = new Map<string, { slug: string; status: string }>();
+      for (const row of p.data ?? []) index.set(`${row.city_slug}|${row.material_slug ?? ""}|${row.service_slug ?? ""}`, { slug: row.slug, status: row.status });
+      setExistingPages(index);
   }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const combos: Combo[] = useMemo(() => {
     const out: Combo[] = [];
@@ -890,12 +904,14 @@ function GeneratorTab() {
     return out;
   }, [cities, materials, services, selCities, selMaterials, selServices]);
 
-  const toCreate = combos.filter((c) => !existingSlugs.has(buildSlug(c)));
+  const comboKey = (c: Combo) => `${c.city.slug}|${c.material?.slug ?? ""}|${c.service?.slug ?? ""}`;
+  const toCreate = combos.filter((c) => !existingPages.has(comboKey(c)));
   const existingCount = combos.length - toCreate.length;
   const estimatedSeconds = toCreate.length * 6;
 
   const run = async () => {
     if (toCreate.length === 0) return;
+    if (!window.confirm(`Créer ${toCreate.length} brouillon(s) non indexable(s)? Aucune page ne sera publiée.`)) return;
     setRunning(true);
     setPaused(false);
     setProgress({ done: 0, total: toCreate.length, errors: 0 });
@@ -912,9 +928,12 @@ function GeneratorTab() {
           city: { slug: c.city.slug, name: c.city.name, region: c.city.region },
           material: c.material ? { slug: c.material.slug, name: c.material.name, short_name: c.material.short_name, description: c.material.description } : undefined,
           service: c.service ? { slug: c.service.slug, name: c.service.name, description: c.service.description } : undefined,
+          usage: selectedUsage || undefined,
+          publish: false,
+          allow_ai: true,
         });
         if (error) throw error;
-        setExistingSlugs((s) => new Set(s).add(slug));
+        setExistingPages((pages) => new Map(pages).set(comboKey(c), { slug, status: "draft" }));
         setLog((l) => [`${data?.skipped ? "⏭️" : "✅"} ${slug}`, ...l].slice(0, 40));
       } catch (e) {
         errors += 1;
@@ -924,7 +943,7 @@ function GeneratorTab() {
       setProgress({ done, total: toCreate.length, errors });
     }
     setRunning(false);
-    toast.success(`Génération terminée : ${done - errors} pages créées, ${errors} erreurs.`);
+    toast.success(`Génération terminée : ${done - errors} brouillon(s), ${errors} erreur(s). Aucune publication.`);
   };
 
   const togglePause = () => {
@@ -940,20 +959,27 @@ function GeneratorTab() {
 
   return (
     <div className="space-y-6">
-      <QuickPackButton
-        cities={cities}
-        materials={materials}
-        onApply={(cityIds, materialIds) => {
-          setSelCities(new Set(cityIds));
-          setSelMaterials(new Set(materialIds));
-          setSelServices(new Set());
-        }}
-      />
+      <div className="rounded-lg border border-border bg-card p-4 flex flex-wrap items-center gap-3 text-sm">
+        <strong>Registre CRM</strong>
+        <span>{catalogCounts.crm} municipalités actives</span>
+        <span>{catalogCounts.generable} générables</span>
+        <span>{catalogCounts.historical} historiques conservées</span>
+        <button onClick={() => void load()} className="ml-auto inline-flex items-center gap-1 text-primary"><RefreshCw className="w-4 h-4" /> Actualiser</button>
+      </div>
+      <input value={cityQuery} onChange={(e) => setCityQuery(e.target.value)} placeholder="Rechercher une municipalité…" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <PickerColumn title="Villes" items={cities} selected={selCities} onChange={setSelCities} onToggleAll={() => toggleAll(cities, selCities, setSelCities)} />
+        <GeneratorCityPicker cities={cities.filter((c) => !cityQuery || `${c.name} ${c.slug}`.toLowerCase().includes(cityQuery.toLowerCase()))} selected={selCities} onChange={setSelCities} />
         <PickerColumn title="Matériaux" items={materials} selected={selMaterials} onChange={setSelMaterials} onToggleAll={() => toggleAll(materials, selMaterials, setSelMaterials)} />
         <PickerColumn title="Services" items={services} selected={selServices} onChange={setSelServices} onToggleAll={() => toggleAll(services, selServices, setSelServices)} />
       </div>
+
+      <label className="block rounded-lg border border-border bg-card p-3 text-sm">
+        <span className="font-semibold">Usage ciblé (facultatif)</span>
+        <select value={selectedUsage} onChange={(e) => setSelectedUsage(e.target.value)} className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2">
+          <option value="">Aucun usage précis</option>
+          {materials.filter((m) => selMaterials.has(m.id)).flatMap((m) => (m.use_cases ?? []).map((usage) => <option key={`${m.id}-${usage}`} value={usage}>{m.name} — {usage}</option>))}
+        </select>
+      </label>
 
       <div className="rounded-lg border border-border bg-card p-4 space-y-3">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
@@ -966,7 +992,7 @@ function GeneratorTab() {
           <button onClick={run} disabled={running || toCreate.length === 0}
             className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold disabled:opacity-50">
             {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-            {running ? "Génération en cours..." : `Générer ${toCreate.length} page(s)`}
+            {running ? "Génération en cours..." : `Créer ${toCreate.length} brouillon(s)`}
           </button>
           <button onClick={togglePause} disabled={!running} className="flex items-center gap-1.5 px-4 py-2 rounded-md border border-border text-sm disabled:opacity-50">
             {paused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />} {paused ? "Reprendre" : "Pause"}
@@ -990,6 +1016,23 @@ function GeneratorTab() {
       </div>
     </div>
   );
+}
+
+const GENERATOR_STATUS: Record<GeneratorCity["status"], string> = {
+  existing: "Page existante", to_create: "Page à créer", draft: "Brouillon",
+  needs_review: "À réviser", no_opportunity: "Aucune opportunité SEO identifiée",
+};
+
+function GeneratorCityPicker({ cities, selected, onChange }: { cities: GeneratorCity[]; selected: Set<string>; onChange: (value: Set<string>) => void }) {
+  return <div className="rounded-lg border border-border bg-card p-3">
+    <div className="mb-2 flex items-center justify-between"><h3 className="font-display font-bold text-sm">Municipalités CRM</h3><span className="text-xs text-muted-foreground">{cities.length}</span></div>
+    <div className="max-h-64 overflow-y-auto space-y-1">
+      {cities.map((city) => <label key={city.id} className="flex items-start gap-2 rounded px-1.5 py-1.5 hover:bg-secondary cursor-pointer">
+        <input type="checkbox" checked={selected.has(city.id)} onChange={(e) => { const next = new Set(selected); e.target.checked ? next.add(city.id) : next.delete(city.id); onChange(next); }} />
+        <span className="min-w-0"><span className="block truncate text-sm">{city.name}</span><span className="block text-xs text-muted-foreground">{GENERATOR_STATUS[city.status]} · {city.request_count} demande(s){city.services.length ? ` · ${city.services.map((s) => s.name).join(", ")}` : ""}</span></span>
+      </label>)}
+    </div>
+  </div>;
 }
 
 function Metric({ label, value }: { label: string; value: number | string }) {
@@ -2407,7 +2450,7 @@ function ProductionTab() {
       });
     }
     // P4 — Combinaisons matériau × ville (top villes × tous matériaux)
-    const topCities = (cts ?? []).slice(0, 15);
+    const topCities = cts ?? [];
     for (const c of topCities) {
       for (const m of mats ?? []) {
         const key = ["", m.slug, c.slug].join("|");
@@ -2441,7 +2484,7 @@ function ProductionTab() {
   }, [items, filterP]);
 
   async function generateOne(it: QueueItem, thr: number): Promise<{ ok: boolean; score?: number; blockers?: string[]; warnings?: string[]; slug?: string; error?: string }> {
-    const body: Record<string, unknown> = { force: true };
+    const body: Record<string, unknown> = { force: Boolean(it.existing), publish: false, allow_ai: true };
     if (it.city) body.city = it.city;
     if (it.material) body.material = it.material;
     if (it.service) body.service = it.service;
@@ -2472,9 +2515,7 @@ function ProductionTab() {
       const dt = (Date.now() - t0) / 1000;
       setAvgSecPerItem((prev) => (i === 0 ? dt : prev * 0.7 + dt * 0.3));
       const keywords = [it.material?.name, it.service?.name, it.city?.name].filter(Boolean) as string[];
-      const status: WaveEntry["status"] = !res.ok
-        ? "rejected"
-        : ((res.blockers?.length ?? 0) === 0 && (res.score ?? 0) >= thr) ? "published" : "draft";
+      const status: WaveEntry["status"] = !res.ok ? "rejected" : "draft";
       setWaveEntries((prev) => [...prev, {
         label: it.label, priority: it.priority, ok: res.ok, score: res.score,
         blockers: res.blockers ?? [], warnings: res.warnings ?? [], keywords,
@@ -2487,7 +2528,7 @@ function ProductionTab() {
       } else if ((res.blockers?.length ?? 0) > 0) {
         pushLog(`⚠️ ${it.label} — score ${res.score}, gardée en brouillon (${res.blockers!.length} bloqueur(s))`, "warn");
       } else {
-        pushLog(`✅ ${it.label} — score ${res.score}${(res.score ?? 0) >= thr ? " (publiée)" : " (brouillon)"}`, "ok");
+        pushLog(`✅ ${it.label} — score ${res.score} (brouillon non indexable)`, "ok");
       }
       await new Promise((r) => setTimeout(r, 800));
     }

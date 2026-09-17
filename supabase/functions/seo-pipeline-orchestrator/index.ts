@@ -245,6 +245,7 @@ async function runOneTask(sb: SupabaseClient, run: any, batch: any, task: any) {
         callFn("seo-generate-page", {
           city: ctx.city, material: ctx.material, service: ctx.service,
           force: !!run.force_regenerate,
+          publish: false,
           // The previous response may have been cached before structural
           // validation. A retry must request a genuinely fresh completion.
           bypass_cache: task.attempts > 0,
@@ -281,9 +282,10 @@ async function runOneTask(sb: SupabaseClient, run: any, batch: any, task: any) {
       }
     }
 
-    // PUBLISH if score >= threshold (or republish kind)
-    await sb.from("seo_page_tasks").update({ step: "publication" }).eq("id", task.id);
-    if (task.kind === "publish" || (typeof qaScore === "number" && qaScore >= qaThreshold)) {
+    // Publication is always an explicit task. Generation and QA leave new
+    // pages as non-indexable drafts, even when the score is high.
+    await sb.from("seo_page_tasks").update({ step: task.kind === "publish" ? "publication" : "brouillon prêt" }).eq("id", task.id);
+    if (task.kind === "publish") {
       await sb.from("seo_pages").update({ status: "published", published_at: nowIso() }).eq("id", pageId);
     }
 
