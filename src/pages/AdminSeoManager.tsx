@@ -2522,12 +2522,15 @@ function ProductionTab() {
 
   async function runWave(source: "filtered" | "missing", size: number, thr: number) {
     if (running) return;
+    const sourcePool = source === "missing" ? filtered.filter((i) => !i.existing) : filtered;
+    const pool = sourcePool.slice(0, size);
+    if (pool.length === 0) return;
+    if (!window.confirm(`Créer et vérifier ${pool.length} brouillon(s) non indexable(s)? Aucune publication et aucun écrasement.`)) return;
     setPauseFlag(false);
     setRunning(true);
     setLog([]);
     setWaveEntries([]);
     setShowReport(false);
-    const pool = (source === "missing" ? filtered.filter((i) => !i.existing) : filtered).slice(0, size);
     setProgress({ done: 0, total: pool.length, current: "" });
     pushLog(`Démarrage vague : ${pool.length} pages, seuil QA ${thr}.`, "info");
     for (let i = 0; i < pool.length; i++) {

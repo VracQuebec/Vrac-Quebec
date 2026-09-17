@@ -99,7 +99,9 @@ async function materializeBatch(sb: SupabaseClient, run: any, batch: any) {
   // unless the run explicitly requested a force regeneration. This keeps
   // the pipeline resumable and prevents overwriting content, slugs, SEO
   // metadata or generated_at timestamps of pages already produced.
-  const force = !!run.force_regenerate;
+  // Existing pages are never re-queued by the bulk generator. A targeted
+  // repair remains available through the dedicated, explicitly confirmed path.
+  const force = false;
   const existingKeys = new Set<string>();
   const activeKeys = new Set<string>();
   if (!force) {
@@ -244,7 +246,7 @@ async function runOneTask(sb: SupabaseClient, run: any, batch: any, task: any) {
       const gen = await withTimeout(
         callFn("seo-generate-page", {
           city: ctx.city, material: ctx.material, service: ctx.service,
-          force: !!run.force_regenerate,
+          force: false,
           publish: false,
           // The previous response may have been cached before structural
           // validation. A retry must request a genuinely fresh completion.
