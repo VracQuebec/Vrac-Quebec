@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, MapPin, Gauge, FileText, RefreshCw, Download } from "lucide-react";
 import { toast } from "sonner";
+import OpportunityAnalysis from "@/components/seo/OpportunityAnalysis";
+import IndexDiagnosis from "@/components/seo/IndexDiagnosis";
 
 type Coverage = {
   computed_at: string;
@@ -52,6 +54,8 @@ export default function TerritorialCoverage() {
 
   return (
     <div className="space-y-4">
+      <OpportunityAnalysis />
+      <IndexDiagnosis />
       <Card className="p-4 md:p-6 space-y-4">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
