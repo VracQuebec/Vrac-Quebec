@@ -29,6 +29,13 @@
       "when": 1789665756247,
       "tag": "0003_geo_resolve_city_variants",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789669403611,
+      "tag": "0004_geo_hierarchy_rollup",
+      "breakpoints": true
     }
   ]
 }
