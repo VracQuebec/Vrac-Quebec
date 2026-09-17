@@ -39,7 +39,7 @@ function nf(n: number) { return n.toLocaleString("fr-CA"); }
 
 export default function PipelineControlCenter() {
   const { state, loading, error, reload } = useSeoControlCenter();
-  const { start, pause, resume, stop } = useSeoPipelineV2();
+  const { pause, resume, stop } = useSeoPipelineV2();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [search, setSearch] = useState("");
   const [visible, setVisible] = useState(24);

@@ -916,7 +916,8 @@ function GeneratorTab() {
   const toCreate = missingCombos.filter(isRelevant);
   const rejected = missingCombos.filter((c) => !isRelevant(c));
   const existingCount = combos.length - toCreate.length;
-  const estimatedSeconds = toCreate.length * 6;
+  const draftCount = combos.filter((c) => existingPages.get(comboKey(c))?.status === "draft").length;
+  const reviewCount = combos.filter((c) => ["needs_review", "rejected"].includes(existingPages.get(comboKey(c))?.status ?? "")).length;
 
   const run = async () => {
     if (toCreate.length === 0) return;
@@ -991,10 +992,12 @@ function GeneratorTab() {
       </label>
 
       <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
           <Metric label="Combinaisons" value={combos.length} />
           <Metric label="À créer" value={toCreate.length} />
           <Metric label="Déjà existantes" value={existingCount} />
+          <Metric label="Brouillons" value={draftCount} />
+          <Metric label="À réviser" value={reviewCount} />
           <Metric label="Sans opportunité" value={rejected.length} />
         </div>
         {rejected.length > 0 && <p className="text-xs text-muted-foreground">{rejected.length} combinaison(s) exclue(s) de ce lot : aucun signal CRM correspondant au service ou matériau choisi.</p>}
@@ -1129,23 +1132,29 @@ function SuggestionsTab() {
 
   const load = async () => {
     setLoading(true);
-    const [c, m, s, p] = await Promise.all([
-      supabase.from("seo_cities").select("id,slug,name,region,active,sort_order").eq("active", true).order("sort_order").limit(200),
+    const [catalog, m, s, p] = await Promise.all([
+      supabase.rpc("seo_generator_catalog" as never),
       supabase.from("seo_materials").select("id,slug,name,short_name,description,active,sort_order").eq("active", true).order("sort_order").limit(20),
       supabase.from("seo_services").select("*").eq("active", true).order("sort_order").limit(20),
-      supabase.from("seo_pages").select("slug"),
+      supabase.from("seo_pages").select("city_slug,material_slug,service_slug"),
     ]);
-    const existing = new Set((p.data ?? []).map((r) => r.slug));
+    const payload = catalog.data as unknown as { cities?: GeneratorCity[] };
+    const cityRows = payload?.cities ?? [];
+    const materialRows = (m.data ?? []) as Material[];
+    const serviceRows = (s.data ?? []) as Service[];
+    const existing = new Set((p.data ?? []).map((r) => `${r.city_slug}|${r.material_slug ?? ""}|${r.service_slug ?? ""}`));
     const out: Combo[] = [];
-    for (const city of (c.data ?? []) as City[]) {
-      for (const material of (m.data ?? []) as Material[]) {
-        const slug = `${material.slug}-${city.slug}`;
-        if (!existing.has(slug)) out.push({ city, material });
-        if (out.length >= 50) break;
+    for (const city of cityRows) {
+      for (const signal of city.materials) {
+        const material = materialRows.find((item) => item.slug === signal.slug);
+        if (material && !existing.has(`${city.slug}|${material.slug}|`)) out.push({ city, material });
       }
-      if (out.length >= 50) break;
+      for (const signal of city.services) {
+        const service = serviceRows.find((item) => item.slug === signal.slug);
+        if (service && !existing.has(`${city.slug}||${service.slug}`)) out.push({ city, service });
+      }
     }
-    setSuggestions(out);
+    setSuggestions(out.slice(0, 100));
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -1158,9 +1167,11 @@ function SuggestionsTab() {
         city: { slug: c.city.slug, name: c.city.name, region: c.city.region },
         material: c.material ? { slug: c.material.slug, name: c.material.name, short_name: c.material.short_name, description: c.material.description } : undefined,
         service: c.service ? { slug: c.service.slug, name: c.service.name, description: c.service.description } : undefined,
+        allow_ai: true,
+        publish: false,
       });
       if (error) throw error;
-      toast.success(`Page créée : /${slug}`);
+      toast.success(`Brouillon non indexable créé : /${slug}`);
       setSuggestions((list) => list.filter((x) => buildSlug(x) !== slug));
     } catch (e) {
       toast.error((e as Error).message);
@@ -1173,13 +1184,13 @@ function SuggestionsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-display font-bold text-lg">Combinaisons manquantes</h2>
+        <h2 className="font-display font-bold text-lg">Opportunités appuyées par le CRM</h2>
         <button onClick={load} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
           <RotateCcw className="w-4 h-4" /> Actualiser
         </button>
       </div>
       {suggestions.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Toutes les combinaisons ville × matériau sont déjà générées.</p>
+        <p className="text-sm text-muted-foreground">Aucune opportunité SEO identifiée à partir des demandes actuelles.</p>
       ) : (
         <ul className="rounded-lg border border-border bg-card divide-y divide-border">
           {suggestions.map((c) => {
@@ -2404,12 +2415,13 @@ function ProductionTab() {
 
   async function load() {
     setLoading(true);
-    const [{ data: mats }, { data: svcs }, { data: cts }, { data: pgs }] = await Promise.all([
+    const [{ data: mats }, { data: svcs }, catalog, { data: pgs }] = await Promise.all([
       supabase.from("seo_materials").select("slug, name, short_name, description, sort_order").eq("active", true).order("sort_order"),
       supabase.from("seo_services").select("slug, name, description, sort_order").eq("active", true).order("sort_order"),
-      supabase.from("seo_cities").select("slug, name, region, population, sort_order").eq("active", true).order("population", { ascending: false, nullsFirst: false }),
+      supabase.rpc("seo_generator_catalog" as never),
       supabase.from("seo_pages").select("id, slug, city_slug, material_slug, service_slug, status, qa_last_score, qa_last_checked_at, qa_blockers"),
     ]);
+    const cts = ((catalog.data as unknown as { cities?: GeneratorCity[] })?.cities ?? []).sort((a, b) => (b.request_count - a.request_count) || a.name.localeCompare(b.name));
     const pageIndex = new Map<string, QueueItem["existing"]>();
     for (const p of pgs ?? []) {
       const k = [p.service_slug ?? "", p.material_slug ?? "", p.city_slug ?? ""].join("|");
@@ -2460,9 +2472,11 @@ function ProductionTab() {
       });
     }
     // P4 — Combinaisons matériau × ville (top villes × tous matériaux)
-    const topCities = cts ?? [];
+    const topCities = cts;
     for (const c of topCities) {
-      for (const m of mats ?? []) {
+      for (const signal of c.materials) {
+        const m = (mats ?? []).find((item) => item.slug === signal.slug);
+        if (!m) continue;
         const key = ["", m.slug, c.slug].join("|");
         queue.push({
           key: `p4:${m.slug}:${c.slug}`,
