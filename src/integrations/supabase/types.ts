@@ -3464,10 +3464,12 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           merged_into_id: string | null
+          mrc: string | null
           municipality: string | null
           name: string
           normalized_name: string
           notes: string | null
+          parent_id: string | null
           province: string
           region: string | null
           request_count: number
@@ -3484,10 +3486,12 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           merged_into_id?: string | null
+          mrc?: string | null
           municipality?: string | null
           name: string
           normalized_name: string
           notes?: string | null
+          parent_id?: string | null
           province?: string
           region?: string | null
           request_count?: number
@@ -3504,10 +3508,12 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           merged_into_id?: string | null
+          mrc?: string | null
           municipality?: string | null
           name?: string
           normalized_name?: string
           notes?: string | null
+          parent_id?: string | null
           province?: string
           region?: string | null
           request_count?: number
@@ -3522,6 +3528,13 @@ export type Database = {
           {
             foreignKeyName: "geo_territories_merged_into_id_fkey"
             columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "geo_territories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "geo_territories_parent_id_fkey"
+            columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "geo_territories"
             referencedColumns: ["id"]
@@ -3562,6 +3575,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      geo_territory_history: {
+        Row: {
+          action: string
+          actor: string | null
+          created_at: string
+          id: string
+          previous_territory_id: string | null
+          reason: string | null
+          submission_id: string | null
+          territory_id: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          created_at?: string
+          id?: string
+          previous_territory_id?: string | null
+          reason?: string | null
+          submission_id?: string | null
+          territory_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          created_at?: string
+          id?: string
+          previous_territory_id?: string | null
+          reason?: string | null
+          submission_id?: string | null
+          territory_id?: string | null
+        }
+        Relationships: []
       }
       geo_territory_queue: {
         Row: {
@@ -15502,6 +15548,9 @@ export type Database = {
           submission_number: number
           territory_confidence: string | null
           territory_id: string | null
+          territory_reason: string | null
+          territory_sector: string | null
+          territory_source: string | null
           territory_status: string | null
           tonnage: string
           truck_type_key: string | null
@@ -15611,6 +15660,9 @@ export type Database = {
           submission_number?: number
           territory_confidence?: string | null
           territory_id?: string | null
+          territory_reason?: string | null
+          territory_sector?: string | null
+          territory_source?: string | null
           territory_status?: string | null
           tonnage: string
           truck_type_key?: string | null
@@ -15720,6 +15772,9 @@ export type Database = {
           submission_number?: number
           territory_confidence?: string | null
           territory_id?: string | null
+          territory_reason?: string | null
+          territory_sector?: string | null
+          territory_source?: string | null
           territory_status?: string | null
           tonnage?: string
           truck_type_key?: string | null
@@ -18225,7 +18280,24 @@ export type Database = {
       fleet_can_manage: { Args: { _company_id: string }; Returns: boolean }
       fleet_member_role: { Args: { _company_id: string }; Returns: string }
       fleet_scan_due: { Args: never; Returns: Json }
+      geo_hay: { Args: { _txt: string }; Returns: string }
+      geo_match_address: {
+        Args: { _address: string }
+        Returns: {
+          score: number
+          territory_id: string
+        }[]
+      }
       geo_normalize: { Args: { _txt: string }; Returns: string }
+      geo_resolve_location: {
+        Args: { _address: string; _city: string }
+        Returns: {
+          confidence: string
+          reason: string
+          source: string
+          territory_id: string
+        }[]
+      }
       geo_resolve_territory: { Args: { _city: string }; Returns: string }
       get_comparateur_selection: {
         Args: { p_submission_id: string }
@@ -19428,6 +19500,9 @@ export type Database = {
           submission_number: number
           territory_confidence: string | null
           territory_id: string | null
+          territory_reason: string | null
+          territory_sector: string | null
+          territory_source: string | null
           territory_status: string | null
           tonnage: string
           truck_type_key: string | null
