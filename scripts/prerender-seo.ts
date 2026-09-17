@@ -307,7 +307,7 @@ function blogHeadBody(post: BlogPost) {
 
 function inject(shell: string, title: string, headHtml: string, body: string) {
   let html = shell;
-  html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${esc(title)}</title>`);
+  html = html.replace(/<title>[\s\S]*?<\/title>/i, "");
   html = html.replace(/<meta[^>]+name="description"[^>]*>/gi, "");
   html = html.replace(/<meta[^>]+property="og:title"[^>]*>/gi, "");
   html = html.replace(/<meta[^>]+name="twitter:title"[^>]*>/gi, "");
