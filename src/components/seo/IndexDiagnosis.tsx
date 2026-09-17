@@ -9,21 +9,22 @@ import { toast } from "sonner";
 type Sample = { slug: string; cause: string; city: string | null; material: string | null; service: string | null; words: number | null; internal_links: number };
 type Payload = {
   computed_at: string; published: number; indexed: number; not_indexed: number;
+  unknown_status: number; never_checked: number; not_tracked: number;
   gsc_connected: boolean;
-  causes: Array<{ cause: string; count: number }>;
+  buckets: Array<{ cause: string; count: number }>;
+  content_flags: Array<{ cause: string; count: number }>;
   samples: Sample[];
   orphans: Array<{ slug: string; city: string | null; material: string | null; service: string | null }>;
 };
 
 const CAUSE_LABELS: Record<string, string> = {
-  noindex: "Non indexable (noindex assumé)",
+  indexee_confirmee: "Indexée — confirmé par Search Console",
+  non_indexee_confirmee: "Non indexée — confirmé par Search Console",
+  sans_statut_gsc: "Statut Search Console inconnu",
+  jamais_verifiee: "Jamais vérifiée",
+  non_suivie: "Non suivie (noindex volontaire)",
   page_orpheline: "Page orpheline (aucun lien interne)",
-  contenu_insuffisant: "Contenu insuffisant (< 800 mots)",
-  duplication_potentielle: "Duplication / cannibalisation potentielle",
-  publiee_recemment: "Publiée récemment (découverte en cours)",
-  exploree_non_indexee: "Explorée mais non indexée",
-  statut_google_indetermine: "Statut Google indéterminé (aucune donnée d'indexation retournée)",
-  cause_inconnue: "Cause inconnue",
+  contenu_insuffisant: "Contenu insuffisant (< 300 mots)",
 };
 
 export default function IndexDiagnosis() {
