@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeSeo } from "@/lib/seo/api";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, AlertCircle, Rocket, Sparkles, FileText, RotateCcw, ShieldCheck } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, Rocket, FileText, RotateCcw, ShieldCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -47,15 +47,7 @@ type PipelineEvent = {
   type?: string;
 };
 
-const WAVES: Array<{ code: string | null; label: string }> = [
-  { code: "S1", label: "S1 — Grandes villes" },
-  { code: "S2", label: "S2 — Villes moyennes" },
-  { code: "S3", label: "S3 — Longue traîne" },
-  { code: null, label: "Toutes les vagues" },
-];
-
 export default function WaveRunner() {
-  const [running, setRunning] = useState<string | null>(null);
   const [job, setJob] = useState<Job | null>(null);
   const [history, setHistory] = useState<Job[]>([]);
 
@@ -104,30 +96,6 @@ export default function WaveRunner() {
     return () => window.clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job?.id, job?.status, job?.last_progress_at, job?.current_started_at]);
-
-  async function launch(mode: "generate" | "publish" | "pipeline", wave: string | null) {
-    const key = `${mode}-${wave ?? "all"}`;
-    setRunning(key);
-    try {
-      const res = await invokeSeo<{ ok: boolean; job_id?: string; empty?: boolean; message?: string; total?: number }>(
-        "seo-pipeline-run",
-        { mode, wave, auto_fix: true, qa_threshold: 80, limit: 500 },
-      );
-      if (res.empty) {
-        toast.info(res.message || "Rien à traiter.");
-      } else if ((res as { already_running?: boolean }).already_running) {
-        toast.info(res.message || "Un job identique tourne déjà.");
-        void loadRecent();
-      } else {
-        toast.success(`Job lancé : ${res.total} éléments à traiter.`);
-        void loadRecent();
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erreur lors du lancement.");
-    } finally {
-      setRunning(null);
-    }
-  }
 
   const activeJob = job && job.status === "running" ? job : null;
   const progress = activeJob ? Math.round((activeJob.done / Math.max(1, activeJob.total)) * 100) : 0;
