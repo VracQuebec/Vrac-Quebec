@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
       if (row) service = row;
     }
 
-    const forceRegenerate = Boolean(body?.force);
+    const forceRegenerate = Boolean(body?.force && body?.confirm_overwrite === true);
     if (!city?.slug) return json({ error: "Ville requise" }, 400);
 
     // New pages may only be created for active municipalities from the CRM

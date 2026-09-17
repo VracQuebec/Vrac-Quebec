@@ -311,7 +311,7 @@ Deno.serve(async (req) => {
       // Pipeline mode also reprocesses existing drafts (QA → autofix → publish).
       // Without this, once every combination has a page, the queue is always empty even if drafts remain.
       if (mode === "pipeline") {
-        let draftQuery = supabase.from("seo_pages").select("id, wave").eq("status", "draft");
+        let draftQuery = supabase.from("seo_pages").select("id, wave").eq("status", "draft").in("city_slug", requestedCities);
         if (wave) draftQuery = draftQuery.eq("wave", wave);
         const { data: drafts } = await draftQuery.limit(1000);
         draftIds = (drafts ?? []).map((r: { id: string }) => r.id);

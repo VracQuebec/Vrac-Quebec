@@ -905,7 +905,16 @@ function GeneratorTab() {
   }, [cities, materials, services, selCities, selMaterials, selServices]);
 
   const comboKey = (c: Combo) => `${c.city.slug}|${c.material?.slug ?? ""}|${c.service?.slug ?? ""}`;
-  const toCreate = combos.filter((c) => !existingPages.has(comboKey(c)));
+  const isRelevant = (combo: Combo) => {
+    const city = combo.city as GeneratorCity;
+    if (city.request_count <= 0) return false;
+    const materialOk = !combo.material || city.materials.some((signal) => signal.slug === combo.material?.slug);
+    const serviceOk = !combo.service || city.services.some((signal) => signal.slug === combo.service?.slug);
+    return materialOk && serviceOk;
+  };
+  const missingCombos = combos.filter((c) => !existingPages.has(comboKey(c)));
+  const toCreate = missingCombos.filter(isRelevant);
+  const rejected = missingCombos.filter((c) => !isRelevant(c));
   const existingCount = combos.length - toCreate.length;
   const estimatedSeconds = toCreate.length * 6;
 
@@ -986,8 +995,9 @@ function GeneratorTab() {
           <Metric label="Combinaisons" value={combos.length} />
           <Metric label="À créer" value={toCreate.length} />
           <Metric label="Déjà existantes" value={existingCount} />
-          <Metric label="Temps estimé" value={`~${Math.max(1, Math.round(estimatedSeconds / 60))} min`} />
+          <Metric label="Sans opportunité" value={rejected.length} />
         </div>
+        {rejected.length > 0 && <p className="text-xs text-muted-foreground">{rejected.length} combinaison(s) exclue(s) de ce lot : aucun signal CRM correspondant au service ou matériau choisi.</p>}
         <div className="flex flex-wrap gap-2">
           <button onClick={run} disabled={running || toCreate.length === 0}
             className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold disabled:opacity-50">
@@ -2484,7 +2494,7 @@ function ProductionTab() {
   }, [items, filterP]);
 
   async function generateOne(it: QueueItem, thr: number): Promise<{ ok: boolean; score?: number; blockers?: string[]; warnings?: string[]; slug?: string; error?: string }> {
-    const body: Record<string, unknown> = { force: Boolean(it.existing), publish: false, allow_ai: true };
+    const body: Record<string, unknown> = { force: false, publish: false, allow_ai: true };
     if (it.city) body.city = it.city;
     if (it.material) body.material = it.material;
     if (it.service) body.service = it.service;
