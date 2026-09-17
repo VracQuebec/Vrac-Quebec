@@ -113,7 +113,8 @@ export default function CommandCenter() {
     const drafts = pages.filter((p) => p.status === "draft").length;
     const rejected = pages.filter((p) => p.status === "rejected").length;
     const indexed = pages.filter((p) => p.google_index_status === "indexed").length;
-    const notIndexed = pages.filter((p) => p.status === "published" && p.google_index_status && p.google_index_status !== "indexed").length;
+    const CONFIRMED_NOT_INDEXED = ["not_indexed", "crawled_not_indexed", "discovered_not_indexed", "excluded", "blocked"];
+    const notIndexed = pages.filter((p) => p.status === "published" && CONFIRMED_NOT_INDEXED.includes(p.google_index_status ?? "")).length;
     const seoAvg = avg(pages.map((p) => p.seo_score).filter((n): n is number => typeof n === "number"));
     const qaAvg = avg(pages.map((p) => p.qa_last_score).filter((n): n is number => typeof n === "number"));
     const lastGen = maxDate(pages.map((p) => p.last_generated_at));
