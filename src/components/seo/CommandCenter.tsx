@@ -179,7 +179,7 @@ export default function CommandCenter() {
       { label: "Métadonnées", state: metaHealth, detail: `${missingMeta} pages sans meta complète` },
       { label: "Contenu dupliqué", state: dupHealth, detail: `${dupes} titres partagés` },
       { label: "Pages orphelines", state: orphanHealth, detail: `${orphans} pages sans lien entrant` },
-      { label: "Pages non indexées", state: idxHealth, detail: `${notIndexed} publiées non indexées` },
+      { label: "Pages non indexées — confirmé", state: idxHealth, detail: `${notIndexed} confirmées non indexées par Search Console` },
       { label: "Search Console — liens cassés", state: brokenHealth, detail: `${brokenLinks} liens à corriger` },
     ];
   }, [pages, overview, brokenLinks]);

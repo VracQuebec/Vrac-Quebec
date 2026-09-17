@@ -107,7 +107,7 @@ export function analyzePage(c: Candidate) {
   const reco: string[] = [];
 
   if (c.indexed_at) good.push("Page indexée par Google.");
-  else bad.push("Page non indexée (aucune date d'indexation enregistrée).");
+  else bad.push("Statut d'indexation inconnu (aucune donnée Search Console pour cette page).");
 
   if (c.impressions > 0) good.push(`${c.impressions.toLocaleString("fr-CA")} impressions sur 28 jours.`);
   else bad.push("Aucune impression sur les 28 derniers jours.");
