@@ -127,6 +127,13 @@
       "when": 1789753928011,
       "tag": "0017_seo_control_center_generation_vs_publication",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789773826097,
+      "tag": "0018_seo_slot_rows_relevant_combinations",
+      "breakpoints": true
     }
   ]
 }
