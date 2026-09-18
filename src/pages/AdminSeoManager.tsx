@@ -29,6 +29,7 @@ import HealthScoreGauge from "@/components/seo/HealthScoreGauge";
 import GoalCard, { type Goal } from "@/components/seo/GoalCard";
 import QaReportBadge from "@/components/seo/QaReportBadge";
 import TabBoundary from "@/components/seo/TabBoundary";
+import CityGenerator from "@/components/seo/CityGenerator";
 
 type Tab = "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "publication" | "intelligence" | "coverage" | "territory" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "gbp" | "blog";
 
@@ -199,7 +200,7 @@ export default function AdminSeoManager() {
             {tab === "materials" && <MaterialsTab />}
             {tab === "uses" && <UsesTab />}
             {tab === "services" && <ServicesTab />}
-            {tab === "generator" && <GeneratorTab />}
+            {tab === "generator" && <CityGenerator />}
             {tab === "analytics" && <AnalyticsTab />}
             {tab === "gsc" && <GscTab />}
             {tab === "gbp" && <GbpDashboard />}
