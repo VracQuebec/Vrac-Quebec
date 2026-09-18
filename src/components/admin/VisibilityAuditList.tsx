@@ -1,6 +1,8 @@
 // Historique administrateur des changements de visibilité réseau (lecture seule).
 import { useCallback, useEffect, useState } from "react";
-import { Eye, EyeOff, History, Loader2, RefreshCw } from "lucide-react";
+import { Eye, EyeOff, History, Loader2, RefreshCw, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   loadVisibilityAudit,
   visibilityLabel,
@@ -31,6 +33,7 @@ const Pill = ({ value }: { value: boolean | null }) => (
 
 export default function VisibilityAuditList() {
   const [state, setState] = useState<State>({ k: "loading" });
+  const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     setState({ k: "loading" });
@@ -43,21 +46,26 @@ export default function VisibilityAuditList() {
   useEffect(() => { void load(); }, [load]);
 
   return (
-    <section className="mb-6 rounded-xl border border-border bg-card">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-        <h2 className="flex items-center gap-2 font-display text-sm font-bold">
+    <Collapsible open={open} onOpenChange={setOpen} asChild>
+    <section className="mb-6 rounded-lg border border-border bg-card">
+      <div className={`flex flex-wrap items-center justify-between gap-2 px-4 py-3 ${open ? "border-b border-border" : ""}`}>
+        <CollapsibleTrigger asChild>
+          <Button type="button" variant="ghost" className="h-auto justify-start px-0 font-display font-bold">
           <History className="h-4 w-4" /> Historique de visibilité réseau
-        </h2>
-        <button
+          <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+          </Button>
+        </CollapsibleTrigger>
+        {open && <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => void load()}
-          className="inline-flex items-center gap-1 rounded-lg border border-input px-2 py-1 text-xs hover:bg-muted"
         >
           <RefreshCw className={`h-3 w-3 ${state.k === "loading" ? "animate-spin" : ""}`} /> Actualiser
-        </button>
+        </Button>}
       </div>
 
-      <div className="p-4">
+      <CollapsibleContent className="p-4">
         {state.k === "loading" && (
           <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Chargement de l'historique…
@@ -104,11 +112,16 @@ export default function VisibilityAuditList() {
                 <p className="mt-1 font-body text-xs text-muted-foreground">
                   {formatAuditDate(e.at)} · {e.actor || "acteur inconnu"}
                 </p>
+                <details className="mt-2 text-xs text-muted-foreground">
+                  <summary className="cursor-pointer">Détails techniques</summary>
+                  <p className="mt-1 break-all">Événement : {e.id}<br />Entrepreneur : {e.entrepreneurId}</p>
+                </details>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </CollapsibleContent>
     </section>
+    </Collapsible>
   );
 }
