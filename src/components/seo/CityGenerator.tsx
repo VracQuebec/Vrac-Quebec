@@ -71,7 +71,7 @@ const CITY_STATUS: Record<CityRow["status"], { dot: string; label: string; cls: 
   running: { dot: "🟡", label: "GÉNÉRATION EN COURS", cls: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30" },
   partial: { dot: "🟠", label: "PARTIELLE", cls: "bg-orange-500/15 text-orange-700 border-orange-500/30" },
   errors: { dot: "🔴", label: "AVEC ERREURS", cls: "bg-destructive/15 text-destructive border-destructive/30" },
-  done: { dot: "🟢", label: "TERMINÉE", cls: "bg-green-500/15 text-green-700 border-green-500/30" },
+  done: { dot: "🟢", label: "TERMINÉE — GÉNÉRATION", cls: "bg-green-500/15 text-green-700 border-green-500/30" },
 };
 
 const SLOT_STATE: Record<Slot["state"], { label: string; cls: string }> = {
@@ -407,10 +407,11 @@ function CityCard({ city, run, dbRun, lockedByOther, verifying, onOpen, onGenera
         <Badge variant="outline" className={`text-[10px] ${st.cls}`}>{st.dot} {st.label}</Badge>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px]">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 text-[11px]">
         <span>{generated} / {city.expected} générées</span>
         <span>{city.published} / {city.expected} publiées</span>
-        <span>{city.missing} {city.missing > 1 ? "potentielles" : "potentielle"}</span>
+        <span>{city.drafts} / {city.expected} en brouillon</span>
+        <span>{city.missing} restante{city.missing > 1 ? "s" : ""} à générer</span>
         <span className={city.errors > 0 ? "text-destructive font-semibold" : ""}>{city.errors} erreur{city.errors > 1 ? "s" : ""}</span>
       </div>
 
