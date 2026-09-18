@@ -92,6 +92,13 @@
       "when": 1789681901206,
       "tag": "0012_seo_clear_stale_meta_title_blockers",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789742360423,
+      "tag": "0013_seo_city_by_city_generator",
+      "breakpoints": true
     }
   ]
 }

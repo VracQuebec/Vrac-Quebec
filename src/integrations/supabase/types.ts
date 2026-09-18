@@ -19205,10 +19205,43 @@ export type Database = {
         Returns: Json
       }
       seo_bulk_state: { Args: never; Returns: Json }
+      seo_city_generation_overview: { Args: never; Returns: Json }
+      seo_city_generation_report: {
+        Args: { _city_slug: string }
+        Returns: Json
+      }
       seo_city_is_generable: { Args: { _city_slug: string }; Returns: boolean }
       seo_city_matrix: { Args: { _city_slug: string }; Returns: Json }
       seo_city_publish_missing: { Args: { _city_slug: string }; Returns: Json }
       seo_city_retry_errors: { Args: { _city_slug: string }; Returns: number }
+      seo_city_run_finish: {
+        Args: {
+          _created: number
+          _details?: Json
+          _errors: number
+          _job_id: string
+        }
+        Returns: undefined
+      }
+      seo_city_run_history: {
+        Args: { _city_slug: string; _limit?: number }
+        Returns: Json
+      }
+      seo_city_run_start: {
+        Args: { _city_slug: string; _total: number }
+        Returns: string
+      }
+      seo_city_slots_expected: {
+        Args: { _city_slug?: string }
+        Returns: {
+          city_name: string
+          city_slug: string
+          kind: string
+          label: string
+          material_slug: string
+          service_slug: string
+        }[]
+      }
       seo_control_center: { Args: never; Returns: Json }
       seo_dashboard_stats: { Args: never; Returns: Json }
       seo_executive_dashboard: { Args: never; Returns: Json }
