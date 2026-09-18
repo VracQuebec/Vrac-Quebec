@@ -514,10 +514,10 @@ function CityDetailDialog({ city, run, lockedByOther, onClose, onGenerate, onReg
 
             <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs">
               <Stat label="Prévues" value={s.expected} />
-              <Stat label="Existantes" value={s.existing} />
-              <Stat label="Publiées" value={s.published} />
-              <Stat label="Brouillons" value={s.drafts} />
-              <Stat label="Restantes" value={s.missing} />
+              <Stat label="Générées" value={s.existing} />
+              <Stat label="Publiées (manuel)" value={s.published} />
+              <Stat label="En brouillon" value={s.drafts} />
+              <Stat label="Restantes à générer" value={s.missing} />
               <Stat label="Erreurs" value={s.errors} />
             </div>
 
