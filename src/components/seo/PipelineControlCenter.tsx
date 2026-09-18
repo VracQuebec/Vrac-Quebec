@@ -225,7 +225,7 @@ export default function PipelineControlCenter() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-xs">
                   <span>{c.generated} / {c.planned} générées</span>
                   <span>{c.published} / {c.planned} publiées</span>
-                  <span>{c.remaining} restante{c.remaining > 1 ? "s" : ""}</span>
+                  <span>{c.remaining} potentielle{c.remaining > 1 ? "s" : ""}</span>
                   <span className={c.errors > 0 ? "text-destructive font-medium" : ""}>{c.errors} erreur{c.errors > 1 ? "s" : ""}</span>
                   <span className="font-semibold">{c.pct} %</span>
                 </div>
