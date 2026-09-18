@@ -7,12 +7,15 @@ export type ControlCityRow = {
   planned: number;
   generated: number;
   published: number;
+  drafts: number;
   remaining: number;
   errors: number;
   invalid: number;
   pending: number;
   unpublished: number;
+  /** Progression de GÉNÉRATION (la publication reste manuelle). */
   pct: number;
+  pct_published: number;
   status: "done" | "running" | "error" | "todo" | "partial";
 };
 
