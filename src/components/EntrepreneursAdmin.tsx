@@ -77,6 +77,20 @@ const emptyProfile = (user_id: string): ProfileRow => ({
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString("fr-CA", { year: "numeric", month: "short", day: "numeric" }) : "—";
 
+const fmtPhone = (phone: string | null | undefined) => {
+  if (!phone) return "Non renseigné";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return `1-${digits.slice(1, 4)}-${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  return phone;
+};
+
+const phoneHref = (phone: string) => `tel:+${phone.replace(/\D/g, "")}`;
+
 const fmtMoney = (n: number) =>
   n.toLocaleString("fr-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
 
@@ -278,7 +292,7 @@ export default function EntrepreneursAdmin() {
                 {(r.city || r.sectors.length > 0) && <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">{r.city && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{r.city}</span>}{r.sectors.map((sector) => <span key={sector} className="rounded-full bg-secondary px-2 py-0.5">{sector}</span>)}</div>}
                 <dl className="mt-4 space-y-3 text-sm">
                   <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"><dt className="text-muted-foreground">Contact</dt><dd className="min-w-0 break-words font-medium">{r.contact || "Non renseigné"}</dd></div>
-                  <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"><dt className="text-muted-foreground">Téléphone</dt><dd className="min-w-0">{r.phone ? <a href={`tel:${r.phone}`} className="break-words text-primary underline-offset-4 hover:underline">{r.phone}</a> : "Non renseigné"}</dd></div>
+                  <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"><dt className="text-muted-foreground">Téléphone</dt><dd className="min-w-0">{r.phone ? <a href={phoneHref(r.phone)} className="break-words text-primary underline-offset-4 hover:underline">{fmtPhone(r.phone)}</a> : "Non renseigné"}</dd></div>
                   <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"><dt className="text-muted-foreground">Courriel</dt><dd className="min-w-0">{r.email ? <a href={`mailto:${r.email}`} className="block break-all text-primary underline-offset-4 hover:underline">{r.email}</a> : "Non renseigné"}</dd></div>
                   <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"><dt className="text-muted-foreground">Inscription</dt><dd>{fmtDate(r.created_at)}</dd></div>
                   <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"><dt className="text-muted-foreground">Activité</dt><dd>{r.jobs} travail{r.jobs === 1 ? "" : "x"} · {r.trips} voyage{r.trips === 1 ? "" : "s"}</dd></div>
@@ -310,7 +324,7 @@ export default function EntrepreneursAdmin() {
                     <td className="max-w-56 whitespace-normal px-4 py-3 font-semibold">{r.company || <span className="text-muted-foreground">Non renseigné</span>}</td>
                     <td className="max-w-48 whitespace-normal px-4 py-3">{r.contact || <span className="text-muted-foreground">Non renseigné</span>}</td>
                     <td className="px-4 py-3"><a className="whitespace-nowrap text-primary hover:underline" href={`mailto:${r.email}`} onClick={(e) => e.stopPropagation()}>{r.email || "Non renseigné"}</a></td>
-                    <td className="whitespace-nowrap px-4 py-3">{r.phone ? <a href={`tel:${r.phone}`} className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>{r.phone}</a> : <span className="text-muted-foreground">Non renseigné</span>}</td>
+                    <td className="whitespace-nowrap px-4 py-3">{r.phone ? <a href={phoneHref(r.phone)} className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>{fmtPhone(r.phone)}</a> : <span className="text-muted-foreground">Non renseigné</span>}</td>
                     <td className="px-4 py-3">{fmtDate(r.created_at)}</td>
                     <td className="px-4 py-3">
                       <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
@@ -448,7 +462,7 @@ function EntrepreneurDetailModal({
                 <Info icon={<Building2 className="w-4 h-4" />} label="Entreprise" value={entrepreneur?.company || "—"} />
                 <Info icon={<UserIcon className="w-4 h-4" />} label="Contact" value={entrepreneur?.name || "—"} />
                 <Info icon={<Mail className="w-4 h-4" />} label="Courriel" value={email} />
-                <Info icon={<Phone className="w-4 h-4" />} label="Téléphone" value={entrepreneur?.phone || "—"} />
+                <Info icon={<Phone className="w-4 h-4" />} label="Téléphone" value={fmtPhone(entrepreneur?.phone)} />
                 <Info icon={<Calendar className="w-4 h-4" />} label="Inscription" value={fmtDate(createdAt)} />
                 <Info icon={<UserIcon className="w-4 h-4" />} label="Statut compte" value="Actif" />
               </div>
