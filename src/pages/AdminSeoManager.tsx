@@ -2651,12 +2651,6 @@ function ProductionTab() {
             <input type="number" min={50} max={100} value={threshold} onChange={(e) => setThreshold(Number(e.target.value) || 90)} className="w-20 rounded-md border border-border bg-background px-2 py-1 text-sm" />
           </div>
           <div className="ml-auto flex flex-wrap gap-2">
-            <button disabled={running} onClick={() => runWave("missing", waveSize, threshold)} className="inline-flex items-center gap-1 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-semibold disabled:opacity-50">
-              <Play className="w-4 h-4" /> Générer les {waveSize} prochaines manquantes
-            </button>
-            <button disabled={running} onClick={() => runWave("filtered", waveSize, threshold)} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-semibold disabled:opacity-50">
-              <RotateCcw className="w-4 h-4" /> Regénérer les {waveSize} affichées
-            </button>
             {running && (
               <button onClick={() => setPauseFlag(true)} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-semibold">
                 <Pause className="w-4 h-4" /> Pause
@@ -2664,11 +2658,10 @@ function ProductionTab() {
             )}
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-          <span className="text-xs text-muted-foreground w-full">Vagues préconfigurées :</span>
-          <button disabled={running} onClick={() => { setWaveSize(25); setThreshold(90); runWave("missing", 25, 90); }} className="text-xs rounded-md border border-border px-2 py-1 hover:bg-secondary">S1 — 25 pages</button>
-          <button disabled={running} onClick={() => { setWaveSize(40); setThreshold(88); runWave("missing", 40, 88); }} className="text-xs rounded-md border border-border px-2 py-1 hover:bg-secondary">S2 — 40 pages</button>
-          <button disabled={running} onClick={() => { setWaveSize(30); setThreshold(85); runWave("missing", 30, 85); }} className="text-xs rounded-md border border-border px-2 py-1 hover:bg-secondary">S3 — 30 combos</button>
+        <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
+          Génération par vague désactivée. La production se fait maintenant <strong>ville par ville</strong> dans
+          l'onglet <strong>Générateur</strong>. Cette vue reste disponible en lecture pour consulter la file et les
+          rapports historiques.
         </div>
         {(running || progress.total > 0) && (
           <div className="pt-2">
