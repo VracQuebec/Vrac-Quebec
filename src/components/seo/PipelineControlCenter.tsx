@@ -55,6 +55,12 @@ export default function PipelineControlCenter() {
   const pipelineState = state?.pipeline_state ?? "completed";
   const globalPct = totals && totals.target_total > 0
     ? Math.round((totals.published / totals.target_total) * 100) : 0;
+  // Une vraie alerte uniquement : erreurs réelles, tâches interrompues ou génération arrêtée.
+  // Les combinaisons potentielles restantes ne déclenchent jamais d'alerte.
+  const actionRequired =
+    (totals?.errors ?? 0) > 0 ||
+    (state?.stalled_tasks ?? 0) > 0 ||
+    (!!run && !["running", "queued", "completed"].includes(run.status));
 
   const cities = useMemo(() => {
     const list = state?.cities ?? [];
