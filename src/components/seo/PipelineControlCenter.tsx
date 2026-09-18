@@ -55,6 +55,12 @@ export default function PipelineControlCenter() {
   const pipelineState = state?.pipeline_state ?? "completed";
   const globalPct = totals && totals.target_total > 0
     ? Math.round((totals.published / totals.target_total) * 100) : 0;
+  // Une vraie alerte uniquement : erreurs réelles, tâches interrompues ou génération arrêtée.
+  // Les combinaisons potentielles restantes ne déclenchent jamais d'alerte.
+  const actionRequired =
+    (totals?.errors ?? 0) > 0 ||
+    (state?.stalled_tasks ?? 0) > 0 ||
+    (!!run && !["running", "queued", "completed"].includes(run.status));
 
   const cities = useMemo(() => {
     const list = state?.cities ?? [];
@@ -127,40 +133,56 @@ export default function PipelineControlCenter() {
         {totals && (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3">
-              <Kpi label="Pages totales" value={nf(totals.target_total)} />
-              <Kpi label="Générées" value={nf(totals.generated)} tone="good" />
-              <Kpi label="Publiées" value={nf(totals.published)} tone="good" />
-              <Kpi label="Restantes" value={nf(totals.remaining)} />
+              <Kpi label="Pages existantes" value={nf(totals.generated)} hint="Créées dans la base" />
+              <Kpi label="Pages publiées" value={nf(totals.published)} tone="good" hint="En ligne et indexables" />
+              <Kpi label="Pages en brouillon" value={nf(totals.drafts)} hint="Non publiées" />
               <button type="button" onClick={() => setErrorsOpen(true)} className="text-left">
-                <Kpi label="Erreurs" value={nf(totals.errors)} tone={totals.errors > 0 ? "bad" : "muted"} hint="Voir la liste" />
+                <Kpi label="Pages avec erreurs" value={nf(totals.errors)} tone={totals.errors > 0 ? "bad" : "muted"} hint="Voir la liste" />
+              </button>
+              <button type="button" onClick={() => setProblemsOpen(true)} className="text-left">
+                <Kpi label="Combinaisons potentielles restantes" value={nf(totals.remaining)} tone="muted" hint="Potentiel — aucune tâche planifiée" />
               </button>
             </div>
 
+            <p className="text-xs text-muted-foreground">
+              Les combinaisons potentielles ne sont pas une file de production : rien n'est généré tant qu'une ville
+              n'est pas lancée manuellement depuis le Générateur.
+            </p>
+
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Progression globale (pages publiées / pages prévues)</span>
+                <span>Couverture actuelle (pages publiées / potentiel total de combinaisons)</span>
                 <span className="font-semibold text-foreground">{globalPct}%</span>
               </div>
               <Progress value={globalPct} className="h-3" />
             </div>
 
             <div className="rounded-lg border border-border bg-background/50 p-3 text-sm">
-              {run || (totals.remaining > 0) ? (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                  <Badge variant="outline" className={pipelineState === "running" ? "bg-primary/15 text-primary border-primary/30 gap-1" : pipelineState === "blocked" ? "bg-destructive/15 text-destructive border-destructive/30" : "bg-amber-500/15 text-amber-700 border-amber-500/30"}>
-                    {pipelineState === "running" && <Loader2 className="w-3 h-3 animate-spin" />}
-                    {pipelineState === "running" ? "EN COURS" : pipelineState === "waiting" ? "EN ATTENTE" : pipelineState === "blocked" ? "BLOQUÉ — ACTION REQUISE" : "PARTIELLEMENT TERMINÉ"}
-                  </Badge>
-                  <span className="font-semibold">{nf(totals.published)} / {nf(totals.target_total)}</span>
-                  <span className="text-muted-foreground">{globalPct} %</span>
-                  {run?.current_city_slug && <span className="text-muted-foreground">Ville : <strong className="text-foreground">{run.current_city_slug}</strong></span>}
-                  <span className="text-muted-foreground">File : {nf(state?.queued_tasks ?? 0)} tâche(s)</span>
-                  {(state?.processing_tasks ?? 0) > 0 && <span className="text-muted-foreground">Traitement : {state?.processing_tasks}</span>}
-                  {(state?.stalled_tasks ?? 0) > 0 && <span className="text-destructive">Bloquées : {state?.stalled_tasks}</span>}
-                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setProblemsOpen(true)}>Voir les {totals.remaining} restantes</Button>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <Badge variant="outline" className={
+                  pipelineState === "running" ? "bg-primary/15 text-primary border-primary/30 gap-1"
+                    : actionRequired ? "bg-destructive/15 text-destructive border-destructive/30"
+                    : "bg-green-500/15 text-green-700 border-green-500/30"
+                }>
+                  {pipelineState === "running" && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {pipelineState === "running" ? "GÉNÉRATION EN COURS" : actionRequired ? "ACTION REQUISE" : "MODE MANUEL — VILLE PAR VILLE"}
+                </Badge>
+                {run?.current_city_slug && <span className="text-muted-foreground">Ville : <strong className="text-foreground">{run.current_city_slug}</strong></span>}
+                <span className="text-muted-foreground">
+                  File : {nf(state?.queued_tasks ?? 0)} tâche{(state?.queued_tasks ?? 0) > 1 ? "s" : ""}
+                  {(state?.queued_tasks ?? 0) === 0 ? " — aucune tâche en attente" : ""}
+                </span>
+                {(state?.processing_tasks ?? 0) > 0 && <span className="text-muted-foreground">Traitement : {state?.processing_tasks}</span>}
+                {(state?.stalled_tasks ?? 0) > 0 && <span className="text-destructive">Interrompues : {state?.stalled_tasks}</span>}
+              </div>
+              {actionRequired && (
+                <div className="mt-2 text-xs text-destructive">
+                  {[
+                    totals.errors > 0 ? `${nf(totals.errors)} page(s) en erreur ou à corriger` : null,
+                    (state?.stalled_tasks ?? 0) > 0 ? `${state?.stalled_tasks} tâche(s) interrompue(s)` : null,
+                    run && run.status !== "running" && run.status !== "completed" ? `Génération ${run.status} sur ${run.current_city_slug ?? "une ville"}` : null,
+                  ].filter(Boolean).join(" · ")}
                 </div>
-              ) : (
-                <span className="text-muted-foreground">AUCUNE GÉNÉRATION EN COURS</span>
               )}
             </div>
           </>
@@ -213,7 +235,7 @@ export default function PipelineControlCenter() {
                     <FileText className="w-3 h-3" /> Voir les pages
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
-                    disabled={c.errors + c.remaining === 0 || busy === `retry-${c.slug}`}
+                    disabled={c.errors === 0 || busy === `retry-${c.slug}`}
                     onClick={() => act(`retry-${c.slug}`, async () => {
                       await repairSeoPages({ citySlug: c.slug, allErrors: true });
                     }, `Régénération lancée — ${c.name}`)}>
@@ -259,7 +281,7 @@ export default function PipelineControlCenter() {
 
       <Dialog open={problemsOpen} onOpenChange={setProblemsOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-auto">
-          <DialogHeader><DialogTitle>Pages restantes — {state?.problems.length ?? 0}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Combinaisons potentielles non générées — {state?.problems.length ?? 0}</DialogTitle></DialogHeader>
           <div className="space-y-2">
             {(state?.problems ?? []).map((problem) => (
               <ProblemRow key={`${problem.city_slug}|${problem.material_slug ?? ""}|${problem.service_slug ?? ""}`} problem={problem} busy={busy}
