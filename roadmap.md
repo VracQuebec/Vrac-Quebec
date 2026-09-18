@@ -3,3 +3,5 @@
 - [x] Add data-backed opportunity statuses and controlled batch preview
 - [x] Verify draft creation for three new cities without publishing
 - [x] Confirm counts, duplicates, preserved pages, and remaining errors
+- [ ] Corriger la vue mobile super admin « Entrepreneurs »
+- [ ] Vérifier les largeurs 360, 390, 430, 768 et 1440 px et capturer mobile/ordinateur

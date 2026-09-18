@@ -1,13 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, X, Save, User as UserIcon, Building2, Mail, Phone, Calendar, Briefcase, Truck, Plus, FileText, Receipt, Trash2 } from "lucide-react";
+import { Loader2, X, Save, User as UserIcon, Building2, Mail, Phone, Calendar, Briefcase, Truck, Plus, FileText, Receipt, Trash2, Search, SlidersHorizontal, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import VisibilityAuditList from "@/components/admin/VisibilityAuditList";
 import { PAYMENT_STATUSES, PAYMENT_METHODS, findPaymentStatus, computeTaxes, isMaterialTaxableByDefault, type LeadTrip } from "@/lib/billing";
 
 type RoleRow = { user_id: string; email: string; roles: string[]; approved: boolean; created_at: string };
-type EntrepreneurRow = { id: string; user_id: string | null; name: string | null; company: string | null; phone: string | null; email: string | null };
+type EntrepreneurRow = {
+  id: string;
+  user_id: string | null;
+  name: string | null;
+  company: string | null;
+  phone: string | null;
+  email: string | null;
+  city: string | null;
+  is_network_visible: boolean;
+  truck_types: string[] | null;
+};
 type ProfileRow = {
   id?: string;
   user_id: string;
@@ -68,13 +80,39 @@ const fmtDate = (d: string | null) =>
 const fmtMoney = (n: number) =>
   n.toLocaleString("fr-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
 
+const PAGE_SIZE = 20;
+type EntrepreneurSort = "newest" | "oldest" | "az" | "za";
+type AccountFilter = "all" | "active" | "pending";
+type VisibilityFilter = "all" | "visible" | "hidden";
+
 export default function EntrepreneursAdmin() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<RoleRow[]>([]);
   const [entrepreneurs, setEntrepreneurs] = useState<EntrepreneurRow[]>([]);
   const [stats, setStats] = useState<Record<string, StatsRow>>({});
   const [openUserId, setOpenUserId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const search = searchParams.get("entrepreneurs_q") ?? "";
+  const sort = (searchParams.get("entrepreneurs_sort") as EntrepreneurSort) || "az";
+  const accountFilter = (searchParams.get("entrepreneurs_account") as AccountFilter) || "all";
+  const visibilityFilter = (searchParams.get("entrepreneurs_visibility") as VisibilityFilter) || "all";
+  const page = Math.max(1, Number(searchParams.get("entrepreneurs_page")) || 1);
+
+  const updateCriteria = (key: string, value: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (!value || value === "all" || (key === "entrepreneurs_sort" && value === "az")) next.delete(key);
+    else next.set(key, value);
+    next.delete("entrepreneurs_page");
+    setSearchParams(next, { replace: true });
+  };
+
+  const setPage = (nextPage: number) => {
+    const next = new URLSearchParams(searchParams);
+    if (nextPage <= 1) next.delete("entrepreneurs_page");
+    else next.set("entrepreneurs_page", String(nextPage));
+    setSearchParams(next, { replace: true });
+  };
 
   const load = async () => {
     setLoading(true);
@@ -85,7 +123,7 @@ export default function EntrepreneursAdmin() {
     const userIds = ents.map((e: any) => e.user_id);
     const { data: entRows } = await supabase
       .from("entrepreneurs")
-      .select("id,user_id,name,company,phone,email")
+      .select("id,user_id,name,company,phone,email,city,is_network_visible,truck_types")
       .in("user_id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
     setEntrepreneurs((entRows as any) || []);
 
@@ -128,7 +166,7 @@ export default function EntrepreneursAdmin() {
 
   useEffect(() => { load(); }, []);
 
-  const rows = useMemo(() => {
+  const allRows = useMemo(() => {
     const entByUser = new Map<string, EntrepreneurRow>();
     entrepreneurs.forEach((e) => { if (e.user_id) entByUser.set(e.user_id, e); });
     const q = search.trim().toLowerCase();
@@ -144,38 +182,116 @@ export default function EntrepreneursAdmin() {
           company: e?.company || "",
           contact: e?.name || "",
           phone: e?.phone || "",
+          city: e?.city || "",
+          visible: e?.is_network_visible ?? null,
+          sectors: e?.truck_types || [],
           jobs: st.jobs,
           trips: st.trips,
         };
       })
       .filter((r) => !q || `${r.company} ${r.contact} ${r.email} ${r.phone}`.toLowerCase().includes(q))
-      .sort((a, b) => (a.company || a.email).localeCompare(b.company || b.email));
-  }, [users, entrepreneurs, stats, search]);
+      .filter((r) => accountFilter === "all" || (accountFilter === "active" ? r.approved : !r.approved))
+      .filter((r) => visibilityFilter === "all" || (visibilityFilter === "visible" ? r.visible === true : r.visible === false))
+      .sort((a, b) => {
+        if (sort === "newest") return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        if (sort === "oldest") return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        const left = a.company || a.email;
+        const right = b.company || b.email;
+        return sort === "za" ? right.localeCompare(left, "fr") : left.localeCompare(right, "fr");
+      });
+  }, [users, entrepreneurs, stats, search, accountFilter, visibilityFilter, sort]);
+
+  const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const rows = allRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  useEffect(() => {
+    if (!loading && page > totalPages) setPage(totalPages);
+  }, [loading, page, totalPages]);
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
-          Entrepreneurs ({rows.length})
+          Entrepreneurs <span className="text-muted-foreground">({allRows.length})</span>
         </h1>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Rechercher entreprise, contact, courriel…"
-          className="px-3 py-2 rounded-lg border border-input bg-background text-sm w-full sm:w-80"
-        />
       </div>
 
-      <VisibilityAuditList />
+      <div className="mb-5 space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => updateCriteria("entrepreneurs_q", e.target.value)}
+            placeholder="Rechercher entreprise, contact, courriel ou téléphone…"
+            aria-label="Rechercher des entrepreneurs"
+            className="min-h-11 w-full rounded-lg border border-input bg-background py-2 pl-10 pr-3 text-base sm:text-sm"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <label className="sr-only" htmlFor="entrepreneurs-sort">Trier les entrepreneurs</label>
+          <select
+            id="entrepreneurs-sort"
+            value={sort}
+            onChange={(e) => updateCriteria("entrepreneurs_sort", e.target.value)}
+            className="min-h-11 min-w-0 rounded-lg border border-input bg-background px-3 text-sm"
+          >
+            <option value="newest">Inscription : plus récente</option>
+            <option value="oldest">Inscription : plus ancienne</option>
+            <option value="az">Entreprise : A à Z</option>
+            <option value="za">Entreprise : Z à A</option>
+          </select>
+          <Button type="button" variant="outline" className="min-h-11" onClick={() => setFiltersOpen((v) => !v)} aria-expanded={filtersOpen}>
+            <SlidersHorizontal className="h-4 w-4" /> Filtres
+            {(accountFilter !== "all" || visibilityFilter !== "all") && <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{Number(accountFilter !== "all") + Number(visibilityFilter !== "all")}</span>}
+          </Button>
+        </div>
+        {filtersOpen && (
+          <div className="grid gap-3 rounded-lg border border-border bg-card p-3 sm:grid-cols-2">
+            <label className="text-sm font-medium">Statut du compte
+              <select value={accountFilter} onChange={(e) => updateCriteria("entrepreneurs_account", e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-input bg-background px-3 font-normal">
+                <option value="all">Tous les statuts</option><option value="active">Actif</option><option value="pending">En attente</option>
+              </select>
+            </label>
+            <label className="text-sm font-medium">Visibilité réseau
+              <select value={visibilityFilter} onChange={(e) => updateCriteria("entrepreneurs_visibility", e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-input bg-background px-3 font-normal">
+                <option value="all">Toutes</option><option value="visible">Visible</option><option value="hidden">Masqué</option>
+              </select>
+            </label>
+          </div>
+        )}
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-      ) : rows.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">Aucun entrepreneur inscrit pour le moment.</div>
+      ) : allRows.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card px-4 py-16 text-center text-muted-foreground">Aucun entrepreneur ne correspond à ces critères.</div>
       ) : (
-        <div className="bg-card rounded-xl border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        <>
+          <div className="grid gap-3 md:hidden">
+            {rows.map((r) => (
+              <article key={r.user_id} className="min-w-0 rounded-lg border border-border bg-card p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="min-w-0 break-words font-display text-lg font-bold leading-snug">{r.company || "Non renseigné"}</h2>
+                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${r.approved ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{r.approved ? "Actif" : "En attente"}</span>
+                </div>
+                {(r.city || r.sectors.length > 0) && <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">{r.city && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{r.city}</span>}{r.sectors.map((sector) => <span key={sector} className="rounded-full bg-secondary px-2 py-0.5">{sector}</span>)}</div>}
+                <dl className="mt-4 space-y-3 text-sm">
+                  <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"><dt className="text-muted-foreground">Contact</dt><dd className="min-w-0 break-words font-medium">{r.contact || "Non renseigné"}</dd></div>
+                  <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"><dt className="text-muted-foreground">Téléphone</dt><dd className="min-w-0">{r.phone ? <a href={`tel:${r.phone}`} className="break-words text-primary underline-offset-4 hover:underline">{r.phone}</a> : "Non renseigné"}</dd></div>
+                  <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"><dt className="text-muted-foreground">Courriel</dt><dd className="min-w-0">{r.email ? <a href={`mailto:${r.email}`} className="block break-all text-primary underline-offset-4 hover:underline">{r.email}</a> : "Non renseigné"}</dd></div>
+                  <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"><dt className="text-muted-foreground">Inscription</dt><dd>{fmtDate(r.created_at)}</dd></div>
+                  <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"><dt className="text-muted-foreground">Activité</dt><dd>{r.jobs} travail{r.jobs === 1 ? "" : "x"} · {r.trips} voyage{r.trips === 1 ? "" : "s"}</dd></div>
+                  <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"><dt className="text-muted-foreground">Réseau</dt><dd>{r.visible === true ? "Visible" : r.visible === false ? "Masqué" : "Non renseigné"}</dd></div>
+                </dl>
+                <Button type="button" className="mt-4 min-h-11 w-full" onClick={() => setOpenUserId(r.user_id)}>Voir la fiche</Button>
+              </article>
+            ))}
+          </div>
+
+          <div className="hidden overflow-hidden rounded-lg border border-border bg-card md:block">
+            <div className="max-w-full overflow-x-auto">
+            <table className="w-full min-w-[1040px] table-auto text-sm">
               <thead className="bg-secondary/50 text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="text-left px-4 py-3">Entreprise</th>
@@ -190,15 +306,15 @@ export default function EntrepreneursAdmin() {
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.user_id} className="border-t border-border hover:bg-muted/40 cursor-pointer" onClick={() => setOpenUserId(r.user_id)}>
-                    <td className="px-4 py-3 font-semibold">{r.company || <span className="text-muted-foreground italic">—</span>}</td>
-                    <td className="px-4 py-3">{r.contact || <span className="text-muted-foreground">—</span>}</td>
-                    <td className="px-4 py-3"><a className="text-primary hover:underline" href={`mailto:${r.email}`} onClick={(e) => e.stopPropagation()}>{r.email}</a></td>
-                    <td className="px-4 py-3">{r.phone || <span className="text-muted-foreground">—</span>}</td>
+                  <tr key={r.user_id} className="cursor-pointer border-t border-border hover:bg-muted/40" onClick={() => setOpenUserId(r.user_id)}>
+                    <td className="max-w-56 whitespace-normal px-4 py-3 font-semibold">{r.company || <span className="text-muted-foreground">Non renseigné</span>}</td>
+                    <td className="max-w-48 whitespace-normal px-4 py-3">{r.contact || <span className="text-muted-foreground">Non renseigné</span>}</td>
+                    <td className="px-4 py-3"><a className="whitespace-nowrap text-primary hover:underline" href={`mailto:${r.email}`} onClick={(e) => e.stopPropagation()}>{r.email || "Non renseigné"}</a></td>
+                    <td className="whitespace-nowrap px-4 py-3">{r.phone ? <a href={`tel:${r.phone}`} className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>{r.phone}</a> : <span className="text-muted-foreground">Non renseigné</span>}</td>
                     <td className="px-4 py-3">{fmtDate(r.created_at)}</td>
                     <td className="px-4 py-3">
                       <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
-                        Actif
+                        {r.approved ? "Actif" : "En attente"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right font-mono">{r.jobs}</td>
@@ -207,9 +323,20 @@ export default function EntrepreneursAdmin() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
-        </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+            <p className="text-muted-foreground">{(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, allRows.length)} sur {allRows.length}</p>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="icon" aria-label="Page précédente" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+              <span className="min-w-20 text-center">Page {currentPage} / {totalPages}</span>
+              <Button type="button" variant="outline" size="icon" aria-label="Page suivante" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}><ChevronRight className="h-4 w-4" /></Button>
+            </div>
+          </div>
+        </>
       )}
+
+      <div className="mt-8"><VisibilityAuditList /></div>
 
       {openUserId && (
         <EntrepreneurDetailModal
