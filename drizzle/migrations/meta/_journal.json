@@ -134,6 +134,13 @@
       "when": 1789773826097,
       "tag": "0018_seo_slot_rows_relevant_combinations",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789774381088,
+      "tag": "0019_seo_slot_rows_shared_qa_rules",
+      "breakpoints": true
     }
   ]
 }
