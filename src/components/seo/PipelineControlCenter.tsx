@@ -28,8 +28,8 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
 ];
 
 const STATUS_META: Record<ControlCityRow["status"], { label: string; className: string; dot: string }> = {
-  done:    { label: "TERMINÉ", className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" },
-  partial: { label: "PARTIELLEMENT TERMINÉ", className: "bg-amber-500/15 text-amber-700 border-amber-500/30", dot: "bg-amber-500" },
+  done:    { label: "TERMINÉE — GÉNÉRATION", className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" },
+  partial: { label: "GÉNÉRATION PARTIELLE", className: "bg-amber-500/15 text-amber-700 border-amber-500/30", dot: "bg-amber-500" },
   running: { label: "EN COURS", className: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30", dot: "bg-yellow-500" },
   error:   { label: "ERREUR",   className: "bg-destructive/15 text-destructive border-destructive/30", dot: "bg-destructive" },
   todo:    { label: "EN ATTENTE",  className: "bg-muted text-muted-foreground border-border", dot: "bg-muted-foreground" },
@@ -53,7 +53,10 @@ export default function PipelineControlCenter() {
   const totals = state?.totals ?? null;
   const run = state?.active_run ?? null;
   const pipelineState = state?.pipeline_state ?? "completed";
+  // Progression = GÉNÉRATION. La publication reste manuelle et ne change jamais un statut.
   const globalPct = totals && totals.target_total > 0
+    ? Math.round((totals.generated / totals.target_total) * 100) : 0;
+  const publishedPct = totals && totals.target_total > 0
     ? Math.round((totals.published / totals.target_total) * 100) : 0;
   // Une vraie alerte uniquement : erreurs réelles, tâches interrompues ou génération arrêtée.
   // Les combinaisons potentielles restantes ne déclenchent jamais d'alerte.
@@ -133,14 +136,14 @@ export default function PipelineControlCenter() {
         {totals && (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3">
-              <Kpi label="Pages existantes" value={nf(totals.generated)} hint="Créées dans la base" />
-              <Kpi label="Pages publiées" value={nf(totals.published)} tone="good" hint="En ligne et indexables" />
-              <Kpi label="Pages en brouillon" value={nf(totals.drafts)} hint="Non publiées" />
+              <Kpi label="Pages générées" value={nf(totals.generated)} hint="Créées dans la base" />
+              <Kpi label="Pages publiées" value={nf(totals.published)} tone="good" hint="En ligne — publication manuelle" />
+              <Kpi label="Pages en brouillon" value={nf(totals.drafts)} hint="Générées, non publiées" />
               <button type="button" onClick={() => setErrorsOpen(true)} className="text-left">
                 <Kpi label="Pages avec erreurs" value={nf(totals.errors)} tone={totals.errors > 0 ? "bad" : "muted"} hint="Voir la liste" />
               </button>
               <button type="button" onClick={() => setProblemsOpen(true)} className="text-left">
-                <Kpi label="Combinaisons potentielles restantes" value={nf(totals.remaining)} tone="muted" hint="Potentiel — aucune tâche planifiée" />
+                <Kpi label="Pages restantes à générer" value={nf(totals.remaining)} tone="muted" hint="Combinaisons potentielles — aucune tâche planifiée" />
               </button>
             </div>
 
@@ -151,10 +154,14 @@ export default function PipelineControlCenter() {
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Couverture actuelle (pages publiées / potentiel total de combinaisons)</span>
+                <span>Avancement de la génération (pages générées / total de combinaisons)</span>
                 <span className="font-semibold text-foreground">{globalPct}%</span>
               </div>
               <Progress value={globalPct} className="h-3" />
+              <div className="text-xs text-muted-foreground">
+                Publication (manuelle) : {publishedPct}% — {nf(totals.published)} publiée(s), {nf(totals.drafts)} en brouillon.
+                Une page générée n'est jamais publiée automatiquement.
+              </div>
             </div>
 
             <div className="rounded-lg border border-border bg-background/50 p-3 text-sm">
@@ -225,9 +232,10 @@ export default function PipelineControlCenter() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-xs">
                   <span>{c.generated} / {c.planned} générées</span>
                   <span>{c.published} / {c.planned} publiées</span>
-                  <span>{c.remaining} potentielle{c.remaining > 1 ? "s" : ""}</span>
+                  <span>{c.drafts} / {c.planned} en brouillon</span>
+                  <span>{c.remaining} restante{c.remaining > 1 ? "s" : ""} à générer</span>
                   <span className={c.errors > 0 ? "text-destructive font-medium" : ""}>{c.errors} erreur{c.errors > 1 ? "s" : ""}</span>
-                  <span className="font-semibold">{c.pct} %</span>
+                  <span className="font-semibold">{c.pct} % générées</span>
                 </div>
 
                 <div className="flex flex-wrap gap-1.5">
