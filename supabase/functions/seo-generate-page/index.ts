@@ -52,6 +52,95 @@ function cleanName(value: unknown, fallback: string): string {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
+/**
+ * Appel à l'action obligatoire, déterminé par le TYPE de page.
+ * Chaque page générée reçoit un CTA réellement pertinent (jamais un bloc
+ * générique identique partout) pointant vers l'action Vrac Québec existante.
+ */
+export function buildCtaBlock(input: {
+  cityName: string;
+  serviceSlug: string | null;
+  serviceName: string | null;
+  materialSlug: string | null;
+  materialName: string | null;
+}): string {
+  const { cityName } = input;
+  const svc = input.serviceSlug ?? "";
+  const mat = input.materialSlug ?? "";
+  const matName = (input.materialName ?? "").toLowerCase();
+  const svcName = input.serviceName ?? "";
+
+  type Cta = { heading: string; intro: string; primary: [string, string]; secondary: [string, string] };
+  let cta: Cta;
+
+  if (svc === "dompe" || svc === "recherche-point-de-depot") {
+    cta = {
+      heading: `Trouver une dompe à ${cityName}`,
+      intro: `Indiquez le type de matériaux à disposer et le secteur du chantier : Vrac Québec vous oriente vers les points de dépôt disponibles près de ${cityName}.`,
+      primary: ["/depot-materiaux", `Rechercher une dompe à ${cityName}`],
+      secondary: ["/soumission", "Décrire mon besoin de disposition"],
+    };
+  } else if (svc === "transport-vrac") {
+    cta = {
+      heading: `Demander du transport en vrac à ${cityName}`,
+      intro: `Décrivez la quantité, le matériau et les points de chargement et de déchargement : Vrac Québec coordonne le transport vers ${cityName}.`,
+      primary: ["/transport-en-vrac", "Demander du transport en vrac"],
+      secondary: ["/soumission", "Obtenir une soumission de transport"],
+    };
+  } else if (svc.startsWith("livraison")) {
+    cta = {
+      heading: `Demander une livraison à ${cityName}`,
+      intro: `Précisez la quantité et la date souhaitée : Vrac Québec organise la livraison ${svcName ? svcName.toLowerCase().replace(/^livraison de /, "de ") : "de matériaux en vrac"} à ${cityName}.`,
+      primary: ["/soumission", `Demander une livraison à ${cityName}`],
+      secondary: ["/materiaux", "Voir les matériaux disponibles"],
+    };
+  } else if (svc === "excavation" || svc === "nivellement") {
+    cta = {
+      heading: `Demander un service de ${svcName ? svcName.toLowerCase() : "chantier"} à ${cityName}`,
+      intro: `Décrivez votre chantier à ${cityName} : Vrac Québec transmet votre besoin aux entrepreneurs et transporteurs du secteur.`,
+      primary: ["/soumission", "Décrire mon chantier"],
+      secondary: ["/transport-en-vrac", "Besoin de transport en vrac"],
+    };
+  } else if (svc === "courtage-materiaux") {
+    cta = {
+      heading: `Trouver les bons matériaux à ${cityName}`,
+      intro: `Dites-nous ce que vous cherchez : Vrac Québec compare les sources de matériaux disponibles autour de ${cityName}.`,
+      primary: ["/acheter-materiaux", "Chercher des matériaux en vrac"],
+      secondary: ["/soumission", "Obtenir une soumission"],
+    };
+  } else if (mat.includes("remblai")) {
+    cta = {
+      heading: `Demander du remblai à ${cityName}`,
+      intro: `Indiquez le volume et l'accès au chantier : Vrac Québec met en relation avec les sources de remblai près de ${cityName}.`,
+      primary: ["/remblai", `Demander du remblai à ${cityName}`],
+      secondary: ["/soumission", "Obtenir une soumission gratuite"],
+    };
+  } else if (mat) {
+    cta = {
+      heading: `Obtenir ${matName || "ce matériau"} à ${cityName}`,
+      intro: `Précisez la quantité et la date de livraison : Vrac Québec vous met en relation avec les fournisseurs et transporteurs qui desservent ${cityName}.`,
+      primary: ["/soumission", `Obtenir une soumission à ${cityName}`],
+      secondary: ["/materiaux", "Comparer les matériaux en vrac"],
+    };
+  } else {
+    cta = {
+      heading: `Vos matériaux en vrac à ${cityName}`,
+      intro: `Achat, livraison, transport ou disposition : décrivez votre besoin et Vrac Québec vous oriente vers les bonnes ressources à ${cityName}.`,
+      primary: ["/soumission", `Obtenir une soumission à ${cityName}`],
+      secondary: ["/depot-materiaux", "Trouver une dompe à proximité"],
+    };
+  }
+
+  return [
+    `<h2>${cta.heading}</h2>`,
+    `<p>${cta.intro}</p>`,
+    `<ul>`,
+    `<li><a href="${cta.primary[0]}">${cta.primary[1]}</a></li>`,
+    `<li><a href="${cta.secondary[0]}">${cta.secondary[1]}</a></li>`,
+    `</ul>`,
+  ].join("");
+}
+
 function countWords(html: string): number {
   const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   return text ? text.split(" ").length : 0;
@@ -334,7 +423,7 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
     const metaDescription = String(parsed.meta_description || "").slice(0, 300);
     const coverImageAlt = String(parsed.cover_image_alt || `${title} — Vrac Québec`).slice(0, 160);
     const intro = String(parsed.intro || "");
-    const contentHtml = String(parsed.content_html || "");
+    const aiContentHtml = String(parsed.content_html || "");
     const faqRaw = Array.isArray(parsed.faq) ? parsed.faq : [];
     const faq = faqRaw
       .map((f: unknown) => {
@@ -343,6 +432,18 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
       })
       .filter((f: { question: string; answer: string }) => f.question && f.answer)
       .slice(0, 10);
+
+    // CTA obligatoire, propre au type de page (service / matériau / remblai /
+    // dompe / transport / livraison / hub local). Ajouté à la source pour que
+    // toute page générée respecte le gabarit SEO complet.
+    const ctaBlock = buildCtaBlock({
+      cityName: city.name,
+      serviceSlug: service?.slug ?? null,
+      serviceName: service?.name ?? null,
+      materialSlug: material?.slug ?? null,
+      materialName: material?.name ?? null,
+    });
+    const contentHtml = aiContentHtml ? `${aiContentHtml}\n${ctaBlock}` : "";
 
     // Compute analytics
     const words = countWords(contentHtml);
@@ -354,10 +455,10 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
     // malformed or truncated, return a retryable 502 so the pipeline requeues
     // the task instead of publishing a 0-word page that QA autofix would then
     // overwrite with a CTA-only stub.
-    if (words < 800 || contentHtml.length < 3000 || h2 < 3 || faq.length < 3) {
+    if (countWords(aiContentHtml) < 800 || aiContentHtml.length < 3000 || h2 < 4 || faq.length < 3) {
       return json({
         error: "AI response incomplete (< 800 words or malformed) — task will retry",
-        details: { words, contentLen: contentHtml.length, h2, faq: faq.length },
+        details: { words, contentLen: aiContentHtml.length, h2, faq: faq.length },
       }, 502);
     }
 
