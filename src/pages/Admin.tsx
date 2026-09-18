@@ -1027,8 +1027,8 @@ const Admin = () => {
         onCreated={() => { fetchSubmissions(); }}
       />
 
-      {/* Mobile FAB */}
-      <button
+      {/* Le raccourci ajoute une demande; il reste caché dans les autres sections CRM. */}
+      {tab === "leads" && <button
         type="button"
         aria-label="Ajouter un Lead"
         onClick={() => setShowNewLead(true)}
@@ -1036,7 +1036,7 @@ const Admin = () => {
         className="md:hidden fixed right-4 z-40 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition"
       >
         <Plus className="w-6 h-6" />
-      </button>
+      </button>}
     </div>
   );
 };
