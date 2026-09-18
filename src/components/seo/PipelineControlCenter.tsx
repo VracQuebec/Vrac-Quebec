@@ -28,8 +28,8 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
 ];
 
 const STATUS_META: Record<ControlCityRow["status"], { label: string; className: string; dot: string }> = {
-  done:    { label: "TERMINÉ", className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" },
-  partial: { label: "PARTIELLEMENT TERMINÉ", className: "bg-amber-500/15 text-amber-700 border-amber-500/30", dot: "bg-amber-500" },
+  done:    { label: "TERMINÉE — GÉNÉRATION", className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" },
+  partial: { label: "GÉNÉRATION PARTIELLE", className: "bg-amber-500/15 text-amber-700 border-amber-500/30", dot: "bg-amber-500" },
   running: { label: "EN COURS", className: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30", dot: "bg-yellow-500" },
   error:   { label: "ERREUR",   className: "bg-destructive/15 text-destructive border-destructive/30", dot: "bg-destructive" },
   todo:    { label: "EN ATTENTE",  className: "bg-muted text-muted-foreground border-border", dot: "bg-muted-foreground" },
@@ -53,7 +53,10 @@ export default function PipelineControlCenter() {
   const totals = state?.totals ?? null;
   const run = state?.active_run ?? null;
   const pipelineState = state?.pipeline_state ?? "completed";
+  // Progression = GÉNÉRATION. La publication reste manuelle et ne change jamais un statut.
   const globalPct = totals && totals.target_total > 0
+    ? Math.round((totals.generated / totals.target_total) * 100) : 0;
+  const publishedPct = totals && totals.target_total > 0
     ? Math.round((totals.published / totals.target_total) * 100) : 0;
   // Une vraie alerte uniquement : erreurs réelles, tâches interrompues ou génération arrêtée.
   // Les combinaisons potentielles restantes ne déclenchent jamais d'alerte.
