@@ -235,7 +235,7 @@ export default function PipelineControlCenter() {
                     <FileText className="w-3 h-3" /> Voir les pages
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
-                    disabled={c.errors + c.remaining === 0 || busy === `retry-${c.slug}`}
+                    disabled={c.errors === 0 || busy === `retry-${c.slug}`}
                     onClick={() => act(`retry-${c.slug}`, async () => {
                       await repairSeoPages({ citySlug: c.slug, allErrors: true });
                     }, `Régénération lancée — ${c.name}`)}>
@@ -281,7 +281,7 @@ export default function PipelineControlCenter() {
 
       <Dialog open={problemsOpen} onOpenChange={setProblemsOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-auto">
-          <DialogHeader><DialogTitle>Pages restantes — {state?.problems.length ?? 0}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Combinaisons potentielles non générées — {state?.problems.length ?? 0}</DialogTitle></DialogHeader>
           <div className="space-y-2">
             {(state?.problems ?? []).map((problem) => (
               <ProblemRow key={`${problem.city_slug}|${problem.material_slug ?? ""}|${problem.service_slug ?? ""}`} problem={problem} busy={busy}
