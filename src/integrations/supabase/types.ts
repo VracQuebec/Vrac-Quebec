@@ -19205,6 +19205,7 @@ export type Database = {
         Returns: Json
       }
       seo_bulk_state: { Args: never; Returns: Json }
+      seo_city_active_run: { Args: never; Returns: Json }
       seo_city_generation_overview: { Args: never; Returns: Json }
       seo_city_generation_report: {
         Args: { _city_slug: string }
@@ -19214,6 +19215,7 @@ export type Database = {
       seo_city_matrix: { Args: { _city_slug: string }; Returns: Json }
       seo_city_publish_missing: { Args: { _city_slug: string }; Returns: Json }
       seo_city_retry_errors: { Args: { _city_slug: string }; Returns: number }
+      seo_city_run_abandon: { Args: { _job_id: string }; Returns: undefined }
       seo_city_run_finish: {
         Args: {
           _created: number
@@ -19226,6 +19228,16 @@ export type Database = {
       seo_city_run_history: {
         Args: { _city_slug: string; _limit?: number }
         Returns: Json
+      }
+      seo_city_run_progress: {
+        Args: {
+          _created: number
+          _current_label?: string
+          _done: number
+          _errors: number
+          _job_id: string
+        }
+        Returns: undefined
       }
       seo_city_run_start: {
         Args: { _city_slug: string; _total: number }
