@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  Loader2, RefreshCw, Play, CheckCircle2, AlertTriangle, ExternalLink, ListRestart, Search,
+  Loader2, RefreshCw, Play, CheckCircle2, AlertTriangle, ExternalLink, ListRestart, Search, FileText,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ types */
@@ -17,12 +17,19 @@ export type CityRow = {
   expected: number; existing: number; published: number; drafts: number;
   valid: number; missing: number; pending: number; errors: number;
   last_generated_at: string | null;
+  run_total: number | null; run_done: number | null; run_label: string | null;
   status: "done" | "partial" | "errors" | "running" | "pending_start";
 };
+
+type ActiveRun = {
+  id: string; city_slug: string; total: number; done: number;
+  succeeded: number; failed: number; started_at: string | null; current_label: string | null;
+} | null;
 
 type Overview = {
   cities: CityRow[];
   computed_at: string;
+  active_run: ActiveRun;
   totals: { cities: number; done: number; partial: number; errors: number; running: number; waiting: number };
 };
 
@@ -50,11 +57,18 @@ type RunHistory = {
 
 type Ref = { slug: string; name: string; short_name?: string | null; description?: string | null };
 
+/** Progression locale d'une génération manuelle en cours (miroir du job en base). */
+type LocalRun = {
+  jobId: string | null; citySlug: string; cityName: string;
+  total: number; done: number; created: number; errors: number;
+  label: string | null; log: string[];
+};
+
 /* ------------------------------------------------------------- status UI */
 
 const CITY_STATUS: Record<CityRow["status"], { dot: string; label: string; cls: string }> = {
   pending_start: { dot: "⚪", label: "EN ATTENTE", cls: "bg-muted text-muted-foreground border-border" },
-  running: { dot: "🟡", label: "EN COURS", cls: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30" },
+  running: { dot: "🟡", label: "GÉNÉRATION EN COURS", cls: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30" },
   partial: { dot: "🟠", label: "PARTIELLE", cls: "bg-orange-500/15 text-orange-700 border-orange-500/30" },
   errors: { dot: "🔴", label: "AVEC ERREURS", cls: "bg-destructive/15 text-destructive border-destructive/30" },
   done: { dot: "🟢", label: "TERMINÉE", cls: "bg-green-500/15 text-green-700 border-green-500/30" },
@@ -72,6 +86,12 @@ const SLOT_STATE: Record<Slot["state"], { label: string; cls: string }> = {
 type FilterKey = "all" | "done" | "partial" | "running" | "pending_start" | "errors";
 type SortKey = "name" | "requests" | "pages" | "progress" | "errors";
 
+async function fetchReport(slug: string): Promise<CityReport | null> {
+  const { data, error } = await supabase.rpc("seo_city_generation_report" as never, { _city_slug: slug } as never);
+  if (error) throw error;
+  return (data as unknown as CityReport) ?? null;
+}
+
 /* ------------------------------------------------------------ main panel */
 
 export default function CityGenerator() {
@@ -82,10 +102,15 @@ export default function CityGenerator() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
   const [sort, setSort] = useState<SortKey>("name");
-  const [openCity, setOpenCity] = useState<CityRow | null>(null);
+  const [openSlug, setOpenSlug] = useState<string | null>(null);
+  const [run, setRun] = useState<LocalRun | null>(null);
+  const [verifying, setVerifying] = useState<string | null>(null);
+  const runRef = useRef<LocalRun | null>(null);
+  runRef.current = run;
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  /** Relecture pure des données réelles. Ne déclenche aucune génération. */
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const [ov, m, s] = await Promise.all([
         supabase.rpc("seo_city_generation_overview" as never),
@@ -94,14 +119,26 @@ export default function CityGenerator() {
       ]);
       if (ov.error) throw ov.error;
       setOverview(ov.data as unknown as Overview);
-      setMaterials((m.data ?? []) as Ref[]);
-      setServices((s.data ?? []) as Ref[]);
+      if (m.data) setMaterials(m.data as Ref[]);
+      if (s.data) setServices(s.data as Ref[]);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Chargement impossible");
-    } finally { setLoading(false); }
+      if (!opts?.silent) toast.error(e instanceof Error ? e.message : "Chargement impossible");
+    } finally { if (!opts?.silent) setLoading(false); }
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Rafraîchissement discret pendant qu'une génération est réellement active
+  // (ici ou dans un autre onglet). Lecture seule, aucune tâche créée.
+  const dbActive = overview?.active_run ?? null;
+  const hasActivity = !!run || !!dbActive;
+  useEffect(() => {
+    if (!hasActivity) return;
+    const t = window.setInterval(() => { void load({ silent: true }); }, 6000);
+    return () => window.clearInterval(t);
+  }, [hasActivity, load]);
+
+  const lockedBy = run?.citySlug ?? dbActive?.city_slug ?? null;
 
   const rows = useMemo(() => {
     let list = overview?.cities ?? [];
@@ -124,7 +161,125 @@ export default function CityGenerator() {
     return sorted;
   }, [overview, query, filter, sort]);
 
+  /**
+   * Génère UNIQUEMENT les emplacements demandés de CETTE ville.
+   * Chaque page est enregistrée immédiatement par l'edge function et la
+   * progression est écrite en base après chaque page (reprise possible).
+   */
+  const generate = useCallback(async (city: CityRow, targets: Slot[], mode: "missing" | "repair") => {
+    if (targets.length === 0) return;
+    if (runRef.current) { toast.error("Une autre ville est en cours de génération."); return; }
+    const question = mode === "missing"
+      ? `Générer ${targets.length} page(s) manquante(s) pour ${city.name} ? Les pages existantes ne seront pas touchées.`
+      : `Régénérer ${targets.length} page(s) en défaut de ${city.name} ? Les pages valides ne seront pas touchées et aucune URL ne change.`;
+    if (!window.confirm(question)) return;
+
+    let jobId: string | null = null;
+    try {
+      const { data } = await supabase.rpc("seo_city_run_start" as never, { _city_slug: city.slug, _total: targets.length } as never);
+      jobId = (data as unknown as string) ?? null;
+    } catch { /* l'historique reste facultatif */ }
+
+    const state: LocalRun = {
+      jobId, citySlug: city.slug, cityName: city.name,
+      total: targets.length, done: 0, created: 0, errors: 0, label: null, log: [],
+    };
+    setRun({ ...state });
+    const details: Array<Record<string, unknown>> = [];
+
+    for (const slot of targets) {
+      state.label = slot.label;
+      setRun({ ...state });
+      const material = slot.material_slug ? materials.find((m) => m.slug === slot.material_slug) : undefined;
+      const service = slot.service_slug ? services.find((x) => x.slug === slot.service_slug) : undefined;
+      try {
+        const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { created?: boolean; skipped?: boolean; error?: string }>(
+          "seo-generate-page",
+          {
+            city: { slug: city.slug, name: city.name, region: city.region },
+            material: material ? { slug: material.slug, name: material.name, short_name: material.short_name, description: material.description } : undefined,
+            service: service ? { slug: service.slug, name: service.name, description: service.description } : undefined,
+            publish: false,
+            allow_ai: true,
+            force: mode === "repair",
+            confirm_overwrite: mode === "repair",
+            bypass_cache: mode === "repair",
+          },
+        );
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        if (data?.skipped) state.log = [`⏭️ ${slot.label} — déjà existante`, ...state.log].slice(0, 80);
+        else { state.created += 1; state.log = [`✅ ${slot.label}`, ...state.log].slice(0, 80); }
+        details.push({ label: slot.label, ok: true });
+      } catch (e) {
+        state.errors += 1;
+        const msg = e instanceof Error ? e.message : "Erreur inconnue";
+        state.log = [`❌ ${slot.label} — ${msg}`, ...state.log].slice(0, 80);
+        details.push({ label: slot.label, ok: false, error: msg });
+      }
+      state.done += 1;
+      setRun({ ...state });
+      // Persistance de la progression après CHAQUE page
+      if (jobId) {
+        try {
+          await supabase.rpc("seo_city_run_progress" as never, {
+            _job_id: jobId, _done: state.done, _created: state.created,
+            _errors: state.errors, _current_label: slot.label,
+          } as never);
+        } catch { /* la page reste enregistrée même si le suivi échoue */ }
+      }
+      void load({ silent: true });
+    }
+
+    if (jobId) {
+      try { await supabase.rpc("seo_city_run_finish" as never, { _job_id: jobId, _created: state.created, _errors: state.errors, _details: details } as never); }
+      catch { /* historique facultatif */ }
+    }
+    setRun(null);
+    await load({ silent: true });
+    toast.success(`${city.name} : ${state.created} page(s) créée(s), ${state.errors} erreur(s). Aucune publication automatique.`);
+  }, [materials, services, load]);
+
+  /** Génère / reprend une ville : ne cible que les emplacements manquants ou en échec. */
+  const generateCity = useCallback(async (city: CityRow) => {
+    try {
+      const report = await fetchReport(city.slug);
+      const targets = (report?.slots ?? []).filter((s) => s.state === "missing" || s.state === "error");
+      if (targets.length === 0) { toast.info(`${city.name} : aucune page manquante.`); return; }
+      await generate(city, targets, "missing");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Rapport indisponible"); }
+  }, [generate]);
+
+  /** Régénère uniquement les pages réellement en défaut de cette ville. */
+  const regenerateErrors = useCallback(async (city: CityRow) => {
+    try {
+      const report = await fetchReport(city.slug);
+      const targets = (report?.slots ?? []).filter((s) => s.state === "invalid");
+      if (targets.length === 0) { toast.info(`${city.name} : aucune page en défaut.`); return; }
+      await generate(city, targets, "repair");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Rapport indisponible"); }
+  }, [generate]);
+
+  /** Vérifie UNIQUEMENT cette ville (lecture seule, aucune page touchée). */
+  const verifyCity = useCallback(async (city: CityRow) => {
+    setVerifying(city.slug);
+    try {
+      const report = await fetchReport(city.slug);
+      const s = report?.summary;
+      await load({ silent: true });
+      if (!s) return;
+      const verdict = s.missing === 0 && s.errors === 0
+        ? `🟢 ${city.name} : TERMINÉE — ${s.existing}/${s.expected} page(s) valides.`
+        : s.errors > 0
+          ? `🔴 ${city.name} : ${s.errors} page(s) à corriger sur ${s.expected}.`
+          : `🟠 ${city.name} : PARTIELLE — ${s.existing}/${s.expected}, ${s.missing} manquante(s).`;
+      toast.info(verdict);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Vérification impossible"); }
+    finally { setVerifying(null); }
+  }, [load]);
+
   const t = overview?.totals;
+  const openCity = rows.find((c) => c.slug === openSlug) ?? overview?.cities.find((c) => c.slug === openSlug) ?? null;
 
   return (
     <div className="space-y-4">
@@ -133,7 +288,7 @@ export default function CityGenerator() {
           <h3 className="font-display font-bold text-foreground">Génération ville par ville</h3>
           <Badge variant="outline" className="text-[11px]">Une seule ville à la fois · aucune file globale</Badge>
           <Button size="sm" variant="outline" className="ml-auto h-8 gap-1 text-xs" onClick={() => void load()}>
-            <RefreshCw className="w-3.5 h-3.5" /> Actualiser
+            <RefreshCw className="w-3.5 h-3.5" /> Rafraîchir
           </Button>
         </div>
         {t && (
@@ -147,8 +302,14 @@ export default function CityGenerator() {
           </div>
         )}
         <p className="text-[11px] text-muted-foreground">
-          La progression est comptée en villes réellement traitées, pas en pages globales. Les pages existantes ne sont jamais recréées ni supprimées.
+          Rien n'est généré tant qu'une ville n'est pas lancée manuellement. Le bouton Rafraîchir relit seulement la base.
+          Les pages existantes ne sont jamais recréées ni supprimées.
         </p>
+        {lockedBy && (
+          <div className="text-[11px] rounded-md border border-yellow-500/30 bg-yellow-500/10 text-yellow-800 px-2 py-1.5">
+            🟡 Génération en cours : {run?.cityName ?? lockedBy}. Les autres villes restent en attente.
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -180,42 +341,32 @@ export default function CityGenerator() {
       )}
 
       <div className="space-y-2">
-        {rows.map((c) => {
-          const st = CITY_STATUS[c.status];
-          const pct = c.expected > 0 ? Math.round(((c.valid ?? c.existing) / c.expected) * 100) : 0;
-          return (
-            <div key={c.slug} className="rounded-lg border border-border bg-card p-3 space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <strong className="text-sm">{c.name}</strong>
-                <span className="text-[11px] text-muted-foreground">/{c.slug}</span>
-                <Badge variant="outline" className={`text-[10px] ${st.cls}`}>{st.dot} {st.label}</Badge>
-                <span className="text-xs text-muted-foreground ml-auto">
-                  {c.valid ?? c.existing}/{c.expected} valide(s) · {c.existing} existante(s) · {c.published} publiée(s) · {c.drafts} brouillon(s) · {c.errors} erreur(s)
-                </span>
-              </div>
-              <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-                <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                <span>{c.request_count} demande(s) CRM</span>
-                <span>· {c.expected} combinaison(s) prévue(s)</span>
-                <span>· {c.missing} manquante(s)</span>
-                {c.last_generated_at && <span>· dernière génération {new Date(c.last_generated_at).toLocaleDateString("fr-CA")}</span>}
-                <Button size="sm" variant="outline" className="h-7 text-[11px] ml-auto" onClick={() => setOpenCity(c)}>
-                  {c.missing > 0 ? (c.existing > 0 ? "Reprendre cette ville" : "Générer cette ville") : "Vérifier la ville"}
-                </Button>
-              </div>
-            </div>
-          );
-        })}
+        {rows.map((c) => (
+          <CityCard
+            key={c.slug} city={c}
+            run={run && run.citySlug === c.slug ? run : null}
+            dbRun={dbActive && dbActive.city_slug === c.slug ? dbActive : null}
+            lockedByOther={!!lockedBy && lockedBy !== c.slug}
+            verifying={verifying === c.slug}
+            onOpen={() => setOpenSlug(c.slug)}
+            onGenerate={() => void generateCity(c)}
+            onVerify={() => void verifyCity(c)}
+            onRegenerateErrors={() => void regenerateErrors(c)}
+          />
+        ))}
         {rows.length === 0 && !loading && (
           <div className="text-xs text-muted-foreground text-center py-8 border border-dashed rounded-lg">Aucune ville pour ces critères.</div>
         )}
       </div>
 
       <CityDetailDialog
-        city={openCity} materials={materials} services={services}
-        onClose={() => setOpenCity(null)} onChanged={() => void load()}
+        city={openCity}
+        run={run && openCity && run.citySlug === openCity.slug ? run : null}
+        lockedByOther={!!lockedBy && lockedBy !== openCity?.slug}
+        onClose={() => setOpenSlug(null)}
+        onGenerate={(city) => void generateCity(city)}
+        onRegenerateErrors={(city) => void regenerateErrors(city)}
+        onGenerateSlot={(city, slot) => void generate(city, [slot], slot.state === "invalid" ? "repair" : "missing")}
       />
     </div>
   );
@@ -230,21 +381,92 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
+/* ------------------------------------------------------------- city card */
+
+function CityCard({ city, run, dbRun, lockedByOther, verifying, onOpen, onGenerate, onVerify, onRegenerateErrors }: {
+  city: CityRow; run: LocalRun | null; dbRun: ActiveRun; lockedByOther: boolean; verifying: boolean;
+  onOpen: () => void; onGenerate: () => void; onVerify: () => void; onRegenerateErrors: () => void;
+}) {
+  const isRunning = !!run || !!dbRun || city.status === "running";
+  const st = CITY_STATUS[isRunning ? "running" : city.status];
+  const generated = city.existing;
+  const pct = city.expected > 0 ? Math.round((generated / city.expected) * 100) : 0;
+  const runDone = run?.done ?? dbRun?.done ?? city.run_done ?? 0;
+  const runTotal = run?.total ?? dbRun?.total ?? city.run_total ?? 0;
+  const canGenerate = city.missing > 0;
+  const generateLabel = generated > 0 ? "Reprendre la génération" : "Générer cette ville";
+
+  return (
+    <div
+      role="button" tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
+      className="rounded-lg border border-border bg-card p-3 space-y-2 text-left w-full cursor-pointer hover:border-primary/40 transition-colors"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <strong className="text-sm uppercase">{city.name}</strong>
+        <span className="text-[11px] text-muted-foreground">/{city.slug}</span>
+        <Badge variant="outline" className={`text-[10px] ${st.cls}`}>{st.dot} {st.label}</Badge>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px]">
+        <span>{generated} / {city.expected} générées</span>
+        <span>{city.published} / {city.expected} publiées</span>
+        <span>{city.missing} {city.missing > 1 ? "potentielles" : "potentielle"}</span>
+        <span className={city.errors > 0 ? "text-destructive font-semibold" : ""}>{city.errors} erreur{city.errors > 1 ? "s" : ""}</span>
+      </div>
+
+      <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+        <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+      </div>
+
+      {isRunning && runTotal > 0 && (
+        <div className="text-[11px] text-yellow-700">
+          🟡 {runDone} / {runTotal} page(s) traitée(s){(run?.label ?? dbRun?.current_label ?? city.run_label) ? ` · ${run?.label ?? dbRun?.current_label ?? city.run_label}` : ""}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+        <span>{city.request_count} demande(s) CRM</span>
+        {city.last_generated_at && <span>· dernière génération {new Date(city.last_generated_at).toLocaleDateString("fr-CA")}</span>}
+        <div className="ml-auto flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1" onClick={onOpen}>
+            <FileText className="w-3 h-3" /> Voir les pages
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1" disabled={verifying || isRunning} onClick={onVerify}>
+            {verifying ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />} Vérifier la ville
+          </Button>
+          {city.errors > 0 && (
+            <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1" disabled={isRunning || lockedByOther} onClick={onRegenerateErrors}>
+              <ListRestart className="w-3 h-3" /> Régénérer les erreurs
+            </Button>
+          )}
+          {canGenerate && (
+            <Button size="sm" className="h-7 text-[11px] gap-1" disabled={isRunning || lockedByOther} onClick={onGenerate}>
+              {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />} {generateLabel}
+            </Button>
+          )}
+        </div>
+      </div>
+      {lockedByOther && canGenerate && (
+        <div className="text-[10px] text-muted-foreground">Une autre ville est en cours de génération.</div>
+      )}
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------- city dialog */
 
-function CityDetailDialog({ city, materials, services, onClose, onChanged }: {
-  city: CityRow | null; materials: Ref[]; services: Ref[];
-  onClose: () => void; onChanged: () => void;
+function CityDetailDialog({ city, run, lockedByOther, onClose, onGenerate, onRegenerateErrors, onGenerateSlot }: {
+  city: CityRow | null; run: LocalRun | null; lockedByOther: boolean;
+  onClose: () => void;
+  onGenerate: (city: CityRow) => void;
+  onRegenerateErrors: (city: CityRow) => void;
+  onGenerateSlot: (city: CityRow, slot: Slot) => void;
 }) {
   const [report, setReport] = useState<CityReport | null>(null);
   const [history, setHistory] = useState<RunHistory[]>([]);
   const [loading, setLoading] = useState(false);
-  const [running, setRunning] = useState(false);
-  const [progress, setProgress] = useState({ done: 0, total: 0, errors: 0 });
-  const [log, setLog] = useState<string[]>([]);
-  const [result, setResult] = useState<null | {
-    expected: number; before: number; created: number; published: number; drafts: number; skipped: number; errors: number; complete: boolean;
-  }>(null);
 
   const slug = city?.slug ?? null;
 
@@ -253,101 +475,25 @@ function CityDetailDialog({ city, materials, services, onClose, onChanged }: {
     setLoading(true);
     try {
       const [r, h] = await Promise.all([
-        supabase.rpc("seo_city_generation_report" as never, { _city_slug: slug } as never),
+        fetchReport(slug),
         supabase.rpc("seo_city_run_history" as never, { _city_slug: slug, _limit: 10 } as never),
       ]);
-      if (r.error) throw r.error;
-      setReport(r.data as unknown as CityReport);
+      setReport(r);
       setHistory((h.data as unknown as RunHistory[]) ?? []);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Rapport indisponible");
     } finally { setLoading(false); }
   }, [slug]);
 
-  useEffect(() => { setResult(null); setLog([]); setProgress({ done: 0, total: 0, errors: 0 }); void load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
+  // Suit la progression de CETTE ville pendant sa génération manuelle.
+  const runDone = run?.done ?? null;
+  useEffect(() => { if (runDone !== null) void load(); }, [runDone, load]);
 
   const s = report?.summary;
-  const missingSlots = (report?.slots ?? []).filter((x) => x.state === "missing" || x.state === "error");
-  const invalidSlots = (report?.slots ?? []).filter((x) => x.state === "invalid");
-
-  /** Génère (ou régénère) UNIQUEMENT les emplacements fournis, pour cette ville. */
-  async function generate(targets: Slot[], mode: "missing" | "repair") {
-    if (!city || !report || targets.length === 0) return;
-    const question = mode === "missing"
-      ? `Générer ${targets.length} page(s) manquante(s) pour ${city.name} ? Les pages existantes ne seront pas touchées.`
-      : `Régénérer ${targets.length} page(s) en défaut de ${city.name} ? Les pages valides ne seront pas touchées et aucune URL ne change.`;
-    if (!window.confirm(question)) return;
-    setRunning(true);
-    setResult(null);
-    setLog([]);
-    setProgress({ done: 0, total: targets.length, errors: 0 });
-    const before = report.summary.existing;
-    let created = 0, errors = 0, skipped = 0;
-    let jobId: string | null = null;
-    try {
-      const { data } = await supabase.rpc("seo_city_run_start" as never, { _city_slug: city.slug, _total: targets.length } as never);
-      jobId = (data as unknown as string) ?? null;
-    } catch { /* l'historique reste facultatif */ }
-
-    const details: Array<Record<string, unknown>> = [];
-    for (const slot of targets) {
-      const material = slot.material_slug ? materials.find((m) => m.slug === slot.material_slug) : undefined;
-      const service = slot.service_slug ? services.find((x) => x.slug === slot.service_slug) : undefined;
-      try {
-        const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { created?: boolean; skipped?: boolean; error?: string }>(
-          "seo-generate-page",
-          {
-            city: { slug: city.slug, name: city.name, region: city.region },
-            material: material ? { slug: material.slug, name: material.name, short_name: material.short_name, description: material.description } : undefined,
-            service: service ? { slug: service.slug, name: service.name, description: service.description } : undefined,
-            publish: false,
-            allow_ai: true,
-            force: mode === "repair",
-            confirm_overwrite: mode === "repair",
-            bypass_cache: mode === "repair",
-          },
-        );
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-        if (data?.skipped) { skipped += 1; setLog((l) => [`⏭️ ${slot.label} — déjà existante`, ...l].slice(0, 60)); }
-        else { created += 1; setLog((l) => [`✅ ${slot.label}`, ...l].slice(0, 60)); }
-        details.push({ label: slot.label, ok: true });
-      } catch (e) {
-        errors += 1;
-        const msg = e instanceof Error ? e.message : "Erreur inconnue";
-        setLog((l) => [`❌ ${slot.label} — ${msg}`, ...l].slice(0, 60));
-        details.push({ label: slot.label, ok: false, error: msg });
-      }
-      setProgress((p) => ({ done: p.done + 1, total: targets.length, errors }));
-    }
-
-    if (jobId) {
-      try { await supabase.rpc("seo_city_run_finish" as never, { _job_id: jobId, _created: created, _errors: errors, _details: details } as never); }
-      catch { /* historique facultatif */ }
-    }
-
-    const { data: fresh } = await supabase.rpc("seo_city_generation_report" as never, { _city_slug: city.slug } as never);
-    const nr = fresh as unknown as CityReport | null;
-    if (nr) setReport(nr);
-    setResult({
-      expected: nr?.summary.expected ?? report.summary.expected,
-      before, created,
-      published: nr?.summary.published ?? 0,
-      drafts: nr?.summary.drafts ?? 0,
-      skipped,
-      errors: (nr?.summary.errors ?? 0) + errors,
-      complete: (nr?.summary.missing ?? 1) === 0 && (nr?.summary.errors ?? 1) === 0 && errors === 0,
-    });
-    setRunning(false);
-    onChanged();
-    void load();
-    toast.success(`${city.name} : ${created} page(s) créée(s), ${errors} erreur(s). Aucune publication automatique.`);
-  }
-
-  /** Ne régénère que les pages réellement en défaut (QA), jamais les pages valides. */
-  async function regenerateErrors() {
-    await generate(invalidSlots, "repair");
-  }
+  const missingCount = (report?.slots ?? []).filter((x) => x.state === "missing" || x.state === "error").length;
+  const invalidCount = (report?.slots ?? []).filter((x) => x.state === "invalid").length;
+  const running = !!run;
 
   return (
     <Dialog open={!!city} onOpenChange={(o) => !o && onClose()}>
@@ -361,64 +507,52 @@ function CityDetailDialog({ city, materials, services, onClose, onChanged }: {
         {city && s && (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className={`text-[11px] ${CITY_STATUS[city.status].cls}`}>
-                {CITY_STATUS[city.status].dot} {CITY_STATUS[city.status].label}
+              <Badge variant="outline" className={`text-[11px] ${CITY_STATUS[running ? "running" : city.status].cls}`}>
+                {CITY_STATUS[running ? "running" : city.status].dot} {CITY_STATUS[running ? "running" : city.status].label}
               </Badge>
-              <span className="text-xs text-muted-foreground">{city.request_count} demande(s) CRM</span>
+              <span className="text-xs text-muted-foreground">/{city.slug} · {city.request_count} demande(s) CRM</span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs">
               <Stat label="Prévues" value={s.expected} />
               <Stat label="Existantes" value={s.existing} />
-              <Stat label="Valides" value={s.valid ?? Math.max(s.existing - s.errors, 0)} />
+              <Stat label="Publiées" value={s.published} />
               <Stat label="Brouillons" value={s.drafts} />
               <Stat label="Restantes" value={s.missing} />
               <Stat label="Erreurs" value={s.errors} />
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" className="h-8 text-xs gap-1" disabled={running || missingSlots.length === 0} onClick={() => void generate(missingSlots, "missing")}>
+              <Button size="sm" className="h-8 text-xs gap-1" disabled={running || lockedByOther || missingCount === 0}
+                onClick={() => onGenerate(city)}>
                 {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-                {s.existing > 0 && missingSlots.length > 0
-                  ? `Reprendre cette ville (${missingSlots.length})`
-                  : missingSlots.length === 0 ? "Aucune page manquante" : `Générer cette ville (${missingSlots.length})`}
+                {missingCount === 0 ? "Aucune page manquante"
+                  : s.existing > 0 ? `Reprendre la génération (${missingCount})` : `Générer cette ville (${missingCount})`}
               </Button>
-              <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => void load()}>
+              <Button size="sm" variant="outline" className="h-8 text-xs gap-1" disabled={running} onClick={() => void load()}>
                 <CheckCircle2 className="w-3.5 h-3.5" /> Vérifier la ville
               </Button>
-              <Button size="sm" variant="outline" className="h-8 text-xs gap-1" disabled={invalidSlots.length === 0} onClick={() => void regenerateErrors()}>
-                <ListRestart className="w-3.5 h-3.5" /> Régénérer les erreurs ({invalidSlots.length})
+              <Button size="sm" variant="outline" className="h-8 text-xs gap-1" disabled={running || lockedByOther || invalidCount === 0}
+                onClick={() => onRegenerateErrors(city)}>
+                <ListRestart className="w-3.5 h-3.5" /> Régénérer les erreurs ({invalidCount})
               </Button>
             </div>
+            {lockedByOther && <div className="text-[11px] text-muted-foreground">Une autre ville est en cours de génération.</div>}
 
-            {running && (
+            {run && (
               <div className="space-y-1">
                 <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                  <div className="h-full bg-primary transition-all" style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }} />
+                  <div className="h-full bg-primary transition-all" style={{ width: `${run.total ? (run.done / run.total) * 100 : 0}%` }} />
                 </div>
-                <div className="text-[11px] text-muted-foreground">{progress.done} / {progress.total} · {progress.errors} erreur(s)</div>
-              </div>
-            )}
-
-            {result && (
-              <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs space-y-1">
-                <div className="font-semibold">Vérification terminée</div>
-                <div>Pages prévues : {result.expected}</div>
-                <div>Pages existantes avant génération : {result.before}</div>
-                <div>Nouvelles pages créées : {result.created}</div>
-                <div>Pages publiées : {result.published}</div>
-                <div>Pages en brouillon : {result.drafts}</div>
-                <div>Pages ignorées (déjà existantes) : {result.skipped}</div>
-                <div>Erreurs : {result.errors}</div>
-                <div className={result.complete ? "text-green-700 font-semibold" : "text-orange-700 font-semibold"}>
-                  Ville complète : {result.complete ? "OUI" : "NON"}
+                <div className="text-[11px] text-muted-foreground">
+                  {run.done} / {run.total} · {run.created} créée(s) · {run.errors} erreur(s){run.label ? ` · ${run.label}` : ""}
                 </div>
               </div>
             )}
 
-            {log.length > 0 && (
+            {run && run.log.length > 0 && (
               <div className="rounded-md bg-muted/40 p-3 max-h-40 overflow-auto text-[11px] font-mono space-y-0.5">
-                {log.map((l, i) => <div key={i}>{l}</div>)}
+                {run.log.map((l, i) => <div key={i}>{l}</div>)}
               </div>
             )}
 
@@ -453,8 +587,8 @@ function CityDetailDialog({ city, materials, services, onClose, onChanged }: {
                     )}
                     {r.state === "missing" && <div className="text-[11px] text-muted-foreground">Page jamais générée pour cette combinaison pertinente.</div>}
                     {(r.state === "invalid" || r.state === "error") && (
-                      <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1" disabled={running}
-                        onClick={() => void generate([r], r.state === "invalid" ? "repair" : "missing")}>
+                      <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1" disabled={running || lockedByOther}
+                        onClick={() => onGenerateSlot(city, r)}>
                         <RefreshCw className="w-3 h-3" /> Réessayer
                       </Button>
                     )}
@@ -464,7 +598,7 @@ function CityDetailDialog({ city, materials, services, onClose, onChanged }: {
             </div>
 
             <div className="rounded-lg border border-border p-3 space-y-1.5">
-              <div className="text-xs font-semibold uppercase text-muted-foreground">Historique de génération</div>
+              <div className="text-xs font-semibold uppercase text-muted-foreground">Historique de génération (logs)</div>
               {history.length === 0 && <div className="text-[11px] text-muted-foreground">Aucune génération enregistrée pour cette ville.</div>}
               {history.map((h) => (
                 <div key={h.id} className="text-[11px] text-muted-foreground flex flex-wrap gap-2">
