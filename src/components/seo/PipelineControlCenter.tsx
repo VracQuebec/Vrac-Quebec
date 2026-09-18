@@ -136,14 +136,14 @@ export default function PipelineControlCenter() {
         {totals && (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3">
-              <Kpi label="Pages existantes" value={nf(totals.generated)} hint="Créées dans la base" />
-              <Kpi label="Pages publiées" value={nf(totals.published)} tone="good" hint="En ligne et indexables" />
-              <Kpi label="Pages en brouillon" value={nf(totals.drafts)} hint="Non publiées" />
+              <Kpi label="Pages générées" value={nf(totals.generated)} hint="Créées dans la base" />
+              <Kpi label="Pages publiées" value={nf(totals.published)} tone="good" hint="En ligne — publication manuelle" />
+              <Kpi label="Pages en brouillon" value={nf(totals.drafts)} hint="Générées, non publiées" />
               <button type="button" onClick={() => setErrorsOpen(true)} className="text-left">
                 <Kpi label="Pages avec erreurs" value={nf(totals.errors)} tone={totals.errors > 0 ? "bad" : "muted"} hint="Voir la liste" />
               </button>
               <button type="button" onClick={() => setProblemsOpen(true)} className="text-left">
-                <Kpi label="Combinaisons potentielles restantes" value={nf(totals.remaining)} tone="muted" hint="Potentiel — aucune tâche planifiée" />
+                <Kpi label="Pages restantes à générer" value={nf(totals.remaining)} tone="muted" hint="Combinaisons potentielles — aucune tâche planifiée" />
               </button>
             </div>
 
@@ -154,10 +154,14 @@ export default function PipelineControlCenter() {
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Couverture actuelle (pages publiées / potentiel total de combinaisons)</span>
+                <span>Avancement de la génération (pages générées / total de combinaisons)</span>
                 <span className="font-semibold text-foreground">{globalPct}%</span>
               </div>
               <Progress value={globalPct} className="h-3" />
+              <div className="text-xs text-muted-foreground">
+                Publication (manuelle) : {publishedPct}% — {nf(totals.published)} publiée(s), {nf(totals.drafts)} en brouillon.
+                Une page générée n'est jamais publiée automatiquement.
+              </div>
             </div>
 
             <div className="rounded-lg border border-border bg-background/50 p-3 text-sm">
