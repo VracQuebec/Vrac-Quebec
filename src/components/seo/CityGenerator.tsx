@@ -398,9 +398,7 @@ function CityCard({ city, run, dbRun, lockedByOther, verifying, onOpen, onGenera
 
   return (
     <div
-      role="button" tabIndex={0}
       onClick={onOpen}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
       className="rounded-lg border border-border bg-card p-3 space-y-2 text-left w-full cursor-pointer hover:border-primary/40 transition-colors"
     >
       <div className="flex flex-wrap items-center gap-2">
