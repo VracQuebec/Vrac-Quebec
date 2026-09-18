@@ -22,6 +22,8 @@ export type ControlCityRow = {
 export type ControlTotals = {
   per_city: number;
   cities: number;
+  /** Combinaisons théoriques (informatif seulement, jamais une file de production). */
+  potential_total?: number;
   target_total: number;
   generated: number;
   published: number;
