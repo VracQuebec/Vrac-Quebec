@@ -143,10 +143,18 @@ export default function PipelineControlCenter() {
                 <Kpi label="Pages avec erreurs" value={nf(totals.errors)} tone={totals.errors > 0 ? "bad" : "muted"} hint="Voir la liste" />
               </button>
               <button type="button" onClick={() => setProblemsOpen(true)} className="text-left">
-                <Kpi label="Pages restantes à générer" value={nf(totals.remaining)} tone="muted" hint="Combinaisons potentielles — aucune tâche planifiée" />
+                <Kpi label="Pages restantes à générer" value={nf(totals.remaining)} tone="muted" hint="Pages pertinentes non encore générées" />
               </button>
             </div>
 
+            <p className="text-xs text-muted-foreground">
+              Les pages prévues proviennent exactement de la même logique que le Générateur : uniquement les
+              combinaisons pertinentes pour chaque ville selon le registre CRM.
+              {typeof totals.potential_total === "number" && (
+                <> À titre indicatif seulement, {nf(totals.potential_total)} combinaisons théoriques existent (toutes
+                villes × tous matériaux × tous services).</>
+              )}
+            </p>
             <p className="text-xs text-muted-foreground">
               Les combinaisons potentielles ne sont pas une file de production : rien n'est généré tant qu'une ville
               n'est pas lancée manuellement depuis le Générateur.
@@ -154,7 +162,7 @@ export default function PipelineControlCenter() {
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Avancement de la génération (pages générées / total de combinaisons)</span>
+                <span>Avancement de la génération (pages générées / pages prévues pertinentes)</span>
                 <span className="font-semibold text-foreground">{globalPct}%</span>
               </div>
               <Progress value={globalPct} className="h-3" />
@@ -289,7 +297,7 @@ export default function PipelineControlCenter() {
 
       <Dialog open={problemsOpen} onOpenChange={setProblemsOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-auto">
-          <DialogHeader><DialogTitle>Combinaisons potentielles non générées — {state?.problems.length ?? 0}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Pages prévues non encore générées — {state?.problems.length ?? 0}</DialogTitle></DialogHeader>
           <div className="space-y-2">
             {(state?.problems ?? []).map((problem) => (
               <ProblemRow key={`${problem.city_slug}|${problem.material_slug ?? ""}|${problem.service_slug ?? ""}`} problem={problem} busy={busy}
