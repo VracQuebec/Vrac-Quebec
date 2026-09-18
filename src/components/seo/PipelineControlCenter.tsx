@@ -297,7 +297,7 @@ export default function PipelineControlCenter() {
 
       <Dialog open={problemsOpen} onOpenChange={setProblemsOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-auto">
-          <DialogHeader><DialogTitle>Combinaisons potentielles non générées — {state?.problems.length ?? 0}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Pages prévues non encore générées — {state?.problems.length ?? 0}</DialogTitle></DialogHeader>
           <div className="space-y-2">
             {(state?.problems ?? []).map((problem) => (
               <ProblemRow key={`${problem.city_slug}|${problem.material_slug ?? ""}|${problem.service_slug ?? ""}`} problem={problem} busy={busy}
