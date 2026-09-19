@@ -362,6 +362,16 @@ export default function PipelineControlCenter() {
         </DialogContent>
       </Dialog>
 
+      <CityDetailDialog
+        city={workCity}
+        run={gen.run && workCity && gen.run.citySlug === workCity.slug ? gen.run : null}
+        lockedByOther={!!gen.lockedBy && gen.lockedBy !== workCity?.slug}
+        onClose={() => { setWorkSlug(null); void reload(); }}
+        onGenerate={(city) => void gen.generateCity(city)}
+        onRegenerateErrors={(city) => void gen.regenerateErrors(city)}
+        onGenerateSlot={(city, slot) => void gen.generate(city, [slot], slot.state === "invalid" ? "repair" : "missing")}
+      />
+
       <CityPagesDialog
         citySlug={pagesCity?.slug ?? null}
         cityName={pagesCity?.name}
