@@ -228,9 +228,15 @@ export default function PipelineControlCenter() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {cities.slice(0, visible).map((c) => {
-            const meta = STATUS_META[c.status];
+            const genRow = gen.bySlug.get(c.slug) ?? null;
+            const isRunning = gen.run?.citySlug === c.slug || gen.dbActive?.city_slug === c.slug;
+            const lockedByOther = !!gen.lockedBy && gen.lockedBy !== c.slug;
+            const meta = STATUS_META[isRunning ? "running" : c.status];
+            const liveDone = gen.run?.citySlug === c.slug ? gen.run.done : gen.dbActive?.city_slug === c.slug ? gen.dbActive.done : null;
+            const liveTotal = gen.run?.citySlug === c.slug ? gen.run.total : gen.dbActive?.city_slug === c.slug ? gen.dbActive.total : null;
             return (
-              <div key={c.slug} className="rounded-xl border border-border bg-card p-3 space-y-2.5">
+              <div key={c.slug} onClick={() => setWorkSlug(c.slug)}
+                className="rounded-xl border border-border bg-card p-3 space-y-2.5 cursor-pointer hover:border-primary/40 transition-colors">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="font-semibold truncate flex items-center gap-2">
@@ -252,9 +258,21 @@ export default function PipelineControlCenter() {
                   <span className="font-semibold">{c.pct} % générées</span>
                 </div>
 
-                <div className="flex flex-wrap gap-1.5">
+                {isRunning && liveTotal ? (
+                  <div className="text-xs text-yellow-700">
+                    🟡 {liveDone} / {liveTotal} page(s) traitée(s)
+                    {gen.run?.citySlug === c.slug && gen.run.label ? ` · ${gen.run.label}` : ""}
+                  </div>
+                ) : null}
+
+                <div className="flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" onClick={() => setPagesCity({ slug: c.slug, name: c.name })}>
                     <FileText className="w-3 h-3" /> Voir les pages
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
+                    disabled={!genRow || gen.verifying === c.slug || isRunning}
+                    onClick={() => genRow && void gen.verifyCity(genRow)}>
+                    {gen.verifying === c.slug ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />} Vérifier la ville
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
                     disabled={c.errors === 0 || busy === `retry-${c.slug}`}
@@ -269,7 +287,18 @@ export default function PipelineControlCenter() {
                     <Send className="w-3 h-3" /> Publier les non publiées
                   </Button>
                   <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => openLogs(c.slug)}>Voir les logs</Button>
+                  {c.remaining > 0 && (
+                    <Button size="sm" className="h-8 px-2.5 text-xs gap-1"
+                      disabled={!genRow || isRunning || lockedByOther}
+                      onClick={() => genRow && void gen.generateCity(genRow)}>
+                      {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+                      {c.generated > 0 ? "Reprendre la génération" : "Générer cette ville"}
+                    </Button>
+                  )}
                 </div>
+                {lockedByOther && c.remaining > 0 && (
+                  <div className="text-[10px] text-muted-foreground">Une autre ville est en cours de génération.</div>
+                )}
               </div>
             );
           })}
