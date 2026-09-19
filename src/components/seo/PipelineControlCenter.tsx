@@ -51,6 +51,10 @@ export default function PipelineControlCenter() {
   const [pagesCity, setPagesCity] = useState<{ slug: string; name: string } | null>(null);
   const [errorsOpen, setErrorsOpen] = useState(false);
   const [problemsOpen, setProblemsOpen] = useState(false);
+  const [workSlug, setWorkSlug] = useState<string | null>(null);
+  // Même logique de génération que le Générateur (aucune architecture parallèle).
+  const gen = useCityGeneration();
+  const workCity = workSlug ? gen.bySlug.get(workSlug) ?? null : null;
 
   const totals = state?.totals ?? null;
   const run = state?.active_run ?? null;
