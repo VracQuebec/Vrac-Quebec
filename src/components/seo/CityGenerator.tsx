@@ -248,7 +248,7 @@ function CityCard({ city, run, dbRun, lockedByOther, verifying, onOpen, onGenera
 
 /* ---------------------------------------------------------- city dialog */
 
-function CityDetailDialog({ city, run, lockedByOther, onClose, onGenerate, onRegenerateErrors, onGenerateSlot }: {
+export function CityDetailDialog({ city, run, lockedByOther, onClose, onGenerate, onRegenerateErrors, onGenerateSlot }: {
   city: CityRow | null; run: LocalRun | null; lockedByOther: boolean;
   onClose: () => void;
   onGenerate: (city: CityRow) => void;
