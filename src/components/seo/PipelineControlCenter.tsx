@@ -10,10 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import CityPagesDialog from "@/components/seo/CityPagesDialog";
+import { CityDetailDialog } from "@/components/seo/CityGenerator";
+import { useCityGeneration } from "@/lib/seo/useCityGeneration";
 import { repairSeoPages } from "@/lib/seo/useSeoCityMatrix";
 import {
   Play, Pause, Square, Rocket, RefreshCw, Send, ListRestart,
-  Loader2, AlertTriangle, ExternalLink, FileText,
+  Loader2, AlertTriangle, ExternalLink, FileText, CheckCircle2,
 } from "lucide-react";
 
 type FilterKey = "all" | "done" | "partial" | "running" | "todo" | "error";
