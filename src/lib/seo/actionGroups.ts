@@ -238,7 +238,7 @@ function pageMetricFromOpportunity(o: Opportunity): ActionPageMetric | null {
     page_id: o.page_id,
     slug,
     url: o.url ?? (slug ? `/${slug}` : null),
-    title: o.title || null,
+    title: pageLabel(o) || null,
     city: cityOf(o),
     service: serviceOf(o),
     impressions: num(d.impressions),
@@ -247,6 +247,19 @@ function pageMetricFromOpportunity(o: Opportunity): ActionPageMetric | null {
     position: num(d.position) ?? num(d.position_avg),
     conversions: num(d.conversions),
   };
+}
+
+export function collectActionPageMetrics(opportunities: Opportunity[]): ActionPageMetric[] {
+  const pages = new Map<string, ActionPageMetric>();
+  for (const o of opportunities) {
+    const page = pageMetricFromOpportunity(o);
+    if (!page) continue;
+    const key = page.page_id ?? page.slug ?? page.url;
+    if (!key) continue;
+    const current = pages.get(key);
+    if (!current || priorityValue(page) > priorityValue(current)) pages.set(key, page);
+  }
+  return [...pages.values()];
 }
 
 function pageMatchesGroup(page: ActionPageMetric, group: ActionGroup): boolean {
@@ -312,7 +325,7 @@ export function buildPriorityPagesForAction(
   for (const page of pages) if (pageMatchesGroup(page, group)) addPage(page);
   for (const member of group.members) addPage(pageMetricFromOpportunity(member));
 
-  if (group.kind === "technique") {
+  if (group.kind !== "page") {
     for (const member of group.members) {
       const d = dataOf(member);
       for (const slug of [...slugsFromUnknown(d.pages), ...slugsFromUnknown(d.exemples), ...slugsFromUnknown(d.urls)]) {
