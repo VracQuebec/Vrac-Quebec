@@ -6,7 +6,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCopilot, SCAN_STEPS, type Opportunity, type OpportunityPriority } from "@/lib/seo/useCopilot";
-import { buildActionGroups, type ActionGroup } from "@/lib/seo/actionGroups";
+import {
+  buildActionGroups,
+  buildPriorityPagesForAction,
+  impactPotentialOf,
+  type ActionGroup,
+  type ActionPriorityPage,
+} from "@/lib/seo/actionGroups";
 
 const PRIORITY: Record<OpportunityPriority, { label: string; cls: string }> = {
   critical: { label: "CRITIQUE", cls: "bg-destructive text-destructive-foreground" },
@@ -73,6 +79,18 @@ function fmt(value: unknown): string {
   if (Array.isArray(value)) return value.map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v))).join(", ");
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
+}
+
+function fmtNum(value: number | null | undefined): string {
+  return value == null ? "—" : value.toLocaleString("fr-CA");
+}
+
+function fmtPct(value: number | null | undefined): string {
+  return value == null ? "—" : `${(value * 100).toFixed(2)} %`;
+}
+
+function fmtPos(value: number | null | undefined): string {
+  return value == null ? "—" : value.toFixed(1);
 }
 
 function OpportunityRow({ o, rank, onStatus }: { o: Opportunity; rank?: number; onStatus: (id: string, s: "dismissed" | "in_progress" | "completed") => void }) {
@@ -184,48 +202,131 @@ const KIND_LABEL: Record<ActionGroup["kind"], string> = {
   technique: "TECHNIQUE",
 };
 
-function ActionGroupCard({ g, rank, onStatus }: { g: ActionGroup; rank: number; onStatus: (id: string, s: "dismissed" | "in_progress" | "completed") => void }) {
+const IMPACT_CLS: Record<ReturnType<typeof impactPotentialOf>["label"], string> = {
+  ÉLEVÉ: "bg-primary/15 text-primary border-primary/30",
+  MOYEN: "bg-secondary text-secondary-foreground border-border",
+  FAIBLE: "bg-muted text-muted-foreground border-border",
+};
+
+function PriorityPagesList({ pages, limit = 10 }: { pages: ActionPriorityPage[]; limit?: number }) {
+  const visible = pages.slice(0, limit);
+  return (
+    <div className="rounded-md border border-border p-3 text-xs space-y-2">
+      <div className="font-display font-bold text-foreground">Pages prioritaires</div>
+      {visible.length === 0 ? (
+        <div className="text-muted-foreground">Aucune page prioritaire détaillée disponible dans les données sources.</div>
+      ) : (
+        <ol className="space-y-2">
+          {visible.map((page, i) => (
+            <li key={page.page_id ?? page.slug ?? page.url ?? i} className="grid gap-1 rounded-md bg-secondary/30 p-2">
+              <div className="flex items-start gap-2">
+                <span className="font-display font-bold text-muted-foreground">{i + 1}.</span>
+                <div className="min-w-0 flex-1">
+                  <div className="font-display font-semibold text-foreground truncate">{page.title ?? page.slug ?? page.url ?? "Page sans titre"}</div>
+                  <div className="font-mono text-muted-foreground truncate">{page.url ?? "—"}</div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground pl-5">
+                <span>Territoire {page.city ?? "—"}</span>
+                <span>Service {page.service ?? "—"}</span>
+                <span>{fmtNum(page.impressions)} impressions</span>
+                <span>{fmtNum(page.clicks)} clics</span>
+                <span>CTR {fmtPct(page.ctr)}</span>
+                <span>Position {fmtPos(page.position)}</span>
+                <span>{fmtNum(page.conversions)} conversion{(page.conversions ?? 0) > 1 ? "s" : ""}</span>
+              </div>
+              <div className="pl-5 text-muted-foreground"><span className="text-foreground">Raison :</span> {page.reason}</div>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+function PriorityPagesPreview({ pages, limit }: { pages: ActionPriorityPage[]; limit: number }) {
+  const visible = pages.slice(0, limit);
+  if (visible.length === 0) return null;
+  return (
+    <div className="mt-3 rounded-md border border-border bg-secondary/20 p-3 text-xs space-y-2">
+      <div className="font-display font-bold text-foreground">Pages prioritaires</div>
+      <ol className="space-y-1.5">
+        {visible.map((page, i) => (
+          <li key={page.page_id ?? page.slug ?? page.url ?? i} className="grid gap-0.5">
+            <div className="flex gap-2 min-w-0">
+              <span className="font-display font-bold text-muted-foreground">{i + 1}.</span>
+              <span className="font-mono text-muted-foreground truncate">{page.url ?? "—"}</span>
+            </div>
+            <div className="pl-5 text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
+              <span>{fmtNum(page.impressions)} impressions</span>
+              <span>{fmtNum(page.clicks)} clics</span>
+              <span>CTR {fmtPct(page.ctr)}</span>
+              <span>Position {fmtPos(page.position)}</span>
+              <span>{fmtNum(page.conversions)} conversion{(page.conversions ?? 0) > 1 ? "s" : ""}</span>
+              <span>{page.reason}</span>
+            </div>
+          </li>
+        ))}
+      </ol>
+      {pages.length > visible.length && <div className="text-muted-foreground">+{pages.length - visible.length} page(s) prioritaire(s) visible(s) dans le détail.</div>}
+    </div>
+  );
+}
+
+function ActionGroupCard({ g, rank, priorityPages, onStatus }: { g: ActionGroup; rank: number; priorityPages: ActionPriorityPage[]; onStatus: (id: string, s: "dismissed" | "in_progress" | "completed") => void }) {
   const [open, setOpen] = useState(false);
   const p = PRIORITY[g.priority] ?? PRIORITY.medium;
   const o = g.primary;
+  const impact = impactPotentialOf(g);
+  const hasConversions = (g.conversions ?? 0) > 0;
+  const pageCountText = g.kind === "page" ? "Cette action concerne 1 page." : `Cette action concerne ${g.pages || "—"} pages.`;
   return (
     <li className="p-4">
       <div className="flex items-start justify-between gap-3">
         <button onClick={() => setOpen((v) => !v)} className="min-w-0 flex-1 text-left">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="text-[10px] font-display font-bold text-muted-foreground">#{rank}</span>
+            <span className="text-[10px] font-display font-bold text-muted-foreground">SCORE {g.score}</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-display font-bold tracking-wider ${p.cls}`}>{p.label}</span>
             <span className="px-2 py-0.5 rounded border border-border text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground">{KIND_LABEL[g.kind]}</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-display font-bold ${g.singleAction ? "bg-primary/15 text-primary" : "bg-secondary text-secondary-foreground"}`}>
               {g.singleAction ? "ACTION UNIQUE" : `${g.distinctActions} ACTIONS`}
             </span>
-            {(g.conversions ?? 0) > 0 && (
-              <span className="px-2 py-0.5 rounded text-[10px] font-display font-bold bg-primary/15 text-primary">
-                {g.conversions} CONVERSION{(g.conversions ?? 0) > 1 ? "S" : ""}
+            {hasConversions && (
+              <span className="px-2 py-0.5 rounded text-[10px] font-display font-bold bg-primary/15 text-primary border border-primary/30">
+                CONVERSION RÉELLE · {g.conversions} conversion{(g.conversions ?? 0) > 1 ? "s" : ""}
               </span>
             )}
-            <span className="text-[10px] text-muted-foreground">Score {g.score}/100</span>
+            <span className={`px-2 py-0.5 rounded border text-[10px] font-display font-bold ${IMPACT_CLS[impact.label]}`}>
+              Impact potentiel {impact.label}
+            </span>
           </div>
           <div className="font-display font-semibold text-foreground flex items-center gap-1">
             {open ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
             {g.title}
           </div>
           {o.url && <div className="text-xs font-mono text-muted-foreground truncate mt-0.5">{o.url}</div>}
-          <div className="text-xs text-muted-foreground mt-1">
-            Impressions {g.impressions == null ? "—" : g.impressions.toLocaleString("fr-CA")} ·
-            {" "}Clics {g.clicks == null ? "—" : g.clicks.toLocaleString("fr-CA")} ·
-            {" "}CTR {g.ctr == null ? "—" : `${(g.ctr * 100).toFixed(2)} %`} ·
-            {" "}Position {g.position == null ? "—" : g.position.toFixed(1)} ·
-            {" "}Conversions {g.conversions == null ? "—" : g.conversions} ·
-            {" "}Territoire {g.city ?? "—"} · Service {g.service ?? "—"} ·
-            {" "}Pages concernées {g.pages || "—"} · Signaux {g.members.length}
+          <div className="mt-2 grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Pages</div><div className="font-display font-bold text-foreground">{g.kind === "page" ? 1 : (g.pages || "—")}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Impressions</div><div className="font-display font-bold text-foreground">{fmtNum(g.impressions)}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Clics</div><div className="font-display font-bold text-foreground">{fmtNum(g.clicks)}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">CTR</div><div className="font-display font-bold text-foreground">{fmtPct(g.ctr)}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Position</div><div className="font-display font-bold text-foreground">{fmtPos(g.position)}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Conversions</div><div className="font-display font-bold text-foreground">{fmtNum(g.conversions)}</div></div>
+          </div>
+          <div className="text-xs text-muted-foreground mt-2">
+            <span className="font-display font-bold text-foreground">Type :</span> {KIND_LABEL[g.kind]} · <span className="font-display font-bold text-foreground">Signal :</span> {TYPE_LABEL[o.type] ?? o.type.replace(/_/g, " ")} · {pageCountText}
           </div>
           <div className="text-sm text-foreground mt-1">
             <span className="font-display font-bold">Action : </span>{g.actionLabel}
           </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            <span className="font-display font-bold text-foreground">Impact potentiel : </span>{impact.label} — {impact.reason}
+          </div>
           <div className="text-sm text-muted-foreground mt-1">
             <span className="font-display font-bold text-foreground">Pourquoi : </span>{g.reason ?? "—"}
           </div>
+          <PriorityPagesPreview pages={priorityPages} limit={g.kind === "page" ? 1 : 5} />
           {g.relatedGroups.length > 0 && (
             <div className="text-xs text-muted-foreground mt-1 italic">
               Cette action fait partie d'un constat plus large : {g.relatedGroups.map((r) => r.title).join(" · ")}
@@ -290,6 +391,8 @@ function ActionGroupCard({ g, rank, onStatus }: { g: ActionGroup; rank: number; 
             </div>
           </div>
 
+          {(g.kind !== "page" && priorityPages.length > 5) && <PriorityPagesList pages={priorityPages} limit={10} />}
+
           {g.members.length > 1 && (
             <div className="rounded-md border border-border p-3 text-xs space-y-1">
               <div className="font-display font-bold text-foreground">
@@ -310,7 +413,7 @@ function ActionGroupCard({ g, rank, onStatus }: { g: ActionGroup; rank: number; 
 }
 
 export default function CopilotDashboard() {
-  const { data, copilot, loading, scanning, step, rescan, reload, setOpportunityStatus } = useCopilot();
+  const { data, copilot, actionPageMetrics, loading, scanning, step, rescan, reload, setOpportunityStatus } = useCopilot();
   const [showDiag, setShowDiag] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -446,7 +549,7 @@ export default function CopilotDashboard() {
             )}
             <ul className="rounded-lg border border-border bg-card divide-y divide-border">
               {mode === "actions"
-                ? visibleGroups.map((g, i) => <ActionGroupCard key={g.key} g={g} rank={i + 1} onStatus={onStatus} />)
+                ? visibleGroups.map((g, i) => <ActionGroupCard key={g.key} g={g} rank={i + 1} priorityPages={buildPriorityPagesForAction(g, actionPageMetrics, g.kind === "page" ? 1 : 10)} onStatus={onStatus} />)
                 : visible.map((o, i) => <OpportunityRow key={o.id} o={o} rank={i + 1} onStatus={onStatus} />)}
             </ul>
             {(mode === "actions" ? actionGroups.length > visibleGroups.length : filtered.length > visible.length) && (

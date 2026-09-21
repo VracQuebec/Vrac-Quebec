@@ -121,6 +121,20 @@ export type CopilotState = {
   facets: { cities: string[]; services: string[]; categories: string[] };
 };
 
+export type SeoActionPageMetric = {
+  page_id: string | null;
+  slug: string | null;
+  url: string | null;
+  title: string | null;
+  city: string | null;
+  service: string | null;
+  impressions: number | null;
+  clicks: number | null;
+  ctr: number | null;
+  position: number | null;
+  conversions: number | null;
+};
+
 export type ExecutiveDashboard = {
   computed_at: string;
   kpi: ExecutiveKpi;
@@ -144,6 +158,7 @@ export const SCAN_STEPS = [
 export function useCopilot() {
   const [data, setData] = useState<ExecutiveDashboard | null>(null);
   const [copilot, setCopilot] = useState<CopilotState | null>(null);
+  const [actionPageMetrics, setActionPageMetrics] = useState<SeoActionPageMetric[]>([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [step, setStep] = useState(-1);
@@ -153,14 +168,58 @@ export function useCopilot() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [dash, state] = await Promise.all([
+    const fetchAll = async <T,>(
+      build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+    ): Promise<T[]> => {
+      const out: T[] = [];
+      const size = 1000;
+      for (let from = 0; from < 20000; from += size) {
+        const { data: rows, error: pageError } = await build(from, from + size - 1);
+        if (pageError) throw new Error(pageError.message);
+        const batch = rows ?? [];
+        out.push(...batch);
+        if (batch.length < size) break;
+      }
+      return out;
+    };
+
+    const [dash, state, pages, gscRows, conversions] = await Promise.all([
       supabase.rpc("seo_executive_dashboard"),
       supabase.rpc("seo_copilot_state"),
+      fetchAll<{ id: string; slug: string; title: string | null; city_slug: string | null; service_slug: string | null }>((from, to) =>
+        supabase.from("seo_pages").select("id,slug,title,city_slug,service_slug").order("id", { ascending: true }).range(from, to),
+      ),
+      fetchAll<{ page_id: string; clicks: number; impressions: number; ctr: number; position: number; fetched_at: string }>((from, to) =>
+        supabase.from("seo_gsc_metrics").select("page_id,clicks,impressions,ctr,position,fetched_at").eq("period", "28d").order("fetched_at", { ascending: false }).range(from, to),
+      ),
+      fetchAll<{ page_slug: string | null; conversions: number | null }>((from, to) =>
+        supabase.from("seo_page_conversions_30d").select("page_slug,conversions").order("page_slug", { ascending: true }).range(from, to),
+      ),
     ]);
     if (dash.error) setError(dash.error.message);
     else setData(dash.data as unknown as ExecutiveDashboard);
     if (state.error) setError(state.error.message);
     else setCopilot(state.data as unknown as CopilotState);
+    const gsc = new Map<string, { clicks: number; impressions: number; ctr: number; position: number }>();
+    for (const row of gscRows) if (!gsc.has(row.page_id)) gsc.set(row.page_id, row);
+    const conv = new Map<string, number | null>();
+    for (const row of conversions) if (row.page_slug) conv.set(row.page_slug, row.conversions);
+    setActionPageMetrics(pages.map((page) => {
+      const g = gsc.get(page.id);
+      return {
+        page_id: page.id,
+        slug: page.slug,
+        url: `/${page.slug}`,
+        title: page.title,
+        city: page.city_slug,
+        service: page.service_slug,
+        impressions: g?.impressions ?? null,
+        clicks: g?.clicks ?? null,
+        ctr: g?.ctr ?? null,
+        position: g?.position ?? null,
+        conversions: conv.get(page.slug) ?? null,
+      };
+    }));
     setLoading(false);
   }, []);
 
@@ -205,5 +264,5 @@ export function useCopilot() {
 
   const dismissOpportunity = useCallback((id: string) => setOpportunityStatus(id, "dismissed"), [setOpportunityStatus]);
 
-  return { data, copilot, loading, scanning, step, error, reload: load, rescan, dismissOpportunity, setOpportunityStatus };
+  return { data, copilot, actionPageMetrics, loading, scanning, step, error, reload: load, rescan, dismissOpportunity, setOpportunityStatus };
 }
