@@ -16,6 +16,7 @@ import {
 import OpportunityWorkPanel from "@/components/seo/OpportunityWorkPanel";
 import { capabilityOfGroup, capabilityOfType, workButtonLabel, natureOfType, actionStatusLabel } from "@/lib/seo/workflow";
 import VerificationPanel from "@/components/seo/VerificationPanel";
+import { buildCopilotCounters, countersExplanation } from "@/lib/seo/counters";
 import { VERIFICATION_LABEL, verificationButtonLabel, verificationKindOfType, type VerificationKind } from "@/lib/seo/verification";
 
 type StatusSetter = (id: string, s: "dismissed" | "in_progress" | "completed" | "open" | "error", extra?: { error?: string | null; reason?: string | null }) => Promise<void>;
@@ -468,6 +469,15 @@ export default function CopilotDashboard() {
   const actionGroups = buildActionGroups(filtered);
   const visibleGroups = showAll ? actionGroups : actionGroups.slice(0, 10);
   const grouped = actionGroups.filter((g) => g.members.length > 1).length;
+  const ctr_ = buildCopilotCounters({
+    signalsDetected: run?.signals_detected,
+    openCount: Number(counts.open ?? 0),
+    inProgressCount: Number(counts.in_progress ?? 0),
+    completedCount: Number(counts.completed ?? 0),
+    totalLoaded: opps.length,
+    filteredCount: filtered.length,
+    groups: actionGroups,
+  });
 
   const onStatus: StatusSetter = async (id, s, extra) => {
     await setOpportunityStatus(id, s, extra);
@@ -579,6 +589,25 @@ export default function CopilotDashboard() {
               {f.label} ({opps.filter((o) => matchFilter(o, f.key)).length})
             </button>
           ))}
+        </div>
+
+        <div className="mb-3 rounded-lg border border-border bg-card p-3" data-testid="copilot-counters">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Signaux détectés</div><div className="font-display font-bold text-foreground">{ctr_.signals}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Opportunités ouvertes</div><div className="font-display font-bold text-foreground">{ctr_.opportunitiesOpen}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Affichées ici</div><div className="font-display font-bold text-foreground">{ctr_.opportunitiesVisible}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Actions exécutables</div><div className="font-display font-bold text-foreground">{ctr_.executable}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Vérifications</div><div className="font-display font-bold text-foreground">{ctr_.verifications}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Terminées</div><div className="font-display font-bold text-foreground">{ctr_.actionsCompleted}</div></div>
+          </div>
+          <button onClick={() => setShowCounters((v) => !v)} className="mt-2 text-xs font-display font-semibold text-primary">
+            {showCounters ? "Masquer le détail des compteurs" : "Comprendre les compteurs"}
+          </button>
+          {showCounters && (
+            <ul className="mt-2 space-y-1 text-xs text-muted-foreground list-disc pl-4" data-testid="counters-explanation">
+              {countersExplanation(ctr_).map((line) => <li key={line}>{line}</li>)}
+            </ul>
+          )}
         </div>
 
         {filtered.length === 0 ? (
