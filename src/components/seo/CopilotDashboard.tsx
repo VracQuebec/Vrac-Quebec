@@ -362,7 +362,8 @@ export default function CopilotDashboard() {
                   <tr>
                     <th className="text-left py-1">Date</th><th className="text-right">Durée</th><th className="text-right">Pages</th>
                     <th className="text-right">Search Console</th><th className="text-right">Conversions</th>
-                    <th className="text-right">Détectées</th><th className="text-right">Nouvelles</th><th className="text-right">MAJ</th><th className="text-right">Obsolètes</th>
+                    <th className="text-right">Détectées</th><th className="text-right">Nouvelles</th><th className="text-right">MAJ</th>
+                    <th className="text-right">Résolues</th><th className="text-right">Obsolètes</th><th className="text-left pl-3">Comparaison</th>
                   </tr>
                 </thead>
                 <tbody>
