@@ -89,6 +89,7 @@ export type EditablePage = {
   intro?: string | null;
   word_count?: number | null;
   internal_links?: unknown;
+  content_html?: string | null;
 };
 
 export type MetaDraft = { title: string; meta_description: string };
