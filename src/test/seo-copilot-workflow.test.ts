@@ -3,7 +3,7 @@ import {
   capabilityOfType, capabilityOfGroup, workButtonLabel, nextStatus,
   suggestMeta, validateMeta, hasChanges, buildBatchPlan, applyBatchResult,
   batchProgress, retryErrors, runVerification, buildLogEntry,
-  TITLE_MAX, META_MAX,
+  TITLE_MAX, META_MAX, type SeoReferential,
   type EditablePage,
 } from "@/lib/seo/workflow";
 import { buildActionGroups } from "@/lib/seo/actionGroups";
@@ -31,6 +31,8 @@ const page = (over: Partial<EditablePage> = {}): EditablePage => ({
   ...over,
 });
 
+const REF: SeoReferential = { cities: { quebec: "Québec" }, services: { excavation: "Excavation" }, materials: {} };
+
 describe("Copilote SEO — exécution des opportunités", () => {
   it("1. une opportunité PAGE a une capacité d'exécution", () => {
     const [g] = buildActionGroups([opp()]);
@@ -53,14 +55,14 @@ describe("Copilote SEO — exécution des opportunités", () => {
   });
 
   it("5. la proposition de titre vient des données réelles de la page", () => {
-    const s = suggestMeta(page());
+    const s = suggestMeta(page(), REF);
     expect(s.title).toContain("Excavation");
-    expect(s.title).toContain("Quebec");
+    expect(s.title).toContain("Québec");
     expect(s.title.length).toBeLessThanOrEqual(TITLE_MAX);
   });
 
   it("6. la proposition de meta reste dans les limites", () => {
-    const s = suggestMeta(page());
+    const s = suggestMeta(page(), REF);
     expect(s.meta_description.length).toBeLessThanOrEqual(META_MAX);
     expect(s.meta_description.length).toBeGreaterThan(0);
   });
@@ -76,13 +78,13 @@ describe("Copilote SEO — exécution des opportunités", () => {
   });
 
   it("9. deux pages ne peuvent pas recevoir le même titre", () => {
-    const draft = suggestMeta(page());
+    const draft = suggestMeta(page(), REF);
     const issues = validateMeta(draft, [draft.title]);
     expect(issues.some((i) => i.message.includes("déjà utilisé"))).toBe(true);
   });
 
   it("10. une proposition valide ne produit aucune erreur", () => {
-    expect(validateMeta(suggestMeta(page()))).toEqual([]);
+    expect(validateMeta(suggestMeta(page(), REF))).toEqual([]);
   });
 
   it("11. aucune modification détectée = aucune écriture", () => {

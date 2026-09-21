@@ -29,6 +29,8 @@ const page = (over: Partial<EditablePage> = {}): EditablePage => ({
   ...over,
 });
 
+const REF = { cities: { quebec: "Québec", levis: "Lévis" }, services: { excavation: "Excavation" }, materials: { "pierre-concassee": "Pierre concassée" }, coverage: {} };
+
 describe("modes d'exécution", () => {
   it("expose le contenu comme mode par défaut d'un signal de position", () => {
     expect(availableModes("position_gain")[0]).toBe("content");
@@ -51,19 +53,19 @@ describe("modes d'exécution", () => {
 describe("1. renforcer le contenu", () => {
   it("conserve toujours le contenu existant et ajoute des sections", () => {
     const p = page();
-    const { draft, additions } = buildContentProposal(p);
+    const { draft, additions } = buildContentProposal(p, REF);
     expect(additions.length).toBeGreaterThan(0);
     expect(draft.content_html.startsWith(p.content_html!)).toBe(true);
     expect(contentWordCount(draft.content_html)).toBeGreaterThan(contentWordCount(p.content_html!));
   });
   it("n'invente aucun service ni territoire absent de la page", () => {
-    const { draft } = buildContentProposal(page({ city_slug: null, service_slug: null, title: null, slug: "page-test" }));
+    const { draft } = buildContentProposal(page({ city_slug: null, service_slug: null, title: null, slug: "page-test" }), REF);
     expect(draft.content_html).not.toContain("Levis");
     expect(draft.content_html).not.toContain("Excavation");
   });
   it("ne duplique pas une section déjà présente", () => {
     const p = page({ content_html: "<h2>Comment ça fonctionne</h2><p>x</p>" });
-    const { additions, notes } = buildContentProposal(p);
+    const { additions, notes } = buildContentProposal(p, REF);
     expect(additions.join(" ")).not.toContain("comment ça fonctionne</h2>");
     expect(notes.join(" ")).toContain("existe déjà");
   });
@@ -184,7 +186,7 @@ describe("4 & 5. groupes de pages et lot", () => {
 
 describe("sécurité d'exécution", () => {
   it("aucune proposition ne crée de page : elle ne renvoie que des champs de page existante", () => {
-    const { draft } = buildContentProposal(page());
+    const { draft } = buildContentProposal(page(), REF);
     expect(Object.keys(draft).sort()).toEqual(["content_html", "intro"]);
   });
   it("les destinations CTA restent dans les parcours connus du site", () => {
