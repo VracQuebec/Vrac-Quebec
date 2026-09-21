@@ -13,6 +13,10 @@ import {
   type ActionGroup,
   type ActionPriorityPage,
 } from "@/lib/seo/actionGroups";
+import OpportunityWorkPanel from "@/components/seo/OpportunityWorkPanel";
+import { capabilityOfGroup, workButtonLabel } from "@/lib/seo/workflow";
+
+type StatusSetter = (id: string, s: "dismissed" | "in_progress" | "completed" | "open" | "error", extra?: { error?: string | null; reason?: string | null }) => Promise<void>;
 
 const PRIORITY: Record<OpportunityPriority, { label: string; cls: string }> = {
   critical: { label: "CRITIQUE", cls: "bg-destructive text-destructive-foreground" },
