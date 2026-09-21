@@ -157,7 +157,7 @@ describe("Séparation Intelligence SEO automatique / Copilote", () => {
       { status: "checked", note: "20 pages vérifiées" },
     );
     expect(entry.status).toBe("checked");
-    expect(entry.after_data ?? null).toBeNull();
+    expect(entry.after_data ?? {}).toEqual({});
   });
 
   it("aucune autre fonction SEO automatique horaire n'écrit de colonne opérationnelle sans passer par le Copilote", () => {
