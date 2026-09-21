@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCopilot, SCAN_STEPS, type Opportunity, type OpportunityPriority } from "@/lib/seo/useCopilot";
+import { buildActionGroups, type ActionGroup } from "@/lib/seo/actionGroups";
 
 const PRIORITY: Record<OpportunityPriority, { label: string; cls: string }> = {
   critical: { label: "CRITIQUE", cls: "bg-destructive text-destructive-foreground" },
@@ -175,12 +176,138 @@ function OpportunityRow({ o, rank, onStatus }: { o: Opportunity; rank?: number; 
   );
 }
 
+const KIND_LABEL: Record<ActionGroup["kind"], string> = {
+  page: "Page",
+  territoire_service: "Territoire × service",
+  groupe: "Groupe",
+  technique: "Technique",
+};
+
+function ActionGroupCard({ g, rank, onStatus }: { g: ActionGroup; rank: number; onStatus: (id: string, s: "dismissed" | "in_progress" | "completed") => void }) {
+  const [open, setOpen] = useState(false);
+  const p = PRIORITY[g.priority] ?? PRIORITY.medium;
+  const o = g.primary;
+  return (
+    <li className="p-4">
+      <div className="flex items-start justify-between gap-3">
+        <button onClick={() => setOpen((v) => !v)} className="min-w-0 flex-1 text-left">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="text-[10px] font-display font-bold text-muted-foreground">#{rank}</span>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-display font-bold tracking-wider ${p.cls}`}>{p.label}</span>
+            <span className="text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground">{KIND_LABEL[g.kind]}</span>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-display font-bold ${g.singleAction ? "bg-primary/15 text-primary" : "bg-secondary text-secondary-foreground"}`}>
+              {g.singleAction ? "ACTION UNIQUE" : `${g.distinctActions} ACTIONS`}
+            </span>
+            {(g.conversions ?? 0) > 0 && (
+              <span className="px-2 py-0.5 rounded text-[10px] font-display font-bold bg-primary/15 text-primary">
+                {g.conversions} CONVERSION{(g.conversions ?? 0) > 1 ? "S" : ""}
+              </span>
+            )}
+            <span className="text-[10px] text-muted-foreground">Score {g.score}/100</span>
+          </div>
+          <div className="font-display font-semibold text-foreground flex items-center gap-1">
+            {open ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
+            {g.title}
+          </div>
+          {o.url && <div className="text-xs font-mono text-muted-foreground truncate mt-0.5">{o.url}</div>}
+          <div className="text-xs text-muted-foreground mt-1">
+            Impressions {g.impressions == null ? "—" : g.impressions.toLocaleString("fr-CA")} ·
+            {" "}Clics {g.clicks == null ? "—" : g.clicks.toLocaleString("fr-CA")} ·
+            {" "}CTR {g.ctr == null ? "—" : `${(g.ctr * 100).toFixed(2)} %`} ·
+            {" "}Position {g.position == null ? "—" : g.position.toFixed(1)} ·
+            {" "}Conversions {g.conversions == null ? "—" : g.conversions} ·
+            {" "}Pages concernées {g.pages || "—"} · Signaux {g.members.length}
+          </div>
+          <div className="text-sm text-muted-foreground mt-1">{o.reason ?? o.rationale}</div>
+          {g.relatedGroups.length > 0 && (
+            <div className="text-xs text-muted-foreground mt-1 italic">
+              Cette action fait partie d'un constat plus large : {g.relatedGroups.map((r) => r.title).join(" · ")}
+            </div>
+          )}
+        </button>
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <button onClick={() => onStatus(o.id, "in_progress")}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-display font-semibold hover:opacity-90">
+            <Zap className="w-3.5 h-3.5" /> Travailler
+          </button>
+          <button onClick={() => onStatus(o.id, "completed")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+            <Check className="w-3 h-3" /> Terminée
+          </button>
+          <button onClick={() => onStatus(o.id, "dismissed")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+            <X className="w-3 h-3" /> Ignorer
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="mt-3 space-y-3">
+          <div className="grid gap-3 md:grid-cols-2 rounded-md border border-border bg-secondary/30 p-3 text-xs">
+            <div className="space-y-2">
+              <div>
+                <div className="font-display font-bold text-foreground mb-1">Pourquoi cette action ?</div>
+                <p className="text-muted-foreground">{o.reason ?? o.rationale}</p>
+              </div>
+              <div>
+                <div className="font-display font-bold text-foreground mb-1">Action recommandée</div>
+                <p className="text-muted-foreground">{o.recommended_action ?? "—"}</p>
+              </div>
+              {o.expected_impact && (
+                <div>
+                  <div className="font-display font-bold text-foreground mb-1">Impact attendu</div>
+                  <p className="text-muted-foreground">{o.expected_impact}</p>
+                </div>
+              )}
+              <div className="text-muted-foreground">
+                <div><span className="text-foreground">Territoire :</span> {g.city ?? "—"}</div>
+                <div><span className="text-foreground">Service :</span> {g.service ?? "—"}</div>
+                <div><span className="text-foreground">Source :</span> {o.source ?? "—"}</div>
+              </div>
+            </div>
+            <div>
+              <div className="font-display font-bold text-foreground mb-1">Pourquoi dans le top ? (score {g.score}/100)</div>
+              <ul className="space-y-0.5">
+                {(o.score_factors ?? []).map((f, i) => (
+                  <li key={`${f.label}-${i}`} className="text-muted-foreground flex justify-between gap-2">
+                    <span>{f.label}</span>
+                    <span className={f.points >= 0 ? "text-primary font-semibold" : "text-destructive font-semibold"}>
+                      {f.points > 0 ? "+" : ""}{f.points}
+                    </span>
+                  </li>
+                ))}
+                {(o.score_factors?.length ?? 0) === 0 && <li className="text-muted-foreground">—</li>}
+              </ul>
+              <div className="mt-1 pt-1 border-t border-border flex justify-between font-display font-bold text-foreground">
+                <span>TOTAL</span><span>{o.score}/100</span>
+              </div>
+            </div>
+          </div>
+
+          {g.members.length > 1 && (
+            <div className="rounded-md border border-border p-3 text-xs space-y-1">
+              <div className="font-display font-bold text-foreground">
+                Signaux regroupés dans cette action ({g.members.length})
+              </div>
+              {g.members.map((m) => (
+                <div key={m.id} className="text-muted-foreground">
+                  <span className="text-foreground">{TYPE_LABEL[m.type] ?? m.type}</span> — {m.title} · score {m.score}
+                  {m.recommended_action ? ` · ${m.recommended_action}` : ""}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
 export default function CopilotDashboard() {
   const { data, copilot, loading, scanning, step, rescan, reload, setOpportunityStatus } = useCopilot();
   const [showDiag, setShowDiag] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [showAll, setShowAll] = useState(false);
+  const [mode, setMode] = useState<"actions" | "all">("actions");
 
   if (loading && !data) {
     return <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
@@ -194,6 +321,9 @@ export default function CopilotDashboard() {
 
   const filtered = opps.filter((o) => matchFilter(o, filter));
   const visible = showAll ? filtered : filtered.slice(0, 10);
+  const actionGroups = buildActionGroups(filtered);
+  const visibleGroups = showAll ? actionGroups : actionGroups.slice(0, 10);
+  const grouped = actionGroups.filter((g) => g.members.length > 1).length;
 
   const onStatus = async (id: string, s: "dismissed" | "in_progress" | "completed") => {
     await setOpportunityStatus(id, s);
@@ -266,7 +396,17 @@ export default function CopilotDashboard() {
           <KpiCard label="Fort potentiel" value={counts.high_potential ?? 0} icon={TrendingUp} hint="Score ≥ 60" />
         </div>
 
-        <div className="flex flex-wrap gap-1.5 mb-3">
+        <div className="flex flex-wrap items-center gap-1.5 mb-3">
+          <div className="inline-flex rounded-md border border-border overflow-hidden mr-2">
+            <button onClick={() => { setMode("actions"); setShowAll(false); }}
+              className={`px-3 py-1 text-xs font-display font-semibold ${mode === "actions" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}>
+              Actions uniques ({actionGroups.length})
+            </button>
+            <button onClick={() => { setMode("all"); setShowAll(false); }}
+              className={`px-3 py-1 text-xs font-display font-semibold ${mode === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}>
+              Toutes les opportunités ({filtered.length})
+            </button>
+          </div>
           {FILTERS.map((f) => (
             <button key={f.key} onClick={() => { setFilter(f.key); setShowAll(false); }}
               className={`px-2.5 py-1 rounded-md text-xs font-display font-semibold border ${filter === f.key ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}>
@@ -291,16 +431,23 @@ export default function CopilotDashboard() {
           </div>
         ) : (
           <>
+            {mode === "actions" && (
+              <p className="text-xs text-muted-foreground mb-2">
+                {actionGroups.length} action(s) distincte(s) à partir de {filtered.length} opportunité(s) — {grouped} action(s) regroupent plusieurs signaux. Aucune opportunité n'est supprimée : tout reste visible dans « Toutes les opportunités ».
+              </p>
+            )}
             <ul className="rounded-lg border border-border bg-card divide-y divide-border">
-              {visible.map((o, i) => <OpportunityRow key={o.id} o={o} rank={i + 1} onStatus={onStatus} />)}
+              {mode === "actions"
+                ? visibleGroups.map((g, i) => <ActionGroupCard key={g.key} g={g} rank={i + 1} onStatus={onStatus} />)
+                : visible.map((o, i) => <OpportunityRow key={o.id} o={o} rank={i + 1} onStatus={onStatus} />)}
             </ul>
-            {filtered.length > visible.length && (
+            {(mode === "actions" ? actionGroups.length > visibleGroups.length : filtered.length > visible.length) && (
               <button onClick={() => setShowAll(true)}
                 className="mt-2 w-full rounded-md border border-border py-2 text-sm font-display font-semibold hover:bg-secondary">
-                Voir toutes les opportunités ({filtered.length})
+                {mode === "actions" ? `Voir toutes les actions (${actionGroups.length})` : `Voir toutes les opportunités (${filtered.length})`}
               </button>
             )}
-            {showAll && filtered.length > 10 && (
+            {showAll && (mode === "actions" ? actionGroups.length : filtered.length) > 10 && (
               <button onClick={() => setShowAll(false)}
                 className="mt-2 w-full rounded-md border border-border py-2 text-sm font-display font-semibold hover:bg-secondary">
                 Afficher seulement le top 10
