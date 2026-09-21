@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCopilot, SCAN_STEPS, type Opportunity, type OpportunityPriority } from "@/lib/seo/useCopilot";
+import { buildActionGroups, type ActionGroup } from "@/lib/seo/actionGroups";
 
 const PRIORITY: Record<OpportunityPriority, { label: string; cls: string }> = {
   critical: { label: "CRITIQUE", cls: "bg-destructive text-destructive-foreground" },
