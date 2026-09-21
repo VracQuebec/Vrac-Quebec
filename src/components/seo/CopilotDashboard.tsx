@@ -19,11 +19,40 @@ const TYPE_LABEL: Record<string, string> = {
   ctr_top10: "CTR faible en top 10",
   position_gain: "Gain de position possible",
   not_indexed: "Publiée non indexée",
+  not_indexed_bulk: "Indexation — constat global",
   converting_page: "Page qui convertit",
   local_potential: "Potentiel territoire × service",
   low_qa: "Qualité SEO faible",
   cannibalization: "Cannibalisation à vérifier",
+  group_service: "Groupe — service",
+  group_territory: "Groupe — territoire",
 };
+
+type FilterKey =
+  | "all" | "critical" | "high" | "medium"
+  | "technique" | "ctr" | "position" | "conversion"
+  | "indexation" | "cannibalisation" | "territoire_service" | "groupe";
+
+const FILTERS: Array<{ key: FilterKey; label: string }> = [
+  { key: "all", label: "Toutes" },
+  { key: "critical", label: "Critiques" },
+  { key: "high", label: "Hautes" },
+  { key: "medium", label: "Moyennes" },
+  { key: "technique", label: "SEO technique" },
+  { key: "ctr", label: "CTR" },
+  { key: "position", label: "Position" },
+  { key: "conversion", label: "Conversion" },
+  { key: "indexation", label: "Indexation" },
+  { key: "cannibalisation", label: "Cannibalisation" },
+  { key: "territoire_service", label: "Territoire × service" },
+  { key: "groupe", label: "Groupes" },
+];
+
+function matchFilter(o: Opportunity, f: FilterKey): boolean {
+  if (f === "all") return true;
+  if (f === "critical" || f === "high" || f === "medium") return o.priority === f;
+  return o.category === f;
+}
 
 function KpiCard({ label, value, icon: Icon, hint }: { label: string; value: string | number; icon: React.ComponentType<{ className?: string }>; hint?: string }) {
   return (
