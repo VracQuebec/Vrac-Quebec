@@ -89,11 +89,11 @@ async function materializeBatch(sb: SupabaseClient, run: any, batch: any) {
     return;
   }
 
-  // Normal: hub + materials + services for this city.
-  const [{ data: mats }, { data: svcs }] = await Promise.all([
-    sb.from("seo_materials").select("slug").eq("active", true),
-    sb.from("seo_services").select("slug").eq("active", true),
-  ]);
+  // Normal mode: the ONLY source of truth for relevance is the shared
+  // `seo_city_slots_expected` function — the same one used by the per-city
+  // generator and the control center. Theoretical combinations (every
+  // material × every service) are never queued.
+  const { data: slots } = await sb.rpc("seo_city_slots_expected", { _city_slug: citySlug });
 
   // Persistent-state guarantee: never re-queue pages that already exist
   // unless the run explicitly requested a force regeneration. This keeps
@@ -124,18 +124,19 @@ async function materializeBatch(sb: SupabaseClient, run: any, batch: any) {
     (force || !existingKeys.has(`${material ?? ""}::${service ?? ""}`));
 
   const rows: any[] = [];
-  if (shouldQueue(null, null)) {
-    rows.push({ batch_id: batch.id, run_id: run.id, city_slug: citySlug, material_slug: null, service_slug: null, kind: "full", status: "queued", max_attempts: run.max_retries ?? 3 });
-  }
-  for (const m of mats ?? []) {
-    if (shouldQueue(m.slug, null)) {
-      rows.push({ batch_id: batch.id, run_id: run.id, city_slug: citySlug, material_slug: m.slug, service_slug: null, kind: "full", status: "queued", max_attempts: run.max_retries ?? 3 });
-    }
-  }
-  for (const s of svcs ?? []) {
-    if (shouldQueue(null, s.slug)) {
-      rows.push({ batch_id: batch.id, run_id: run.id, city_slug: citySlug, material_slug: null, service_slug: s.slug, kind: "full", status: "queued", max_attempts: run.max_retries ?? 3 });
-    }
+  const seen = new Set<string>();
+  for (const slot of (slots as any[]) ?? []) {
+    const material = slot.material_slug ?? null;
+    const service = slot.service_slug ?? null;
+    const key = `${material ?? ""}::${service ?? ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (!shouldQueue(material, service)) continue;
+    rows.push({
+      batch_id: batch.id, run_id: run.id, city_slug: citySlug,
+      material_slug: material, service_slug: service,
+      kind: "full", status: "queued", max_attempts: run.max_retries ?? 3,
+    });
   }
   if (rows.length) await sb.from("seo_page_tasks").insert(rows);
   await sb.from("seo_city_batches").update({
