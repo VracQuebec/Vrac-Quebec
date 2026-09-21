@@ -5,6 +5,7 @@ import {
   FileText, ExternalLink, Zap, X, Check, ChevronDown, ChevronRight, CircleHelp, History,
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useCopilot, SCAN_STEPS, type Opportunity, type OpportunityPriority } from "@/lib/seo/useCopilot";
 import {
   buildActionGroups,
@@ -453,6 +454,9 @@ export default function CopilotDashboard() {
   const [showCounters, setShowCounters] = useState(false);
   const [dismissId, setDismissId] = useState<string | null>(null);
   const [dismissReason, setDismissReason] = useState("");
+  const [showDone, setShowDone] = useState(false);
+  const [doneOpps, setDoneOpps] = useState<Opportunity[] | null>(null);
+  const [doneLoading, setDoneLoading] = useState(false);
 
   if (loading && !data) {
     return <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
@@ -512,6 +516,20 @@ export default function CopilotDashboard() {
     setDismissId(null);
     setDismissReason("");
   };
+  const loadDone = async () => {
+    setShowDone((v) => !v);
+    if (doneOpps || doneLoading) return;
+    setDoneLoading(true);
+    const { data: rows } = await supabase
+      .from("seo_opportunities")
+      .select("*")
+      .in("status", ["completed", "applied"])
+      .order("applied_at", { ascending: false, nullsFirst: false })
+      .limit(50);
+    setDoneOpps((rows ?? []) as unknown as Opportunity[]);
+    setDoneLoading(false);
+  };
+  const doneGroups = doneOpps ? buildActionGroups(doneOpps) : [];
 
   return (
     <div className="space-y-6">
@@ -693,6 +711,32 @@ export default function CopilotDashboard() {
           </>
         )}
       </div>
+
+      {/* Travaux terminés — conservés, réouvrables, restaurables */}
+      <div className="rounded-lg border border-border bg-card" data-testid="completed-work">
+        <button onClick={() => void loadDone()} className="w-full flex items-center justify-between p-3 text-left">
+          <span className="flex items-center gap-2 text-sm font-display font-bold text-foreground">
+            <Check className="w-4 h-4" /> Travaux terminés ({Number(counts.completed ?? 0) + Number(counts.applied ?? 0)})
+          </span>
+          {showDone ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </button>
+        {showDone && (
+          <div className="border-t border-border">
+            {doneLoading && <div className="p-3 text-xs text-muted-foreground">Chargement…</div>}
+            {!doneLoading && doneGroups.length === 0 && (
+              <div className="p-3 text-xs text-muted-foreground">Aucune action terminée pour le moment.</div>
+            )}
+            <ul className="divide-y divide-border">
+              {doneGroups.map((g, i) => (
+                <ActionGroupCard key={g.key} g={g} rank={i + 1}
+                  priorityPages={buildPriorityPagesForAction(g, actionPageMetrics, g.kind === "page" ? 1 : 10)}
+                  onStatus={onStatus} onWork={openWork} onDismiss={setDismissId} />
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
 
       {/* Diagnostic */}
       {run && (

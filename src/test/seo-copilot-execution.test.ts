@@ -36,8 +36,8 @@ describe("modes d'exécution", () => {
   it("expose le CTA comme mode par défaut d'une page qui convertit", () => {
     expect(availableModes("converting_page")[0]).toBe("cta");
   });
-  it("expose les 4 modes pour un signal territoire × service", () => {
-    expect(availableModes("local_potential").sort()).toEqual(["content", "cta", "internal_links", "titles_meta"]);
+  it("expose les modes d'écriture pour un signal territoire × service", () => {
+    expect(availableModes("local_potential").sort()).toEqual(["content", "cta", "internal_links", "publish", "titles_meta"]);
   });
   it("n'expose aucun mode d'écriture pour un signal de vérification", () => {
     expect(availableModes("not_indexed")).toEqual([]);

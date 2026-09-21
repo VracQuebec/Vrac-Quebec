@@ -279,13 +279,14 @@ export function buildLogEntry(
 // réelles de la page. Aucune URL, offre ou service inventé.
 // =====================================================================
 
-export type WorkMode = "titles_meta" | "content" | "cta" | "internal_links";
+export type WorkMode = "titles_meta" | "content" | "cta" | "internal_links" | "publish";
 
 export const MODE_LABEL: Record<WorkMode, string> = {
   titles_meta: "Titres et metas",
   content: "Renforcer le contenu",
   cta: "Renforcer le CTA",
   internal_links: "Renforcer le maillage interne",
+  publish: "Publication",
 };
 
 /** Modes réellement exécutables pour un signal donné (le premier est le mode par défaut). */
@@ -295,13 +296,13 @@ export function availableModes(type: string): WorkMode[] {
     case "ctr_top10":
     case "group_service":
     case "group_territory":
-      return ["titles_meta", "content", "cta", "internal_links"];
+      return ["titles_meta", "content", "cta", "internal_links", "publish"];
     case "position_gain":
-      return ["content", "titles_meta", "internal_links", "cta"];
+      return ["content", "titles_meta", "internal_links", "cta", "publish"];
     case "converting_page":
-      return ["cta", "internal_links", "content", "titles_meta"];
+      return ["cta", "internal_links", "content", "titles_meta", "publish"];
     case "local_potential":
-      return ["titles_meta", "content", "cta", "internal_links"];
+      return ["titles_meta", "content", "cta", "internal_links", "publish"];
     case "not_indexed":
     case "not_indexed_bulk":
     case "low_qa":
@@ -541,4 +542,125 @@ export function validateInternalLinks(added: InternalLinkItem[], knownSlugs: str
     if (!known.has(l.href)) issues.push({ field: "title", message: `Lien inconnu : ${l.href} ne correspond à aucune page SEO existante.` });
   }
   return issues;
+}
+
+// ======================================================================
+// F. PUBLICATION — action sensible : jamais automatique.
+// ======================================================================
+
+export type PublishState = {
+  isDraft: boolean;
+  isPublished: boolean;
+  label: string;
+  /** Vrai quand l'action « Publier » a un effet réel sur cette page. */
+  canPublish: boolean;
+};
+
+export function publishState(page: Pick<EditablePage, "status">): PublishState {
+  const status = (page.status ?? "").toLowerCase();
+  const isPublished = status === "published";
+  const isDraft = !isPublished;
+  return {
+    isDraft,
+    isPublished,
+    canPublish: isDraft,
+    label: isPublished
+      ? "Page publiée — toute modification est immédiatement visible en ligne"
+      : `Brouillon (statut « ${page.status ?? "inconnu"} ») — non visible en ligne`,
+  };
+}
+
+export function validatePublish(page: EditablePage): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  if (!(page.title ?? "").trim()) issues.push({ field: "title", message: "Impossible de publier : la page n'a pas de titre." });
+  if (!(page.meta_description ?? "").trim()) issues.push({ field: "meta_description", message: "Impossible de publier : la page n'a pas de meta description." });
+  if (contentTextLength(page.content_html ?? "") < 200) {
+    issues.push({ field: "title", message: "Impossible de publier : contenu insuffisant (moins de 200 caractères)." });
+  }
+  return issues;
+}
+
+// ======================================================================
+// 16. PROTECTION CONTRE LES MODIFICATIONS CONCURRENTES
+// ======================================================================
+
+/** Champs opérationnels comparés avant toute écriture. */
+export const CONCURRENCY_FIELDS = ["title", "meta_description", "intro", "content_html", "internal_links", "status"] as const;
+
+export function pageFingerprint(page: Partial<EditablePage>): string {
+  return CONCURRENCY_FIELDS
+    .map((f) => {
+      const v = (page as Record<string, unknown>)[f];
+      if (v == null) return "";
+      return typeof v === "string" ? v : JSON.stringify(v);
+    })
+    .join("\u0000");
+}
+
+/**
+ * Compare l'état chargé dans le panneau et l'état actuel en base.
+ * Retourne un message bloquant si la page a changé entre-temps.
+ */
+export function detectConcurrentChange(
+  loaded: Partial<EditablePage> | null,
+  current: Partial<EditablePage> | null,
+): string | null {
+  if (!current) return "La page n'existe plus en base : relancez une analyse.";
+  if (!loaded) return "État de référence introuvable : rechargez l'opportunité.";
+  if (pageFingerprint(loaded) === pageFingerprint(current)) return null;
+  const changed = CONCURRENCY_FIELDS.filter((f) => {
+    const a = (loaded as Record<string, unknown>)[f];
+    const b = (current as Record<string, unknown>)[f];
+    return JSON.stringify(a ?? null) !== JSON.stringify(b ?? null);
+  });
+  return `Modification concurrente détectée (${changed.join(", ")}) : rechargez l'opportunité avant d'écrire.`;
+}
+
+// ======================================================================
+// 8. RESTAURATION SÉCURISÉE d'une modification appliquée
+// ======================================================================
+
+export type RestorablePayload = Record<string, unknown> | null | undefined;
+
+export type RestorePlan = {
+  update: Record<string, unknown>;
+  summary: string;
+};
+
+/**
+ * Construit la restauration à partir du `before_data` réellement journalisé.
+ * Aucune valeur inventée : seuls les champs présents dans l'historique sont rétablis.
+ */
+export function buildRestorePlan(before: RestorablePayload, slug?: string | null): RestorePlan | null {
+  if (!before || typeof before !== "object") return null;
+  const update: Record<string, unknown> = {};
+  const parts: string[] = [];
+  const b = before as Record<string, unknown>;
+
+  if ("title" in b) { update.title = b.title ?? null; parts.push("titre"); }
+  if ("meta_description" in b) { update.meta_description = b.meta_description ?? null; parts.push("meta description"); }
+  if ("intro" in b) { update.intro = b.intro ?? null; parts.push("intro"); }
+  if ("content_html" in b) {
+    update.content_html = b.content_html ?? null;
+    update.word_count = contentWordCount(typeof b.content_html === "string" ? b.content_html : "");
+    parts.push("contenu");
+  }
+  if ("internal_links" in b && Array.isArray(b.internal_links)) {
+    update.internal_links = b.internal_links;
+    update.internal_link_count = (b.internal_links as unknown[]).length;
+    parts.push("liens internes");
+  }
+  if ("status" in b) { update.status = b.status ?? null; parts.push("statut de publication"); }
+  if ("cta" in b && !("content_html" in b)) {
+    // Le CTA est stocké dans le contenu : sans `content_html` la restauration est impossible.
+    return null;
+  }
+  if (Object.keys(update).length === 0) return null;
+  return { update, summary: `${slug ? `/${slug} — ` : ""}restaurer ${parts.join(", ")}` };
+}
+
+export function canRestore(log: { status: string; before_data?: RestorablePayload; page_id?: string | null }): boolean {
+  if (log.status !== "applied") return false;
+  if (!log.page_id) return false;
+  return buildRestorePlan(log.before_data) !== null;
 }

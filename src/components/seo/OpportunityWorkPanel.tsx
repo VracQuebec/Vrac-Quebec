@@ -10,12 +10,13 @@ import {
   extractCta, mergeInternalLinks, suggestCta, suggestInternalLinks, upsertCtaBlock,
   validateCta, validateContent, validateInternalLinks,
   buildLogEntry, capabilityOfGroup, hasChanges, runVerification, suggestMeta, validateMeta,
+  publishState, validatePublish, detectConcurrentChange, buildRestorePlan, canRestore,
   type BatchItem, type ContentDraft, type CtaDraft, type EditablePage, type InternalLinkItem,
   type LinkCandidate, type MetaDraft, type WorkCapability, type WorkMode,
 } from "@/lib/seo/workflow";
 
 type LogRow = {
-  id: string; status: string; action_type: string; page_slug: string | null;
+  id: string; status: string; action_type: string; page_id: string | null; page_slug: string | null;
   before_data: unknown; after_data: unknown; error: string | null; created_at: string; note: string | null;
 };
 
@@ -46,6 +47,8 @@ export default function OpportunityWorkPanel({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [mode, setMode] = useState<WorkMode>("titles_meta");
   const [confirming, setConfirming] = useState<string[] | null>(null);
+  const [restoring, setRestoring] = useState<LogRow | null>(null);
+  const [restoreBusy, setRestoreBusy] = useState(false);
 
   const capability: WorkCapability = group ? capabilityOfGroup(group) : "not_configured";
   const modes: WorkMode[] = group ? availableModes(group.primary.type) : [];
@@ -53,7 +56,7 @@ export default function OpportunityWorkPanel({
   const loadLogs = useCallback(async (oppId: string) => {
     const { data } = await supabase
       .from("seo_opportunity_actions")
-      .select("id,status,action_type,page_slug,before_data,after_data,error,created_at,note")
+      .select("id,status,action_type,page_id,page_slug,before_data,after_data,error,created_at,note")
       .eq("opportunity_id", oppId)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -195,6 +198,16 @@ export default function OpportunityWorkPanel({
         summary: `/${p.slug} — CTA « ${draft.text} » → ${draft.href}`,
       };
     }
+    if (mode === "publish") {
+      const st = publishState(p);
+      if (!st.canPublish) return null;
+      return {
+        update: { status: "published", published_at: new Date().toISOString() },
+        before: { status: p.status ?? null },
+        after: { status: "published" },
+        summary: `/${p.slug} — publication du brouillon (statut « ${p.status ?? "inconnu"} » → publié)`,
+      };
+    }
     // maillage interne
     const sel = linkSel[p.id];
     if (!sel || sel.size === 0) return null;
@@ -220,6 +233,7 @@ export default function OpportunityWorkPanel({
       return validateContent({ intro: p.intro ?? "", content_html: p.content_html ?? "" }, contentDrafts[p.id])[0]?.message ?? null;
     }
     if (mode === "cta") return validateCta(ctaDrafts[p.id], p)[0]?.message ?? null;
+    if (mode === "publish") return validatePublish(p)[0]?.message ?? null;
     const sel = linkSel[p.id] ?? new Set<string>();
     const added = suggestInternalLinks(p, candidates).filter((s) => sel.has(s.href));
     return validateInternalLinks(added, knownSlugs)[0]?.message ?? null;
@@ -259,6 +273,17 @@ export default function OpportunityWorkPanel({
     let failures = 0;
     for (const { page, change } of list) {
       try {
+        // 16. Protection contre les modifications concurrentes : on relit la page
+        // et on refuse d'écraser une modification survenue depuis le chargement.
+        const { data: fresh, error: freshError } = await supabase
+          .from("seo_pages")
+          .select("id,title,meta_description,intro,content_html,internal_links,status")
+          .eq("id", page.id)
+          .maybeSingle();
+        if (freshError) throw freshError;
+        const conflict = detectConcurrentChange(page, fresh as never);
+        if (conflict) throw new Error(conflict);
+
         const { error } = await supabase.from("seo_pages")
           .update({ ...change.update, updated_at: new Date().toISOString() } as never)
           .eq("id", page.id);
@@ -290,6 +315,44 @@ export default function OpportunityWorkPanel({
       toast.success("Modifications enregistrées et opportunité marquée terminée.");
     }
     await load();
+  };
+
+  /** 8. Restauration sécurisée : réécrit les valeurs « avant » réellement journalisées. */
+  const runRestore = async (entry: LogRow) => {
+    const plan = buildRestorePlan(entry.before_data as Record<string, unknown>, entry.page_slug);
+    if (!plan || !entry.page_id) { toast.error("Aucune version précédente restaurable pour cette entrée."); return; }
+    setRestoreBusy(true);
+    try {
+      const { data: current, error: readErr } = await supabase
+        .from("seo_pages")
+        .select("id,title,meta_description,intro,content_html,internal_links,status")
+        .eq("id", entry.page_id)
+        .maybeSingle();
+      if (readErr) throw readErr;
+      if (!current) throw new Error("La page n'existe plus en base.");
+      const { error } = await supabase.from("seo_pages")
+        .update({ ...plan.update, updated_at: new Date().toISOString() } as never)
+        .eq("id", entry.page_id);
+      if (error) throw error;
+      await log(buildLogEntry(group, {
+        status: "applied", page_id: entry.page_id, page_slug: entry.page_slug,
+        before_data: current as Record<string, unknown>, after_data: plan.update,
+        note: `Restauration de la version précédente (${MODE_LABEL[mode]})`,
+      }));
+      toast.success("Version précédente restaurée. L'historique est conservé.");
+      setRestoring(null);
+      await load();
+    } catch (e) {
+      const msg = errMessage(e);
+      await log(buildLogEntry(group, {
+        status: "failed", page_id: entry.page_id, page_slug: entry.page_slug,
+        error: msg, note: "Restauration",
+      }));
+      toast.error(`Restauration impossible : ${msg}`);
+      await loadLogs(o.id);
+    } finally {
+      setRestoreBusy(false);
+    }
   };
 
   const progress = batch ? batchProgress(batch) : null;
@@ -550,6 +613,26 @@ export default function OpportunityWorkPanel({
                     </div>
                   </>)}
 
+                  {mode === "publish" && (() => {
+                    const st = publishState(p);
+                    const blockers = validatePublish(p);
+                    return (
+                      <div className="rounded border border-border bg-secondary/30 p-2 space-y-1" data-testid="publish-state">
+                        <div className="text-foreground font-semibold">{st.isPublished ? "Page publiée" : "Brouillon"}</div>
+                        <div className="text-muted-foreground">{st.label}</div>
+                        {st.isPublished && <div className="text-muted-foreground">Aucune publication nécessaire : cette page est déjà en ligne.</div>}
+                        {!st.isPublished && blockers.length > 0 && (
+                          <div className="text-destructive">{blockers.map((b) => b.message).join(" ")}</div>
+                        )}
+                        {!st.isPublished && blockers.length === 0 && (
+                          <div className="text-foreground">Après confirmation : statut « {p.status ?? "inconnu"} » → <span className="font-semibold">publié</span>.</div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+
+
                   {issue && <div className="text-destructive">{issue}</div>}
                   {item?.error && <div className="text-destructive">Erreur : {item.error}</div>}
                 </div>
@@ -593,20 +676,40 @@ export default function OpportunityWorkPanel({
         )}
 
         {/* HISTORIQUE */}
-        <div className="rounded-md border border-border p-3 text-xs space-y-1">
+        <div className="rounded-md border border-border p-3 text-xs space-y-1" data-testid="work-history">
           <div className="font-display font-bold text-foreground">Historique de cette opportunité ({logs.length})</div>
           {logs.length === 0 && <div className="text-muted-foreground">Aucune action enregistrée pour le moment.</div>}
           {logs.map((l) => (
-            <div key={l.id} className="text-muted-foreground">
+            <div key={l.id} className="text-muted-foreground flex flex-wrap items-center gap-x-1">
               <span className={l.status === "applied" ? "text-primary" : l.status === "failed" ? "text-destructive" : ""}>
                 {l.status === "applied" ? <Check className="w-3 h-3 inline" /> : null} {l.status}
               </span>
-              {" · "}{new Date(l.created_at).toLocaleString("fr-CA")}
-              {l.note ? ` · ${l.note}` : ""}
-              {l.page_slug ? ` · /${l.page_slug}` : ""}
-              {l.error ? ` · ${l.error}` : ""}
+              <span>{" · "}{new Date(l.created_at).toLocaleString("fr-CA")}</span>
+              {l.note ? <span>{` · ${l.note}`}</span> : null}
+              {l.page_slug ? <span>{` · /${l.page_slug}`}</span> : null}
+              {l.error ? <span className="text-destructive">{` · ${l.error}`}</span> : null}
+              {canRestore({ status: l.status, page_id: l.page_id, before_data: l.before_data as Record<string, unknown> }) && (
+                <button onClick={() => setRestoring(l)} data-testid="restore-entry"
+                  className="ml-1 underline text-foreground">Restaurer la version précédente</button>
+              )}
             </div>
           ))}
+          {restoring && (
+            <div className="mt-2 rounded-md border border-primary/40 bg-primary/5 p-2 space-y-2" data-testid="restore-confirm">
+              <div className="text-foreground font-display font-bold">Restaurer la version précédente ?</div>
+              <div className="text-muted-foreground">
+                {buildRestorePlan(restoring.before_data as Record<string, unknown>, restoring.page_slug)?.summary}
+                {" "}— l'historique existant est conservé et une nouvelle entrée est ajoutée.
+              </div>
+              <div className="flex gap-2">
+                <button disabled={restoreBusy} onClick={() => void runRestore(restoring)}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-primary-foreground font-display font-semibold disabled:opacity-60">
+                  {restoreBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />} Confirmer la restauration
+                </button>
+                <button onClick={() => setRestoring(null)} className="px-3 py-1.5 rounded-md border border-border">Annuler</button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
