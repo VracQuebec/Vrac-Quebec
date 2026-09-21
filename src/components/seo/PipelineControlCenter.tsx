@@ -13,9 +13,14 @@ import CityPagesDialog from "@/components/seo/CityPagesDialog";
 import { CityDetailDialog } from "@/components/seo/CityGenerator";
 import { useCityGeneration } from "@/lib/seo/useCityGeneration";
 import { repairSeoPages } from "@/lib/seo/useSeoCityMatrix";
+import { useGlobalGeneration } from "@/lib/seo/useGlobalGeneration";
+import {
+  canStartGlobal, confirmationLines, finalSummary, failureNotice,
+  globalPhase, PHASE_LABEL, runProgress, shouldOfferRetry,
+} from "@/lib/seo/globalGeneration";
 import {
   Play, Pause, Square, Rocket, RefreshCw, Send, ListRestart,
-  Loader2, AlertTriangle, ExternalLink, FileText, CheckCircle2,
+  Loader2, AlertTriangle, ExternalLink, FileText, CheckCircle2, Wand2,
 } from "lucide-react";
 
 type FilterKey = "all" | "done" | "partial" | "running" | "todo" | "error";
@@ -55,6 +60,29 @@ export default function PipelineControlCenter() {
   // Même logique de génération que le Générateur (aucune architecture parallèle).
   const gen = useCityGeneration();
   const workCity = workSlug ? gen.bySlug.get(workSlug) ?? null : null;
+  // ── Génération globale (orchestration du moteur existant) ──
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const activeRun = state?.active_run ?? null;
+  const phase = globalPhase(activeRun as never);
+  const global = useGlobalGeneration(phase === "running" || phase === "paused");
+  const startable = canStartGlobal(global.preview, activeRun as never);
+  const prog = runProgress(activeRun as never);
+
+  async function launchGlobal() {
+    setConfirmOpen(false);
+    try {
+      const r = await global.start();
+      await reload();
+      toast({
+        title: r.created
+          ? `Génération lancée sur ${r.cities} ville(s)`
+          : "Génération déjà en cours — rien n'a été relancé",
+        description: "Les nouvelles pages sont créées en brouillon. Aucune publication automatique.",
+      });
+    } catch (e) {
+      toast({ title: "Lancement impossible", description: e instanceof Error ? e.message : "Erreur", variant: "destructive" });
+    }
+  }
 
   const totals = state?.totals ?? null;
   const run = state?.active_run ?? null;
