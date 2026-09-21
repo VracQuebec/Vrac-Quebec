@@ -169,6 +169,13 @@
       "when": 1790014501975,
       "tag": "0023_seo_copilot_state_full_counters",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790021534747,
+      "tag": "0024_seo_pipeline_missing_global",
+      "breakpoints": true
     }
   ]
 }

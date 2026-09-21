@@ -19599,6 +19599,7 @@ export type Database = {
         Returns: Json
       }
       seo_pipeline_health: { Args: never; Returns: Json }
+      seo_pipeline_missing_preview: { Args: never; Returns: Json }
       seo_pipeline_pause: { Args: { _run_id: string }; Returns: undefined }
       seo_pipeline_purge_stale: { Args: never; Returns: number }
       seo_pipeline_regenerate_city: {
@@ -19619,6 +19620,10 @@ export type Database = {
           _qa_threshold?: number
         }
         Returns: string
+      }
+      seo_pipeline_start_missing: {
+        Args: { _qa_threshold?: number }
+        Returns: Json
       }
       seo_pipeline_state: { Args: never; Returns: Json }
       seo_pipeline_state_v2: { Args: never; Returns: Json }
