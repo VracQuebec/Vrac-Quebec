@@ -99,7 +99,7 @@ describe("2. renforcer le CTA", () => {
     expect(ctaDestinations({ city_slug: null }).some((d) => d.href.startsWith("/livraison/"))).toBe(false);
   });
   it("refuse un CTA sans texte", () => {
-    expect(validateCta({ text: "  ", href: "/soumission" })[0]).toBeTruthy();
+    expect(validateCta({ text: "  ", href: "/soumission" }, page())[0]).toBeTruthy();
   });
   it("insère puis remplace le bloc CTA sans détruire le contenu", () => {
     const html = "<p>Contenu</p>";
