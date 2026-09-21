@@ -14,7 +14,10 @@ import {
   type ActionPriorityPage,
 } from "@/lib/seo/actionGroups";
 import OpportunityWorkPanel from "@/components/seo/OpportunityWorkPanel";
-import { capabilityOfGroup, capabilityOfType, workButtonLabel } from "@/lib/seo/workflow";
+import { capabilityOfGroup, capabilityOfType, workButtonLabel, natureOfType, actionStatusLabel } from "@/lib/seo/workflow";
+import VerificationPanel from "@/components/seo/VerificationPanel";
+import { buildCopilotCounters, countersExplanation } from "@/lib/seo/counters";
+import { VERIFICATION_LABEL, verificationButtonLabel, verificationKindOfType, type VerificationKind } from "@/lib/seo/verification";
 
 type StatusSetter = (id: string, s: "dismissed" | "in_progress" | "completed" | "open" | "error", extra?: { error?: string | null; reason?: string | null }) => Promise<void>;
 
@@ -116,8 +119,13 @@ function OpportunityRow({ o, rank, onStatus, onWork, onDismiss }: { o: Opportuni
             {o.data_quality && o.data_quality !== "suffisante" && (
               <span className="text-[10px] uppercase text-muted-foreground">donnée {o.data_quality}</span>
             )}
-            <span className="text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground">
-              {TYPE_LABEL[o.type] ?? o.type.replace(/_/g, " ")}
+            <span className="px-2 py-0.5 rounded border border-border text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground">
+              {natureOfType(o.type) === "verification"
+                ? `VÉRIFICATION — ${VERIFICATION_LABEL[verificationKindOfType(o.type) ?? "qa"]}`
+                : `ACTION — ${TYPE_LABEL[o.type] ?? o.type.replace(/_/g, " ")}`}
+            </span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {natureOfType(o.type) === "verification" ? "" : actionStatusLabel(o.status)}
             </span>
             <span className="text-[10px] text-muted-foreground">Score {o.score}/100 · Effort {o.effort_score}</span>
             {o.status === "in_progress" && <span className="text-[10px] text-primary font-semibold">EN COURS</span>}
@@ -132,7 +140,8 @@ function OpportunityRow({ o, rank, onStatus, onWork, onDismiss }: { o: Opportuni
         <div className="flex flex-col items-end gap-2 shrink-0">
           <button onClick={() => onWork(o)}
             className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-display font-semibold hover:opacity-90">
-            <Zap className="w-3.5 h-3.5" /> {workButtonLabel(o.status, capabilityOfType(o.type))}
+            <Zap className="w-3.5 h-3.5" />
+            {natureOfType(o.type) === "verification" ? verificationButtonLabel("idle") : workButtonLabel(o.status, capabilityOfType(o.type))}
           </button>
           {o.status === "dismissed" && (
             <button onClick={() => void onStatus(o.id, "open")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
@@ -297,6 +306,14 @@ function ActionGroupCard({ g, rank, priorityPages, onStatus, onWork, onDismiss }
             <span className="text-[10px] font-display font-bold text-muted-foreground">SCORE {g.score}</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-display font-bold tracking-wider ${p.cls}`}>{p.label}</span>
             <span className="px-2 py-0.5 rounded border border-border text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground">{KIND_LABEL[g.kind]}</span>
+            <span className="px-2 py-0.5 rounded border border-border text-[10px] uppercase tracking-wider font-display font-bold text-foreground" data-testid="nature-badge">
+              {natureOfType(o.type) === "verification"
+                ? `VÉRIFICATION — ${VERIFICATION_LABEL[verificationKindOfType(o.type) ?? "qa"]}`
+                : `ACTION — ${g.actionLabel}`}
+            </span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {natureOfType(o.type) === "verification" ? "À vérifier" : actionStatusLabel(o.status)}
+            </span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-display font-bold ${g.singleAction ? "bg-primary/15 text-primary" : "bg-secondary text-secondary-foreground"}`}>
               {g.singleAction ? "ACTION UNIQUE" : `${g.distinctActions} ACTIONS`}
             </span>
@@ -344,7 +361,8 @@ function ActionGroupCard({ g, rank, priorityPages, onStatus, onWork, onDismiss }
         <div className="flex flex-col items-end gap-2 shrink-0">
           <button onClick={() => onWork(g)}
             className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-display font-semibold hover:opacity-90">
-            <Zap className="w-3.5 h-3.5" /> {workButtonLabel(o.status, capabilityOfGroup(g))}
+            <Zap className="w-3.5 h-3.5" />
+            {natureOfType(o.type) === "verification" ? verificationButtonLabel("idle") : workButtonLabel(o.status, capabilityOfGroup(g))}
           </button>
           {o.status === "dismissed" ? (
             <button onClick={() => void onStatus(o.id, "open")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
@@ -431,6 +449,8 @@ export default function CopilotDashboard() {
   const [showAll, setShowAll] = useState(false);
   const [mode, setMode] = useState<"actions" | "all">("actions");
   const [workGroup, setWorkGroup] = useState<ActionGroup | null>(null);
+  const [verifyGroup, setVerifyGroup] = useState<ActionGroup | null>(null);
+  const [showCounters, setShowCounters] = useState(false);
   const [dismissId, setDismissId] = useState<string | null>(null);
   const [dismissReason, setDismissReason] = useState("");
 
@@ -449,6 +469,15 @@ export default function CopilotDashboard() {
   const actionGroups = buildActionGroups(filtered);
   const visibleGroups = showAll ? actionGroups : actionGroups.slice(0, 10);
   const grouped = actionGroups.filter((g) => g.members.length > 1).length;
+  const ctr_ = buildCopilotCounters({
+    signalsDetected: run?.signals_detected,
+    openCount: Number(counts.open ?? 0),
+    inProgressCount: Number(counts.in_progress ?? 0),
+    completedCount: Number(counts.completed ?? 0),
+    totalLoaded: opps.length,
+    filteredCount: filtered.length,
+    groups: actionGroups,
+  });
 
   const onStatus: StatusSetter = async (id, s, extra) => {
     await setOpportunityStatus(id, s, extra);
@@ -462,6 +491,7 @@ export default function CopilotDashboard() {
   };
 
   const openWork = async (g: ActionGroup) => {
+    if (verificationKindOfType(g.primary.type)) { setVerifyGroup(g); return; }
     setWorkGroup(g);
     if (g.primary.status === "open") await setOpportunityStatus(g.primary.id, "in_progress");
   };
@@ -559,6 +589,25 @@ export default function CopilotDashboard() {
               {f.label} ({opps.filter((o) => matchFilter(o, f.key)).length})
             </button>
           ))}
+        </div>
+
+        <div className="mb-3 rounded-lg border border-border bg-card p-3" data-testid="copilot-counters">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Signaux détectés</div><div className="font-display font-bold text-foreground">{ctr_.signals}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Opportunités ouvertes</div><div className="font-display font-bold text-foreground">{ctr_.opportunitiesOpen}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Affichées ici</div><div className="font-display font-bold text-foreground">{ctr_.opportunitiesVisible}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Actions exécutables</div><div className="font-display font-bold text-foreground">{ctr_.executable}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Vérifications</div><div className="font-display font-bold text-foreground">{ctr_.verifications}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Terminées</div><div className="font-display font-bold text-foreground">{ctr_.actionsCompleted}</div></div>
+          </div>
+          <button onClick={() => setShowCounters((v) => !v)} className="mt-2 text-xs font-display font-semibold text-primary">
+            {showCounters ? "Masquer le détail des compteurs" : "Comprendre les compteurs"}
+          </button>
+          {showCounters && (
+            <ul className="mt-2 space-y-1 text-xs text-muted-foreground list-disc pl-4" data-testid="counters-explanation">
+              {countersExplanation(ctr_).map((line) => <li key={line}>{line}</li>)}
+            </ul>
+          )}
         </div>
 
         {filtered.length === 0 ? (
@@ -692,6 +741,14 @@ export default function CopilotDashboard() {
         open={workGroup !== null}
         onClose={() => { setWorkGroup(null); void reload(); }}
         onStatus={async (id, status, extra) => { await setOpportunityStatus(id, status, extra); }}
+      />
+
+      <VerificationPanel
+        group={verifyGroup}
+        kind={verifyGroup ? verificationKindOfType(verifyGroup.primary.type) as VerificationKind | null : null}
+        priorityPages={verifyGroup ? buildPriorityPagesForAction(verifyGroup, actionPageMetrics, verifyGroup.kind === "page" ? 1 : 50) : []}
+        open={verifyGroup !== null}
+        onClose={() => { setVerifyGroup(null); void reload(); }}
       />
 
       {dismissId && (
