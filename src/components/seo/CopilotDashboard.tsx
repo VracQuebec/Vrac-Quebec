@@ -265,6 +265,7 @@ function ActionGroupCard({ g, rank, onStatus }: { g: ActionGroup; rank: number; 
                 </div>
               )}
               <div className="text-muted-foreground">
+                <div><span className="text-foreground">Signal d'origine :</span> {g.signalTitle}</div>
                 <div><span className="text-foreground">Territoire :</span> {g.city ?? "—"}</div>
                 <div><span className="text-foreground">Service :</span> {g.service ?? "—"}</div>
                 <div><span className="text-foreground">Source :</span> {o.source ?? "—"}</div>
