@@ -253,18 +253,26 @@ export default function CopilotDashboard() {
 
       {/* Opportunités */}
       <div>
-        <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-          <h3 className="text-xs uppercase tracking-wider font-display font-bold text-muted-foreground">Top opportunités</h3>
-          <div className="text-xs text-muted-foreground flex gap-3">
-            <span>{opps.length} ouverte(s)</span>
-            <span>{counts.critical ?? 0} critiques</span>
-            <span>{counts.high ?? 0} hautes</span>
-            <span>{counts.medium ?? 0} moyennes</span>
-            <span>{counts.low ?? 0} faibles</span>
-          </div>
+        <h3 className="text-xs uppercase tracking-wider font-display font-bold text-muted-foreground mb-2">Opportunités SEO</h3>
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-3">
+          <KpiCard label="Opportunités" value={counts.open ?? opps.length} icon={Sparkles} />
+          <KpiCard label="Critiques" value={counts.critical ?? 0} icon={Zap} />
+          <KpiCard label="Hautes" value={counts.high ?? 0} icon={Zap} />
+          <KpiCard label="Moyennes" value={counts.medium ?? 0} icon={Zap} />
+          <KpiCard label="Avec conversion" value={counts.with_conversions ?? 0} icon={Phone} />
+          <KpiCard label="Fort potentiel" value={counts.high_potential ?? 0} icon={TrendingUp} hint="Score ≥ 60" />
         </div>
 
-        {opps.length === 0 ? (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {FILTERS.map((f) => (
+            <button key={f.key} onClick={() => { setFilter(f.key); setShowAll(false); }}
+              className={`px-2.5 py-1 rounded-md text-xs font-display font-semibold border ${filter === f.key ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}>
+              {f.label} ({opps.filter((o) => matchFilter(o, f.key)).length})
+            </button>
+          ))}
+        </div>
+
+        {filtered.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border p-6 text-center space-y-2">
             <Sparkles className="w-6 h-6 text-muted-foreground mx-auto" />
             <p className="text-sm text-foreground font-display font-semibold">
