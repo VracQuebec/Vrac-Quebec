@@ -422,6 +422,8 @@ export function buildContentProposal(
   const city = officialCity(page.city_slug, ref);
   const mat = officialMaterial(page.material_slug, ref);
   const subject = mat ?? svc;
+  // Le nom d'un matériau garde sa casse officielle (MG-20), pas un service.
+  const subjectInline = mat ?? (svc ? svc.toLowerCase() : null);
   const current = page.content_html ?? "";
   const additions: string[] = [];
   const notes: string[] = [];
@@ -450,7 +452,7 @@ export function buildContentProposal(
 
   if (!has("Comment ça fonctionne")) {
     push(
-      `<h2>${esc(cible)} : comment ça fonctionne</h2>\n<p>Vous décrivez votre besoin (${esc(mat ? `quantité de ${mat.toLowerCase()}` : "matériau et quantité")}, adresse du chantier à ${esc(city)} et délai) dans le formulaire de demande. Vrac Québec transmet ensuite la demande et vous recevez une soumission.</p>`,
+      `<h2>${esc(cible)} : comment ça fonctionne</h2>\n<p>Vous décrivez votre besoin (${esc(mat ? `quantité de ${mat}` : "matériau et quantité")}, adresse du chantier à ${esc(city)} et délai) dans le formulaire de demande. Vrac Québec transmet ensuite la demande et vous recevez une soumission.</p>`,
     );
   } else {
     notes.push("Une section « comment ça fonctionne » existe déjà : elle n'est pas dupliquée.");
@@ -459,7 +461,7 @@ export function buildContentProposal(
   if (!has("secteur desservi")) {
     if (hasCarrierCoverage(page, ref)) {
       push(
-        `<h2>Secteur desservi</h2>\n<p>Les demandes de ${esc(subject.toLowerCase())} à ${esc(city)} sont prises en charge par des transporteurs configurés pour ce secteur.</p>`,
+        `<h2>Secteur desservi</h2>\n<p>Les demandes de ${esc(subjectInline!)} à ${esc(city)} sont prises en charge par des transporteurs configurés pour ce secteur.</p>`,
       );
     } else {
       notes.push("Aucune couverture transporteur configurée pour ce territoire : aucune affirmation de disponibilité locale n'est proposée.");
@@ -468,7 +470,7 @@ export function buildContentProposal(
 
   if (!has("préparer votre demande")) {
     push(
-      `<h2>Préparer votre demande de ${esc(subject.toLowerCase())} à ${esc(city)}</h2>\n<ul><li>${esc(mat ? `Quantité de ${mat.toLowerCase()} requise` : "Type de matériau et quantité approximative")}</li><li>Adresse exacte du chantier à ${esc(city)}</li><li>Accès au site et dates souhaitées</li></ul>`,
+      `<h2>Préparer votre demande de ${esc(subjectInline!)} à ${esc(city)}</h2>\n<ul><li>${esc(mat ? `Quantité de ${mat} requise` : "Type de matériau et quantité approximative")}</li><li>Adresse exacte du chantier à ${esc(city)}</li><li>Accès au site et dates souhaitées</li></ul>`,
     );
   }
 
@@ -553,8 +555,9 @@ export function upsertCtaBlock(html: string, draft: CtaDraft): string {
 export function suggestCta(page: EditablePage, ref: SeoReferential = EMPTY_REFERENTIAL): CtaDraft {
   const subject = officialMaterial(page.material_slug, ref) ?? officialService(page.service_slug, ref);
   const city = officialCity(page.city_slug, ref);
+  const inline = officialMaterial(page.material_slug, ref) ?? (subject ? subject.toLowerCase() : null);
   const text = subject && city
-    ? `Demander une soumission pour ${subject.toLowerCase()} à ${city}`
+    ? `Demander une soumission pour ${inline} à ${city}`
     : `Demander une soumission à Vrac Québec`;
   return { text, href: "#soumission" };
 }
