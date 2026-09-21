@@ -13,9 +13,14 @@ import CityPagesDialog from "@/components/seo/CityPagesDialog";
 import { CityDetailDialog } from "@/components/seo/CityGenerator";
 import { useCityGeneration } from "@/lib/seo/useCityGeneration";
 import { repairSeoPages } from "@/lib/seo/useSeoCityMatrix";
+import { useGlobalGeneration } from "@/lib/seo/useGlobalGeneration";
+import {
+  canStartGlobal, confirmationLines, finalSummary, failureNotice,
+  globalPhase, PHASE_LABEL, runProgress, shouldOfferRetry,
+} from "@/lib/seo/globalGeneration";
 import {
   Play, Pause, Square, Rocket, RefreshCw, Send, ListRestart,
-  Loader2, AlertTriangle, ExternalLink, FileText, CheckCircle2,
+  Loader2, AlertTriangle, ExternalLink, FileText, CheckCircle2, Wand2,
 } from "lucide-react";
 
 type FilterKey = "all" | "done" | "partial" | "running" | "todo" | "error";
@@ -41,7 +46,7 @@ function nf(n: number) { return n.toLocaleString("fr-CA"); }
 
 export default function PipelineControlCenter() {
   const { state, loading, error, reload } = useSeoControlCenter();
-  const { pause, resume, stop } = useSeoPipelineV2();
+  const { pause, resume, stop, retryErrors } = useSeoPipelineV2();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [search, setSearch] = useState("");
   const [visible, setVisible] = useState(24);
@@ -55,6 +60,29 @@ export default function PipelineControlCenter() {
   // Même logique de génération que le Générateur (aucune architecture parallèle).
   const gen = useCityGeneration();
   const workCity = workSlug ? gen.bySlug.get(workSlug) ?? null : null;
+  // ── Génération globale (orchestration du moteur existant) ──
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const activeRun = state?.active_run ?? null;
+  const phase = globalPhase(activeRun as never);
+  const global = useGlobalGeneration(phase === "running" || phase === "paused");
+  const startable = canStartGlobal(global.preview, activeRun as never);
+  const prog = runProgress(activeRun as never);
+
+  async function launchGlobal() {
+    setConfirmOpen(false);
+    try {
+      const r = await global.start();
+      await reload();
+      toast({
+        title: r.created
+          ? `Génération lancée sur ${r.cities} ville(s)`
+          : "Génération déjà en cours — rien n'a été relancé",
+        description: "Les nouvelles pages sont créées en brouillon. Aucune publication automatique.",
+      });
+    } catch (e) {
+      toast({ title: "Lancement impossible", description: e instanceof Error ? e.message : "Erreur", variant: "destructive" });
+    }
+  }
 
   const totals = state?.totals ?? null;
   const run = state?.active_run ?? null;
@@ -118,8 +146,11 @@ export default function PipelineControlCenter() {
               <RefreshCw className="w-4 h-4" /> Rafraîchir
             </Button>
             {!run && (
-              <Button size="sm" variant="outline" disabled className="gap-2" title="Utilisez le Générateur pour sélectionner explicitement les municipalités et prévisualiser le lot">
-                <Play className="w-4 h-4" /> Sélection requise dans Générateur
+              <Button size="sm" className="gap-2" disabled={!startable.allowed || global.starting || global.loading}
+                title={startable.allowed ? "Génère uniquement les pages pertinentes manquantes" : startable.reason}
+                onClick={() => setConfirmOpen(true)}>
+                {global.starting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                Générer toutes les pages manquantes
               </Button>
             )}
             {run && ["running", "queued"].includes(run.status) && (
@@ -203,6 +234,64 @@ export default function PipelineControlCenter() {
                     (state?.stalled_tasks ?? 0) > 0 ? `${state?.stalled_tasks} tâche(s) interrompue(s)` : null,
                     run && run.status !== "running" && run.status !== "completed" ? `Génération ${run.status} sur ${run.current_city_slug ?? "une ville"}` : null,
                   ].filter(Boolean).join(" · ")}
+                </div>
+              )}
+            </div>
+
+            {/* ── Génération globale : état, progression, résumé ───── */}
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <div className="flex flex-wrap items-center gap-2 justify-between">
+                <div className="text-sm font-semibold flex items-center gap-2">
+                  {phase === "running" && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+                  {PHASE_LABEL[phase]}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(phase === "interrupted" || phase === "paused") && activeRun && (
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1"
+                      onClick={() => act("resume-global", () => resume(activeRun.id), "Génération reprise")}>
+                      <Play className="w-3 h-3" /> Reprendre la génération
+                    </Button>
+                  )}
+                  {shouldOfferRetry(activeRun as never, global.preview) && activeRun && (
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1"
+                      onClick={() => act("retry-global", () => retryErrors(activeRun.id), "Erreurs remises en file")}>
+                      <ListRestart className="w-3 h-3" /> Régénérer les erreurs
+                    </Button>
+                  )}
+                  {shouldOfferRetry(activeRun as never, global.preview) && (
+                    <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setErrorsOpen(true)}>
+                      Voir les erreurs
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {phase === "running" || phase === "completed" ? (
+                <>
+                  <Progress value={prog.pct} className="h-2" />
+                  <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+                    <span>{nf(prog.done)} / {nf(prog.total)} pages · {prog.pct} %</span>
+                    {activeRun?.current_city_slug && <span>Ville actuelle : <strong className="text-foreground">{activeRun.current_city_slug}</strong></span>}
+                    <span className="text-green-700">✓ Générées : {nf(prog.succeeded)}</span>
+                    <span className="text-destructive">⚠ Erreurs : {nf(prog.failed)}</span>
+                    <span>○ Restantes : {nf(prog.remaining)}</span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {global.preview.remaining > 0
+                    ? "Génère uniquement les pages pertinentes qui ne sont pas encore créées. Les pages existantes et publiées sont protégées."
+                    : "Aucune page pertinente à générer."}
+                </p>
+              )}
+
+              {phase === "completed" && global.baseline && (
+                <div className="rounded-md border border-border bg-background/60 p-2 text-xs space-y-0.5">
+                  <div className="font-semibold">Génération terminée</div>
+                  {finalSummary(global.baseline, global.preview, activeRun as never).map((l) => <div key={l}>{l}</div>)}
+                  {failureNotice(activeRun as never) && (
+                    <div className="text-destructive">{failureNotice(activeRun as never)}</div>
+                  )}
                 </div>
               )}
             </div>
@@ -315,6 +404,22 @@ export default function PipelineControlCenter() {
       </Card>
 
       {/* ── Dialogs ─────────────────────────────────────────────── */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Générer toutes les pages manquantes</DialogTitle></DialogHeader>
+          <div className="space-y-1.5 text-sm">
+            {confirmationLines(global.preview).map((l) => <p key={l}>{l}</p>)}
+            <p className="pt-2 font-medium">Voulez-vous lancer la génération complète ?</p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Annuler</Button>
+            <Button onClick={() => void launchGlobal()} disabled={global.starting}>
+              {global.starting && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Lancer la génération
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={errorsOpen} onOpenChange={setErrorsOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-destructive" /> Pages en erreur — {totals?.errors ?? 0}</DialogTitle></DialogHeader>
