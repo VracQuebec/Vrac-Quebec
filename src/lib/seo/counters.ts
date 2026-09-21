@@ -96,6 +96,7 @@ export function countersExplanation(c: CopilotCounters): string[] {
   const out: string[] = [
     `${c.signals} signal(s) détecté(s) lors de la dernière analyse.`,
     `${c.opportunitiesOpen} opportunité(s) ouverte(s) dans le moteur (ouvertes + en cours).`,
+    `${c.opportunitiesActive} opportunité(s) active(s) au total (ouvertes + en cours + en erreur) : c'est la base de la vue.`,
     `${c.opportunitiesVisible} opportunité(s) affichée(s) dans la vue actuelle.`,
   ];
   if (c.errors > 0) out.push(`${c.errors} opportunité(s) en erreur, affichée(s) avec l'état « À réessayer ».`);
