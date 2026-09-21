@@ -43,7 +43,8 @@ describe("Copilote SEO — exécution des opportunités", () => {
   });
 
   it("3. une opportunité TERRITOIRE × SERVICE est prise en charge", () => {
-    expect(capabilityOfType("local_potential")).toBe("not_configured");
+    expect(capabilityOfType("local_potential")).toBe("titles_meta");
+    expect(capabilityOfType("signal_inconnu")).toBe("not_configured");
     expect(workButtonLabel("open", "not_configured")).toBe("Action à configurer");
   });
 

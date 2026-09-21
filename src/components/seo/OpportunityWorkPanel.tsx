@@ -5,9 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { ActionGroup, ActionPriorityPage } from "@/lib/seo/actionGroups";
 import {
-  CAPABILITY_LABEL, buildBatchPlan, applyBatchResult, batchProgress, retryErrors,
+  CAPABILITY_LABEL, MODE_LABEL, availableModes, buildBatchPlan, applyBatchResult, batchProgress, retryErrors,
+  buildContentProposal, contentDiffSummary, contentWordCount, currentInternalLinks, ctaDestinations,
+  extractCta, mergeInternalLinks, suggestCta, suggestInternalLinks, upsertCtaBlock,
+  validateCta, validateContent, validateInternalLinks,
   buildLogEntry, capabilityOfGroup, hasChanges, runVerification, suggestMeta, validateMeta,
-  type BatchItem, type EditablePage, type MetaDraft, type WorkCapability,
+  type BatchItem, type ContentDraft, type CtaDraft, type EditablePage, type InternalLinkItem,
+  type LinkCandidate, type MetaDraft, type WorkCapability, type WorkMode,
 } from "@/lib/seo/workflow";
 
 type LogRow = {
@@ -31,13 +35,20 @@ export default function OpportunityWorkPanel({
   const [loading, setLoading] = useState(false);
   const [pages, setPages] = useState<EditablePage[]>([]);
   const [drafts, setDrafts] = useState<Record<string, MetaDraft>>({});
+  const [contentDrafts, setContentDrafts] = useState<Record<string, ContentDraft>>({});
+  const [ctaDrafts, setCtaDrafts] = useState<Record<string, CtaDraft>>({});
+  const [linkSel, setLinkSel] = useState<Record<string, Set<string>>>({});
+  const [candidates, setCandidates] = useState<LinkCandidate[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [batch, setBatch] = useState<BatchItem[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [mode, setMode] = useState<WorkMode>("titles_meta");
+  const [confirming, setConfirming] = useState<string[] | null>(null);
 
   const capability: WorkCapability = group ? capabilityOfGroup(group) : "not_configured";
+  const modes: WorkMode[] = group ? availableModes(group.primary.type) : [];
 
   const loadLogs = useCallback(async (oppId: string) => {
     const { data } = await supabase
@@ -45,7 +56,7 @@ export default function OpportunityWorkPanel({
       .select("id,status,action_type,page_slug,before_data,after_data,error,created_at,note")
       .eq("opportunity_id", oppId)
       .order("created_at", { ascending: false })
-      .limit(30);
+      .limit(50);
     setLogs((data ?? []) as LogRow[]);
   }, []);
 
@@ -55,9 +66,8 @@ export default function OpportunityWorkPanel({
     setLoadError(null);
     try {
       const slugs = priorityPages.map((p) => p.slug).filter((s): s is string => Boolean(s));
-      let query = supabase
-        .from("seo_pages")
-        .select("id,slug,title,meta_title,meta_description,city_slug,service_slug,status,noindex,google_index_status,qa_last_score,qa_blockers,intro,word_count,internal_links");
+      const cols = "id,slug,title,meta_title,meta_description,city_slug,service_slug,status,noindex,google_index_status,qa_last_score,qa_blockers,intro,word_count,internal_links,content_html";
+      let query = supabase.from("seo_pages").select(cols);
       if (group.kind === "page") {
         const pid = group.primary.page_id;
         query = pid ? query.eq("id", pid) : query.in("slug", slugs.length ? slugs : ["__none__"]);
@@ -77,10 +87,38 @@ export default function OpportunityWorkPanel({
       const rows = (data ?? []) as unknown as EditablePage[];
       setPages(rows);
       const d: Record<string, MetaDraft> = {};
-      for (const p of rows) d[p.id] = { title: p.title ?? "", meta_description: p.meta_description ?? "" };
-      setDrafts(d);
+      const c: Record<string, ContentDraft> = {};
+      const ct: Record<string, CtaDraft> = {};
+      const ls: Record<string, Set<string>> = {};
+      for (const p of rows) {
+        d[p.id] = { title: p.title ?? "", meta_description: p.meta_description ?? "" };
+        c[p.id] = { intro: p.intro ?? "", content_html: p.content_html ?? "" };
+        ct[p.id] = extractCta(p.content_html ?? "") ?? suggestCta(p);
+        ls[p.id] = new Set();
+      }
+      setDrafts(d); setContentDrafts(c); setCtaDrafts(ct); setLinkSel(ls);
       setSelected(new Set(rows.map((p) => p.id)));
       setBatch(null);
+      setConfirming(null);
+      setMode((availableModes(group.primary.type)[0] ?? "titles_meta") as WorkMode);
+
+      // Candidats de maillage : uniquement des pages SEO réelles du même territoire/service.
+      const cities = [...new Set(rows.map((p) => p.city_slug).filter(Boolean))] as string[];
+      const services = [...new Set(rows.map((p) => p.service_slug).filter(Boolean))] as string[];
+      if (cities.length || services.length) {
+        const ors: string[] = [];
+        if (cities.length) ors.push(`city_slug.in.(${cities.join(",")})`);
+        if (services.length) ors.push(`service_slug.in.(${services.join(",")})`);
+        const { data: cand } = await supabase
+          .from("seo_pages")
+          .select("slug,title,city_slug,service_slug")
+          .eq("status", "published")
+          .or(ors.join(","))
+          .limit(120);
+        setCandidates((cand ?? []) as LinkCandidate[]);
+      } else {
+        setCandidates([]);
+      }
       await loadLogs(group.primary.id);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Impossible de charger les données de cette opportunité");
@@ -92,6 +130,7 @@ export default function OpportunityWorkPanel({
   useEffect(() => { if (open && group) void load(); }, [open, group, load]);
 
   const metrics = useMemo(() => new Map(priorityPages.map((p) => [p.slug ?? "", p])), [priorityPages]);
+  const knownSlugs = useMemo(() => candidates.map((c) => c.slug), [candidates]);
 
   if (!group) return null;
   const o = group.primary;
@@ -115,44 +154,113 @@ export default function OpportunityWorkPanel({
     });
   };
 
-  const saveSelection = async () => {
-    const ids = pages.map((p) => p.id).filter((id) => selected.has(id));
-    const toSave = ids.filter((id) => {
-      const page = pages.find((p) => p.id === id)!;
-      return hasChanges(page, drafts[id]);
-    });
-    if (toSave.length === 0) { toast.info("Aucune modification à enregistrer."); return; }
-    // validation avant toute écriture
-    for (const id of toSave) {
-      const others = pages.filter((p) => p.id !== id).map((p) => drafts[p.id]?.title ?? p.title ?? "");
-      const issues = validateMeta(drafts[id], others);
-      if (issues.length) { toast.error(`${pages.find((p) => p.id === id)?.slug} : ${issues[0].message}`); return; }
+  /** Ce qui changerait réellement pour une page, selon le mode. Null = rien à faire. */
+  const buildChange = (p: EditablePage): { update: Record<string, unknown>; before: Record<string, unknown>; after: Record<string, unknown>; summary: string } | null => {
+    if (mode === "titles_meta") {
+      const draft = drafts[p.id];
+      if (!draft || !hasChanges(p, draft)) return null;
+      return {
+        update: { title: draft.title, meta_description: draft.meta_description },
+        before: { title: p.title, meta_description: p.meta_description },
+        after: { title: draft.title, meta_description: draft.meta_description },
+        summary: `/${p.slug} — titre et meta description`,
+      };
     }
+    if (mode === "content") {
+      const draft = contentDrafts[p.id];
+      if (!draft) return null;
+      const before: ContentDraft = { intro: p.intro ?? "", content_html: p.content_html ?? "" };
+      if (draft.content_html === before.content_html && draft.intro === before.intro) return null;
+      const diff = contentDiffSummary(before, draft);
+      return {
+        update: { intro: draft.intro, content_html: draft.content_html, word_count: contentWordCount(draft.content_html) },
+        before: { intro: before.intro, content_html: before.content_html, words: diff.wordsBefore },
+        after: { intro: draft.intro, content_html: draft.content_html, words: diff.wordsAfter },
+        summary: `/${p.slug} — contenu (${diff.addedWords >= 0 ? "+" : ""}${diff.addedWords} mots${diff.introChanged ? ", intro modifiée" : ""})`,
+      };
+    }
+    if (mode === "cta") {
+      const draft = ctaDrafts[p.id];
+      if (!draft) return null;
+      const current = p.content_html ?? "";
+      const existing = extractCta(current);
+      if (existing && existing.text === draft.text && existing.href === draft.href) return null;
+      const next = upsertCtaBlock(current, draft);
+      return {
+        update: { content_html: next },
+        before: { cta: existing ?? null },
+        after: { cta: draft },
+        summary: `/${p.slug} — CTA « ${draft.text} » → ${draft.href}`,
+      };
+    }
+    // maillage interne
+    const sel = linkSel[p.id];
+    if (!sel || sel.size === 0) return null;
+    const current = currentInternalLinks(p);
+    const suggestions = suggestInternalLinks(p, candidates);
+    const added: InternalLinkItem[] = suggestions.filter((s) => sel.has(s.href)).map((s) => ({ label: s.label, href: s.href, kind: s.kind }));
+    if (added.length === 0) return null;
+    const merged = mergeInternalLinks(current, added);
+    return {
+      update: { internal_links: merged, internal_link_count: merged.length },
+      before: { internal_links: current, count: current.length },
+      after: { internal_links: merged, count: merged.length },
+      summary: `/${p.slug} — ${added.length} lien(s) interne(s) ajouté(s)`,
+    };
+  };
+
+  const validateFor = (p: EditablePage): string | null => {
+    if (mode === "titles_meta") {
+      const others = pages.filter((x) => x.id !== p.id).map((x) => drafts[x.id]?.title ?? x.title ?? "");
+      return validateMeta(drafts[p.id], others)[0]?.message ?? null;
+    }
+    if (mode === "content") {
+      return validateContent({ intro: p.intro ?? "", content_html: p.content_html ?? "" }, contentDrafts[p.id])[0]?.message ?? null;
+    }
+    if (mode === "cta") return validateCta(ctaDrafts[p.id], p)[0]?.message ?? null;
+    const sel = linkSel[p.id] ?? new Set<string>();
+    const added = suggestInternalLinks(p, candidates).filter((s) => sel.has(s.href));
+    return validateInternalLinks(added, knownSlugs)[0]?.message ?? null;
+  };
+
+  const pendingChanges = () =>
+    pages.filter((p) => selected.has(p.id)).map((p) => ({ page: p, change: buildChange(p) })).filter((x) => x.change !== null) as Array<{ page: EditablePage; change: NonNullable<ReturnType<typeof buildChange>> }>;
+
+  const askConfirm = () => {
+    const list = pendingChanges();
+    if (list.length === 0) { toast.info("Aucune modification à enregistrer."); return; }
+    for (const { page } of list) {
+      const issue = validateFor(page);
+      if (issue) { toast.error(`/${page.slug} : ${issue}`); return; }
+    }
+    setConfirming(list.map((x) => x.change.summary));
+  };
+
+  const applyChanges = async () => {
+    const list = pendingChanges();
+    setConfirming(null);
     setSaving(true);
-    let items = buildBatchPlan(pages.map((p) => p.id), new Set(toSave), Object.fromEntries(pages.map((p) => [p.id, p.slug])));
+    let items = buildBatchPlan(pages.map((p) => p.id), new Set(list.map((x) => x.page.id)), Object.fromEntries(pages.map((p) => [p.id, p.slug])));
     setBatch(items);
     await onStatus(o.id, "in_progress");
-    await log(buildLogEntry(group, { status: "started", note: `${toSave.length} page(s) sélectionnée(s)` }));
+    await log(buildLogEntry(group, { status: "started", note: `${MODE_LABEL[mode]} — ${list.length} page(s)` }));
     let failures = 0;
-    for (const id of toSave) {
-      const page = pages.find((p) => p.id === id)!;
-      const draft = drafts[id];
+    for (const { page, change } of list) {
       try {
         const { error } = await supabase.from("seo_pages")
-          .update({ title: draft.title, meta_description: draft.meta_description, updated_at: new Date().toISOString() })
-          .eq("id", id);
+          .update({ ...change.update, updated_at: new Date().toISOString() } as never)
+          .eq("id", page.id);
         if (error) throw error;
-        items = applyBatchResult(items, id, true);
+        items = applyBatchResult(items, page.id, true);
         await log(buildLogEntry(group, {
-          status: "applied", page_id: id, page_slug: page.slug,
-          before_data: { title: page.title, meta_description: page.meta_description },
-          after_data: { title: draft.title, meta_description: draft.meta_description },
+          status: "applied", page_id: page.id, page_slug: page.slug,
+          before_data: change.before, after_data: change.after, note: MODE_LABEL[mode],
         }));
       } catch (e) {
         failures++;
         const msg = e instanceof Error ? e.message : "Erreur inconnue";
-        items = applyBatchResult(items, id, false, msg);
-        await log(buildLogEntry(group, { status: "failed", page_id: id, page_slug: page.slug, error: msg }));
+        items = applyBatchResult(items, page.id, false, msg);
+        await log(buildLogEntry(group, { status: "failed", page_id: page.id, page_slug: page.slug, error: msg, note: MODE_LABEL[mode] }));
       }
       setBatch([...items]);
     }
@@ -168,6 +276,8 @@ export default function OpportunityWorkPanel({
   };
 
   const progress = batch ? batchProgress(batch) : null;
+  const toggleSel = (id: string, on: boolean) =>
+    setSelected((s) => { const n = new Set(s); if (on) n.add(id); else n.delete(id); return n; });
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -208,6 +318,7 @@ export default function OpportunityWorkPanel({
         </div>
         <div className="text-xs text-muted-foreground">
           Territoire {group.city ?? "—"} · Service {group.service ?? "—"} · {group.members.length} signal(aux) regroupé(s)
+          {group.kind !== "page" && " · constat de groupe : aucune page n'est créée, seules les pages existantes sont modifiables."}
         </div>
 
         {loading && (
@@ -224,7 +335,7 @@ export default function OpportunityWorkPanel({
           </div>
         )}
 
-        {!loading && !loadError && capability === "not_configured" && (
+        {!loading && !loadError && modes.length === 0 && capability !== "verification" && (
           <div className="rounded-md border border-border p-3 text-sm text-muted-foreground">
             Action à configurer — ce type de signal n'a pas encore d'exécution automatisée. Les pages concernées restent consultables ci-dessous.
           </div>
@@ -252,42 +363,75 @@ export default function OpportunityWorkPanel({
           </div>
         )}
 
-        {!loading && !loadError && (capability === "titles_meta" || capability === "content" || capability === "internal_links") && (
+        {!loading && !loadError && modes.length > 0 && (
           <div className="space-y-3">
+            {/* Choix de l'action à exécuter */}
+            <div className="flex flex-wrap gap-2 text-xs" data-testid="work-modes">
+              {modes.map((m) => (
+                <button key={m} onClick={() => { setMode(m); setBatch(null); setConfirming(null); }}
+                  data-mode={m}
+                  className={`px-2.5 py-1 rounded-md border ${mode === m ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"}`}>
+                  {MODE_LABEL[m]}
+                </button>
+              ))}
+            </div>
+
             <div className="flex items-center gap-3 text-xs flex-wrap">
               <span className="text-muted-foreground">{pages.length} page(s) chargée(s)</span>
               <button onClick={() => setSelected(new Set(pages.map((p) => p.id)))} className="underline">Tout sélectionner</button>
               <button onClick={() => setSelected(new Set())} className="underline">Tout désélectionner</button>
-              <button
-                onClick={() => setDrafts((d) => {
-                  const next = { ...d };
-                  for (const p of pages) if (selected.has(p.id)) next[p.id] = suggestMeta(p);
-                  return next;
-                })}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border hover:bg-secondary">
-                <Wand2 className="w-3 h-3" /> Utiliser les suggestions du Copilote
-              </button>
-              {progress && <span className="text-muted-foreground">{progress.done + progress.errors} / {progress.total}</span>}
+              {mode === "titles_meta" && (
+                <button
+                  onClick={() => setDrafts((d) => {
+                    const next = { ...d };
+                    for (const p of pages) if (selected.has(p.id)) next[p.id] = suggestMeta(p);
+                    return next;
+                  })}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border hover:bg-secondary">
+                  <Wand2 className="w-3 h-3" /> Utiliser les suggestions du Copilote
+                </button>
+              )}
+              {mode === "content" && (
+                <button
+                  onClick={() => setContentDrafts((d) => {
+                    const next = { ...d };
+                    for (const p of pages) if (selected.has(p.id)) next[p.id] = buildContentProposal(p).draft;
+                    return next;
+                  })}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border hover:bg-secondary">
+                  <Wand2 className="w-3 h-3" /> Préparer une proposition
+                </button>
+              )}
+              {mode === "cta" && (
+                <button
+                  onClick={() => setCtaDrafts((d) => {
+                    const next = { ...d };
+                    for (const p of pages) if (selected.has(p.id)) next[p.id] = suggestCta(p);
+                    return next;
+                  })}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border hover:bg-secondary">
+                  <Wand2 className="w-3 h-3" /> Utiliser le CTA proposé
+                </button>
+              )}
+              {progress && <span className="text-muted-foreground" data-testid="batch-progress">{progress.done + progress.errors} / {progress.total} · ✓ {progress.done} · ⚠ {progress.errors}</span>}
             </div>
-
-            {capability !== "titles_meta" && (
-              <div className="rounded-md border border-border p-3 text-xs text-muted-foreground">
-                {capability === "content"
-                  ? "Le signal porte sur le contenu. L'édition disponible ici couvre le titre et la meta description ; la réécriture complète du contenu reste à configurer."
-                  : "Le signal porte sur le CTA et le maillage interne. L'édition disponible ici couvre le titre et la meta description ; l'éditeur de maillage reste à configurer."}
-              </div>
-            )}
 
             {pages.map((p) => {
               const m = metrics.get(p.slug);
-              const draft = drafts[p.id] ?? { title: "", meta_description: "" };
-              const issues = validateMeta(draft, pages.filter((x) => x.id !== p.id).map((x) => drafts[x.id]?.title ?? ""));
               const item = batch?.find((b) => b.page_id === p.id);
+              const metaDraft = drafts[p.id] ?? { title: "", meta_description: "" };
+              const cDraft = contentDrafts[p.id] ?? { intro: "", content_html: "" };
+              const ctaDraft = ctaDrafts[p.id] ?? { text: "", href: "#soumission" };
+              const proposal = mode === "content" ? buildContentProposal(p) : null;
+              const suggestions = mode === "internal_links" ? suggestInternalLinks(p, candidates) : [];
+              const currentLinks = mode === "internal_links" ? currentInternalLinks(p) : [];
+              const sel = linkSel[p.id] ?? new Set<string>();
+              const issue = selected.has(p.id) && buildChange(p) ? validateFor(p) : null;
               return (
-                <div key={p.id} className="rounded-md border border-border p-3 text-xs space-y-2">
+                <div key={p.id} className="rounded-md border border-border p-3 text-xs space-y-2" data-page-slug={p.slug}>
                   <div className="flex items-start gap-2">
                     <input type="checkbox" className="mt-1" checked={selected.has(p.id)}
-                      onChange={(e) => setSelected((s) => { const n = new Set(s); if (e.target.checked) n.add(p.id); else n.delete(p.id); return n; })} />
+                      onChange={(e) => toggleSel(p.id, e.target.checked)} />
                     <div className="min-w-0 flex-1">
                       <a href={`/${p.slug}`} target="_blank" rel="noreferrer" className="text-primary inline-flex items-center gap-1 font-mono truncate">
                         <ExternalLink className="w-3 h-3" /> /{p.slug}
@@ -300,6 +444,7 @@ export default function OpportunityWorkPanel({
                         <span>{fmtNum(m?.conversions)} conversion(s)</span>
                         <span>Indexation {p.google_index_status ?? "inconnue"}</span>
                       </div>
+                      <div className="text-muted-foreground">Titre actuel : {p.title ?? "—"} · Meta actuelle : {p.meta_description ?? "—"}</div>
                     </div>
                     {item && (
                       <span className={item.status === "done" ? "text-primary" : item.status === "error" ? "text-destructive" : "text-muted-foreground"}>
@@ -307,32 +452,114 @@ export default function OpportunityWorkPanel({
                       </span>
                     )}
                   </div>
-                  <label className="block">
-                    <span className="text-muted-foreground">Titre actuel / proposé ({draft.title.length})</span>
-                    <input value={draft.title} onChange={(e) => setDrafts((d) => ({ ...d, [p.id]: { ...draft, title: e.target.value } }))}
-                      className="w-full rounded border border-border bg-background p-1.5" />
-                  </label>
-                  <label className="block">
-                    <span className="text-muted-foreground">Meta actuelle / proposée ({draft.meta_description.length})</span>
-                    <textarea rows={2} value={draft.meta_description}
-                      onChange={(e) => setDrafts((d) => ({ ...d, [p.id]: { ...draft, meta_description: e.target.value } }))}
-                      className="w-full rounded border border-border bg-background p-1.5" />
-                  </label>
-                  {issues.length > 0 && selected.has(p.id) && hasChanges(p, draft) && (
-                    <ul className="text-destructive">{issues.map((i) => <li key={i.field + i.message}>{i.message}</li>)}</ul>
-                  )}
+
+                  {mode === "titles_meta" && (<>
+                    <label className="block">
+                      <span className="text-muted-foreground">Titre ({metaDraft.title.length})</span>
+                      <input value={metaDraft.title} onChange={(e) => setDrafts((d) => ({ ...d, [p.id]: { ...metaDraft, title: e.target.value } }))}
+                        className="w-full rounded border border-border bg-background p-1.5" />
+                    </label>
+                    <label className="block">
+                      <span className="text-muted-foreground">Meta description ({metaDraft.meta_description.length})</span>
+                      <textarea rows={2} value={metaDraft.meta_description}
+                        onChange={(e) => setDrafts((d) => ({ ...d, [p.id]: { ...metaDraft, meta_description: e.target.value } }))}
+                        className="w-full rounded border border-border bg-background p-1.5" />
+                    </label>
+                  </>)}
+
+                  {mode === "content" && (<>
+                    <div className="rounded border border-border bg-secondary/30 p-2">
+                      <div className="text-foreground font-semibold">Contenu actuel ({contentWordCount(p.content_html ?? "")} mots)</div>
+                      <div className="max-h-28 overflow-y-auto whitespace-pre-wrap text-muted-foreground">{(p.content_html ?? "").slice(0, 1200) || "—"}</div>
+                    </div>
+                    <div className="rounded border border-primary/30 bg-primary/5 p-2">
+                      <div className="text-foreground font-semibold">Recommandations du Copilote</div>
+                      <ul className="list-disc pl-4 text-muted-foreground">
+                        {proposal?.additions.map((a) => <li key={a.slice(0, 40)}>{a.replace(/<[^>]*>/g, " ").slice(0, 120)}…</li>)}
+                        {proposal?.notes.map((n) => <li key={n}>{n}</li>)}
+                      </ul>
+                    </div>
+                    <label className="block">
+                      <span className="text-muted-foreground">Intro</span>
+                      <textarea rows={2} value={cDraft.intro}
+                        onChange={(e) => setContentDrafts((d) => ({ ...d, [p.id]: { ...cDraft, intro: e.target.value } }))}
+                        className="w-full rounded border border-border bg-background p-1.5" />
+                    </label>
+                    <label className="block">
+                      <span className="text-muted-foreground">Proposition du Copilote / contenu à enregistrer ({contentWordCount(cDraft.content_html)} mots)</span>
+                      <textarea rows={8} value={cDraft.content_html}
+                        onChange={(e) => setContentDrafts((d) => ({ ...d, [p.id]: { ...cDraft, content_html: e.target.value } }))}
+                        className="w-full rounded border border-border bg-background p-1.5 font-mono" />
+                    </label>
+                  </>)}
+
+                  {mode === "cta" && (<>
+                    <div className="rounded border border-border bg-secondary/30 p-2 text-muted-foreground">
+                      CTA actuel : {extractCta(p.content_html ?? "") ? `« ${extractCta(p.content_html ?? "")!.text} » → ${extractCta(p.content_html ?? "")!.href}` : "aucun CTA géré par le Copilote dans le contenu"}
+                    </div>
+                    <label className="block">
+                      <span className="text-muted-foreground">Texte du nouveau CTA</span>
+                      <input value={ctaDraft.text} onChange={(e) => setCtaDrafts((d) => ({ ...d, [p.id]: { ...ctaDraft, text: e.target.value } }))}
+                        className="w-full rounded border border-border bg-background p-1.5" />
+                    </label>
+                    <label className="block">
+                      <span className="text-muted-foreground">Destination (parcours réellement disponibles)</span>
+                      <select value={ctaDraft.href} onChange={(e) => setCtaDrafts((d) => ({ ...d, [p.id]: { ...ctaDraft, href: e.target.value } }))}
+                        className="w-full rounded border border-border bg-background p-1.5">
+                        {ctaDestinations(p).map((dest) => <option key={dest.href} value={dest.href}>{dest.label} — {dest.href}</option>)}
+                      </select>
+                    </label>
+                  </>)}
+
+                  {mode === "internal_links" && (<>
+                    <div className="text-muted-foreground">Liens actuels ({currentLinks.length}) : {currentLinks.map((l) => l.href).join(", ") || "aucun"}</div>
+                    <div className="space-y-1">
+                      {suggestions.length === 0 && <div className="text-muted-foreground">Aucune page pertinente disponible en base pour cette page.</div>}
+                      {suggestions.map((s) => (
+                        <label key={s.href} className="flex items-start gap-2">
+                          <input type="checkbox" checked={sel.has(s.href)}
+                            onChange={(e) => setLinkSel((m2) => {
+                              const n = new Set(m2[p.id] ?? []);
+                              if (e.target.checked) n.add(s.href); else n.delete(s.href);
+                              return { ...m2, [p.id]: n };
+                            })} />
+                          <span>
+                            <span className="text-foreground font-semibold">{s.label}</span>{" "}
+                            <span className="font-mono text-primary">{s.href}</span>
+                            <span className="text-muted-foreground"> · {s.city ?? "—"} · {s.service ?? "—"} · {s.reason}</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </>)}
+
+                  {issue && <div className="text-destructive">{issue}</div>}
                   {item?.error && <div className="text-destructive">Erreur : {item.error}</div>}
                 </div>
               );
             })}
 
+            {confirming && (
+              <div className="rounded-md border border-primary/40 bg-primary/5 p-3 text-xs space-y-2" data-testid="confirm-panel">
+                <div className="font-display font-bold text-foreground">{confirming.length} modification(s) seront appliquées</div>
+                <ul className="list-disc pl-4 text-muted-foreground">{confirming.map((c) => <li key={c}>{c}</li>)}</ul>
+                <div className="flex gap-2">
+                  <button onClick={() => void applyChanges()} disabled={saving}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-primary-foreground font-display font-semibold disabled:opacity-60">
+                    <Check className="w-3.5 h-3.5" /> Confirmer et enregistrer
+                  </button>
+                  <button onClick={() => setConfirming(null)} className="px-3 py-1.5 rounded-md border border-border">Annuler</button>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 flex-wrap">
-              <button disabled={saving} onClick={() => void saveSelection()}
+              <button disabled={saving} onClick={askConfirm} data-testid="save-selection"
                 className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-display font-semibold disabled:opacity-60">
-                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Enregistrer la sélection
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Appliquer aux pages sélectionnées
               </button>
               {batch && progress && progress.errors > 0 && (
-                <button disabled={saving} onClick={() => { setBatch(retryErrors(batch)); void saveSelection(); }}
+                <button disabled={saving} onClick={() => { setBatch(retryErrors(batch)); void applyChanges(); }}
                   className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-border text-xs">
                   <RotateCcw className="w-3.5 h-3.5" /> Réessayer les erreurs
                 </button>
@@ -354,13 +581,9 @@ export default function OpportunityWorkPanel({
                 {l.status === "applied" ? <Check className="w-3 h-3 inline" /> : null} {l.status}
               </span>
               {" · "}{new Date(l.created_at).toLocaleString("fr-CA")}
+              {l.note ? ` · ${l.note}` : ""}
               {l.page_slug ? ` · /${l.page_slug}` : ""}
               {l.error ? ` · ${l.error}` : ""}
-              {l.status === "applied" && (
-                <div className="pl-4">
-                  Avant : {String((l.before_data as Record<string, unknown>)?.title ?? "—")} → Après : {String((l.after_data as Record<string, unknown>)?.title ?? "—")}
-                </div>
-              )}
             </div>
           ))}
         </div>
