@@ -179,6 +179,8 @@ export default function CopilotDashboard() {
   const { data, copilot, loading, scanning, step, rescan, reload, setOpportunityStatus } = useCopilot();
   const [showDiag, setShowDiag] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [showAll, setShowAll] = useState(false);
 
   if (loading && !data) {
     return <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
