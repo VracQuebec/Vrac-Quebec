@@ -477,7 +477,14 @@ export default function CopilotDashboard() {
     totalLoaded: opps.length,
     filteredCount: filtered.length,
     groups: actionGroups,
+    errorCount: Number(counts.error ?? 0),
+    dismissedCount: Number(counts.dismissed ?? 0),
+    resolvedCount: Number(counts.resolved ?? 0),
+    appliedCount: Number(counts.applied ?? 0),
+    staleCount: Number(counts.stale ?? 0),
+    totalCount: Number(counts.total ?? 0),
   });
+  const hiddenRows = explainHidden(copilot?.hidden ?? []);
 
   const onStatus: StatusSetter = async (id, s, extra) => {
     await setOpportunityStatus(id, s, extra);
