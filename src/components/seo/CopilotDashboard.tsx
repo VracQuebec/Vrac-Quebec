@@ -136,6 +136,27 @@ function OpportunityRow({ o, rank, onStatus }: { o: Opportunity; rank?: number; 
               <div className="font-display font-bold text-foreground mb-1">Action recommandée</div>
               <p className="text-muted-foreground">{o.recommended_action ?? "—"}</p>
             </div>
+            {o.expected_impact && (
+              <div>
+                <div className="font-display font-bold text-foreground mb-1">Impact attendu</div>
+                <p className="text-muted-foreground">{o.expected_impact}</p>
+              </div>
+            )}
+            {(o.score_factors?.length ?? 0) > 0 && (
+              <div>
+                <div className="font-display font-bold text-foreground mb-1">Pourquoi cette priorité ? (score {o.score}/100)</div>
+                <ul className="space-y-0.5">
+                  {o.score_factors.map((f, i) => (
+                    <li key={`${f.label}-${i}`} className="text-muted-foreground flex justify-between gap-2">
+                      <span>{f.label}</span>
+                      <span className={f.points >= 0 ? "text-primary font-semibold" : "text-destructive font-semibold"}>
+                        {f.points > 0 ? "+" : ""}{f.points}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="text-muted-foreground">
               <div><span className="text-foreground">Source :</span> {o.source ?? "—"}</div>
               <div><span className="text-foreground">Détectée le :</span> {new Date(o.detected_at).toLocaleString("fr-CA")}</div>
