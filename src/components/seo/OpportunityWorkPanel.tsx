@@ -13,6 +13,7 @@ import {
   publishState, validatePublish, detectConcurrentChange, buildRestorePlan, canRestore,
   type BatchItem, type ContentDraft, type CtaDraft, type EditablePage, type InternalLinkItem,
   type LinkCandidate, type MetaDraft, type WorkCapability, type WorkMode,
+  EMPTY_REFERENTIAL, contentBlockSignature, type SeoReferential,
 } from "@/lib/seo/workflow";
 
 type LogRow = {
@@ -49,6 +50,8 @@ export default function OpportunityWorkPanel({
   const [confirming, setConfirming] = useState<string[] | null>(null);
   const [restoring, setRestoring] = useState<LogRow | null>(null);
   const [restoreBusy, setRestoreBusy] = useState(false);
+  const [referential, setReferential] = useState<SeoReferential>(EMPTY_REFERENTIAL);
+  const [otherTitles, setOtherTitles] = useState<string[]>([]);
 
   const capability: WorkCapability = group ? capabilityOfGroup(group) : "not_configured";
   const modes: WorkMode[] = group ? availableModes(group.primary.type) : [];
@@ -63,13 +66,43 @@ export default function OpportunityWorkPanel({
     setLogs((data ?? []) as LogRow[]);
   }, []);
 
+  // Référentiels officiels : les noms affichés ne sont jamais reconstruits
+  // depuis un slug. La couverture transporteur provient des données réelles.
+  useEffect(() => {
+    if (!open) return;
+    void (async () => {
+      const [cities, services, materials, territories] = await Promise.all([
+        supabase.from("seo_cities").select("slug,name").limit(2000),
+        supabase.from("seo_services").select("slug,name").limit(500),
+        supabase.from("seo_materials").select("slug,name").limit(500),
+        supabase.from("mkt_partner_territories").select("city,region,is_active").eq("is_active", true).limit(2000),
+      ]);
+      const dict = (rows: Array<{ slug?: string | null; name?: string | null }> | null) => {
+        const out: Record<string, string> = {};
+        for (const r of rows ?? []) if (r?.slug && r?.name) out[r.slug] = r.name;
+        return out;
+      };
+      const norm = (v: string) => v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const coverage: Record<string, boolean> = {};
+      for (const t of (territories.data ?? []) as Array<{ city: string | null }>) {
+        if (t.city) coverage[norm(t.city)] = true;
+      }
+      setReferential({
+        cities: dict(cities.data as never),
+        services: dict(services.data as never),
+        materials: dict(materials.data as never),
+        coverage,
+      });
+    })();
+  }, [open]);
+
   const load = useCallback(async (opts?: { keepBatch?: boolean }) => {
     if (!group) return;
     setLoading(true);
     setLoadError(null);
     try {
       const slugs = priorityPages.map((p) => p.slug).filter((s): s is string => Boolean(s));
-      const cols = "id,slug,title,meta_title,meta_description,city_slug,service_slug,status,noindex,google_index_status,qa_last_score,qa_blockers,intro,word_count,internal_links,content_html";
+      const cols = "id,slug,title,meta_title,meta_description,city_slug,service_slug,material_slug,status,noindex,google_index_status,qa_last_score,qa_blockers,intro,word_count,internal_links,content_html";
       let query = supabase.from("seo_pages").select(cols);
       if (group.kind === "page") {
         const pid = group.primary.page_id;
@@ -96,7 +129,7 @@ export default function OpportunityWorkPanel({
       for (const p of rows) {
         d[p.id] = { title: p.title ?? "", meta_description: p.meta_description ?? "" };
         c[p.id] = { intro: p.intro ?? "", content_html: p.content_html ?? "" };
-        ct[p.id] = extractCta(p.content_html ?? "") ?? suggestCta(p);
+        ct[p.id] = extractCta(p.content_html ?? "") ?? suggestCta(p, referential);
         ls[p.id] = new Set();
       }
       setDrafts(d); setContentDrafts(c); setCtaDrafts(ct); setLinkSel(ls);
@@ -124,13 +157,30 @@ export default function OpportunityWorkPanel({
       } else {
         setCandidates([]);
       }
+      // Contrôle anti-doublon élargi : titres des autres pages du même
+      // matériau et du même territoire, pas seulement celles du lot.
+      const mats = [...new Set(rows.map((p) => p.material_slug).filter(Boolean))] as string[];
+      const dupOrs: string[] = [];
+      if (cities.length) dupOrs.push(`city_slug.in.(${cities.join(",")})`);
+      if (mats.length) dupOrs.push(`material_slug.in.(${mats.join(",")})`);
+      if (services.length) dupOrs.push(`service_slug.in.(${services.join(",")})`);
+      if (dupOrs.length) {
+        const ids = new Set(rows.map((p) => p.id));
+        const { data: others } = await supabase
+          .from("seo_pages").select("id,title").or(dupOrs.join(",")).limit(1000);
+        setOtherTitles(((others ?? []) as Array<{ id: string; title: string | null }>)
+          .filter((o) => !ids.has(o.id)).map((o) => o.title ?? "").filter(Boolean));
+      } else {
+        setOtherTitles([]);
+      }
+
       await loadLogs(group.primary.id);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Impossible de charger les données de cette opportunité");
     } finally {
       setLoading(false);
     }
-  }, [group, priorityPages, loadLogs]);
+  }, [group, priorityPages, loadLogs, referential]);
 
   useEffect(() => { if (open && group) void load(); }, [open, group, load]);
 
@@ -212,7 +262,7 @@ export default function OpportunityWorkPanel({
     const sel = linkSel[p.id];
     if (!sel || sel.size === 0) return null;
     const current = currentInternalLinks(p);
-    const suggestions = suggestInternalLinks(p, candidates);
+    const suggestions = suggestInternalLinks(p, candidates, 12, referential);
     const added: InternalLinkItem[] = suggestions.filter((s) => sel.has(s.href)).map((s) => ({ label: s.label, href: s.href, kind: s.kind }));
     if (added.length === 0) return null;
     const merged = mergeInternalLinks(current, added);
@@ -226,7 +276,10 @@ export default function OpportunityWorkPanel({
 
   const validateFor = (p: EditablePage): string | null => {
     if (mode === "titles_meta") {
-      const others = pages.filter((x) => x.id !== p.id).map((x) => drafts[x.id]?.title ?? x.title ?? "");
+      const others = [
+        ...pages.filter((x) => x.id !== p.id).map((x) => drafts[x.id]?.title ?? x.title ?? ""),
+        ...otherTitles,
+      ];
       return validateMeta(drafts[p.id], others)[0]?.message ?? null;
     }
     if (mode === "content") {
@@ -235,7 +288,7 @@ export default function OpportunityWorkPanel({
     if (mode === "cta") return validateCta(ctaDrafts[p.id], p)[0]?.message ?? null;
     if (mode === "publish") return validatePublish(p)[0]?.message ?? null;
     const sel = linkSel[p.id] ?? new Set<string>();
-    const added = suggestInternalLinks(p, candidates).filter((s) => sel.has(s.href));
+    const added = suggestInternalLinks(p, candidates, 12, referential).filter((s) => sel.has(s.href));
     return validateInternalLinks(added, knownSlugs)[0]?.message ?? null;
   };
 
@@ -466,7 +519,7 @@ export default function OpportunityWorkPanel({
                 <button
                   onClick={() => setDrafts((d) => {
                     const next = { ...d };
-                    for (const p of pages) if (selected.has(p.id)) next[p.id] = suggestMeta(p);
+                    for (const p of pages) if (selected.has(p.id)) next[p.id] = suggestMeta(p, referential);
                     return next;
                   })}
                   className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border hover:bg-secondary">
@@ -477,7 +530,12 @@ export default function OpportunityWorkPanel({
                 <button
                   onClick={() => setContentDrafts((d) => {
                     const next = { ...d };
-                    for (const p of pages) if (selected.has(p.id)) next[p.id] = buildContentProposal(p).draft;
+                    const seen: string[] = [];
+                    for (const p of pages) if (selected.has(p.id)) {
+                      const prop = buildContentProposal(p, referential, { peerSignatures: [...seen] });
+                      for (const a of prop.additions) seen.push(`${contentBlockSignature(a, [referential.cities[p.city_slug ?? ""] ?? null, referential.services[p.service_slug ?? ""] ?? null, referential.materials[p.material_slug ?? ""] ?? null])}|${p.material_slug ?? ""}|${p.service_slug ?? ""}`);
+                      next[p.id] = prop.draft;
+                    }
                     return next;
                   })}
                   className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border hover:bg-secondary">
@@ -488,7 +546,7 @@ export default function OpportunityWorkPanel({
                 <button
                   onClick={() => setCtaDrafts((d) => {
                     const next = { ...d };
-                    for (const p of pages) if (selected.has(p.id)) next[p.id] = suggestCta(p);
+                    for (const p of pages) if (selected.has(p.id)) next[p.id] = suggestCta(p, referential);
                     return next;
                   })}
                   className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border hover:bg-secondary">
@@ -504,8 +562,8 @@ export default function OpportunityWorkPanel({
               const metaDraft = drafts[p.id] ?? { title: "", meta_description: "" };
               const cDraft = contentDrafts[p.id] ?? { intro: "", content_html: "" };
               const ctaDraft = ctaDrafts[p.id] ?? { text: "", href: "#soumission" };
-              const proposal = mode === "content" ? buildContentProposal(p) : null;
-              const suggestions = mode === "internal_links" ? suggestInternalLinks(p, candidates) : [];
+              const proposal = mode === "content" ? buildContentProposal(p, referential) : null;
+              const suggestions = mode === "internal_links" ? suggestInternalLinks(p, candidates, 12, referential) : [];
               const currentLinks = mode === "internal_links" ? currentInternalLinks(p) : [];
               const sel = linkSel[p.id] ?? new Set<string>();
               const issue = selected.has(p.id) && buildChange(p) ? validateFor(p) : null;
@@ -588,7 +646,7 @@ export default function OpportunityWorkPanel({
                       <span className="text-muted-foreground">Destination (parcours réellement disponibles)</span>
                       <select value={ctaDraft.href} onChange={(e) => setCtaDrafts((d) => ({ ...d, [p.id]: { ...ctaDraft, href: e.target.value } }))}
                         className="w-full rounded border border-border bg-background p-1.5">
-                        {ctaDestinations(p).map((dest) => <option key={dest.href} value={dest.href}>{dest.label} — {dest.href}</option>)}
+                        {ctaDestinations(p, referential).map((dest) => <option key={dest.href} value={dest.href}>{dest.label} — {dest.href}</option>)}
                       </select>
                     </label>
                   </>)}
