@@ -59,6 +59,29 @@ export function workButtonLabel(status: string, capability: WorkCapability): str
   }
 }
 
+export type WorkNature = "action" | "verification";
+
+/** Une carte est soit une ACTION exécutable, soit une VÉRIFICATION de diagnostic. */
+export function natureOfType(type: string): WorkNature {
+  return capabilityOfType(type) === "verification" ? "verification" : "action";
+}
+
+export const NATURE_LABEL: Record<WorkNature, string> = {
+  action: "ACTION",
+  verification: "VÉRIFICATION",
+};
+
+/** Vocabulaire d'état propre aux actions exécutables. */
+export function actionStatusLabel(status: string): string {
+  switch (status) {
+    case "in_progress": return "En cours";
+    case "completed": return "Terminée";
+    case "error": return "À réessayer";
+    case "dismissed": return "Ignorée";
+    default: return "À travailler";
+  }
+}
+
 export type StatusEvent = "work" | "applied" | "failed" | "dismiss" | "reopen";
 
 /** Cycle de vie : OPEN → IN_PROGRESS → COMPLETED / ERROR, OPEN → IGNORED. */
