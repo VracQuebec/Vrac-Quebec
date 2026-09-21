@@ -4,7 +4,6 @@
 // scoring et le regroupement ne sont pas touchés.
 
 import type { ActionGroup } from "@/lib/seo/actionGroups";
-import { humanize } from "@/lib/seo/actionGroups";
 
 export type WorkCapability = "titles_meta" | "content" | "internal_links" | "verification" | "not_configured";
 
