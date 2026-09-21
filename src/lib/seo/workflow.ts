@@ -394,38 +394,86 @@ export function contentWordCount(html: string): number {
   return t ? t.split(" ").length : 0;
 }
 
+/** Signature générique d'un bloc : les noms propres sont retirés. */
+export function contentBlockSignature(html: string, names: Array<string | null> = []): string {
+  let t = html.replace(/<[^>]*>/g, " ");
+  for (const n of names) if (n) t = t.split(n).join(" ");
+  return t.toLowerCase().replace(/[^a-zà-ÿ0-9]+/gi, " ").replace(/\s+/g, " ").trim();
+}
+
+export type ContentProposalOptions = {
+  /** Signatures des blocs déjà proposés sur d'autres pages du lot. */
+  peerSignatures?: string[];
+};
+
 /**
- * Proposition de renforcement : le contenu existant est TOUJOURS conservé,
- * les sections proposées sont ajoutées à la suite et restent modifiables.
+ * Proposition de renforcement : le contenu existant est TOUJOURS conservé et
+ * les sections proposées sont ajoutées à la suite. Un bloc n'est proposé que
+ * s'il apporte une information réellement spécifique à la page (matériau,
+ * service, territoire officiels) et qu'il n'a pas déjà été proposé à
+ * l'identique sur une autre page. Aucune affirmation de couverture sans
+ * donnée transporteur réelle.
  */
-export function buildContentProposal(page: EditablePage): ContentProposal {
-  const svc = page.service_slug ? humanize(page.service_slug) : null;
-  const city = page.city_slug ? humanize(page.city_slug) : null;
-  const cible = svc && city ? `${svc} à ${city}` : svc ?? city ?? (page.title ?? page.slug);
-  const current = (page as EditablePage & { content_html?: string | null }).content_html ?? "";
+export function buildContentProposal(
+  page: EditablePage,
+  ref: SeoReferential = EMPTY_REFERENTIAL,
+  opts: ContentProposalOptions = {},
+): ContentProposal {
+  const svc = officialService(page.service_slug, ref);
+  const city = officialCity(page.city_slug, ref);
+  const mat = officialMaterial(page.material_slug, ref);
+  const subject = mat ?? svc;
+  const current = page.content_html ?? "";
   const additions: string[] = [];
   const notes: string[] = [];
+  const peers = new Set(opts.peerSignatures ?? []);
+  const names = [city, svc, mat];
 
   const has = (needle: string) => current.toLowerCase().includes(needle.toLowerCase());
+  const push = (html: string) => {
+    const sig = contentBlockSignature(html, names);
+    if (peers.has(sig)) {
+      notes.push("Bloc identique déjà proposé sur une autre page : il n'est pas répété.");
+      return;
+    }
+    peers.add(sig);
+    additions.push(html);
+  };
+
+  if (!subject || !city) {
+    notes.push("Information insuffisante pour proposer cette modification automatiquement.");
+    return { draft: { intro: page.intro ?? "", content_html: current }, additions, notes };
+  }
+
+  const cible = `${subject} à ${city}`;
 
   if (!has("Comment ça fonctionne")) {
-    additions.push(
-      `<h2>${esc(cible)} : comment ça fonctionne</h2>\n<p>Vous décrivez votre besoin (matériau, quantité, adresse du chantier et délai) dans le formulaire de demande. Vrac Québec transmet la demande aux transporteurs actifs dans le secteur et vous recevez une soumission.</p>`,
+    push(
+      `<h2>${esc(cible)} : comment ça fonctionne</h2>\n<p>Vous décrivez votre besoin (${esc(mat ? `quantité de ${mat.toLowerCase()}` : "matériau et quantité")}, adresse du chantier à ${esc(city)} et délai) dans le formulaire de demande. Vrac Québec transmet ensuite la demande et vous recevez une soumission.</p>`,
     );
   } else {
     notes.push("Une section « comment ça fonctionne » existe déjà : elle n'est pas dupliquée.");
   }
-  if (city && !has("secteur desservi")) {
-    additions.push(
-      `<h2>Secteur desservi</h2>\n<p>Les demandes de ${esc(svc ? svc.toLowerCase() : "transport en vrac")} à ${esc(city)} et dans les secteurs voisins sont traitées par les transporteurs partenaires de Vrac Québec.</p>`,
-    );
+
+  if (!has("secteur desservi")) {
+    if (hasCarrierCoverage(page, ref)) {
+      push(
+        `<h2>Secteur desservi</h2>\n<p>Les demandes de ${esc(subject.toLowerCase())} à ${esc(city)} sont prises en charge par des transporteurs configurés pour ce secteur.</p>`,
+      );
+    } else {
+      notes.push("Aucune couverture transporteur configurée pour ce territoire : aucune affirmation de disponibilité locale n'est proposée.");
+    }
   }
+
   if (!has("préparer votre demande")) {
-    additions.push(
-      `<h2>Préparer votre demande</h2>\n<ul><li>Type de matériau et quantité approximative</li><li>Adresse exacte du chantier</li><li>Accès au site et dates souhaitées</li></ul>`,
+    push(
+      `<h2>Préparer votre demande de ${esc(subject.toLowerCase())} à ${esc(city)}</h2>\n<ul><li>${esc(mat ? `Quantité de ${mat.toLowerCase()} requise` : "Type de matériau et quantité approximative")}</li><li>Adresse exacte du chantier à ${esc(city)}</li><li>Accès au site et dates souhaitées</li></ul>`,
     );
   }
-  if (additions.length === 0) notes.push("Le contenu couvre déjà les sections proposées : aucune addition automatique.");
+
+  if (additions.length === 0 && notes.length === 0) {
+    notes.push("Le contenu couvre déjà les sections proposées : aucune addition automatique.");
+  }
 
   const draft: ContentDraft = {
     intro: page.intro ?? "",
