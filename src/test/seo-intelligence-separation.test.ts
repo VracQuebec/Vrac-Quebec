@@ -92,7 +92,9 @@ describe("Séparation Intelligence SEO automatique / Copilote", () => {
   it("la tâche automatique ne publie jamais une page", () => {
     const src = read(INTEL);
     expect(/status:\s*["']published["']/.test(src)).toBe(false);
-    expect(/published_at:/.test(src)).toBe(false);
+    const cols = extractPageUpdateColumns(src).flat();
+    expect(cols).not.toContain("published_at");
+    expect(cols).not.toContain("status");
   });
 
   it("l'analyse d'opportunités ne modifie aucune page", () => {
@@ -137,7 +139,7 @@ describe("Séparation Intelligence SEO automatique / Copilote", () => {
 
   it("toute modification Copilote est journalisée avec avant/après", () => {
     const entry = buildLogEntry(
-      { action_key: "k", kind: "page", type: "high_impr_low_ctr" } as never,
+      { key: "k", kind: "page", primary: { id: "opp-1", type: "high_impr_low_ctr" } } as never,
       {
         status: "applied",
         before_data: { meta_title: "avant" },
@@ -151,7 +153,7 @@ describe("Séparation Intelligence SEO automatique / Copilote", () => {
 
   it("une vérification est journalisée sans after_data", () => {
     const entry = buildLogEntry(
-      { action_key: "k", kind: "group", type: "not_indexed" } as never,
+      { key: "k", kind: "group", primary: { id: "opp-2", type: "not_indexed" } } as never,
       { status: "checked", note: "20 pages vérifiées" },
     );
     expect(entry.status).toBe("checked");
