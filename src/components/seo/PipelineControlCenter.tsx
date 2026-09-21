@@ -146,8 +146,11 @@ export default function PipelineControlCenter() {
               <RefreshCw className="w-4 h-4" /> Rafraîchir
             </Button>
             {!run && (
-              <Button size="sm" variant="outline" disabled className="gap-2" title="Utilisez le Générateur pour sélectionner explicitement les municipalités et prévisualiser le lot">
-                <Play className="w-4 h-4" /> Sélection requise dans Générateur
+              <Button size="sm" className="gap-2" disabled={!startable.allowed || global.starting || global.loading}
+                title={startable.allowed ? "Génère uniquement les pages pertinentes manquantes" : startable.reason}
+                onClick={() => setConfirmOpen(true)}>
+                {global.starting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                Générer toutes les pages manquantes
               </Button>
             )}
             {run && ["running", "queued"].includes(run.status) && (
