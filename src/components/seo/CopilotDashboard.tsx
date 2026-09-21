@@ -74,15 +74,25 @@ function fmt(value: unknown): string {
   return String(value);
 }
 
-function OpportunityRow({ o, onStatus }: { o: Opportunity; onStatus: (id: string, s: "dismissed" | "in_progress" | "completed") => void }) {
+function OpportunityRow({ o, rank, onStatus }: { o: Opportunity; rank?: number; onStatus: (id: string, s: "dismissed" | "in_progress" | "completed") => void }) {
   const [open, setOpen] = useState(false);
   const p = PRIORITY[o.priority] ?? PRIORITY.medium;
+  const conversions = Number((o.data as Record<string, unknown> | null)?.conversions ?? 0);
   return (
     <li className="p-4">
       <div className="flex items-start justify-between gap-3">
         <button onClick={() => setOpen((v) => !v)} className="min-w-0 flex-1 text-left">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
+            {rank != null && <span className="text-[10px] font-display font-bold text-muted-foreground">#{rank}</span>}
             <span className={`px-2 py-0.5 rounded text-[10px] font-display font-bold tracking-wider ${p.cls}`}>{p.label}</span>
+            {conversions > 0 && (
+              <span className="px-2 py-0.5 rounded text-[10px] font-display font-bold bg-primary/15 text-primary">
+                {conversions} CONVERSION{conversions > 1 ? "S" : ""}
+              </span>
+            )}
+            {o.data_quality && o.data_quality !== "suffisante" && (
+              <span className="text-[10px] uppercase text-muted-foreground">donnée {o.data_quality}</span>
+            )}
             <span className="text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground">
               {TYPE_LABEL[o.type] ?? o.type.replace(/_/g, " ")}
             </span>
