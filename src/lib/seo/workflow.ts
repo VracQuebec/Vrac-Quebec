@@ -107,6 +107,7 @@ export type EditablePage = {
   meta_description: string | null;
   city_slug: string | null;
   service_slug: string | null;
+  material_slug?: string | null;
   status?: string | null;
   noindex?: boolean | null;
   google_index_status?: string | null;
@@ -118,32 +119,91 @@ export type EditablePage = {
   content_html?: string | null;
 };
 
-export type MetaDraft = { title: string; meta_description: string };
+// ------------------------------------------------ référentiels officiels
+// Les noms affichés proviennent TOUJOURS du référentiel (seo_cities,
+// seo_services, seo_materials). Jamais d'une reconstruction depuis le slug :
+// « sainte-anne-de-beaupre » ne doit jamais devenir « Sainte Anne de Beaupre ».
+
+export type SeoReferential = {
+  cities: Record<string, string>;
+  services: Record<string, string>;
+  materials: Record<string, string>;
+  /** Couverture transporteur réellement configurée, clé `city` ou `city|service`. */
+  coverage?: Record<string, boolean>;
+};
+
+export const EMPTY_REFERENTIAL: SeoReferential = { cities: {}, services: {}, materials: {}, coverage: {} };
+
+const refName = (dict: Record<string, string>, slug: string | null | undefined): string | null => {
+  if (!slug) return null;
+  const v = dict[slug];
+  return typeof v === "string" && v.trim() ? v.trim() : null;
+};
+
+export function officialCity(slug: string | null | undefined, ref: SeoReferential = EMPTY_REFERENTIAL): string | null {
+  return refName(ref.cities, slug);
+}
+export function officialService(slug: string | null | undefined, ref: SeoReferential = EMPTY_REFERENTIAL): string | null {
+  return refName(ref.services, slug);
+}
+export function officialMaterial(slug: string | null | undefined, ref: SeoReferential = EMPTY_REFERENTIAL): string | null {
+  return refName(ref.materials, slug);
+}
+
+/** Vrai uniquement si une couverture transporteur est réellement configurée. */
+export function hasCarrierCoverage(
+  page: Pick<EditablePage, "city_slug" | "service_slug">,
+  ref: SeoReferential = EMPTY_REFERENTIAL,
+): boolean {
+  const cov = ref.coverage ?? {};
+  if (!page.city_slug) return false;
+  if (page.service_slug && cov[`${page.city_slug}|${page.service_slug}`] === true) return true;
+  return cov[page.city_slug] === true;
+}
+
+export type MetaDraft = { title: string; meta_description: string; notes?: string[] };
 
 export const TITLE_MIN = 25;
 export const TITLE_MAX = 65;
 export const META_MIN = 70;
 export const META_MAX = 165;
 
+const BRAND = " | Vrac Québec";
+
 /**
  * Proposition déterministe construite UNIQUEMENT à partir des données réelles
- * de la page (service, territoire, titre existant). Aucune offre ni promesse
- * inventée.
+ * de la page et des référentiels officiels. Le matériau d'une page
+ * matériau × territoire reste toujours présent dans le titre et la meta.
  */
-export function suggestMeta(page: EditablePage): MetaDraft {
-  const svc = page.service_slug ? humanize(page.service_slug) : null;
-  const city = page.city_slug ? humanize(page.city_slug) : null;
-  const base = svc && city ? `${svc} à ${city}` : svc ?? city ?? (page.title ?? page.slug);
-  const title = `${base} | Vrac Québec`;
-  const meta = svc && city
-    ? `${svc} à ${city} : demandez une soumission à Vrac Québec et obtenez une réponse rapide pour votre chantier.`
-    : `${base} : demandez une soumission à Vrac Québec et obtenez une réponse rapide pour votre chantier.`;
-  return { title: title.slice(0, TITLE_MAX), meta_description: meta.slice(0, META_MAX) };
+export function suggestMeta(page: EditablePage, ref: SeoReferential = EMPTY_REFERENTIAL): MetaDraft {
+  const notes: string[] = [];
+  const svc = officialService(page.service_slug, ref);
+  const city = officialCity(page.city_slug, ref);
+  const mat = officialMaterial(page.material_slug, ref);
+
+  if (page.city_slug && !city) notes.push(`Territoire « ${page.city_slug} » absent du référentiel : le nom officiel n'est pas reconstruit.`);
+  if (page.material_slug && !mat) notes.push(`Matériau « ${page.material_slug} » absent du référentiel : aucune proposition inventée.`);
+  if (page.service_slug && !svc) notes.push(`Service « ${page.service_slug} » absent du référentiel.`);
+
+  // Le sujet réel de la page : matériau prioritaire, sinon service.
+  const subject = mat ?? svc;
+  if (!subject && !city) {
+    notes.push("Information insuffisante pour proposer cette modification automatiquement.");
+    return { title: page.title ?? "", meta_description: page.meta_description ?? "", notes };
+  }
+  const base = subject && city ? `${subject} à ${city}` : subject ?? city!;
+  const title = base.length + BRAND.length <= TITLE_MAX ? `${base}${BRAND}` : base;
+  const meta = `${base} : demandez une soumission à Vrac Québec et obtenez une réponse rapide pour votre chantier.`;
+  return { title, meta_description: meta.slice(0, META_MAX), notes };
 }
 
 export type ValidationIssue = { field: "title" | "meta_description"; message: string };
 
-/** Vérifie longueur, vide et doublons entre pages du lot. */
+/**
+ * Vérifie longueur, vide et doublons. `otherTitles` doit contenir les titres
+ * des autres pages du lot ET des autres pages existantes (même matériau,
+ * même territoire) pour éviter les titres identiques à grande échelle.
+ */
 export function validateMeta(draft: MetaDraft, otherTitles: string[] = []): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const title = draft.title.trim();
@@ -152,7 +212,7 @@ export function validateMeta(draft: MetaDraft, otherTitles: string[] = []): Vali
   else if (title.length < TITLE_MIN) issues.push({ field: "title", message: `Titre trop court (${title.length} caractères, minimum ${TITLE_MIN}).` });
   else if (title.length > TITLE_MAX) issues.push({ field: "title", message: `Titre trop long (${title.length} caractères, maximum ${TITLE_MAX}).` });
   if (title && otherTitles.some((t) => t.trim().toLowerCase() === title.toLowerCase())) {
-    issues.push({ field: "title", message: "Ce titre est déjà utilisé par une autre page du lot." });
+    issues.push({ field: "title", message: "Ce titre est déjà utilisé par une autre page (lot, matériau ou territoire)." });
   }
   if (!meta) issues.push({ field: "meta_description", message: "La meta description est obligatoire." });
   else if (meta.length < META_MIN) issues.push({ field: "meta_description", message: `Meta trop courte (${meta.length} caractères, minimum ${META_MIN}).` });
