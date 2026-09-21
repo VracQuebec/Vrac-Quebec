@@ -404,6 +404,22 @@ export default function PipelineControlCenter() {
       </Card>
 
       {/* ── Dialogs ─────────────────────────────────────────────── */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Générer toutes les pages manquantes</DialogTitle></DialogHeader>
+          <div className="space-y-1.5 text-sm">
+            {confirmationLines(global.preview).map((l) => <p key={l}>{l}</p>)}
+            <p className="pt-2 font-medium">Voulez-vous lancer la génération complète ?</p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Annuler</Button>
+            <Button onClick={() => void launchGlobal()} disabled={global.starting}>
+              {global.starting && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Lancer la génération
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={errorsOpen} onOpenChange={setErrorsOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-destructive" /> Pages en erreur — {totals?.errors ?? 0}</DialogTitle></DialogHeader>
