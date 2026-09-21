@@ -226,16 +226,28 @@ export function buildActionGroups(opportunities: Opportunity[]): ActionGroup[] {
       sorted.map((o) => normalizeAction(o.recommended_action)).filter((a) => a !== ""),
     ).size || 1;
 
+    const kind = kindOf(primary);
+    const service = serviceOf(primary);
+    const city = cityOf(primary);
+    const baseReason = primary.reason ?? primary.rationale ?? null;
+    const reason = sorted.length > 1 && baseReason
+      ? `${baseReason} ${sorted.length} signaux du même territoire/service ont été regroupés en une seule action.`
+      : baseReason;
+
     groups.push({
       key,
       primary,
       members: sorted,
-      kind: kindOf(primary),
-      title: primary.title,
+      kind,
+      title: actionTitleOf(primary, kind, service, city),
+      signalTitle: primary.title,
+      actionLabel: actionLabelOf(primary),
+      recommendedAction: primary.recommended_action,
+      reason,
       score: Math.max(...sorted.map((o) => o.score)),
       priority: primary.priority,
-      service: serviceOf(primary),
-      city: cityOf(primary),
+      service,
+      city,
       distinctActions,
       singleAction: distinctActions === 1,
       pages: pageKeys.size,
