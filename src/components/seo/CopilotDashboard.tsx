@@ -601,7 +601,7 @@ export default function CopilotDashboard() {
         <div className="mb-3 rounded-lg border border-border bg-card p-3" data-testid="copilot-counters">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
             <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Signaux détectés</div><div className="font-display font-bold text-foreground">{ctr_.signals}</div></div>
-            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Opportunités ouvertes</div><div className="font-display font-bold text-foreground">{ctr_.opportunitiesOpen}</div></div>
+            <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Opportunités actives</div><div className="font-display font-bold text-foreground">{ctr_.opportunitiesActive}</div><div className="text-muted-foreground">dont {ctr_.errors} en erreur</div></div>
             <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Affichées ici</div><div className="font-display font-bold text-foreground">{ctr_.opportunitiesVisible}</div></div>
             <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Actions exécutables</div><div className="font-display font-bold text-foreground">{ctr_.executable}</div></div>
             <div className="rounded-md bg-secondary/40 p-2"><div className="text-muted-foreground">Vérifications</div><div className="font-display font-bold text-foreground">{ctr_.verifications}</div></div>
@@ -611,9 +611,44 @@ export default function CopilotDashboard() {
             {showCounters ? "Masquer le détail des compteurs" : "Comprendre les compteurs"}
           </button>
           {showCounters && (
-            <ul className="mt-2 space-y-1 text-xs text-muted-foreground list-disc pl-4" data-testid="counters-explanation">
-              {countersExplanation(ctr_).map((line) => <li key={line}>{line}</li>)}
-            </ul>
+            <>
+              <ul className="mt-2 space-y-1 text-xs text-muted-foreground list-disc pl-4" data-testid="counters-explanation">
+                {countersExplanation(ctr_).map((line) => <li key={line}>{line}</li>)}
+              </ul>
+              <div className="mt-3 overflow-x-auto" data-testid="counter-sources">
+                <table className="w-full text-xs">
+                  <thead><tr className="text-muted-foreground text-left"><th className="py-1 pr-2">Compteur</th><th className="py-1 pr-2">Valeur</th><th className="py-1">Source exacte en base</th></tr></thead>
+                  <tbody>
+                    {counterSources(ctr_).map((s) => (
+                      <tr key={s.key} className="border-t border-border">
+                        <td className="py-1 pr-2 font-display font-semibold text-foreground">{s.label}</td>
+                        <td className="py-1 pr-2 tabular-nums text-foreground">{s.value}</td>
+                        <td className="py-1 text-muted-foreground">{s.source}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {hiddenRows.length > 0 && (
+                <div className="mt-3" data-testid="hidden-opportunities">
+                  <div className="text-xs font-display font-bold text-foreground mb-1">
+                    Opportunités conservées hors de la vue active ({hiddenRows.length})
+                  </div>
+                  <ul className="space-y-1 text-xs text-muted-foreground">
+                    {hiddenRows.map((h) => (
+                      <li key={h.id} className="rounded-md border border-border p-2">
+                        <span className="font-mono text-[10px]">{h.id.slice(0, 8)}</span>{" · "}
+                        <span className="text-foreground">{h.type ?? "—"}</span>{" · "}
+                        <span className="uppercase">{h.status}</span>{" — "}
+                        {h.reason} <span className="opacity-70">({h.filter})</span>
+                        {h.dismiss_reason ? ` · raison : ${h.dismiss_reason}` : ""}
+                        {h.last_error ? ` · dernière erreur : ${h.last_error}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
           )}
         </div>
 
