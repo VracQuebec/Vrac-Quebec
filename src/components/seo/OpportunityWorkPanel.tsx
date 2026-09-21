@@ -314,7 +314,9 @@ export default function OpportunityWorkPanel({
       await onStatus(o.id, "completed");
       toast.success("Modifications enregistrées et opportunité marquée terminée.");
     }
-    await load();
+    // La progression reste visible après le lot : l'utilisateur doit pouvoir lire le résultat.
+    await load({ keepBatch: true });
+    setBatch([...items]);
   };
 
   /** 8. Restauration sécurisée : réécrit les valeurs « avant » réellement journalisées. */
