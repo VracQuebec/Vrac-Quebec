@@ -57,7 +57,7 @@ describe("1. renforcer le contenu", () => {
     expect(contentWordCount(draft.content_html)).toBeGreaterThan(contentWordCount(p.content_html!));
   });
   it("n'invente aucun service ni territoire absent de la page", () => {
-    const { draft } = buildContentProposal(page({ city_slug: null, service_slug: null }));
+    const { draft } = buildContentProposal(page({ city_slug: null, service_slug: null, title: null, slug: "page-test" }));
     expect(draft.content_html).not.toContain("Levis");
     expect(draft.content_html).not.toContain("Excavation");
   });
