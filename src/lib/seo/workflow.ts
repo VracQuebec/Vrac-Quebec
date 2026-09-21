@@ -245,3 +245,271 @@ export function buildLogEntry(
     ...partial,
   };
 }
+
+// =====================================================================
+// Modes de travail additionnels : contenu, CTA, maillage interne.
+// Tout est déterministe et construit uniquement à partir des données
+// réelles de la page. Aucune URL, offre ou service inventé.
+// =====================================================================
+
+export type WorkMode = "titles_meta" | "content" | "cta" | "internal_links";
+
+export const MODE_LABEL: Record<WorkMode, string> = {
+  titles_meta: "Titres et metas",
+  content: "Renforcer le contenu",
+  cta: "Renforcer le CTA",
+  internal_links: "Renforcer le maillage interne",
+};
+
+/** Modes réellement exécutables pour un signal donné (le premier est le mode par défaut). */
+export function availableModes(type: string): WorkMode[] {
+  switch (type) {
+    case "high_impr_low_ctr":
+    case "ctr_top10":
+    case "group_service":
+    case "group_territory":
+      return ["titles_meta", "content", "cta", "internal_links"];
+    case "position_gain":
+      return ["content", "titles_meta", "internal_links", "cta"];
+    case "converting_page":
+      return ["cta", "internal_links", "content", "titles_meta"];
+    case "local_potential":
+      return ["titles_meta", "content", "cta", "internal_links"];
+    case "not_indexed":
+    case "not_indexed_bulk":
+    case "low_qa":
+    case "cannibalization":
+      return [];
+    default:
+      return [];
+  }
+}
+
+// ------------------------------------------------------------------ contenu
+
+export type ContentDraft = { intro: string; content_html: string };
+
+export type ContentProposal = {
+  draft: ContentDraft;
+  additions: string[];
+  notes: string[];
+};
+
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+export function contentTextLength(html: string): number {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().length;
+}
+
+export function contentWordCount(html: string): number {
+  const t = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return t ? t.split(" ").length : 0;
+}
+
+/**
+ * Proposition de renforcement : le contenu existant est TOUJOURS conservé,
+ * les sections proposées sont ajoutées à la suite et restent modifiables.
+ */
+export function buildContentProposal(page: EditablePage): ContentProposal {
+  const svc = page.service_slug ? humanize(page.service_slug) : null;
+  const city = page.city_slug ? humanize(page.city_slug) : null;
+  const cible = svc && city ? `${svc} à ${city}` : svc ?? city ?? (page.title ?? page.slug);
+  const html = page.intro != null || page.word_count != null ? "" : "";
+  const current = (page as EditablePage & { content_html?: string | null }).content_html ?? "";
+  const additions: string[] = [];
+  const notes: string[] = [];
+
+  const has = (needle: string) => current.toLowerCase().includes(needle.toLowerCase());
+
+  if (!has("Comment ça fonctionne")) {
+    additions.push(
+      `<h2>${esc(cible)} : comment ça fonctionne</h2>\n<p>Vous décrivez votre besoin (matériau, quantité, adresse du chantier et délai) dans le formulaire de demande. Vrac Québec transmet la demande aux transporteurs actifs dans le secteur et vous recevez une soumission.</p>`,
+    );
+  } else {
+    notes.push("Une section « comment ça fonctionne » existe déjà : elle n'est pas dupliquée.");
+  }
+  if (city && !has("secteur desservi")) {
+    additions.push(
+      `<h2>Secteur desservi</h2>\n<p>Les demandes de ${esc(svc ? svc.toLowerCase() : "transport en vrac")} à ${esc(city)} et dans les secteurs voisins sont traitées par les transporteurs partenaires de Vrac Québec.</p>`,
+    );
+  }
+  if (!has("préparer votre demande")) {
+    additions.push(
+      `<h2>Préparer votre demande</h2>\n<ul><li>Type de matériau et quantité approximative</li><li>Adresse exacte du chantier</li><li>Accès au site et dates souhaitées</li></ul>`,
+    );
+  }
+  if (additions.length === 0) notes.push("Le contenu couvre déjà les sections proposées : aucune addition automatique.");
+
+  const draft: ContentDraft = {
+    intro: page.intro ?? "",
+    content_html: additions.length ? `${current}${current.endsWith("\n") ? "" : "\n"}${additions.join("\n")}` : current + html,
+  };
+  return { draft, additions, notes };
+}
+
+export function validateContent(before: ContentDraft, draft: ContentDraft): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  if (!draft.content_html.trim()) {
+    issues.push({ field: "title", message: "Le contenu ne peut pas être vidé." });
+  } else if (contentTextLength(draft.content_html) < contentTextLength(before.content_html) * 0.8) {
+    issues.push({ field: "title", message: "La proposition supprime plus de 20 % du contenu existant : vérifiez avant d'enregistrer." });
+  }
+  return issues;
+}
+
+export function contentDiffSummary(before: ContentDraft, after: ContentDraft) {
+  return {
+    wordsBefore: contentWordCount(before.content_html),
+    wordsAfter: contentWordCount(after.content_html),
+    addedWords: contentWordCount(after.content_html) - contentWordCount(before.content_html),
+    introChanged: (before.intro ?? "") !== (after.intro ?? ""),
+  };
+}
+
+// ---------------------------------------------------------------------- CTA
+
+export const CTA_START = "<!--copilot:cta-->";
+export const CTA_END = "<!--/copilot:cta-->";
+
+export type CtaDraft = { text: string; href: string };
+
+export type CtaDestination = { href: string; label: string };
+
+/** Destinations RÉELLES du site — aucune URL inventée. */
+export function ctaDestinations(page: Pick<EditablePage, "city_slug">): CtaDestination[] {
+  const list: CtaDestination[] = [
+    { href: "#soumission", label: "Formulaire de demande de cette page" },
+    { href: "/soumission", label: "Assistant de soumission" },
+    { href: "tel:+15819947717", label: "Appel téléphonique 581-994-7717" },
+    { href: "https://wa.me/15819947717", label: "WhatsApp 581-994-7717" },
+    { href: "/calculateur", label: "Calculateur de matériaux" },
+    { href: "/materiaux", label: "Catalogue de matériaux" },
+    { href: "/remblai", label: "Page remblai" },
+    { href: "/demande-transport", label: "Demande de transport" },
+  ];
+  if (page.city_slug) list.push({ href: `/livraison/${page.city_slug}`, label: `Zone desservie — ${humanize(page.city_slug)}` });
+  return list;
+}
+
+export function extractCta(html: string): CtaDraft | null {
+  const i = html.indexOf(CTA_START);
+  const j = html.indexOf(CTA_END);
+  if (i === -1 || j === -1 || j < i) return null;
+  const block = html.slice(i + CTA_START.length, j);
+  const href = /href="([^"]*)"/.exec(block)?.[1] ?? "";
+  const text = /<a[^>]*>([\s\S]*?)<\/a>/.exec(block)?.[1]?.replace(/<[^>]*>/g, "").trim() ?? "";
+  return { text, href };
+}
+
+export function buildCtaHtml(draft: CtaDraft): string {
+  return `${CTA_START}<p class="copilot-cta"><a href="${draft.href}">${esc(draft.text)}</a></p>${CTA_END}`;
+}
+
+export function upsertCtaBlock(html: string, draft: CtaDraft): string {
+  const block = buildCtaHtml(draft);
+  const i = html.indexOf(CTA_START);
+  const j = html.indexOf(CTA_END);
+  if (i !== -1 && j !== -1 && j > i) return html.slice(0, i) + block + html.slice(j + CTA_END.length);
+  return `${html}${html.endsWith("\n") ? "" : "\n"}${block}`;
+}
+
+export function suggestCta(page: EditablePage): CtaDraft {
+  const svc = page.service_slug ? humanize(page.service_slug).toLowerCase() : null;
+  const city = page.city_slug ? humanize(page.city_slug) : null;
+  const text = svc && city
+    ? `Demander une soumission pour ${svc} à ${city}`
+    : `Demander une soumission à Vrac Québec`;
+  return { text, href: "#soumission" };
+}
+
+export function validateCta(draft: CtaDraft, page: Pick<EditablePage, "city_slug">): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const text = draft.text.trim();
+  if (!text) issues.push({ field: "title", message: "Le texte du CTA est obligatoire." });
+  else if (text.length > 80) issues.push({ field: "title", message: "Texte du CTA trop long (maximum 80 caractères)." });
+  const allowed = ctaDestinations(page).map((d) => d.href);
+  if (!draft.href) issues.push({ field: "meta_description", message: "La destination du CTA est obligatoire." });
+  else if (!allowed.includes(draft.href)) {
+    issues.push({ field: "meta_description", message: "Destination non disponible sur Vrac Québec — choisissez un parcours existant." });
+  }
+  return issues;
+}
+
+// -------------------------------------------------------- maillage interne
+
+export type InternalLinkItem = { label: string; href: string; kind?: string };
+
+export type LinkCandidate = {
+  slug: string;
+  title: string | null;
+  city_slug: string | null;
+  service_slug: string | null;
+};
+
+export type LinkSuggestion = InternalLinkItem & {
+  city: string | null;
+  service: string | null;
+  reason: string;
+};
+
+export function currentInternalLinks(page: EditablePage): InternalLinkItem[] {
+  const raw = page.internal_links;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((r) => {
+      const o = r as Record<string, unknown>;
+      const href = typeof o.href === "string" ? o.href : null;
+      const label = typeof o.label === "string" ? o.label : href;
+      return href && label ? { label, href, kind: typeof o.kind === "string" ? o.kind : undefined } : null;
+    })
+    .filter((x): x is InternalLinkItem => x !== null);
+}
+
+/** Suggestions issues UNIQUEMENT de pages SEO réellement présentes en base. */
+export function suggestInternalLinks(page: EditablePage, candidates: LinkCandidate[], limit = 12): LinkSuggestion[] {
+  const existing = new Set(currentInternalLinks(page).map((l) => l.href));
+  const out: LinkSuggestion[] = [];
+  for (const c of candidates) {
+    if (!c.slug || c.slug === page.slug) continue;
+    const href = `/${c.slug}`;
+    if (existing.has(href)) continue;
+    const sameCity = Boolean(page.city_slug && c.city_slug === page.city_slug);
+    const sameService = Boolean(page.service_slug && c.service_slug === page.service_slug);
+    if (!sameCity && !sameService) continue;
+    const reason = sameCity && sameService
+      ? "Même territoire et même service"
+      : sameCity
+        ? `Même territoire (${humanize(page.city_slug!)}), service complémentaire`
+        : `Même service (${humanize(page.service_slug!)}), autre territoire`;
+    out.push({
+      label: c.title ?? humanize(c.slug),
+      href,
+      kind: "seo_page",
+      city: c.city_slug,
+      service: c.service_slug,
+      reason,
+    });
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+export function mergeInternalLinks(current: InternalLinkItem[], added: InternalLinkItem[]): InternalLinkItem[] {
+  const seen = new Set(current.map((l) => l.href));
+  const merged = [...current];
+  for (const l of added) {
+    if (seen.has(l.href)) continue;
+    seen.add(l.href);
+    merged.push(l);
+  }
+  return merged;
+}
+
+export function validateInternalLinks(added: InternalLinkItem[], knownSlugs: string[]): ValidationIssue[] {
+  const known = new Set(knownSlugs.map((s) => `/${s}`));
+  const issues: ValidationIssue[] = [];
+  for (const l of added) {
+    if (!known.has(l.href)) issues.push({ field: "title", message: `Lien inconnu : ${l.href} ne correspond à aucune page SEO existante.` });
+  }
+  return issues;
+}
