@@ -88,8 +88,8 @@ describe("1. renforcer le contenu", () => {
 
 describe("2. renforcer le CTA", () => {
   it("propose un CTA basé sur le service et le territoire réels", () => {
-    const cta = suggestCta(page());
-    expect(cta.text).toContain("Levis");
+    const cta = suggestCta(page(), REF);
+    expect(cta.text).toContain("Lévis");
     expect(cta.href).toBe("#soumission");
   });
   it("n'accepte que des destinations réellement disponibles", () => {
