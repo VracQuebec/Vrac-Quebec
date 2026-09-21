@@ -513,7 +513,7 @@ export type CtaDraft = { text: string; href: string };
 export type CtaDestination = { href: string; label: string };
 
 /** Destinations RÉELLES du site — aucune URL inventée. */
-export function ctaDestinations(page: Pick<EditablePage, "city_slug">): CtaDestination[] {
+export function ctaDestinations(page: Pick<EditablePage, "city_slug">, ref: SeoReferential = EMPTY_REFERENTIAL): CtaDestination[] {
   const list: CtaDestination[] = [
     { href: "#soumission", label: "Formulaire de demande de cette page" },
     { href: "/soumission", label: "Assistant de soumission" },
@@ -524,7 +524,8 @@ export function ctaDestinations(page: Pick<EditablePage, "city_slug">): CtaDesti
     { href: "/remblai", label: "Page remblai" },
     { href: "/demande-transport", label: "Demande de transport" },
   ];
-  if (page.city_slug) list.push({ href: `/livraison/${page.city_slug}`, label: `Zone desservie — ${humanize(page.city_slug)}` });
+  const cityName = officialCity(page.city_slug, ref);
+  if (page.city_slug) list.push({ href: `/livraison/${page.city_slug}`, label: `Zone desservie — ${cityName ?? page.city_slug}` });
   return list;
 }
 
@@ -550,11 +551,11 @@ export function upsertCtaBlock(html: string, draft: CtaDraft): string {
   return `${html}${html.endsWith("\n") ? "" : "\n"}${block}`;
 }
 
-export function suggestCta(page: EditablePage): CtaDraft {
-  const svc = page.service_slug ? humanize(page.service_slug).toLowerCase() : null;
-  const city = page.city_slug ? humanize(page.city_slug) : null;
-  const text = svc && city
-    ? `Demander une soumission pour ${svc} à ${city}`
+export function suggestCta(page: EditablePage, ref: SeoReferential = EMPTY_REFERENTIAL): CtaDraft {
+  const subject = officialMaterial(page.material_slug, ref) ?? officialService(page.service_slug, ref);
+  const city = officialCity(page.city_slug, ref);
+  const text = subject && city
+    ? `Demander une soumission pour ${subject.toLowerCase()} à ${city}`
     : `Demander une soumission à Vrac Québec`;
   return { text, href: "#soumission" };
 }
@@ -606,7 +607,7 @@ export function currentInternalLinks(page: EditablePage): InternalLinkItem[] {
 }
 
 /** Suggestions issues UNIQUEMENT de pages SEO réellement présentes en base. */
-export function suggestInternalLinks(page: EditablePage, candidates: LinkCandidate[], limit = 12): LinkSuggestion[] {
+export function suggestInternalLinks(page: EditablePage, candidates: LinkCandidate[], limit = 12, ref: SeoReferential = EMPTY_REFERENTIAL): LinkSuggestion[] {
   const existing = new Set(currentInternalLinks(page).map((l) => l.href));
   const out: LinkSuggestion[] = [];
   for (const c of candidates) {
@@ -619,10 +620,10 @@ export function suggestInternalLinks(page: EditablePage, candidates: LinkCandida
     const reason = sameCity && sameService
       ? "Même territoire et même service"
       : sameCity
-        ? `Même territoire (${humanize(page.city_slug!)}), service complémentaire`
-        : `Même service (${humanize(page.service_slug!)}), autre territoire`;
+        ? `Même territoire (${officialCity(page.city_slug, ref) ?? page.city_slug}), service complémentaire`
+        : `Même service (${officialService(page.service_slug, ref) ?? page.service_slug}), autre territoire`;
     out.push({
-      label: c.title ?? humanize(c.slug),
+      label: c.title ?? c.slug,
       href,
       kind: "seo_page",
       city: c.city_slug,
