@@ -276,10 +276,14 @@ export function buildActionGroups(opportunities: Opportunity[]): ActionGroup[] {
     }
   }
 
+  // Score d'abord ; à score égal, l'action la plus concrète, puis celle liée à
+  // une conversion réelle, puis celle rattachée à un territoire/service réel.
   return groups.sort(
     (a, b) =>
       b.score - a.score ||
       CONCRETENESS[a.kind] - CONCRETENESS[b.kind] ||
+      (b.conversions ?? 0) - (a.conversions ?? 0) ||
+      Number(Boolean(b.city && b.service)) - Number(Boolean(a.city && a.service)) ||
       a.key.localeCompare(b.key),
   );
 }
