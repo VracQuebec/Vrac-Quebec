@@ -402,11 +402,11 @@ export function buildActionGroups(opportunities: Opportunity[]): ActionGroup[] {
     let weight = 0;
     let weighted = 0;
     for (const o of sorted) {
-      const p = num(dataOf(o).position);
+      const p = num(dataOf(o).position) ?? num(dataOf(o).position_avg);
       const i = num(dataOf(o).impressions);
       if (p != null && i != null && i > 0) { weighted += p * i; weight += i; }
     }
-    const position = weight > 0 ? weighted / weight : num(dataOf(primary).position);
+    const position = weight > 0 ? weighted / weight : num(dataOf(primary).position) ?? num(dataOf(primary).position_avg);
 
     const pageKeys = new Set<string>();
     for (const o of sorted) {

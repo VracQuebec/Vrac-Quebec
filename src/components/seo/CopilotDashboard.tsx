@@ -244,6 +244,35 @@ function PriorityPagesList({ pages, limit = 10 }: { pages: ActionPriorityPage[];
   );
 }
 
+function PriorityPagesPreview({ pages, limit }: { pages: ActionPriorityPage[]; limit: number }) {
+  const visible = pages.slice(0, limit);
+  if (visible.length === 0) return null;
+  return (
+    <div className="mt-3 rounded-md border border-border bg-secondary/20 p-3 text-xs space-y-2">
+      <div className="font-display font-bold text-foreground">Pages prioritaires</div>
+      <ol className="space-y-1.5">
+        {visible.map((page, i) => (
+          <li key={page.page_id ?? page.slug ?? page.url ?? i} className="grid gap-0.5">
+            <div className="flex gap-2 min-w-0">
+              <span className="font-display font-bold text-muted-foreground">{i + 1}.</span>
+              <span className="font-mono text-muted-foreground truncate">{page.url ?? "—"}</span>
+            </div>
+            <div className="pl-5 text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
+              <span>{fmtNum(page.impressions)} impressions</span>
+              <span>{fmtNum(page.clicks)} clics</span>
+              <span>CTR {fmtPct(page.ctr)}</span>
+              <span>Position {fmtPos(page.position)}</span>
+              <span>{fmtNum(page.conversions)} conversion{(page.conversions ?? 0) > 1 ? "s" : ""}</span>
+              <span>{page.reason}</span>
+            </div>
+          </li>
+        ))}
+      </ol>
+      {pages.length > visible.length && <div className="text-muted-foreground">+{pages.length - visible.length} page(s) prioritaire(s) visible(s) dans le détail.</div>}
+    </div>
+  );
+}
+
 function ActionGroupCard({ g, rank, priorityPages, onStatus }: { g: ActionGroup; rank: number; priorityPages: ActionPriorityPage[]; onStatus: (id: string, s: "dismissed" | "in_progress" | "completed") => void }) {
   const [open, setOpen] = useState(false);
   const p = PRIORITY[g.priority] ?? PRIORITY.medium;
@@ -297,13 +326,7 @@ function ActionGroupCard({ g, rank, priorityPages, onStatus }: { g: ActionGroup;
           <div className="text-sm text-muted-foreground mt-1">
             <span className="font-display font-bold text-foreground">Pourquoi : </span>{g.reason ?? "—"}
           </div>
-          {priorityPages.length > 0 && (
-            <div className="mt-2 text-xs text-muted-foreground">
-              <span className="font-display font-bold text-foreground">Pages prioritaires : </span>
-              {priorityPages.slice(0, 3).map((page) => page.url ?? page.slug ?? "Page").join(" · ")}
-              {priorityPages.length > 3 ? ` · +${priorityPages.length - 3}` : ""}
-            </div>
-          )}
+          <PriorityPagesPreview pages={priorityPages} limit={g.kind === "page" ? 1 : 5} />
           {g.relatedGroups.length > 0 && (
             <div className="text-xs text-muted-foreground mt-1 italic">
               Cette action fait partie d'un constat plus large : {g.relatedGroups.map((r) => r.title).join(" · ")}
@@ -368,7 +391,7 @@ function ActionGroupCard({ g, rank, priorityPages, onStatus }: { g: ActionGroup;
             </div>
           </div>
 
-          <PriorityPagesList pages={priorityPages} limit={g.kind === "page" ? 1 : 10} />
+          {(g.kind !== "page" && priorityPages.length > 5) && <PriorityPagesList pages={priorityPages} limit={10} />}
 
           {g.members.length > 1 && (
             <div className="rounded-md border border-border p-3 text-xs space-y-1">
