@@ -377,7 +377,13 @@ export default function CopilotDashboard() {
                       <td className="text-right">{h.opportunities_detected}</td>
                       <td className="text-right">{h.new_count}</td>
                       <td className="text-right">{h.updated_count}</td>
+                      <td className="text-right">{h.resolved_count ?? 0}</td>
                       <td className="text-right">{h.stale_count}</td>
+                      <td className="pl-3 text-muted-foreground">
+                        {h.comparison
+                          ? `${h.comparison.nouvelles} nouvelle(s), ${h.comparison.resolues} résolue(s), ${h.comparison.toujours_ouvertes} toujours ouverte(s), ${h.comparison.aggravees} aggravée(s)`
+                          : "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
