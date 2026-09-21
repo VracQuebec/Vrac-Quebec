@@ -73,7 +73,7 @@ export function nextStatus(current: string, event: StatusEvent): OpportunityStat
 // ---------------------------------------------------------------- titres/metas
 
 export type EditablePage = {
-  page_id: string;
+  id: string;
   slug: string;
   url: string;
   title: string | null;
