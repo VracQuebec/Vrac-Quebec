@@ -244,7 +244,7 @@ export type WorkLogEntry = {
   action_kind: string;
   action_type: string;
   capability: WorkCapability;
-  status: "started" | "applied" | "failed" | "cancelled" | "dismissed";
+  status: "started" | "applied" | "failed" | "cancelled" | "dismissed" | "checked" | "issue" | "check_failed";
   page_id: string | null;
   page_slug: string | null;
   before_data: Record<string, unknown>;
