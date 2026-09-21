@@ -217,9 +217,15 @@ function ActionGroupCard({ g, rank, onStatus }: { g: ActionGroup; rank: number; 
             {" "}CTR {g.ctr == null ? "—" : `${(g.ctr * 100).toFixed(2)} %`} ·
             {" "}Position {g.position == null ? "—" : g.position.toFixed(1)} ·
             {" "}Conversions {g.conversions == null ? "—" : g.conversions} ·
+            {" "}Territoire {g.city ?? "—"} · Service {g.service ?? "—"} ·
             {" "}Pages concernées {g.pages || "—"} · Signaux {g.members.length}
           </div>
-          <div className="text-sm text-muted-foreground mt-1">{o.reason ?? o.rationale}</div>
+          <div className="text-sm text-foreground mt-1">
+            <span className="font-display font-bold">Action : </span>{g.actionLabel}
+          </div>
+          <div className="text-sm text-muted-foreground mt-1">
+            <span className="font-display font-bold text-foreground">Pourquoi : </span>{g.reason ?? "—"}
+          </div>
           {g.relatedGroups.length > 0 && (
             <div className="text-xs text-muted-foreground mt-1 italic">
               Cette action fait partie d'un constat plus large : {g.relatedGroups.map((r) => r.title).join(" · ")}
