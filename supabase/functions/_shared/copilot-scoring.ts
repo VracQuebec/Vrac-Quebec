@@ -226,6 +226,12 @@ export function scoreSignal(ctx: SignalContext): { score: number; factors: Score
   // --- Portée d'un constat de groupe ---
   if ((ctx.groupPages ?? 0) >= 5) push(`${ctx.groupPages} pages concernées`, 8);
 
+  // Un constat de groupe éclaire la stratégie mais ne se travaille pas directement :
+  // à volume égal, une action sur une page précise reste prioritaire.
+  if (ctx.type === "group_service" || ctx.type === "group_territory" || ctx.type === "not_indexed_bulk") {
+    push("Constat d'ensemble — action moins directe qu'une page précise", -20);
+  }
+
   const score = clampScore(factors.reduce((sum, f) => sum + f.points, 0));
   return { score, factors };
 }
