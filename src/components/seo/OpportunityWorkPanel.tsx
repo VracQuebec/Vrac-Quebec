@@ -180,7 +180,7 @@ export default function OpportunityWorkPanel({
     } finally {
       setLoading(false);
     }
-  }, [group, priorityPages, loadLogs]);
+  }, [group, priorityPages, loadLogs, referential]);
 
   useEffect(() => { if (open && group) void load(); }, [open, group, load]);
 
