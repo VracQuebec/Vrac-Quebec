@@ -5,7 +5,7 @@
 
 import type { Opportunity } from "@/lib/seo/useCopilot";
 
-export type ActionKind = "page" | "territoire_service" | "groupe" | "technique";
+export type ActionKind = "page" | "territoire_service" | "service" | "groupe" | "technique";
 
 export type ActionGroup = {
   key: string;
@@ -13,7 +13,15 @@ export type ActionGroup = {
   primary: Opportunity;
   members: Opportunity[];
   kind: ActionKind;
+  /** Titre d'action VERBE + OBJET + CIBLE, jamais un simple nom de service ou de ville. */
   title: string;
+  /** Titre original du signal, conservé tel quel. */
+  signalTitle: string;
+  /** Intervention courte et exécutable (« Revoir le title et la meta description »). */
+  actionLabel: string;
+  /** Action détaillée issue du signal. */
+  recommendedAction: string | null;
+  reason: string | null;
   score: number;
   priority: Opportunity["priority"];
   service: string | null;
