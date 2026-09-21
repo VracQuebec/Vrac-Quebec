@@ -195,7 +195,7 @@ function ActionGroupCard({ g, rank, onStatus }: { g: ActionGroup; rank: number; 
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="text-[10px] font-display font-bold text-muted-foreground">#{rank}</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-display font-bold tracking-wider ${p.cls}`}>{p.label}</span>
-            <span className="text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground">{KIND_LABEL[g.kind]}</span>
+            <span className="px-2 py-0.5 rounded border border-border text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground">{KIND_LABEL[g.kind]}</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-display font-bold ${g.singleAction ? "bg-primary/15 text-primary" : "bg-secondary text-secondary-foreground"}`}>
               {g.singleAction ? "ACTION UNIQUE" : `${g.distinctActions} ACTIONS`}
             </span>
