@@ -60,7 +60,7 @@ export default function OpportunityWorkPanel({
     setLogs((data ?? []) as LogRow[]);
   }, []);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { keepBatch?: boolean }) => {
     if (!group) return;
     setLoading(true);
     setLoadError(null);
@@ -97,10 +97,12 @@ export default function OpportunityWorkPanel({
         ls[p.id] = new Set();
       }
       setDrafts(d); setContentDrafts(c); setCtaDrafts(ct); setLinkSel(ls);
-      setSelected(new Set(rows.map((p) => p.id)));
-      setBatch(null);
+      if (!opts?.keepBatch) {
+        setSelected(new Set(rows.map((p) => p.id)));
+        setBatch(null);
+        setMode((availableModes(group.primary.type)[0] ?? "titles_meta") as WorkMode);
+      }
       setConfirming(null);
-      setMode((availableModes(group.primary.type)[0] ?? "titles_meta") as WorkMode);
 
       // Candidats de maillage : uniquement des pages SEO réelles du même territoire/service.
       const cities = [...new Set(rows.map((p) => p.city_slug).filter(Boolean))] as string[];
@@ -278,6 +280,11 @@ export default function OpportunityWorkPanel({
     if (failures > 0) {
       await onStatus(o.id, "error", { error: `${failures} page(s) en erreur` });
       toast.error(`${failures} page(s) en erreur — vous pouvez réessayer les erreurs.`);
+      const failedIds = items.filter((b) => b.status === "error").map((b) => b.page_id);
+      await load({ keepBatch: true });
+      setBatch([...items]);
+      setSelected(new Set(failedIds));
+      return;
     } else {
       await onStatus(o.id, "completed");
       toast.success("Modifications enregistrées et opportunité marquée terminée.");
