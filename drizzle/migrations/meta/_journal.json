@@ -162,6 +162,13 @@
       "when": 1790005954471,
       "tag": "0022_seo_opportunity_actions",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790014501975,
+      "tag": "0023_seo_copilot_state_full_counters",
+      "breakpoints": true
     }
   ]
 }
