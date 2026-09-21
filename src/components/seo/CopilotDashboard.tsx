@@ -390,7 +390,7 @@ function ActionGroupCard({ g, rank, priorityPages, onStatus }: { g: ActionGroup;
 }
 
 export default function CopilotDashboard() {
-  const { data, copilot, loading, scanning, step, rescan, reload, setOpportunityStatus } = useCopilot();
+  const { data, copilot, actionPageMetrics, loading, scanning, step, rescan, reload, setOpportunityStatus } = useCopilot();
   const [showDiag, setShowDiag] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -526,7 +526,7 @@ export default function CopilotDashboard() {
             )}
             <ul className="rounded-lg border border-border bg-card divide-y divide-border">
               {mode === "actions"
-                ? visibleGroups.map((g, i) => <ActionGroupCard key={g.key} g={g} rank={i + 1} onStatus={onStatus} />)
+                ? visibleGroups.map((g, i) => <ActionGroupCard key={g.key} g={g} rank={i + 1} priorityPages={buildPriorityPagesForAction(g, actionPageMetrics, g.kind === "page" ? 1 : 10)} onStatus={onStatus} />)
                 : visible.map((o, i) => <OpportunityRow key={o.id} o={o} rank={i + 1} onStatus={onStatus} />)}
             </ul>
             {(mode === "actions" ? actionGroups.length > visibleGroups.length : filtered.length > visible.length) && (
