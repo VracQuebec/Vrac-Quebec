@@ -14,7 +14,7 @@ import {
   type ActionPriorityPage,
 } from "@/lib/seo/actionGroups";
 import OpportunityWorkPanel from "@/components/seo/OpportunityWorkPanel";
-import { capabilityOfGroup, workButtonLabel } from "@/lib/seo/workflow";
+import { capabilityOfGroup, capabilityOfType, workButtonLabel } from "@/lib/seo/workflow";
 
 type StatusSetter = (id: string, s: "dismissed" | "in_progress" | "completed" | "open" | "error", extra?: { error?: string | null; reason?: string | null }) => Promise<void>;
 
@@ -97,7 +97,7 @@ function fmtPos(value: number | null | undefined): string {
   return value == null ? "—" : value.toFixed(1);
 }
 
-function OpportunityRow({ o, rank, onStatus }: { o: Opportunity; rank?: number; onStatus: (id: string, s: "dismissed" | "in_progress" | "completed") => void }) {
+function OpportunityRow({ o, rank, onStatus, onWork, onDismiss }: { o: Opportunity; rank?: number; onStatus: StatusSetter; onWork: (o: Opportunity) => void; onDismiss: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   const p = PRIORITY[o.priority] ?? PRIORITY.medium;
   const conversions = Number((o.data as Record<string, unknown> | null)?.conversions ?? 0);
@@ -130,16 +130,20 @@ function OpportunityRow({ o, rank, onStatus }: { o: Opportunity; rank?: number; 
           <div className="text-sm text-muted-foreground mt-1">{o.reason ?? o.rationale}</div>
         </button>
         <div className="flex flex-col items-end gap-2 shrink-0">
-          <button onClick={() => onStatus(o.id, "in_progress")}
+          <button onClick={() => onWork(o)}
             className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-display font-semibold hover:opacity-90">
-            <Zap className="w-3.5 h-3.5" /> Travailler
+            <Zap className="w-3.5 h-3.5" /> {workButtonLabel(o.status, capabilityOfType(o.type))}
           </button>
-          <button onClick={() => onStatus(o.id, "completed")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-            <Check className="w-3 h-3" /> Terminée
-          </button>
-          <button onClick={() => onStatus(o.id, "dismissed")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-            <X className="w-3 h-3" /> Ignorer
-          </button>
+          {o.status === "dismissed" && (
+            <button onClick={() => void onStatus(o.id, "open")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+              <Check className="w-3 h-3" /> Réouvrir
+            </button>
+          )}
+          {o.status !== "dismissed" && (
+            <button onClick={() => onDismiss(o.id)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+              <X className="w-3 h-3" /> Ignorer
+            </button>
+          )}
         </div>
       </div>
 
@@ -277,7 +281,7 @@ function PriorityPagesPreview({ pages, limit }: { pages: ActionPriorityPage[]; l
   );
 }
 
-function ActionGroupCard({ g, rank, priorityPages, onStatus }: { g: ActionGroup; rank: number; priorityPages: ActionPriorityPage[]; onStatus: (id: string, s: "dismissed" | "in_progress" | "completed") => void }) {
+function ActionGroupCard({ g, rank, priorityPages, onStatus, onWork, onDismiss }: { g: ActionGroup; rank: number; priorityPages: ActionPriorityPage[]; onStatus: StatusSetter; onWork: (g: ActionGroup) => void; onDismiss: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   const p = PRIORITY[g.priority] ?? PRIORITY.medium;
   const o = g.primary;
@@ -338,16 +342,19 @@ function ActionGroupCard({ g, rank, priorityPages, onStatus }: { g: ActionGroup;
           )}
         </button>
         <div className="flex flex-col items-end gap-2 shrink-0">
-          <button onClick={() => onStatus(o.id, "in_progress")}
+          <button onClick={() => onWork(g)}
             className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-display font-semibold hover:opacity-90">
-            <Zap className="w-3.5 h-3.5" /> Travailler
+            <Zap className="w-3.5 h-3.5" /> {workButtonLabel(o.status, capabilityOfGroup(g))}
           </button>
-          <button onClick={() => onStatus(o.id, "completed")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-            <Check className="w-3 h-3" /> Terminée
-          </button>
-          <button onClick={() => onStatus(o.id, "dismissed")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-            <X className="w-3 h-3" /> Ignorer
-          </button>
+          {o.status === "dismissed" ? (
+            <button onClick={() => void onStatus(o.id, "open")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+              <Check className="w-3 h-3" /> Réouvrir
+            </button>
+          ) : (
+            <button onClick={() => onDismiss(o.id)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+              <X className="w-3 h-3" /> Ignorer
+            </button>
+          )}
         </div>
       </div>
 
@@ -423,6 +430,9 @@ export default function CopilotDashboard() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [showAll, setShowAll] = useState(false);
   const [mode, setMode] = useState<"actions" | "all">("actions");
+  const [workGroup, setWorkGroup] = useState<ActionGroup | null>(null);
+  const [dismissId, setDismissId] = useState<string | null>(null);
+  const [dismissReason, setDismissReason] = useState("");
 
   if (loading && !data) {
     return <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
@@ -440,9 +450,30 @@ export default function CopilotDashboard() {
   const visibleGroups = showAll ? actionGroups : actionGroups.slice(0, 10);
   const grouped = actionGroups.filter((g) => g.members.length > 1).length;
 
-  const onStatus = async (id: string, s: "dismissed" | "in_progress" | "completed") => {
-    await setOpportunityStatus(id, s);
-    toast.success(s === "dismissed" ? "Opportunité ignorée" : s === "completed" ? "Opportunité marquée terminée" : "Opportunité en cours");
+  const onStatus: StatusSetter = async (id, s, extra) => {
+    await setOpportunityStatus(id, s, extra);
+    toast.success(
+      s === "dismissed" ? "Opportunité ignorée"
+        : s === "completed" ? "Opportunité marquée terminée"
+        : s === "error" ? "Action en erreur — voir le détail"
+        : s === "open" ? "Opportunité réouverte"
+        : "Opportunité en cours",
+    );
+  };
+
+  const openWork = async (g: ActionGroup) => {
+    setWorkGroup(g);
+    if (g.primary.status === "open") await setOpportunityStatus(g.primary.id, "in_progress");
+  };
+  const openWorkForOpportunity = (o: Opportunity) => {
+    const [g] = buildActionGroups([o]);
+    if (g) void openWork(g);
+  };
+  const confirmDismiss = async () => {
+    if (!dismissId) return;
+    await onStatus(dismissId, "dismissed", { reason: dismissReason.trim() || null });
+    setDismissId(null);
+    setDismissReason("");
   };
 
   return (
@@ -553,8 +584,8 @@ export default function CopilotDashboard() {
             )}
             <ul className="rounded-lg border border-border bg-card divide-y divide-border">
               {mode === "actions"
-                ? visibleGroups.map((g, i) => <ActionGroupCard key={g.key} g={g} rank={i + 1} priorityPages={buildPriorityPagesForAction(g, actionPageMetrics, g.kind === "page" ? 1 : 10)} onStatus={onStatus} />)
-                : visible.map((o, i) => <OpportunityRow key={o.id} o={o} rank={i + 1} onStatus={onStatus} />)}
+                ? visibleGroups.map((g, i) => <ActionGroupCard key={g.key} g={g} rank={i + 1} priorityPages={buildPriorityPagesForAction(g, actionPageMetrics, g.kind === "page" ? 1 : 10)} onStatus={onStatus} onWork={openWork} onDismiss={setDismissId} />)
+                : visible.map((o, i) => <OpportunityRow key={o.id} o={o} rank={i + 1} onStatus={onStatus} onWork={openWorkForOpportunity} onDismiss={setDismissId} />)}
             </ul>
             {(mode === "actions" ? actionGroups.length > visibleGroups.length : filtered.length > visible.length) && (
               <button onClick={() => setShowAll(true)}
@@ -654,6 +685,29 @@ export default function CopilotDashboard() {
           )}
         </div>
       ) : null}
+
+      <OpportunityWorkPanel
+        group={workGroup}
+        priorityPages={workGroup ? buildPriorityPagesForAction(workGroup, actionPageMetrics, workGroup.kind === "page" ? 1 : 50) : []}
+        open={workGroup !== null}
+        onClose={() => { setWorkGroup(null); void reload(); }}
+        onStatus={async (id, status, extra) => { await setOpportunityStatus(id, status, extra); }}
+      />
+
+      {dismissId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4">
+          <div className="w-full max-w-sm rounded-lg border border-border bg-card p-4 space-y-3">
+            <div className="font-display font-bold text-foreground">Voulez-vous ignorer cette opportunité ?</div>
+            <p className="text-xs text-muted-foreground">Elle reste conservée dans l'historique et dans « Toutes les opportunités ».</p>
+            <input value={dismissReason} onChange={(e) => setDismissReason(e.target.value)} placeholder="Raison (facultatif)"
+              className="w-full rounded border border-border bg-background p-2 text-xs" />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => { setDismissId(null); setDismissReason(""); }} className="px-3 py-1.5 rounded-md border border-border text-xs">Annuler</button>
+              <button onClick={() => void confirmDismiss()} className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-display font-semibold">Ignorer</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Gains & pertes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
