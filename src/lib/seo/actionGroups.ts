@@ -256,7 +256,7 @@ export function buildActionGroups(opportunities: Opportunity[]): ActionGroup[] {
       ctr: impressions != null && impressions > 0 && clicks != null ? clicks / impressions : null,
       position,
       conversions,
-      relatedGroups: sorted.filter((o) => o !== primary && kindOf(o) === "groupe"),
+      relatedGroups: sorted.filter((o) => o !== primary && (kindOf(o) === "groupe" || kindOf(o) === "service")),
     });
   }
 
