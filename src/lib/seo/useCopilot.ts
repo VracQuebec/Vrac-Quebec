@@ -249,13 +249,20 @@ export function useCopilot() {
     }
   }, [load]);
 
-  const setOpportunityStatus = useCallback(async (id: string, status: "dismissed" | "in_progress" | "completed" | "open") => {
+  const setOpportunityStatus = useCallback(async (
+    id: string,
+    status: "dismissed" | "in_progress" | "completed" | "open" | "error",
+    extra?: { error?: string | null; reason?: string | null },
+  ) => {
     const now = new Date().toISOString();
     const patch = {
       status,
       updated_at: now,
-      ...(status === "dismissed" ? { dismissed_at: now } : {}),
-      ...(status === "completed" ? { applied_at: now } : {}),
+      ...(status === "dismissed" ? { dismissed_at: now, dismiss_reason: extra?.reason ?? null } : {}),
+      ...(status === "completed" ? { applied_at: now, resolved_at: now, last_error: null } : {}),
+      ...(status === "in_progress" ? { work_started_at: now, last_error: null } : {}),
+      ...(status === "error" ? { last_error: extra?.error ?? "Erreur inconnue" } : {}),
+      ...(status === "open" ? { dismissed_at: null, last_error: null } : {}),
     };
     const { error: e } = await supabase.from("seo_opportunities").update(patch).eq("id", id);
     if (e) { toast.error(e.message); return; }
