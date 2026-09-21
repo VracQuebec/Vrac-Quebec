@@ -571,7 +571,7 @@ export default function CopilotDashboard() {
       <div>
         <h3 className="text-xs uppercase tracking-wider font-display font-bold text-muted-foreground mb-2">Opportunités SEO</h3>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-3">
-          <KpiCard label="Opportunités" value={counts.open ?? opps.length} icon={Sparkles} />
+          <KpiCard label="Opportunités actives" value={counts.active ?? opps.length} icon={Sparkles} hint={`${counts.open ?? 0} ouvertes · ${counts.in_progress ?? 0} en cours · ${counts.error ?? 0} en erreur`} />
           <KpiCard label="Critiques" value={counts.critical ?? 0} icon={Zap} />
           <KpiCard label="Hautes" value={counts.high ?? 0} icon={Zap} />
           <KpiCard label="Moyennes" value={counts.medium ?? 0} icon={Zap} />
