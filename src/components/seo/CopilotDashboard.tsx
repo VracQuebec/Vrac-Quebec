@@ -284,14 +284,29 @@ export default function CopilotDashboard() {
             {run && (
               <p className="text-xs text-muted-foreground">
                 {run.pages_analyzed} pages analysées · {run.gsc_rows_analyzed} URL Search Console · {run.impressions_analyzed.toLocaleString("fr-CA")} impressions ·
-                {" "}{run.conversions_analyzed} conversions · {run.indexed_analyzed} pages indexées · {run.rules?.length ?? 0} règles évaluées
+                {" "}{run.conversions_analyzed} conversions · {run.indexed_analyzed} pages indexées · {run.rules?.length ?? 0} règles évaluées ·
+                {" "}{run.signals_detected ?? 0} signaux détectés, {run.signals_rejected ?? 0} écartés faute de données suffisantes
               </p>
             )}
           </div>
         ) : (
-          <ul className="rounded-lg border border-border bg-card divide-y divide-border">
-            {opps.map((o) => <OpportunityRow key={o.id} o={o} onStatus={onStatus} />)}
-          </ul>
+          <>
+            <ul className="rounded-lg border border-border bg-card divide-y divide-border">
+              {visible.map((o, i) => <OpportunityRow key={o.id} o={o} rank={i + 1} onStatus={onStatus} />)}
+            </ul>
+            {filtered.length > visible.length && (
+              <button onClick={() => setShowAll(true)}
+                className="mt-2 w-full rounded-md border border-border py-2 text-sm font-display font-semibold hover:bg-secondary">
+                Voir toutes les opportunités ({filtered.length})
+              </button>
+            )}
+            {showAll && filtered.length > 10 && (
+              <button onClick={() => setShowAll(false)}
+                className="mt-2 w-full rounded-md border border-border py-2 text-sm font-display font-semibold hover:bg-secondary">
+                Afficher seulement le top 10
+              </button>
+            )}
+          </>
         )}
       </div>
 
