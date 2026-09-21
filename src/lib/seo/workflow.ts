@@ -430,8 +430,10 @@ export function buildContentProposal(
   const names = [city, svc, mat];
 
   const has = (needle: string) => current.toLowerCase().includes(needle.toLowerCase());
+  // Un même squelette de bloc n'est proposé qu'une fois par couple
+  // matériau/service : pas de duplication sur des dizaines de pages.
   const push = (html: string) => {
-    const sig = contentBlockSignature(html, names);
+    const sig = `${contentBlockSignature(html, names)}|${page.material_slug ?? ""}|${page.service_slug ?? ""}`;
     if (peers.has(sig)) {
       notes.push("Bloc identique déjà proposé sur une autre page : il n'est pas répété.");
       return;
