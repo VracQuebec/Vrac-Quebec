@@ -163,9 +163,13 @@ export function useCopilot() {
   }, [load]);
 
   const setOpportunityStatus = useCallback(async (id: string, status: "dismissed" | "in_progress" | "completed" | "open") => {
-    const patch: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
-    if (status === "dismissed") patch.dismissed_at = new Date().toISOString();
-    if (status === "completed") patch.applied_at = new Date().toISOString();
+    const now = new Date().toISOString();
+    const patch = {
+      status,
+      updated_at: now,
+      ...(status === "dismissed" ? { dismissed_at: now } : {}),
+      ...(status === "completed" ? { applied_at: now } : {}),
+    };
     const { error: e } = await supabase.from("seo_opportunities").update(patch).eq("id", id);
     if (e) { toast.error(e.message); return; }
     await load();
