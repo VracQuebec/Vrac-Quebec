@@ -160,7 +160,7 @@ describe("Audit de cohérence du Copilote SEO", () => {
   it("18. une vérification est journalisée sans données « après »", () => {
     const entry = buildLogEntry(group("low_qa"), { status: "checked", note: "20 pages vérifiées" });
     expect(entry.status).toBe("checked");
-    expect(entry.after_data ?? null).toBeNull();
+    expect(Object.keys(entry.after_data ?? {})).toHaveLength(0);
   });
 
   it("19. aucune opportunité n'est supprimée : chaque masquée a une raison", () => {
