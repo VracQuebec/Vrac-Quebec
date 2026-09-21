@@ -28,13 +28,23 @@ export type GscDelta = {
 
 export type OpportunityPriority = "critical" | "high" | "medium" | "low";
 
+export type ScoreFactor = { label: string; points: number };
+
+export type OpportunityCategory =
+  | "ctr" | "position" | "conversion" | "indexation"
+  | "technique" | "cannibalisation" | "territoire_service" | "groupe";
+
 export type Opportunity = {
   id: string;
   type: string;
+  category: OpportunityCategory | null;
   title: string;
   rationale: string;
   reason: string | null;
   recommended_action: string | null;
+  expected_impact: string | null;
+  score_factors: ScoreFactor[];
+  data_quality: string | null;
   source: string | null;
   url: string | null;
   priority: OpportunityPriority;
