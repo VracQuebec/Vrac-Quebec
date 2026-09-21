@@ -461,7 +461,10 @@ export function currentInternalLinks(page: EditablePage): InternalLinkItem[] {
       const o = r as Record<string, unknown>;
       const href = typeof o.href === "string" ? o.href : null;
       const label = typeof o.label === "string" ? o.label : href;
-      return href && label ? { label, href, kind: typeof o.kind === "string" ? o.kind : undefined } : null;
+      if (!href || !label) return null;
+      const item: InternalLinkItem = { label, href };
+      if (typeof o.kind === "string") item.kind = o.kind;
+      return item;
     })
     .filter((x): x is InternalLinkItem => x !== null);
 }
