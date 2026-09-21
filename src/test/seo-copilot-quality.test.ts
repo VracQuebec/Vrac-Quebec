@@ -58,6 +58,14 @@ describe("A. matériau conservé dans les propositions", () => {
   });
 });
 
+describe("A bis. casse officielle des matériaux", () => {
+  it("le CTA et le contenu conservent la casse du référentiel (MG-20)", () => {
+    const p = page({ material_slug: "mg-20", city_slug: "lac-beauport" });
+    expect(suggestCta(p, REF).text).toContain("MG-20");
+    expect(buildContentProposal(p, REF).draft.content_html).toContain("MG-20");
+  });
+});
+
 describe("B. anti-doublon des titres", () => {
   it("deux pages matériau × territoire différentes ne reçoivent pas le même titre", () => {
     const a = suggestMeta(page(), REF).title;
