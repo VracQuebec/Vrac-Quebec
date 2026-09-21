@@ -321,6 +321,9 @@ export default function CopilotDashboard() {
 
   const filtered = opps.filter((o) => matchFilter(o, filter));
   const visible = showAll ? filtered : filtered.slice(0, 10);
+  const actionGroups = buildActionGroups(filtered);
+  const visibleGroups = showAll ? actionGroups : actionGroups.slice(0, 10);
+  const grouped = actionGroups.filter((g) => g.members.length > 1).length;
 
   const onStatus = async (id: string, s: "dismissed" | "in_progress" | "completed") => {
     await setOpportunityStatus(id, s);
