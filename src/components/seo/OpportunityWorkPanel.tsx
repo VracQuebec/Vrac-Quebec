@@ -646,7 +646,7 @@ export default function OpportunityWorkPanel({
                       <span className="text-muted-foreground">Destination (parcours réellement disponibles)</span>
                       <select value={ctaDraft.href} onChange={(e) => setCtaDrafts((d) => ({ ...d, [p.id]: { ...ctaDraft, href: e.target.value } }))}
                         className="w-full rounded border border-border bg-background p-1.5">
-                        {ctaDestinations(p).map((dest) => <option key={dest.href} value={dest.href}>{dest.label} — {dest.href}</option>)}
+                        {ctaDestinations(p, referential).map((dest) => <option key={dest.href} value={dest.href}>{dest.label} — {dest.href}</option>)}
                       </select>
                     </label>
                   </>)}
