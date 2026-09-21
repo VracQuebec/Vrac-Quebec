@@ -177,10 +177,11 @@ function OpportunityRow({ o, rank, onStatus }: { o: Opportunity; rank?: number; 
 }
 
 const KIND_LABEL: Record<ActionGroup["kind"], string> = {
-  page: "Page",
-  territoire_service: "Territoire × service",
-  groupe: "Groupe",
-  technique: "Technique",
+  page: "PAGE",
+  territoire_service: "TERRITOIRE × SERVICE",
+  service: "SERVICE",
+  groupe: "GROUPE",
+  technique: "TECHNIQUE",
 };
 
 function ActionGroupCard({ g, rank, onStatus }: { g: ActionGroup; rank: number; onStatus: (id: string, s: "dismissed" | "in_progress" | "completed") => void }) {
