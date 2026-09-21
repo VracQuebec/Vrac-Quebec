@@ -13329,14 +13329,17 @@ export type Database = {
       seo_opportunities: {
         Row: {
           applied_at: string | null
+          category: string | null
           created_at: string
           data: Json
+          data_quality: string | null
           detected_at: string
           dismissed_at: string | null
           effort_score: number
           entity_slug: string | null
           entity_type: string | null
           evidence: Json
+          expected_impact: string | null
           id: string
           impact_score: number
           last_seen_at: string
@@ -13348,8 +13351,10 @@ export type Database = {
           rationale: string
           reason: string | null
           recommended_action: string | null
+          resolved_at: string | null
           run_id: string | null
           score: number
+          score_factors: Json
           signal_key: string | null
           source: string | null
           stale_at: string | null
@@ -13366,14 +13371,17 @@ export type Database = {
         }
         Insert: {
           applied_at?: string | null
+          category?: string | null
           created_at?: string
           data?: Json
+          data_quality?: string | null
           detected_at?: string
           dismissed_at?: string | null
           effort_score?: number
           entity_slug?: string | null
           entity_type?: string | null
           evidence?: Json
+          expected_impact?: string | null
           id?: string
           impact_score?: number
           last_seen_at?: string
@@ -13385,8 +13393,10 @@ export type Database = {
           rationale: string
           reason?: string | null
           recommended_action?: string | null
+          resolved_at?: string | null
           run_id?: string | null
           score?: number
+          score_factors?: Json
           signal_key?: string | null
           source?: string | null
           stale_at?: string | null
@@ -13403,14 +13413,17 @@ export type Database = {
         }
         Update: {
           applied_at?: string | null
+          category?: string | null
           created_at?: string
           data?: Json
+          data_quality?: string | null
           detected_at?: string
           dismissed_at?: string | null
           effort_score?: number
           entity_slug?: string | null
           entity_type?: string | null
           evidence?: Json
+          expected_impact?: string | null
           id?: string
           impact_score?: number
           last_seen_at?: string
@@ -13422,8 +13435,10 @@ export type Database = {
           rationale?: string
           reason?: string | null
           recommended_action?: string | null
+          resolved_at?: string | null
           run_id?: string | null
           score?: number
+          score_factors?: Json
           signal_key?: string | null
           source?: string | null
           stale_at?: string | null
@@ -13472,12 +13487,14 @@ export type Database = {
       seo_opportunity_runs: {
         Row: {
           cities_analyzed: number
+          comparison: Json | null
           conversions_analyzed: number
           created_at: string
           critical_count: number
           duration_ms: number | null
           error: string | null
           finished_at: string | null
+          group_insights: Json
           gsc_rows_analyzed: number
           high_count: number
           id: string
@@ -13490,21 +13507,27 @@ export type Database = {
           pages_analyzed: number
           period: string
           published_analyzed: number
+          resolved_count: number
           rules: Json
           services_analyzed: number
+          signals_detected: number
+          signals_rejected: number
           stale_count: number
           started_at: string
           status: string
+          top_opportunities: Json
           updated_count: number
         }
         Insert: {
           cities_analyzed?: number
+          comparison?: Json | null
           conversions_analyzed?: number
           created_at?: string
           critical_count?: number
           duration_ms?: number | null
           error?: string | null
           finished_at?: string | null
+          group_insights?: Json
           gsc_rows_analyzed?: number
           high_count?: number
           id?: string
@@ -13517,21 +13540,27 @@ export type Database = {
           pages_analyzed?: number
           period?: string
           published_analyzed?: number
+          resolved_count?: number
           rules?: Json
           services_analyzed?: number
+          signals_detected?: number
+          signals_rejected?: number
           stale_count?: number
           started_at?: string
           status?: string
+          top_opportunities?: Json
           updated_count?: number
         }
         Update: {
           cities_analyzed?: number
+          comparison?: Json | null
           conversions_analyzed?: number
           created_at?: string
           critical_count?: number
           duration_ms?: number | null
           error?: string | null
           finished_at?: string | null
+          group_insights?: Json
           gsc_rows_analyzed?: number
           high_count?: number
           id?: string
@@ -13544,11 +13573,15 @@ export type Database = {
           pages_analyzed?: number
           period?: string
           published_analyzed?: number
+          resolved_count?: number
           rules?: Json
           services_analyzed?: number
+          signals_detected?: number
+          signals_rejected?: number
           stale_count?: number
           started_at?: string
           status?: string
+          top_opportunities?: Json
           updated_count?: number
         }
         Relationships: []

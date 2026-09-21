@@ -28,13 +28,23 @@ export type GscDelta = {
 
 export type OpportunityPriority = "critical" | "high" | "medium" | "low";
 
+export type ScoreFactor = { label: string; points: number };
+
+export type OpportunityCategory =
+  | "ctr" | "position" | "conversion" | "indexation"
+  | "technique" | "cannibalisation" | "territoire_service" | "groupe";
+
 export type Opportunity = {
   id: string;
   type: string;
+  category: OpportunityCategory | null;
   title: string;
   rationale: string;
   reason: string | null;
   recommended_action: string | null;
+  expected_impact: string | null;
+  score_factors: ScoreFactor[];
+  data_quality: string | null;
   source: string | null;
   url: string | null;
   priority: OpportunityPriority;
@@ -82,15 +92,33 @@ export type OpportunityRun = {
   high_count: number;
   medium_count: number;
   low_count: number;
+  signals_detected: number;
+  signals_rejected: number;
+  resolved_count: number;
   rules: RuleDiagnostic[];
+  group_insights?: GroupInsight[];
+  comparison?: RunComparison | null;
+  top_opportunities?: Array<Record<string, unknown>>;
+};
+
+export type GroupInsight = {
+  kind: "group_service" | "group_territory";
+  key: string; pages: number; impressions: number; clicks: number;
+  ctr: number; position_avg: number | null; conversions: number; site_ctr: number;
+};
+
+export type RunComparison = {
+  run_precedent: string; opportunites_precedentes: number; opportunites_actuelles: number;
+  nouvelles: number; toujours_ouvertes: number; resolues: number; obsoletes: number; aggravees: number;
 };
 
 export type CopilotState = {
   computed_at: string;
   opportunities: Opportunity[];
   last_run: OpportunityRun | null;
-  history: Array<Pick<OpportunityRun, "id" | "started_at" | "finished_at" | "duration_ms" | "status" | "pages_analyzed" | "gsc_rows_analyzed" | "conversions_analyzed" | "opportunities_detected" | "new_count" | "updated_count" | "stale_count">>;
+  history: Array<Pick<OpportunityRun, "id" | "started_at" | "finished_at" | "duration_ms" | "status" | "pages_analyzed" | "gsc_rows_analyzed" | "conversions_analyzed" | "opportunities_detected" | "new_count" | "updated_count" | "stale_count"> & { signals_detected?: number; signals_rejected?: number; resolved_count?: number; comparison?: RunComparison | null }>;
   counts: Record<string, number>;
+  facets: { cities: string[]; services: string[]; categories: string[] };
 };
 
 export type ExecutiveDashboard = {

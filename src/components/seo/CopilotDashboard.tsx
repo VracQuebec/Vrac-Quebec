@@ -19,11 +19,40 @@ const TYPE_LABEL: Record<string, string> = {
   ctr_top10: "CTR faible en top 10",
   position_gain: "Gain de position possible",
   not_indexed: "Publiée non indexée",
+  not_indexed_bulk: "Indexation — constat global",
   converting_page: "Page qui convertit",
   local_potential: "Potentiel territoire × service",
   low_qa: "Qualité SEO faible",
   cannibalization: "Cannibalisation à vérifier",
+  group_service: "Groupe — service",
+  group_territory: "Groupe — territoire",
 };
+
+type FilterKey =
+  | "all" | "critical" | "high" | "medium"
+  | "technique" | "ctr" | "position" | "conversion"
+  | "indexation" | "cannibalisation" | "territoire_service" | "groupe";
+
+const FILTERS: Array<{ key: FilterKey; label: string }> = [
+  { key: "all", label: "Toutes" },
+  { key: "critical", label: "Critiques" },
+  { key: "high", label: "Hautes" },
+  { key: "medium", label: "Moyennes" },
+  { key: "technique", label: "SEO technique" },
+  { key: "ctr", label: "CTR" },
+  { key: "position", label: "Position" },
+  { key: "conversion", label: "Conversion" },
+  { key: "indexation", label: "Indexation" },
+  { key: "cannibalisation", label: "Cannibalisation" },
+  { key: "territoire_service", label: "Territoire × service" },
+  { key: "groupe", label: "Groupes" },
+];
+
+function matchFilter(o: Opportunity, f: FilterKey): boolean {
+  if (f === "all") return true;
+  if (f === "critical" || f === "high" || f === "medium") return o.priority === f;
+  return o.category === f;
+}
 
 function KpiCard({ label, value, icon: Icon, hint }: { label: string; value: string | number; icon: React.ComponentType<{ className?: string }>; hint?: string }) {
   return (
@@ -45,15 +74,25 @@ function fmt(value: unknown): string {
   return String(value);
 }
 
-function OpportunityRow({ o, onStatus }: { o: Opportunity; onStatus: (id: string, s: "dismissed" | "in_progress" | "completed") => void }) {
+function OpportunityRow({ o, rank, onStatus }: { o: Opportunity; rank?: number; onStatus: (id: string, s: "dismissed" | "in_progress" | "completed") => void }) {
   const [open, setOpen] = useState(false);
   const p = PRIORITY[o.priority] ?? PRIORITY.medium;
+  const conversions = Number((o.data as Record<string, unknown> | null)?.conversions ?? 0);
   return (
     <li className="p-4">
       <div className="flex items-start justify-between gap-3">
         <button onClick={() => setOpen((v) => !v)} className="min-w-0 flex-1 text-left">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
+            {rank != null && <span className="text-[10px] font-display font-bold text-muted-foreground">#{rank}</span>}
             <span className={`px-2 py-0.5 rounded text-[10px] font-display font-bold tracking-wider ${p.cls}`}>{p.label}</span>
+            {conversions > 0 && (
+              <span className="px-2 py-0.5 rounded text-[10px] font-display font-bold bg-primary/15 text-primary">
+                {conversions} CONVERSION{conversions > 1 ? "S" : ""}
+              </span>
+            )}
+            {o.data_quality && o.data_quality !== "suffisante" && (
+              <span className="text-[10px] uppercase text-muted-foreground">donnée {o.data_quality}</span>
+            )}
             <span className="text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground">
               {TYPE_LABEL[o.type] ?? o.type.replace(/_/g, " ")}
             </span>
@@ -97,6 +136,27 @@ function OpportunityRow({ o, onStatus }: { o: Opportunity; onStatus: (id: string
               <div className="font-display font-bold text-foreground mb-1">Action recommandée</div>
               <p className="text-muted-foreground">{o.recommended_action ?? "—"}</p>
             </div>
+            {o.expected_impact && (
+              <div>
+                <div className="font-display font-bold text-foreground mb-1">Impact attendu</div>
+                <p className="text-muted-foreground">{o.expected_impact}</p>
+              </div>
+            )}
+            {(o.score_factors?.length ?? 0) > 0 && (
+              <div>
+                <div className="font-display font-bold text-foreground mb-1">Pourquoi cette priorité ? (score {o.score}/100)</div>
+                <ul className="space-y-0.5">
+                  {o.score_factors.map((f, i) => (
+                    <li key={`${f.label}-${i}`} className="text-muted-foreground flex justify-between gap-2">
+                      <span>{f.label}</span>
+                      <span className={f.points >= 0 ? "text-primary font-semibold" : "text-destructive font-semibold"}>
+                        {f.points > 0 ? "+" : ""}{f.points}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="text-muted-foreground">
               <div><span className="text-foreground">Source :</span> {o.source ?? "—"}</div>
               <div><span className="text-foreground">Détectée le :</span> {new Date(o.detected_at).toLocaleString("fr-CA")}</div>
@@ -119,6 +179,8 @@ export default function CopilotDashboard() {
   const { data, copilot, loading, scanning, step, rescan, reload, setOpportunityStatus } = useCopilot();
   const [showDiag, setShowDiag] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [showAll, setShowAll] = useState(false);
 
   if (loading && !data) {
     return <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
@@ -129,6 +191,9 @@ export default function CopilotDashboard() {
   const run = copilot?.last_run ?? null;
   const opps = copilot?.opportunities ?? [];
   const counts = copilot?.counts ?? {};
+
+  const filtered = opps.filter((o) => matchFilter(o, filter));
+  const visible = showAll ? filtered : filtered.slice(0, 10);
 
   const onStatus = async (id: string, s: "dismissed" | "in_progress" | "completed") => {
     await setOpportunityStatus(id, s);
@@ -191,18 +256,26 @@ export default function CopilotDashboard() {
 
       {/* Opportunités */}
       <div>
-        <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-          <h3 className="text-xs uppercase tracking-wider font-display font-bold text-muted-foreground">Top opportunités</h3>
-          <div className="text-xs text-muted-foreground flex gap-3">
-            <span>{opps.length} ouverte(s)</span>
-            <span>{counts.critical ?? 0} critiques</span>
-            <span>{counts.high ?? 0} hautes</span>
-            <span>{counts.medium ?? 0} moyennes</span>
-            <span>{counts.low ?? 0} faibles</span>
-          </div>
+        <h3 className="text-xs uppercase tracking-wider font-display font-bold text-muted-foreground mb-2">Opportunités SEO</h3>
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-3">
+          <KpiCard label="Opportunités" value={counts.open ?? opps.length} icon={Sparkles} />
+          <KpiCard label="Critiques" value={counts.critical ?? 0} icon={Zap} />
+          <KpiCard label="Hautes" value={counts.high ?? 0} icon={Zap} />
+          <KpiCard label="Moyennes" value={counts.medium ?? 0} icon={Zap} />
+          <KpiCard label="Avec conversion" value={counts.with_conversions ?? 0} icon={Phone} />
+          <KpiCard label="Fort potentiel" value={counts.high_potential ?? 0} icon={TrendingUp} hint="Score ≥ 60" />
         </div>
 
-        {opps.length === 0 ? (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {FILTERS.map((f) => (
+            <button key={f.key} onClick={() => { setFilter(f.key); setShowAll(false); }}
+              className={`px-2.5 py-1 rounded-md text-xs font-display font-semibold border ${filter === f.key ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}>
+              {f.label} ({opps.filter((o) => matchFilter(o, f.key)).length})
+            </button>
+          ))}
+        </div>
+
+        {filtered.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border p-6 text-center space-y-2">
             <Sparkles className="w-6 h-6 text-muted-foreground mx-auto" />
             <p className="text-sm text-foreground font-display font-semibold">
@@ -211,14 +284,29 @@ export default function CopilotDashboard() {
             {run && (
               <p className="text-xs text-muted-foreground">
                 {run.pages_analyzed} pages analysées · {run.gsc_rows_analyzed} URL Search Console · {run.impressions_analyzed.toLocaleString("fr-CA")} impressions ·
-                {" "}{run.conversions_analyzed} conversions · {run.indexed_analyzed} pages indexées · {run.rules?.length ?? 0} règles évaluées
+                {" "}{run.conversions_analyzed} conversions · {run.indexed_analyzed} pages indexées · {run.rules?.length ?? 0} règles évaluées ·
+                {" "}{run.signals_detected ?? 0} signaux détectés, {run.signals_rejected ?? 0} écartés faute de données suffisantes
               </p>
             )}
           </div>
         ) : (
-          <ul className="rounded-lg border border-border bg-card divide-y divide-border">
-            {opps.map((o) => <OpportunityRow key={o.id} o={o} onStatus={onStatus} />)}
-          </ul>
+          <>
+            <ul className="rounded-lg border border-border bg-card divide-y divide-border">
+              {visible.map((o, i) => <OpportunityRow key={o.id} o={o} rank={i + 1} onStatus={onStatus} />)}
+            </ul>
+            {filtered.length > visible.length && (
+              <button onClick={() => setShowAll(true)}
+                className="mt-2 w-full rounded-md border border-border py-2 text-sm font-display font-semibold hover:bg-secondary">
+                Voir toutes les opportunités ({filtered.length})
+              </button>
+            )}
+            {showAll && filtered.length > 10 && (
+              <button onClick={() => setShowAll(false)}
+                className="mt-2 w-full rounded-md border border-border py-2 text-sm font-display font-semibold hover:bg-secondary">
+                Afficher seulement le top 10
+              </button>
+            )}
+          </>
         )}
       </div>
 
@@ -274,7 +362,8 @@ export default function CopilotDashboard() {
                   <tr>
                     <th className="text-left py-1">Date</th><th className="text-right">Durée</th><th className="text-right">Pages</th>
                     <th className="text-right">Search Console</th><th className="text-right">Conversions</th>
-                    <th className="text-right">Détectées</th><th className="text-right">Nouvelles</th><th className="text-right">MAJ</th><th className="text-right">Obsolètes</th>
+                    <th className="text-right">Détectées</th><th className="text-right">Nouvelles</th><th className="text-right">MAJ</th>
+                    <th className="text-right">Résolues</th><th className="text-right">Obsolètes</th><th className="text-left pl-3">Comparaison</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -288,7 +377,13 @@ export default function CopilotDashboard() {
                       <td className="text-right">{h.opportunities_detected}</td>
                       <td className="text-right">{h.new_count}</td>
                       <td className="text-right">{h.updated_count}</td>
+                      <td className="text-right">{h.resolved_count ?? 0}</td>
                       <td className="text-right">{h.stale_count}</td>
+                      <td className="pl-3 text-muted-foreground">
+                        {h.comparison
+                          ? `${h.comparison.nouvelles} nouvelle(s), ${h.comparison.resolues} résolue(s), ${h.comparison.toujours_ouvertes} toujours ouverte(s), ${h.comparison.aggravees} aggravée(s)`
+                          : "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

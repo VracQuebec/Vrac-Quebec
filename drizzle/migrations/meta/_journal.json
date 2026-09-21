@@ -148,6 +148,13 @@
       "when": 1789998303088,
       "tag": "0020_seo_copilot_opportunity_engine",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789999938586,
+      "tag": "0021_seo_copilot_prioritization_engine",
+      "breakpoints": true
     }
   ]
 }
