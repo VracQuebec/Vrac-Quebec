@@ -210,9 +210,13 @@ Deno.serve(async (req) => {
     }
 
     // ---------- D. Publiées mais non indexées / problème technique ----------
+    // Une opportunité individuelle seulement pour les pages « importantes » (noindex réel,
+    // impressions Search Console ou conversions). Le reste est regroupé en un seul constat
+    // pour éviter des centaines de lignes non actionnables.
     {
       let cand = 0, kept = 0;
       const cutoff = Date.now() - 21 * 86400 * 1000;
+      const bulk: string[] = [];
       for (const p of published) {
         const pubAt = new Date(p.published_at ?? p.updated_at).getTime();
         if (pubAt > cutoff) continue;
@@ -220,35 +224,46 @@ Deno.serve(async (req) => {
         if (isIndexed) continue;
         cand++;
         const g = gsc.get(p.id);
+        const c = conv.get(p.slug);
         const issues: string[] = [];
         if (p.noindex) issues.push("balise noindex active");
         if ((p.word_count ?? 0) < 400) issues.push(`contenu court (${p.word_count ?? 0} mots)`);
         if ((p.internal_link_count ?? 0) < 3) issues.push(`peu de liens internes (${p.internal_link_count ?? 0})`);
-        const hasImpressions = (g?.impressions ?? 0) > 0;
-        // Retenue seulement si un problème réel est détectable ou aucune impression du tout.
-        if (!issues.length && hasImpressions) continue;
-        const score = clamp((p.noindex ? 85 : 45) + issues.length * 8 + (hasImpressions ? 0 : 5));
+        const important = !!p.noindex || (g?.impressions ?? 0) > 0 || (c?.conversions ?? 0) > 0;
+        if (!important) { bulk.push(p.slug); continue; }
+        const score = clamp((p.noindex ? 85 : 50) + issues.length * 8 + Math.min(20, (g?.impressions ?? 0) / 10));
         signals.push({
           signal_key: `not_indexed:${p.id}`, type: "not_indexed", page_id: p.id,
           entity_type: "page", entity_slug: p.slug, url: urlOf(p),
           title: `Page publiée non indexée — ${nameOf(p)}`,
-          reason: issues.length
-            ? `Publiée depuis plus de 21 jours, aucun statut « indexée » enregistré. Problèmes détectables : ${issues.join(", ")}.`
-            : `Publiée depuis plus de 21 jours, aucun statut « indexée » enregistré et aucune impression Search Console. Statut Search Console inconnu pour cette URL.`,
+          reason: `Publiée depuis plus de 21 jours, aucun statut « indexée » enregistré, alors qu'elle reçoit ${g?.impressions ?? 0} impression(s) et ${c?.conversions ?? 0} conversion(s).${issues.length ? ` Problèmes détectables : ${issues.join(", ")}.` : " Statut Search Console inconnu pour cette URL."}`,
           recommended_action: p.noindex
-            ? "Retirer la balise noindex si la page doit être indexée, puis demander une vérification manuelle dans Search Console."
+            ? "Retirer la balise noindex si la page doit être indexée, puis vérifier l'URL dans Search Console."
             : "Vérifier l'URL dans Search Console, renforcer le contenu et le maillage interne vers cette page.",
           suggested_action: "optimize", score, effort_score: 25,
           data: {
             published_at: p.published_at, google_index_status: p.google_index_status ?? "inconnu",
-            impressions: g?.impressions ?? 0, word_count: p.word_count, internal_link_count: p.internal_link_count,
+            impressions: g?.impressions ?? 0, conversions: c?.conversions ?? 0,
+            word_count: p.word_count, internal_link_count: p.internal_link_count,
             noindex: !!p.noindex, issues,
           },
+          source: "Pages SEO + Search Console (28 j) + conversions (30 j)",
+        });
+        kept++;
+      }
+      if (bulk.length > 0) {
+        signals.push({
+          signal_key: "not_indexed_bulk", type: "not_indexed_bulk", entity_type: "group",
+          title: `${bulk.length} pages publiées sans statut d'indexation`,
+          reason: `${bulk.length} pages publiées depuis plus de 21 jours n'ont aucun statut « indexée » enregistré et aucune impression Search Console. Statut Search Console inconnu : la cause exacte n'est pas déterminable avec les données disponibles.`,
+          recommended_action: "Vérifier la couverture dans Search Console (sitemap soumis, pages découvertes) et prioriser le maillage interne vers les territoires stratégiques. Aucune page n'est modifiée automatiquement.",
+          suggested_action: "optimize", score: 60, effort_score: 50,
+          data: { pages_concernees: bulk.length, exemples: bulk.slice(0, 20) },
           source: "Pages SEO + Search Console (28 j)",
         });
         kept++;
       }
-      add("not_indexed", "Publiées non indexées", cand, kept, "publiées > 21 j sans statut indexée");
+      add("not_indexed", "Publiées non indexées", cand, kept, "publiées > 21 j sans statut indexée (regroupées si aucun signal)");
     }
 
     // ---------- E. Pages qui convertissent ----------
