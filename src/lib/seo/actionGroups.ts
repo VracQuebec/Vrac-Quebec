@@ -233,7 +233,7 @@ function slugsFromUnknown(v: unknown): string[] {
 function pageMetricFromOpportunity(o: Opportunity): ActionPageMetric | null {
   const d = dataOf(o);
   const slug = o.entity_slug ?? slugFromUrl(o.url);
-  if (!o.page_id && !o.url && !slug) return null;
+  if (!o.page_id && !o.url) return null;
   return {
     page_id: o.page_id,
     slug,
