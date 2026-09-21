@@ -13334,6 +13334,7 @@ export type Database = {
           data: Json
           data_quality: string | null
           detected_at: string
+          dismiss_reason: string | null
           dismissed_at: string | null
           effort_score: number
           entity_slug: string | null
@@ -13342,6 +13343,7 @@ export type Database = {
           expected_impact: string | null
           id: string
           impact_score: number
+          last_error: string | null
           last_seen_at: string
           page_id: string | null
           potential_clicks: number | null
@@ -13368,6 +13370,7 @@ export type Database = {
           type: string
           updated_at: string
           url: string | null
+          work_started_at: string | null
         }
         Insert: {
           applied_at?: string | null
@@ -13376,6 +13379,7 @@ export type Database = {
           data?: Json
           data_quality?: string | null
           detected_at?: string
+          dismiss_reason?: string | null
           dismissed_at?: string | null
           effort_score?: number
           entity_slug?: string | null
@@ -13384,6 +13388,7 @@ export type Database = {
           expected_impact?: string | null
           id?: string
           impact_score?: number
+          last_error?: string | null
           last_seen_at?: string
           page_id?: string | null
           potential_clicks?: number | null
@@ -13410,6 +13415,7 @@ export type Database = {
           type: string
           updated_at?: string
           url?: string | null
+          work_started_at?: string | null
         }
         Update: {
           applied_at?: string | null
@@ -13418,6 +13424,7 @@ export type Database = {
           data?: Json
           data_quality?: string | null
           detected_at?: string
+          dismiss_reason?: string | null
           dismissed_at?: string | null
           effort_score?: number
           entity_slug?: string | null
@@ -13426,6 +13433,7 @@ export type Database = {
           expected_impact?: string | null
           id?: string
           impact_score?: number
+          last_error?: string | null
           last_seen_at?: string
           page_id?: string | null
           potential_clicks?: number | null
@@ -13452,6 +13460,7 @@ export type Database = {
           type?: string
           updated_at?: string
           url?: string | null
+          work_started_at?: string | null
         }
         Relationships: [
           {
@@ -13480,6 +13489,68 @@ export type Database = {
             columns: ["page_id"]
             isOneToOne: false
             referencedRelation: "seo_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_opportunity_actions: {
+        Row: {
+          action_key: string | null
+          action_kind: string | null
+          action_type: string
+          after_data: Json
+          before_data: Json
+          capability: string | null
+          created_at: string
+          error: string | null
+          id: string
+          note: string | null
+          opportunity_id: string | null
+          page_id: string | null
+          page_slug: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          action_key?: string | null
+          action_kind?: string | null
+          action_type: string
+          after_data?: Json
+          before_data?: Json
+          capability?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          note?: string | null
+          opportunity_id?: string | null
+          page_id?: string | null
+          page_slug?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          action_key?: string | null
+          action_kind?: string | null
+          action_type?: string
+          after_data?: Json
+          before_data?: Json
+          capability?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          note?: string | null
+          opportunity_id?: string | null
+          page_id?: string | null
+          page_slug?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_opportunity_actions_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "seo_opportunities"
             referencedColumns: ["id"]
           },
         ]
