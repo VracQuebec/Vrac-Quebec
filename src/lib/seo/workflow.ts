@@ -315,7 +315,6 @@ export function buildContentProposal(page: EditablePage): ContentProposal {
   const svc = page.service_slug ? humanize(page.service_slug) : null;
   const city = page.city_slug ? humanize(page.city_slug) : null;
   const cible = svc && city ? `${svc} à ${city}` : svc ?? city ?? (page.title ?? page.slug);
-  const html = page.intro != null || page.word_count != null ? "" : "";
   const current = (page as EditablePage & { content_html?: string | null }).content_html ?? "";
   const additions: string[] = [];
   const notes: string[] = [];
@@ -343,7 +342,7 @@ export function buildContentProposal(page: EditablePage): ContentProposal {
 
   const draft: ContentDraft = {
     intro: page.intro ?? "",
-    content_html: additions.length ? `${current}${current.endsWith("\n") ? "" : "\n"}${additions.join("\n")}` : current + html,
+    content_html: additions.length ? `${current}${current.endsWith("\n") ? "" : "\n"}${additions.join("\n")}` : current,
   };
   return { draft, additions, notes };
 }
