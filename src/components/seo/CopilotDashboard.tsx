@@ -396,7 +396,17 @@ export default function CopilotDashboard() {
           <KpiCard label="Fort potentiel" value={counts.high_potential ?? 0} icon={TrendingUp} hint="Score ≥ 60" />
         </div>
 
-        <div className="flex flex-wrap gap-1.5 mb-3">
+        <div className="flex flex-wrap items-center gap-1.5 mb-3">
+          <div className="inline-flex rounded-md border border-border overflow-hidden mr-2">
+            <button onClick={() => { setMode("actions"); setShowAll(false); }}
+              className={`px-3 py-1 text-xs font-display font-semibold ${mode === "actions" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}>
+              Actions uniques ({actionGroups.length})
+            </button>
+            <button onClick={() => { setMode("all"); setShowAll(false); }}
+              className={`px-3 py-1 text-xs font-display font-semibold ${mode === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}>
+              Toutes les opportunités ({filtered.length})
+            </button>
+          </div>
           {FILTERS.map((f) => (
             <button key={f.key} onClick={() => { setFilter(f.key); setShowAll(false); }}
               className={`px-2.5 py-1 rounded-md text-xs font-display font-semibold border ${filter === f.key ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-secondary"}`}>
