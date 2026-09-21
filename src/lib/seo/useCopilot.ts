@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { toast } from "sonner";
+import type { HiddenOpportunity } from "@/lib/seo/counters";
 
 export type ExecutiveKpi = {
   pages_total: number;
@@ -119,6 +120,7 @@ export type CopilotState = {
   history: Array<Pick<OpportunityRun, "id" | "started_at" | "finished_at" | "duration_ms" | "status" | "pages_analyzed" | "gsc_rows_analyzed" | "conversions_analyzed" | "opportunities_detected" | "new_count" | "updated_count" | "stale_count"> & { signals_detected?: number; signals_rejected?: number; resolved_count?: number; comparison?: RunComparison | null }>;
   counts: Record<string, number>;
   facets: { cities: string[]; services: string[]; categories: string[] };
+  hidden?: HiddenOpportunity[];
 };
 
 export type SeoActionPageMetric = {
