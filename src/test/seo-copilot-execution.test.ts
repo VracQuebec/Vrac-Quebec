@@ -58,7 +58,7 @@ describe("1. renforcer le contenu", () => {
   });
   it("n'invente aucun service ni territoire absent de la page", () => {
     const { draft } = buildContentProposal(page({ city_slug: null, service_slug: null }));
-    expect(draft.content_html).not.toContain("Lévis");
+    expect(draft.content_html).not.toContain("Levis");
     expect(draft.content_html).not.toContain("Excavation");
   });
   it("ne duplique pas une section déjà présente", () => {
@@ -87,7 +87,7 @@ describe("1. renforcer le contenu", () => {
 describe("2. renforcer le CTA", () => {
   it("propose un CTA basé sur le service et le territoire réels", () => {
     const cta = suggestCta(page());
-    expect(cta.text).toContain("Lévis");
+    expect(cta.text).toContain("Levis");
     expect(cta.href).toBe("#soumission");
   });
   it("n'accepte que des destinations réellement disponibles", () => {
