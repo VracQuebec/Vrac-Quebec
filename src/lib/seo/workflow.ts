@@ -27,6 +27,9 @@ export function capabilityOfType(type: string): WorkCapability {
     case "low_qa":
     case "cannibalization":
       return "verification";
+    case "local_potential":
+      // Constat territoire × service : exécutable sur les pages existantes.
+      return "titles_meta";
     default:
       return "not_configured";
   }
