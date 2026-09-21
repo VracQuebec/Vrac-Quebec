@@ -431,16 +431,23 @@ export default function CopilotDashboard() {
           </div>
         ) : (
           <>
+            {mode === "actions" && (
+              <p className="text-xs text-muted-foreground mb-2">
+                {actionGroups.length} action(s) distincte(s) à partir de {filtered.length} opportunité(s) — {grouped} action(s) regroupent plusieurs signaux. Aucune opportunité n'est supprimée : tout reste visible dans « Toutes les opportunités ».
+              </p>
+            )}
             <ul className="rounded-lg border border-border bg-card divide-y divide-border">
-              {visible.map((o, i) => <OpportunityRow key={o.id} o={o} rank={i + 1} onStatus={onStatus} />)}
+              {mode === "actions"
+                ? visibleGroups.map((g, i) => <ActionGroupCard key={g.key} g={g} rank={i + 1} onStatus={onStatus} />)
+                : visible.map((o, i) => <OpportunityRow key={o.id} o={o} rank={i + 1} onStatus={onStatus} />)}
             </ul>
-            {filtered.length > visible.length && (
+            {(mode === "actions" ? actionGroups.length > visibleGroups.length : filtered.length > visible.length) && (
               <button onClick={() => setShowAll(true)}
                 className="mt-2 w-full rounded-md border border-border py-2 text-sm font-display font-semibold hover:bg-secondary">
-                Voir toutes les opportunités ({filtered.length})
+                {mode === "actions" ? `Voir toutes les actions (${actionGroups.length})` : `Voir toutes les opportunités (${filtered.length})`}
               </button>
             )}
-            {showAll && filtered.length > 10 && (
+            {showAll && (mode === "actions" ? actionGroups.length : filtered.length) > 10 && (
               <button onClick={() => setShowAll(false)}
                 className="mt-2 w-full rounded-md border border-border py-2 text-sm font-display font-semibold hover:bg-secondary">
                 Afficher seulement le top 10
