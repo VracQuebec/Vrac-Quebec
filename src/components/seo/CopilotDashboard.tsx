@@ -192,6 +192,9 @@ export default function CopilotDashboard() {
   const opps = copilot?.opportunities ?? [];
   const counts = copilot?.counts ?? {};
 
+  const filtered = opps.filter((o) => matchFilter(o, filter));
+  const visible = showAll ? filtered : filtered.slice(0, 10);
+
   const onStatus = async (id: string, s: "dismissed" | "in_progress" | "completed") => {
     await setOpportunityStatus(id, s);
     toast.success(s === "dismissed" ? "Opportunité ignorée" : s === "completed" ? "Opportunité marquée terminée" : "Opportunité en cours");
