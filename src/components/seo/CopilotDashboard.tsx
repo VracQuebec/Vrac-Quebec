@@ -177,10 +177,11 @@ function OpportunityRow({ o, rank, onStatus }: { o: Opportunity; rank?: number; 
 }
 
 const KIND_LABEL: Record<ActionGroup["kind"], string> = {
-  page: "Page",
-  territoire_service: "Territoire × service",
-  groupe: "Groupe",
-  technique: "Technique",
+  page: "PAGE",
+  territoire_service: "TERRITOIRE × SERVICE",
+  service: "SERVICE",
+  groupe: "GROUPE",
+  technique: "TECHNIQUE",
 };
 
 function ActionGroupCard({ g, rank, onStatus }: { g: ActionGroup; rank: number; onStatus: (id: string, s: "dismissed" | "in_progress" | "completed") => void }) {
@@ -194,7 +195,7 @@ function ActionGroupCard({ g, rank, onStatus }: { g: ActionGroup; rank: number; 
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="text-[10px] font-display font-bold text-muted-foreground">#{rank}</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-display font-bold tracking-wider ${p.cls}`}>{p.label}</span>
-            <span className="text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground">{KIND_LABEL[g.kind]}</span>
+            <span className="px-2 py-0.5 rounded border border-border text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground">{KIND_LABEL[g.kind]}</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-display font-bold ${g.singleAction ? "bg-primary/15 text-primary" : "bg-secondary text-secondary-foreground"}`}>
               {g.singleAction ? "ACTION UNIQUE" : `${g.distinctActions} ACTIONS`}
             </span>
@@ -216,9 +217,15 @@ function ActionGroupCard({ g, rank, onStatus }: { g: ActionGroup; rank: number; 
             {" "}CTR {g.ctr == null ? "—" : `${(g.ctr * 100).toFixed(2)} %`} ·
             {" "}Position {g.position == null ? "—" : g.position.toFixed(1)} ·
             {" "}Conversions {g.conversions == null ? "—" : g.conversions} ·
+            {" "}Territoire {g.city ?? "—"} · Service {g.service ?? "—"} ·
             {" "}Pages concernées {g.pages || "—"} · Signaux {g.members.length}
           </div>
-          <div className="text-sm text-muted-foreground mt-1">{o.reason ?? o.rationale}</div>
+          <div className="text-sm text-foreground mt-1">
+            <span className="font-display font-bold">Action : </span>{g.actionLabel}
+          </div>
+          <div className="text-sm text-muted-foreground mt-1">
+            <span className="font-display font-bold text-foreground">Pourquoi : </span>{g.reason ?? "—"}
+          </div>
           {g.relatedGroups.length > 0 && (
             <div className="text-xs text-muted-foreground mt-1 italic">
               Cette action fait partie d'un constat plus large : {g.relatedGroups.map((r) => r.title).join(" · ")}
@@ -258,6 +265,7 @@ function ActionGroupCard({ g, rank, onStatus }: { g: ActionGroup; rank: number; 
                 </div>
               )}
               <div className="text-muted-foreground">
+                <div><span className="text-foreground">Signal d'origine :</span> {g.signalTitle}</div>
                 <div><span className="text-foreground">Territoire :</span> {g.city ?? "—"}</div>
                 <div><span className="text-foreground">Service :</span> {g.service ?? "—"}</div>
                 <div><span className="text-foreground">Source :</span> {o.source ?? "—"}</div>

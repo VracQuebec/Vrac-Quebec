@@ -153,3 +153,82 @@ describe("Regroupement en actions distinctes", () => {
     expect(normalizeAction("Améliorer  la Méta-description !")).toBe(normalizeAction("ameliorer la meta description"));
   });
 });
+
+describe("Qualité des titres d'action du Top 10", () => {
+  const VERBES = /^(Optimiser|Renforcer|Corriger|Vérifier|Améliorer|Harmoniser)\b/;
+
+  it("un constat de service ne s'affiche jamais comme un simple nom de service", () => {
+    const g = buildActionGroups([
+      opp({ type: "group_service", category: "groupe", title: "Le service excavation sous-performe en clics",
+        target_service_slug: "excavation", score: 77, data: { pages: 12, impressions: 900, clicks: 6 } }),
+    ])[0];
+    expect(g.kind).toBe("service");
+    expect(g.title).toBe("Optimiser les titres et metas des pages Excavation");
+    expect(g.title.toLowerCase()).not.toBe("excavation");
+    expect(VERBES.test(g.title)).toBe(true);
+  });
+
+  it("un constat de territoire ne s'affiche jamais comme un simple nom de ville", () => {
+    const g = buildActionGroups([
+      opp({ type: "group_territory", category: "groupe", title: "Lévis", target_city_slug: "levis", score: 66 }),
+    ])[0];
+    expect(g.title).toBe("Optimiser les pages du territoire Levis");
+    expect(VERBES.test(g.title)).toBe(true);
+  });
+
+  it("une page conserve sa cible réelle dans le titre d'action", () => {
+    const g = buildActionGroups([
+      opp({ type: "converting_page", category: "conversion", page_id: "p9",
+        title: "Renforcer — Livraison de pierre à Portneuf | Vrac Québec",
+        target_service_slug: "livraison-pierre", target_city_slug: "portneuf",
+        score: 74, data: { impressions: 300, clicks: 4, conversions: 2 } }),
+    ])[0];
+    expect(g.kind).toBe("page");
+    expect(g.title).toContain("Livraison de pierre à Portneuf");
+    expect(g.title).not.toContain("|");
+    expect(VERBES.test(g.title)).toBe(true);
+  });
+
+  it("chaque action du top possède titre, intervention, raison et données sources", () => {
+    const list = [
+      opp({ type: "group_service", target_service_slug: "excavation", title: "excavation", score: 77 }),
+      opp({ type: "ctr_top10", page_id: "p2", title: "Nivellement à La Cité-Limoilou",
+        target_service_slug: "nivellement", target_city_slug: "la-cite-limoilou", score: 72,
+        data: { impressions: 210, clicks: 2, position: 7.1 } }),
+      opp({ type: "local_potential", category: "territoire_service", title: "Renforcer nivellement",
+        target_service_slug: "nivellement", target_city_slug: "la-cite-limoilou", score: 70 }),
+    ];
+    for (const g of topActions(list, 10)) {
+      expect(VERBES.test(g.title)).toBe(true);
+      expect(g.actionLabel.length).toBeGreaterThan(5);
+      expect(g.reason).toBeTruthy();
+      expect(g.signalTitle).toBeTruthy();
+      expect(["page", "territoire_service", "service", "groupe", "technique"]).toContain(g.kind);
+    }
+  });
+
+  it("aucune donnée n'est inventée lorsque les métriques sont absentes", () => {
+    const g = buildActionGroups([opp({ type: "low_qa", category: "technique", page_id: "p3", title: "Page X", data: {} })])[0];
+    expect(g.impressions).toBeNull();
+    expect(g.clicks).toBeNull();
+    expect(g.ctr).toBeNull();
+    expect(g.position).toBeNull();
+    expect(g.conversions).toBeNull();
+  });
+
+  it("à score égal, l'action liée à une conversion réelle passe devant", () => {
+    const sansConv = opp({ type: "group_service", target_service_slug: "livraison", title: "livraison", score: 60 });
+    const avecConv = opp({ type: "converting_page", category: "conversion", page_id: "p4", title: "Page convertissante",
+      target_service_slug: "remblai", target_city_slug: "levis", score: 60, data: { conversions: 3 } });
+    const top = topActions([sansConv, avecConv], 10);
+    expect(top[0].primary.id).toBe(avecConv.id);
+  });
+
+  it("les signaux originaux restent tous accessibles après regroupement", () => {
+    const a = opp({ page_id: "p5", target_service_slug: "remblai", target_city_slug: "beaupre", score: 50 });
+    const b = opp({ type: "local_potential", target_service_slug: "remblai", target_city_slug: "beaupre", score: 40 });
+    const groups = buildActionGroups([a, b]);
+    const ids = groups.flatMap((g) => g.members.map((m) => m.id));
+    expect(ids).toEqual(expect.arrayContaining([a.id, b.id]));
+  });
+});

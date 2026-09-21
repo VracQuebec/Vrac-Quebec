@@ -5,7 +5,7 @@
 
 import type { Opportunity } from "@/lib/seo/useCopilot";
 
-export type ActionKind = "page" | "territoire_service" | "groupe" | "technique";
+export type ActionKind = "page" | "territoire_service" | "service" | "groupe" | "technique";
 
 export type ActionGroup = {
   key: string;
@@ -13,7 +13,15 @@ export type ActionGroup = {
   primary: Opportunity;
   members: Opportunity[];
   kind: ActionKind;
+  /** Titre d'action VERBE + OBJET + CIBLE, jamais un simple nom de service ou de ville. */
   title: string;
+  /** Titre original du signal, conservé tel quel. */
+  signalTitle: string;
+  /** Intervention courte et exécutable (« Revoir le title et la meta description »). */
+  actionLabel: string;
+  /** Action détaillée issue du signal. */
+  recommendedAction: string | null;
+  reason: string | null;
   score: number;
   priority: Opportunity["priority"];
   service: string | null;
@@ -60,7 +68,8 @@ export function actionKeyOf(o: Opportunity): string {
 }
 
 export function kindOf(o: Opportunity): ActionKind {
-  if (o.type === "group_service" || o.type === "group_territory") return "groupe";
+  if (o.type === "group_service") return "service";
+  if (o.type === "group_territory") return "groupe";
   if (o.type === "not_indexed_bulk") return "technique";
   if (o.page_id || o.url) return "page";
   if (o.category === "territoire_service" || o.type === "local_potential") return "territoire_service";
@@ -73,8 +82,86 @@ const CONCRETENESS: Record<ActionKind, number> = {
   page: 0,
   territoire_service: 1,
   technique: 2,
-  groupe: 3,
+  service: 3,
+  groupe: 4,
 };
+
+/** Slug → libellé lisible (« sainte-foy-sillery-cap-rouge » → « Sainte-Foy-Sillery-Cap-Rouge »). */
+export function humanize(slug: string): string {
+  return slug
+    .split("-")
+    .map((w) => (w.length <= 2 && w !== "mg" ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join("-")
+    .replace(/-/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Nom lisible de la cible d'un signal de page (sans préfixe d'action ni suffixe de marque). */
+export function pageLabel(o: Opportunity): string {
+  const raw = o.title ?? "";
+  const afterDash = raw.includes("—") ? raw.split("—").slice(1).join("—") : raw;
+  const clean = afterDash.split("|")[0].trim();
+  if (clean) return clean;
+  return o.entity_slug ? humanize(o.entity_slug) : raw.trim();
+}
+
+/** Intervention courte et exécutable, déduite du signal réel (jamais inventée). */
+export function actionLabelOf(o: Opportunity): string {
+  switch (o.type) {
+    case "high_impr_low_ctr":
+    case "ctr_top10":
+      return "Revoir le title et la meta description";
+    case "position_gain":
+      return "Renforcer le contenu de la page";
+    case "converting_page":
+      return "Renforcer le CTA et le maillage interne";
+    case "not_indexed":
+    case "not_indexed_bulk":
+      return "Vérifier l'indexation";
+    case "low_qa":
+      return "Corriger les problèmes techniques détectés";
+    case "cannibalization":
+      return "Vérifier une possible cannibalisation";
+    case "local_potential":
+      return "Renforcer le service dans ce territoire";
+    case "group_service":
+    case "group_territory":
+      return "Harmoniser les titles et metas du lot";
+    default:
+      return "Revoir la page selon le signal détecté";
+  }
+}
+
+/** Titre d'action VERBE + OBJET + CIBLE — jamais un simple nom de service ou de ville. */
+export function actionTitleOf(o: Opportunity, kind: ActionKind, service: string | null, city: string | null): string {
+  const svc = service ? humanize(service) : null;
+  const ville = city ? humanize(city) : null;
+
+  if (kind === "service" && svc) return `Optimiser les titres et metas des pages ${svc}`;
+  if (kind === "groupe" && ville) return `Optimiser les pages du territoire ${ville}`;
+  if (kind === "territoire_service" && svc && ville) return `Optimiser les pages ${svc} à ${ville}`;
+  if (kind === "technique" && !o.page_id && !o.url) return "Vérifier l'indexation des pages publiées non indexées";
+
+  const cible = pageLabel(o);
+  switch (o.type) {
+    case "high_impr_low_ctr":
+    case "ctr_top10":
+      return `Optimiser le title et la meta de la page ${cible}`;
+    case "position_gain":
+      return `Renforcer le contenu de la page ${cible}`;
+    case "converting_page":
+      return `Renforcer la page qui convertit ${cible}`;
+    case "low_qa":
+      return `Corriger la qualité SEO de la page ${cible}`;
+    case "not_indexed":
+      return `Vérifier l'indexation de la page ${cible}`;
+    case "cannibalization":
+      return `Vérifier la cannibalisation autour de ${cible}`;
+    default:
+      return `Optimiser la page ${cible}`;
+  }
+}
 
 /** Normalise une action pour comparer deux recommandations équivalentes. */
 export function normalizeAction(a: string | null | undefined): string {
@@ -139,16 +226,28 @@ export function buildActionGroups(opportunities: Opportunity[]): ActionGroup[] {
       sorted.map((o) => normalizeAction(o.recommended_action)).filter((a) => a !== ""),
     ).size || 1;
 
+    const kind = kindOf(primary);
+    const service = serviceOf(primary);
+    const city = cityOf(primary);
+    const baseReason = primary.reason ?? primary.rationale ?? null;
+    const reason = sorted.length > 1 && baseReason
+      ? `${baseReason} ${sorted.length} signaux du même territoire/service ont été regroupés en une seule action.`
+      : baseReason;
+
     groups.push({
       key,
       primary,
       members: sorted,
-      kind: kindOf(primary),
-      title: primary.title,
+      kind,
+      title: actionTitleOf(primary, kind, service, city),
+      signalTitle: primary.title,
+      actionLabel: actionLabelOf(primary),
+      recommendedAction: primary.recommended_action,
+      reason,
       score: Math.max(...sorted.map((o) => o.score)),
       priority: primary.priority,
-      service: serviceOf(primary),
-      city: cityOf(primary),
+      service,
+      city,
       distinctActions,
       singleAction: distinctActions === 1,
       pages: pageKeys.size,
@@ -157,7 +256,7 @@ export function buildActionGroups(opportunities: Opportunity[]): ActionGroup[] {
       ctr: impressions != null && impressions > 0 && clicks != null ? clicks / impressions : null,
       position,
       conversions,
-      relatedGroups: sorted.filter((o) => o !== primary && kindOf(o) === "groupe"),
+      relatedGroups: sorted.filter((o) => o !== primary && (kindOf(o) === "groupe" || kindOf(o) === "service")),
     });
   }
 
@@ -177,10 +276,14 @@ export function buildActionGroups(opportunities: Opportunity[]): ActionGroup[] {
     }
   }
 
+  // Score d'abord ; à score égal, l'action la plus concrète, puis celle liée à
+  // une conversion réelle, puis celle rattachée à un territoire/service réel.
   return groups.sort(
     (a, b) =>
       b.score - a.score ||
       CONCRETENESS[a.kind] - CONCRETENESS[b.kind] ||
+      (b.conversions ?? 0) - (a.conversions ?? 0) ||
+      Number(Boolean(b.city && b.service)) - Number(Boolean(a.city && a.service)) ||
       a.key.localeCompare(b.key),
   );
 }
