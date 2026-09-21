@@ -1,19 +1,29 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, RefreshCw, Sparkles, TrendingUp, TrendingDown, Phone, MessageCircle, Mail, FileText, ExternalLink, Zap, Plus, X, Star } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  Loader2, RefreshCw, Sparkles, TrendingUp, TrendingDown, Phone, MessageCircle, Mail,
+  FileText, ExternalLink, Zap, X, Check, ChevronDown, ChevronRight, CircleHelp, History,
+} from "lucide-react";
 import { toast } from "sonner";
-import { useCopilot, type Opportunity } from "@/lib/seo/useCopilot";
+import { useCopilot, SCAN_STEPS, type Opportunity, type OpportunityPriority } from "@/lib/seo/useCopilot";
 
-function Stars({ n }: { n: number }) {
-  const filled = Math.max(1, Math.min(5, Math.round(n / 20)));
-  return (
-    <div className="flex gap-0.5">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star key={i} className={`w-3.5 h-3.5 ${i <= filled ? "fill-primary text-primary" : "text-muted-foreground/30"}`} />
-      ))}
-    </div>
-  );
-}
+const PRIORITY: Record<OpportunityPriority, { label: string; cls: string }> = {
+  critical: { label: "CRITIQUE", cls: "bg-destructive text-destructive-foreground" },
+  high: { label: "HAUTE", cls: "bg-primary text-primary-foreground" },
+  medium: { label: "MOYENNE", cls: "bg-secondary text-secondary-foreground" },
+  low: { label: "FAIBLE", cls: "bg-muted text-muted-foreground" },
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  high_impr_low_ctr: "Impressions élevées / clics faibles",
+  ctr_top10: "CTR faible en top 10",
+  position_gain: "Gain de position possible",
+  not_indexed: "Publiée non indexée",
+  converting_page: "Page qui convertit",
+  local_potential: "Potentiel territoire × service",
+  low_qa: "Qualité SEO faible",
+  cannibalization: "Cannibalisation à vérifier",
+};
 
 function KpiCard({ label, value, icon: Icon, hint }: { label: string; value: string | number; icon: React.ComponentType<{ className?: string }>; hint?: string }) {
   return (
@@ -27,76 +37,88 @@ function KpiCard({ label, value, icon: Icon, hint }: { label: string; value: str
   );
 }
 
-function OpportunityRow({ o, onRefresh, onDismiss }: { o: Opportunity; onRefresh: () => void; onDismiss: (id: string) => void }) {
-  const apply = async () => {
-    try {
-      if (o.suggested_action === "create" && o.target_city_slug) {
-        const { error } = await supabase.rpc("seo_pipeline_start", {
-          _mode: "single_city",
-          _city_slugs: [o.target_city_slug],
-          _qa_threshold: 90,
-          _force_regenerate: false,
-        });
-        if (error) throw error;
-        toast.success(`Pipeline lancé pour ${o.target_city_slug}`);
-      } else if (o.suggested_action === "optimize") {
-        const { error } = await supabase.rpc("seo_optimization_start", {
-          _concurrency: 5, _threshold: 90, _skip_above: 95, _actions: [],
-          _force_all: false, _city_slugs: null, _limit: 100,
-        });
-        if (error) throw error;
-        toast.success("Optimisation lancée");
-      } else {
-        toast.info("Action non automatisée — traiter manuellement.");
-        return;
-      }
-      await supabase.from("seo_opportunities")
-        .update({ status: "applied", applied_at: new Date().toISOString() })
-        .eq("id", o.id);
-      onRefresh();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erreur");
-    }
-  };
+function fmt(value: unknown): string {
+  if (value == null) return "—";
+  if (typeof value === "number") return Number.isInteger(value) ? value.toLocaleString("fr-CA") : value.toFixed(2);
+  if (Array.isArray(value)) return value.map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v))).join(", ");
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
 
+function OpportunityRow({ o, onStatus }: { o: Opportunity; onStatus: (id: string, s: "dismissed" | "in_progress" | "completed") => void }) {
+  const [open, setOpen] = useState(false);
+  const p = PRIORITY[o.priority] ?? PRIORITY.medium;
   return (
-    <li className="p-4 hover:bg-secondary/50 transition-colors">
+    <li className="p-4">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <Stars n={o.impact_score} />
+        <button onClick={() => setOpen((v) => !v)} className="min-w-0 flex-1 text-left">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className={`px-2 py-0.5 rounded text-[10px] font-display font-bold tracking-wider ${p.cls}`}>{p.label}</span>
             <span className="text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground">
-              {o.type.replace(/_/g, " ")}
+              {TYPE_LABEL[o.type] ?? o.type.replace(/_/g, " ")}
             </span>
+            <span className="text-[10px] text-muted-foreground">Score {o.score}/100 · Effort {o.effort_score}</span>
+            {o.status === "in_progress" && <span className="text-[10px] text-primary font-semibold">EN COURS</span>}
           </div>
-          <div className="font-display font-semibold text-foreground">{o.title}</div>
-          <div className="text-sm text-muted-foreground mt-1">{o.rationale}</div>
-          <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
-            {o.potential_searches != null && <span>~{o.potential_searches.toLocaleString()} rech./mois</span>}
-            {o.potential_clicks != null && <span>+{o.potential_clicks} clics est.</span>}
-            {o.potential_leads != null && <span>+{o.potential_leads} demandes est.</span>}
-            <span>Impact {o.impact_score} · Effort {o.effort_score}</span>
+          <div className="font-display font-semibold text-foreground flex items-center gap-1">
+            {open ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
+            {o.title}
           </div>
-        </div>
+          {o.url && <div className="text-xs font-mono text-muted-foreground truncate mt-0.5">{o.url}</div>}
+          <div className="text-sm text-muted-foreground mt-1">{o.reason ?? o.rationale}</div>
+        </button>
         <div className="flex flex-col items-end gap-2 shrink-0">
-          <button onClick={apply}
+          <button onClick={() => onStatus(o.id, "in_progress")}
             className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-display font-semibold hover:opacity-90">
-            {o.suggested_action === "create" ? <><Plus className="w-3.5 h-3.5" /> Créer</> :
-             o.suggested_action === "optimize" ? <><Zap className="w-3.5 h-3.5" /> Optimiser</> :
-             o.suggested_action}
+            <Zap className="w-3.5 h-3.5" /> Travailler
           </button>
-          <button onClick={() => onDismiss(o.id)}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          <button onClick={() => onStatus(o.id, "completed")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+            <Check className="w-3 h-3" /> Terminée
+          </button>
+          <button onClick={() => onStatus(o.id, "dismissed")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
             <X className="w-3 h-3" /> Ignorer
           </button>
         </div>
       </div>
+
+      {open && (
+        <div className="mt-3 grid gap-3 md:grid-cols-2 rounded-md border border-border bg-secondary/30 p-3 text-xs">
+          <div>
+            <div className="font-display font-bold text-foreground mb-1">Données sources</div>
+            <ul className="space-y-0.5">
+              {Object.entries(o.data ?? {}).map(([k, v]) => (
+                <li key={k} className="text-muted-foreground"><span className="text-foreground">{k}</span> : {fmt(v)}</li>
+              ))}
+              {Object.keys(o.data ?? {}).length === 0 && <li className="text-muted-foreground">Aucune donnée détaillée.</li>}
+            </ul>
+          </div>
+          <div className="space-y-2">
+            <div>
+              <div className="font-display font-bold text-foreground mb-1">Action recommandée</div>
+              <p className="text-muted-foreground">{o.recommended_action ?? "—"}</p>
+            </div>
+            <div className="text-muted-foreground">
+              <div><span className="text-foreground">Source :</span> {o.source ?? "—"}</div>
+              <div><span className="text-foreground">Détectée le :</span> {new Date(o.detected_at).toLocaleString("fr-CA")}</div>
+              <div><span className="text-foreground">Vue pour la dernière fois :</span> {new Date(o.last_seen_at).toLocaleString("fr-CA")}</div>
+            </div>
+            {o.entity_slug && !o.url && <div className="font-mono text-muted-foreground">{o.entity_slug}</div>}
+            {o.url && (
+              <a href={o.url} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                <ExternalLink className="w-3 h-3" /> Ouvrir la page
+              </a>
+            )}
+          </div>
+        </div>
+      )}
     </li>
   );
 }
 
 export default function CopilotDashboard() {
-  const { data, loading, scanning, rescan, reload, dismissOpportunity } = useCopilot();
+  const { data, copilot, loading, scanning, step, rescan, reload, setOpportunityStatus } = useCopilot();
+  const [showDiag, setShowDiag] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   if (loading && !data) {
     return <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
@@ -104,13 +126,21 @@ export default function CopilotDashboard() {
   if (!data) return <p className="text-sm text-muted-foreground">Aucune donnée.</p>;
 
   const k = data.kpi;
+  const run = copilot?.last_run ?? null;
+  const opps = copilot?.opportunities ?? [];
+  const counts = copilot?.counts ?? {};
+
+  const onStatus = async (id: string, s: "dismissed" | "in_progress" | "completed") => {
+    await setOpportunityStatus(id, s);
+    toast.success(s === "dismissed" ? "Opportunité ignorée" : s === "completed" ? "Opportunité marquée terminée" : "Opportunité en cours");
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-xl font-display font-bold text-foreground">Copilote SEO</h2>
-          <p className="text-sm text-muted-foreground">Priorités calculées automatiquement à partir de Search Console, des conversions et de la couverture.</p>
+          <p className="text-sm text-muted-foreground">Priorités calculées à partir de Search Console, des conversions, de l'indexation et de la couverture réelle. Analyse en lecture seule : aucune page n'est modifiée ni publiée.</p>
         </div>
         <div className="flex gap-2">
           <button onClick={reload}
@@ -124,6 +154,18 @@ export default function CopilotDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Progression de l'analyse */}
+      {step >= 0 && (
+        <div className="rounded-lg border border-border bg-card p-4 space-y-1.5">
+          {SCAN_STEPS.map((s, i) => (
+            <div key={s} className={`flex items-center gap-2 text-sm ${i < step ? "text-muted-foreground" : i === step ? "text-foreground font-semibold" : "text-muted-foreground/50"}`}>
+              {i < step ? <Check className="w-4 h-4 text-primary" /> : i === step ? <Loader2 className="w-4 h-4 animate-spin" /> : <span className="w-4" />}
+              {s}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* KPI */}
       <div>
@@ -147,27 +189,116 @@ export default function CopilotDashboard() {
         </div>
       </div>
 
-      {/* Opportunities */}
+      {/* Opportunités */}
       <div>
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
           <h3 className="text-xs uppercase tracking-wider font-display font-bold text-muted-foreground">Top opportunités</h3>
-          <span className="text-xs text-muted-foreground">{data.top_opportunities.length} priorités</span>
+          <div className="text-xs text-muted-foreground flex gap-3">
+            <span>{opps.length} ouverte(s)</span>
+            <span>{counts.critical ?? 0} critiques</span>
+            <span>{counts.high ?? 0} hautes</span>
+            <span>{counts.medium ?? 0} moyennes</span>
+            <span>{counts.low ?? 0} faibles</span>
+          </div>
         </div>
-        {data.top_opportunities.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border p-8 text-center">
-            <Sparkles className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">Aucune opportunité ouverte — lance une analyse IA pour en générer.</p>
+
+        {opps.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border p-6 text-center space-y-2">
+            <Sparkles className="w-6 h-6 text-muted-foreground mx-auto" />
+            <p className="text-sm text-foreground font-display font-semibold">
+              {run ? "Analyse terminée — aucune opportunité répondant actuellement aux critères de priorité." : "Aucune analyse n'a encore été lancée."}
+            </p>
+            {run && (
+              <p className="text-xs text-muted-foreground">
+                {run.pages_analyzed} pages analysées · {run.gsc_rows_analyzed} URL Search Console · {run.impressions_analyzed.toLocaleString("fr-CA")} impressions ·
+                {" "}{run.conversions_analyzed} conversions · {run.indexed_analyzed} pages indexées · {run.rules?.length ?? 0} règles évaluées
+              </p>
+            )}
           </div>
         ) : (
           <ul className="rounded-lg border border-border bg-card divide-y divide-border">
-            {data.top_opportunities.map((o) => (
-              <OpportunityRow key={o.id} o={o} onRefresh={reload} onDismiss={dismissOpportunity} />
-            ))}
+            {opps.map((o) => <OpportunityRow key={o.id} o={o} onStatus={onStatus} />)}
           </ul>
         )}
       </div>
 
-      {/* Gains & losses */}
+      {/* Diagnostic */}
+      {run && (
+        <div className="rounded-lg border border-border bg-card">
+          <button onClick={() => setShowDiag((v) => !v)} className="w-full flex items-center justify-between p-3 text-left">
+            <span className="flex items-center gap-2 text-sm font-display font-bold text-foreground">
+              <CircleHelp className="w-4 h-4" /> Pourquoi ces opportunités ? (diagnostic des règles)
+            </span>
+            {showDiag ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
+          {showDiag && (
+            <div className="border-t border-border p-3 space-y-2 text-xs">
+              <div className="text-muted-foreground">
+                Analyse du {new Date(run.started_at).toLocaleString("fr-CA")} · durée {((run.duration_ms ?? 0) / 1000).toFixed(1)} s ·
+                {" "}{run.pages_analyzed} pages · {run.gsc_rows_analyzed} URL Search Console · {run.conversions_analyzed} conversions ·
+                {" "}{run.new_count} nouvelle(s), {run.updated_count} mise(s) à jour, {run.stale_count} obsolète(s)
+              </div>
+              <table className="w-full">
+                <thead className="text-muted-foreground">
+                  <tr><th className="text-left py-1">Règle</th><th className="text-right">Candidates</th><th className="text-right">Retenues</th><th className="text-left pl-3">Critère</th></tr>
+                </thead>
+                <tbody>
+                  {(run.rules ?? []).map((r) => (
+                    <tr key={r.code} className="border-t border-border/60">
+                      <td className="py-1 text-foreground">{r.label}</td>
+                      <td className="text-right">{r.candidates}</td>
+                      <td className="text-right font-display font-bold text-foreground">{r.retained}</td>
+                      <td className="pl-3 text-muted-foreground">{r.note ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Historique */}
+      {copilot?.history?.length ? (
+        <div className="rounded-lg border border-border bg-card">
+          <button onClick={() => setShowHistory((v) => !v)} className="w-full flex items-center justify-between p-3 text-left">
+            <span className="flex items-center gap-2 text-sm font-display font-bold text-foreground">
+              <History className="w-4 h-4" /> Historique des analyses
+            </span>
+            {showHistory ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
+          {showHistory && (
+            <div className="border-t border-border p-3 overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="text-muted-foreground">
+                  <tr>
+                    <th className="text-left py-1">Date</th><th className="text-right">Durée</th><th className="text-right">Pages</th>
+                    <th className="text-right">Search Console</th><th className="text-right">Conversions</th>
+                    <th className="text-right">Détectées</th><th className="text-right">Nouvelles</th><th className="text-right">MAJ</th><th className="text-right">Obsolètes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {copilot.history.map((h) => (
+                    <tr key={h.id} className="border-t border-border/60">
+                      <td className="py-1 text-foreground">{new Date(h.started_at).toLocaleString("fr-CA")}</td>
+                      <td className="text-right">{((h.duration_ms ?? 0) / 1000).toFixed(1)} s</td>
+                      <td className="text-right">{h.pages_analyzed}</td>
+                      <td className="text-right">{h.gsc_rows_analyzed}</td>
+                      <td className="text-right">{h.conversions_analyzed}</td>
+                      <td className="text-right">{h.opportunities_detected}</td>
+                      <td className="text-right">{h.new_count}</td>
+                      <td className="text-right">{h.updated_count}</td>
+                      <td className="text-right">{h.stale_count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* Gains & pertes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <DeltaList title="Top gains (28 j)" icon={TrendingUp} tone="positive" rows={data.top_gains_30d} />
         <DeltaList title="Top pertes (28 j)" icon={TrendingDown} tone="negative" rows={data.top_losses_30d} />
