@@ -129,13 +129,13 @@ describe("Audit de cohérence du Copilote SEO", () => {
 
   it("15. une erreur sur une page n'arrête pas le reste du lot", () => {
     const batch = [
-      { slug: "a", status: "applied" as const },
-      { slug: "b", status: "failed" as const, error: "42501" },
-      { slug: "c", status: "applied" as const },
+      { page_id: "a", slug: "a", status: "done" as const },
+      { page_id: "b", slug: "b", status: "error" as const, error: "42501" },
+      { page_id: "c", slug: "c", status: "done" as const },
     ];
     const retry = retryErrors(batch);
-    expect(retry.map((r) => r.slug)).toEqual(["b"]);
-    expect(batch.filter((b) => b.status === "applied")).toHaveLength(2);
+    expect(retry.filter((r) => r.status === "pending").map((r) => r.slug)).toEqual(["b"]);
+    expect(retry.filter((r) => r.status === "done")).toHaveLength(2);
   });
 
   it("16. chaque journal d'action porte le contexte complet", () => {
