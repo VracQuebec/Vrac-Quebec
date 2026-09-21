@@ -16,7 +16,7 @@ import {
 import OpportunityWorkPanel from "@/components/seo/OpportunityWorkPanel";
 import { capabilityOfGroup, capabilityOfType, workButtonLabel, natureOfType, actionStatusLabel } from "@/lib/seo/workflow";
 import VerificationPanel from "@/components/seo/VerificationPanel";
-import { buildCopilotCounters, countersExplanation } from "@/lib/seo/counters";
+import { buildCopilotCounters, countersExplanation, counterSources, explainHidden } from "@/lib/seo/counters";
 import { VERIFICATION_LABEL, verificationButtonLabel, verificationKindOfType, type VerificationKind } from "@/lib/seo/verification";
 
 type StatusSetter = (id: string, s: "dismissed" | "in_progress" | "completed" | "open" | "error", extra?: { error?: string | null; reason?: string | null }) => Promise<void>;
