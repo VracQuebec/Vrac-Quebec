@@ -60,7 +60,7 @@ export default function OpportunityWorkPanel({
     setLogs((data ?? []) as LogRow[]);
   }, []);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { keepBatch?: boolean }) => {
     if (!group) return;
     setLoading(true);
     setLoadError(null);
@@ -97,10 +97,12 @@ export default function OpportunityWorkPanel({
         ls[p.id] = new Set();
       }
       setDrafts(d); setContentDrafts(c); setCtaDrafts(ct); setLinkSel(ls);
-      setSelected(new Set(rows.map((p) => p.id)));
-      setBatch(null);
+      if (!opts?.keepBatch) {
+        setSelected(new Set(rows.map((p) => p.id)));
+        setBatch(null);
+        setMode((availableModes(group.primary.type)[0] ?? "titles_meta") as WorkMode);
+      }
       setConfirming(null);
-      setMode((availableModes(group.primary.type)[0] ?? "titles_meta") as WorkMode);
 
       // Candidats de maillage : uniquement des pages SEO réelles du même territoire/service.
       const cities = [...new Set(rows.map((p) => p.city_slug).filter(Boolean))] as string[];
@@ -236,8 +238,18 @@ export default function OpportunityWorkPanel({
     setConfirming(list.map((x) => x.change.summary));
   };
 
-  const applyChanges = async () => {
-    const list = pendingChanges();
+  const errMessage = (e: unknown): string => {
+    if (e instanceof Error && e.message) return e.message;
+    if (e && typeof e === "object") {
+      const r = e as Record<string, unknown>;
+      const parts = [r.message, r.details, r.hint, r.code].filter((x) => typeof x === "string" && x) as string[];
+      if (parts.length) return parts.join(" · ");
+    }
+    return "Erreur inconnue";
+  };
+
+  const applyChanges = async (restrict?: Set<string>) => {
+    const list = pendingChanges().filter((x) => !restrict || restrict.has(x.page.id));
     setConfirming(null);
     setSaving(true);
     let items = buildBatchPlan(pages.map((p) => p.id), new Set(list.map((x) => x.page.id)), Object.fromEntries(pages.map((p) => [p.id, p.slug])));
@@ -258,7 +270,7 @@ export default function OpportunityWorkPanel({
         }));
       } catch (e) {
         failures++;
-        const msg = e instanceof Error ? e.message : "Erreur inconnue";
+        const msg = errMessage(e);
         items = applyBatchResult(items, page.id, false, msg);
         await log(buildLogEntry(group, { status: "failed", page_id: page.id, page_slug: page.slug, error: msg, note: MODE_LABEL[mode] }));
       }
@@ -268,6 +280,11 @@ export default function OpportunityWorkPanel({
     if (failures > 0) {
       await onStatus(o.id, "error", { error: `${failures} page(s) en erreur` });
       toast.error(`${failures} page(s) en erreur — vous pouvez réessayer les erreurs.`);
+      const failedIds = items.filter((b) => b.status === "error").map((b) => b.page_id);
+      await load({ keepBatch: true });
+      setBatch([...items]);
+      setSelected(new Set(failedIds));
+      return;
     } else {
       await onStatus(o.id, "completed");
       toast.success("Modifications enregistrées et opportunité marquée terminée.");
@@ -559,7 +576,11 @@ export default function OpportunityWorkPanel({
                 {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Appliquer aux pages sélectionnées
               </button>
               {batch && progress && progress.errors > 0 && (
-                <button disabled={saving} onClick={() => { setBatch(retryErrors(batch)); void applyChanges(); }}
+                <button disabled={saving} onClick={() => {
+                    const failed = new Set(batch.filter((b) => b.status === "error").map((b) => b.page_id));
+                    setBatch(retryErrors(batch));
+                    void applyChanges(failed);
+                  }}
                   className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-border text-xs">
                   <RotateCcw className="w-3.5 h-3.5" /> Réessayer les erreurs
                 </button>
