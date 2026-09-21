@@ -78,19 +78,35 @@ Deno.serve(async (req) => {
     if (runErr) return json({ error: `Impossible de démarrer l'analyse : ${runErr.message}` }, 500);
     runId = runRow!.id as string;
 
-    // ---------- Données réelles ----------
-    const [pagesRes, gscRes, convRes] = await Promise.all([
-      supabase.from("seo_pages")
+    // ---------- Données réelles (pagination : PostgREST plafonne à 1 000 lignes) ----------
+    const fetchAll = async <T>(
+      build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+      label: string,
+    ): Promise<T[]> => {
+      const out: T[] = [];
+      const size = 1000;
+      for (let from = 0; from < 20000; from += size) {
+        const { data, error } = await build(from, from + size - 1);
+        if (error) throw new Error(`${label} : ${error.message}`);
+        const rows = data ?? [];
+        out.push(...rows);
+        if (rows.length < size) break;
+      }
+      return out;
+    };
+
+    const [pagesAll, gscAll, convAll] = await Promise.all([
+      fetchAll<Page>((from, to) => supabase.from("seo_pages")
         .select("id,slug,title,city_slug,material_slug,service_slug,status,published_at,updated_at,word_count,internal_link_count,seo_score,qa_last_score,google_index_status,indexed_at,noindex,meta_title,meta_description")
-        .limit(5000),
-      supabase.from("seo_gsc_metrics")
+        .order("id", { ascending: true }).range(from, to), "seo_pages"),
+      fetchAll<Gsc & { fetched_at: string }>((from, to) => supabase.from("seo_gsc_metrics")
         .select("page_id,clicks,impressions,ctr,position,fetched_at").eq("period", "28d")
-        .order("fetched_at", { ascending: false }).limit(10000),
-      supabase.from("seo_page_conversions_30d")
-        .select("page_slug,views,phone_clicks,whatsapp_clicks,email_clicks,submissions,cta_clicks,conversions").limit(5000),
+        .order("fetched_at", { ascending: false }).range(from, to), "seo_gsc_metrics"),
+      fetchAll<Conv>((from, to) => supabase.from("seo_page_conversions_30d")
+        .select("page_slug,views,phone_clicks,whatsapp_clicks,email_clicks,submissions,cta_clicks,conversions")
+        .order("page_slug", { ascending: true }).range(from, to), "conversions"),
     ]);
-    if (pagesRes.error) throw new Error(`seo_pages : ${pagesRes.error.message}`);
-    if (gscRes.error) throw new Error(`seo_gsc_metrics : ${gscRes.error.message}`);
+    const pagesRes = { data: pagesAll }, gscRes = { data: gscAll }, convRes = { data: convAll };
 
     const pages = (pagesRes.data ?? []) as Page[];
     const gsc = new Map<string, Gsc>();
