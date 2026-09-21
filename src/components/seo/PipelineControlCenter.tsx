@@ -237,6 +237,64 @@ export default function PipelineControlCenter() {
                 </div>
               )}
             </div>
+
+            {/* ── Génération globale : état, progression, résumé ───── */}
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <div className="flex flex-wrap items-center gap-2 justify-between">
+                <div className="text-sm font-semibold flex items-center gap-2">
+                  {phase === "running" && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+                  {PHASE_LABEL[phase]}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(phase === "interrupted" || phase === "paused") && activeRun && (
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1"
+                      onClick={() => act("resume-global", () => resume(activeRun.id), "Génération reprise")}>
+                      <Play className="w-3 h-3" /> Reprendre la génération
+                    </Button>
+                  )}
+                  {shouldOfferRetry(activeRun as never, global.preview) && activeRun && (
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1"
+                      onClick={() => act("retry-global", () => retryErrors(activeRun.id), "Erreurs remises en file")}>
+                      <ListRestart className="w-3 h-3" /> Régénérer les erreurs
+                    </Button>
+                  )}
+                  {shouldOfferRetry(activeRun as never, global.preview) && (
+                    <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setErrorsOpen(true)}>
+                      Voir les erreurs
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {phase === "running" || phase === "completed" ? (
+                <>
+                  <Progress value={prog.pct} className="h-2" />
+                  <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+                    <span>{nf(prog.done)} / {nf(prog.total)} pages · {prog.pct} %</span>
+                    {activeRun?.current_city_slug && <span>Ville actuelle : <strong className="text-foreground">{activeRun.current_city_slug}</strong></span>}
+                    <span className="text-green-700">✓ Générées : {nf(prog.succeeded)}</span>
+                    <span className="text-destructive">⚠ Erreurs : {nf(prog.failed)}</span>
+                    <span>○ Restantes : {nf(prog.remaining)}</span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {global.preview.remaining > 0
+                    ? "Génère uniquement les pages pertinentes qui ne sont pas encore créées. Les pages existantes et publiées sont protégées."
+                    : "Aucune page pertinente à générer."}
+                </p>
+              )}
+
+              {phase === "completed" && global.baseline && (
+                <div className="rounded-md border border-border bg-background/60 p-2 text-xs space-y-0.5">
+                  <div className="font-semibold">Génération terminée</div>
+                  {finalSummary(global.baseline, global.preview, activeRun as never).map((l) => <div key={l}>{l}</div>)}
+                  {failureNotice(activeRun as never) && (
+                    <div className="text-destructive">{failureNotice(activeRun as never)}</div>
+                  )}
+                </div>
+              )}
+            </div>
           </>
         )}
       </Card>
