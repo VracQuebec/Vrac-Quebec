@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { buildActionGroups, topActions, actionKeyOf, normalizeAction } from "@/lib/seo/actionGroups";
+import {
+  buildActionGroups,
+  buildPriorityPagesForAction,
+  impactPotentialOf,
+  topActions,
+  actionKeyOf,
+  normalizeAction,
+  type ActionPageMetric,
+} from "@/lib/seo/actionGroups";
 import type { Opportunity } from "@/lib/seo/useCopilot";
 
 let seq = 0;
@@ -230,5 +238,79 @@ describe("Qualité des titres d'action du Top 10", () => {
     const groups = buildActionGroups([a, b]);
     const ids = groups.flatMap((g) => g.members.map((m) => m.id));
     expect(ids).toEqual(expect.arrayContaining([a.id, b.id]));
+  });
+});
+
+describe("Présentation enrichie des actions du Top 10", () => {
+  const page = (p: Partial<ActionPageMetric>): ActionPageMetric => ({
+    page_id: null,
+    slug: null,
+    url: null,
+    title: null,
+    city: null,
+    service: null,
+    impressions: null,
+    clicks: null,
+    ctr: null,
+    position: null,
+    conversions: null,
+    ...p,
+  });
+
+  it("une action de groupe expose ses pages prioritaires sans changer le regroupement", () => {
+    const group = buildActionGroups([
+      opp({ type: "group_service", category: "groupe", target_service_slug: "excavation", score: 77, data: { pages: 56, impressions: 1034, clicks: 1, conversions: 1 } }),
+    ])[0];
+    const before = group.key;
+    const pages = buildPriorityPagesForAction(group, [
+      page({ slug: "excavation-a", url: "/excavation-a", title: "Excavation A", service: "excavation", impressions: 900, clicks: 1, ctr: 0.0011, position: 3.8, conversions: 1 }),
+      page({ slug: "excavation-b", url: "/excavation-b", title: "Excavation B", service: "excavation", impressions: 20, clicks: 0, ctr: 0, position: 18, conversions: 0 }),
+    ]);
+    expect(group.key).toBe(before);
+    expect(pages).toHaveLength(2);
+    expect(pages[0].slug).toBe("excavation-a");
+    expect(pages[0].reason).toContain("1 conversion réelle");
+  });
+
+  it("une action de page expose une seule page prioritaire", () => {
+    const group = buildActionGroups([
+      opp({ page_id: "p1", entity_slug: "livraison-portneuf", url: "/livraison-portneuf", title: "Livraison Portneuf", target_service_slug: "livraison", target_city_slug: "portneuf", data: { impressions: 300, clicks: 4, conversions: 2 } }),
+    ])[0];
+    const pages = buildPriorityPagesForAction(group, [
+      page({ page_id: "p1", slug: "livraison-portneuf", url: "/livraison-portneuf", title: "Livraison Portneuf", service: "livraison", city: "portneuf", impressions: 300, clicks: 4, conversions: 2 }),
+      page({ page_id: "p2", slug: "livraison-levis", url: "/livraison-levis", title: "Livraison Lévis", service: "livraison", city: "levis", impressions: 900, conversions: 5 }),
+    ]);
+    expect(group.kind).toBe("page");
+    expect(pages).toHaveLength(1);
+    expect(pages[0].slug).toBe("livraison-portneuf");
+  });
+
+  it("les conversions réelles augmentent l'impact potentiel sans modifier le score existant", () => {
+    const [withConversion] = buildActionGroups([
+      opp({ type: "group_service", category: "groupe", target_service_slug: "excavation", score: 77, data: { impressions: 1034, clicks: 1, conversions: 1, position: 3.8 } }),
+    ]);
+    const scoreBefore = withConversion.score;
+    const impact = impactPotentialOf(withConversion);
+    expect(withConversion.score).toBe(scoreBefore);
+    expect(impact.label).toBe("ÉLEVÉ");
+    expect(impact.reason).toContain("1 conversion réelle");
+  });
+
+  it("aucun chiffre n'est inventé pour les pages prioritaires", () => {
+    const group = buildActionGroups([opp({ type: "group_territory", category: "groupe", target_city_slug: "levis", data: {} })])[0];
+    const pages = buildPriorityPagesForAction(group, [page({ slug: "page-sans-donnees", url: "/page-sans-donnees", city: "levis" })]);
+    expect(pages[0].impressions).toBeNull();
+    expect(pages[0].clicks).toBeNull();
+    expect(pages[0].ctr).toBeNull();
+    expect(pages[0].position).toBeNull();
+    expect(pages[0].conversions).toBeNull();
+  });
+
+  it("les données sources et les signaux restent conservés", () => {
+    const a = opp({ page_id: "a", target_service_slug: "remblai", target_city_slug: "beaupre", data: { impressions: 10 } });
+    const b = opp({ type: "local_potential", target_service_slug: "remblai", target_city_slug: "beaupre", data: { impressions: 20 } });
+    const [group] = buildActionGroups([a, b]);
+    expect(group.members.map((m) => m.id)).toEqual(expect.arrayContaining([a.id, b.id]));
+    expect(group.impressions).toBe(30);
   });
 });
