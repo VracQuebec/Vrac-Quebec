@@ -596,10 +596,10 @@ const TransportRequest = () => {
           const distance_km = mx?.distance_km ?? haversine(coords, { lat: d.latitude, lng: d.longitude });
           const duration_minutes = mx?.duration_minutes ?? Math.round((distance_km / 60) * 60);
 
-          // Scoring: lower distance = better; boost available; penalize unavailable
+          // Classement uniquement : la disponibilité n'exclut jamais une dompe admissible.
           let score = 100 - Math.min(80, distance_km);
-          if (d.availability_status === "unavailable") score -= 200;
-          else if (d.availability_status === "limited") score -= 15;
+          if (d.availability_status === "unavailable" || d.availability_status === "owner_closed") score -= 20;
+          else if (d.availability_status === "limited") score -= 5;
           else score += 10;
           if (d.truck_types_allowed && d.truck_types_allowed.length > 0) score += 3;
           if (d.accessibility && d.accessibility.length > 0) score += 2;
