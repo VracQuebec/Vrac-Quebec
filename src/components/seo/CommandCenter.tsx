@@ -82,7 +82,8 @@ export default function CommandCenter() {
   }
 
   async function optimizeAll() {
-    if (!confirm("Lancer l'optimisation automatique de toutes les pages qui en ont besoin ?\n\nLe traitement se fait en arrière-plan, page par page, avec reprise automatique en cas d'interruption.")) return;
+    // Aucune action massive sans aperçu explicite : le dialogue affiche les pages,
+    // les URLs, le type de modification et ce qui serait réellement modifié.
     setOptimizing(true);
     try {
       // Point d'entrée unique : la file d'attente persistée du moteur SEO.
@@ -222,7 +223,12 @@ export default function CommandCenter() {
         </div>
       </header>
 
-      <StrategicReport />
+      <StrategicReport
+        counters={counters}
+        countersLoading={countersLoading}
+        countersError={countersError}
+        onReloadCounters={() => void reloadCounters()}
+      />
 
       <PipelineControlCenter />
 
