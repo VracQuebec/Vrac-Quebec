@@ -17,10 +17,6 @@ import {
   QA_VERDICT_LABEL, type QaControlPage, type QaControlResult, type QaVerdict,
 } from "@/lib/seo/qaControl";
 
-const SELECT =
-  "id, slug, city_slug, material_slug, service_slug, title, h1, status, meta_title, meta_description, " +
-  "content_html, internal_link_count, internal_links, word_count, qa_last_score, qa_last_checked_at, " +
-  "proc_status, proc_error, noindex, google_index_status, last_generated_at";
 
 type Row = QaControlPage & {
   status: string;
@@ -75,7 +71,7 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
     // Pagination complète par petits lots : jamais de troncature silencieuse,
     // jamais un lot assez gros pour dépasser le délai d'exécution de la base.
     try {
-      all = await fetchSeoPagesPaged<Row>(SELECT);
+      all = await fetchSeoPagesPaged<Row>(true);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Erreur de lecture");
       setPages([]);
