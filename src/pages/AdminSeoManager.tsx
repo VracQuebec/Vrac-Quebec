@@ -2895,3 +2895,64 @@ function ProductionTab() {
     </div>
   );
 }
+
+function ProductionRunPanel({ state }: { state: RunState }) {
+  const { done, remaining, percent } = runProgress(state);
+  const durationSec = state.startedAt
+    ? Math.max(0, Math.round(((state.finishedAt ?? Date.now()) - state.startedAt) / 1000))
+    : 0;
+  const label = state.status === "running" ? "Production en cours"
+    : state.status === "paused" ? "Production interrompue — reprise possible"
+    : state.status === "done" ? "PRODUCTION TERMINÉE" : "Production";
+
+  return (
+    <div className="rounded-lg border border-border bg-background p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h3 className="text-sm font-display font-bold text-foreground">{label}</h3>
+        <span className="text-xs text-muted-foreground">
+          {state.currentLabel || (state.status === "done" ? `Durée réelle : ${durationSec}s` : "—")}
+        </span>
+      </div>
+      <div className="h-2 rounded-full bg-secondary overflow-hidden">
+        <div className="h-full bg-primary transition-all" style={{ width: `${percent}%` }} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 text-xs">
+        <Metric label="À traiter" value={state.total} />
+        <Metric label="Traitées" value={done} />
+        <Metric label="Produites" value={state.produced} />
+        <Metric label="Conformes" value={state.conforme} />
+        <Metric label="À vérifier" value={state.aVerifier} />
+        <Metric label="Erreurs" value={state.errors} />
+        <Metric label="Doublons évités" value={state.skipped} />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Progression : {percent} % · {remaining} restante(s) · durée {durationSec}s
+      </p>
+
+      {state.batches.length > 0 && (
+        <div className="pt-2 border-t border-border space-y-1 max-h-56 overflow-y-auto">
+          {[...state.batches].reverse().map((b) => (
+            <div key={b.index} className="text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground">Lot #{b.index}</span>{" "}
+              {new Date(b.startedAt).toLocaleTimeString("fr-CA")}
+              {b.finishedAt ? ` → ${new Date(b.finishedAt).toLocaleTimeString("fr-CA")}` : " → en cours"} ·{" "}
+              {b.requested} demandées · {b.generated} générées · {b.conforme} conformes · {b.aVerifier} à vérifier ·{" "}
+              {b.skipped} doublon(s) ignoré(s) · {b.errors} erreur(s)
+            </div>
+          ))}
+        </div>
+      )}
+
+      {state.issues.length > 0 && (
+        <div className="pt-2 border-t border-border space-y-1 max-h-56 overflow-y-auto">
+          <h4 className="text-xs font-semibold text-foreground">Pages à vérifier et erreurs</h4>
+          {state.issues.map((i) => (
+            <div key={`${i.kind}-${i.key}`} className={i.kind === "error" ? "text-xs text-red-500" : "text-xs text-amber-600"}>
+              {i.kind === "error" ? "❌" : "⚠️"} {i.label} — {i.reason}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
