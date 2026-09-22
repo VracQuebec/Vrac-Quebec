@@ -1,6 +1,8 @@
 // Compute driving distance + duration from a site to a list of dumps
 // via Google Routes API (computeRouteMatrix) through the Lovable connector gateway.
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { clientIp, enforceIpQuota, GuardError } from '../_shared/public-guard.ts';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
 const MAX_DESTINATIONS = 500;
@@ -23,12 +25,26 @@ Deno.serve(async (req) => {
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // Service payant : quota par adresse, la clé publique ne doit pas
+    // permettre de consommer le budget cartographique.
+    const svc = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
+      auth: { persistSession: false },
+    });
+    try {
+      await enforceIpQuota(svc, 'transport-distance-matrix', clientIp(req), 60, 60);
+    } catch (guardError) {
+      const status = guardError instanceof GuardError ? guardError.status : 429;
+      return new Response(JSON.stringify({ error: (guardError as Error).message }),
+        { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
     if (!LOVABLE_API_KEY || !GOOGLE_MAPS_API_KEY) {
       return new Response(JSON.stringify({ error: 'Missing Google Maps connector credentials' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+
 
     const body = (await req.json()) as Body;
     if (!body?.origin || !Array.isArray(body?.dumps) || body.dumps.length === 0) {
