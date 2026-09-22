@@ -27,6 +27,12 @@ import {
   Loader2, AlertTriangle, ExternalLink, FileText, CheckCircle2, Wand2,
 } from "lucide-react";
 
+/** Champs lus en lecture seule pour l'encadré « Pages à corriger » (critères de qualité). */
+type SeoPageRow = {
+  slug: string; city_slug: string; title: string | null;
+  status: string; meta_title: string | null; internal_link_count: number | null;
+};
+
 type FilterKey = "all" | "done" | "partial" | "running" | "todo" | "error";
 
 const FILTERS: Array<{ key: FilterKey; label: string }> = [
