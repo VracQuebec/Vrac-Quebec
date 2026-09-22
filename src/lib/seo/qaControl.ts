@@ -317,7 +317,7 @@ export function duplicateTitles(pages: Array<{ meta_title?: string | null }>): S
     if (!t) continue;
     count.set(t, (count.get(t) ?? 0) + 1);
   }
-  return new Set([...count.entries().filter?.(() => true) ?? []].filter(([, n]) => n > 1).map(([t]) => t));
+  return new Set([...count.entries()].filter(([, n]) => n > 1).map(([t]) => t));
 }
 
 /** Total de pages publiables après contrôle = brouillons déjà prêts + pages devenues prêtes. */
