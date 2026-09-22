@@ -192,9 +192,9 @@ const Entrepreneur = () => {
 
   const fetchLeads = async () => {
     setLoading(true);
-    const { data, error } = await supabase.rpc("get_entrepreneur_leads");
-    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    else setLeads((data as any) || []);
+    const { sites, error } = await getEligibleEntrepreneurDumpSites();
+    if (error) toast({ title: "Erreur", description: error, variant: "destructive" });
+    else setLeads(sites as any);
     setLoading(false);
   };
 

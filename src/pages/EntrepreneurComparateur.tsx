@@ -194,9 +194,9 @@ export default function EntrepreneurComparateur() {
   useEffect(() => {
     if (!isReady || roleLoading || (!isEntrepreneur && !isAdmin)) return;
     void (async () => {
-      const { data, error } = await supabase.rpc("get_entrepreneur_leads");
-      if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
-      else setLeads((data ?? []) as unknown as Lead[]);
+      const { sites, error } = await getEligibleEntrepreneurDumpSites();
+      if (error) toast({ title: "Erreur", description: error, variant: "destructive" });
+      else setLeads(sites as unknown as Lead[]);
       setLoading(false);
     })();
   }, [isReady, roleLoading, isEntrepreneur, isAdmin]);
