@@ -211,6 +211,13 @@
       "when": 1790110719811,
       "tag": "0029_entrepreneur_dompe_public_coords",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1790110770504,
+      "tag": "0030_restrict_comparateur_selection_owner",
+      "breakpoints": true
     }
   ]
 }
