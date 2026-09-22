@@ -2419,13 +2419,32 @@ function ProductionTab() {
   const [avgSecPerItem, setAvgSecPerItem] = useState<number>(35);
   const [showReport, setShowReport] = useState(false);
 
+  // Lecture paginée : seo_pages dépasse la limite par défaut de 1 000 lignes,
+  // sinon des pages existantes seraient vues à tort comme « à produire ».
+  async function fetchAllSeoPages() {
+    const BATCH = 1000;
+    const rows: Array<{ id: string; slug: string; city_slug: string | null; material_slug: string | null; service_slug: string | null; status: string; qa_last_score: number | null; qa_last_checked_at: string | null; qa_blockers: string[] | null }> = [];
+    for (let from = 0; ; from += BATCH) {
+      const { data, error } = await supabase
+        .from("seo_pages")
+        .select("id, slug, city_slug, material_slug, service_slug, status, qa_last_score, qa_last_checked_at, qa_blockers")
+        .order("id")
+        .range(from, from + BATCH - 1);
+      if (error) throw new Error(error.message);
+      const page = data ?? [];
+      rows.push(...(page as typeof rows));
+      if (page.length < BATCH) break;
+    }
+    return rows;
+  }
+
   async function load() {
     setLoading(true);
-    const [{ data: mats }, { data: svcs }, catalog, { data: pgs }] = await Promise.all([
+    const [{ data: mats }, { data: svcs }, catalog, pgs] = await Promise.all([
       supabase.from("seo_materials").select("slug, name, short_name, description, sort_order").eq("active", true).order("sort_order"),
       supabase.from("seo_services").select("slug, name, description, sort_order").eq("active", true).order("sort_order"),
       supabase.rpc("seo_generator_catalog" as never),
-      supabase.from("seo_pages").select("id, slug, city_slug, material_slug, service_slug, status, qa_last_score, qa_last_checked_at, qa_blockers"),
+      fetchAllSeoPages(),
     ]);
     const cts = ((catalog.data as unknown as { cities?: GeneratorCity[] })?.cities ?? []).sort((a, b) => (b.request_count - a.request_count) || a.name.localeCompare(b.name));
     const pageIndex = new Map<string, QueueItem["existing"]>();
