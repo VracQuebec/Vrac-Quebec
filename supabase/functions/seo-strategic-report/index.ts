@@ -52,8 +52,31 @@ Deno.serve(async (req) => {
     ]);
 
     // Load current SEO state.
-    const [pagesRes, recosRes, gscRes, blogRes, brokenRes] = await Promise.all([
-      supabase.from("seo_pages").select("id,slug,title,status,word_count,seo_score,qa_last_score,internal_link_count,google_index_status,last_generated_at").limit(5000),
+    // Pagination complète : PostgREST plafonne chaque requête à 1 000 lignes.
+    // Le rapport doit couvrir TOUTES les pages, jamais un échantillon.
+    const PAGE_SIZE = 1000;
+    type PageRow = {
+      id: string; slug: string; title: string; status: string; word_count: number | null;
+      seo_score: number | null; qa_last_score: number | null; internal_link_count: number | null;
+      google_index_status: string | null; last_generated_at: string | null; noindex: boolean | null;
+    };
+    async function loadAllPages(): Promise<PageRow[]> {
+      const out: PageRow[] = [];
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data } = await supabase
+          .from("seo_pages")
+          .select("id,slug,title,status,word_count,seo_score,qa_last_score,internal_link_count,google_index_status,last_generated_at,noindex")
+          .order("slug", { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+        const batch = (data ?? []) as PageRow[];
+        out.push(...batch);
+        if (batch.length < PAGE_SIZE) break;
+      }
+      return out;
+    }
+
+    const [allPages, recosRes, gscRes, blogRes, blogDraftRes, brokenRes] = await Promise.all([
+      loadAllPages(),
       supabase.from("seo_recommendations").select("id,reco_type,priority,impact_estimate,effort_estimate,title").eq("status", "open").order("priority", { ascending: false }).limit(500),
       supabase.from("seo_gsc_metrics").select("page_id,impressions,clicks,ctr,position").eq("period", "28d").limit(5000),
       supabase.from("blog_posts").select("id,title,status,updated_at").eq("status", "published"),
