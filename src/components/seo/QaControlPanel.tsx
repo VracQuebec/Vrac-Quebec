@@ -126,25 +126,39 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
     if (running) return;
     setRunning(true);
     setResults([]);
+    setControlErrors([]);
+    setDuration(null);
+    const startedAt = Date.now();
     // Les pages sont lues au moment du contrôle si elles ne l'ont pas déjà été.
     const loaded = pages ? { rows: pages, dups } : await loadPages();
     if (!loaded) { setRunning(false); return; }
     const { rows: list, dups: titleDups } = loaded;
     let acc: QaControlResult[] = [];
+    const failures: string[] = [];
     for (let i = 0; i < list.length; i += 25) {
-      const batch = list.slice(i, i + 25).map((p) =>
-        runQaControl(p, { duplicateTitle: titleDups.has((p.meta_title ?? "").trim()) }),
-      );
+      const batch: QaControlResult[] = [];
+      for (const p of list.slice(i, i + 25)) {
+        // Une page illisible est signalée comme erreur de contrôle : elle ne doit
+        // jamais interrompre l'ensemble du contrôle.
+        try {
+          batch.push(runQaControl(p, { duplicateTitle: titleDups.has((p.meta_title ?? "").trim()) }));
+        } catch {
+          failures.push(p.slug);
+        }
+      }
       acc = mergeResults(acc, batch);
       setResults(acc);
+      setControlErrors([...failures]);
       // Laisse l'interface rafraîchir la progression entre les lots.
       await new Promise((r) => setTimeout(r, 0));
     }
     const at = new Date().toISOString();
     localStorage.setItem(LAST_RUN_KEY, at);
     setLastRun(at);
+    setDuration(Math.round((Date.now() - startedAt) / 100) / 10);
     setRunning(false);
   }, [pages, dups, running, loadPages]);
+
 
   const rows = useMemo(
     () => (filter === "all" ? results : results.filter((r) => r.verdict === filter)),
