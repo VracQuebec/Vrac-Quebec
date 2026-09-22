@@ -204,6 +204,13 @@
       "when": 1790109516774,
       "tag": "0028_tighten_reference_table_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1790110719811,
+      "tag": "0029_entrepreneur_dompe_public_coords",
+      "breakpoints": true
     }
   ]
 }
