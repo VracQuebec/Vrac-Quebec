@@ -239,6 +239,13 @@
       "when": 1790112790040,
       "tag": "0033_progressive_site_address_disclosure",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790112844006,
+      "tag": "0034_gate_transport_request_site_address",
+      "breakpoints": true
     }
   ]
 }
