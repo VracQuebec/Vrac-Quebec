@@ -5,6 +5,6 @@
 - [x] Confirm counts, duplicates, preserved pages, and remaining errors
 - [x] Corriger la vue mobile super admin « Entrepreneurs »
 - [x] Vérifier les largeurs 360, 390, 430, 768 et 1440 px et capturer mobile/ordinateur
-- [ ] Corriger les 4 faux positifs du contrôle SEO sans modifier leur contenu
-- [ ] Reformuler uniquement les chiffres non vérifiables des 11 brouillons
-- [ ] Recontrôler les 15 pages et confirmer les compteurs réels sans publication
+- [x] Corriger les 4 faux positifs du contrôle SEO sans modifier leur contenu
+- [x] Reformuler uniquement les chiffres non vérifiables des 11 brouillons
+- [x] Recontrôler les 15 pages et confirmer les compteurs réels sans publication
