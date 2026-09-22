@@ -78,9 +78,20 @@ export default function PipelineControlCenter() {
   const [fixRows, setFixRows] = useState<QualityFix<SeoPageRow>[] | null>(null);
   useEffect(() => { void fetchSeoStats().then(setStats).catch(() => setStats(null)); }, []);
   useEffect(() => {
-    supabase.from("seo_pages")
-      .select("slug, city_slug, title, status, meta_title, internal_link_count")
-      .then(({ data }) => setFixRows(collectFixes((data ?? []) as SeoPageRow[])));
+    // Lecture complète (pagination) : la table dépasse 1 000 pages.
+    void (async () => {
+      const all: SeoPageRow[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase
+          .from("seo_pages")
+          .select("slug, city_slug, title, status, meta_title, internal_link_count")
+          .range(from, from + 999);
+        if (error) break;
+        all.push(...((data ?? []) as SeoPageRow[]));
+        if (!data || data.length < 1000) break;
+      }
+      setFixRows(collectFixes(all));
+    })();
   }, []);
   // Statuts des villes déduits uniquement des chiffres réels du Centre de pilotage.
   const citySummary = useMemo(() => summarize(state?.cities ?? []), [state]);
