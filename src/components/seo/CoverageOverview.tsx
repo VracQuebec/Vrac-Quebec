@@ -1,59 +1,63 @@
+// Couverture territoriale — SOURCE OFFICIELLE UNIQUE : seo_control_center()
+// (exactement la même logique de pertinence que le Générateur) complétée par
+// seo_dashboard_stats() pour les matériaux/services couverts (calculés côté base).
+// Aucun calcul théorique ici, aucune lecture paginée côté client.
 import { useEffect, useState } from "react";
-import { Loader2, MapPin, Package, Wrench, Grid3x3 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Loader2, MapPin, Package, Wrench, Grid3x3, FileText } from "lucide-react";
+import { fetchSeoStats, type SeoStats } from "@/lib/seo/api";
+import { useSeoControlCenter } from "@/lib/seo/useSeoControlCenter";
+
+const nf = (n: number) => n.toLocaleString("fr-CA");
 
 export default function CoverageOverview() {
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    citiesTotal: 0, citiesCovered: 0,
-    materialsTotal: 0, materialsCovered: 0,
-    servicesTotal: 0, servicesCovered: 0,
-    combosTotal: 0, combosCreated: 0,
-  });
+  const { state, loading: ccLoading } = useSeoControlCenter();
+  const [stats, setStats] = useState<SeoStats | null>(null);
 
   useEffect(() => {
-    (async () => {
-      const [cRes, mRes, sRes, pRes] = await Promise.all([
-        supabase.rpc("seo_generator_catalog" as never),
-        supabase.from("seo_materials").select("slug").eq("active", true),
-        supabase.from("seo_services").select("slug").eq("active", true),
-        supabase.from("seo_pages").select("city_slug, material_slug, service_slug").eq("status", "published"),
-      ]);
-      const cities = ((cRes.data as unknown as { cities?: Array<{ slug: string }> })?.cities ?? []);
-      const materials = mRes.data ?? [];
-      const services = sRes.data ?? [];
-      const pages = pRes.data ?? [];
-      const usedCities = new Set(pages.map((p) => p.city_slug));
-      const usedMats = new Set(pages.filter((p) => p.material_slug).map((p) => p.material_slug));
-      const usedSvcs = new Set(pages.filter((p) => p.service_slug).map((p) => p.service_slug));
-      const combos = new Set(pages.filter((p) => p.material_slug).map((p) => `${p.city_slug}|${p.material_slug}`));
-      setStats({
-        citiesTotal: cities.length,
-        citiesCovered: cities.filter((c) => usedCities.has(c.slug)).length,
-        materialsTotal: materials.length,
-        materialsCovered: materials.filter((m) => usedMats.has(m.slug)).length,
-        servicesTotal: services.length,
-        servicesCovered: services.filter((s) => usedSvcs.has(s.slug)).length,
-        combosTotal: cities.length * materials.length,
-        combosCreated: combos.size,
-      });
-      setLoading(false);
-    })();
+    void fetchSeoStats().then(setStats).catch(() => setStats(null));
   }, []);
 
-  if (loading) {
+  if (ccLoading && !state) {
     return <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement de la couverture…</div>;
   }
+  if (!state) return <div className="text-sm text-muted-foreground">Couverture indisponible.</div>;
 
+  const t = state.totals;
+  const cities = state.cities;
+  const withPublished = cities.filter((c) => c.published > 0).length;
+  const draftOnly = cities.filter((c) => c.published === 0 && c.generated > 0).length;
+  const withoutPage = cities.filter((c) => c.generated === 0).length;
   const pct = (a: number, b: number) => (b === 0 ? 0 : Math.round((a / b) * 100));
 
   return (
-    <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <CoverageCard icon={MapPin} label="Territoire couvert" pct={pct(stats.citiesCovered, stats.citiesTotal)} sub={`${stats.citiesCovered}/${stats.citiesTotal} villes`} />
-      <CoverageCard icon={Package} label="Matériaux couverts" pct={pct(stats.materialsCovered, stats.materialsTotal)} sub={`${stats.materialsCovered}/${stats.materialsTotal} matériaux`} />
-      <CoverageCard icon={Wrench} label="Services couverts" pct={pct(stats.servicesCovered, stats.servicesTotal)} sub={`${stats.servicesCovered}/${stats.servicesTotal} services`} />
-      <CoverageCard icon={Grid3x3} label="Combinaisons créées" pct={pct(stats.combosCreated, stats.combosTotal)} sub={`${stats.combosCreated} / ${stats.combosTotal}`} />
-    </section>
+    <div className="space-y-3">
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <CoverageCard icon={MapPin} label="Municipalités avec page publiée"
+          pct={pct(withPublished, cities.length)} sub={`${nf(withPublished)}/${nf(cities.length)} municipalités du registre`} />
+        <CoverageCard icon={Package} label="Matériaux couverts"
+          pct={stats ? pct(stats.materials_covered, stats.materials_total) : 0}
+          sub={stats ? `${stats.materials_covered}/${stats.materials_total} matériaux` : "—"} />
+        <CoverageCard icon={Wrench} label="Services couverts"
+          pct={stats ? pct(stats.services_covered, stats.services_total) : 0}
+          sub={stats ? `${stats.services_covered}/${stats.services_total} services` : "—"} />
+        <CoverageCard icon={Grid3x3} label="Combinaisons pertinentes créées"
+          pct={pct(t.generated, t.target_total)} sub={`${nf(t.generated)} / ${nf(t.target_total)}`} />
+      </section>
+
+      <div className="rounded-lg border border-border bg-card p-4 text-xs space-y-1.5">
+        <div className="font-semibold text-sm flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /> Définitions officielles</div>
+        <p><strong>Combinaisons pertinentes ({nf(t.target_total)})</strong> — combinaisons ville × matériau × service validées par la logique actuelle du Générateur : municipalité active du registre, matériau réellement demandé dans les soumissions du territoire, service actif du territoire, plus la page ville (hub).</p>
+        <p><strong>Combinaisons créées ({nf(t.generated)})</strong> — combinaisons pertinentes pour lesquelles une page SEO existe réellement, brouillons inclus.</p>
+        <p><strong>Pages manquantes ({nf(t.remaining)})</strong> — pertinentes moins créées.</p>
+        <p><strong>Pages du périmètre pertinent</strong> — {nf(t.published)} publiées, {nf(t.drafts)} en brouillon, {nf(t.errors)} en erreur.</p>
+        <p><strong>Territoires</strong> — {nf(cities.length)} municipalités analysées : {nf(withPublished)} avec au moins une page publiée, {nf(draftOnly)} avec uniquement des brouillons, {nf(withoutPage)} sans aucune page.</p>
+        {stats && (
+          <p className="text-muted-foreground">
+            À titre indicatif seulement : la base contient {nf(stats.pages_total)} pages au total, dont {nf(stats.pages_total - t.generated)} rattachées à des villes hors registre municipal actuel (pages historiques). Les combinaisons théoriques ({nf(stats.combinations_possible)}) ne sont jamais une file de production.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 

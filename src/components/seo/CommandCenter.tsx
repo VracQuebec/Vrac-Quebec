@@ -245,7 +245,7 @@ export default function CommandCenter() {
             <Stat label="Slugs ville avec page publiée" value={`${stats.cities_covered}/${stats.cities_total} (${stats.coverage_cities_pct}%)`} />
             <Stat label="Matériaux couverts" value={`${stats.materials_covered}/${stats.materials_total} (${stats.coverage_materials_pct}%)`} />
             <Stat label="Services couverts" value={`${stats.services_covered}/${stats.services_total} (${stats.coverage_services_pct}%)`} />
-            <Stat label="Combinaisons" value={`${stats.combinations_created}/${stats.combinations_possible} (${stats.coverage_combinations_pct}%)`} />
+            <Stat label="Pages / combinaisons théoriques (indicatif)" value={`${stats.combinations_created}/${stats.combinations_possible} (${stats.coverage_combinations_pct}%)`} />
             <Stat label="Score SEO moyen" value={stats.seo_avg ? `${stats.seo_avg}/100` : "—"} />
             <Stat label="Score QA moyen" value={stats.qa_avg ? `${stats.qa_avg}/100` : "—"} />
             <Stat label="Impressions GSC" value={stats.gsc_impressions.toLocaleString("fr-CA")} />
