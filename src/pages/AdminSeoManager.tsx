@@ -30,6 +30,10 @@ import GoalCard, { type Goal } from "@/components/seo/GoalCard";
 import QaReportBadge from "@/components/seo/QaReportBadge";
 import TabBoundary from "@/components/seo/TabBoundary";
 import CityGenerator from "@/components/seo/CityGenerator";
+import {
+  productionRunner, selectMissingTargets, remainingTargets, runProgress,
+  type RunState, type RunTarget,
+} from "@/lib/seo/productionRunner";
 
 type Tab = "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "publication" | "intelligence" | "coverage" | "territory" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "gbp" | "blog";
 
