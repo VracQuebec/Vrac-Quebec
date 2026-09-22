@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, ClipboardList, Loader2, MapPin, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LinkedTransportCard from "@/components/parcours/LinkedTransportCard";
+import DompesDemandeList from "@/components/entrepreneur/DompesDemandeList";
 import { loadMySubmissions, type MySubmission, type MySubmissionsResult } from "@/lib/parcours/mes-demandes";
 import { statusMeta } from "@/lib/access-requests/status";
 
@@ -57,18 +58,11 @@ export const SubmissionCard = ({ s }: { s: MySubmission }) => {
           label="Site sélectionné"
           value={s.selectedSiteLabel || "Aucun site sélectionné pour l'instant"}
         />
-        {s.selectedSiteId && (
-          <Line
-            icon={<MapPin className="h-3.5 w-3.5" />}
-            label="Adresse du site"
-            value={
-              s.siteValidatedAt && s.selectedSiteAddress
-                ? s.selectedSiteAddress
-                : "Communiquée après approbation de votre demande"
-            }
-          />
-        )}
       </div>
+
+      {/* Approbation dompe par dompe : l'adresse réelle n'est transmise par le
+          serveur que pour une dompe approuvée dans CETTE demande. */}
+      <DompesDemandeList submissionId={s.id} />
 
       {/* Rattachement existant réutilisé : chaque demande affiche uniquement SA demande de transport. */}
       <LinkedTransportCard submissionId={s.id} />
