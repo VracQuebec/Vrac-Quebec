@@ -15,7 +15,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { type Unit } from '../_shared/vqos/index.ts';
 import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
-import { clientIp, GuardError, guardPublicRequest, rememberResult } from '../_shared/public-guard.ts';
+import { clientIp, enforceIpQuota, GuardError, guardPublicRequest, rememberResult } from '../_shared/public-guard.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
 const EXCLUDED = /remblai/i; // Le module Remblai reste totalement indépendant.
