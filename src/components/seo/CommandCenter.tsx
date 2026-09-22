@@ -31,9 +31,17 @@ type EventRow = { page_slug: string; event_type: string };
 
 type Health = "green" | "yellow" | "red";
 
+function fmtDateTime(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return `${d.toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })} à ${d.toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
 export default function CommandCenter() {
   const [loading, setLoading] = useState(true);
-  const { stats, error: statsError, reload: reloadStats } = useSeoStats();
+  const [refreshedAt, setRefreshedAt] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const { stats, error: statsError, errorSource: statsErrorSource, reload: reloadStats } = useSeoStats();
   const [optimizing, setOptimizing] = useState(false);
   const { counters, loading: countersLoading, error: countersError, reload: reloadCounters } = useStrategicCounters();
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -47,11 +55,24 @@ export default function CommandCenter() {
   const [blogPosts, setBlogPosts] = useState<{ id: string; title: string; slug: string; status: string; published_at: string | null; updated_at: string }[]>([]);
   const [brokenLinks, setBrokenLinks] = useState(0);
 
+  /** Lecture paginée complète des pages : jamais de troncature silencieuse à 1 000 lignes. */
+  async function fetchAllPages(): Promise<PageRow[]> {
+    const cols = "id,slug,title,status,seo_score,qa_last_score,google_index_status,needs_refresh,last_generated_at,created_at,view_count,internal_link_count,word_count,meta_title,meta_description,city_slug,material_slug,service_slug";
+    const rows: PageRow[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await supabase.from("seo_pages").select(cols).range(from, from + 999);
+      if (error) break;
+      rows.push(...((data ?? []) as unknown as PageRow[]));
+      if (!data || data.length < 1000) break;
+    }
+    return rows;
+  }
+
   async function loadAll() {
     setLoading(true);
     const since30 = new Date(Date.now() - 30 * 86400 * 1000).toISOString();
-    const [pagesRes, gscRes, eventsRes, trRes, citiesRes, matsRes, svcRes, blogRes, brokenRes] = await Promise.all([
-      supabase.from("seo_pages").select("id,slug,title,status,seo_score,qa_last_score,google_index_status,needs_refresh,last_generated_at,created_at,view_count,internal_link_count,word_count,meta_title,meta_description,city_slug,material_slug,service_slug").limit(5000),
+    const [pagesRows, gscRes, eventsRes, trRes, citiesRes, matsRes, svcRes, blogRes, brokenRes] = await Promise.all([
+      fetchAllPages(),
       supabase.from("seo_gsc_metrics").select("page_id,impressions,clicks,ctr,position").eq("period", "28d"),
       supabase.from("seo_page_events").select("page_slug,event_type").gte("occurred_at", since30).limit(50000),
       supabase.from("transport_requests").select("id", { count: "exact", head: true }).gte("created_at", since30),
@@ -61,7 +82,7 @@ export default function CommandCenter() {
       supabase.from("blog_posts").select("id,title,slug,status,published_at,updated_at").order("updated_at", { ascending: false }).limit(20),
       supabase.from("seo_broken_links").select("id", { count: "exact", head: true }),
     ]);
-    setPages((pagesRes.data ?? []) as PageRow[]);
+    setPages(pagesRows);
     const gMap = new Map<string, GscRow>();
     for (const g of (gscRes.data ?? []) as GscRow[]) gMap.set(g.page_id, g);
     setGsc(gMap);
@@ -82,7 +103,18 @@ export default function CommandCenter() {
     setServices((svcRes.data ?? []) as { slug: string; name: string }[]);
     setBlogPosts((blogRes.data ?? []) as typeof blogPosts);
     setBrokenLinks(brokenRes.count ?? 0);
+    setRefreshedAt(new Date().toISOString());
     setLoading(false);
+  }
+
+  /** « Actualiser les données » : relecture seule (pages, statistiques, compteurs). */
+  async function refreshData() {
+    setRefreshing(true);
+    try {
+      await Promise.all([loadAll(), reloadStats(), reloadCounters()]);
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   async function optimizeAll() {
@@ -214,6 +246,13 @@ export default function CommandCenter() {
         <div>
           <h1 className="text-2xl font-display font-extrabold text-foreground">Centre de pilotage SEO</h1>
           <p className="text-sm text-muted-foreground font-body mt-1">Vue stratégique en temps réel — où nous en sommes, ce qui fonctionne, ce qui doit être amélioré.</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {refreshing
+              ? "Actualisation des données…"
+              : refreshedAt
+                ? `Données actualisées — dernière actualisation : ${fmtDateTime(refreshedAt)}`
+                : "Chargement initial des données…"}
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
@@ -224,8 +263,10 @@ export default function CommandCenter() {
             {optimizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
             Optimiser tout le site
           </button>
-          <button onClick={loadAll} className="inline-flex items-center gap-2 text-xs font-display font-semibold px-3 py-1.5 rounded-md border border-border hover:border-primary hover:text-primary">
-            <RefreshCw className="w-3.5 h-3.5" /> Actualiser
+          <button onClick={() => void refreshData()} disabled={refreshing}
+            className="inline-flex items-center gap-2 text-xs font-display font-semibold px-3 py-1.5 rounded-md border border-border hover:border-primary hover:text-primary disabled:opacity-50">
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Actualisation des données…" : "Actualiser les données"}
           </button>
         </div>
       </header>
@@ -265,6 +306,17 @@ export default function CommandCenter() {
       })()}
 
 
+      {/* Résumé d'état — lecture seule, entièrement recalculé depuis la base. */}
+      <section>
+        <SectionTitle>État du Centre</SectionTitle>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="Pages analysées" value={(counters?.pagesTotal ?? pages.length).toLocaleString("fr-CA")} />
+          <Stat label="Pages publiées" value={(counters?.published ?? overview.published).toLocaleString("fr-CA")} tone="good" />
+          <Stat label="Brouillons" value={(stats?.pages_draft ?? overview.drafts).toLocaleString("fr-CA")} />
+          <Stat label="Articles à publier" value={(counters?.blogToPublish ?? 0).toLocaleString("fr-CA")} />
+        </div>
+      </section>
+
       <StrategicReport
         counters={counters}
         countersLoading={countersLoading}
@@ -301,9 +353,17 @@ export default function CommandCenter() {
           </div>
         </section>
       )}
-      {statsError && (
+      {/* Message affiché uniquement s'il n'y a réellement aucune statistique disponible :
+          on nomme la source concernée au lieu d'une erreur générique persistante. */}
+      {statsError && !stats && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-          Statistiques indisponibles — {statsError}
+          Statistiques indisponibles — source : {statsErrorSource ?? "statistiques SEO"} — cause : {statsError}
+          <button onClick={() => void reloadStats()} className="ml-2 underline">Réessayer</button>
+        </div>
+      )}
+      {statsError && stats && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          Dernière lecture des statistiques interrompue ({statsError}) — les chiffres affichés proviennent de la lecture précédente.
           <button onClick={() => void reloadStats()} className="ml-2 underline">Réessayer</button>
         </div>
       )}
