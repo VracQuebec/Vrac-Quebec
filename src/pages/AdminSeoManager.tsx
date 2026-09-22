@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRole";
@@ -2396,6 +2396,10 @@ type QueueItem = {
 function ProductionTab() {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const loadingRef = useRef(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
+  const [baseStats, setBaseStats] = useState<{ pages: number; published: number; drafts: number } | null>(null);
   const [filterP, setFilterP] = useState<0 | 1 | 2 | 3 | 4>(0);
   const [waveSize, setWaveSize] = useState<10 | 25 | 50>(25);
   const [runState, setRunState] = useState<RunState>(() => productionRunner.getState());
@@ -2439,14 +2443,23 @@ function ProductionTab() {
   }
 
   async function load() {
+    // Une seule lecture partagée à la fois : jamais deux recalculs lourds en parallèle.
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
-    const [{ data: mats }, { data: svcs }, catalog, pgs] = await Promise.all([
-      supabase.from("seo_materials").select("slug, name, short_name, description, sort_order").eq("active", true).order("sort_order"),
-      supabase.from("seo_services").select("slug, name, description, sort_order").eq("active", true).order("sort_order"),
-      supabase.rpc("seo_generator_catalog" as never),
-      fetchAllSeoPages(),
-    ]);
-    const cts = ((catalog.data as unknown as { cities?: GeneratorCity[] })?.cities ?? []).sort((a, b) => (b.request_count - a.request_count) || a.name.localeCompare(b.name));
+    try {
+      const [matsRes, svcsRes, catalog, pgs] = await Promise.all([
+        supabase.from("seo_materials").select("slug, name, short_name, description, sort_order").eq("active", true).order("sort_order"),
+        supabase.from("seo_services").select("slug, name, description, sort_order").eq("active", true).order("sort_order"),
+        supabase.rpc("seo_generator_catalog" as never),
+        fetchAllSeoPages(),
+      ]);
+      if (matsRes.error) throw new Error(`Matériaux : ${matsRes.error.message}`);
+      if (svcsRes.error) throw new Error(`Services : ${svcsRes.error.message}`);
+      if (catalog.error) throw new Error(`Catalogue territorial : ${catalog.error.message}`);
+      const mats = matsRes.data;
+      const svcs = svcsRes.data;
+      const cts = ((catalog.data as unknown as { cities?: GeneratorCity[] })?.cities ?? []).sort((a, b) => (b.request_count - a.request_count) || a.name.localeCompare(b.name));
     const pageIndex = new Map<string, QueueItem["existing"]>();
     for (const p of pgs ?? []) {
       const k = [p.service_slug ?? "", p.material_slug ?? "", p.city_slug ?? ""].join("|");
@@ -2515,8 +2528,23 @@ function ProductionTab() {
         });
       }
     }
-    setItems(queue);
-    setLoading(false);
+      setItems(queue);
+      setBaseStats({
+        pages: (pgs ?? []).length,
+        published: (pgs ?? []).filter((p) => p.status === "published").length,
+        drafts: (pgs ?? []).filter((p) => p.status === "draft").length,
+      });
+      setLoadError(null);
+      setLastRefreshAt(new Date());
+    } catch (e) {
+      // Jamais de compteurs à 0 silencieux : on vide la file et on affiche la cause.
+      setItems([]);
+      setBaseStats(null);
+      setLoadError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+      loadingRef.current = false;
+    }
   }
   useEffect(() => { load(); }, []);
   useEffect(() => {
@@ -2666,15 +2694,56 @@ function ProductionTab() {
     return c;
   }, [items]);
 
-  if (loading) return <div className="text-sm text-muted-foreground p-6"><Spinner /> Chargement de la file…</div>;
+  if (loading && items.length === 0 && !loadError) return <div className="text-sm text-muted-foreground p-6"><Spinner /> Chargement de la file…</div>;
+
+  const eligible = counts.p1 + counts.p2 + counts.p3 + counts.p4;
+  const covered = eligible - counts.missing;
+
+  if (loadError) {
+    return (
+      <div className="space-y-4">
+        <section>
+          <h2 className="text-xl font-display font-bold text-foreground">File de production</h2>
+        </section>
+        <section className="border border-destructive/40 bg-destructive/5 rounded-lg p-4 space-y-2">
+          <h3 className="text-sm font-display font-bold text-destructive">Statistiques indisponibles</h3>
+          <p className="text-xs text-muted-foreground">Cause : {loadError}</p>
+          <p className="text-xs text-muted-foreground">Aucun compteur n'est affiché tant que la lecture complète de la base n'a pas abouti.</p>
+          <button onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 rounded-md border border-destructive px-3 py-1.5 text-xs font-semibold text-destructive disabled:opacity-50">
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Réessayer
+          </button>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <section>
-        <h2 className="text-xl font-display font-bold text-foreground">File de production</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Génération progressive avec contrôle qualité automatique (unicité, structure, maillage, Schema.org, FAQ, CTA). Les pages qui n'atteignent pas le seuil restent en brouillon.
-        </p>
+      <section className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-display font-bold text-foreground">File de production</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Génération progressive avec contrôle qualité automatique (unicité, structure, maillage, Schema.org, FAQ, CTA). Les pages qui n'atteignent pas le seuil restent en brouillon.
+          </p>
+        </div>
+        <button onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-semibold disabled:opacity-50">
+          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Actualiser les données
+        </button>
+      </section>
+
+      <section className="rounded-lg border border-border bg-secondary/40 p-3 text-xs text-muted-foreground space-y-1">
+        <div>
+          Dernière actualisation :{" "}
+          <strong className="text-foreground">{lastRefreshAt ? lastRefreshAt.toLocaleString("fr-CA") : "—"}</strong>
+          {baseStats && <> · Base lue intégralement : <strong className="text-foreground">{baseStats.pages}</strong> pages ({baseStats.published} publiées, {baseStats.drafts} brouillons)</>}
+        </div>
+        <div>
+          Combinaisons admissibles : <strong className="text-foreground">{eligible}</strong> ·
+          Déjà existantes : <strong className="text-foreground">{covered}</strong> ·
+          Réellement manquantes : <strong className="text-foreground">{counts.missing}</strong> ·
+          À produire : <strong className="text-foreground">{counts.missing}</strong> ·
+          Erreur : <strong className="text-foreground">aucune</strong>
+        </div>
       </section>
 
       <section className="grid grid-cols-2 md:grid-cols-6 gap-3">
@@ -2713,10 +2782,12 @@ function ProductionTab() {
           <div className="ml-auto flex flex-wrap gap-2">
             <button
               onClick={() => void startProduction(false)}
-              disabled={runState.status === "running" || running || counts.missing === 0}
+              disabled={runState.status === "running" || running || loading || counts.missing === 0}
+              title={counts.missing === 0 ? "Toutes les combinaisons admissibles existent déjà en base." : undefined}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-display font-bold text-primary-foreground disabled:opacity-50"
             >
-              <Play className="w-4 h-4" /> Produire les pages manquantes ({counts.missing})
+              <Play className="w-4 h-4" />
+              {counts.missing === 0 ? "Aucune page manquante" : `Produire les pages manquantes (${counts.missing})`}
             </button>
             {runState.status === "paused" && (
               <button onClick={() => void startProduction(true)} className="inline-flex items-center gap-1 rounded-md border border-primary px-3 py-2 text-sm font-semibold text-primary">
