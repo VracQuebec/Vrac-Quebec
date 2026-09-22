@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Loader2, Sparkles, TrendingUp, FileText, RefreshCw, Link2, ShieldCheck, PenSquare } from "lucide-react";
+import { Loader2, Sparkles, TrendingUp, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
+import StrategicCounters from "@/components/seo/StrategicCounters";
+import type { StrategicCounters as Counters } from "@/lib/seo/strategicCounters";
 
 type Report = {
   id: string;
@@ -41,7 +43,14 @@ type Report = {
   };
 };
 
-export default function StrategicReport() {
+export default function StrategicReport({
+  counters, countersLoading, countersError, onReloadCounters,
+}: {
+  counters: Counters | null;
+  countersLoading: boolean;
+  countersError: string | null;
+  onReloadCounters: () => void;
+}) {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [report, setReport] = useState<Report | null>(null);
