@@ -108,6 +108,6 @@ describe("decideSubmissionSite", () => {
       client(null, { message: "not_authorized" }),
     );
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.message).toContain("administration");
+    if (res.ok !== true) expect(res.message).toContain("administration");
   });
 });
