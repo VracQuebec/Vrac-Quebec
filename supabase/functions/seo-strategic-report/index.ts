@@ -105,8 +105,13 @@ Deno.serve(async (req) => {
       p.status === "published" && p.last_generated_at && new Date(p.last_generated_at).getTime() < staleThreshold
     );
     const qaToFix = pages.filter((p) => (p.qa_last_score ?? 100) < 80 && p.status === "published");
-    const linksToAdd = pages.filter((p) => p.status === "published" && (p.internal_link_count ?? 0) < 5)
-      .reduce((sum, p) => sum + Math.max(0, 5 - (p.internal_link_count ?? 0)), 0);
+    // Erreur réelle : moins de 2 liens internes. Optimisation : 2 à 4 liens. Objectif : 5+.
+    const linkErrors = pages.filter((p) => p.status === "published" && (p.internal_link_count ?? 0) < 2).length;
+    const linksOptPages = pages.filter((p) => {
+      const n = p.internal_link_count ?? 0;
+      return p.status === "published" && n >= 2 && n < 5;
+    });
+    const linksToAdd = linksOptPages.reduce((sum, p) => sum + (5 - (p.internal_link_count ?? 0)), 0);
     const pagesToCreate = recos.filter((r) => r.reco_type === "missing_city_page" || r.reco_type === "missing_service_content").length;
     const staleBlog = blogs.filter((b) => new Date(b.updated_at).getTime() < staleThreshold).length;
 
