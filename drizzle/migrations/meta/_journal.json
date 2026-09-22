@@ -232,6 +232,13 @@
       "when": 1790112515274,
       "tag": "0032_public_point_prefer_address_and_backup",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790112790040,
+      "tag": "0033_progressive_site_address_disclosure",
+      "breakpoints": true
     }
   ]
 }

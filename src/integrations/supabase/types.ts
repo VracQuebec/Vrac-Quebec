@@ -19491,6 +19491,10 @@ export type Database = {
           read_ct: number
         }[]
       }
+      revoke_selected_site_validation: {
+        Args: { p_submission_id: string }
+        Returns: Json
+      }
       save_comparateur_selection: {
         Args: {
           p_access_details?: Json
