@@ -2439,14 +2439,23 @@ function ProductionTab() {
   }
 
   async function load() {
+    // Une seule lecture partagée à la fois : jamais deux recalculs lourds en parallèle.
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
-    const [{ data: mats }, { data: svcs }, catalog, pgs] = await Promise.all([
-      supabase.from("seo_materials").select("slug, name, short_name, description, sort_order").eq("active", true).order("sort_order"),
-      supabase.from("seo_services").select("slug, name, description, sort_order").eq("active", true).order("sort_order"),
-      supabase.rpc("seo_generator_catalog" as never),
-      fetchAllSeoPages(),
-    ]);
-    const cts = ((catalog.data as unknown as { cities?: GeneratorCity[] })?.cities ?? []).sort((a, b) => (b.request_count - a.request_count) || a.name.localeCompare(b.name));
+    try {
+      const [matsRes, svcsRes, catalog, pgs] = await Promise.all([
+        supabase.from("seo_materials").select("slug, name, short_name, description, sort_order").eq("active", true).order("sort_order"),
+        supabase.from("seo_services").select("slug, name, description, sort_order").eq("active", true).order("sort_order"),
+        supabase.rpc("seo_generator_catalog" as never),
+        fetchAllSeoPages(),
+      ]);
+      if (matsRes.error) throw new Error(`Matériaux : ${matsRes.error.message}`);
+      if (svcsRes.error) throw new Error(`Services : ${svcsRes.error.message}`);
+      if (catalog.error) throw new Error(`Catalogue territorial : ${catalog.error.message}`);
+      const mats = matsRes.data;
+      const svcs = svcsRes.data;
+      const cts = ((catalog.data as unknown as { cities?: GeneratorCity[] })?.cities ?? []).sort((a, b) => (b.request_count - a.request_count) || a.name.localeCompare(b.name));
     const pageIndex = new Map<string, QueueItem["existing"]>();
     for (const p of pgs ?? []) {
       const k = [p.service_slug ?? "", p.material_slug ?? "", p.city_slug ?? ""].join("|");
@@ -2515,8 +2524,23 @@ function ProductionTab() {
         });
       }
     }
-    setItems(queue);
-    setLoading(false);
+      setItems(queue);
+      setBaseStats({
+        pages: (pgs ?? []).length,
+        published: (pgs ?? []).filter((p) => p.status === "published").length,
+        drafts: (pgs ?? []).filter((p) => p.status === "draft").length,
+      });
+      setLoadError(null);
+      setLastRefreshAt(new Date());
+    } catch (e) {
+      // Jamais de compteurs à 0 silencieux : on vide la file et on affiche la cause.
+      setItems([]);
+      setBaseStats(null);
+      setLoadError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+      loadingRef.current = false;
+    }
   }
   useEffect(() => { load(); }, []);
   useEffect(() => {
