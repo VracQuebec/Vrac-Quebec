@@ -186,9 +186,9 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
             {[
               { label: "Pages contrôlées", value: summary.checked },
-              { label: "Pages conformes", value: summary.ready },
-              { label: "Pages à corriger", value: summary.fix },
-              { label: "Erreurs bloquantes", value: summary.blocked },
+              { label: "Pages conformes", value: errorBreakdown.compliant },
+              { label: "Pages à corriger (erreurs réelles)", value: errorBreakdown.toFix },
+              { label: "Améliorations facultatives", value: errorBreakdown.optional },
               { label: "Restantes à contrôler", value: summary.remaining },
             ].map((k) => (
               <div key={k.label} className="rounded-lg border border-border bg-background/60 p-2">
