@@ -566,15 +566,10 @@ const TransportRequest = () => {
     if (!coords || !material) return;
     setLoadingResults(true);
     try {
-      // Fetch all available dumps from public RPC (entrepreneur view is auth-gated).
-      // Instead: query submissions directly for public wizard? public users can't SELECT submissions.
-      // Use the RPC only when authenticated. For public, use a new lightweight fetch through an edge later.
-      // For Phase 2 we require authenticated OR fall back to a public list function.
-      // Simpler: call the RPC if user; otherwise use public materialized fallback via .rpc('get_entrepreneur_leads') — no.
-      // We create a public read using existing available data by calling a small function.
-      const { data, error } = await supabase.rpc("get_public_dumps");
-      if (error) throw error;
-      const all = (data as any[]) || [];
+      // Source unique du bassin entrepreneur (temps réel, positions publiques anonymisées).
+      const { sites, error } = await getEligibleEntrepreneurDumpSites();
+      if (error) throw new Error(error);
+      const all = sites as any[];
       // Filter by material
       const filtered = all.filter((d) =>
         matchesMaterial(d.materials || [], material)
