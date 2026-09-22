@@ -2530,6 +2530,34 @@ function ProductionTab() {
     return { ok: true, score: qa.data?.score, blockers: qa.data?.blockers, warnings: qa.data?.warnings, slug: gen.data.page.slug };
   }
 
+  // Vérification en base, juste avant génération : protection absolue de l'existant.
+  async function combinationExists(t: RunTarget): Promise<boolean> {
+    let q = supabase.from("seo_pages").select("id").limit(1);
+    q = t.city?.slug ? q.eq("city_slug", t.city.slug) : q.is("city_slug", null);
+    q = t.material?.slug ? q.eq("material_slug", t.material.slug) : q.is("material_slug", null);
+    q = t.service?.slug ? q.eq("service_slug", t.service.slug) : q.is("service_slug", null);
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    return (data ?? []).length > 0;
+  }
+
+  async function startProduction(resume: boolean) {
+    if (productionRunner.isActive()) return;
+    const missing = selectMissingTargets(items, filterP);
+    const pending = resume ? remainingTargets(missing, runState.processedKeys) : missing;
+    if (pending.length === 0) { toast.info("Aucune page admissible manquante."); return; }
+    if (!window.confirm(`${resume ? "Reprendre" : "Produire"} ${pending.length} page(s) manquante(s) en brouillon non indexable, par lots de ${waveSize}? Aucune page existante ne sera modifiée.`)) return;
+    setLog([]);
+    await productionRunner.start(missing, { batchSize: waveSize, threshold, resume }, {
+      exists: combinationExists,
+      generate: (t, thr) => generateOne(t as unknown as QueueItem, thr),
+      log: pushLog,
+      onBatchEnd: () => { void load(); },
+    });
+    await load();
+    toast.success("Production terminée.");
+  }
+
   async function runWave(source: "filtered" | "missing", size: number, thr: number) {
     if (running) return;
     const sourcePool = source === "missing" ? filtered.filter((i) => !i.existing) : filtered;
