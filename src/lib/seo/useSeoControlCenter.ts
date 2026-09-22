@@ -82,6 +82,7 @@ export function useSeoControlCenter() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const debounce = useRef<number | null>(null);
+  const hasData = useRef(false);
 
   const load = useCallback(async () => {
     // Nouvelles tentatives : sous forte charge (lecture complète des 2 077 pages
@@ -91,6 +92,7 @@ export function useSeoControlCenter() {
       const { data, error } = await supabase.rpc("seo_control_center" as never);
       if (!error) {
         setState(data as unknown as ControlCenterState);
+        hasData.current = true;
         setError(null);
         setLoading(false);
         return;
@@ -98,7 +100,11 @@ export function useSeoControlCenter() {
       lastError = error;
       await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
     }
-    setError(lastError instanceof Error ? lastError.message : "Erreur de chargement");
+    // Un rafraîchissement périodique en échec ne doit pas effacer ni contredire
+    // des chiffres déjà lus correctement : on garde l'état affiché.
+    if (!hasData.current) {
+      setError(lastError instanceof Error ? lastError.message : "Erreur de chargement");
+    }
     setLoading(false);
   }, []);
 
