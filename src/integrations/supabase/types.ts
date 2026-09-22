@@ -15775,6 +15775,77 @@ export type Database = {
           },
         ]
       }
+      submission_site_decisions: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          id: string
+          site_id: string
+          site_label: string | null
+          source: string
+          status: string
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          site_id: string
+          site_label?: string | null
+          source?: string
+          status?: string
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          site_id?: string
+          site_label?: string | null
+          source?: string
+          status?: string
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_site_decisions_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_site_decisions_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_site_decisions_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "submission_site_decisions_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submissions: {
         Row: {
           access_criteria: string[] | null
@@ -18450,6 +18521,10 @@ export type Database = {
         Returns: number
       }
       access_requests_stats: { Args: never; Returns: Json }
+      add_submission_site: {
+        Args: { p_site_id: string; p_submission_id: string }
+        Returns: Json
+      }
       ai_cache_hit: {
         Args: { _credits: number; _key: string }
         Returns: undefined
@@ -18525,6 +18600,15 @@ export type Database = {
         Returns: number
       }
       current_user_email: { Args: never; Returns: string }
+      decide_submission_site: {
+        Args: {
+          p_decision: string
+          p_note?: string
+          p_site_id: string
+          p_submission_id: string
+        }
+        Returns: Json
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -18741,6 +18825,25 @@ export type Database = {
           remaining_capacity: string
           submission_number: number
           truck_types_allowed: string[]
+        }[]
+      }
+      get_submission_sites: {
+        Args: { p_submission_id: string }
+        Returns: {
+          created_at: string
+          decided_at: string
+          decision_note: string
+          public_latitude: number
+          public_longitude: number
+          site_address: string
+          site_id: string
+          site_label: string
+          site_latitude: number
+          site_longitude: number
+          site_material: string
+          site_status: string
+          status: string
+          submission_id: string
         }[]
       }
       get_submission_transport_request: {
@@ -19491,6 +19594,10 @@ export type Database = {
           read_ct: number
         }[]
       }
+      remove_submission_site: {
+        Args: { p_site_id: string; p_submission_id: string }
+        Returns: Json
+      }
       revoke_selected_site_validation: {
         Args: { p_submission_id: string }
         Returns: Json
@@ -19936,6 +20043,10 @@ export type Database = {
       }
       set_my_network_visibility: {
         Args: { _visible: boolean }
+        Returns: boolean
+      }
+      submission_belongs_to_current_user: {
+        Args: { p_submission_id: string }
         Returns: boolean
       }
       trip_advance_status: {
