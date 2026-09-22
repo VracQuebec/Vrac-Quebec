@@ -41,7 +41,7 @@ const TONE: Record<QaVerdict, string> = {
 const FILTERS: Array<{ key: QaVerdict | "all"; label: string }> = [
   { key: "all", label: "Toutes" },
   { key: "ready", label: "Conformes" },
-  { key: "fix", label: "À corriger" },
+  { key: "fix", label: "Améliorations facultatives" },
   { key: "blocked", label: "Erreurs bloquantes" },
 ];
 
