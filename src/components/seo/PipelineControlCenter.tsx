@@ -16,6 +16,7 @@ import { repairSeoPages } from "@/lib/seo/useSeoCityMatrix";
 import CityCombinationAudit from "@/components/seo/CityCombinationAudit";
 import DraftAudit from "@/components/seo/DraftAudit";
 import QaControlPanel from "@/components/seo/QaControlPanel";
+import PublishReadyPanel from "@/components/seo/PublishReadyPanel";
 import { useGlobalGeneration } from "@/lib/seo/useGlobalGeneration";
 import { summarize } from "@/lib/seo/cityAudit";
 import { collectFixes, type QualityFix } from "@/lib/seo/coverageDisplay";
@@ -505,6 +506,9 @@ export default function PipelineControlCenter() {
 
       {/* ── Audit lecture seule des brouillons ──────────────────── */}
       <DraftAudit cities={state?.cities ?? []} />
+
+      {/* ── Publication par lots des pages prêtes ───────────────── */}
+      <PublishReadyPanel cities={state?.cities ?? []} />
 
       {/* ── Dialogs ─────────────────────────────────────────────── */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>

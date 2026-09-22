@@ -14672,6 +14672,54 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_publish_log: {
+        Row: {
+          batch_index: number | null
+          city_slug: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          outcome: string
+          page_id: string
+          run_id: string | null
+          slug: string
+          status_after: string | null
+          status_before: string | null
+          success: boolean
+          topic: string | null
+        }
+        Insert: {
+          batch_index?: number | null
+          city_slug?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          outcome?: string
+          page_id: string
+          run_id?: string | null
+          slug: string
+          status_after?: string | null
+          status_before?: string | null
+          success?: boolean
+          topic?: string | null
+        }
+        Update: {
+          batch_index?: number | null
+          city_slug?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          outcome?: string
+          page_id?: string
+          run_id?: string | null
+          slug?: string
+          status_after?: string | null
+          status_before?: string | null
+          success?: boolean
+          topic?: string | null
+        }
+        Relationships: []
+      }
       seo_qa_reports: {
         Row: {
           auto_published: boolean
