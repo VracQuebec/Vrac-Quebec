@@ -15,6 +15,7 @@ import { useCityGeneration } from "@/lib/seo/useCityGeneration";
 import { repairSeoPages } from "@/lib/seo/useSeoCityMatrix";
 import CityCombinationAudit from "@/components/seo/CityCombinationAudit";
 import DraftAudit from "@/components/seo/DraftAudit";
+import QaControlPanel from "@/components/seo/QaControlPanel";
 import { useGlobalGeneration } from "@/lib/seo/useGlobalGeneration";
 import { summarize } from "@/lib/seo/cityAudit";
 import { collectFixes, type QualityFix } from "@/lib/seo/coverageDisplay";
@@ -498,6 +499,9 @@ export default function PipelineControlCenter() {
 
       {/* ── Audit lecture seule des combinaisons par ville ───────── */}
       <CityCombinationAudit />
+
+      {/* ── Contrôle qualité lecture seule des pages à vérifier ─── */}
+      <QaControlPanel cities={state?.cities ?? []} />
 
       {/* ── Audit lecture seule des brouillons ──────────────────── */}
       <DraftAudit cities={state?.cities ?? []} />
