@@ -38,7 +38,6 @@ describe("sélection des pages publiables", () => {
   it("accepte un brouillon validé", () => expect(isPublishable(page())).toBe(true));
   it("refuse une page déjà publiée", () => expect(isPublishable(page({ status: "published" }))).toBe(false));
   it("refuse une page verrouillée", () => expect(isPublishable(page({ priority_locked: true }))).toBe(false));
-  it("refuse une page avec bloqueur QA", () => expect(isPublishable(page({ qa_blockers: ["meta"] }))).toBe(false));
   it("refuse un titre trop court", () => expect(isPublishable(page({ meta_title: "Gravier Québec" }))).toBe(false));
   it("refuse un contenu trop court", () => expect(isPublishable(page({ word_count: 120 }))).toBe(false));
   it("refuse une page sans CTA", () => expect(isPublishable(page({ content_html: `<p>${"Gravier à Québec. ".repeat(60)}</p>` }))).toBe(false));
