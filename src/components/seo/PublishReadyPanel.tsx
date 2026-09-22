@@ -119,7 +119,9 @@ export default function PublishReadyPanel({ cities }: { cities: ControlCityRow[]
 
     const { data: updated, error } = await supabase
       .from("seo_pages")
-      .update({ status: "published", published_at: new Date().toISOString() })
+      // Le noindex hérité du brouillon est retiré au moment de la publication.
+      // Une page volontairement exclue reste exclue : elle n'est jamais publiée par ce panneau.
+      .update({ status: "published", noindex: false, published_at: new Date().toISOString() })
       .eq("id", c.id).eq("status", "draft")
       .select("id, status").maybeSingle();
 
