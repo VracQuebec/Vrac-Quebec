@@ -218,6 +218,13 @@
       "when": 1790110770504,
       "tag": "0030_restrict_comparateur_selection_owner",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1790111996231,
+      "tag": "0031_entrepreneur_dompe_status_only_visibility",
+      "breakpoints": true
     }
   ]
 }
