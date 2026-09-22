@@ -225,6 +225,13 @@
       "when": 1790111996231,
       "tag": "0031_entrepreneur_dompe_status_only_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790112515274,
+      "tag": "0032_public_point_prefer_address_and_backup",
+      "breakpoints": true
     }
   ]
 }

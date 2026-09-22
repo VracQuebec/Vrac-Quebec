@@ -1755,6 +1755,36 @@ export type Database = {
         }
         Relationships: []
       }
+      dompe_public_point_backup: {
+        Row: {
+          created_at: string
+          id: string
+          old_public_latitude: number | null
+          old_public_longitude: number | null
+          old_public_point_updated_at: string | null
+          reason: string
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          old_public_latitude?: number | null
+          old_public_longitude?: number | null
+          old_public_point_updated_at?: string | null
+          reason: string
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          old_public_latitude?: number | null
+          old_public_longitude?: number | null
+          old_public_point_updated_at?: string | null
+          reason?: string
+          submission_id?: string
+        }
+        Relationships: []
+      }
       drivers: {
         Row: {
           carrier_id: string | null
