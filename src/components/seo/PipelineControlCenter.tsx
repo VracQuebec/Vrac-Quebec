@@ -14,6 +14,7 @@ import { CityDetailDialog } from "@/components/seo/CityGenerator";
 import { useCityGeneration } from "@/lib/seo/useCityGeneration";
 import { repairSeoPages } from "@/lib/seo/useSeoCityMatrix";
 import CityCombinationAudit from "@/components/seo/CityCombinationAudit";
+import DraftAudit from "@/components/seo/DraftAudit";
 import { useGlobalGeneration } from "@/lib/seo/useGlobalGeneration";
 import { summarize } from "@/lib/seo/cityAudit";
 import { collectFixes, type QualityFix } from "@/lib/seo/coverageDisplay";
@@ -497,6 +498,9 @@ export default function PipelineControlCenter() {
 
       {/* ── Audit lecture seule des combinaisons par ville ───────── */}
       <CityCombinationAudit />
+
+      {/* ── Audit lecture seule des brouillons ──────────────────── */}
+      <DraftAudit cities={state?.cities ?? []} />
 
       {/* ── Dialogs ─────────────────────────────────────────────── */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
