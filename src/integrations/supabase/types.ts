@@ -15811,6 +15811,9 @@ export type Database = {
           priority: string
           property_type: string
           province: string | null
+          public_latitude: number | null
+          public_longitude: number | null
+          public_point_updated_at: string | null
           quantity: string
           quantity_unit: string | null
           quantity_value: number | null
@@ -15923,6 +15926,9 @@ export type Database = {
           priority?: string
           property_type: string
           province?: string | null
+          public_latitude?: number | null
+          public_longitude?: number | null
+          public_point_updated_at?: string | null
           quantity: string
           quantity_unit?: string | null
           quantity_value?: number | null
@@ -16035,6 +16041,9 @@ export type Database = {
           priority?: string
           property_type?: string
           province?: string | null
+          public_latitude?: number | null
+          public_longitude?: number | null
+          public_point_updated_at?: string | null
           quantity?: string
           quantity_unit?: string | null
           quantity_value?: number | null
@@ -18533,6 +18542,13 @@ export type Database = {
         }
         Returns: string
       }
+      dompe_public_point: {
+        Args: { _id: string; _lat: number; _lng: number }
+        Returns: {
+          lat: number
+          lng: number
+        }[]
+      }
       dompe_revalidation_days: {
         Args: { _s: Database["public"]["Tables"]["submissions"]["Row"] }
         Returns: number
@@ -18712,6 +18728,10 @@ export type Database = {
       is_approved_entrepreneur: { Args: { _uid: string }; Returns: boolean }
       is_blacklisted: {
         Args: { _entity_id: string; _entity_type: string }
+        Returns: boolean
+      }
+      is_entrepreneur_visible_dompe: {
+        Args: { _s: Database["public"]["Tables"]["submissions"]["Row"] }
         Returns: boolean
       }
       is_fill_request_type: {
@@ -19823,6 +19843,9 @@ export type Database = {
           priority: string
           property_type: string
           province: string | null
+          public_latitude: number | null
+          public_longitude: number | null
+          public_point_updated_at: string | null
           quantity: string
           quantity_unit: string | null
           quantity_value: number | null
