@@ -1,15 +1,17 @@
 // Carte « CONTRÔLE QUALITÉ » du Centre de pilotage — LECTURE SEULE.
 // Le contrôle lit les pages et calcule un verdict en mémoire : aucune page n'est
 // publiée, créée, supprimée ni modifiée, et aucune écriture n'est faite en base.
+// Périmètre : toutes les pages PERTINENTES actuelles (municipalités du registre),
+// jamais un échantillon et jamais un ancien signalement historique.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, ShieldCheck, ExternalLink } from "lucide-react";
+import { Loader2, ShieldCheck, ExternalLink, RefreshCw } from "lucide-react";
 import type { ControlCityRow } from "@/lib/seo/useSeoControlCenter";
-import { classifyDraft, type DraftPage } from "@/lib/seo/draftAudit";
+import { CONFIRMED_NOT_INDEXED } from "@/lib/seo/strategicCounters";
 import {
   runQaControl, summarizeQaControl, mergeResults, duplicateTitles,
   QA_VERDICT_LABEL, type QaControlPage, type QaControlResult, type QaVerdict,
@@ -18,9 +20,17 @@ import {
 const SELECT =
   "id, slug, city_slug, material_slug, service_slug, title, h1, status, meta_title, meta_description, " +
   "content_html, internal_link_count, internal_links, word_count, qa_last_score, qa_last_checked_at, " +
-  "qa_blockers, proc_status, proc_error, priority_locked, last_generated_at";
+  "proc_status, proc_error, noindex, google_index_status, last_generated_at";
 
-type Row = DraftPage & QaControlPage;
+type Row = QaControlPage & {
+  status: string;
+  proc_status?: string | null;
+  proc_error?: string | null;
+  noindex?: boolean | null;
+  google_index_status?: string | null;
+};
+
+const LAST_RUN_KEY = "seo-qa-control-last-run";
 
 const TONE: Record<QaVerdict, string> = {
   ready: "bg-green-500/15 text-green-700 border-green-500/30",
@@ -30,45 +40,90 @@ const TONE: Record<QaVerdict, string> = {
 
 const FILTERS: Array<{ key: QaVerdict | "all"; label: string }> = [
   { key: "all", label: "Toutes" },
-  { key: "ready", label: "Prêtes à publier" },
-  { key: "fix", label: "À corriger" },
+  { key: "ready", label: "Conformes" },
+  { key: "fix", label: "Améliorations facultatives" },
   { key: "blocked", label: "Erreurs bloquantes" },
 ];
 
 function nf(n: number) { return n.toLocaleString("fr-CA"); }
 
+function fmtDateTime(iso: string | null): string {
+  if (!iso) return "jamais";
+  const d = new Date(iso);
+  return `${d.toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })} à ${d.toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
 export default function QaControlPanel({ cities }: { cities: ControlCityRow[] }) {
   const [pages, setPages] = useState<Row[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [dups, setDups] = useState<Set<string>>(new Set());
   const [results, setResults] = useState<QaControlResult[]>([]);
   const [running, setRunning] = useState(false);
+  const [lastRun, setLastRun] = useState<string | null>(() => localStorage.getItem(LAST_RUN_KEY));
   const [filter, setFilter] = useState<QaVerdict | "all">("all");
   const [visible, setVisible] = useState(25);
 
-  useEffect(() => {
-    void (async () => {
-      const all: Row[] = [];
-      for (let from = 0; ; from += 500) {
-        const { data, error } = await supabase.from("seo_pages").select(SELECT).range(from, from + 499);
-        if (error) break;
-        all.push(...((data ?? []) as unknown as Row[]));
-        if (!data || data.length < 500) break;
-      }
-      setDups(duplicateTitles(all));
-      setPages(all.filter((p) => p.status === "draft" && classifyDraft(p) === "check"));
-    })();
-  }, []);
+  // Clé stable : le registre est rechargé périodiquement, on ne relit les pages
+  // que si la liste des municipalités change réellement.
+  const cityKey = cities.map((c) => c.slug).sort().join(",");
+  const citySlugs = useMemo(() => new Set(cityKey ? cityKey.split(",") : []), [cityKey]);
+
+  const loadPages = useCallback(async () => {
+    setPages(null);
+    setLoadError(null);
+    const all: Row[] = [];
+    // Pagination complète : jamais de troncature silencieuse à 1 000 lignes.
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await supabase.from("seo_pages").select(SELECT).range(from, from + 999);
+      if (error) { setLoadError(error.message); setPages([]); return; }
+      all.push(...((data ?? []) as unknown as Row[]));
+      if (!data || data.length < 1000) break;
+    }
+    setDups(duplicateTitles(all));
+    // Pages pertinentes : municipalités du registre actuel. Sans registre chargé,
+    // on retombe sur l'ensemble des pages publiées (jamais un échantillon).
+    setPages(citySlugs.size > 0 ? all.filter((p) => citySlugs.has(p.city_slug)) : all.filter((p) => p.status === "published"));
+  }, [citySlugs]);
+
+  useEffect(() => { void loadPages(); }, [loadPages]);
 
   const targets = pages ?? [];
   const summary = useMemo(() => summarizeQaControl(results, targets.length), [results, targets.length]);
+
+  /** Séparation stricte : erreurs réelles d'un côté, rien d'autre n'est compté comme erreur. */
+  const errorBreakdown = useMemo(() => {
+    const done = new Set(results.map((r) => r.slug));
+    const checked = targets.filter((p) => done.has(p.slug));
+    const blockedSlugs = new Set(results.filter((r) => r.verdict === "blocked").map((r) => r.slug));
+    const faulty = new Set<string>();
+    const seo: string[] = [], technical: string[] = [], links: string[] = [], indexation: string[] = [];
+    for (const p of checked) {
+      if (blockedSlugs.has(p.slug)) { seo.push(p.slug); faulty.add(p.slug); }
+      if (p.proc_status === "error" || (p.proc_error ?? "") !== "" || (p.status === "published" && p.noindex === true)) { technical.push(p.slug); faulty.add(p.slug); }
+      if ((p.internal_link_count ?? 0) < 2) { links.push(p.slug); faulty.add(p.slug); }
+      if (CONFIRMED_NOT_INDEXED.includes(p.google_index_status ?? "")) { indexation.push(p.slug); faulty.add(p.slug); }
+    }
+    return {
+      seo: seo.length,
+      technical: technical.length,
+      links: links.length,
+      indexation: indexation.length,
+      /** Pages présentant au moins une erreur réelle aujourd'hui. */
+      toFix: faulty.size,
+      /** Pages sans aucune erreur réelle (les suggestions facultatives n'en font pas des erreurs). */
+      compliant: checked.length - faulty.size,
+      /** Suggestions d'amélioration facultatives, jamais des erreurs. */
+      optional: results.filter((r) => r.verdict === "fix" && !faulty.has(r.slug)).length,
+    };
+  }, [results, targets]);
 
   const run = useCallback(async () => {
     if (!pages || running) return;
     setRunning(true);
     setResults([]);
     let acc: QaControlResult[] = [];
-    for (let i = 0; i < pages.length; i += 10) {
-      const batch = pages.slice(i, i + 10).map((p) =>
+    for (let i = 0; i < pages.length; i += 25) {
+      const batch = pages.slice(i, i + 25).map((p) =>
         runQaControl(p, { duplicateTitle: dups.has((p.meta_title ?? "").trim()) }),
       );
       acc = mergeResults(acc, batch);
@@ -76,6 +131,9 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
       // Laisse l'interface rafraîchir la progression entre les lots.
       await new Promise((r) => setTimeout(r, 0));
     }
+    const at = new Date().toISOString();
+    localStorage.setItem(LAST_RUN_KEY, at);
+    setLastRun(at);
     setRunning(false);
   }, [pages, dups, running]);
 
@@ -91,18 +149,33 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-base font-display font-bold flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-primary" /> Contrôle qualité — {nf(targets.length)} pages à vérifier
+            <ShieldCheck className="w-4 h-4 text-primary" /> Contrôle qualité — {nf(targets.length)} pages pertinentes
           </h3>
           <p className="text-xs text-muted-foreground">
-            Contrôle automatisé en lecture seule : aucune page n'est publiée, corrigée, créée ni supprimée.
-            Relançable à volonté, sans doublon.
+            Contrôle automatisé en lecture seule sur l'état actuel des pages : aucune page n'est publiée, corrigée,
+            créée ni supprimée, et aucun ancien signalement n'est réutilisé.
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Dernier contrôle qualité : {fmtDateTime(lastRun)}
           </p>
         </div>
-        <Button size="sm" onClick={() => void run()} disabled={running || pages === null}>
-          {running ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-1" />}
-          {running ? "Contrôle en cours…" : results.length ? "Relancer le contrôle" : "Lancer le contrôle"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => void loadPages()} disabled={running}>
+            <RefreshCw className="w-4 h-4 mr-1" /> Recharger les pages
+          </Button>
+          <Button size="sm" onClick={() => void run()} disabled={running || pages === null || targets.length === 0}>
+            {running ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-1" />}
+            {running ? "Contrôle en cours…" : results.length ? "Relancer le contrôle" : "Lancer le contrôle"}
+          </Button>
+        </div>
       </header>
+
+      {loadError && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+          Lecture des pages impossible (source : table des pages SEO) — {loadError}
+          <button onClick={() => void loadPages()} className="ml-2 underline">Réessayer</button>
+        </div>
+      )}
 
       {pages === null ? (
         <div className="text-sm text-muted-foreground flex items-center gap-2">
@@ -113,9 +186,9 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
             {[
               { label: "Pages contrôlées", value: summary.checked },
-              { label: "Pages prêtes", value: summary.ready },
-              { label: "Pages à corriger", value: summary.fix },
-              { label: "Erreurs bloquantes", value: summary.blocked },
+              { label: "Pages conformes", value: errorBreakdown.compliant },
+              { label: "Pages à corriger (erreurs réelles)", value: errorBreakdown.toFix },
+              { label: "Améliorations facultatives", value: errorBreakdown.optional },
               { label: "Restantes à contrôler", value: summary.remaining },
             ].map((k) => (
               <div key={k.label} className="rounded-lg border border-border bg-background/60 p-2">
@@ -124,6 +197,22 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
               </div>
             ))}
           </div>
+
+          {results.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { label: "Erreurs SEO", value: errorBreakdown.seo },
+                { label: "Erreurs techniques", value: errorBreakdown.technical },
+                { label: "Liens internes < 2", value: errorBreakdown.links },
+                { label: "Problèmes d'indexation", value: errorBreakdown.indexation },
+              ].map((k) => (
+                <div key={k.label} className={`rounded-lg border p-2 ${k.value === 0 ? "border-border bg-background/60" : "border-destructive/30 bg-destructive/10"}`}>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground leading-tight">{k.label}</div>
+                  <div className={`text-xl font-bold ${k.value === 0 ? "" : "text-destructive"}`}>{nf(k.value)}</div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="space-y-1">
             <Progress value={summary.progress} className="h-2" />
