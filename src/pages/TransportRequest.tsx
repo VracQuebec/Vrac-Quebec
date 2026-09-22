@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
+import { getEligibleEntrepreneurDumpSites } from "@/lib/entrepreneur/dompes";
 import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
@@ -565,15 +566,10 @@ const TransportRequest = () => {
     if (!coords || !material) return;
     setLoadingResults(true);
     try {
-      // Fetch all available dumps from public RPC (entrepreneur view is auth-gated).
-      // Instead: query submissions directly for public wizard? public users can't SELECT submissions.
-      // Use the RPC only when authenticated. For public, use a new lightweight fetch through an edge later.
-      // For Phase 2 we require authenticated OR fall back to a public list function.
-      // Simpler: call the RPC if user; otherwise use public materialized fallback via .rpc('get_entrepreneur_leads') — no.
-      // We create a public read using existing available data by calling a small function.
-      const { data, error } = await supabase.rpc("get_public_dumps");
-      if (error) throw error;
-      const all = (data as any[]) || [];
+      // Source unique du bassin entrepreneur (temps réel, positions publiques anonymisées).
+      const { sites, error } = await getEligibleEntrepreneurDumpSites();
+      if (error) throw new Error(error);
+      const all = sites as any[];
       // Filter by material
       const filtered = all.filter((d) =>
         matchesMaterial(d.materials || [], material)
@@ -600,10 +596,10 @@ const TransportRequest = () => {
           const distance_km = mx?.distance_km ?? haversine(coords, { lat: d.latitude, lng: d.longitude });
           const duration_minutes = mx?.duration_minutes ?? Math.round((distance_km / 60) * 60);
 
-          // Scoring: lower distance = better; boost available; penalize unavailable
+          // Classement uniquement : la disponibilité n'exclut jamais une dompe admissible.
           let score = 100 - Math.min(80, distance_km);
-          if (d.availability_status === "unavailable") score -= 200;
-          else if (d.availability_status === "limited") score -= 15;
+          if (d.availability_status === "unavailable" || d.availability_status === "owner_closed") score -= 20;
+          else if (d.availability_status === "limited") score -= 5;
           else score += 10;
           if (d.truck_types_allowed && d.truck_types_allowed.length > 0) score += 3;
           if (d.accessibility && d.accessibility.length > 0) score += 2;

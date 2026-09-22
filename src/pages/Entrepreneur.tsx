@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getEligibleEntrepreneurDumpSites } from "@/lib/entrepreneur/dompes";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -192,9 +193,9 @@ const Entrepreneur = () => {
 
   const fetchLeads = async () => {
     setLoading(true);
-    const { data, error } = await supabase.rpc("get_entrepreneur_leads");
-    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    else setLeads((data as any) || []);
+    const { sites, error } = await getEligibleEntrepreneurDumpSites();
+    if (error) toast({ title: "Erreur", description: error, variant: "destructive" });
+    else setLeads(sites as any);
     setLoading(false);
   };
 
