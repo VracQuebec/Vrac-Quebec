@@ -1653,6 +1653,10 @@ const LeadCard = ({ sub, expanded, onToggle, onStatusChange, onUpdate, onDelete,
                 </>
               );
             })()}
+            {/* Approbation dompe par dompe : chaque relation demande + dompe
+                possède son propre état et sa propre notification. */}
+            <DompesApprobationPanel submissionId={sub.id} />
+
             {/* Sélection du comparateur — rattachée à cette demande (lecture seule) */}
             {!sub.selected_site_id ? (
               <div className="mb-3 rounded-lg border border-border bg-muted/30 p-3 text-xs font-body text-muted-foreground">
