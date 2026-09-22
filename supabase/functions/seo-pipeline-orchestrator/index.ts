@@ -4,6 +4,7 @@
 // from the client (polling) or from cron (supervisor).
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isTrustedCron } from "../_shared/cron-auth.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -377,7 +378,7 @@ Deno.serve(async (req) => {
   const auth = req.headers.get("Authorization") || "";
   const jwt = auth.replace("Bearer ", "");
   const isService = jwt === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const isCron = req.headers.get("Lovable-Context") === "cron";
+  const isCron = await isTrustedCron(req, sb);
   if (!isService && !isCron) {
     const { data: u } = await sb.auth.getUser(jwt);
     const uid = u?.user?.id;

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeFilterTerm, neutralizeSpreadsheetCell, escapeHtml } from "@/lib/security/filters";
 import { fetchCatalog, type AssistantMaterial, type AssistantTruck } from "@/lib/jsc/assistant";
 import { getQuote, type PublicQuote, type QuoteUnit } from "@/lib/jsc/engine";
 import {
@@ -70,7 +71,8 @@ export default function QuickQuote() {
     (contact.phone.trim().length > 5 || contact.email.trim().length > 4);
 
   const runSearch = async () => {
-    const term = search.trim();
+    // Le texte saisi est neutralisé : il ne peut pas modifier le filtre.
+    const term = sanitizeFilterTerm(search.trim());
     if (term.length < 2) return;
     setSearching(true);
     const { data } = await supabase

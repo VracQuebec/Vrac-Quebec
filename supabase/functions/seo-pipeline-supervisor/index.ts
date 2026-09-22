@@ -1,6 +1,7 @@
 // Auto-repair supervisor: runs every minute via cron.
 // Detects and fixes stalled jobs, duplicates, and orphaned running states.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isTrustedCron } from "../_shared/cron-auth.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -20,7 +21,7 @@ Deno.serve(async (req) => {
     );
 
     // Only allow admins or cron
-    const isCron = req.headers.get("Lovable-Context") === "cron";
+    const isCron = await isTrustedCron(req, supabase);
     if (!isCron) {
       const authHeader = req.headers.get("Authorization") || "";
       const { data: u } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));

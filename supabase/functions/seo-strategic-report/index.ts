@@ -1,6 +1,7 @@
 // Orchestre les scans SEO (scan assistant + link check + suggestions) et
 // génère un rapport stratégique agrégé dans public.strategic_reports.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isTrustedCron } from "../_shared/cron-auth.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -33,7 +34,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { persistSession: false } },
     );
-    const isCron = req.headers.get("Lovable-Context") === "cron";
+    const isCron = await isTrustedCron(req, supabase);
     let uid: string | null = null;
     if (!isCron) {
       const { data: u } = await supabase.auth.getUser(jwt);

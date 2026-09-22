@@ -1,4 +1,5 @@
 import * as React from 'npm:react@18.3.1'
+import { clientIp, enforceIpQuota } from '../_shared/public-guard.ts'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
@@ -159,6 +160,16 @@ Deno.serve(async (req) => {
   let effectiveRecipient: string | undefined = template.to || recipientEmail
 
   if (PUBLIC_TEMPLATES.has(templateName)) {
+    // Quota par adresse : un appelant anonyme ne peut pas déclencher
+    // des envois en série à partir d'identifiants devinés.
+    try {
+      await enforceIpQuota(supabase, 'send-transactional-email', clientIp(req), 20, 60)
+    } catch (guardError) {
+      return new Response(
+        JSON.stringify({ error: (guardError as Error).message }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
     if (!submissionId || !UUID_RE.test(submissionId)) {
       return new Response(
         JSON.stringify({ error: 'submission_id is required for this template' }),

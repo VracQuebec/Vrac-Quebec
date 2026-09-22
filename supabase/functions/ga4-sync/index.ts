@@ -4,6 +4,7 @@
 // ga4_page_metrics and ga4_traffic_sources.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isTrustedCron } from "../_shared/cron-auth.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -142,7 +143,7 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
-    const isCron = req.headers.get("Lovable-Context") === "cron";
+    const isCron = await isTrustedCron(req, supabase);
     if (!isCron) {
       const jwt = (req.headers.get("Authorization") || "").replace("Bearer ", "");
       if (!jwt) return json({ error: "Non autorisé" }, 401);

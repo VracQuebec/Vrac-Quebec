@@ -1,4 +1,5 @@
-import { corsHeaders, getConfigWithToken, gapi, jsonRes, errRes, requireAdmin } from "../_shared/gbp.ts";
+import { corsHeaders, getConfigWithToken, gapi, jsonRes, errRes, requireAdmin, serviceClient } from "../_shared/gbp.ts";
+import { isTrustedCron } from "../_shared/cron-auth.ts";
 
 const METRICS = [
   "CALL_CLICKS",
@@ -20,7 +21,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     // Admin-or-cron guard
-    if (req.headers.get("Lovable-Context") !== "cron") {
+    if (!(await isTrustedCron(req, serviceClient()))) {
       try {
         await requireAdmin(req);
       } catch {

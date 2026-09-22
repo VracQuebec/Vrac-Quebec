@@ -14,6 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { neutralizeSpreadsheetCell, escapeHtml } from "@/lib/security/filters";
 
 const money = new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" });
 
@@ -123,8 +124,18 @@ export default function QuotesBoard() {
     "Notes": r.internal_notes ?? "",
   }));
 
+  // Un texte commençant par « = », « + », « - » ou « @ » est interprété
+  // comme une formule par les tableurs : on le neutralise à l'export.
+  const safeData = () => tableData().map((row) => {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(row)) {
+      out[k] = typeof v === "number" ? v : neutralizeSpreadsheetCell(v);
+    }
+    return out;
+  });
+
   const exportExcel = () => {
-    const sheet = XLSX.utils.json_to_sheet(tableData());
+    const sheet = XLSX.utils.json_to_sheet(safeData());
     const book = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(book, sheet, "Demandes");
     XLSX.writeFile(book, `demandes-${new Date().toISOString().slice(0, 10)}.xlsx`);
@@ -140,9 +151,9 @@ export default function QuotesBoard() {
       <style>body{font-family:Arial,sans-serif;padding:24px;color:#111}
       h1{font-size:18px}table{width:100%;border-collapse:collapse;font-size:11px}
       th,td{border:1px solid #ddd;padding:5px;text-align:left}th{background:#7ED321;color:#111}</style>
-      </head><body><h1>Demandes — ${new Date().toLocaleDateString("fr-CA")} (${data.length})</h1>
-      <table><thead><tr>${head.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>
-      ${data.map((r) => `<tr>${head.map((h) => `<td>${String((r as Record<string, unknown>)[h] ?? "")}</td>`).join("")}</tr>`).join("")}
+      </head><body><h1>Demandes — ${escapeHtml(new Date().toLocaleDateString("fr-CA"))} (${data.length})</h1>
+      <table><thead><tr>${head.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead><tbody>
+      ${data.map((r) => `<tr>${head.map((h) => `<td>${escapeHtml((r as Record<string, unknown>)[h] ?? "")}</td>`).join("")}</tr>`).join("")}
       </tbody></table></body></html>`);
     win.document.close();
     win.focus();

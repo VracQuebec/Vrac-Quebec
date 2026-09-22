@@ -1,4 +1,6 @@
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { clientIp, enforceIpQuota } from "../_shared/public-guard.ts";
+import { isTrustedCron } from "../_shared/cron-auth.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SPREADSHEET_ID = "17qJgVMdmVQj5MYeNDP2qQnmz6cBIa4Xc7NrZzo9eMlo";
@@ -143,7 +145,7 @@ Deno.serve(async (req) => {
     // 1) Internal cron / admin callers may back up any submission.
     // 2) The public questionnaire may back up ONLY a submission it has just
     //    created (< 15 min old) and only once (sheet_backup_at guard).
-    const isCron = req.headers.get("Lovable-Context") === "cron";
+    const isCron = await isTrustedCron(req, supabase);
     let isAdmin = false;
     const authHeader = req.headers.get("Authorization") || "";
     if (!isCron && authHeader.toLowerCase().startsWith("bearer ")) {
@@ -172,6 +174,15 @@ Deno.serve(async (req) => {
     }
 
     if (!isCron && !isAdmin) {
+      // Appel anonyme : quota par adresse pour empêcher le balayage d'identifiants.
+      try {
+        await enforceIpQuota(supabase, 'backup-to-sheet', clientIp(req), 10, 60);
+      } catch (guardError) {
+        return new Response(JSON.stringify({ error: (guardError as Error).message }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const createdAt = s.created_at ? new Date(s.created_at).getTime() : 0;
       const fresh = createdAt > 0 && Date.now() - createdAt < 15 * 60 * 1000;
       if (!fresh || s.sheet_backup_at) {

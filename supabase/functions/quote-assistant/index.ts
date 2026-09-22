@@ -15,7 +15,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { type Unit } from '../_shared/vqos/index.ts';
 import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
-import { clientIp, GuardError, guardPublicRequest, rememberResult } from '../_shared/public-guard.ts';
+import { clientIp, enforceIpQuota, GuardError, guardPublicRequest, rememberResult } from '../_shared/public-guard.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
 const EXCLUDED = /remblai/i; // Le module Remblai reste totalement indépendant.
@@ -394,13 +394,17 @@ async function adminSave(req: Request, body: any) {
   const best = result.technical.selected as Record<string, any>;
 
   // --- Client CRM : réutilisé s'il existe déjà (jamais de doublon, jamais d'écrasement).
+  // Les valeurs sont recherchées par égalité stricte : aucun texte libre
+  // n'est injecté dans la grammaire des filtres.
   let clientId: string | null = null;
-  const orFilters = [
-    email ? `email.ilike.${email}` : null,
-    phone ? `phone.eq.${phone}` : null,
-  ].filter(Boolean).join(',');
-  if (orFilters) {
-    const { data: found } = await sb.from('jsc_clients').select('id').or(orFilters).limit(1).maybeSingle();
+  if (email) {
+    const { data: found } = await sb.from('jsc_clients').select('id')
+      .eq('email', email).limit(1).maybeSingle();
+    clientId = found?.id ?? null;
+  }
+  if (!clientId && phone) {
+    const { data: found } = await sb.from('jsc_clients').select('id')
+      .eq('phone', phone).limit(1).maybeSingle();
     clientId = found?.id ?? null;
   }
   if (!clientId) {
@@ -469,16 +473,15 @@ async function adminSave(req: Request, body: any) {
 
   // --- Lead CRM : rattachement prioritaire à une fiche existante.
   let submissionId: string | null = existingSubmissionId;
-  if (!submissionId) {
-    const leadFilters = [
-      email ? `email.ilike.${email}` : null,
-      phone ? `phone.eq.${phone}` : null,
-    ].filter(Boolean).join(',');
-    if (leadFilters) {
-      const { data: lead } = await sb.from('submissions').select('id')
-        .or(leadFilters).order('created_at', { ascending: false }).limit(1).maybeSingle();
-      submissionId = lead?.id ?? null;
-    }
+  if (!submissionId && email) {
+    const { data: lead } = await sb.from('submissions').select('id')
+      .eq('email', email).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    submissionId = lead?.id ?? null;
+  }
+  if (!submissionId && phone) {
+    const { data: lead } = await sb.from('submissions').select('id')
+      .eq('phone', phone).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    submissionId = lead?.id ?? null;
   }
   let leadCreated = false;
   if (!submissionId) {
@@ -548,6 +551,11 @@ Deno.serve(async (req) => {
   try {
     const sb = db();
     const body = await req.json().catch(() => null);
+    // Les actions « advise » et « quote » déclenchent des services payants
+    // (IA, géocodage) : quota par adresse pour les appels non connectés.
+    if (body?.action === 'advise' || body?.action === 'quote') {
+      await enforceIpQuota(sb, `quote-assistant:${body.action}`, clientIp(req), 30, 60);
+    }
     switch (body?.action) {
       case 'catalog':
         return json(await catalog(sb));
