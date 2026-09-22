@@ -2694,15 +2694,56 @@ function ProductionTab() {
     return c;
   }, [items]);
 
-  if (loading) return <div className="text-sm text-muted-foreground p-6"><Spinner /> Chargement de la file…</div>;
+  if (loading && items.length === 0 && !loadError) return <div className="text-sm text-muted-foreground p-6"><Spinner /> Chargement de la file…</div>;
+
+  const eligible = counts.p1 + counts.p2 + counts.p3 + counts.p4;
+  const covered = eligible - counts.missing;
+
+  if (loadError) {
+    return (
+      <div className="space-y-4">
+        <section>
+          <h2 className="text-xl font-display font-bold text-foreground">File de production</h2>
+        </section>
+        <section className="border border-destructive/40 bg-destructive/5 rounded-lg p-4 space-y-2">
+          <h3 className="text-sm font-display font-bold text-destructive">Statistiques indisponibles</h3>
+          <p className="text-xs text-muted-foreground">Cause : {loadError}</p>
+          <p className="text-xs text-muted-foreground">Aucun compteur n'est affiché tant que la lecture complète de la base n'a pas abouti.</p>
+          <button onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 rounded-md border border-destructive px-3 py-1.5 text-xs font-semibold text-destructive disabled:opacity-50">
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Réessayer
+          </button>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <section>
-        <h2 className="text-xl font-display font-bold text-foreground">File de production</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Génération progressive avec contrôle qualité automatique (unicité, structure, maillage, Schema.org, FAQ, CTA). Les pages qui n'atteignent pas le seuil restent en brouillon.
-        </p>
+      <section className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-display font-bold text-foreground">File de production</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Génération progressive avec contrôle qualité automatique (unicité, structure, maillage, Schema.org, FAQ, CTA). Les pages qui n'atteignent pas le seuil restent en brouillon.
+          </p>
+        </div>
+        <button onClick={() => void load()} disabled={loading} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-semibold disabled:opacity-50">
+          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Actualiser les données
+        </button>
+      </section>
+
+      <section className="rounded-lg border border-border bg-secondary/40 p-3 text-xs text-muted-foreground space-y-1">
+        <div>
+          Dernière actualisation :{" "}
+          <strong className="text-foreground">{lastRefreshAt ? lastRefreshAt.toLocaleString("fr-CA") : "—"}</strong>
+          {baseStats && <> · Base lue intégralement : <strong className="text-foreground">{baseStats.pages}</strong> pages ({baseStats.published} publiées, {baseStats.drafts} brouillons)</>}
+        </div>
+        <div>
+          Combinaisons admissibles : <strong className="text-foreground">{eligible}</strong> ·
+          Déjà existantes : <strong className="text-foreground">{covered}</strong> ·
+          Réellement manquantes : <strong className="text-foreground">{counts.missing}</strong> ·
+          À produire : <strong className="text-foreground">{counts.missing}</strong> ·
+          Erreur : <strong className="text-foreground">aucune</strong>
+        </div>
       </section>
 
       <section className="grid grid-cols-2 md:grid-cols-6 gap-3">
