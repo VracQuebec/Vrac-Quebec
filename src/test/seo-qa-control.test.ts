@@ -186,7 +186,7 @@ describe("contrôle qualité des pages à vérifier", () => {
       city_slug: "notre-dame-du-sacre-coeur-d-issoudun",
       title: "Gravier à Notre-Dame-du-Sacré-Cœur-d’Issoudun",
       meta_title: "Gravier à Notre-Dame-du-Sacré-Cœur-d’Issoudun | Vrac Québec",
-      content_html: CONTENT().replaceAll("Beaumont", "Notre-Dame-du-Sacré-Cœur-d’Issoudun"),
+      content_html: CONTENT().split("Beaumont").join("Notre-Dame-du-Sacré-Cœur-d’Issoudun"),
     }));
     expect(r.issues.some((i) => i.key.startsWith("city_"))).toBe(false);
   });
