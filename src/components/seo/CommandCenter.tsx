@@ -13,6 +13,8 @@ import CoverageOverview from "@/components/seo/CoverageOverview";
 import WaveRunner from "@/components/seo/WaveRunner";
 import PipelineControlCenter from "@/components/seo/PipelineControlCenter";
 import { useSeoStats } from "@/lib/seo/useSeoStats";
+import { useStrategicCounters } from "@/lib/seo/useStrategicCounters";
+import { buildOptimizationPreview } from "@/lib/seo/strategicCounters";
 
 type PageRow = {
   id: string; slug: string; title: string; status: string;
@@ -33,6 +35,8 @@ export default function CommandCenter() {
   const [loading, setLoading] = useState(true);
   const { stats, error: statsError, reload: reloadStats } = useSeoStats();
   const [optimizing, setOptimizing] = useState(false);
+  const { counters, loading: countersLoading, error: countersError, reload: reloadCounters } = useStrategicCounters();
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [pages, setPages] = useState<PageRow[]>([]);
   const [gsc, setGsc] = useState<Map<string, GscRow>>(new Map());
   const [events, setEvents] = useState<Map<string, { view: number; phone: number; whatsapp: number; submission: number; cta: number }>>(new Map());
