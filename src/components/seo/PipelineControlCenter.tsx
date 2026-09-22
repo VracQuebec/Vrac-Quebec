@@ -15,6 +15,9 @@ import { useCityGeneration } from "@/lib/seo/useCityGeneration";
 import { repairSeoPages } from "@/lib/seo/useSeoCityMatrix";
 import CityCombinationAudit from "@/components/seo/CityCombinationAudit";
 import { useGlobalGeneration } from "@/lib/seo/useGlobalGeneration";
+import { summarize } from "@/lib/seo/cityAudit";
+import { collectFixes, type QualityFix } from "@/lib/seo/coverageDisplay";
+import { fetchSeoStats, type SeoStats } from "@/lib/seo/api";
 import {
   canStartGlobal, confirmationLines, finalSummary, failureNotice,
   globalPhase, PHASE_LABEL, runProgress, shouldOfferRetry,
