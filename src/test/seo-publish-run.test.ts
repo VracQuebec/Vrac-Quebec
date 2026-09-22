@@ -48,7 +48,11 @@ describe("sélection des pages publiables", () => {
     expect(list.map((c) => c.id)).toEqual(["id-1"]);
     expect(list[0].topic).toBe("gravier");
   });
-  it("ignore une ligne sans identifiant", () => expect(selectPublishable([page({ id: undefined })])).toHaveLength(0));
+  it("ignore une ligne sans identifiant", () => {
+    const row = page();
+    delete (row as { id?: string }).id;
+    expect(selectPublishable([row])).toHaveLength(0);
+  });
 });
 
 describe("décision juste avant écriture", () => {
