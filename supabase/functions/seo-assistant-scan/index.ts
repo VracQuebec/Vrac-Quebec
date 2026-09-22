@@ -3,6 +3,7 @@
 // Lecture seule sur les pages SEO : aucune page n'est créée, modifiée, publiée ou supprimée.
 // Aucune donnée inventée : une valeur absente reste « donnée insuffisante ».
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isTrustedCron } from "../_shared/cron-auth.ts";
 import {
   CATEGORY_OF, evaluateRelevance, expectedImpact, priorityOf, scoreSignal,
   servicePriority, topOpportunities,
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
 
   let runId: string | null = null;
   try {
-    const isCron = req.headers.get("Lovable-Context") === "cron";
+    const isCron = await isTrustedCron(req, supabase);
     if (!isCron) {
       const jwt = (req.headers.get("Authorization") || "").replace("Bearer ", "");
       const { data: u } = await supabase.auth.getUser(jwt);

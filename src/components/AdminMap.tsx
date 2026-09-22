@@ -6,6 +6,7 @@ import { Crosshair, X, Search, Move } from "lucide-react";
 import type { LeadStatus } from "@/hooks/useLeadStatuses";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { escapeHtml } from "@/lib/security/filters";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,47 +77,50 @@ const formatDate = (d: string) =>
   new Date(d).toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
 const buildPopup = (sub: Submission, leadStatuses?: LeadStatus[]) => {
+  // Toutes les valeurs venant d'une demande sont échappées : un texte saisi
+  // par un visiteur ne doit jamais devenir du code dans l'infobulle.
+  const e = escapeHtml;
   let html = `<div style="font-size:13px;line-height:1.6">
     <div style="font-weight:800;font-size:16px;margin-bottom:6px;color:#1a1a1a">
-      #${displayNumber(sub)} — ${sub.name}
+      #${e(displayNumber(sub))} — ${e(sub.name)}
     </div>
-    <div><b>Type de demande:</b> ${sub.request_type || "—"}</div>
-    <div><b>Matériaux:</b> ${getMaterialLabels(sub.materials)}</div>`;
-  if (sub.other_material) html += `<div><b>Autre:</b> ${sub.other_material}</div>`;
+    <div><b>Type de demande:</b> ${e(sub.request_type || "—")}</div>
+    <div><b>Matériaux:</b> ${e(getMaterialLabels(sub.materials))}</div>`;
+  if (sub.other_material) html += `<div><b>Autre:</b> ${e(sub.other_material)}</div>`;
   if (leadStatuses && leadStatuses.length > 0) {
     const opts = leadStatuses
       .filter((s) => s.enabled || s.value === sub.status)
       .map(
         (s) =>
-          `<option value="${s.value}" ${s.value === (sub.status || "") ? "selected" : ""}>${s.label}</option>`
+          `<option value="${e(s.value)}" ${s.value === (sub.status || "") ? "selected" : ""}>${e(s.label)}</option>`
       )
       .join("");
     html += `<div style="margin:4px 0"><b>Statut:</b>
-      <select data-lead-status-select="${sub.id}" style="margin-left:6px;padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-size:12px">${opts}</select>
+      <select data-lead-status-select="${e(sub.id)}" style="margin-left:6px;padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-size:12px">${opts}</select>
     </div>`;
   } else if (sub.status) {
-    html += `<div><b>Statut:</b> ${sub.status}</div>`;
+    html += `<div><b>Statut:</b> ${e(sub.status)}</div>`;
   }
   const availOpts = AVAILABILITY_OPTIONS.map(
     (o) =>
-      `<option value="${o.value}" ${o.value === (sub.availability_status || "available") ? "selected" : ""}>${o.label}</option>`,
+      `<option value="${e(o.value)}" ${o.value === (sub.availability_status || "available") ? "selected" : ""}>${e(o.label)}</option>`,
   ).join("");
   html += `<div style="margin:4px 0"><b>Disponibilité:</b>
-    <select data-lead-avail-select="${sub.id}" style="margin-left:6px;padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-size:12px">${availOpts}</select>
+    <select data-lead-avail-select="${e(sub.id)}" style="margin-left:6px;padding:2px 4px;border:1px solid #ccc;border-radius:4px;font-size:12px">${availOpts}</select>
   </div>`;
-  html += `<div><b>Type:</b> ${sub.property_type}</div>
-    <div><b>Voyages:</b> ${sub.quantity}</div>
-    <div><b>Tonnage:</b> ${sub.tonnage}</div>`;
-  if (sub.budget_unit) html += `<div><b>Budget:</b> ${sub.budget_max} ${sub.budget_unit}</div>`;
-  html += `<div><b>Machinerie:</b> ${sub.machinery_available ? `Oui — ${sub.machinery_description || ""}` : "Non"}</div>`;
+  html += `<div><b>Type:</b> ${e(sub.property_type)}</div>
+    <div><b>Voyages:</b> ${e(sub.quantity)}</div>
+    <div><b>Tonnage:</b> ${e(sub.tonnage)}</div>`;
+  if (sub.budget_unit) html += `<div><b>Budget:</b> ${e(sub.budget_max)} ${e(sub.budget_unit)}</div>`;
+  html += `<div><b>Machinerie:</b> ${sub.machinery_available ? `Oui — ${e(sub.machinery_description || "")}` : "Non"}</div>`;
   if (sub.accessibility && sub.accessibility.length > 0)
-    html += `<div><b>Accessibilité:</b> ${sub.accessibility.join(", ")}</div>`;
-  html += `<div><b>Adresse:</b> ${sub.address}${sub.postal_code ? `, ${sub.postal_code}` : ""}</div>
-    <div><b>Courriel:</b> ${sub.email}</div>`;
-  if (sub.phone) html += `<div><b>Téléphone:</b> ${sub.phone}</div>`;
-  if (sub.description) html += `<div><b>Notes:</b> ${sub.description}</div>`;
-  if (sub.internal_notes) html += `<div style="margin-top:4px;padding:4px 6px;background:#f3faea;border-left:3px solid #7ED321;border-radius:3px"><b>Notes internes:</b> ${sub.internal_notes}</div>`;
-  html += `<div style="margin-top:6px;color:#888;font-size:11px">${formatDate(sub.created_at)}</div></div>`;
+    html += `<div><b>Accessibilité:</b> ${e(sub.accessibility.join(", "))}</div>`;
+  html += `<div><b>Adresse:</b> ${e(sub.address)}${sub.postal_code ? `, ${e(sub.postal_code)}` : ""}</div>
+    <div><b>Courriel:</b> ${e(sub.email)}</div>`;
+  if (sub.phone) html += `<div><b>Téléphone:</b> ${e(sub.phone)}</div>`;
+  if (sub.description) html += `<div><b>Notes:</b> ${e(sub.description)}</div>`;
+  if (sub.internal_notes) html += `<div style="margin-top:4px;padding:4px 6px;background:#f3faea;border-left:3px solid #7ED321;border-radius:3px"><b>Notes internes:</b> ${e(sub.internal_notes)}</div>`;
+  html += `<div style="margin-top:6px;color:#888;font-size:11px">${e(formatDate(sub.created_at))}</div></div>`;
   return html;
 };
 

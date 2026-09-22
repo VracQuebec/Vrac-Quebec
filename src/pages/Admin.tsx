@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { neutralizeSpreadsheetCell } from "@/lib/security/filters";
 import { supabase } from "@/integrations/supabase/client";
 import { LeadPhotos } from "@/components/admin/LeadPhotos";
 import LeadParcoursPanel from "@/components/admin/LeadParcoursPanel";
@@ -560,7 +561,8 @@ const Admin = () => {
   const downloadCSV = (filename: string, cols: string[], rowsData: any[]) => {
     const escape = (v: any) => {
       if (v == null) return "";
-      const s = Array.isArray(v) ? v.join("|") : String(v);
+      // Neutralise les formules interprétées par les tableurs.
+      const s = neutralizeSpreadsheetCell(Array.isArray(v) ? v.join("|") : String(v));
       return `"${s.replace(/"/g, '""')}"`;
     };
     const rows = [cols.join(",")];

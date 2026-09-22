@@ -3,6 +3,7 @@
 // service-role key).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isTrustedCron } from "../_shared/cron-auth.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -101,7 +102,7 @@ Deno.serve(async (req) => {
 
     // Admin-only via user JWT when called from the browser
     const jwt = (req.headers.get("Authorization") || "").replace("Bearer ", "");
-    const isCron = req.headers.get("Lovable-Context") === "cron";
+    const isCron = await isTrustedCron(req, supabase);
     if (!isCron) {
       if (!jwt) return json({ error: "Non autorisé" }, 401);
       const { data: userData } = await supabase.auth.getUser(jwt);

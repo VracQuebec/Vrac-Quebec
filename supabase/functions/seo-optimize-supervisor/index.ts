@@ -2,6 +2,7 @@
 // - Requeues tasks stuck in in-flight states via seo_optimization_watchdog().
 // - If a running run exists but no worker is progressing, kicks the worker.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isTrustedCron } from "../_shared/cron-auth.ts";
 
 const CORS = { "Access-Control-Allow-Origin": "*" };
 
@@ -12,7 +13,7 @@ Deno.serve(async (req) => {
   const supabase = createClient(supaUrl, serviceKey, { auth: { persistSession: false } });
   try {
     // Admin-or-cron guard
-    const isCron = req.headers.get("Lovable-Context") === "cron";
+    const isCron = await isTrustedCron(req, supabase);
     if (!isCron) {
       const jwt = (req.headers.get("Authorization") || "").replace("Bearer ", "");
       const { data: u } = await supabase.auth.getUser(jwt);

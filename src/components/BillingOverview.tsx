@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { neutralizeSpreadsheetCell } from "@/lib/security/filters";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, AlertTriangle, Search, Download, FileSpreadsheet, Printer, Trash2 } from "lucide-react";
 import InvoiceEditDialog, { ConfirmDialog } from "@/components/billing/InvoiceEditDialog";
@@ -169,8 +170,17 @@ export default function BillingOverview({ onOpenLead }: Props) {
     };
   });
 
+  // Neutralisation des formules de tableur avant tout export.
+  const safeRows = () => exportRows().map((row) => {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(row as Record<string, unknown>)) {
+      out[k] = typeof v === "number" ? v : neutralizeSpreadsheetCell(v);
+    }
+    return out;
+  });
+
   const exportCsv = () => {
-    const data = exportRows();
+    const data = safeRows();
     if (!data.length) return;
     const headers = Object.keys(data[0]);
     const escape = (v: any) => {
@@ -188,7 +198,7 @@ export default function BillingOverview({ onOpenLead }: Props) {
   };
 
   const exportXlsx = () => {
-    const data = exportRows();
+    const data = safeRows();
     if (!data.length) return;
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();

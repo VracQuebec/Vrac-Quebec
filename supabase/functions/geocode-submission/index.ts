@@ -14,6 +14,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { geocode } from '../_shared/vqos/runtime.ts';
 import { logEventAsync } from '../_shared/observability.ts';
+import { clientIp, enforceIpQuota, GuardError } from '../_shared/public-guard.ts';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -95,6 +96,16 @@ Deno.serve(async (req) => {
 
     const id = typeof body?.submissionId === 'string' ? body.submissionId : '';
     if (!UUID.test(id)) return json({ ok: false, error: 'submissionId invalide' }, 400);
+
+    // Le géocodage est un service payant : quota par visiteur non connecté.
+    if (!(await isAdmin(sb, req))) {
+      try {
+        await enforceIpQuota(sb, 'geocode-submission', clientIp(req), 20, 60);
+      } catch (guardError) {
+        const status = guardError instanceof GuardError ? guardError.status : 429;
+        return json({ ok: false, error: (guardError as Error).message }, status);
+      }
+    }
 
     const result = await geocodeOne(sb, id);
     return json({ ok: result.ok, ...result });

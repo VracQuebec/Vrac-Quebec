@@ -4,6 +4,7 @@
 //  * Pages between position 8–20 → flag for Top-3 boost (needs_refresh)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isTrustedCron } from "../_shared/cron-auth.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -84,7 +85,7 @@ Deno.serve(async (req) => {
   );
 
   // Admin-or-cron guard (same pattern as sibling SEO automation functions)
-  const isCron = req.headers.get("Lovable-Context") === "cron";
+  const isCron = await isTrustedCron(req, supa);
   if (!isCron) {
     const jwt = (req.headers.get("Authorization") || "").replace("Bearer ", "");
     const { data: u } = await supa.auth.getUser(jwt);

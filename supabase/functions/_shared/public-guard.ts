@@ -145,3 +145,33 @@ export async function rememberResult(
     .gte("created_at", new Date(Date.now() - 5 * 60000).toISOString());
   if (error) console.error(`[guard:${scope}] mémorisation impossible`, error.message);
 }
+
+/**
+ * Quota simple par adresse IP pour les points d'entrée publics qui
+ * déclenchent des appels payants (Google, IA). Empêche qu'une clé
+ * publique serve à consommer le budget de l'entreprise.
+ */
+export async function enforceIpQuota(
+  sb: any,
+  scope: string,
+  ip: string | null,
+  maxPerWindow = 30,
+  windowMinutes = 60,
+): Promise<void> {
+  const identity = ip ?? "inconnu";
+  const since = new Date(Date.now() - windowMinutes * 60000).toISOString();
+  const { count, error } = await sb
+    .from("public_request_guard")
+    .select("id", { count: "exact", head: true })
+    .eq("scope", scope)
+    .eq("identity", identity)
+    .gte("created_at", since);
+  if (error) console.error(`[quota:${scope}] lecture impossible`, error.message);
+  if ((count ?? 0) >= maxPerWindow) {
+    throw new GuardError("Trop de requêtes en peu de temps. Réessayez plus tard.", 429, "rate_limited");
+  }
+  const { error: logError } = await sb
+    .from("public_request_guard")
+    .insert({ scope, identity, fingerprint: `${scope}:${identity}:${Date.now()}`, payload: { ip } });
+  if (logError) console.error(`[quota:${scope}] journalisation impossible`, logError.message);
+}

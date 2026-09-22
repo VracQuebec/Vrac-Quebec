@@ -13,6 +13,7 @@ import { type Unit } from '../_shared/vqos/index.ts';
 import { runCarrierQuote } from '../_shared/vqos/jsc-engine.ts';
 import { distanceProvider, geocode, loadConfig } from '../_shared/vqos/runtime.ts';
 import { logEvent, logEventAsync } from '../_shared/observability.ts';
+import { clientIp, enforceIpQuota, GuardError } from '../_shared/public-guard.ts';
 
 const UNITS: Unit[] = ['tonne', 'verge', 'm3'];
 
@@ -40,6 +41,15 @@ Deno.serve(async (req) => {
     if (userData?.user) {
       const { data: role } = await db.rpc('has_role', { _user_id: userData.user.id, _role: 'admin' });
       isAdmin = role === true;
+    } else {
+      // Appel anonyme : le calcul déclenche des services payants (géocodage,
+      // distances). Quota par adresse pour éviter l'abus de la clé publique.
+      try {
+        await enforceIpQuota(db, 'quote-engine', clientIp(req), 40, 60);
+      } catch (guardError) {
+        const status = guardError instanceof GuardError ? guardError.status : 429;
+        return json({ error: (guardError as Error).message }, status);
+      }
     }
 
     const body = await req.json().catch(() => null);

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import GooglePlaceAutocomplete from "@/components/GooglePlaceAutocomplete";
 import { Loader2 } from "lucide-react";
+import { sanitizeFilterTerm } from "@/lib/security/filters";
 
 export const LEAD_SOURCES = [
   { value: "vracquebec.ca", label: "Site vracquebec.ca" },
@@ -90,10 +91,13 @@ const NewLeadModal = ({ open, onClose, onCreated }: Props) => {
   };
 
   const checkDuplicates = async (): Promise<boolean> => {
+    // Les valeurs saisies sont neutralisées avant d'entrer dans un filtre :
+    // un texte libre ne doit jamais modifier le sens de la recherche.
     const filters: string[] = [];
-    const ph = normPhone(phone);
+    const ph = sanitizeFilterTerm(normPhone(phone), 20);
+    const mail = sanitizeFilterTerm(email.trim().toLowerCase(), 160);
     if (ph.length >= 7) filters.push(`phone.ilike.%${ph.slice(-7)}%`);
-    if (email.trim()) filters.push(`email.eq.${email.trim().toLowerCase()}`);
+    if (mail) filters.push(`email.eq.${mail}`);
     if (filters.length === 0) return false;
     const { data } = await supabase
       .from("submissions")

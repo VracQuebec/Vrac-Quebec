@@ -92,7 +92,8 @@ Deno.serve(async (req) => {
         user_metadata: { ...existingUser.user_metadata, ...metadata },
       });
       if (updateErr || !updated.user) {
-        return json(400, { error: updateErr?.message || "Mise à jour du compte échouée" });
+        console.error("signup-entrepreneur update:", updateErr?.message);
+        return json(400, { error: "Mise à jour du compte échouée" });
       }
       userId = updated.user.id;
     } else {
@@ -104,8 +105,8 @@ Deno.serve(async (req) => {
       });
 
       if (createErr || !created.user) {
-        const message = createErr?.message || "Création du compte échouée";
-        return json(400, { error: message });
+        console.error("signup-entrepreneur create:", createErr?.message);
+        return json(400, { error: "Création du compte échouée" });
       }
 
       userId = created.user.id;
@@ -118,7 +119,8 @@ Deno.serve(async (req) => {
 
     if (roleErr) {
       if (createdNewUser) await admin.auth.admin.deleteUser(userId);
-      return json(500, { error: `Rôle entrepreneur non assigné: ${roleErr.message}` });
+      console.error("signup-entrepreneur role:", roleErr.message);
+      return json(500, { error: "Création du compte incomplète. Contactez-nous." });
     }
 
     const profilePayload = { user_id: userId, name, email, company, phone };
@@ -129,7 +131,8 @@ Deno.serve(async (req) => {
     if (profileErr) {
       await admin.from("user_roles").delete().eq("user_id", userId).eq("role", "entrepreneur");
       if (createdNewUser) await admin.auth.admin.deleteUser(userId);
-      return json(500, { error: `Profil entrepreneur non créé: ${profileErr.message}` });
+      console.error("signup-entrepreneur profile:", profileErr.message);
+      return json(500, { error: "Création du compte incomplète. Contactez-nous." });
     }
 
     // Notifier l'administration pour la validation manuelle du compte.
@@ -150,6 +153,7 @@ Deno.serve(async (req) => {
         "Compte entrepreneur créé. Votre accès aux demandes et aux sites du réseau sera actif dès la validation par l'équipe Vrac Québec.",
     });
   } catch (e) {
-    return json(500, { error: (e as Error).message || "Erreur serveur" });
+    console.error("signup-entrepreneur:", (e as Error).message);
+    return json(500, { error: "Erreur serveur" });
   }
 });

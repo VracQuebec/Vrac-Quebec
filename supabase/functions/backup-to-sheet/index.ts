@@ -1,4 +1,5 @@
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { isTrustedCron } from "../_shared/cron-auth.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SPREADSHEET_ID = "17qJgVMdmVQj5MYeNDP2qQnmz6cBIa4Xc7NrZzo9eMlo";
@@ -143,7 +144,7 @@ Deno.serve(async (req) => {
     // 1) Internal cron / admin callers may back up any submission.
     // 2) The public questionnaire may back up ONLY a submission it has just
     //    created (< 15 min old) and only once (sheet_backup_at guard).
-    const isCron = req.headers.get("Lovable-Context") === "cron";
+    const isCron = await isTrustedCron(req, supabase);
     let isAdmin = false;
     const authHeader = req.headers.get("Authorization") || "";
     if (!isCron && authHeader.toLowerCase().startsWith("bearer ")) {

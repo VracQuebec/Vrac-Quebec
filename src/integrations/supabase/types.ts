@@ -1533,6 +1533,24 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_auth: {
+        Row: {
+          created_at: string
+          id: boolean
+          secret: string
+        }
+        Insert: {
+          created_at?: string
+          id?: boolean
+          secret?: string
+        }
+        Update: {
+          created_at?: string
+          id?: boolean
+          secret?: string
+        }
+        Relationships: []
+      }
       custom_fields: {
         Row: {
           created_at: string
@@ -11974,6 +11992,7 @@ export type Database = {
           payload: Json
           session_key: string
           step: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -11982,6 +12001,7 @@ export type Database = {
           payload?: Json
           session_key: string
           step?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -11990,6 +12010,7 @@ export type Database = {
           payload?: Json
           session_key?: string
           step?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }

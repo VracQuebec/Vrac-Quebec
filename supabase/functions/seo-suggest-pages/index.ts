@@ -2,6 +2,7 @@
 // ville×service) validées: pas de doublon, pas de cannibalisation, avec
 // scores de potentiel, difficulté, temps et priorité. Écrit dans seo_recommendations.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isTrustedCron } from "../_shared/cron-auth.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { persistSession: false } },
     );
-    const isCron = req.headers.get("Lovable-Context") === "cron";
+    const isCron = await isTrustedCron(req, supabase);
     if (!isCron) {
       const jwt = (req.headers.get("Authorization") || "").replace("Bearer ", "");
       const { data: u } = await supabase.auth.getUser(jwt);
