@@ -224,8 +224,14 @@ export default function EntrepreneurChantierDetail() {
         {sites.map((s) => (
           <AppCard key={`site-${s.id}`}>
             <p className="font-display text-sm font-bold">{s.selectedSiteLabel}</p>
-            {s.selectedSiteAddress && (
+            {/* Divulgation progressive : l'adresse réelle n'est transmise par le
+                serveur qu'une fois CETTE demande approuvée. */}
+            {s.siteValidatedAt && s.selectedSiteAddress ? (
               <p className="font-body text-xs text-muted-foreground">{s.selectedSiteAddress}</p>
+            ) : (
+              <p className="font-body text-xs text-muted-foreground">
+                Adresse exacte communiquée après l'approbation de votre demande.
+              </p>
             )}
             <p className="mt-1 font-body text-xs text-muted-foreground">
               {s.distanceKm != null ? `${s.distanceKm.toFixed(1)} km du chantier` : "Distance à confirmer"}
