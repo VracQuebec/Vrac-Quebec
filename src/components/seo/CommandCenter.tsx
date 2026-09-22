@@ -216,7 +216,10 @@ export default function CommandCenter() {
           <p className="text-sm text-muted-foreground font-body mt-1">Vue stratégique en temps réel — où nous en sommes, ce qui fonctionne, ce qui doit être amélioré.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={optimizeAll} disabled={optimizing}
+          <button
+            onClick={() => setPreviewOpen(true)}
+            disabled={optimizing || countersLoading || (counters?.optimizations.total ?? 0) === 0}
+            title={(counters?.optimizations.total ?? 0) === 0 ? "Aucune action d'optimisation identifiée" : undefined}
             className="inline-flex items-center gap-2 text-xs font-display font-bold px-3 py-2 rounded-md bg-primary text-primary-foreground shadow hover:opacity-90 disabled:opacity-50">
             {optimizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
             Optimiser tout le site
