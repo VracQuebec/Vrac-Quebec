@@ -4,7 +4,7 @@
 // Périmètre : toutes les pages PERTINENTES actuelles (municipalités du registre),
 // jamais un échantillon et jamais un ancien signalement historique.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchSeoPagesPaged } from "@/lib/seo/useStrategicCounters";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,10 +17,6 @@ import {
   QA_VERDICT_LABEL, type QaControlPage, type QaControlResult, type QaVerdict,
 } from "@/lib/seo/qaControl";
 
-const SELECT =
-  "id, slug, city_slug, material_slug, service_slug, title, h1, status, meta_title, meta_description, " +
-  "content_html, internal_link_count, internal_links, word_count, qa_last_score, qa_last_checked_at, " +
-  "proc_status, proc_error, noindex, google_index_status, last_generated_at";
 
 type Row = QaControlPage & {
   status: string;
@@ -71,13 +67,15 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
   const loadPages = useCallback(async () => {
     setPages(null);
     setLoadError(null);
-    const all: Row[] = [];
-    // Pagination complète : jamais de troncature silencieuse à 1 000 lignes.
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await supabase.from("seo_pages").select(SELECT).range(from, from + 999);
-      if (error) { setLoadError(error.message); setPages([]); return; }
-      all.push(...((data ?? []) as unknown as Row[]));
-      if (!data || data.length < 1000) break;
+    let all: Row[] = [];
+    // Pagination complète par petits lots : jamais de troncature silencieuse,
+    // jamais un lot assez gros pour dépasser le délai d'exécution de la base.
+    try {
+      all = await fetchSeoPagesPaged<Row>(true);
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Erreur de lecture");
+      setPages([]);
+      return;
     }
     setDups(duplicateTitles(all));
     // Pages pertinentes : municipalités du registre actuel. Sans registre chargé,
