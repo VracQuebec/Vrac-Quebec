@@ -79,6 +79,9 @@ export function stripHtml(html: string): string {
 export function loose(s: string): string {
   return (s || "")
     .toLowerCase()
+    // Les ligatures françaises ne sont pas toutes décomposées par NFD.
+    .replace(/œ/g, "oe")
+    .replace(/æ/g, "ae")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, " ")
@@ -87,6 +90,13 @@ export function loose(s: string): string {
 
 export function topicOf(p: QaControlPage): string {
   return p.material_slug ?? p.service_slug ?? "hub";
+}
+
+/** Libellés canoniques utilisés seulement pour comparer le sujet au contenu. */
+export function topicLabelOf(p: QaControlPage): string {
+  const topic = topicOf(p);
+  if (topic === "recherche-point-de-depot") return "point de dépôt";
+  return topic;
 }
 
 function countLinks(p: QaControlPage): number {
@@ -124,6 +134,7 @@ export function runQaControl(
   const words = p.word_count ?? (plain ? plain.split(" ").length : 0);
   const links = countLinks(p);
   const topic = topicOf(p);
+  const topicLabel = topicLabelOf(p);
 
   // 1. Meta title
   if (metaTitle.length < R.metaTitleMin) {
@@ -228,10 +239,10 @@ export function runQaControl(
       action: "Mentionner la municipalité dans le contenu principal.",
     });
   }
-  if (topic !== "hub" && !body.includes(loose(topic))) {
+  if (topic !== "hub" && !body.includes(loose(topicLabel))) {
     issues.push({
       key: "topic_in_body", label: "Cohérence matériau / service", severity: "fix",
-      actual: `« ${topic} » absent du contenu`, expected: "matériau ou service cité dans le contenu",
+      actual: `« ${topicLabel} » absent du contenu`, expected: "matériau ou service cité dans le contenu",
       action: "Nommer explicitement le matériau ou le service traité.",
     });
   }
