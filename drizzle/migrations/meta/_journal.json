@@ -253,6 +253,13 @@
       "when": 1790113029086,
       "tag": "0035_grant_disclosure_rpcs_to_service_role",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1790113591510,
+      "tag": "0036_revoke_temp_service_role_grants",
+      "breakpoints": true
     }
   ]
 }
