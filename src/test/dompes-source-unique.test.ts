@@ -98,7 +98,7 @@ describe("source unique des dompes entrepreneur", () => {
       .mockResolvedValueOnce({ data: [dompe("a")], error: null });
     const { sites, error } = await getEligibleEntrepreneurDumpSites();
     expect(error).toBeNull();
-    expect(sites.map((s) => s.id)).toEqual([]);
+    expect(sites.map((s) => s.id)).toEqual(["a"]);
   });
 
   it("remonte l'erreur serveur plutôt qu'une liste mémorisée", async () => {
