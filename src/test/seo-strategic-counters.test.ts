@@ -25,7 +25,10 @@ function page(over: Partial<CounterPage> = {}): CounterPage {
 
 describe("compteurs stratégiques", () => {
   it("analyse toutes les pages publiées et n'en déclare aucune en erreur quand tout est conforme", () => {
-    const c = computeStrategicCounters([page(), page({ slug: "sable-beaumont", material_slug: "sable" })]);
+    const c = computeStrategicCounters([
+      page(),
+      page({ slug: "sable-beaumont", material_slug: "sable", meta_title: "Sable à Beaumont | Vrac Québec fournisseur" }),
+    ]);
     expect(c.analyzed).toBe(2);
     expect(c.errors.total).toBe(0);
   });
