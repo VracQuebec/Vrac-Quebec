@@ -116,8 +116,8 @@ describe("audit par municipalité", () => {
   it("erreurs = AVEC ERREUR", () =>
     expect(cityAuditStatus(city({ errors: 2, published: 8, drafts: 2 }))).toBe("error"));
   it("combinaisons manquantes = INCOMPLET", () =>
-    expect(cityAuditStatus(city({ generated: 7, published: 7, remaining: 3 }))).toBe("incomplete");
-  );
+    expect(cityAuditStatus(city({ generated: 7, published: 7, remaining: 3 }))).toBe("incomplete"));
+
   it("chiffres incohérents = À VÉRIFIER", () =>
     expect(cityAuditStatus(city({ generated: 10, published: 4, drafts: 4 }))).toBe("check"));
   it("pourcentage de complétion", () =>
