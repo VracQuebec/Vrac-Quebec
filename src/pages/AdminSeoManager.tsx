@@ -2499,6 +2499,10 @@ function ProductionTab() {
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    productionRunner.hydrate();
+    return productionRunner.subscribe(setRunState);
+  }, []);
 
   const filtered = useMemo(() => {
     const list = filterP === 0 ? items : items.filter((i) => i.priority === filterP);
