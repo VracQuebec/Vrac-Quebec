@@ -60,8 +60,7 @@ export function decideForPage(fresh: PublishRow | null | undefined, duplicateTit
   if (!fresh) return "status_changed";
   if (fresh.status === "published") return "already_published";
   if (fresh.status !== "draft") return "status_changed";
-  const cls = classifyDraft(fresh);
-  if (cls === "error") return "has_error";
+  if (fresh.proc_status === "error" || (fresh.proc_error ?? "") !== "") return "has_error";
   if (!isPublishable(fresh, duplicateTitle)) return "not_ready";
   return "publish";
 }

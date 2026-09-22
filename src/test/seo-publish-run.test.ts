@@ -65,6 +65,8 @@ describe("décision juste avant écriture", () => {
   it("ignore une page disparue", () => expect(decideForPage(null)).toBe("status_changed"));
   it("ignore un autre statut", () => expect(decideForPage(page({ status: "archived" }))).toBe("status_changed"));
   it("ignore une page en erreur", () => expect(decideForPage(page({ proc_error: "boom" }))).toBe("has_error"));
+  it("ne rebloque pas une page conforme à cause d'un ancien signalement", () =>
+    expect(decideForPage(page({ qa_blockers: ["Ancien signalement corrigé"] }))).toBe("publish"));
   it("ignore une page qui n'est plus prête", () => expect(decideForPage(page({ internal_link_count: 0 }))).toBe("not_ready"));
   it("nomme chaque raison d'exclusion", () => expect(Object.keys(SKIP_LABEL)).toHaveLength(4));
 });
