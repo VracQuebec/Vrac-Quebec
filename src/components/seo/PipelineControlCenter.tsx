@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSeoControlCenter, type ControlCityRow, type ControlProblem } from "@/lib/seo/useSeoControlCenter";
 import { useSeoPipelineV2 } from "@/lib/seo/useSeoPipelineV2";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,9 @@ import { useCityGeneration } from "@/lib/seo/useCityGeneration";
 import { repairSeoPages } from "@/lib/seo/useSeoCityMatrix";
 import CityCombinationAudit from "@/components/seo/CityCombinationAudit";
 import { useGlobalGeneration } from "@/lib/seo/useGlobalGeneration";
+import { summarize } from "@/lib/seo/cityAudit";
+import { collectFixes, type QualityFix } from "@/lib/seo/coverageDisplay";
+import { fetchSeoStats, type SeoStats } from "@/lib/seo/api";
 import {
   canStartGlobal, confirmationLines, finalSummary, failureNotice,
   globalPhase, PHASE_LABEL, runProgress, shouldOfferRetry,
@@ -23,6 +26,12 @@ import {
   Play, Pause, Square, Rocket, RefreshCw, Send, ListRestart,
   Loader2, AlertTriangle, ExternalLink, FileText, CheckCircle2, Wand2,
 } from "lucide-react";
+
+/** Champs lus en lecture seule pour l'encadré « Pages à corriger » (critères de qualité). */
+type SeoPageRow = {
+  slug: string; city_slug: string; title: string | null;
+  status: string; meta_title: string | null; internal_link_count: number | null;
+};
 
 type FilterKey = "all" | "done" | "partial" | "running" | "todo" | "error";
 
@@ -61,6 +70,20 @@ export default function PipelineControlCenter() {
   // Même logique de génération que le Générateur (aucune architecture parallèle).
   const gen = useCityGeneration();
   const workCity = workSlug ? gen.bySlug.get(workSlug) ?? null : null;
+
+  // ── COUVERTURE SEO — lectures complémentaires (aucune écriture) ──
+  // Pages totales / villes historiques : seo_dashboard_stats (même source que le reste du tableau de bord).
+  const [stats, setStats] = useState<SeoStats | null>(null);
+  // Pages à corriger : critères de qualité (audit) appliqués en lecture seule sur les pages réelles.
+  const [fixRows, setFixRows] = useState<QualityFix<SeoPageRow>[] | null>(null);
+  useEffect(() => { void fetchSeoStats().then(setStats).catch(() => setStats(null)); }, []);
+  useEffect(() => {
+    supabase.from("seo_pages")
+      .select("slug, city_slug, title, status, meta_title, internal_link_count")
+      .then(({ data }) => setFixRows(collectFixes((data ?? []) as SeoPageRow[])));
+  }, []);
+  // Statuts des villes déduits uniquement des chiffres réels du Centre de pilotage.
+  const citySummary = useMemo(() => summarize(state?.cities ?? []), [state]);
   // ── Génération globale (orchestration du moteur existant) ──
   const [confirmOpen, setConfirmOpen] = useState(false);
   const activeRun = state?.active_run ?? null;
@@ -173,42 +196,99 @@ export default function PipelineControlCenter() {
 
         {totals && (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3">
-              <Kpi label="Pages générées" value={nf(totals.generated)} hint="Créées dans la base" />
-              <Kpi label="Pages publiées" value={nf(totals.published)} tone="good" hint="En ligne — publication manuelle" />
-              <Kpi label="Pages en brouillon" value={nf(totals.drafts)} hint="Générées, non publiées" />
-              <button type="button" onClick={() => setErrorsOpen(true)} className="text-left">
-                <Kpi label="Pages avec erreurs" value={nf(totals.errors)} tone={totals.errors > 0 ? "bad" : "muted"} hint="Voir la liste" />
-              </button>
-              <button type="button" onClick={() => setProblemsOpen(true)} className="text-left">
-                <Kpi label="Pages restantes à générer" value={nf(totals.remaining)} tone="muted" hint="Pages pertinentes non encore générées" />
-              </button>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Les pages prévues proviennent exactement de la même logique que le Générateur : uniquement les
-              combinaisons pertinentes pour chaque ville selon le registre CRM.
-              {typeof totals.potential_total === "number" && (
-                <> À titre indicatif seulement, {nf(totals.potential_total)} combinaisons théoriques existent (toutes
-                villes × tous matériaux × tous services).</>
-              )}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Les combinaisons potentielles ne sont pas une file de production : rien n'est généré tant qu'une ville
-              n'est pas lancée manuellement depuis le Générateur.
-            </p>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Avancement de la génération (pages générées / pages prévues pertinentes)</span>
-                <span className="font-semibold text-foreground">{globalPct}%</span>
+            {/* ── COUVERTURE SEO — source officielle : seo_control_center() (même logique que le Générateur) ── */}
+            <section className="rounded-xl border border-border p-4 md:p-5 space-y-4">
+              <div>
+                <h3 className="text-sm font-display font-bold tracking-wide">COUVERTURE SEO</h3>
+                <p className="text-xs text-muted-foreground">
+                  Même source que le Générateur : uniquement les combinaisons pertinentes (municipalité active du
+                  registre × matériau réellement demandé sur le territoire × service actif). Aucune combinaison
+                  théorique dans ces chiffres.
+                </p>
               </div>
-              <Progress value={globalPct} className="h-3" />
-              <div className="text-xs text-muted-foreground">
-                Publication (manuelle) : {publishedPct}% — {nf(totals.published)} publiée(s), {nf(totals.drafts)} en brouillon.
-                Une page générée n'est jamais publiée automatiquement.
+
+              {/* Métrique principale */}
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Combinaisons pertinentes créées</div>
+                    <div className="text-4xl font-display font-extrabold text-primary leading-tight">
+                      {nf(totals.generated)} <span className="text-xl text-muted-foreground font-bold">/ {nf(totals.target_total)}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Couverture</div>
+                    <div className="text-4xl font-display font-extrabold text-primary leading-tight">
+                      {globalPct}<span className="text-lg text-muted-foreground font-bold"> %</span>
+                    </div>
+                  </div>
+                </div>
+                <Progress value={globalPct} className="h-2 mt-3" />
+                <div className="text-xs text-muted-foreground mt-2">
+                  Publication (manuelle) : {publishedPct}% — {nf(totals.published)} publiée(s), {nf(totals.drafts)} en brouillon.
+                  Une page générée n'est jamais publiée automatiquement.
+                </div>
               </div>
-            </div>
+
+              {/* Tuiles officielles */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
+                <Kpi label="Municipalités analysées" value={nf(state.cities.length)} hint="Registre municipal actuel" />
+                <Kpi label="Combinaisons pertinentes" value={nf(totals.target_total)} hint="Ville × matériau × service" />
+                <Kpi label="Combinaisons créées" value={nf(totals.generated)} tone="good" hint="Pages existantes, brouillons inclus" />
+                <button type="button" onClick={() => setProblemsOpen(true)} className="text-left">
+                  <Kpi label="Combinaisons manquantes" value={nf(totals.remaining)} tone={totals.remaining > 0 ? "bad" : "muted"} hint="Pages pertinentes non générées — voir la liste" />
+                </button>
+                <Kpi label="Pages publiées" value={nf(totals.published)} tone="good" hint="En ligne" />
+                <Kpi label="Pages en brouillon" value={nf(totals.drafts)} hint="Générées, à publier manuellement" />
+                <Kpi label="Pages à corriger" value={fixRows ? nf(fixRows.length) : "…"} tone={fixRows && fixRows.length > 0 ? "bad" : "muted"} hint="Qualité — voir l'encadré" />
+                <button type="button" onClick={() => setErrorsOpen(true)} className="text-left">
+                  <Kpi label="Pages avec erreurs" value={nf(totals.errors)} tone={totals.errors > 0 ? "bad" : "muted"} hint="Génération — voir la liste" />
+                </button>
+                <Kpi label="Villes complètes" value={`${nf(citySummary.complete)} / ${nf(state.cities.length)}`} tone={citySummary.complete === state.cities.length ? "good" : undefined} hint="Toutes les combinaisons créées" />
+                <Kpi label="Villes incomplètes" value={nf(citySummary.incomplete)} tone={citySummary.incomplete > 0 ? "bad" : "muted"} hint="Certaines combinaisons manquent" />
+                <Kpi label="Villes sans page" value={nf(citySummary.none)} tone={citySummary.none > 0 ? "bad" : "muted"} hint="Aucune page générée" />
+                <Kpi label="Villes à vérifier" value={nf(citySummary.check)} tone={citySummary.check > 0 ? "bad" : "muted"} hint="Incohérence à contrôler" />
+              </div>
+
+              {/* Pages existantes — jamais mélangées au taux de couverture */}
+              <div className="rounded-lg border border-border bg-background/50 p-3 text-xs space-y-1">
+                <div className="font-semibold text-sm">Pages existantes : {stats ? nf(stats.pages_total) : "…"} au total</div>
+                <p className="text-muted-foreground">
+                  {nf(totals.generated)} pages correspondent aux combinaisons pertinentes actuelles du Générateur.
+                  {stats && stats.pages_total > totals.generated && (
+                    <> Les {nf(stats.pages_total - totals.generated)} pages restantes correspondent aux{" "}
+                    {nf(stats.cities_historical ?? 0)} villes historiques hors registre municipal actuel (pages
+                    conservées, jamais supprimées).</>
+                  )}
+                </p>
+              </div>
+
+              {/* Encadré « Pages à corriger » — lecture seule, aucune correction automatique */}
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs space-y-2">
+                <div className="font-semibold text-sm flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" /> Pages à corriger ({fixRows ? nf(fixRows.length) : "…"})
+                </div>
+                {fixRows === null ? (
+                  <p className="text-muted-foreground flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin" /> Vérification de la qualité…</p>
+                ) : fixRows.length === 0 ? (
+                  <p className="text-green-700 flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5" /> Aucune page à corriger.</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {fixRows.map((f) => {
+                      const cityName = state.cities.find((c) => c.slug === f.city_slug)?.name ?? f.city_slug;
+                      return (
+                        <li key={f.slug} className="flex flex-wrap items-center gap-2">
+                          <strong>{cityName}</strong>
+                          <span className="text-muted-foreground">{f.title ?? f.slug}</span>
+                          <Badge variant="outline" className="text-[10px]">{f.status === "published" ? "Publiée" : "Brouillon"}</Badge>
+                          <span className="text-destructive">{f.reason}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </section>
 
             <div className="rounded-lg border border-border bg-background/50 p-3 text-sm">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
