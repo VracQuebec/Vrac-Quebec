@@ -232,6 +232,27 @@
       "when": 1790112515274,
       "tag": "0032_public_point_prefer_address_and_backup",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790112790040,
+      "tag": "0033_progressive_site_address_disclosure",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790112844006,
+      "tag": "0034_gate_transport_request_site_address",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1790113029086,
+      "tag": "0035_grant_disclosure_rpcs_to_service_role",
+      "breakpoints": true
     }
   ]
 }

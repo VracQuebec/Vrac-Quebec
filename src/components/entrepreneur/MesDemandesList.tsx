@@ -55,8 +55,19 @@ export const SubmissionCard = ({ s }: { s: MySubmission }) => {
         <Line
           icon={<MapPin className="h-3.5 w-3.5" />}
           label="Site sélectionné"
-          value={s.selectedSiteLabel || s.selectedSiteAddress || "Aucun site sélectionné pour l'instant"}
+          value={s.selectedSiteLabel || "Aucun site sélectionné pour l'instant"}
         />
+        {s.selectedSiteId && (
+          <Line
+            icon={<MapPin className="h-3.5 w-3.5" />}
+            label="Adresse du site"
+            value={
+              s.siteValidatedAt && s.selectedSiteAddress
+                ? s.selectedSiteAddress
+                : "Communiquée après approbation de votre demande"
+            }
+          />
+        )}
       </div>
 
       {/* Rattachement existant réutilisé : chaque demande affiche uniquement SA demande de transport. */}
