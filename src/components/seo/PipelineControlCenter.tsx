@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSeoControlCenter, type ControlCityRow, type ControlProblem } from "@/lib/seo/useSeoControlCenter";
 import { useSeoPipelineV2 } from "@/lib/seo/useSeoPipelineV2";
 import { Button } from "@/components/ui/button";
