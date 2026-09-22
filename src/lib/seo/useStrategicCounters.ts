@@ -61,9 +61,16 @@ export async function fetchAllSeoPages(force = false): Promise<CounterPage[]> {
   return fetchSeoPagesPaged<CounterPage>(force);
 }
 
-export function useStrategicCounters() {
+/**
+ * Compteurs détaillés — LECTURE SEULE et À LA DEMANDE par défaut.
+ * Cette lecture transfère le contenu complet des pages : elle n'est plus lancée
+ * automatiquement au chargement du Centre (elle saturait la base et laissait les
+ * compteurs à 0). L'utilisateur la déclenche explicitement.
+ */
+export function useStrategicCounters(options: { auto?: boolean } = {}) {
+  const auto = options.auto ?? false;
   const [counters, setCounters] = useState<StrategicCounters | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
@@ -71,7 +78,7 @@ export function useStrategicCounters() {
     setError(null);
     try {
       const [pages, blog] = await Promise.all([
-        fetchAllSeoPages(),
+        fetchAllSeoPages(true),
         supabase.from("blog_posts").select("id", { count: "exact", head: true }).in("status", ["draft", "scheduled"]),
       ]);
       setCounters(computeStrategicCounters(pages, { blogToPublish: blog.count ?? 0 }));
@@ -82,7 +89,7 @@ export function useStrategicCounters() {
     }
   }, []);
 
-  useEffect(() => { void reload(); }, [reload]);
+  useEffect(() => { if (auto) void reload(); }, [auto, reload]);
 
   return { counters, loading, error, reload };
 }

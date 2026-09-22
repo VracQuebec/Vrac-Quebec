@@ -55,6 +55,7 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
   const [dups, setDups] = useState<Set<string>>(new Set());
   const [results, setResults] = useState<QaControlResult[]>([]);
   const [running, setRunning] = useState(false);
+  const [reading, setReading] = useState(false);
   const [lastRun, setLastRun] = useState<string | null>(() => localStorage.getItem(LAST_RUN_KEY));
   const [filter, setFilter] = useState<QaVerdict | "all">("all");
   const [visible, setVisible] = useState(25);
@@ -64,26 +65,32 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
   const cityKey = cities.map((c) => c.slug).sort().join(",");
   const citySlugs = useMemo(() => new Set(cityKey ? cityKey.split(",") : []), [cityKey]);
 
-  const loadPages = useCallback(async () => {
+  /**
+   * Lecture des pages À LA DEMANDE : elle transfère le contenu complet des pages
+   * et ne doit jamais partir automatiquement à l'ouverture du Centre.
+   */
+  const loadPages = useCallback(async (): Promise<{ rows: Row[]; dups: Set<string> } | null> => {
     setPages(null);
     setLoadError(null);
+    setReading(true);
     let all: Row[] = [];
-    // Pagination complète par petits lots : jamais de troncature silencieuse,
-    // jamais un lot assez gros pour dépasser le délai d'exécution de la base.
     try {
       all = await fetchSeoPagesPaged<Row>(true);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Erreur de lecture");
       setPages([]);
-      return;
+      return null;
+    } finally {
+      setReading(false);
     }
-    setDups(duplicateTitles(all));
+    const d = duplicateTitles(all);
+    setDups(d);
     // Pages pertinentes : municipalités du registre actuel. Sans registre chargé,
     // on retombe sur l'ensemble des pages publiées (jamais un échantillon).
-    setPages(citySlugs.size > 0 ? all.filter((p) => citySlugs.has(p.city_slug)) : all.filter((p) => p.status === "published"));
+    const targeted = citySlugs.size > 0 ? all.filter((p) => citySlugs.has(p.city_slug)) : all.filter((p) => p.status === "published");
+    setPages(targeted);
+    return { rows: targeted, dups: d };
   }, [citySlugs]);
-
-  useEffect(() => { void loadPages(); }, [loadPages]);
 
   const targets = pages ?? [];
   const summary = useMemo(() => summarizeQaControl(results, targets.length), [results, targets.length]);
@@ -116,13 +123,17 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
   }, [results, targets]);
 
   const run = useCallback(async () => {
-    if (!pages || running) return;
+    if (running) return;
     setRunning(true);
     setResults([]);
+    // Les pages sont lues au moment du contrôle si elles ne l'ont pas déjà été.
+    const loaded = pages ? { rows: pages, dups } : await loadPages();
+    if (!loaded) { setRunning(false); return; }
+    const { rows: list, dups: titleDups } = loaded;
     let acc: QaControlResult[] = [];
-    for (let i = 0; i < pages.length; i += 25) {
-      const batch = pages.slice(i, i + 25).map((p) =>
-        runQaControl(p, { duplicateTitle: dups.has((p.meta_title ?? "").trim()) }),
+    for (let i = 0; i < list.length; i += 25) {
+      const batch = list.slice(i, i + 25).map((p) =>
+        runQaControl(p, { duplicateTitle: titleDups.has((p.meta_title ?? "").trim()) }),
       );
       acc = mergeResults(acc, batch);
       setResults(acc);
@@ -133,7 +144,7 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
     localStorage.setItem(LAST_RUN_KEY, at);
     setLastRun(at);
     setRunning(false);
-  }, [pages, dups, running]);
+  }, [pages, dups, running, loadPages]);
 
   const rows = useMemo(
     () => (filter === "all" ? results : results.filter((r) => r.verdict === filter)),
@@ -147,23 +158,25 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-base font-display font-bold flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-primary" /> Contrôle qualité — {nf(targets.length)} pages pertinentes
+            <ShieldCheck className="w-4 h-4 text-primary" /> Contrôle qualité —{" "}
+            {pages ? `${nf(targets.length)} pages pertinentes` : `${nf(cities.length)} municipalités au périmètre`}
           </h3>
           <p className="text-xs text-muted-foreground">
             Contrôle automatisé en lecture seule sur l'état actuel des pages : aucune page n'est publiée, corrigée,
-            créée ni supprimée, et aucun ancien signalement n'est réutilisé.
+            créée ni supprimée, et aucun ancien signalement n'est réutilisé. Rien n'est lu tant que vous ne lancez
+            pas le contrôle.
           </p>
           <p className="text-[11px] text-muted-foreground mt-1">
             Dernier contrôle qualité : {fmtDateTime(lastRun)}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => void loadPages()} disabled={running}>
-            <RefreshCw className="w-4 h-4 mr-1" /> Recharger les pages
+          <Button size="sm" variant="outline" onClick={() => void loadPages()} disabled={running || reading}>
+            <RefreshCw className={`w-4 h-4 mr-1 ${reading ? "animate-spin" : ""}`} /> Recharger les pages
           </Button>
-          <Button size="sm" onClick={() => void run()} disabled={running || pages === null || targets.length === 0}>
-            {running ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-1" />}
-            {running ? "Contrôle en cours…" : results.length ? "Relancer le contrôle" : "Lancer le contrôle"}
+          <Button size="sm" onClick={() => void run()} disabled={running || reading}>
+            {running || reading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-1" />}
+            {reading ? "Lecture des pages…" : running ? "Contrôle en cours…" : results.length ? "Relancer le contrôle" : "Lancer le contrôle"}
           </Button>
         </div>
       </header>
@@ -176,8 +189,9 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
       )}
 
       {pages === null ? (
-        <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin" /> Lecture des pages…
+        <div className="text-sm text-muted-foreground flex items-center gap-2 border border-dashed rounded-lg p-4">
+          {reading ? <><Loader2 className="w-4 h-4 animate-spin" /> Lecture des pages…</>
+            : "Aucun contrôle exécuté pour l'instant — le Centre reste léger tant que vous ne lancez pas le contrôle."}
         </div>
       ) : (
         <>
