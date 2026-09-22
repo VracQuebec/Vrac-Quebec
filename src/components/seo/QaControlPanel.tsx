@@ -63,7 +63,10 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
   const [filter, setFilter] = useState<QaVerdict | "all">("all");
   const [visible, setVisible] = useState(25);
 
-  const citySlugs = useMemo(() => new Set(cities.map((c) => c.slug)), [cities]);
+  // Clé stable : le registre est rechargé périodiquement, on ne relit les pages
+  // que si la liste des municipalités change réellement.
+  const cityKey = cities.map((c) => c.slug).sort().join(",");
+  const citySlugs = useMemo(() => new Set(cityKey ? cityKey.split(",") : []), [cityKey]);
 
   const loadPages = useCallback(async () => {
     setPages(null);
