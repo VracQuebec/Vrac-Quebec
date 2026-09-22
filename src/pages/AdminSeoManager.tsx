@@ -30,6 +30,10 @@ import GoalCard, { type Goal } from "@/components/seo/GoalCard";
 import QaReportBadge from "@/components/seo/QaReportBadge";
 import TabBoundary from "@/components/seo/TabBoundary";
 import CityGenerator from "@/components/seo/CityGenerator";
+import {
+  productionRunner, selectMissingTargets, remainingTargets, runProgress,
+  type RunState, type RunTarget,
+} from "@/lib/seo/productionRunner";
 
 type Tab = "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "publication" | "intelligence" | "coverage" | "territory" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "gbp" | "blog";
 
@@ -2393,7 +2397,8 @@ function ProductionTab() {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterP, setFilterP] = useState<0 | 1 | 2 | 3 | 4>(0);
-  const [waveSize, setWaveSize] = useState(25);
+  const [waveSize, setWaveSize] = useState<10 | 25 | 50>(25);
+  const [runState, setRunState] = useState<RunState>(() => productionRunner.getState());
   const [threshold, setThreshold] = useState(90);
   const [running, setRunning] = useState(false);
   const [pauseFlag, setPauseFlag] = useState(false);
@@ -2495,6 +2500,10 @@ function ProductionTab() {
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    productionRunner.hydrate();
+    return productionRunner.subscribe(setRunState);
+  }, []);
 
   const filtered = useMemo(() => {
     const list = filterP === 0 ? items : items.filter((i) => i.priority === filterP);
@@ -2519,6 +2528,34 @@ function ProductionTab() {
     const qa = await invokeWithFreshSession<{ page_id: string; threshold: number; enforce_draft: boolean }, { score?: number; blockers?: string[]; warnings?: string[]; error?: string }>("seo-qa-check", { page_id: pageId, threshold: thr, enforce_draft: true });
     if (qa.error) return { ok: false, error: qa.error.message };
     return { ok: true, score: qa.data?.score, blockers: qa.data?.blockers, warnings: qa.data?.warnings, slug: gen.data.page.slug };
+  }
+
+  // Vérification en base, juste avant génération : protection absolue de l'existant.
+  async function combinationExists(t: RunTarget): Promise<boolean> {
+    let q = supabase.from("seo_pages").select("id").limit(1);
+    q = t.city?.slug ? q.eq("city_slug", t.city.slug) : q.is("city_slug", null);
+    q = t.material?.slug ? q.eq("material_slug", t.material.slug) : q.is("material_slug", null);
+    q = t.service?.slug ? q.eq("service_slug", t.service.slug) : q.is("service_slug", null);
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    return (data ?? []).length > 0;
+  }
+
+  async function startProduction(resume: boolean) {
+    if (productionRunner.isActive()) return;
+    const missing = selectMissingTargets(items, filterP);
+    const pending = resume ? remainingTargets(missing, runState.processedKeys) : missing;
+    if (pending.length === 0) { toast.info("Aucune page admissible manquante."); return; }
+    if (!window.confirm(`${resume ? "Reprendre" : "Produire"} ${pending.length} page(s) manquante(s) en brouillon non indexable, par lots de ${waveSize}? Aucune page existante ne sera modifiée.`)) return;
+    setLog([]);
+    await productionRunner.start(missing, { batchSize: waveSize, threshold, resume }, {
+      exists: combinationExists,
+      generate: (t, thr) => generateOne(t as unknown as QueueItem, thr),
+      log: pushLog,
+      onBatchEnd: () => { void load(); },
+    });
+    await load();
+    toast.success("Production terminée.");
   }
 
   async function runWave(source: "filtered" | "missing", size: number, thr: number) {
@@ -2643,14 +2680,40 @@ function ProductionTab() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Taille de vague</label>
-            <input type="number" min={1} max={100} value={waveSize} onChange={(e) => setWaveSize(Number(e.target.value) || 1)} className="w-24 rounded-md border border-border bg-background px-2 py-1 text-sm" />
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Taille de vague (lot)</label>
+            <select value={waveSize} onChange={(e) => setWaveSize(Number(e.target.value) as 10 | 25 | 50)} className="w-28 rounded-md border border-border bg-background px-2 py-1 text-sm">
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
           </div>
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Seuil QA</label>
             <input type="number" min={50} max={100} value={threshold} onChange={(e) => setThreshold(Number(e.target.value) || 90)} className="w-20 rounded-md border border-border bg-background px-2 py-1 text-sm" />
           </div>
           <div className="ml-auto flex flex-wrap gap-2">
+            <button
+              onClick={() => void startProduction(false)}
+              disabled={runState.status === "running" || running || counts.missing === 0}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-display font-bold text-primary-foreground disabled:opacity-50"
+            >
+              <Play className="w-4 h-4" /> Produire les pages manquantes ({counts.missing})
+            </button>
+            {runState.status === "paused" && (
+              <button onClick={() => void startProduction(true)} className="inline-flex items-center gap-1 rounded-md border border-primary px-3 py-2 text-sm font-semibold text-primary">
+                <RotateCcw className="w-4 h-4" /> Reprendre la production
+              </button>
+            )}
+            {runState.status === "running" && (
+              <button onClick={() => productionRunner.pause()} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-semibold">
+                <Pause className="w-4 h-4" /> Arrêter après la page en cours
+              </button>
+            )}
+            {runState.status === "done" && (
+              <button onClick={() => productionRunner.reset()} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-semibold">
+                <RefreshCw className="w-4 h-4" /> Nouveau cycle
+              </button>
+            )}
             {running && (
               <button onClick={() => setPauseFlag(true)} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-semibold">
                 <Pause className="w-4 h-4" /> Pause
@@ -2659,10 +2722,14 @@ function ProductionTab() {
           </div>
         </div>
         <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-          Génération par vague désactivée. La production se fait maintenant <strong>ville par ville</strong> dans
-          l'onglet <strong>Générateur</strong>. Cette vue reste disponible en lecture pour consulter la file et les
-          rapports historiques.
+          La production traite uniquement les combinaisons admissibles <strong>réellement manquantes</strong>, par lots
+          sécurisés, en brouillon non indexable. Chaque page est revérifiée en base avant génération : aucune page
+          existante n'est régénérée, aucun doublon n'est créé, aucune publication automatique.
         </div>
+
+        {(runState.status !== "idle" || runState.batches.length > 0) && (
+          <ProductionRunPanel state={runState} />
+        )}
         {(running || progress.total > 0) && (
           <div className="pt-2">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
@@ -2825,6 +2892,67 @@ function ProductionTab() {
           )}
         </aside>
       </section>
+    </div>
+  );
+}
+
+function ProductionRunPanel({ state }: { state: RunState }) {
+  const { done, remaining, percent } = runProgress(state);
+  const durationSec = state.startedAt
+    ? Math.max(0, Math.round(((state.finishedAt ?? Date.now()) - state.startedAt) / 1000))
+    : 0;
+  const label = state.status === "running" ? "Production en cours"
+    : state.status === "paused" ? "Production interrompue — reprise possible"
+    : state.status === "done" ? "PRODUCTION TERMINÉE" : "Production";
+
+  return (
+    <div className="rounded-lg border border-border bg-background p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h3 className="text-sm font-display font-bold text-foreground">{label}</h3>
+        <span className="text-xs text-muted-foreground">
+          {state.currentLabel || (state.status === "done" ? `Durée réelle : ${durationSec}s` : "—")}
+        </span>
+      </div>
+      <div className="h-2 rounded-full bg-secondary overflow-hidden">
+        <div className="h-full bg-primary transition-all" style={{ width: `${percent}%` }} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 text-xs">
+        <Metric label="À traiter" value={state.total} />
+        <Metric label="Traitées" value={done} />
+        <Metric label="Produites" value={state.produced} />
+        <Metric label="Conformes" value={state.conforme} />
+        <Metric label="À vérifier" value={state.aVerifier} />
+        <Metric label="Erreurs" value={state.errors} />
+        <Metric label="Doublons évités" value={state.skipped} />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Progression : {percent} % · {remaining} restante(s) · durée {durationSec}s
+      </p>
+
+      {state.batches.length > 0 && (
+        <div className="pt-2 border-t border-border space-y-1 max-h-56 overflow-y-auto">
+          {[...state.batches].reverse().map((b) => (
+            <div key={b.index} className="text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground">Lot #{b.index}</span>{" "}
+              {new Date(b.startedAt).toLocaleTimeString("fr-CA")}
+              {b.finishedAt ? ` → ${new Date(b.finishedAt).toLocaleTimeString("fr-CA")}` : " → en cours"} ·{" "}
+              {b.requested} demandées · {b.generated} générées · {b.conforme} conformes · {b.aVerifier} à vérifier ·{" "}
+              {b.skipped} doublon(s) ignoré(s) · {b.errors} erreur(s)
+            </div>
+          ))}
+        </div>
+      )}
+
+      {state.issues.length > 0 && (
+        <div className="pt-2 border-t border-border space-y-1 max-h-56 overflow-y-auto">
+          <h4 className="text-xs font-semibold text-foreground">Pages à vérifier et erreurs</h4>
+          {state.issues.map((i) => (
+            <div key={`${i.kind}-${i.key}`} className={i.kind === "error" ? "text-xs text-red-500" : "text-xs text-amber-600"}>
+              {i.kind === "error" ? "❌" : "⚠️"} {i.label} — {i.reason}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
