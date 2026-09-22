@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   runQaControl, summarizeQaControl, mergeResults, duplicateTitles, publishableTotal,
-  loose, stripHtml, topicOf, QA_CONTROL_RULES, QA_VERDICT_LABEL,
+  loose, stripHtml, topicOf, topicLabelOf, QA_CONTROL_RULES, QA_VERDICT_LABEL,
   type QaControlPage,
 } from "@/lib/seo/qaControl";
 
@@ -173,5 +173,47 @@ describe("contrôle qualité des pages à vérifier", () => {
     expect(loose("Cap-Saint-Ignace")).toBe("cap saint ignace");
     expect(topicOf({ slug: "x", city_slug: "y" })).toBe("hub");
     expect(QA_VERDICT_LABEL.ready).toBe("Prête à publier");
+  });
+
+  it("25. normalise les ligatures, accents, apostrophes, casse et tirets", () => {
+    expect(loose("Notre-Dame-du-Sacré-Cœur-d’Issoudun"))
+      .toBe("notre dame du sacre coeur d issoudun");
+    expect(loose("CŒUR")).toBe("coeur");
+  });
+
+  it("26. reconnaît une municipalité avec Cœur sans modifier son titre", () => {
+    const r = runQaControl(page({
+      city_slug: "notre-dame-du-sacre-coeur-d-issoudun",
+      title: "Gravier à Notre-Dame-du-Sacré-Cœur-d’Issoudun",
+      meta_title: "Gravier à Notre-Dame-du-Sacré-Cœur-d’Issoudun | Vrac Québec",
+      content_html: CONTENT().replaceAll("Beaumont", "Notre-Dame-du-Sacré-Cœur-d’Issoudun"),
+    }));
+    expect(r.issues.some((i) => i.key.startsWith("city_"))).toBe(false);
+  });
+
+  it("27. utilise le libellé canonique Point de dépôt pour le service", () => {
+    const p = page({
+      material_slug: null,
+      service_slug: "recherche-point-de-depot",
+      content_html: CONTENT("<p>Un point de dépôt est disponible selon les conditions applicables.</p>"),
+    });
+    expect(topicLabelOf(p)).toBe("point de dépôt");
+    expect(runQaControl(p).issues.some((i) => i.key === "topic_in_body")).toBe(false);
+  });
+
+  it("28. conserve les contrôles de sécurité après normalisation", () => {
+    const r = runQaControl(page({
+      city_slug: "notre-dame-du-sacre-coeur-d-issoudun",
+      title: "Titre sans municipalité",
+      meta_title: "Titre suffisamment long mais sans la municipalité officielle",
+      content_html: "<h1>A</h1><h1>B</h1><p>Un chiffre non vérifié : 15 %.</p>",
+      internal_link_count: 0,
+      internal_links: [],
+      word_count: 200,
+    }), { duplicateTitle: true });
+    expect(r.issues.map((i) => i.key)).toEqual(expect.arrayContaining([
+      "h1_multiple", "content_short", "internal_links", "cta", "city_in_title",
+      "city_in_body", "topic_in_body", "invented", "duplicate",
+    ]));
   });
 });

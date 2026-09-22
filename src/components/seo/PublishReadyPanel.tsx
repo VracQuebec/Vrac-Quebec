@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Loader2, Rocket, Pause, Play, RefreshCw, AlertTriangle, FlaskConical } from "lucide-react";
 import type { ControlCityRow } from "@/lib/seo/useSeoControlCenter";
 import { classifyDraft } from "@/lib/seo/draftAudit";
-import { duplicateTitles } from "@/lib/seo/qaControl";
+import { duplicateTitles, runQaControl } from "@/lib/seo/qaControl";
 import {
   PUBLISH_BATCH_SIZE, EMPTY_TALLY, SKIP_LABEL, applyOutcome, batchCount, batchNumber,
   chunk, confirmationLines, decideForPage, elapsedLabel, finalReport, progressPct,
@@ -76,13 +76,20 @@ export default function PublishReadyPanel({ cities }: { cities: ControlCityRow[]
     const rows = pages ?? [];
     const drafts = rows.filter((p) => p.status === "draft");
     const ready = selectPublishable(rows, dups);
-    const cls = drafts.map((p) => classifyDraft(p));
+    const currentResults = drafts.map((p) => ({
+      page: p,
+      verdict: runQaControl(p, { duplicateTitle: dups.has((p.meta_title ?? "").trim()) }).verdict,
+      cls: classifyDraft(p),
+    }));
+    const errors = currentResults.filter(({ page, verdict }) =>
+      page.proc_status === "error" || (page.proc_error ?? "") !== "" || verdict === "blocked"
+    ).length;
     return {
       ready,
       published: rows.filter((p) => p.status === "published").length,
       drafts: drafts.length,
-      errors: cls.filter((c) => c === "error").length,
-      toCheck: drafts.length - ready.length - cls.filter((c) => c === "error").length,
+      errors,
+      toCheck: Math.max(0, drafts.length - ready.length - errors),
       excluded: drafts.length - ready.length,
     };
   }, [pages, dups]);

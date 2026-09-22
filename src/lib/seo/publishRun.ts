@@ -36,7 +36,11 @@ export function isPublishable(page: PublishRow, duplicateTitle = false): boolean
   if (page.status !== "draft") return false;
   if (page.priority_locked) return false;
   const cls = classifyDraft(page);
-  if (cls === "error" || cls === "incomplete" || cls === "legacy" || cls === "held") return false;
+  // Un qa_blocker enregistré lors d'un ancien contrôle est historique : le contrôle
+  // complet ci-dessous tranche toujours sur l'état actuel. Les erreurs de traitement,
+  // les pages incomplètes, anciennes ou volontairement retenues restent exclues.
+  const hasProcessingError = page.proc_status === "error" || (page.proc_error ?? "") !== "";
+  if (hasProcessingError || cls === "incomplete" || cls === "legacy" || cls === "held") return false;
   return runQaControl(page, { duplicateTitle }).verdict === "ready";
 }
 

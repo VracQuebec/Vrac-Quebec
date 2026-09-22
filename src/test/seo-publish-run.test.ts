@@ -43,6 +43,10 @@ describe("sélection des pages publiables", () => {
   it("refuse un contenu trop court", () => expect(isPublishable(page({ word_count: 120 }))).toBe(false));
   it("refuse une page sans CTA", () => expect(isPublishable(page({ content_html: `<p>${"Gravier à Québec. ".repeat(60)}</p>` }))).toBe(false));
   it("refuse un titre en double", () => expect(isPublishable(page(), true)).toBe(false));
+  it("ignore un ancien bloqueur si le contrôle actuel est conforme", () =>
+    expect(isPublishable(page({ qa_blockers: ["Ancien signalement corrigé"] }))).toBe(true));
+  it("continue de refuser une erreur de traitement actuelle", () =>
+    expect(isPublishable(page({ qa_blockers: [], proc_error: "Erreur actuelle" }))).toBe(false));
   it("ne retient que les candidats publiables", () => {
     const list = selectPublishable([page(), page({ id: "id-2", slug: "x", status: "published" })]);
     expect(list.map((c) => c.id)).toEqual(["id-1"]);
