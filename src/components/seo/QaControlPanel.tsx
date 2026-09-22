@@ -59,11 +59,6 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
     })();
   }, []);
 
-  const readyDraftsBefore = useMemo(
-    () => (pages === null ? 0 : 0),
-    [pages],
-  );
-
   const targets = pages ?? [];
   const summary = useMemo(() => summarizeQaControl(results, targets.length), [results, targets.length]);
 
@@ -217,7 +212,7 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
           )}
           <p className="text-[11px] text-muted-foreground">
             Les pages « à corriger » ne sont jamais modifiées automatiquement : la correction et la publication
-            restent des décisions manuelles. {readyDraftsBefore === 0 ? "" : null}
+            restent des décisions manuelles.
           </p>
         </>
       )}
