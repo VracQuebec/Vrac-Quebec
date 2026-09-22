@@ -47,6 +47,7 @@ import TodayPanel from "@/components/crm/TodayPanel";
 
 import { Activity } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
+import DompesApprobationPanel from "@/components/admin/DompesApprobationPanel";
 import {
   ACCESS_RESTRICTION_OPTIONS,
   TRUCK_OPTIONS,
