@@ -56,6 +56,10 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
   const [results, setResults] = useState<QaControlResult[]>([]);
   const [running, setRunning] = useState(false);
   const [reading, setReading] = useState(false);
+  /** Pages impossibles à contrôler : signalées, sans interrompre le contrôle. */
+  const [controlErrors, setControlErrors] = useState<string[]>([]);
+  /** Durée du dernier contrôle, en secondes. */
+  const [duration, setDuration] = useState<number | null>(null);
   const [lastRun, setLastRun] = useState<string | null>(() => localStorage.getItem(LAST_RUN_KEY));
   const [filter, setFilter] = useState<QaVerdict | "all">("all");
   const [visible, setVisible] = useState(25);
