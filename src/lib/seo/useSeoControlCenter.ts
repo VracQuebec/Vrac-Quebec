@@ -84,16 +84,22 @@ export function useSeoControlCenter() {
   const debounce = useRef<number | null>(null);
 
   const load = useCallback(async () => {
-    try {
+    // Nouvelles tentatives : sous forte charge (lecture complète des 2 077 pages
+    // en parallèle), l'appel peut dépasser le délai d'exécution de la base.
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
       const { data, error } = await supabase.rpc("seo_control_center" as never);
-      if (error) throw error;
-      setState(data as unknown as ControlCenterState);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur de chargement");
-    } finally {
-      setLoading(false);
+      if (!error) {
+        setState(data as unknown as ControlCenterState);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+      lastError = error;
+      await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
     }
+    setError(lastError instanceof Error ? lastError.message : "Erreur de chargement");
+    setLoading(false);
   }, []);
 
   const schedule = useCallback(() => {
