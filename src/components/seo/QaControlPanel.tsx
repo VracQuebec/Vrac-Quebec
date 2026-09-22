@@ -248,6 +248,8 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
             <Progress value={summary.progress} className="h-2" />
             <div className="text-[11px] text-muted-foreground">
               Progression du contrôle : {summary.progress} % ({nf(summary.checked)} / {nf(targets.length)})
+              {" · "}Erreurs de contrôle (pages illisibles) : {nf(controlErrors.length)}
+              {duration !== null && <> {" · "}Durée du contrôle : {duration} s</>}
             </div>
           </div>
 
