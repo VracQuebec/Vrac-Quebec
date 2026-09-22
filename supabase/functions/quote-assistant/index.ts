@@ -551,6 +551,11 @@ Deno.serve(async (req) => {
   try {
     const sb = db();
     const body = await req.json().catch(() => null);
+    // Les actions « advise » et « quote » déclenchent des services payants
+    // (IA, géocodage) : quota par adresse pour les appels non connectés.
+    if (body?.action === 'advise' || body?.action === 'quote') {
+      await enforceIpQuota(sb, `quote-assistant:${body.action}`, clientIp(req), 30, 60);
+    }
     switch (body?.action) {
       case 'catalog':
         return json(await catalog(sb));
