@@ -52,15 +52,40 @@ Deno.serve(async (req) => {
     ]);
 
     // Load current SEO state.
-    const [pagesRes, recosRes, gscRes, blogRes, brokenRes] = await Promise.all([
-      supabase.from("seo_pages").select("id,slug,title,status,word_count,seo_score,qa_last_score,internal_link_count,google_index_status,last_generated_at").limit(5000),
+    // Pagination complète : PostgREST plafonne chaque requête à 1 000 lignes.
+    // Le rapport doit couvrir TOUTES les pages, jamais un échantillon.
+    const PAGE_SIZE = 1000;
+    type PageRow = {
+      id: string; slug: string; title: string; status: string; word_count: number | null;
+      seo_score: number | null; qa_last_score: number | null; internal_link_count: number | null;
+      google_index_status: string | null; last_generated_at: string | null; noindex: boolean | null;
+    };
+    async function loadAllPages(): Promise<PageRow[]> {
+      const out: PageRow[] = [];
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data } = await supabase
+          .from("seo_pages")
+          .select("id,slug,title,status,word_count,seo_score,qa_last_score,internal_link_count,google_index_status,last_generated_at,noindex")
+          .order("slug", { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+        const batch = (data ?? []) as PageRow[];
+        out.push(...batch);
+        if (batch.length < PAGE_SIZE) break;
+      }
+      return out;
+    }
+
+    const [allPages, recosRes, gscRes, blogRes, blogDraftRes, brokenRes] = await Promise.all([
+      loadAllPages(),
       supabase.from("seo_recommendations").select("id,reco_type,priority,impact_estimate,effort_estimate,title").eq("status", "open").order("priority", { ascending: false }).limit(500),
       supabase.from("seo_gsc_metrics").select("page_id,impressions,clicks,ctr,position").eq("period", "28d").limit(5000),
       supabase.from("blog_posts").select("id,title,status,updated_at").eq("status", "published"),
+      // Articles réellement à publier : brouillons et articles planifiés (jamais une formule).
+      supabase.from("blog_posts").select("id", { count: "exact", head: true }).in("status", ["draft", "scheduled"]),
       supabase.from("seo_broken_links").select("id", { count: "exact", head: true }),
     ]);
 
-    const pages = pagesRes.data ?? [];
+    const pages = allPages;
     const recos = recosRes.data ?? [];
     const gsc = gscRes.data ?? [];
     const blogs = blogRes.data ?? [];
@@ -80,8 +105,13 @@ Deno.serve(async (req) => {
       p.status === "published" && p.last_generated_at && new Date(p.last_generated_at).getTime() < staleThreshold
     );
     const qaToFix = pages.filter((p) => (p.qa_last_score ?? 100) < 80 && p.status === "published");
-    const linksToAdd = pages.filter((p) => p.status === "published" && (p.internal_link_count ?? 0) < 5)
-      .reduce((sum, p) => sum + Math.max(0, 5 - (p.internal_link_count ?? 0)), 0);
+    // Erreur réelle : moins de 2 liens internes. Optimisation : 2 à 4 liens. Objectif : 5+.
+    const linkErrors = pages.filter((p) => p.status === "published" && (p.internal_link_count ?? 0) < 2).length;
+    const linksOptPages = pages.filter((p) => {
+      const n = p.internal_link_count ?? 0;
+      return p.status === "published" && n >= 2 && n < 5;
+    });
+    const linksToAdd = linksOptPages.reduce((sum, p) => sum + (5 - (p.internal_link_count ?? 0)), 0);
     const pagesToCreate = recos.filter((r) => r.reco_type === "missing_city_page" || r.reco_type === "missing_service_content").length;
     const staleBlog = blogs.filter((b) => new Date(b.updated_at).getTime() < staleThreshold).length;
 
@@ -128,8 +158,10 @@ Deno.serve(async (req) => {
         pages_to_create: Math.max(0, pagesToCreate - (activeJob?.done ?? 0)),
         pages_to_refresh: pagesToRefresh.length,
         links_to_add: linksToAdd,
+        links_opt_pages: linksOptPages.length,
+        link_errors: linkErrors,
         qa_to_fix: qaToFix.length,
-        blog_to_publish: Math.min(2, Math.max(0, Math.round((pagesToCreate + qaToFix.length) / 10))),
+        blog_to_publish: blogDraftRes.count ?? 0,
         stale_blog: staleBlog,
         pages_generating: activeJob?.done ?? 0,
       },

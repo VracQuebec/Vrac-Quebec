@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Loader2, Sparkles, TrendingUp, FileText, RefreshCw, Link2, ShieldCheck, PenSquare } from "lucide-react";
+import { Loader2, Sparkles, TrendingUp, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
+import StrategicCounters from "@/components/seo/StrategicCounters";
+import type { StrategicCounters as Counters } from "@/lib/seo/strategicCounters";
 
 type Report = {
   id: string;
@@ -41,7 +43,14 @@ type Report = {
   };
 };
 
-export default function StrategicReport() {
+export default function StrategicReport({
+  counters, countersLoading, countersError, onReloadCounters,
+}: {
+  counters: Counters | null;
+  countersLoading: boolean;
+  countersError: string | null;
+  onReloadCounters: () => void;
+}) {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [report, setReport] = useState<Report | null>(null);
@@ -133,12 +142,13 @@ export default function StrategicReport() {
               </div>
             </div>
           )}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
-            <ActionBox icon={FileText} label="Nouvelles pages" value={a?.pages_to_create ?? 0} />
-            <ActionBox icon={RefreshCw} label="Pages à rafraîchir" value={a?.pages_to_refresh ?? 0} />
-            <ActionBox icon={Link2} label="Liens internes" value={a?.links_to_add ?? 0} />
-            <ActionBox icon={ShieldCheck} label="Pages QA < 80" value={a?.qa_to_fix ?? 0} />
-            <ActionBox icon={PenSquare} label="Articles à publier" value={a?.blog_to_publish ?? 0} />
+          <div className="mb-4">
+            <StrategicCounters counters={counters} loading={countersLoading} error={countersError} onReload={onReloadCounters} />
+            {a?.pages_to_create ? (
+              <div className="mt-3 text-xs text-muted-foreground flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5" /> Nouvelles pages recommandées : {a.pages_to_create}
+              </div>
+            ) : null}
           </div>
           {proj && (
             <div className="flex items-center gap-4 flex-wrap p-3 rounded-lg bg-primary/10 border border-primary/20">

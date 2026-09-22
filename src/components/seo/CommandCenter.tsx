@@ -13,6 +13,8 @@ import CoverageOverview from "@/components/seo/CoverageOverview";
 import WaveRunner from "@/components/seo/WaveRunner";
 import PipelineControlCenter from "@/components/seo/PipelineControlCenter";
 import { useSeoStats } from "@/lib/seo/useSeoStats";
+import { useStrategicCounters } from "@/lib/seo/useStrategicCounters";
+import { buildOptimizationPreview } from "@/lib/seo/strategicCounters";
 
 type PageRow = {
   id: string; slug: string; title: string; status: string;
@@ -33,6 +35,8 @@ export default function CommandCenter() {
   const [loading, setLoading] = useState(true);
   const { stats, error: statsError, reload: reloadStats } = useSeoStats();
   const [optimizing, setOptimizing] = useState(false);
+  const { counters, loading: countersLoading, error: countersError, reload: reloadCounters } = useStrategicCounters();
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [pages, setPages] = useState<PageRow[]>([]);
   const [gsc, setGsc] = useState<Map<string, GscRow>>(new Map());
   const [events, setEvents] = useState<Map<string, { view: number; phone: number; whatsapp: number; submission: number; cta: number }>>(new Map());
@@ -82,7 +86,8 @@ export default function CommandCenter() {
   }
 
   async function optimizeAll() {
-    if (!confirm("Lancer l'optimisation automatique de toutes les pages qui en ont besoin ?\n\nLe traitement se fait en arrière-plan, page par page, avec reprise automatique en cas d'interruption.")) return;
+    // Aucune action massive sans aperçu explicite : le dialogue affiche les pages,
+    // les URLs, le type de modification et ce qui serait réellement modifié.
     setOptimizing(true);
     try {
       // Point d'entrée unique : la file d'attente persistée du moteur SEO.
@@ -211,7 +216,10 @@ export default function CommandCenter() {
           <p className="text-sm text-muted-foreground font-body mt-1">Vue stratégique en temps réel — où nous en sommes, ce qui fonctionne, ce qui doit être amélioré.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={optimizeAll} disabled={optimizing}
+          <button
+            onClick={() => setPreviewOpen(true)}
+            disabled={optimizing || countersLoading || (counters?.optimizations.total ?? 0) === 0}
+            title={(counters?.optimizations.total ?? 0) === 0 ? "Aucune action d'optimisation identifiée" : undefined}
             className="inline-flex items-center gap-2 text-xs font-display font-bold px-3 py-2 rounded-md bg-primary text-primary-foreground shadow hover:opacity-90 disabled:opacity-50">
             {optimizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
             Optimiser tout le site
@@ -222,7 +230,47 @@ export default function CommandCenter() {
         </div>
       </header>
 
-      <StrategicReport />
+      {previewOpen && counters && (() => {
+        const preview = buildOptimizationPreview(counters);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+            <div className="w-full max-w-2xl max-h-[85vh] overflow-auto rounded-xl bg-background border border-border p-5 space-y-3">
+              <h2 className="text-lg font-display font-extrabold">Avant de lancer l'optimisation</h2>
+              <p className="text-sm text-muted-foreground">
+                Aucune page n'est modifiée tant que vous n'avez pas confirmé ci-dessous.
+              </p>
+              <div className="text-sm"><strong>Nombre de pages concernées :</strong> {preview.pages}</div>
+              <ul className="text-sm space-y-1">
+                {preview.kinds.map((k) => (
+                  <li key={k.kind}>• {k.kind} — {k.pages} page(s) · contenu modifié : {k.target}</li>
+                ))}
+              </ul>
+              <div>
+                <div className="text-sm font-display font-bold mb-1">URLs concernées ({preview.urls.length} affichées)</div>
+                <ul className="text-xs font-mono max-h-52 overflow-auto text-muted-foreground space-y-0.5">
+                  {preview.urls.map((u) => <li key={u}>{u}</li>)}
+                </ul>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button onClick={() => setPreviewOpen(false)}
+                  className="px-3 py-2 text-xs font-display font-semibold rounded-md border border-border">Annuler</button>
+                <button onClick={() => { setPreviewOpen(false); void optimizeAll(); }} disabled={optimizing}
+                  className="px-3 py-2 text-xs font-display font-bold rounded-md bg-primary text-primary-foreground disabled:opacity-50">
+                  Lancer l'optimisation de {preview.pages} page(s)
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+
+      <StrategicReport
+        counters={counters}
+        countersLoading={countersLoading}
+        countersError={countersError}
+        onReloadCounters={() => void reloadCounters()}
+      />
 
       <PipelineControlCenter />
 
