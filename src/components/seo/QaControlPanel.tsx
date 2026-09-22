@@ -95,11 +95,25 @@ export default function QaControlPanel({ cities }: { cities: ControlCityRow[] })
     const done = new Set(results.map((r) => r.slug));
     const checked = targets.filter((p) => done.has(p.slug));
     const blockedSlugs = new Set(results.filter((r) => r.verdict === "blocked").map((r) => r.slug));
+    const faulty = new Set<string>();
+    const seo: string[] = [], technical: string[] = [], links: string[] = [], indexation: string[] = [];
+    for (const p of checked) {
+      if (blockedSlugs.has(p.slug)) { seo.push(p.slug); faulty.add(p.slug); }
+      if (p.proc_status === "error" || (p.proc_error ?? "") !== "" || (p.status === "published" && p.noindex === true)) { technical.push(p.slug); faulty.add(p.slug); }
+      if ((p.internal_link_count ?? 0) < 2) { links.push(p.slug); faulty.add(p.slug); }
+      if (CONFIRMED_NOT_INDEXED.includes(p.google_index_status ?? "")) { indexation.push(p.slug); faulty.add(p.slug); }
+    }
     return {
-      seo: checked.filter((p) => blockedSlugs.has(p.slug)).length,
-      technical: checked.filter((p) => p.proc_status === "error" || (p.proc_error ?? "") !== "" || (p.status === "published" && p.noindex === true)).length,
-      links: checked.filter((p) => (p.internal_link_count ?? 0) < 2).length,
-      indexation: checked.filter((p) => CONFIRMED_NOT_INDEXED.includes(p.google_index_status ?? "")).length,
+      seo: seo.length,
+      technical: technical.length,
+      links: links.length,
+      indexation: indexation.length,
+      /** Pages présentant au moins une erreur réelle aujourd'hui. */
+      toFix: faulty.size,
+      /** Pages sans aucune erreur réelle (les suggestions facultatives n'en font pas des erreurs). */
+      compliant: checked.length - faulty.size,
+      /** Suggestions d'amélioration facultatives, jamais des erreurs. */
+      optional: results.filter((r) => r.verdict === "fix" && !faulty.has(r.slug)).length,
     };
   }, [results, targets]);
 
