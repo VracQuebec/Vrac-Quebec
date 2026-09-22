@@ -2782,10 +2782,12 @@ function ProductionTab() {
           <div className="ml-auto flex flex-wrap gap-2">
             <button
               onClick={() => void startProduction(false)}
-              disabled={runState.status === "running" || running || counts.missing === 0}
+              disabled={runState.status === "running" || running || loading || counts.missing === 0}
+              title={counts.missing === 0 ? "Toutes les combinaisons admissibles existent déjà en base." : undefined}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-display font-bold text-primary-foreground disabled:opacity-50"
             >
-              <Play className="w-4 h-4" /> Produire les pages manquantes ({counts.missing})
+              <Play className="w-4 h-4" />
+              {counts.missing === 0 ? "Aucune page manquante" : `Produire les pages manquantes (${counts.missing})`}
             </button>
             {runState.status === "paused" && (
               <button onClick={() => void startProduction(true)} className="inline-flex items-center gap-1 rounded-md border border-primary px-3 py-2 text-sm font-semibold text-primary">
