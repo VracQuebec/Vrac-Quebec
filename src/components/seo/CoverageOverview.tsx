@@ -2,7 +2,7 @@
 // (exactement la même logique de pertinence que le Générateur) complétée par
 // seo_dashboard_stats() pour les matériaux/services couverts (calculés côté base).
 // Aucun calcul théorique ici, aucune lecture paginée côté client.
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2, MapPin, Package, Wrench, Grid3x3, FileText } from "lucide-react";
 import { fetchSeoStats, type SeoStats } from "@/lib/seo/api";
 import { useSeoControlCenter } from "@/lib/seo/useSeoControlCenter";
@@ -10,17 +10,37 @@ import { useSeoControlCenter } from "@/lib/seo/useSeoControlCenter";
 const nf = (n: number) => n.toLocaleString("fr-CA");
 
 export default function CoverageOverview() {
-  const { state, loading: ccLoading } = useSeoControlCenter();
+  const { state, loading: ccLoading, error: ccError, reload } = useSeoControlCenter();
   const [stats, setStats] = useState<SeoStats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
-  useEffect(() => {
-    void fetchSeoStats().then(setStats).catch(() => setStats(null));
+  const loadStats = useCallback(async () => {
+    setStatsLoading(true);
+    setStatsError(null);
+    try {
+      setStats(await fetchSeoStats());
+    } catch (e) {
+      // La cause réelle est affichée : ce bloc ne doit jamais rester sur une erreur muette.
+      setStatsError(e instanceof Error ? e.message : "Erreur de lecture des statistiques");
+    } finally {
+      setStatsLoading(false);
+    }
   }, []);
+
+  useEffect(() => { void loadStats(); }, [loadStats]);
 
   if (ccLoading && !state) {
     return <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement de la couverture…</div>;
   }
-  if (!state) return <div className="text-sm text-muted-foreground">Couverture indisponible.</div>;
+  if (!state) {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+        Couverture indisponible — source : registre de couverture SEO — cause : {ccError ?? "aucune donnée retournée"}
+        <button onClick={() => void reload()} className="ml-2 underline">Réessayer</button>
+      </div>
+    );
+  }
 
   const t = state.totals;
   const cities = state.cities;
@@ -43,6 +63,15 @@ export default function CoverageOverview() {
         <CoverageCard icon={Grid3x3} label="Combinaisons pertinentes créées"
           pct={pct(t.generated, t.target_total)} sub={`${nf(t.generated)} / ${nf(t.target_total)}`} />
       </section>
+
+      {statsError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+          Statistiques matériaux et services indisponibles — source : statistiques consolidées SEO — cause : {statsError}
+          <button onClick={() => void loadStats()} disabled={statsLoading} className="ml-2 underline disabled:opacity-50">
+            {statsLoading ? "Nouvelle tentative…" : "Réessayer"}
+          </button>
+        </div>
+      )}
 
       <div className="rounded-lg border border-border bg-card p-4 text-xs space-y-1.5">
         <div className="font-semibold text-sm flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /> Définitions officielles</div>

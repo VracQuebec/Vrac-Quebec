@@ -54,25 +54,48 @@ export default function CommandCenter() {
   const [services, setServices] = useState<{ slug: string; name: string }[]>([]);
   const [blogPosts, setBlogPosts] = useState<{ id: string; title: string; slug: string; status: string; published_at: string | null; updated_at: string }[]>([]);
   const [brokenLinks, setBrokenLinks] = useState(0);
+  const [pagesError, setPagesError] = useState<string | null>(null);
 
-  /** Lecture paginée complète des pages : jamais de troncature silencieuse à 1 000 lignes. */
+  /**
+   * Lecture paginée complète des pages (colonnes légères uniquement, jamais le
+   * contenu HTML) : lots de 500 avec nouvelles tentatives. Une erreur n'est plus
+   * ignorée silencieusement — sinon les compteurs affichaient 0 sans explication.
+   */
   async function fetchAllPages(): Promise<PageRow[]> {
     const cols = "id,slug,title,status,seo_score,qa_last_score,google_index_status,needs_refresh,last_generated_at,created_at,view_count,internal_link_count,word_count,meta_title,meta_description,city_slug,material_slug,service_slug";
+    const BATCH = 500;
     const rows: PageRow[] = [];
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await supabase.from("seo_pages").select(cols).range(from, from + 999);
-      if (error) break;
-      rows.push(...((data ?? []) as unknown as PageRow[]));
-      if (!data || data.length < 1000) break;
+    for (let from = 0; ; from += BATCH) {
+      let batch: PageRow[] | null = null;
+      let lastError = "";
+      for (let attempt = 0; attempt < 3 && batch === null; attempt++) {
+        const { data, error } = await supabase
+          .from("seo_pages").select(cols).order("id", { ascending: true }).range(from, from + BATCH - 1);
+        if (error) {
+          lastError = error.message;
+          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+          continue;
+        }
+        batch = (data ?? []) as unknown as PageRow[];
+      }
+      if (batch === null) throw new Error(lastError || "Lecture des pages impossible");
+      rows.push(...batch);
+      if (batch.length < BATCH) break;
     }
     return rows;
   }
 
   async function loadAll() {
     setLoading(true);
+    setPagesError(null);
     const since30 = new Date(Date.now() - 30 * 86400 * 1000).toISOString();
-    const [pagesRows, gscRes, eventsRes, trRes, citiesRes, matsRes, svcRes, blogRes, brokenRes] = await Promise.all([
-      fetchAllPages(),
+    let pagesRows: PageRow[] = [];
+    try {
+      pagesRows = await fetchAllPages();
+    } catch (e) {
+      setPagesError(e instanceof Error ? e.message : "Lecture des pages impossible");
+    }
+    const [gscRes, eventsRes, trRes, citiesRes, matsRes, svcRes, blogRes, brokenRes] = await Promise.all([
       supabase.from("seo_gsc_metrics").select("page_id,impressions,clicks,ctr,position").eq("period", "28d"),
       supabase.from("seo_page_events").select("page_slug,event_type").gte("occurred_at", since30).limit(50000),
       supabase.from("transport_requests").select("id", { count: "exact", head: true }).gte("created_at", since30),
@@ -82,7 +105,7 @@ export default function CommandCenter() {
       supabase.from("blog_posts").select("id,title,slug,status,published_at,updated_at").order("updated_at", { ascending: false }).limit(20),
       supabase.from("seo_broken_links").select("id", { count: "exact", head: true }),
     ]);
-    setPages(pagesRows);
+    if (pagesRows.length > 0) setPages(pagesRows);
     const gMap = new Map<string, GscRow>();
     for (const g of (gscRes.data ?? []) as GscRow[]) gMap.set(g.page_id, g);
     setGsc(gMap);
@@ -107,11 +130,15 @@ export default function CommandCenter() {
     setLoading(false);
   }
 
-  /** « Actualiser les données » : relecture seule (pages, statistiques, compteurs). */
+  /**
+   * « Actualiser les données » : relecture SEULE (pages, statistiques).
+   * Les compteurs détaillés ne sont recalculés que s'ils ont déjà été demandés,
+   * afin de ne jamais relancer d'office la lecture la plus lourde.
+   */
   async function refreshData() {
     setRefreshing(true);
     try {
-      await Promise.all([loadAll(), reloadStats(), reloadCounters()]);
+      await Promise.all([loadAll(), reloadStats(), counters ? reloadCounters() : Promise.resolve()]);
     } finally {
       setRefreshing(false);
     }
@@ -271,6 +298,14 @@ export default function CommandCenter() {
         </div>
       </header>
 
+      {pagesError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+          Lecture des pages impossible (source : table des pages SEO) — {pagesError}. Les chiffres affichés
+          proviennent de la dernière lecture réussie.
+          <button onClick={() => void refreshData()} className="ml-2 underline">Réessayer</button>
+        </div>
+      )}
+
       {previewOpen && counters && (() => {
         const preview = buildOptimizationPreview(counters);
         return (
@@ -313,9 +348,24 @@ export default function CommandCenter() {
           <Stat label="Pages analysées" value={(counters?.pagesTotal ?? pages.length).toLocaleString("fr-CA")} />
           <Stat label="Pages publiées" value={(counters?.published ?? overview.published).toLocaleString("fr-CA")} tone="good" />
           <Stat label="Brouillons" value={(stats?.pages_draft ?? overview.drafts).toLocaleString("fr-CA")} />
-          <Stat label="Articles à publier" value={(counters?.blogToPublish ?? 0).toLocaleString("fr-CA")} />
+          <Stat label="Articles à publier" value={counters ? counters.blogToPublish.toLocaleString("fr-CA") : "—"} />
         </div>
       </section>
+
+      {/* Analyse détaillée : lancée uniquement à la demande (lecture la plus lourde). */}
+      {!counters && (
+        <div className="rounded-lg border border-border bg-card p-4 text-xs flex flex-wrap items-center justify-between gap-3">
+          <span className="text-muted-foreground">
+            L'analyse détaillée (erreurs réelles et optimisations possibles) lit le contenu complet des pages.
+            Elle n'est plus lancée automatiquement pour garder le Centre rapide.
+          </span>
+          <button onClick={() => void reloadCounters()} disabled={countersLoading}
+            className="inline-flex items-center gap-2 font-display font-semibold px-3 py-1.5 rounded-md border border-border hover:border-primary hover:text-primary disabled:opacity-50">
+            {countersLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+            {countersLoading ? "Analyse en cours…" : "Lancer l'analyse détaillée"}
+          </button>
+        </div>
+      )}
 
       <StrategicReport
         counters={counters}
@@ -323,6 +373,7 @@ export default function CommandCenter() {
         countersError={countersError}
         onReloadCounters={() => void reloadCounters()}
       />
+
 
       <PipelineControlCenter />
 

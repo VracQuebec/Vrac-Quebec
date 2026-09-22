@@ -73,6 +73,34 @@ export type ControlProblem = {
   issues: string[] | null;
 };
 
+// Lecture mutualisée : plusieurs blocs du Centre affichent la même couverture.
+// Sans cela, chaque bloc déclenchait son propre calcul lourd en parallèle et
+// la base annulait les requêtes (délai dépassé), d'où des compteurs à 0.
+const CC_TTL_MS = 60_000;
+let ccCache: { at: number; state: ControlCenterState } | null = null;
+let ccInFlight: Promise<ControlCenterState> | null = null;
+
+async function readControlCenter(force: boolean): Promise<ControlCenterState> {
+  if (!force && ccCache && Date.now() - ccCache.at < CC_TTL_MS) return ccCache.state;
+  if (ccInFlight) return ccInFlight;
+  const run = (async () => {
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data, error } = await supabase.rpc("seo_control_center" as never);
+      if (!error) {
+        const st = data as unknown as ControlCenterState;
+        ccCache = { at: Date.now(), state: st };
+        return st;
+      }
+      lastError = error;
+      await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+    }
+    throw lastError instanceof Error ? lastError : new Error("Erreur de chargement");
+  })().finally(() => { if (ccInFlight === run) ccInFlight = null; });
+  ccInFlight = run;
+  return run;
+}
+
 /**
  * Single source of truth for the SEO control center.
  * Everything is computed server-side from seo_pages / seo_cities / seo_page_tasks.
@@ -85,27 +113,18 @@ export function useSeoControlCenter() {
   const hasData = useRef(false);
 
   const load = useCallback(async () => {
-    // Nouvelles tentatives : sous forte charge (lecture complète des 2 077 pages
-    // en parallèle), l'appel peut dépasser le délai d'exécution de la base.
-    let lastError: unknown = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const { data, error } = await supabase.rpc("seo_control_center" as never);
-      if (!error) {
-        setState(data as unknown as ControlCenterState);
-        hasData.current = true;
-        setError(null);
-        setLoading(false);
-        return;
-      }
-      lastError = error;
-      await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+    try {
+      const st = await readControlCenter(false);
+      setState(st);
+      hasData.current = true;
+      setError(null);
+    } catch (e) {
+      // Un rafraîchissement périodique en échec ne doit pas effacer ni contredire
+      // des chiffres déjà lus correctement : on garde l'état affiché.
+      if (!hasData.current) setError(e instanceof Error ? e.message : "Erreur de chargement");
+    } finally {
+      setLoading(false);
     }
-    // Un rafraîchissement périodique en échec ne doit pas effacer ni contredire
-    // des chiffres déjà lus correctement : on garde l'état affiché.
-    if (!hasData.current) {
-      setError(lastError instanceof Error ? lastError.message : "Erreur de chargement");
-    }
-    setLoading(false);
   }, []);
 
   const schedule = useCallback(() => {
@@ -121,7 +140,9 @@ export function useSeoControlCenter() {
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_page_tasks" }, schedule)
       .on("postgres_changes", { event: "*", schema: "public", table: "seo_pipeline_runs" }, schedule)
       .subscribe();
-    const t = window.setInterval(() => { void load(); }, 30000);
+    // Ce calcul de couverture est coûteux : rafraîchissement espacé pour garder
+    // le Centre réactif (l'utilisateur peut toujours actualiser manuellement).
+    const t = window.setInterval(() => { void load(); }, 180000);
     return () => {
       if (debounce.current) window.clearTimeout(debounce.current);
       window.clearInterval(t);
