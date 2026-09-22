@@ -11,6 +11,7 @@ import {
   ArrowRight, CheckCircle2, Clock, Loader2, MapPin, Route, Search, TrendingDown, Truck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getEligibleEntrepreneurDumpSites } from "@/lib/entrepreneur/dompes";
 import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
