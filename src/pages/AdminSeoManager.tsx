@@ -2680,14 +2680,40 @@ function ProductionTab() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Taille de vague</label>
-            <input type="number" min={1} max={100} value={waveSize} onChange={(e) => setWaveSize(Number(e.target.value) || 1)} className="w-24 rounded-md border border-border bg-background px-2 py-1 text-sm" />
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">Taille de vague (lot)</label>
+            <select value={waveSize} onChange={(e) => setWaveSize(Number(e.target.value) as 10 | 25 | 50)} className="w-28 rounded-md border border-border bg-background px-2 py-1 text-sm">
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
           </div>
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1">Seuil QA</label>
             <input type="number" min={50} max={100} value={threshold} onChange={(e) => setThreshold(Number(e.target.value) || 90)} className="w-20 rounded-md border border-border bg-background px-2 py-1 text-sm" />
           </div>
           <div className="ml-auto flex flex-wrap gap-2">
+            <button
+              onClick={() => void startProduction(false)}
+              disabled={runState.status === "running" || running || counts.missing === 0}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-display font-bold text-primary-foreground disabled:opacity-50"
+            >
+              <Play className="w-4 h-4" /> Produire les pages manquantes ({counts.missing})
+            </button>
+            {runState.status === "paused" && (
+              <button onClick={() => void startProduction(true)} className="inline-flex items-center gap-1 rounded-md border border-primary px-3 py-2 text-sm font-semibold text-primary">
+                <RotateCcw className="w-4 h-4" /> Reprendre la production
+              </button>
+            )}
+            {runState.status === "running" && (
+              <button onClick={() => productionRunner.pause()} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-semibold">
+                <Pause className="w-4 h-4" /> Arrêter après la page en cours
+              </button>
+            )}
+            {runState.status === "done" && (
+              <button onClick={() => productionRunner.reset()} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-semibold">
+                <RefreshCw className="w-4 h-4" /> Nouveau cycle
+              </button>
+            )}
             {running && (
               <button onClick={() => setPauseFlag(true)} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-semibold">
                 <Pause className="w-4 h-4" /> Pause
@@ -2696,10 +2722,14 @@ function ProductionTab() {
           </div>
         </div>
         <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-          Génération par vague désactivée. La production se fait maintenant <strong>ville par ville</strong> dans
-          l'onglet <strong>Générateur</strong>. Cette vue reste disponible en lecture pour consulter la file et les
-          rapports historiques.
+          La production traite uniquement les combinaisons admissibles <strong>réellement manquantes</strong>, par lots
+          sécurisés, en brouillon non indexable. Chaque page est revérifiée en base avant génération : aucune page
+          existante n'est régénérée, aucun doublon n'est créé, aucune publication automatique.
         </div>
+
+        {(runState.status !== "idle" || runState.batches.length > 0) && (
+          <ProductionRunPanel state={runState} />
+        )}
         {(running || progress.total > 0) && (
           <div className="pt-2">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
