@@ -183,6 +183,13 @@
       "when": 1790021779476,
       "tag": "0025_seo_pipeline_missing_exclude_errors",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790092169539,
+      "tag": "0026_create_seo_publish_log",
+      "breakpoints": true
     }
   ]
 }
