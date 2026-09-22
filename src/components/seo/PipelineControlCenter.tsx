@@ -64,6 +64,20 @@ export default function PipelineControlCenter() {
   // Même logique de génération que le Générateur (aucune architecture parallèle).
   const gen = useCityGeneration();
   const workCity = workSlug ? gen.bySlug.get(workSlug) ?? null : null;
+
+  // ── COUVERTURE SEO — lectures complémentaires (aucune écriture) ──
+  // Pages totales / villes historiques : seo_dashboard_stats (même source que le reste du tableau de bord).
+  const [stats, setStats] = useState<SeoStats | null>(null);
+  // Pages à corriger : critères de qualité (audit) appliqués en lecture seule sur les pages réelles.
+  const [fixRows, setFixRows] = useState<QualityFix<SeoPageRow>[] | null>(null);
+  useEffect(() => { void fetchSeoStats().then(setStats).catch(() => setStats(null)); }, []);
+  useEffect(() => {
+    supabase.from("seo_pages")
+      .select("slug, city_slug, title, status, meta_title, internal_link_count")
+      .then(({ data }) => setFixRows(collectFixes((data ?? []) as SeoPageRow[])));
+  }, []);
+  // Statuts des villes déduits uniquement des chiffres réels du Centre de pilotage.
+  const citySummary = useMemo(() => summarize(state?.cities ?? []), [state]);
   // ── Génération globale (orchestration du moteur existant) ──
   const [confirmOpen, setConfirmOpen] = useState(false);
   const activeRun = state?.active_run ?? null;
