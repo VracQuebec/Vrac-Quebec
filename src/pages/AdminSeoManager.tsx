@@ -2396,6 +2396,10 @@ type QueueItem = {
 function ProductionTab() {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const loadingRef = useRef(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
+  const [baseStats, setBaseStats] = useState<{ pages: number; published: number; drafts: number } | null>(null);
   const [filterP, setFilterP] = useState<0 | 1 | 2 | 3 | 4>(0);
   const [waveSize, setWaveSize] = useState<10 | 25 | 50>(25);
   const [runState, setRunState] = useState<RunState>(() => productionRunner.getState());
