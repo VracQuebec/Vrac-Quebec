@@ -80,10 +80,12 @@ Deno.serve(async (req) => {
       supabase.from("seo_recommendations").select("id,reco_type,priority,impact_estimate,effort_estimate,title").eq("status", "open").order("priority", { ascending: false }).limit(500),
       supabase.from("seo_gsc_metrics").select("page_id,impressions,clicks,ctr,position").eq("period", "28d").limit(5000),
       supabase.from("blog_posts").select("id,title,status,updated_at").eq("status", "published"),
+      // Articles réellement à publier : brouillons et articles planifiés (jamais une formule).
+      supabase.from("blog_posts").select("id", { count: "exact", head: true }).in("status", ["draft", "scheduled"]),
       supabase.from("seo_broken_links").select("id", { count: "exact", head: true }),
     ]);
 
-    const pages = pagesRes.data ?? [];
+    const pages = allPages;
     const recos = recosRes.data ?? [];
     const gsc = gscRes.data ?? [];
     const blogs = blogRes.data ?? [];
