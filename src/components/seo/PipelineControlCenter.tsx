@@ -13,6 +13,7 @@ import CityPagesDialog from "@/components/seo/CityPagesDialog";
 import { CityDetailDialog } from "@/components/seo/CityGenerator";
 import { useCityGeneration } from "@/lib/seo/useCityGeneration";
 import { repairSeoPages } from "@/lib/seo/useSeoCityMatrix";
+import CityCombinationAudit from "@/components/seo/CityCombinationAudit";
 import { useGlobalGeneration } from "@/lib/seo/useGlobalGeneration";
 import {
   canStartGlobal, confirmationLines, finalSummary, failureNotice,
@@ -402,6 +403,9 @@ export default function PipelineControlCenter() {
           </div>
         )}
       </Card>
+
+      {/* ── Audit lecture seule des combinaisons par ville ───────── */}
+      <CityCombinationAudit />
 
       {/* ── Dialogs ─────────────────────────────────────────────── */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
