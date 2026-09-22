@@ -42,7 +42,7 @@ export default function DompesApprobationPanel({ submissionId }: { submissionId:
     setBusy(siteId);
     const res = await decideSubmissionSite(submissionId, siteId, decision);
     setBusy(null);
-    if (!res.ok) {
+    if (res.ok !== true) {
       toast({ title: "Décision impossible", description: res.message, variant: "destructive" });
       return;
     }
