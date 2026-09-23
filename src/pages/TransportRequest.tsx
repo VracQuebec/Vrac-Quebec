@@ -571,8 +571,10 @@ const TransportRequest = () => {
       if (error) throw new Error(error);
       const all = sites as any[];
       // Filter by material
+      // Le serveur ne retourne que les dompes au statut CRM « en attente de livraison ».
+      // On exclut en plus toute dompe sans numéro CRM valide (jamais de numéro fabriqué).
       const filtered = all.filter((d) =>
-        matchesMaterial(d.materials || [], material)
+        crmDompeNumber(d) !== null && matchesMaterial(d.materials || [], material)
       ) as DumpCandidate[];
 
       // Compute driving distance via edge function
@@ -611,7 +613,6 @@ const TransportRequest = () => {
 
           return { ...d, distance_km, duration_minutes, score, reason: reasons.join(" • ") };
         })
-        .filter((d) => d.availability_status !== "unavailable")
         .sort((a, b) => (b.score! - a.score!));
 
       const top = ranked.slice(0, 10);
@@ -1363,7 +1364,7 @@ const TransportRequest = () => {
               🎯 Meilleures dompes pour vous
             </h1>
             <p className="text-muted-foreground text-sm mb-5">
-              Classées selon distance, disponibilité et compatibilité.
+              Dompes au statut « en attente de livraison », classées selon distance et compatibilité.
             </p>
 
             {loadingResults ? (
@@ -1373,8 +1374,8 @@ const TransportRequest = () => {
               </div>
             ) : dumps.length === 0 ? (
               <div className="p-6 bg-card border border-border rounded-lg text-center">
-                <p className="text-sm text-muted-foreground mb-2">Aucune dompe compatible pour l'instant.</p>
-                <p className="text-xs text-muted-foreground">Essayez un autre matériau ou contactez Vrac Québec directement.</p>
+                <p className="text-sm font-semibold mb-2">Aucune dompe disponible pour ce chantier actuellement.</p>
+                <p className="text-xs text-muted-foreground">Nous n'avons actuellement aucune dompe admissible correspondant à votre recherche.</p>
                 <a href="tel:5819947717" className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
                   <Phone className="w-4 h-4" /> 581-994-7717
                 </a>
@@ -1397,7 +1398,7 @@ const TransportRequest = () => {
                           <span className="text-2xl">{rank.emoji}</span>
                           <div>
                             <div className="font-display font-bold text-base">
-                              Dompe #{d.dompe_number?.replace(/^dompe\s*/i, "").trim() || d.submission_number}
+                              Dompe #{crmDompeNumber(d)}
                             </div>
                             <div className="text-[11px] text-muted-foreground font-body uppercase tracking-wide">{rank.label}</div>
                           </div>
@@ -1411,7 +1412,7 @@ const TransportRequest = () => {
                       </div>
                       <div className="flex flex-wrap gap-1.5 text-[11px]">
                         <span className="px-2 py-0.5 rounded-full bg-background border border-border font-body">
-                          {availDot(d.availability_status)} {availLabel(d.availability_status)}
+                          🟢 Statut : Disponible
                         </span>
                         {d.truck_types_allowed?.map((t) => (
                           <span key={t} className="px-2 py-0.5 rounded-full bg-background border border-border font-body">🚛 {t}</span>
@@ -1452,7 +1453,7 @@ const TransportRequest = () => {
                 <SummaryRow icon="📏" label="Quantité estimée" value={unit === "inconnu" ? "À déterminer" : `${quantity} ${unit}`} />
                 <SummaryRow icon="🚛" label="Voyages estimés" value={trips || "À confirmer"} />
                 <SummaryRow icon="⏱️" label="Temps de trajet" value={`${selectedDump.duration_minutes} min`} />
-                <SummaryRow icon="🎯" label="Dompe recommandée" value={`#${selectedDump.dompe_number?.replace(/^dompe\s*/i, "").trim() || selectedDump.submission_number} • ${selectedDump.distance_km} km`} />
+                <SummaryRow icon="🎯" label="Dompe recommandée" value={`#${crmDompeNumber(selectedDump)} • ${selectedDump.distance_km} km`} />
               </div>
               {dumps.length > 1 && (
                 <div className="mt-3 pt-3 border-t border-border">
@@ -1460,7 +1461,7 @@ const TransportRequest = () => {
                   <div className="space-y-1 text-xs">
                     {dumps.filter((d) => d.id !== selectedDump.id).slice(0, 2).map((d, i) => (
                       <p key={d.id}>
-                        {i === 0 ? "🥈" : "🥉"} Dompe #{d.dompe_number?.replace(/^dompe\s*/i, "").trim() || d.submission_number} — {d.distance_km} km ({d.duration_minutes} min)
+                        {i === 0 ? "🥈" : "🥉"} Dompe #{crmDompeNumber(d)} — {d.distance_km} km ({d.duration_minutes} min)
                       </p>
                     ))}
                   </div>
@@ -1617,7 +1618,7 @@ const TransportRequest = () => {
             truckType={truckType || suggestedTruck}
             desiredDate={desiredDate}
             desiredTime={desiredTime}
-            dump={selectedDump ? `#${selectedDump.dompe_number?.replace(/^dompe\s*/i, "").trim() || selectedDump.submission_number} — ${selectedDump.distance_km} km (${selectedDump.duration_minutes} min)` : ""}
+            dump={selectedDump ? `#${crmDompeNumber(selectedDump)} — ${selectedDump.distance_km} km (${selectedDump.duration_minutes} min)` : ""}
             onHome={() => navigate("/")}
           />
         )}

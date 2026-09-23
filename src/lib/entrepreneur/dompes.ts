@@ -65,3 +65,14 @@ export function mappableDumpSites<T extends { latitude?: number | null; longitud
 ): T[] {
   return sites.filter((s) => typeof s.latitude === "number" && typeof s.longitude === "number");
 }
+
+/**
+ * Numéro CRM exact d'une dompe (« Dompe 128 » → « 128 »).
+ * Aucun repli : ni submission_number, ni index, ni identifiant technique.
+ * Retourne null si le CRM ne porte pas de numéro valide.
+ */
+export function crmDompeNumber(d: { dompe_number?: string | null }): string | null {
+  const raw = (d.dompe_number ?? "").trim();
+  const m = raw.match(/^(?:dompe\s*)?#?\s*(\d+)$/i);
+  return m ? m[1] : null;
+}
