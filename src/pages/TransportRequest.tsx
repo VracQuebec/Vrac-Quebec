@@ -597,8 +597,11 @@ const TransportRequest = () => {
       const ranked = withCoords
         .map((d) => {
           const mx = matrix[d.id];
-          const distance_km = mx?.distance_km ?? haversine(coords, { lat: d.latitude, lng: d.longitude });
-          const duration_minutes = mx?.duration_minutes ?? Math.round((distance_km / 60) * 60);
+          // Distance routière UNIQUEMENT lorsque le serveur retourne les deux valeurs.
+          // Sinon, repli à vol d'oiseau pour le classement, mais JAMAIS affiché comme routier.
+          const road = typeof mx?.distance_km === "number" && typeof mx?.duration_minutes === "number";
+          const distance_km = road ? (mx!.distance_km as number) : haversine(coords, { lat: d.latitude, lng: d.longitude });
+          const duration_minutes = road ? (mx!.duration_minutes as number) : Math.round((distance_km / 60) * 60);
 
           // Classement uniquement : la disponibilité n'exclut jamais une dompe admissible.
           let score = 100 - Math.min(80, distance_km);
@@ -609,11 +612,11 @@ const TransportRequest = () => {
           if (d.accessibility && d.accessibility.length > 0) score += 2;
 
           const reasons: string[] = [];
-          reasons.push(`${distance_km} km`);
+          reasons.push(road ? `${distance_km} km` : "Distance routière à confirmer");
           if (d.availability_status !== "unavailable") reasons.push(availLabel(d.availability_status));
           if (d.truck_types_allowed?.length) reasons.push(`Camions: ${d.truck_types_allowed.join(", ")}`);
 
-          return { ...d, distance_km, duration_minutes, score, reason: reasons.join(" • ") };
+          return { ...d, distance_km, duration_minutes, road_distance: road, score, reason: reasons.join(" • ") };
         })
         .sort((a, b) => (b.score! - a.score!));
 
