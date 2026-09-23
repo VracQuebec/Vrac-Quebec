@@ -1651,7 +1651,7 @@ const TransportRequest = () => {
             truckType={truckType || suggestedTruck}
             desiredDate={desiredDate}
             desiredTime={desiredTime}
-            dump={selectedDump ? `#${crmDompeNumber(selectedDump)} — ${selectedDump.distance_km} km (${selectedDump.duration_minutes} min)` : ""}
+            dump={selectedDump ? `#${crmDompeNumber(selectedDump)} — ${selectedDump.road_distance ? `${selectedDump.distance_km} km (${selectedDump.duration_minutes} min)` : "distance routière à confirmer"}` : ""}
             onHome={() => navigate("/")}
           />
         )}
