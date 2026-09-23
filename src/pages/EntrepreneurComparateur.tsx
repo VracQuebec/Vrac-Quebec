@@ -147,6 +147,15 @@ export default function EntrepreneurComparateur() {
     }
   }, [location.state]);
 
+  useEffect(() => {
+    if (!activeChantier) return;
+    setAddress((current) => current || activeChantier.address || activeChantier.city || "");
+    setCoords((current) => current ?? activeChantier.coords);
+    setMaterial((current) => current || (activeChantier.material ? normalizeMaterial(activeChantier.material) ?? "" : ""));
+    const quantityMatch = activeChantier.quantity?.match(/[\d.,]+/);
+    setQuantityValue((current) => current || quantityMatch?.[0]?.replace(",", ".") || "");
+  }, [activeChantier]);
+
   // Sélection déjà effectuée : restaurée au retour arrière ou au rechargement.
   useEffect(() => {
     const s = loadSelection();
@@ -477,16 +486,13 @@ export default function EntrepreneurComparateur() {
             />
           </div>
         )}
-        <div className="rounded-3xl border border-border/70 bg-gradient-to-br from-primary/10 via-card to-card p-5">
-          <p className="font-body text-xs uppercase tracking-[0.18em] text-muted-foreground">
-            Étape 3 · Comparer
-          </p>
+        <div className="border-b border-border pb-5">
+          <p className="font-body text-xs uppercase text-muted-foreground">Comparer les dompes</p>
           <h2 className="mt-1 font-display text-xl font-extrabold leading-tight">
-            Trois informations, et nous classons les sites pour vous.
+            Complétez les informations de votre chantier.
           </h2>
           <p className="mt-1.5 font-body text-sm text-muted-foreground">
-            Chantier, matériau, camion : le classement suit la distance routière réelle et la
-            compatibilité de chaque site.
+            Le classement utilise la distance routière et la compatibilité des sites admissibles.
           </p>
         </div>
 
@@ -622,7 +628,7 @@ export default function EntrepreneurComparateur() {
           </div>
 
           {/* Calcul du besoin — réutilise le calculateur existant. */}
-          <div className="rounded-xl border border-border bg-background p-3">
+          <div className="rounded-md border border-border bg-background p-3">
             <p className="font-display text-xs font-bold uppercase tracking-wide text-foreground">
               Besoin en transport
             </p>
@@ -631,22 +637,16 @@ export default function EntrepreneurComparateur() {
                 <dd className="inline">{quantityValue.trim() ? `${quantityValue.trim()} ${unitLabelFr}` : "À compléter"}</dd></div>
               <div><dt className="inline font-semibold">Camion : </dt>
                 <dd className="inline">{truckLabel || "À sélectionner"}</dd></div>
-              <div><dt className="inline font-semibold">Capacité applicable : </dt>
-                <dd className="inline">
-                  {capacityTonnes != null ? `${capacityTonnes} t par voyage` : "Non configurée"}
-                </dd></div>
+              {capacityTonnes != null && <div><dt className="inline font-semibold">Capacité du camion : </dt><dd className="inline">{capacityTonnes} t par voyage</dd></div>}
               {besoin.tonnes != null && (
                 <div><dt className="inline font-semibold">Tonnage estimé : </dt>
                   <dd className="inline">{besoin.tonnes.toFixed(1)} t</dd></div>
               )}
-              <div><dt className="inline font-semibold">Voyages calculés : </dt>
-                <dd className="inline">
-                  {tripCount != null ? `${tripCount} voyage${tripCount > 1 ? "s" : ""}` : "Non calculable"}
-                </dd></div>
+              {tripCount != null && <div><dt className="inline font-semibold">Voyages estimés : </dt><dd className="inline">{tripCount} voyage{tripCount > 1 ? "s" : ""}</dd></div>}
             </dl>
             {tripCount == null && besoin.missing.length > 0 && (
               <p className="mt-2 font-body text-xs text-amber-700">
-                Pour calculer le nombre de voyages, il manque : {besoin.missing.join(", ")}.
+                Complétez {besoin.missing.join(", ")} pour obtenir le nombre de voyages.
               </p>
             )}
           </div>

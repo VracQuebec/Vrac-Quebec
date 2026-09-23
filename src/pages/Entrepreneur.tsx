@@ -117,9 +117,15 @@ const Entrepreneur = () => {
   const [expanded, setExpanded] = useState(false);
   const [detail, setDetail] = useState<EntLead | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [globalView, setGlobalView] = useState(false);
+  const [sortMode, setSortMode] = useState<"compatibility" | "availability">("compatibility");
   // Chantier actif : suit l'entrepreneur depuis son dossier de chantier.
   const [activeChantier, setActiveChantier] = useState<ActiveChantier | null>(null);
-  useEffect(() => { setActiveChantier(loadActiveChantier()); }, []);
+  useEffect(() => {
+    const chantier = loadActiveChantier();
+    setActiveChantier(chantier);
+    if (chantier?.material) setActiveFilters(new Set([materialKeyForId(chantier.material)]));
+  }, []);
 
   /** Demande d'accès : le contexte connu part avec la demande. */
   const requestAccess = () => {
@@ -147,7 +153,7 @@ const Entrepreneur = () => {
 
   const filteredLeads = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return leads.filter((l) => {
+    const rows = leads.filter((l) => {
       if (activeFilters.size > 0 && !leadMaterialKeys(l).some((k) => activeFilters.has(k))) return false;
       if (onlyAvailable && (l.availability_status || "available") !== "available") return false;
       if (onlyBigVolume && !hasBigVolume(l)) return false;
@@ -159,7 +165,12 @@ const Entrepreneur = () => {
       }
       return true;
     });
-  }, [leads, activeFilters, query, onlyAvailable, onlyBigVolume, only12, onlySemi]);
+    if (sortMode === "availability") {
+      const order: Record<string, number> = { available: 0, limited: 1, unavailable: 2, completed: 3, suspended: 4, owner_closed: 5 };
+      return [...rows].sort((a, b) => (order[a.availability_status || "available"] ?? 9) - (order[b.availability_status || "available"] ?? 9));
+    }
+    return rows;
+  }, [leads, activeFilters, query, onlyAvailable, onlyBigVolume, only12, onlySemi, sortMode]);
 
   const activeCount =
     activeFilters.size + [onlyAvailable, onlyBigVolume, only12, onlySemi].filter(Boolean).length + (query ? 1 : 0);
@@ -252,14 +263,19 @@ const Entrepreneur = () => {
         bounds.extend(pos);
       });
       if (Object.keys(markersRef.current).length > 0) {
-        mapRef.current!.fitBounds(bounds, 40);
+        if (activeChantier?.coords && !globalView) {
+          mapRef.current!.setCenter(activeChantier.coords);
+          mapRef.current!.setZoom(10);
+        } else {
+          mapRef.current!.fitBounds(bounds, 40);
+        }
       }
     }).catch((e) => {
       console.error("Google Maps load error:", e);
     });
 
     return () => { cancelled = true; };
-  }, [filteredLeads]);
+  }, [filteredLeads, activeChantier, globalView]);
 
   const focusLead = (l: EntLead) => {
     setSelectedId(l.id);
@@ -317,6 +333,14 @@ const Entrepreneur = () => {
             to={`/entrepreneur/chantiers/${encodeURIComponent(activeChantier.key)}`}
             onClear={() => { saveActiveChantier(null); setActiveChantier(null); }}
           />
+        )}
+
+        {activeChantier && !globalView && (
+          <section className="border-b border-border pb-4">
+            <p className="font-body text-xs text-muted-foreground">Trouvez une dompe pour</p>
+            <h2 className="mt-1 font-display text-xl font-bold">Chantier — {activeChantier.label}</h2>
+            <p className="mt-1 font-body text-sm text-muted-foreground">{activeChantier.material || "Matériau à confirmer"}</p>
+          </section>
         )}
 
         {/* Recherche : l'outil principal de l'écran */}
@@ -411,11 +435,18 @@ const Entrepreneur = () => {
 
             {/* Liste */}
             <div className={`${expanded ? "" : "lg:col-span-2"} min-w-0 space-y-3`}>
-              <div className="flex items-baseline justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="font-display font-bold text-base">
-                  {filteredLeads.length} dompe{filteredLeads.length > 1 ? "s" : ""} disponible{filteredLeads.length > 1 ? "s" : ""}
+                  {activeChantier && !globalView ? "Dompes compatibles avec votre chantier" : `${filteredLeads.length} dompe${filteredLeads.length > 1 ? "s" : ""}`}
                 </h2>
                 {activeCount > 0 && <span className="text-xs text-muted-foreground font-body">sur {leads.length}</span>}
+              </div>
+              {activeChantier && !globalView && <p className="font-body text-xs text-muted-foreground">{filteredLeads.length} résultat{filteredLeads.length > 1 ? "s" : ""}</p>}
+              <div className="flex flex-wrap items-center gap-2 border-y border-border py-2">
+                <span className="font-body text-xs text-muted-foreground">Trier par</span>
+                <button type="button" onClick={() => setSortMode("compatibility")} className={`min-h-9 rounded-md px-3 font-body text-xs ${sortMode === "compatibility" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>Compatibilité</button>
+                <button type="button" onClick={() => setSortMode("availability")} className={`min-h-9 rounded-md px-3 font-body text-xs ${sortMode === "availability" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>Disponibilité</button>
+                <button type="button" onClick={() => navigate("/entrepreneur/comparateur")} className="min-h-9 rounded-md bg-secondary px-3 font-body text-xs text-muted-foreground">Distance routière</button>
               </div>
               <div className={`space-y-3 ${expanded ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 space-y-0" : "lg:max-h-[58vh] lg:overflow-auto lg:pr-1"}`}>
                 {filteredLeads.length === 0 && (
@@ -442,6 +473,7 @@ const Entrepreneur = () => {
                   );
                 })}
               </div>
+              {activeChantier && <button type="button" onClick={() => { setGlobalView((value) => !value); if (!globalView) setActiveFilters(new Set()); }} className="min-h-11 w-full rounded-md border border-border bg-background font-display text-sm font-semibold text-primary">{globalView ? "Revenir à mon chantier" : "Voir toutes les dompes"}</button>}
             </div>
           </section>
         )}

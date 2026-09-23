@@ -29,7 +29,7 @@ import {
   toActiveChantier,
 } from "@/lib/entrepreneur-app/chantier-context";
 import { buildHandoff, saveHandoff } from "@/lib/parcours/handoff";
-import { Plus, Map as MapIcon, Truck, Scale, MapPin } from "lucide-react";
+import { Plus, Map as MapIcon, Truck, Scale, MapPin, CalendarDays, Package } from "lucide-react";
 
 const toneFor = (status: string | null): "pending" | "active" | "done" | "refused" | "neutral" => {
   if (!status) return "neutral";
@@ -120,9 +120,11 @@ export default function EntrepreneurChantierDetail() {
       const rCity = norm(r.site_city as string | null);
       const rAddr = norm(r.site_address as string | null);
       if (addr && rAddr && rAddr === addr) return true;
-      return Boolean(city) && rCity === city;
+      const sameCity = Boolean(city) && rCity === city;
+      const cityIsUnique = chantiers.filter((item) => norm(item.city) === city).length === 1;
+      return sameCity && cityIsUnique;
     });
-  }, [chantier, accessRequests]);
+  }, [chantier, accessRequests, chantiers]);
 
   const sites = useMemo(
     () => (chantier ? chantier.submissions.filter((s) => s.selectedSiteLabel) : []),
@@ -187,7 +189,7 @@ export default function EntrepreneurChantierDetail() {
   const tabs = [
     { id: "apercu", label: "Aperçu" },
     { id: "demandes", label: "Demandes", count: chantier?.submissions.length ?? 0 },
-    { id: "sites", label: "Sites", count: sites.length },
+    { id: "sites", label: "Dompe", count: sites.length },
     { id: "transports", label: "Transports", count: transports.length },
     { id: "activite", label: "Activité" },
   ];
@@ -253,7 +255,7 @@ export default function EntrepreneurChantierDetail() {
     ) : (
       <div className="space-y-2.5">
         {transports.map((r) => (
-          <AppCard key={`tr-${r.id}`} to="/entrepreneur/demandes">
+          <AppCard key={`tr-${r.id}`} to={`/entrepreneur/demandes/r-${String(r.id)}`}>
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Truck className="h-5 w-5" />
@@ -296,6 +298,13 @@ export default function EntrepreneurChantierDetail() {
           </p>
         )}
       </AppCard>
+
+      <dl className="grid grid-cols-2 gap-x-4 border-y border-border py-1 sm:grid-cols-4">
+        <div className="flex min-w-0 gap-2 py-3"><Package className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><dt className="font-body text-[10px] uppercase text-muted-foreground">Matériau</dt><dd className="truncate font-display text-sm font-semibold">{chantier.materials[0] || "À confirmer"}</dd></div></div>
+        <div className="flex min-w-0 gap-2 py-3"><Scale className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><dt className="font-body text-[10px] uppercase text-muted-foreground">Quantité</dt><dd className="truncate font-display text-sm font-semibold">{chantier.submissions[0]?.quantity || "À confirmer"}</dd></div></div>
+        <div className="flex min-w-0 gap-2 py-3"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><dt className="font-body text-[10px] uppercase text-muted-foreground">Zone</dt><dd className="truncate font-display text-sm font-semibold">{chantier.city || chantier.label}</dd></div></div>
+        <div className="flex min-w-0 gap-2 py-3"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><div><dt className="font-body text-[10px] uppercase text-muted-foreground">Créé</dt><dd className="truncate font-display text-sm font-semibold">{chantier.submissions[0]?.createdAt ? new Date(chantier.submissions[0].createdAt).toLocaleDateString("fr-CA") : "À confirmer"}</dd></div></div>
+      </dl>
 
       <div className="grid gap-2.5 sm:grid-cols-3">
         <AppCard onClick={() => setTab("demandes")}>
