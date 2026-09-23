@@ -1,10 +1,6 @@
-- [x] Audit remaining 56-city generator limits and indirect filters
-- [x] Make every active CRM municipality selectable and generable
-- [x] Add data-backed opportunity statuses and controlled batch preview
-- [x] Verify draft creation for three new cities without publishing
-- [x] Confirm counts, duplicates, preserved pages, and remaining errors
-- [x] Corriger la vue mobile super admin « Entrepreneurs »
-- [x] Vérifier les largeurs 360, 390, 430, 768 et 1440 px et capturer mobile/ordinateur
-- [x] Corriger les 4 faux positifs du contrôle SEO sans modifier leur contenu
-- [x] Reformuler uniquement les chiffres non vérifiables des 11 brouillons
-- [x] Recontrôler les 15 pages et confirmer les compteurs réels sans publication
+- [ ] Auditer routes, écrans, données et protections du portail entrepreneur
+- [ ] Définir la nouvelle architecture centrée sur les dossiers de demandes
+- [ ] Refaire navigation, accueil, demandes, détail, transports, entreprise et notifications
+- [ ] Intégrer recherche et comparateur dans un parcours cohérent sans toucher au moteur
+- [ ] Vérifier les protections d’adresse et les flux d’approbation existants
+- [ ] Tester ordinateur, iPad et mobile avec de vraies sessions
