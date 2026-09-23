@@ -674,8 +674,8 @@ const TransportRequest = () => {
         .map((d) => ({
           id: d.id,
           name: d.dompe_number,
-          distance_km: d.distance_km ?? null,
-          duration_minutes: d.duration_minutes ?? null,
+          distance_km: d.road_distance ? (d.distance_km ?? null) : null,
+          duration_minutes: d.road_distance ? (d.duration_minutes ?? null) : null,
           availability_status: d.availability_status ?? null,
         })),
       distance_km: selectedDump.distance_km ?? null,
