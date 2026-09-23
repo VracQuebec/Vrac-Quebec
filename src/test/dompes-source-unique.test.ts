@@ -110,3 +110,17 @@ describe("source unique des dompes entrepreneur", () => {
     expect(error).toBe("boom");
   });
 });
+
+import { crmDompeNumber } from "@/lib/entrepreneur/dompes";
+describe("numéro CRM exact", () => {
+  it("reprend le numéro CRM tel quel", () => {
+    expect(crmDompeNumber({ dompe_number: "Dompe 24" })).toBe("24");
+    expect(crmDompeNumber({ dompe_number: "Dompe 167" })).toBe("167");
+    expect(crmDompeNumber({ dompe_number: "#5" })).toBe("5");
+  });
+  it("aucun repli : numéro absent ou invalide → exclu", () => {
+    expect(crmDompeNumber({ dompe_number: "" })).toBeNull();
+    expect(crmDompeNumber({ dompe_number: null })).toBeNull();
+    expect(crmDompeNumber({ dompe_number: "abc", submission_number: 4 } as never)).toBeNull();
+  });
+});
