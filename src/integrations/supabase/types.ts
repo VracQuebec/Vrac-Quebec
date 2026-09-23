@@ -18704,6 +18704,7 @@ export type Database = {
       fleet_can_access: { Args: { _company_id: string }; Returns: boolean }
       fleet_can_administer: { Args: { _company_id: string }; Returns: boolean }
       fleet_can_manage: { Args: { _company_id: string }; Returns: boolean }
+      fleet_ensure_my_company: { Args: never; Returns: string }
       fleet_member_role: { Args: { _company_id: string }; Returns: string }
       fleet_scan_due: { Args: never; Returns: Json }
       geo_hay: { Args: { _txt: string }; Returns: string }
