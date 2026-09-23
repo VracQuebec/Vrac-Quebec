@@ -34,6 +34,8 @@ const PartenaireSoumissions = lazy(() => import("./pages/PartenaireSoumissions")
 const Entrepreneur = lazy(() => import("./pages/Entrepreneur"));
 const EntrepreneurDashboard = lazy(() => import("./pages/EntrepreneurDashboard"));
 const EntrepreneurDemandes = lazy(() => import("./pages/EntrepreneurDemandes"));
+const EntrepreneurDemandeDetail = lazy(() => import("./pages/EntrepreneurDemandeDetail"));
+const EntrepreneurTransports = lazy(() => import("./pages/EntrepreneurTransports"));
 const EntrepreneurChantiers = lazy(() => import("./pages/EntrepreneurChantiers"));
 const EntrepreneurChantierDetail = lazy(() => import("./pages/EntrepreneurChantierDetail"));
 const EntrepreneurFavoris = lazy(() => import("./pages/EntrepreneurFavoris"));
@@ -207,11 +209,13 @@ const App = () => (
             <Route path="/entrepreneur" element={<EntrepreneurDashboard />} />
             <Route path="/entrepreneur/carte" element={<Entrepreneur />} />
             <Route path="/entrepreneur/demandes" element={<EntrepreneurDemandes />} />
+            <Route path="/entrepreneur/demandes/:id" element={<EntrepreneurDemandeDetail />} />
+            <Route path="/entrepreneur/transports" element={<EntrepreneurTransports />} />
             <Route path="/entrepreneur/reseau" element={<EntrepreneurAnnuaire />} />
             <Route path="/entrepreneur/chantiers" element={<EntrepreneurChantiers />} />
             <Route path="/entrepreneur/chantiers/:key" element={<EntrepreneurChantierDetail />} />
             <Route path="/entrepreneur/favoris" element={<Navigate to="/entrepreneur" replace />} />
-            <Route path="/entrepreneur/historique" element={<EntrepreneurHistorique />} />
+            <Route path="/entrepreneur/historique" element={<Navigate to="/entrepreneur/demandes?filtre=done" replace />} />
             <Route path="/entrepreneur/compte" element={<EntrepreneurCompte />} />
             <Route path="/entrepreneur/abonnement" element={<MonAbonnement />} />
             <Route path="/entrepreneur/notifications" element={<EntrepreneurNotifications />} />

@@ -197,7 +197,7 @@ export default function EntrepreneurChantierDetail() {
       {chantier.submissions.map((s) => (
         <RequestCard
           key={s.id}
-          to="/entrepreneur/demandes"
+          to={`/entrepreneur/demandes/s-${s.id}`}
           kind="materiau"
           title={`${s.material ?? "Demande de matériau"}${s.number ? ` · #${s.number}` : ""}`}
           place={s.location ?? chantier.label}
