@@ -25,15 +25,20 @@ export default function EntrepreneurFlotte() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [denied, setDenied] = useState(false);
   const [editing, setEditing] = useState<Vehicle | null>(null);
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setDenied(false);
     try {
       const { data: cid, error: e1 } = await supabase.rpc("fleet_ensure_my_company");
-      if (e1) throw e1;
+      if (e1) {
+        if (/approuv|Authentification/i.test(e1.message)) { setDenied(true); setVehicles([]); return; }
+        throw e1;
+      }
       const id = cid as string;
       setCompanyId(id);
       setActiveCompanyId(id); // les enregistrements créés sont rattachés à SON entreprise
@@ -57,20 +62,26 @@ export default function EntrepreneurFlotte() {
       <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:py-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <p className="font-body text-sm text-muted-foreground">
-            {loading ? "Chargement…" : `${vehicles.length} véhicule${vehicles.length !== 1 ? "s" : ""}`}
+            {loading ? "Chargement…" : denied ? "" : `${vehicles.length} véhicule${vehicles.length !== 1 ? "s" : ""}`}
           </p>
-          {companyId && (
+          {companyId && !denied && (
             <Button onClick={add} className="h-11 font-display font-bold">
               <Plus className="mr-2 h-4 w-4" />Ajouter un véhicule
             </Button>
           )}
         </div>
 
-        {loading ? <LoadingSkeleton lines={3} /> : error ? <ErrorState onRetry={load} /> : vehicles.length === 0 ? (
+        {loading ? <LoadingSkeleton lines={3} /> : denied ? (
+          <div className="rounded-2xl border border-border bg-card p-8 text-center">
+            <Truck className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+            <h2 className="font-display text-lg font-bold text-foreground">Gestion de flotte non disponible</h2>
+            <p className="mt-1 font-body text-sm text-muted-foreground">« Ma flotte » est offerte aux entrepreneurs dont le compte est approuvé.</p>
+          </div>
+        ) : error ? <ErrorState onRetry={load} /> : vehicles.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
             <Truck className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-            <h2 className="font-display text-lg font-bold text-foreground">Aucun véhicule dans votre flotte</h2>
-            <p className="mt-1 font-body text-sm text-muted-foreground">Ajoutez vos camions pour les retrouver ici et dans vos demandes.</p>
+            <h2 className="font-display text-lg font-bold text-foreground">Votre flotte est prête</h2>
+            <p className="mt-1 font-body text-sm text-muted-foreground">Aucun véhicule n’est encore enregistré.</p>
             <Button onClick={add} className="mt-4 h-11 font-display font-bold"><Plus className="mr-2 h-4 w-4" />Ajouter un véhicule</Button>
           </div>
         ) : (
