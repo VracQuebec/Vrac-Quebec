@@ -20,7 +20,7 @@ import {
 } from "@/lib/transport/submitQueue";
 import {
   Truck, MapPin, Package, Ruler, Loader2, ChevronLeft, ChevronRight,
-  CheckCircle2, LocateFixed, Sparkles, Phone, Clock, Download,
+  CheckCircle2, LocateFixed, Sparkles, Phone, Clock, Download, Route,
   MessageCircle, ShieldCheck, Zap, Network, Target, HelpCircle,
   Home, X,
 } from "lucide-react";
@@ -213,6 +213,8 @@ interface DumpCandidate {
   accessibility: string[] | null;
   distance_km?: number | null;
   duration_minutes?: number | null;
+  /** true : distance/temps routiers retournés par le serveur. false : repli à vol d'oiseau (affichage « à confirmer »). */
+  road_distance?: boolean;
   score?: number;
   reason?: string;
 }
@@ -595,8 +597,11 @@ const TransportRequest = () => {
       const ranked = withCoords
         .map((d) => {
           const mx = matrix[d.id];
-          const distance_km = mx?.distance_km ?? haversine(coords, { lat: d.latitude, lng: d.longitude });
-          const duration_minutes = mx?.duration_minutes ?? Math.round((distance_km / 60) * 60);
+          // Distance routière UNIQUEMENT lorsque le serveur retourne les deux valeurs.
+          // Sinon, repli à vol d'oiseau pour le classement, mais JAMAIS affiché comme routier.
+          const road = typeof mx?.distance_km === "number" && typeof mx?.duration_minutes === "number";
+          const distance_km = road ? (mx!.distance_km as number) : haversine(coords, { lat: d.latitude, lng: d.longitude });
+          const duration_minutes = road ? (mx!.duration_minutes as number) : Math.round((distance_km / 60) * 60);
 
           // Classement uniquement : la disponibilité n'exclut jamais une dompe admissible.
           let score = 100 - Math.min(80, distance_km);
@@ -607,11 +612,11 @@ const TransportRequest = () => {
           if (d.accessibility && d.accessibility.length > 0) score += 2;
 
           const reasons: string[] = [];
-          reasons.push(`${distance_km} km`);
+          reasons.push(road ? `${distance_km} km` : "Distance routière à confirmer");
           if (d.availability_status !== "unavailable") reasons.push(availLabel(d.availability_status));
           if (d.truck_types_allowed?.length) reasons.push(`Camions: ${d.truck_types_allowed.join(", ")}`);
 
-          return { ...d, distance_km, duration_minutes, score, reason: reasons.join(" • ") };
+          return { ...d, distance_km, duration_minutes, road_distance: road, score, reason: reasons.join(" • ") };
         })
         .sort((a, b) => (b.score! - a.score!));
 
@@ -669,12 +674,12 @@ const TransportRequest = () => {
         .map((d) => ({
           id: d.id,
           name: d.dompe_number,
-          distance_km: d.distance_km ?? null,
-          duration_minutes: d.duration_minutes ?? null,
+          distance_km: d.road_distance ? (d.distance_km ?? null) : null,
+          duration_minutes: d.road_distance ? (d.duration_minutes ?? null) : null,
           availability_status: d.availability_status ?? null,
         })),
-      distance_km: selectedDump.distance_km ?? null,
-      travel_time_minutes: selectedDump.duration_minutes ?? null,
+      distance_km: selectedDump.road_distance ? (selectedDump.distance_km ?? null) : null,
+      travel_time_minutes: selectedDump.road_distance ? (selectedDump.duration_minutes ?? null) : null,
       // Le libellé sert à l'affichage CRM ; le code sert au recalcul serveur.
       truck_type: selectedRate?.label ?? truckType ?? null,
       truck_rate_code: selectedRate?.code ?? null,
@@ -1404,10 +1409,18 @@ const TransportRequest = () => {
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-display font-bold text-lg text-primary">{d.distance_km} km</div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
-                            <Clock className="w-3 h-3" /> {d.duration_minutes} min
-                          </div>
+                          {d.road_distance ? (
+                            <>
+                              <div className="font-display font-bold text-lg text-primary">{d.distance_km} km</div>
+                              <div className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
+                                <Clock className="w-3 h-3" /> {d.duration_minutes} min
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-xs text-muted-foreground flex items-center gap-1 justify-end max-w-[9rem]">
+                              <Route className="w-3 h-3 flex-shrink-0" /> Distance routière à confirmer
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1.5 text-[11px]">
@@ -1472,8 +1485,8 @@ const TransportRequest = () => {
                 <SummaryRow icon="📦" label="Remblai à disposer" value={MATERIALS.find((m) => m.id === material)?.label || material} />
                 <SummaryRow icon="📏" label="Quantité estimée" value={unit === "inconnu" ? "À déterminer" : `${quantity} ${unit}`} />
                 <SummaryRow icon="🚛" label="Voyages estimés" value={trips || "À confirmer"} />
-                <SummaryRow icon="⏱️" label="Temps de trajet" value={`${selectedDump.duration_minutes} min`} />
-                <SummaryRow icon="🎯" label="Dompe recommandée" value={`#${crmDompeNumber(selectedDump)} • ${selectedDump.distance_km} km`} />
+                <SummaryRow icon="⏱️" label="Temps de trajet" value={selectedDump.road_distance ? `${selectedDump.duration_minutes} min` : "À confirmer"} />
+                <SummaryRow icon="🎯" label="Dompe recommandée" value={selectedDump.road_distance ? `#${crmDompeNumber(selectedDump)} • ${selectedDump.distance_km} km` : `#${crmDompeNumber(selectedDump)} • distance à confirmer`} />
               </div>
               {dumps.length > 1 && (
                 <div className="mt-3 pt-3 border-t border-border">
@@ -1481,7 +1494,7 @@ const TransportRequest = () => {
                   <div className="space-y-1 text-xs">
                     {dumps.filter((d) => d.id !== selectedDump.id).slice(0, 2).map((d, i) => (
                       <p key={d.id}>
-                        {i === 0 ? "🥈" : "🥉"} Dompe #{crmDompeNumber(d)} — {d.distance_km} km ({d.duration_minutes} min)
+                        {i === 0 ? "🥈" : "🥉"} Dompe #{crmDompeNumber(d)} — {d.road_distance ? `${d.distance_km} km (${d.duration_minutes} min)` : "distance routière à confirmer"}
                       </p>
                     ))}
                   </div>
@@ -1638,7 +1651,7 @@ const TransportRequest = () => {
             truckType={truckType || suggestedTruck}
             desiredDate={desiredDate}
             desiredTime={desiredTime}
-            dump={selectedDump ? `#${crmDompeNumber(selectedDump)} — ${selectedDump.distance_km} km (${selectedDump.duration_minutes} min)` : ""}
+            dump={selectedDump ? `#${crmDompeNumber(selectedDump)} — ${selectedDump.road_distance ? `${selectedDump.distance_km} km (${selectedDump.duration_minutes} min)` : "distance routière à confirmer"}` : ""}
             onHome={() => navigate("/")}
           />
         )}
