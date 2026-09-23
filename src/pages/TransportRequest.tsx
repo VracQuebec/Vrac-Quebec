@@ -678,8 +678,8 @@ const TransportRequest = () => {
           duration_minutes: d.road_distance ? (d.duration_minutes ?? null) : null,
           availability_status: d.availability_status ?? null,
         })),
-      distance_km: selectedDump.distance_km ?? null,
-      travel_time_minutes: selectedDump.duration_minutes ?? null,
+      distance_km: selectedDump.road_distance ? (selectedDump.distance_km ?? null) : null,
+      travel_time_minutes: selectedDump.road_distance ? (selectedDump.duration_minutes ?? null) : null,
       // Le libellé sert à l'affichage CRM ; le code sert au recalcul serveur.
       truck_type: selectedRate?.label ?? truckType ?? null,
       truck_rate_code: selectedRate?.code ?? null,
