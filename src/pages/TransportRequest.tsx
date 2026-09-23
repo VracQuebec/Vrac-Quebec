@@ -1412,17 +1412,37 @@ const TransportRequest = () => {
                       </div>
                       <div className="flex flex-wrap gap-1.5 text-[11px]">
                         <span className="px-2 py-0.5 rounded-full bg-background border border-border font-body">
-                          🟢 Statut : Disponible
+                          🟢 Disponible
                         </span>
-                        {d.truck_types_allowed?.map((t) => (
-                          <span key={t} className="px-2 py-0.5 rounded-full bg-background border border-border font-body">🚛 {t}</span>
-                        ))}
                         {d.opening_hours && (
                           <span className="px-2 py-0.5 rounded-full bg-background border border-border font-body">🕐 {d.opening_hours}</span>
                         )}
                       </div>
-                      {d.accessibility && d.accessibility.length > 0 && (
-                        <p className="text-xs text-muted-foreground mt-2">Accès : {d.accessibility.join(", ")}</p>
+                      {/* Matériaux : tels qu'enregistrés dans la fiche CRM, sans ajout ni déduction. */}
+                      {d.materials && d.materials.length > 0 && (
+                        <div className="mt-2" data-testid="reco-materials">
+                          <p className="text-[10px] font-display font-bold uppercase tracking-wide text-muted-foreground">Matériaux acceptés</p>
+                          <div className="mt-1 flex flex-wrap gap-1.5 text-[11px]">
+                            {d.materials.map((m, mi) => {
+                              const hit = material && material !== "autre" && matchesMaterial([m], material);
+                              return (
+                                <span
+                                  key={`${m}-${mi}`}
+                                  className={`px-2 py-0.5 rounded-full border font-body ${hit ? "border-primary bg-primary/10 text-foreground font-semibold" : "border-border bg-background"}`}
+                                >
+                                  {m}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {/* Camions : uniquement ceux de la fiche CRM. */}
+                      {d.truck_types_allowed && d.truck_types_allowed.length > 0 && (
+                        <div className="mt-2" data-testid="reco-trucks">
+                          <p className="text-[10px] font-display font-bold uppercase tracking-wide text-muted-foreground">Camions acceptés</p>
+                          <p className="mt-1 text-xs font-body">{d.truck_types_allowed.join(" · ")}</p>
+                        </div>
                       )}
                     </button>
                   );
