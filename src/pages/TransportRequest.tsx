@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
-import { getEligibleEntrepreneurDumpSites } from "@/lib/entrepreneur/dompes";
+import { getEligibleEntrepreneurDumpSites, crmDompeNumber } from "@/lib/entrepreneur/dompes";
 import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
@@ -661,14 +661,14 @@ const TransportRequest = () => {
       quantity: quantity ? Number(quantity) : null,
       quantity_unit: unit,
       dump_submission_id: selectedDump.id,
-      dump_name: selectedDump.dompe_number || `#${selectedDump.submission_number}`,
+      dump_name: selectedDump.dompe_number,
       material_other: materialOther.trim() || null,
       alternative_dumps: dumps
         .filter((d) => d.id !== selectedDump.id)
         .slice(0, 3)
         .map((d) => ({
           id: d.id,
-          name: d.dompe_number || `#${d.submission_number}`,
+          name: d.dompe_number,
           distance_km: d.distance_km ?? null,
           duration_minutes: d.duration_minutes ?? null,
           availability_status: d.availability_status ?? null,
