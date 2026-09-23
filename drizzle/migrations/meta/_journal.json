@@ -267,6 +267,13 @@
       "when": 1790114374759,
       "tag": "0037_per_site_approval_workflow",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1790185052773,
+      "tag": "0038_fleet_ensure_my_company",
+      "breakpoints": true
     }
   ]
 }
