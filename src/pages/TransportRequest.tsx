@@ -1485,8 +1485,8 @@ const TransportRequest = () => {
                 <SummaryRow icon="📦" label="Remblai à disposer" value={MATERIALS.find((m) => m.id === material)?.label || material} />
                 <SummaryRow icon="📏" label="Quantité estimée" value={unit === "inconnu" ? "À déterminer" : `${quantity} ${unit}`} />
                 <SummaryRow icon="🚛" label="Voyages estimés" value={trips || "À confirmer"} />
-                <SummaryRow icon="⏱️" label="Temps de trajet" value={`${selectedDump.duration_minutes} min`} />
-                <SummaryRow icon="🎯" label="Dompe recommandée" value={`#${crmDompeNumber(selectedDump)} • ${selectedDump.distance_km} km`} />
+                <SummaryRow icon="⏱️" label="Temps de trajet" value={selectedDump.road_distance ? `${selectedDump.duration_minutes} min` : "À confirmer"} />
+                <SummaryRow icon="🎯" label="Dompe recommandée" value={selectedDump.road_distance ? `#${crmDompeNumber(selectedDump)} • ${selectedDump.distance_km} km` : `#${crmDompeNumber(selectedDump)} • distance à confirmer`} />
               </div>
               {dumps.length > 1 && (
                 <div className="mt-3 pt-3 border-t border-border">
@@ -1494,7 +1494,7 @@ const TransportRequest = () => {
                   <div className="space-y-1 text-xs">
                     {dumps.filter((d) => d.id !== selectedDump.id).slice(0, 2).map((d, i) => (
                       <p key={d.id}>
-                        {i === 0 ? "🥈" : "🥉"} Dompe #{crmDompeNumber(d)} — {d.distance_km} km ({d.duration_minutes} min)
+                        {i === 0 ? "🥈" : "🥉"} Dompe #{crmDompeNumber(d)} — {d.road_distance ? `${d.distance_km} km (${d.duration_minutes} min)` : "distance routière à confirmer"}
                       </p>
                     ))}
                   </div>
