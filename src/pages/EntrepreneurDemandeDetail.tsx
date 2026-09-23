@@ -8,6 +8,7 @@ import LinkedTransportCard from "@/components/parcours/LinkedTransportCard";
 import { Button } from "@/components/ui/button";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { buildEntrepreneurRequests } from "@/lib/entrepreneur-app/requests";
+import { findChantierForSubmission } from "@/lib/parcours/chantiers";
 
 const DetailLine = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
   <div className="flex gap-3 border-b border-border py-3 last:border-0">
@@ -21,8 +22,9 @@ const DetailLine = ({ icon, label, value }: { icon: React.ReactNode; label: stri
 
 export default function EntrepreneurDemandeDetail() {
   const { id = "" } = useParams<{ id: string }>();
-  const { loading, error, submissions, accessRequests, refresh } = useEntrepreneurData();
-  const request = buildEntrepreneurRequests(submissions, accessRequests).find((item) => item.id === id || item.sourceId === id);
+  const { loading, error, submissions, accessRequests, chantiers, refresh } = useEntrepreneurData();
+  const request = buildEntrepreneurRequests(submissions, accessRequests, chantiers).find((item) => item.id === id || item.sourceId === id);
+  const chantier = request?.submission ? findChantierForSubmission(chantiers, request.submission.id) : null;
 
   return (
     <EntrepreneurAppShell
@@ -47,6 +49,8 @@ export default function EntrepreneurDemandeDetail() {
                 </div>
                 <p className="mt-4 border-t border-border pt-3 font-display text-sm font-semibold text-primary">{request.nextAction}</p>
               </AppCard>
+
+              {chantier && <Link to={`/entrepreneur/chantiers/${encodeURIComponent(chantier.key)}`} className="inline-flex items-center gap-1 font-display text-sm font-semibold text-primary">Ouvrir le chantier <MapPin className="h-4 w-4" /></Link>}
 
               {request.submission ? (
                 <>

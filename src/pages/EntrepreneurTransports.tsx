@@ -8,8 +8,8 @@ import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProv
 import { buildEntrepreneurRequests } from "@/lib/entrepreneur-app/requests";
 
 export default function EntrepreneurTransports() {
-  const { loading, error, submissions, accessRequests, refresh } = useEntrepreneurData();
-  const transports = buildEntrepreneurRequests(submissions, accessRequests).filter((request) => request.kind === "transport");
+  const { loading, error, submissions, accessRequests, chantiers, refresh } = useEntrepreneurData();
+  const transports = buildEntrepreneurRequests(submissions, accessRequests, chantiers).filter((request) => request.kind === "transport");
   const active = transports.filter((request) => request.filter === "active" || request.filter === "pending");
   const closed = transports.filter((request) => request.filter === "done" || request.filter === "cancelled");
 
@@ -18,8 +18,8 @@ export default function EntrepreneurTransports() {
       key={request.id}
       to={`/entrepreneur/demandes/${request.id}`}
       kind="acces"
-      title={request.title}
-      place={request.place}
+      title={`Chantier — ${request.chantierLabel}`}
+      place={`${request.title}${request.transport?.truck_type ? ` · ${String(request.transport.truck_type)}` : ""}`}
       footer={`${request.quantity || "Voyages à confirmer"}${request.date ? ` · ${new Date(request.date).toLocaleDateString("fr-CA")}` : ""}`}
       nextAction={request.nextAction}
       badge={{ label: request.statusLabel, tone: request.tone }}
@@ -36,7 +36,7 @@ export default function EntrepreneurTransports() {
           <Button asChild className="h-11 font-display font-bold"><Link to="/demande-transport"><Plus className="mr-2 h-4 w-4" />Demander un transport</Link></Button>
         </div>
         {loading ? <LoadingSkeleton lines={3} /> : error ? <ErrorState onRetry={refresh} /> : transports.length === 0 ? (
-          <EmptyState title="Aucun transport" message="Vos demandes de transport apparaîtront ici dès leur enregistrement." actionLabel="Demander un transport" actionTo="/demande-transport" />
+          <EmptyState title="Aucun transport demandé" message="Besoin d’un camion pour votre chantier?" actionLabel="Demander un transport" actionTo="/demande-transport" />
         ) : (
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
             <section><SectionHeader title="En cours" />{active.length ? <div className="grid gap-3 xl:grid-cols-2">{active.map(render)}</div> : <p className="rounded-lg border border-dashed border-border p-5 font-body text-sm text-muted-foreground">Aucun transport actif.</p>}</section>

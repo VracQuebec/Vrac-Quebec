@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildEntrepreneurRequests, requestMatchesFilter } from "@/lib/entrepreneur-app/requests";
+import { buildChantiers, findChantierForTransport } from "@/lib/parcours/chantiers";
 import type { MySubmission } from "@/lib/parcours/mes-demandes";
 
 const submission = (over: Partial<MySubmission> = {}): MySubmission => ({
@@ -36,5 +37,29 @@ describe("dossiers entrepreneur", () => {
     ], []);
     expect(request.statusLabel).toBe("Dompe en attente");
     expect(request.submission?.selectedSiteAddress).toBeNull();
+  });
+
+  it("contextualise une demande dans son chantier calculé", () => {
+    const submissions = [submission({ address: "12 rue Test", city: "Lévis" })];
+    const chantiers = buildChantiers(submissions);
+    const [request] = buildEntrepreneurRequests(submissions, [], chantiers);
+    expect(request.chantierKey).toBe(chantiers[0].key);
+    expect(request.chantierLabel).toBe("Lévis");
+  });
+
+  it("ne rattache pas un transport par ville lorsque plusieurs chantiers sont possibles", () => {
+    const chantiers = buildChantiers([
+      submission({ id: "one", placeId: "place-one", city: "Lévis" }),
+      submission({ id: "two", placeId: "place-two", city: "Lévis" }),
+    ]);
+    expect(findChantierForTransport(chantiers, { site_city: "Lévis" })).toBeNull();
+  });
+
+  it("rattache un transport à une adresse exacte unique", () => {
+    const chantiers = buildChantiers([
+      submission({ id: "one", address: "12 rue Test", city: "Lévis" }),
+      submission({ id: "two", address: "18 rue Nord", city: "Lévis" }),
+    ]);
+    expect(findChantierForTransport(chantiers, { site_address: "12 rue Test", site_city: "Lévis" })?.submissions[0].id).toBe("one");
   });
 });

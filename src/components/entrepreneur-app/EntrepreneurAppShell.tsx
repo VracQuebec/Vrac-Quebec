@@ -46,7 +46,7 @@ interface Props {
 
 const PRIMARY_TABS = [
   { to: "/entrepreneur", label: "Accueil", icon: Home, end: true },
-  { to: "/entrepreneur/demandes", label: "Demandes", icon: ClipboardList },
+  { to: "/entrepreneur/chantiers", label: "Chantiers", icon: ClipboardList },
   { to: "/entrepreneur/carte", label: "Dompes", icon: MapIcon },
   { to: "/entrepreneur/transports", label: "Transports", icon: Truck },
 ] as const;
@@ -54,7 +54,7 @@ const PRIMARY_TABS = [
 const MORE_ITEMS = [
   { to: "/entrepreneur/compte", label: "Mon entreprise", hint: "Profil, camions, visibilité", icon: User },
   { to: "/entrepreneur/notifications", label: "Notifications", hint: "Ce qui demande votre attention", icon: Bell },
-  { to: "/entrepreneur/chantiers", label: "Chantiers", hint: "Regroupement de vos demandes", icon: ClipboardList },
+  { to: "/entrepreneur/demandes", label: "Toutes les demandes", hint: "Demandes de tous vos chantiers", icon: ClipboardList },
 ] as const;
 
 const SIDEBAR_ITEMS = [

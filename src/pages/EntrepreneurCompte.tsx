@@ -145,7 +145,7 @@ const EntrepreneurCompte = () => {
               <SectionHeader
                 title={
                   <span className="flex items-center gap-2">
-                    <Lock className="h-4 w-4 text-muted-foreground" /> Privé
+                    <Lock className="h-4 w-4 text-muted-foreground" /> Informations privées
                   </span>
                 }
               />
@@ -171,7 +171,7 @@ const EntrepreneurCompte = () => {
               <SectionHeader
                 title={
                   <span className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-primary" /> Public
+                    <Globe className="h-4 w-4 text-primary" /> Profil public
                   </span>
                 }
               />
@@ -217,8 +217,11 @@ const EntrepreneurCompte = () => {
                 )}
               </div>
 
-              {/* Visibilité */}
-              <div className="mt-2 flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+            </section>
+
+            <section>
+              <SectionHeader title="Visibilité" />
+              <div className="flex items-center gap-3 rounded-md border border-border bg-card p-4">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Eye className="h-5 w-5" />
                 </span>

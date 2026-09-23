@@ -28,6 +28,18 @@ export interface Chantier {
   submissions: MySubmission[];
 }
 
+export type ChantierTone = "pending" | "active" | "done" | "refused" | "neutral";
+
+export interface ChantierSummary {
+  material: string | null;
+  quantity: string | null;
+  createdAt: string | null;
+  lastActivity: string | null;
+  statusLabel: string;
+  tone: ChantierTone;
+  active: boolean;
+}
+
 export type ChantiersResult =
   | { state: "ok"; chantiers: Chantier[] }
   | { state: "unauthorized" }
@@ -85,6 +97,49 @@ export const buildChantiers = (submissions: MySubmission[]): Chantier[] => {
     });
   }
   return [...map.values()].sort((a, b) => (b.lastActivity ?? "").localeCompare(a.lastActivity ?? ""));
+};
+
+const CLOSED_STATUSES = new Set(["terminee", "annulee", "refusee"]);
+const ACTIVE_STATUSES = new Set(["acceptee", "planifiee", "en_cours"]);
+
+/** Résumé d'affichage dérivé uniquement des demandes déjà autorisées. */
+export const summarizeChantier = (chantier: Chantier): ChantierSummary => {
+  const latest = [...chantier.submissions].sort((a, b) =>
+    (b.createdAt ?? "").localeCompare(a.createdAt ?? ""),
+  )[0] ?? null;
+  const statuses = chantier.submissions.map((submission) => submission.status ?? "");
+  const allClosed = statuses.length > 0 && statuses.every((status) => CLOSED_STATUSES.has(status));
+  const hasActive = statuses.some((status) => ACTIVE_STATUSES.has(status));
+  return {
+    material: latest?.material ?? chantier.materials[0] ?? null,
+    quantity: latest?.quantity ?? null,
+    createdAt: latest?.createdAt ?? null,
+    lastActivity: chantier.lastActivity,
+    statusLabel: allClosed ? "Terminé" : hasActive ? "En cours" : "En traitement",
+    tone: allClosed ? "done" : hasActive ? "active" : "pending",
+    active: !allClosed,
+  };
+};
+
+export const findChantierForSubmission = (chantiers: Chantier[], submissionId: string) =>
+  chantiers.find((chantier) => chantier.submissions.some((submission) => submission.id === submissionId)) ?? null;
+
+const normalized = (value: unknown) => norm(typeof value === "string" ? value : null);
+
+/**
+ * Rapprochement prudent d'un transport avec un chantier existant.
+ * Une ville seule n'est utilisée que lorsqu'elle désigne un chantier unique.
+ */
+export const findChantierForTransport = (chantiers: Chantier[], transport: Record<string, unknown>) => {
+  const address = normalized(transport.site_address);
+  if (address) {
+    const exact = chantiers.filter((chantier) => normalized(chantier.address) === address);
+    if (exact.length === 1) return exact[0];
+  }
+  const city = normalized(transport.site_city);
+  if (!city) return null;
+  const sameCity = chantiers.filter((chantier) => normalized(chantier.city) === city);
+  return sameCity.length === 1 ? sameCity[0] : null;
 };
 
 /** Charge les chantiers de l'utilisateur connecté (vue calculée, lecture seule). */

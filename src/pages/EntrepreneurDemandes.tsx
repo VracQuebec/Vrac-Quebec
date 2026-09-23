@@ -16,16 +16,16 @@ const FILTERS: { key: RequestFilter; label: string }[] = [
 ];
 
 export default function EntrepreneurDemandes() {
-  const { loading, error, submissions, accessRequests, refresh } = useEntrepreneurData();
+  const { loading, error, submissions, accessRequests, chantiers, refresh } = useEntrepreneurData();
   const [params, setParams] = useSearchParams();
   const initial = params.get("filtre") as RequestFilter | null;
   const [filter, setFilter] = useState<RequestFilter>(FILTERS.some((item) => item.key === initial) ? initial ?? "all" : "all");
   const [query, setQuery] = useState("");
-  const requests = useMemo(() => buildEntrepreneurRequests(submissions, accessRequests), [submissions, accessRequests]);
+  const requests = useMemo(() => buildEntrepreneurRequests(submissions, accessRequests, chantiers), [submissions, accessRequests, chantiers]);
   const visible = requests.filter((request) => {
     if (!requestMatchesFilter(request, filter)) return false;
     const needle = query.trim().toLowerCase();
-    return !needle || `${request.title} ${request.place} ${request.sourceId}`.toLowerCase().includes(needle);
+    return !needle || `${request.title} ${request.chantierLabel} ${request.place} ${request.sourceId}`.toLowerCase().includes(needle);
   });
 
   const chooseFilter = (next: RequestFilter) => {
@@ -62,7 +62,7 @@ export default function EntrepreneurDemandes() {
             ) : (
               <div className="grid gap-3 xl:grid-cols-2">
                 {visible.map((request) => (
-                  <RequestCard key={request.id} to={`/entrepreneur/demandes/${request.id}`} kind={request.kind === "transport" ? "acces" : "materiau"} title={request.title} place={request.place} footer={`${request.quantity || "Quantité à confirmer"}${request.date ? ` · ${new Date(request.date).toLocaleDateString("fr-CA")}` : ""}`} nextAction={request.nextAction} badge={{ label: request.statusLabel, tone: request.tone }} />
+                  <RequestCard key={request.id} to={`/entrepreneur/demandes/${request.id}`} kind={request.kind === "transport" ? "acces" : "materiau"} title={`Chantier — ${request.chantierLabel}`} place={`${request.kind === "transport" ? "Transport" : "Demande de matériau"} · ${request.title}`} footer={`${request.quantity || "Quantité à confirmer"}${request.date ? ` · ${new Date(request.date).toLocaleDateString("fr-CA")}` : ""}`} nextAction="Voir le dossier" badge={{ label: request.statusLabel, tone: request.tone }} />
                 ))}
               </div>
             )}
