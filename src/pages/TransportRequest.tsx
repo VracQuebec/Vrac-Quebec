@@ -20,7 +20,7 @@ import {
 } from "@/lib/transport/submitQueue";
 import {
   Truck, MapPin, Package, Ruler, Loader2, ChevronLeft, ChevronRight,
-  CheckCircle2, LocateFixed, Sparkles, Phone, Clock, Download,
+  CheckCircle2, LocateFixed, Sparkles, Phone, Clock, Download, Route,
   MessageCircle, ShieldCheck, Zap, Network, Target, HelpCircle,
   Home, X,
 } from "lucide-react";
