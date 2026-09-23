@@ -1409,10 +1409,18 @@ const TransportRequest = () => {
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-display font-bold text-lg text-primary">{d.distance_km} km</div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
-                            <Clock className="w-3 h-3" /> {d.duration_minutes} min
-                          </div>
+                          {d.road_distance ? (
+                            <>
+                              <div className="font-display font-bold text-lg text-primary">{d.distance_km} km</div>
+                              <div className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
+                                <Clock className="w-3 h-3" /> {d.duration_minutes} min
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-xs text-muted-foreground flex items-center gap-1 justify-end max-w-[9rem]">
+                              <Route className="w-3 h-3 flex-shrink-0" /> Distance routière à confirmer
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1.5 text-[11px]">
