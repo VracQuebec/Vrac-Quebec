@@ -9,14 +9,10 @@ import FullPageState from "@/components/FullPageState";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   Home,
-  HardHat,
   ClipboardList,
   Map as MapIcon,
   Menu,
   Bell,
-  GitCompareArrows,
-
-  History,
   User,
   LogOut,
   Plus,
@@ -50,25 +46,21 @@ interface Props {
 
 const PRIMARY_TABS = [
   { to: "/entrepreneur", label: "Accueil", icon: Home, end: true },
-  { to: "/entrepreneur/chantiers", label: "Chantiers", icon: HardHat },
   { to: "/entrepreneur/demandes", label: "Demandes", icon: ClipboardList },
-  { to: "/entrepreneur/carte", label: "Carte", icon: MapIcon },
+  { to: "/entrepreneur/carte", label: "Dompes", icon: MapIcon },
+  { to: "/entrepreneur/transports", label: "Transports", icon: Truck },
 ] as const;
 
 const MORE_ITEMS = [
   { to: "/entrepreneur/compte", label: "Mon entreprise", hint: "Profil, camions, visibilité", icon: User },
-  
   { to: "/entrepreneur/notifications", label: "Notifications", hint: "Ce qui demande votre attention", icon: Bell },
-  { to: "/entrepreneur/comparateur", label: "Comparateur de sites", hint: "Comparer les dompes", icon: GitCompareArrows },
-  { to: "/entrepreneur/historique", label: "Historique", hint: "Vos demandes passées", icon: History },
+  { to: "/entrepreneur/chantiers", label: "Chantiers", hint: "Regroupement de vos demandes", icon: ClipboardList },
 ] as const;
 
 const SIDEBAR_ITEMS = [
   ...PRIMARY_TABS,
-  { to: "/entrepreneur/comparateur", label: "Comparateur", icon: GitCompareArrows },
-  
-  { to: "/entrepreneur/historique", label: "Historique", icon: History },
   { to: "/entrepreneur/compte", label: "Mon entreprise", icon: User },
+  { to: "/entrepreneur/notifications", label: "Notifications", icon: Bell },
 ] as const;
 
 const isActive = (pathname: string, to: string, end?: boolean) =>
@@ -144,7 +136,7 @@ export default function EntrepreneurAppShell({
               <NavLink
                 key={to}
                 to={to}
-                className={`flex items-center gap-3 rounded-xl px-3.5 py-3 min-h-11 font-body text-sm transition-colors ${
+                className={`flex items-center gap-3 rounded-md px-3.5 py-3 min-h-11 font-body text-sm transition-colors ${
                   active
                     ? "bg-primary text-primary-foreground font-semibold"
                     : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -157,23 +149,9 @@ export default function EntrepreneurAppShell({
           })}
         </nav>
         <div className="px-3 py-4 border-t border-border space-y-1">
-          <Link
-            to="/entrepreneur/notifications"
-            className="flex items-center gap-3 rounded-xl px-3.5 py-3 min-h-11 font-body text-sm text-muted-foreground hover:bg-secondary"
-          >
-            <span className="relative">
-              <Bell className="w-5 h-5" />
-              {badge > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-display font-bold flex items-center justify-center">
-                  {badge > 99 ? "99+" : badge}
-                </span>
-              )}
-            </span>
-            Notifications
-          </Link>
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3 min-h-11 font-body text-sm text-muted-foreground hover:bg-secondary"
+            className="flex w-full items-center gap-3 rounded-md px-3.5 py-3 min-h-11 font-body text-sm text-muted-foreground hover:bg-secondary"
           >
             <LogOut className="w-5 h-5" /> Déconnexion
           </button>

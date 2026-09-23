@@ -34,6 +34,17 @@ const kindOf = (n: MktNotification) => {
   return { icon: Bell, action: "" };
 };
 
+const dossierLink = (link: string | null) => {
+  if (!link) return null;
+  try {
+    const url = new URL(link, window.location.origin);
+    const id = url.searchParams.get("demande");
+    return id && url.pathname === "/entrepreneur/demandes" ? `/entrepreneur/demandes/${id}` : `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return link;
+  }
+};
+
 export default function EntrepreneurNotifications() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -48,7 +59,8 @@ export default function EntrepreneurNotifications() {
 
   const open = async (n: MktNotification) => {
     if (!n.read_at) await read(n.id);
-    if (n.link) navigate(n.link);
+    const link = dossierLink(n.link);
+    if (link) navigate(link);
   };
 
   const readAll = async () => {

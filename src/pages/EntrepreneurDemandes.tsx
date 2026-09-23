@@ -1,203 +1,73 @@
-// ============================================================
-// MES DEMANDES — une seule liste, types clairement distingués.
-// Deux circuits techniques existants, une seule présentation :
-//   « Demande de matériau » (soumission initiale)
-//   « Demande d'accès à une dompe » (avec estimation transport)
-// Chaque carte : chantier, type, statut, date, prochaine action.
-// ============================================================
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { Search } from "lucide-react";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
-import {
-  EmptyState,
-  ErrorState,
-  LoadingSkeleton,
-} from "@/components/entrepreneur-app/AppStates";
+import { EmptyState, ErrorState, LoadingSkeleton } from "@/components/entrepreneur-app/AppStates";
 import { AppTabs, RequestCard } from "@/components/entrepreneur-app/ui";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
-import { statusMeta, statusBucket } from "@/lib/access-requests/status";
-import { formatCad } from "@/lib/transport/pricing";
+import { buildEntrepreneurRequests, requestMatchesFilter, type RequestFilter } from "@/lib/entrepreneur-app/requests";
 
-const FILTERS = [
+const FILTERS: { key: RequestFilter; label: string }[] = [
   { key: "all", label: "Toutes" },
   { key: "active", label: "En cours" },
   { key: "pending", label: "En attente" },
   { key: "done", label: "Terminées" },
-] as const;
-
-type FilterKey = (typeof FILTERS)[number]["key"];
-
-interface UnifiedRequest {
-  id: string;
-  type: "matériau" | "accès";
-  title: string;
-  chantier: string;
-  statusLabel: string;
-  tone: "pending" | "active" | "done" | "refused" | "neutral";
-  bucket: "pending" | "accepted" | "completed" | "refused";
-  date: string | null;
-  nextAction: string;
-  price?: string | null;
-  chantierKey?: string | null;
-}
+  { key: "cancelled", label: "Annulées" },
+];
 
 export default function EntrepreneurDemandes() {
-  const { loading, error, submissions, chantiers, accessRequests, refresh } = useEntrepreneurData();
-  const [filter, setFilter] = useState<FilterKey>("all");
-  // Lien direct depuis un avis : ?demande=<identifiant> ouvre la bonne demande.
-  const [searchParams] = useSearchParams();
-  const targetId = searchParams.get("demande");
-  const targetRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!targetId) return;
-    setFilter("all");
-  }, [targetId]);
-
-  useEffect(() => {
-    if (!targetId || loading) return;
-    const t = window.setTimeout(
-      () => targetRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
-      150,
-    );
-    return () => window.clearTimeout(t);
-  }, [targetId, loading]);
-
-  const chantierBySubmission = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const c of chantiers) for (const s of c.submissions) map.set(s.id, c.key);
-    return map;
-  }, [chantiers]);
-
-  const list = useMemo<UnifiedRequest[]>(() => {
-    const fromSubs: UnifiedRequest[] = submissions.map((s) => {
-      const needsValidation = Boolean(s.selectedSiteId && !s.siteValidatedAt);
-      const done = ["terminee", "annulee", "refusee"].includes(s.status ?? "");
-      return {
-        id: `s-${s.id}`,
-        type: "matériau",
-        title: s.material ? `${s.material}${s.quantity ? ` — ${s.quantity}` : ""}` : "Demande de matériau",
-        chantier: s.location ?? "Lieu à confirmer",
-        statusLabel: needsValidation ? "Site à valider" : done ? "Terminée" : "En cours",
-        tone: needsValidation ? "pending" : done ? "done" : "active",
-        bucket: needsValidation ? "pending" : done ? "completed" : "accepted",
-        date: s.createdAt,
-        nextAction: needsValidation ? "Valider le site proposé" : done ? "Consulter" : "Suivre la demande",
-        chantierKey: chantierBySubmission.get(s.id) ?? null,
-      };
-    });
-    const fromAccess: UnifiedRequest[] = accessRequests.map((r) => {
-      const meta = statusMeta(String(r.status));
-      const bucket = statusBucket(String(r.status));
-      const addr = [r.site_city, r.site_address].filter(Boolean).join(" — ");
-      return {
-        id: `r-${String(r.id)}`,
-        type: "accès",
-        title: `${String(r.material_type ?? "Matériau")}${r.request_number ? ` · ${r.request_number}` : ""}`,
-        chantier: addr || "Lieu à confirmer",
-        statusLabel: meta.label,
-        tone:
-          bucket === "accepted"
-            ? "active"
-            : bucket === "completed"
-              ? "done"
-              : bucket === "refused"
-                ? "refused"
-                : "pending",
-        bucket,
-        date: (r.created_at as string | null) ?? null,
-        nextAction:
-          bucket === "pending"
-            ? "En traitement par notre équipe"
-            : bucket === "accepted"
-              ? "Transport à planifier"
-              : "Consulter",
-        price:
-          r.transport_total != null
-            ? `Transport : ${formatCad(Number(r.transport_total))} taxes incl.`
-            : r.transport_subtotal != null
-              ? `Transport : ${formatCad(Number(r.transport_subtotal))} + taxes`
-              : null,
-      };
-    });
-    return [...fromAccess, ...fromSubs].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
-  }, [submissions, accessRequests, chantierBySubmission]);
-
-  const visible = list.filter((r) => {
-    if (filter === "all") return true;
-    if (filter === "pending") return r.bucket === "pending";
-    if (filter === "active") return r.bucket === "accepted";
-    return r.bucket === "completed" || r.bucket === "refused";
+  const { loading, error, submissions, accessRequests, refresh } = useEntrepreneurData();
+  const [params, setParams] = useSearchParams();
+  const initial = params.get("filtre") as RequestFilter | null;
+  const [filter, setFilter] = useState<RequestFilter>(FILTERS.some((item) => item.key === initial) ? initial ?? "all" : "all");
+  const [query, setQuery] = useState("");
+  const requests = useMemo(() => buildEntrepreneurRequests(submissions, accessRequests), [submissions, accessRequests]);
+  const visible = requests.filter((request) => {
+    if (!requestMatchesFilter(request, filter)) return false;
+    const needle = query.trim().toLowerCase();
+    return !needle || `${request.title} ${request.place} ${request.sourceId}`.toLowerCase().includes(needle);
   });
 
-  return (
-    <EntrepreneurAppShell title="Demandes" backTo={null} showFab>
-      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 space-y-4">
-        {/* Mêmes onglets tactiles que le dossier chantier : cohérence totale. */}
-        <AppTabs
-          tabs={FILTERS.map((f) => ({
-            id: f.key,
-            label: f.label,
-            count:
-              f.key === "all"
-                ? list.length
-                : list.filter((r) =>
-                    f.key === "pending"
-                      ? r.bucket === "pending"
-                      : f.key === "active"
-                        ? r.bucket === "accepted"
-                        : r.bucket === "completed" || r.bucket === "refused",
-                  ).length,
-          }))}
-          value={filter}
-          onChange={(id) => setFilter(id as FilterKey)}
-        />
+  const chooseFilter = (next: RequestFilter) => {
+    setFilter(next);
+    const copy = new URLSearchParams(params);
+    if (next === "all") copy.delete("filtre"); else copy.set("filtre", next);
+    setParams(copy, { replace: true });
+  };
 
-        {loading ? (
-          <LoadingSkeleton lines={4} />
-        ) : error ? (
-          <ErrorState onRetry={refresh} />
-        ) : visible.length === 0 ? (
-          <EmptyState
-            title={list.length === 0 ? "Aucune demande pour l'instant" : "Aucune demande dans ce filtre"}
-            message={
-              list.length === 0
-                ? "Créez votre première demande : elle apparaîtra ici avec son suivi."
-                : "Essayez un autre filtre."
-            }
-            actionLabel={list.length === 0 ? "Nouvelle demande" : undefined}
-            actionTo={list.length === 0 ? "/demande-transport" : undefined}
-          />
-        ) : (
-          <div className="space-y-2.5">
-            {visible.map((r) => {
-              const highlighted = Boolean(targetId) && r.id.slice(2) === targetId;
-              return (
-              <div
-                key={r.id}
-                ref={highlighted ? targetRef : undefined}
-                className={highlighted ? "rounded-2xl ring-2 ring-primary" : undefined}
-              >
-              <RequestCard
-                to={
-                  r.chantierKey
-                    ? `/entrepreneur/chantiers/${encodeURIComponent(r.chantierKey)}`
-                    : "/entrepreneur/demandes"
-                }
-                kind={r.type === "accès" ? "acces" : "materiau"}
-                title={r.title}
-                place={r.chantier}
-                footer={`${r.type === "accès" ? "Demande d'accès à une dompe" : "Demande de matériau"}${
-                  r.date ? ` · ${new Date(r.date).toLocaleDateString("fr-CA")}` : ""
-                }${r.price ? ` · ${r.price}` : ""}`}
-                nextAction={r.nextAction}
-                badge={{ label: r.statusLabel, tone: r.tone }}
-              />
+  return (
+    <EntrepreneurAppShell title="Mes demandes" subtitle={`${requests.length} dossier${requests.length !== 1 ? "s" : ""}`} backTo={null} showFab>
+      <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:py-8">
+        <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
+          <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Chercher un dossier" aria-label="Chercher un dossier" className="h-12 w-full rounded-md border border-border bg-card pl-10 pr-3 font-body text-sm outline-none focus:border-primary" />
+            </div>
+            <div className="lg:hidden">
+              <AppTabs tabs={FILTERS.map((item) => ({ id: item.key, label: item.label, count: requests.filter((request) => requestMatchesFilter(request, item.key)).length }))} value={filter} onChange={(id) => chooseFilter(id as RequestFilter)} />
+            </div>
+            <nav className="hidden overflow-hidden rounded-md border border-border bg-card lg:block" aria-label="Filtrer les demandes">
+              {FILTERS.map((item) => {
+                const count = requests.filter((request) => requestMatchesFilter(request, item.key)).length;
+                return <button key={item.key} type="button" onClick={() => chooseFilter(item.key)} className={`flex min-h-12 w-full items-center justify-between border-b border-border px-4 text-left font-display text-sm font-semibold last:border-0 ${filter === item.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}><span>{item.label}</span><span>{count}</span></button>;
+              })}
+            </nav>
+            <a href="/entrepreneur/chantiers" className="hidden font-display text-sm font-semibold text-primary lg:inline-flex">Voir les regroupements par chantier</a>
+          </aside>
+
+          <section className="min-w-0">
+            {loading ? <LoadingSkeleton lines={4} /> : error ? <ErrorState onRetry={refresh} /> : visible.length === 0 ? (
+              <EmptyState title={requests.length === 0 ? "Aucune demande pour l'instant" : "Aucun dossier dans ce filtre"} message={requests.length === 0 ? "Créez votre première demande : son dossier apparaîtra ici." : "Essayez un autre filtre ou une autre recherche."} actionLabel={requests.length === 0 ? "Nouvelle demande" : undefined} actionTo={requests.length === 0 ? "/demande-transport" : undefined} />
+            ) : (
+              <div className="grid gap-3 xl:grid-cols-2">
+                {visible.map((request) => (
+                  <RequestCard key={request.id} to={`/entrepreneur/demandes/${request.id}`} kind={request.kind === "transport" ? "acces" : "materiau"} title={request.title} place={request.place} footer={`${request.quantity || "Quantité à confirmer"}${request.date ? ` · ${new Date(request.date).toLocaleDateString("fr-CA")}` : ""}`} nextAction={request.nextAction} badge={{ label: request.statusLabel, tone: request.tone }} />
+                ))}
               </div>
-              );
-            })}
-          </div>
-        )}
+            )}
+          </section>
+        </div>
       </div>
     </EntrepreneurAppShell>
   );

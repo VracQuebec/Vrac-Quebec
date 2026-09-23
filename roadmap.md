@@ -1,6 +1,6 @@
-- [ ] Auditer routes, écrans, données et protections du portail entrepreneur
-- [ ] Définir la nouvelle architecture centrée sur les dossiers de demandes
-- [ ] Refaire navigation, accueil, demandes, détail, transports, entreprise et notifications
-- [ ] Intégrer recherche et comparateur dans un parcours cohérent sans toucher au moteur
-- [ ] Vérifier les protections d’adresse et les flux d’approbation existants
-- [ ] Tester ordinateur, iPad et mobile avec de vraies sessions
+- [x] Auditer routes, écrans, données et protections du portail entrepreneur
+- [x] Définir la nouvelle architecture centrée sur les dossiers de demandes
+- [x] Refaire navigation, accueil, demandes, détail, transports, entreprise et notifications
+- [x] Intégrer recherche et comparateur dans un parcours cohérent sans toucher au moteur
+- [x] Vérifier les protections d’adresse et les flux d’approbation existants
+- [x] Tester ordinateur, iPad et mobile avec de vraies sessions
