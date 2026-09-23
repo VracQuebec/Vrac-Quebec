@@ -213,6 +213,8 @@ interface DumpCandidate {
   accessibility: string[] | null;
   distance_km?: number | null;
   duration_minutes?: number | null;
+  /** true : distance/temps routiers retournés par le serveur. false : repli à vol d'oiseau (affichage « à confirmer »). */
+  road_distance?: boolean;
   score?: number;
   reason?: string;
 }
