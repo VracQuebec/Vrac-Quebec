@@ -1,6 +1,5 @@
-- [x] Auditer routes, écrans, données et protections du portail entrepreneur
-- [x] Définir la nouvelle architecture centrée sur les dossiers de demandes
-- [x] Refaire navigation, accueil, demandes, détail, transports, entreprise et notifications
-- [x] Intégrer recherche et comparateur dans un parcours cohérent sans toucher au moteur
-- [x] Vérifier les protections d’adresse et les flux d’approbation existants
-- [x] Tester ordinateur, iPad et mobile avec de vraies sessions
+- [ ] Auditer les parcours et données existants pour la refonte centrée chantier.
+- [ ] Recentrer Accueil, dossiers chantier, Demandes et Transports.
+- [ ] Contextualiser Dompes et Comparateur sans toucher au moteur.
+- [ ] Réorganiser Mon entreprise et fiabiliser les liens de notifications.
+- [ ] Vérifier les parcours, la confidentialité et les formats mobile/iPad/ordinateur.
