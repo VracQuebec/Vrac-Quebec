@@ -2,4 +2,4 @@
 - [x] Recentrer Accueil, dossiers chantier, Demandes et Transports.
 - [x] Contextualiser Dompes et Comparateur sans toucher au moteur.
 - [x] Réorganiser Mon entreprise et fiabiliser les liens de notifications.
-- [ ] Vérifier les parcours, la confidentialité et les formats mobile/iPad/ordinateur.
+- [x] Vérifier les parcours, la confidentialité et les formats mobile/iPad/ordinateur.
