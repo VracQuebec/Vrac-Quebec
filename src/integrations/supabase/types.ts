@@ -16216,6 +16216,7 @@ export type Database = {
           longitude_old: number | null
           machinery_available: boolean | null
           machinery_description: string | null
+          material_selections: Json | null
           materials: string[]
           name: string
           next_follow_up_at: string | null
@@ -16331,6 +16332,7 @@ export type Database = {
           longitude_old?: number | null
           machinery_available?: boolean | null
           machinery_description?: string | null
+          material_selections?: Json | null
           materials: string[]
           name: string
           next_follow_up_at?: string | null
@@ -16446,6 +16448,7 @@ export type Database = {
           longitude_old?: number | null
           machinery_available?: boolean | null
           machinery_description?: string | null
+          material_selections?: Json | null
           materials?: string[]
           name?: string
           next_follow_up_at?: string | null
@@ -20289,6 +20292,7 @@ export type Database = {
           longitude_old: number | null
           machinery_available: boolean | null
           machinery_description: string | null
+          material_selections: Json | null
           materials: string[]
           name: string
           next_follow_up_at: string | null

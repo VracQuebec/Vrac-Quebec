@@ -1,0 +1,2 @@
+ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS material_selections jsonb;
+COMMENT ON COLUMN public.submissions.material_selections IS 'CATALOGUE-02 : sélection explicite du catalogue central [{material_id, variant_id, stance: accepted|refused|to_confirm, conditions}]. NULL pour les demandes historiques : aucune extension implicite aux nouveaux matériaux.';
