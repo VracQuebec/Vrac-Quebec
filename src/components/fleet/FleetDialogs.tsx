@@ -547,10 +547,12 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
   const [checks, setChecks] = useState<Record<string, CheckValue>>({});
   const [comment, setComment] = useState("");
   const [signature, setSignature] = useState("");
+  const [photos, setPhotos] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    setPhotos([]);
     setVehicle(record?.vehicle_id ?? vehicleId ?? vehicles[0]?.id ?? "");
     setDriver(record?.driver_id ?? "none");
     setDate(record?.inspected_on ?? today);
@@ -576,6 +578,10 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
         comment: comment || null,
         signature: signature || null,
       } as never);
+      if (photos.length) {
+        const r = await uploadPendingDocuments("fleet_inspection", inspectionId, photos);
+        if (r.errors.length) toast({ title: "Certaines photos n'ont pas pu être jointes", description: r.errors.join("\n"), variant: "destructive" });
+      }
       // « À surveiller » et « Problème » alimentent les travaux à faire,
       // sans jamais créer dix fois le même constat.
       await syncWorkItemsFromInspection(
@@ -657,7 +663,9 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
 
           <Field label="Commentaire"><Textarea rows={2} value={comment} onChange={(e) => setComment(e.target.value)} /></Field>
           <Field label="Signature (nom)"><Input value={signature} onChange={(e) => setSignature(e.target.value)} /></Field>
-          {record && <FleetDocuments ownerType="fleet_inspection" ownerId={record.id} label="Photos et rapports" />}
+          {record
+            ? <FleetDocuments ownerType="fleet_inspection" ownerId={record.id} label="Photos et rapports" />
+            : <PendingPhotos files={photos} onChange={setPhotos} label="Photos (jointes à l'enregistrement)" />}
         </div>
         <DialogFooter>
           {record && (
