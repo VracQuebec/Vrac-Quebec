@@ -14,6 +14,7 @@ export const QUICK_QUOTE_SOURCES = [
 export const UNIT_LABELS: Record<QuoteUnit, string> = {
   tonne: "tonnes",
   m3: "m³",
+  voyage: "voyages",
   verge: "verges³",
 };
 
