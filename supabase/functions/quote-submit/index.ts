@@ -219,13 +219,15 @@ Deno.serve(async (req) => {
       }).select('id,request_number').single();
       if (requestError) throw new Error(requestError.message);
       try {
-        await sb.from('submissions').insert({
+        const { error: leadErr } = await sb.from('submissions').insert({
           materials: [materialLabel], property_type: 'Non spécifié', quantity: `${quantity} ${unit}`,
+          tonnage: unit === 'tonne' ? String(quantity) : '',
           address: delivery.address, postal_code: delivery.postal_code ?? '', city: delivery.city ?? null,
           name, email, phone: phone ?? '', company: company ?? null,
           description: [`Soumission à confirmer (${request.request_number ?? ''})`, `Matériau : ${materialLabel}`, `Quantité : ${quantity} ${unit}`, `Motif : ${manualReason}`, comments ? `Notes : ${comments}` : ''].filter(Boolean).join('\n'),
           request_type: 'vrac', service_type: 'vrac_achat', desired_date: desiredDate,
         });
+        if (leadErr) throw new Error(leadErr.message);
       } catch (e) {
         await logEvent({ source: 'quote_submit', event: 'crm.lead_failed', level: 'error', message: e instanceof Error ? e.message : String(e) });
       }
