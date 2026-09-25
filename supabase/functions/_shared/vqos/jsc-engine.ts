@@ -321,7 +321,7 @@ export async function runJscQuote(
     technical: {
       selected: {
         carrier_profile: "transport_jsc",
-        material: { id: material.id, name: material.name, unit_price: unitPrice, is_taxable: material.is_taxable },
+        material: { id: material.id, name: material.name, unit_price: context.material.unit_price, price_unit: context.material.price_unit, billed_quantity: context.material.billed_quantity, price_id: context.material.price_id, price_per_tonne: unitPrice, is_taxable: material.is_taxable },
         pickup: {
           id: pickup.id, name: pickup.name, type: pickup.type,
           supplier_id: pickup.supplier_id, supplier_name: pickup.supplier_name,
