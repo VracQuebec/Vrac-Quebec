@@ -436,7 +436,7 @@ export function costTotals(costs: Cost[]) {
 
 // ---------------- Documents (réutilise `crm_documents` + bucket `crm-docs`) ----------------
 
-export type FleetOwnerType = "fleet_vehicle" | "fleet_maintenance" | "fleet_repair" | "fleet_inspection";
+export type FleetOwnerType = "fleet_vehicle" | "fleet_maintenance" | "fleet_repair" | "fleet_inspection" | "fleet_expense";
 
 export interface FleetDocument {
   id: string;

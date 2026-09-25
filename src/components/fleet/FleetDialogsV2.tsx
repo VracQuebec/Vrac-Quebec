@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import FleetDocuments from "@/components/fleet/FleetDocuments";
 import { PRIORITY_OPTIONS, vehicleLabel, type Vehicle } from "@/lib/fleet/api";
 import {
   EXPENSE_CATEGORIES, EXPENSE_LABELS, WORK_STATUS_LABELS, addReading, deleteExpense,
@@ -149,6 +150,11 @@ export function ExpenseDialog({ open, onOpenChange, vehicles, vehicleId, record,
               <Field label="Notes" wide><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
             </>
           )}
+          <div className="col-span-2">
+            {record
+              ? <FleetDocuments ownerType="fleet_expense" ownerId={record.id} label="Photos de la facture" />
+              : <p className="text-xs text-muted-foreground font-body">Enregistrez la dépense, puis rouvrez-la pour ajouter la photo de la facture.</p>}
+          </div>
         </div>
         <DialogFooter>
           {record && (
