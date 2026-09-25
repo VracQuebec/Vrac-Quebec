@@ -5,6 +5,7 @@
 // ============================================================
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, Save, Search } from "lucide-react";
+import PricingCsv from "@/components/jsc/PricingCsv";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +16,13 @@ import { normalizeSearch } from "@/lib/vrac/sharedCatalog";
 
 type Cat = { id: string; name_fr: string; family: string; is_active: boolean; vrac_selectable: boolean; vrac_exclusion_reason: string | null; requires_granulometry: boolean };
 type Gran = { id: string; label_fr: string };
-type JscMat = { id: string; name: string; material_catalog_id: string | null; granulometry_id: string | null; allowed_units: string[]; density_kg_per_m3: number | null };
+type Variant = { id: string; material_id: string; code: string; label_fr: string; is_active: boolean };
+type JscMat = { id: string; name: string; material_catalog_id: string | null; granulometry_id: string | null; variant_id: string | null; allowed_units: string[]; density_kg_per_m3: number | null };
 type Price = {
   id: string; material_id: string; unit: string; selling_price: number | null; purchase_price: number | null;
   minimum_quantity: number | null; max_quantity: number | null; pickup_location_id: string | null;
   transport_included: boolean; zone_label: string | null; valid_from: string | null; valid_to: string | null;
-  auto_quote_enabled: boolean; zero_price_confirmed: boolean; is_preferred: boolean; priority: number; is_active: boolean;
+  auto_quote_enabled: boolean; zero_price_confirmed: boolean; is_preferred: boolean; priority: number; is_active: boolean; price_kind: string;
 };
 type Pickup = { id: string; name: string };
 
@@ -39,14 +41,18 @@ const hasPrice = (p: Price) => p.selling_price != null && (Number(p.selling_pric
 const isExpired = (p: Price) => !!p.valid_to && p.valid_to < today();
 const num = (v: string) => (v.trim() === "" ? null : Number(v.replace(",", ".")));
 
-export default function MaterialPricing() {
+const ALL_UNITS = ["tonne", "m3", "verge", "voyage", "forfait"];
+const KIND_LABEL: Record<string, string> = { vente: "Vente", transport: "Transport", reception: "Réception / évacuation" };
+
+export default function MaterialPricing({ initialQuery = "" }: { initialQuery?: string }) {
   const [cats, setCats] = useState<Cat[]>([]);
   const [grans, setGrans] = useState<Gran[]>([]);
   const [mats, setMats] = useState<JscMat[]>([]);
   const [prices, setPrices] = useState<Price[]>([]);
   const [pickups, setPickups] = useState<Pickup[]>([]);
   const [dirty, setDirty] = useState<Record<string, Partial<Price>>>({});
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialQuery);
+  const [vars, setVars] = useState<Variant[]>([]);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,13 +60,15 @@ export default function MaterialPricing() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [c, g, m, p, pk] = await Promise.all([
+    const [c, g, m, p, pk, vv] = await Promise.all([
       supabase.from("material_catalog").select("id,name_fr,family,is_active,vrac_selectable,vrac_exclusion_reason,requires_granulometry").order("family").order("name_fr"),
       supabase.from("material_granulometries").select("id,label_fr").order("label_fr"),
-      supabase.from("jsc_materials").select("id,name,material_catalog_id,granulometry_id,allowed_units,density_kg_per_m3").is("archived_at", null),
+      supabase.from("jsc_materials").select("id,name,material_catalog_id,granulometry_id,variant_id,allowed_units,density_kg_per_m3").is("archived_at", null),
       supabase.from("jsc_material_prices").select("*").is("archived_at", null),
       supabase.from("jsc_pickup_locations").select("id,name").is("archived_at", null).order("name"),
+      supabase.from("material_variants").select("id,material_id,code,label_fr,is_active").order("display_order"),
     ]);
+    setVars((vv.data ?? []) as Variant[]);
     const err = c.error || g.error || m.error || p.error;
     if (err) toast.error(err.message);
     setCats((c.data ?? []) as Cat[]);
@@ -105,22 +113,23 @@ export default function MaterialPricing() {
 
   /** Crée (au besoin) la variante vendable rattachée au catalogue, puis un tarif vide. */
   const addPrice = async (c: Cat) => {
-    const granId = variantFor[c.id] || null;
-    if (c.requires_granulometry && !granId) { toast.error("Choisissez d'abord la granulométrie."); return; }
-    let mat = mats.find((m) => m.material_catalog_id === c.id && (m.granulometry_id ?? null) === granId);
+    const sel = variantFor[c.id] || "";
+    const granId = sel.startsWith("g:") ? sel.slice(2) : null;
+    const varId = sel.startsWith("v:") ? sel.slice(2) : null;
+    if (c.requires_granulometry && !granId && !varId) { toast.error("Choisissez d'abord la variante."); return; }
+    let mat = mats.find((m) => m.material_catalog_id === c.id && (m.granulometry_id ?? null) === granId && (m.variant_id ?? null) === varId);
     if (!mat) {
-      const gl = grans.find((g) => g.id === granId)?.label_fr;
+      const vl = varId ? vars.find((v) => v.id === varId)?.label_fr : grans.find((g) => g.id === granId)?.label_fr;
       const { data, error } = await supabase.from("jsc_materials").insert({
-        name: gl ? `${c.name_fr} ${gl}` : c.name_fr,
-        material_catalog_id: c.id, granulometry_id: granId,
-        // Aucune densité validée : seule la tonne est proposée.
-        allowed_units: ["tonne"], is_public: false,
-      } as never).select("id,name,material_catalog_id,granulometry_id,allowed_units,density_kg_per_m3").single();
+        name: vl ? `${c.name_fr} — ${vl}` : c.name_fr,
+        material_catalog_id: c.id, granulometry_id: granId, variant_id: varId,
+        allowed_units: ALL_UNITS, is_public: false,
+      } as never).select("id,name,material_catalog_id,granulometry_id,variant_id,allowed_units,density_kg_per_m3").single();
       if (error) { toast.error(error.message); return; }
       mat = data as JscMat;
     }
     const { error } = await supabase.from("jsc_material_prices").insert({
-      material_id: mat.id, unit: "tonne", selling_price: null, purchase_price: null, auto_quote_enabled: false,
+      material_id: mat.id, unit: "tonne", selling_price: null, purchase_price: null, auto_quote_enabled: false, price_kind: "vente",
     } as never);
     if (error) { toast.error(error.message); return; }
     toast.success("Ligne de tarif ajoutée : saisissez le prix.");
@@ -157,7 +166,7 @@ export default function MaterialPricing() {
         <h2 className="text-xl font-semibold">Tarifs des matériaux</h2>
         <p className="text-sm text-muted-foreground">
           Catalogue central partagé Remblai / Vrac. Un prix vide = « Sur demande ». Seuls les tarifs actifs, valides,
-          à la tonne et avec calcul automatique activé alimentent les soumissions automatiques.
+          de vente et avec calcul automatique activé alimentent les soumissions, dans leur propre unité (tonne, m³, verge³, voyage ou forfait). Le transport et la réception/évacuation sont des tarifs séparés.
         </p>
       </div>
       <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
@@ -177,6 +186,7 @@ export default function MaterialPricing() {
           {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
           Enregistrer ({Object.keys(dirty).length})
         </Button>
+        <PricingCsv cats={cats} vars={vars} mats={mats} prices={prices} onDone={load} />
       </div>
 
       <div className="space-y-3">
@@ -195,10 +205,11 @@ export default function MaterialPricing() {
                 </Badge>
                 <select className="h-8 rounded-md border bg-background px-2 text-xs" value={variantFor[c.id] ?? ""}
                   onChange={(e) => setVariantFor((v) => ({ ...v, [c.id]: e.target.value }))} aria-label="Variante">
-                  <option value="">{c.requires_granulometry ? "Granulométrie…" : "Sans variante"}</option>
-                  {grans.map((g) => <option key={g.id} value={g.id}>{g.label_fr}</option>)}
+                  <option value="">{c.requires_granulometry ? "Variante…" : "Sans variante"}</option>
+                  {vars.filter((v) => v.material_id === c.id && v.is_active).map((v) => <option key={v.id} value={`v:${v.id}`}>{v.label_fr}</option>)}
+                  <optgroup label="Granulométries">{grans.map((g) => <option key={g.id} value={`g:${g.id}`}>{g.label_fr}</option>)}</optgroup>
                 </select>
-                <Button size="sm" variant="outline" onClick={() => addPrice(c)}><Plus className="mr-1 h-4 w-4" /> Tarif</Button>
+                <Button size="sm" variant="outline" onClick={() => addPrice(c)}><Plus className="mr-1 h-4 w-4" /> Ajouter un tarif</Button>
               </div>
             </div>
             {pr.length > 0 && (
@@ -206,7 +217,7 @@ export default function MaterialPricing() {
                 <table className="w-full min-w-[1100px] text-xs">
                   <thead className="text-muted-foreground">
                     <tr className="text-left">
-                      <th className="p-1">Produit / variante</th><th className="p-1">Prix vente $</th><th className="p-1">Unité</th>
+                      <th className="p-1">Produit / variante</th><th className="p-1">Nature</th><th className="p-1">Prix $ (CAD)</th><th className="p-1">Unité</th>
                       <th className="p-1">Coût fourn. $</th><th className="p-1">Marge</th><th className="p-1">Min</th><th className="p-1">Max</th>
                       <th className="p-1">Point de chargement</th><th className="p-1">Transport inclus</th><th className="p-1">Zone</th>
                       <th className="p-1">Du</th><th className="p-1">Au</th><th className="p-1">Préféré</th><th className="p-1">Priorité</th><th className="p-1">Auto</th>
@@ -217,10 +228,15 @@ export default function MaterialPricing() {
                       const v = variants.find((x) => x.id === p.material_id);
                       const margin = p.selling_price != null && p.purchase_price != null && p.selling_price > 0
                         ? `${Math.round(((p.selling_price - p.purchase_price) / p.selling_price) * 100)} %` : "—";
-                      const units = (v?.allowed_units?.length ? v.allowed_units : ["tonne"]);
+                      const units = ALL_UNITS;
                       return (
                         <tr key={p.id} className={`border-t ${dirty[p.id] ? "bg-primary/5" : ""}`}>
                           <td className="p-1">{v?.name}{isExpired(p) && <Badge variant="destructive" className="ml-1">Expiré</Badge>}</td>
+                          <td className="p-1">
+                            <select className="h-8 rounded-md border bg-background px-1" value={p.price_kind ?? "vente"} onChange={(e) => edit(p.id, { price_kind: e.target.value })}>
+                              {Object.entries(KIND_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                            </select>
+                          </td>
                           <td className="p-1"><Input className="h-8 w-24" inputMode="decimal" placeholder="vide" value={p.selling_price ?? ""} onChange={(e) => edit(p.id, { selling_price: num(e.target.value) })} /></td>
                           <td className="p-1">
                             <select className="h-8 rounded-md border bg-background px-1" value={p.unit} onChange={(e) => edit(p.id, { unit: e.target.value })}>
