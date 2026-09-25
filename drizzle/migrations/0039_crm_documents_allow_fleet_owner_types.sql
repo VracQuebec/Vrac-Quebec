@@ -1,0 +1,2 @@
+ALTER TABLE public.crm_documents DROP CONSTRAINT crm_documents_owner_type_check;
+ALTER TABLE public.crm_documents ADD CONSTRAINT crm_documents_owner_type_check CHECK (owner_type = ANY (ARRAY['client','carrier','dump','entrepreneur','submission','transport_request','fleet_vehicle','fleet_maintenance','fleet_repair','fleet_inspection','fleet_expense']::text[]));
