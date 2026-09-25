@@ -281,6 +281,13 @@
       "when": 1790346204371,
       "tag": "0039_crm_documents_allow_fleet_owner_types",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1790347265630,
+      "tag": "0040_shared_material_catalog_vrac_pricing",
+      "breakpoints": true
     }
   ]
 }
