@@ -14,11 +14,11 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { normalizeSearch } from "@/lib/vrac/sharedCatalog";
 
-type Cat = { id: string; name_fr: string; family: string; is_active: boolean; vrac_selectable: boolean; vrac_exclusion_reason: string | null; requires_granulometry: boolean };
+export type Cat = { id: string; slug: string; name_fr: string; family: string; is_active: boolean; vrac_selectable: boolean; vrac_exclusion_reason: string | null; requires_granulometry: boolean };
 type Gran = { id: string; label_fr: string };
-type Variant = { id: string; material_id: string; code: string; label_fr: string; is_active: boolean };
-type JscMat = { id: string; name: string; material_catalog_id: string | null; granulometry_id: string | null; variant_id: string | null; allowed_units: string[]; density_kg_per_m3: number | null };
-type Price = {
+export type Variant = { id: string; material_id: string; code: string; label_fr: string; is_active: boolean };
+export type JscMat = { id: string; name: string; material_catalog_id: string | null; granulometry_id: string | null; variant_id: string | null; allowed_units: string[]; density_kg_per_m3: number | null };
+export type Price = {
   id: string; material_id: string; unit: string; selling_price: number | null; purchase_price: number | null;
   minimum_quantity: number | null; max_quantity: number | null; pickup_location_id: string | null;
   transport_included: boolean; zone_label: string | null; valid_from: string | null; valid_to: string | null;
@@ -61,7 +61,7 @@ export default function MaterialPricing({ initialQuery = "" }: { initialQuery?: 
   const load = useCallback(async () => {
     setLoading(true);
     const [c, g, m, p, pk, vv] = await Promise.all([
-      supabase.from("material_catalog").select("id,name_fr,family,is_active,vrac_selectable,vrac_exclusion_reason,requires_granulometry").order("family").order("name_fr"),
+      supabase.from("material_catalog").select("id,slug,name_fr,family,is_active,vrac_selectable,vrac_exclusion_reason,requires_granulometry").order("family").order("name_fr"),
       supabase.from("material_granulometries").select("id,label_fr").order("label_fr"),
       supabase.from("jsc_materials").select("id,name,material_catalog_id,granulometry_id,variant_id,allowed_units,density_kg_per_m3").is("archived_at", null),
       supabase.from("jsc_material_prices").select("*").is("archived_at", null),
