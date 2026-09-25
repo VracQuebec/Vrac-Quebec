@@ -409,11 +409,13 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
 }) {
   const { toast } = useToast();
   const [f, setF] = useState<Record<string, string>>({});
+  const [photos, setPhotos] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
     if (!open) return;
+    setPhotos([]);
     setF({
       vehicle_id: record?.vehicle_id ?? vehicleId ?? vehicles[0]?.id ?? "",
       problem: record?.problem ?? "",
@@ -455,7 +457,12 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
         parts_summary: f.parts_summary || null,
         supplier: f.supplier || null,
         notes: f.notes || null,
-      } as never);
+      } as never).then(async (savedId) => {
+        if (photos.length) {
+          const r = await uploadPendingDocuments("fleet_repair", savedId, photos);
+          if (r.errors.length) toast({ title: "Certaines photos n'ont pas pu être jointes", description: r.errors.join("\n"), variant: "destructive" });
+        }
+      });
       toast({ title: "Réparation enregistrée", description: f.scheduled_date ? "Ajoutée au calendrier." : undefined });
       onOpenChange(false); onSaved();
     } catch (e) {
@@ -499,7 +506,11 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
           <Field label="Garage / fournisseur"><Input value={f.supplier ?? ""} onChange={(e) => setF({ ...f, supplier: e.target.value })} /></Field>
           <div className="col-span-2"><Field label="Description"><Textarea rows={2} value={f.description ?? ""} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field></div>
           <div className="col-span-2"><Field label="Notes"><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
-          {record && <div className="col-span-2"><FleetDocuments ownerType="fleet_repair" ownerId={record.id} label="Factures et documents" /></div>}
+          <div className="col-span-2">
+            {record
+              ? <FleetDocuments ownerType="fleet_repair" ownerId={record.id} label="Factures et documents" />
+              : <PendingPhotos files={photos} onChange={setPhotos} label="Photos / facture (jointes à l'enregistrement)" />}
+          </div>
         </div>
         <DialogFooter>
           {record && (
