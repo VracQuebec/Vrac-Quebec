@@ -302,6 +302,13 @@
       "when": 1790347438404,
       "tag": "0042_vrac_public_catalog_jsc_name",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1790348951151,
+      "tag": "0043_catalogue_02_variants_sources_history",
+      "breakpoints": true
     }
   ]
 }

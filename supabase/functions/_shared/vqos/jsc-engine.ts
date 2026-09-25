@@ -243,8 +243,8 @@ export async function runJscQuote(
   const billableMinutes = flooredTripMinutes;
   const billableHours = Number((billableMinutes / 60).toFixed(3));
 
-  // 11. Coût du matériau.
-  const materialAmount = roundMoney(tonnage * unitPrice, decimals);
+  // 11. Coût du matériau : quantité × prix dans l'unité du tarif (tonne, m³, verge³, voyage, forfait).
+  const materialAmount = roundMoney(context.material.billed_quantity * context.material.unit_price, decimals);
 
   // 12. Coût du transport (tarif horaire du camion retenu par la préparation).
   const hourlyRate = truck.hourly_rate;

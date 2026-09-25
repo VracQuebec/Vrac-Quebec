@@ -62,6 +62,11 @@ export interface PreparedQuoteContext {
     density_kg_per_m3: number | null;
     is_taxable: boolean;
     price_per_tonne: number;
+    unit_price: number;
+    price_unit: string;
+    billed_quantity: number;
+    material_subtotal: number;
+    price_id: string | null;
   };
   supply: SupplyPoint;
   base: SupplyPoint;
@@ -167,35 +172,86 @@ export function pickTruck(trucks: TruckRow[], tonnage: number, preferredTruckId?
     ?? usable[usable.length - 1];
 }
 
+/** Unités de tarif gérées par le moteur. */
+export type PriceUnit = "tonne" | "m3" | "verge" | "voyage" | "forfait";
+const M3_PER_YD3 = 0.764554857984;
+const VOLUME = new Set(["m3", "verge"]);
+
 /**
- * SOURCE UNIQUE DES PRIX — `jsc_material_prices`.
- * Un tarif est admissible seulement s'il est actif, activé pour le calcul
- * automatique, dans sa période de validité, exprimé à la tonne, couvrant le
- * tonnage demandé et avec un prix saisi (> 0, ou 0 $ confirmé explicitement).
- * Priorité : préféré, puis carrière assignée, puis `priority` la plus haute.
- * Égalité non départagée avec des prix différents => traitement manuel.
+ * Convertit une quantité vers l'unité du tarif.
+ *  - même unité : aucune conversion ;
+ *  - m³ ↔ verge³ : conversion de volume pure (aucune densité) ;
+ *  - tonne ↔ volume : exige une densité documentée ;
+ *  - voyage / forfait : jamais convertis (null).
  */
-export function resolveMaterialPrice(config: EngineConfig, tonnage?: number, today = new Date().toISOString().slice(0, 10)): number {
+export function convertQuantity(q: number, from: string, to: string, density: number | null | undefined): number | null {
+  if (from === to) return q;
+  if (VOLUME.has(from) && VOLUME.has(to)) return from === "m3" ? q / M3_PER_YD3 : q * M3_PER_YD3;
+  const d = Number(density ?? 0);
+  if (from === "tonne" && VOLUME.has(to)) {
+    if (!(d > 0)) return null;
+    const m3 = (q * 1000) / d;
+    return to === "m3" ? m3 : m3 / M3_PER_YD3;
+  }
+  if (VOLUME.has(from) && to === "tonne") {
+    if (!(d > 0)) return null;
+    const m3 = from === "m3" ? q : q * M3_PER_YD3;
+    return (m3 * d) / 1000;
+  }
+  return null;
+}
+
+export interface ResolvedTariff {
+  unit_price: number;
+  price_unit: PriceUnit;
+  /** Quantité facturée dans l'unité du tarif (1 pour un forfait). */
+  billed_quantity: number;
+  price_id: string | null;
+}
+
+/**
+ * SOURCE UNIQUE DES PRIX — `jsc_material_prices` (price_kind = vente).
+ * Tarif admissible : actif, calcul automatique activé, dans sa période,
+ * prix saisi (> 0 ou 0 $ confirmé), quantité convertible sans supposition
+ * dans l'unité du tarif et couverte par ses paliers.
+ * Priorité : préféré, puis carrière assignée, puis `priority`.
+ * Égalité non départagée avec des montants différents => traitement manuel.
+ */
+export function resolveMaterialTariff(
+  config: EngineConfig,
+  qty: { value: number; unit: string },
+  today = new Date().toISOString().slice(0, 10),
+): ResolvedTariff {
   const material = config.material;
+  const density = material.density_kg_per_m3;
   const assignedPickup = (material as { pickup_location_id?: string | null }).pickup_location_id ?? null;
-  const all = (config.prices ?? []).filter((p: any) => p.material_id === material.id && p.is_active !== false && !p.archived_at);
+  const all = (config.prices ?? []).filter((p: any) =>
+    p.material_id === material.id && p.is_active !== false && !p.archived_at && (p.price_kind ?? "vente") === "vente");
   const hasPrice = (p: any) => p.selling_price != null && (Number(p.selling_price) > 0 || (Number(p.selling_price) === 0 && p.zero_price_confirmed === true));
-  const rows = all.filter((p: any) =>
-    hasPrice(p) &&
-    p.auto_quote_enabled !== false &&
-    (!p.valid_from || p.valid_from <= today) &&
-    (!p.valid_to || p.valid_to >= today) &&
-    (p.unit ?? 'tonne') === 'tonne' &&
-    (tonnage == null || p.minimum_quantity == null || tonnage >= Number(p.minimum_quantity)) &&
-    (tonnage == null || p.max_quantity == null || tonnage <= Number(p.max_quantity))
-  );
+  const inPeriod = (p: any) => (!p.valid_from || p.valid_from <= today) && (!p.valid_to || p.valid_to >= today);
+  const billed = (p: any): number | null => {
+    const u = p.unit ?? "tonne";
+    return u === "forfait" ? 1 : convertQuantity(qty.value, qty.unit, u, density);
+  };
+  const candidates = all.filter((p: any) => hasPrice(p) && p.auto_quote_enabled !== false && inPeriod(p));
+  const rows = candidates.filter((p: any) => {
+    const b = billed(p);
+    if (b == null) return false;
+    if ((p.unit ?? "tonne") === "forfait") return true;
+    return (p.minimum_quantity == null || b >= Number(p.minimum_quantity) - 1e-9) &&
+      (p.max_quantity == null || b <= Number(p.max_quantity) + 1e-9);
+  });
   if (rows.length === 0) {
     const expired = all.some((p: any) => hasPrice(p) && p.valid_to && p.valid_to < today);
-    const otherUnit = all.some((p: any) => hasPrice(p) && (p.unit ?? 'tonne') !== 'tonne');
-    const reason = expired ? 'tarif expiré'
-      : otherUnit ? 'tarif dans une unité non convertible automatiquement'
-      : all.some((p: any) => hasPrice(p)) ? 'aucun tarif admissible (calcul automatique désactivé, quantité hors paliers ou période non commencée)'
-      : 'aucun prix saisi';
+    const unconvertible = candidates.length > 0 && candidates.every((p: any) => billed(p) == null);
+    const massVolume = unconvertible && candidates.some((p: any) =>
+      (qty.unit === "tonne" && VOLUME.has(p.unit)) || (VOLUME.has(qty.unit) && (p.unit ?? "tonne") === "tonne"));
+    const reason = expired && candidates.length === 0 ? "tarif expiré"
+      : massVolume ? "conversion masse-volume impossible sans densité documentée"
+      : unconvertible ? `aucun tarif dans une unité compatible avec ${UNIT_LABELS[qty.unit] ?? qty.unit}`
+      : candidates.length > 0 ? "quantité hors des paliers du tarif"
+      : all.some((p: any) => hasPrice(p)) ? "aucun tarif admissible (calcul automatique désactivé ou période non commencée)"
+      : "aucun prix saisi";
     throw new Error(`Soumission à confirmer : ${reason} pour « ${material.name} ».`);
   }
   const tier = (p: any) => (p.is_preferred ? 2 : 0) + (assignedPickup && p.pickup_location_id === assignedPickup ? 1 : 0);
@@ -203,44 +259,56 @@ export function resolveMaterialPrice(config: EngineConfig, tonnage?: number, tod
   let top = rows.filter((p: any) => tier(p) === best);
   const bestPrio = Math.max(...top.map((p: any) => Number(p.priority ?? 0)));
   top = top.filter((p: any) => Number(p.priority ?? 0) === bestPrio);
-  const prices = new Set(top.map((p: any) => Number(p.selling_price)));
-  if (prices.size > 1) {
+  const amounts = new Set(top.map((p: any) => Math.round(Number(p.selling_price) * (billed(p) as number) * 100)));
+  if (amounts.size > 1) {
     throw new Error(`Soumission à confirmer : plusieurs tarifs admissibles non départagés pour « ${material.name} ».`);
   }
-  return Number(top[0].selling_price);
+  const p = top[0];
+  return {
+    unit_price: Number(p.selling_price),
+    price_unit: (p.unit ?? "tonne") as PriceUnit,
+    billed_quantity: Number((billed(p) as number).toFixed(4)),
+    price_id: p.id ?? null,
+  };
+}
+
+/** Compatibilité : prix unitaire pour une quantité en tonnes. */
+export function resolveMaterialPrice(config: EngineConfig, tonnage?: number, today = new Date().toISOString().slice(0, 10)): number {
+  return resolveMaterialTariff(config, { value: tonnage ?? 1, unit: "tonne" }, today).unit_price;
 }
 
 /**
  * ÉTAPE 3 — Préparation du calcul.
- * Rassemble : départ (Logipark), carrière assignée, adresse client,
- * quantité convertie en tonnes, camion et capacité. Aucun montant.
+ * Le prix du matériau est d'abord résolu dans l'unité du tarif ; la logistique
+ * (tonnage, camion) est une vérification séparée qui exige une masse connue.
  */
 export function prepareQuoteContext(input: QuoteInput, config: EngineConfig): PreparedQuoteContext {
   const material = config.material;
   if (!Number.isFinite(input.quantity) || input.quantity <= 0) {
     throw new Error("Quantité invalide.");
   }
-  // Unités permises par matériau (administrable). Vide => tonnes seulement.
-  const allowed = (material.allowed_units ?? ["tonne", "m3", "verge"]).filter(Boolean);
-  const requested = input.unit === "voyage" ? "tonne" : input.unit;
-  if (allowed.length > 0 && !allowed.includes(requested)) {
+  const allowed = (material.allowed_units ?? []).filter(Boolean);
+  const requested = input.unit;
+  if (allowed.length > 0 && requested !== "voyage" && !allowed.includes(requested)) {
     throw new Error(
       `« ${material.name} » ne peut pas être commandé en ${UNIT_LABELS[requested] ?? requested}. Unités permises : ${
         allowed.map((u) => UNIT_LABELS[u] ?? u).join(", ")
       }.`,
     );
   }
-  const density = Number(material.density_kg_per_m3 ?? 0);
-  if (requested !== "tonne" && !(density > 0)) {
+  // 1. Prix du matériau, directement dans l'unité du tarif.
+  const tariff = resolveMaterialTariff(config, { value: input.quantity, unit: requested });
+  const materialSubtotal = Math.round(tariff.unit_price * tariff.billed_quantity * 100) / 100;
+
+  // 2. Logistique : exige une masse. Un voyage ne devient jamais un tonnage supposé.
+  const tonnage = requested === "voyage" ? null : convertQuantity(input.quantity, requested, "tonne", material.density_kg_per_m3);
+  if (tonnage == null || !Number.isFinite(tonnage) || tonnage <= 0) {
     throw new Error(
-      `Densité manquante pour « ${material.name} » : impossible de convertir ${
-        UNIT_LABELS[requested] ?? requested
-      } en tonnes. Configurez la densité (kg/m³) dans Administration › Matériaux.`,
+      `Soumission à confirmer : livraison à confirmer — ${
+        requested === "voyage" ? "le nombre de voyages ne détermine pas un tonnage" : "densité documentée manquante pour dimensionner le camion"
+      }. Sous-total matériau calculable : ${materialSubtotal.toFixed(2)} $ (${tariff.billed_quantity} ${UNIT_LABELS[tariff.price_unit] ?? tariff.price_unit} × ${tariff.unit_price} $).`,
     );
   }
-  const tonnage = toTonnes(input.quantity, input.unit, material.density_kg_per_m3);
-  if (!Number.isFinite(tonnage) || tonnage <= 0) throw new Error("Quantité invalide.");
-  const unitPrice = resolveMaterialPrice(config, tonnage);
 
   if (!Number.isFinite(input.delivery?.lat) || !Number.isFinite(input.delivery?.lng)) {
     throw new Error("Adresse de livraison invalide : coordonnées manquantes.");
@@ -266,7 +334,12 @@ export function prepareQuoteContext(input: QuoteInput, config: EngineConfig): Pr
       unit: material.unit,
       density_kg_per_m3: material.density_kg_per_m3,
       is_taxable: material.is_taxable,
-      price_per_tonne: unitPrice,
+      price_per_tonne: tariff.price_unit === "tonne" ? tariff.unit_price : Number((materialSubtotal / tonnage).toFixed(4)),
+      unit_price: tariff.unit_price,
+      price_unit: tariff.price_unit,
+      billed_quantity: tariff.billed_quantity,
+      material_subtotal: materialSubtotal,
+      price_id: tariff.price_id,
     },
     supply,
     base,

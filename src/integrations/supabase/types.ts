@@ -6588,6 +6588,7 @@ export type Database = {
           max_quantity: number | null
           minimum_quantity: number | null
           pickup_location_id: string | null
+          price_kind: string
           priority: number
           purchase_price: number | null
           selling_price: number | null
@@ -6613,6 +6614,7 @@ export type Database = {
           max_quantity?: number | null
           minimum_quantity?: number | null
           pickup_location_id?: string | null
+          price_kind?: string
           priority?: number
           purchase_price?: number | null
           selling_price?: number | null
@@ -6638,6 +6640,7 @@ export type Database = {
           max_quantity?: number | null
           minimum_quantity?: number | null
           pickup_location_id?: string | null
+          price_kind?: string
           priority?: number
           purchase_price?: number | null
           selling_price?: number | null
@@ -6823,6 +6826,7 @@ export type Database = {
           unit: string
           updated_at: string
           uses: string[]
+          variant_id: string | null
         }
         Insert: {
           allowed_units?: string[]
@@ -6863,6 +6867,7 @@ export type Database = {
           unit?: string
           updated_at?: string
           uses?: string[]
+          variant_id?: string | null
         }
         Update: {
           allowed_units?: string[]
@@ -6903,6 +6908,7 @@ export type Database = {
           unit?: string
           updated_at?: string
           uses?: string[]
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -6945,6 +6951,13 @@ export type Database = {
             columns: ["pickup_location_id"]
             isOneToOne: false
             referencedRelation: "jsc_pickup_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_materials_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "material_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -8029,6 +8042,7 @@ export type Database = {
           manual_reason: string | null
           material_catalog_id: string | null
           material_id: string | null
+          material_variant_id: string | null
           notes: string | null
           postal_code: string | null
           project_id: string | null
@@ -8059,6 +8073,7 @@ export type Database = {
           manual_reason?: string | null
           material_catalog_id?: string | null
           material_id?: string | null
+          material_variant_id?: string | null
           notes?: string | null
           postal_code?: string | null
           project_id?: string | null
@@ -8089,6 +8104,7 @@ export type Database = {
           manual_reason?: string | null
           material_catalog_id?: string | null
           material_id?: string | null
+          material_variant_id?: string | null
           notes?: string | null
           postal_code?: string | null
           project_id?: string | null
@@ -8141,6 +8157,13 @@ export type Database = {
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "jsc_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_requests_material_variant_id_fkey"
+            columns: ["material_variant_id"]
+            isOneToOne: false
+            referencedRelation: "material_variants"
             referencedColumns: ["id"]
           },
           {
@@ -9373,6 +9396,36 @@ export type Database = {
           },
         ]
       }
+      material_catalog_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          entity: string
+          entity_id: string
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          entity: string
+          entity_id: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          entity?: string
+          entity_id?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+        }
+        Relationships: []
+      }
       material_catalog_legacy_map: {
         Row: {
           created_at: string
@@ -9417,6 +9470,88 @@ export type Database = {
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "material_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_catalog_sources: {
+        Row: {
+          bulk_evidence: string | null
+          characteristics: string | null
+          created_at: string
+          id: string
+          lot: string
+          material_id: string | null
+          original_name: string
+          outcome: string
+          outcome_reason: string | null
+          proposal_type: string
+          proposed_equivalent_id: string | null
+          region: string | null
+          row_ref: string
+          source_url: string | null
+          supplier_name: string | null
+          variant_id: string | null
+          verified_on: string | null
+        }
+        Insert: {
+          bulk_evidence?: string | null
+          characteristics?: string | null
+          created_at?: string
+          id?: string
+          lot: string
+          material_id?: string | null
+          original_name: string
+          outcome: string
+          outcome_reason?: string | null
+          proposal_type: string
+          proposed_equivalent_id?: string | null
+          region?: string | null
+          row_ref: string
+          source_url?: string | null
+          supplier_name?: string | null
+          variant_id?: string | null
+          verified_on?: string | null
+        }
+        Update: {
+          bulk_evidence?: string | null
+          characteristics?: string | null
+          created_at?: string
+          id?: string
+          lot?: string
+          material_id?: string | null
+          original_name?: string
+          outcome?: string
+          outcome_reason?: string | null
+          proposal_type?: string
+          proposed_equivalent_id?: string | null
+          region?: string | null
+          row_ref?: string
+          source_url?: string | null
+          supplier_name?: string | null
+          variant_id?: string | null
+          verified_on?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_catalog_sources_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_catalog_sources_proposed_equivalent_id_fkey"
+            columns: ["proposed_equivalent_id"]
+            isOneToOne: false
+            referencedRelation: "material_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_catalog_sources_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "material_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -9765,6 +9900,69 @@ export type Database = {
           {
             foreignKeyName: "material_synonyms_normalized_material_id_fkey"
             columns: ["normalized_material_id"]
+            isOneToOne: false
+            referencedRelation: "material_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_variants: {
+        Row: {
+          attributes: Json
+          code: string
+          created_at: string
+          display_order: number
+          granulometry_id: string | null
+          id: string
+          is_active: boolean
+          label_fr: string
+          material_id: string
+          specification_code: string | null
+          specification_documented: boolean
+          updated_at: string
+          variant_kind: string
+        }
+        Insert: {
+          attributes?: Json
+          code: string
+          created_at?: string
+          display_order?: number
+          granulometry_id?: string | null
+          id?: string
+          is_active?: boolean
+          label_fr: string
+          material_id: string
+          specification_code?: string | null
+          specification_documented?: boolean
+          updated_at?: string
+          variant_kind?: string
+        }
+        Update: {
+          attributes?: Json
+          code?: string
+          created_at?: string
+          display_order?: number
+          granulometry_id?: string | null
+          id?: string
+          is_active?: boolean
+          label_fr?: string
+          material_id?: string
+          specification_code?: string | null
+          specification_documented?: boolean
+          updated_at?: string
+          variant_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_variants_granulometry_id_fkey"
+            columns: ["granulometry_id"]
+            isOneToOne: false
+            referencedRelation: "material_granulometries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_variants_material_id_fkey"
+            columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "material_catalog"
             referencedColumns: ["id"]
