@@ -31,9 +31,9 @@ describe("buildQuoteRequest — calcul systématique quand les données existent
     expect("unsupported" in r).toBe(false);
   });
 
-  it("voyages convertis en tonnes selon la capacité configurée", () => {
+  it("voyages transmis tels quels, sans tonnage inventé", () => {
     const r = buildQuoteRequest({ ...base, quantityMode: "voyages", trips: "2" }, { truckCapacityTonnes: 18 });
-    expect(r).toMatchObject({ quantity: 36, unit: "tonne" });
+    expect(r).toMatchObject({ quantity: 2, unit: "voyage" });
   });
 });
 
@@ -47,6 +47,6 @@ describe("buildQuoteRequest — raisons précises", () => {
   it("adresse non validée", () => expect(reason({ addressLat: null, addressLng: null, tonnes: "10" })).toMatch(/Adresse de livraison invalide/));
   it("quantité invalide", () => expect(reason({ tonnes: "0" })).toMatch(/Quantité invalide/));
   it("densité absente", () => expect(reason({ tonnes: "10", quantityUnit: "m3" }, { hasDensity: false })).toMatch(/Densité du matériau non configurée/));
-  it("capacité camion absente", () => expect(reason({ quantityMode: "voyages", trips: "2" }, { truckCapacityTonnes: null })).toMatch(/Capacité de camion non configurée/));
+  it("voyages sans capacité camion : aucune conversion requise", () => expect(reason({ quantityMode: "voyages", trips: "2" }, { truckCapacityTonnes: null })).toBeNull());
   it("quantité inconnue", () => expect(reason({ quantityMode: "inconnu" })).toMatch(/Quantité non précisée/));
 });
