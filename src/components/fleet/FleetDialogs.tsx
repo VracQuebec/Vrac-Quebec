@@ -14,7 +14,7 @@ import {
   saveRepair, saveVehicle, vehicleLabel,
   type CheckValue, type Inspection, type Maintenance, type Repair, type Vehicle,
 } from "@/lib/fleet/api";
-import FleetDocuments from "@/components/fleet/FleetDocuments";
+import FleetDocuments, { PendingPhotos, uploadPendingDocuments } from "@/components/fleet/FleetDocuments";
 import type { Driver } from "@/lib/calendar-utils";
 import {
   ADMIN_STATUS, OPS_STATUS, UNIT_CATEGORIES, inspectionPointsFor,
