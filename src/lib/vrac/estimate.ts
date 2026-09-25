@@ -28,7 +28,12 @@ const needsDensity = (unit: string) => unit === "m3" || unit === "verge";
 /** Convertit la quantité saisie en une entrée compréhensible par le moteur. */
 export function buildQuoteRequest(draft: VracDraft, ctx: QuoteContext = {}): QuoteRequest | QuoteBlock {
   const material = findVracMaterial(draft.materialId);
-  if (!material) return { unsupported: "Matériau non sélectionné : choisissez un matériau à l'étape 1.", fixStep: 0 };
+  const cat = draft.catalog;
+  if (cat && cat.priceStatus !== "prix_disponible") {
+    return { unsupported: "Sur demande : cette variante n'a pas de tarif; notre équipe confirmera le prix.", fixStep: 0 };
+  }
+  const label = cat ? [cat.name, cat.variantLabel].filter(Boolean).join(" — ") : material?.name ?? "";
+  if (!material && !cat) return { unsupported: "Matériau non sélectionné : choisissez un matériau à l'étape 1.", fixStep: 0 };
 
   const address = draft.address.trim();
   if (address.length < 5) {
@@ -42,7 +47,10 @@ export function buildQuoteRequest(draft: VracDraft, ctx: QuoteContext = {}): Quo
   }
   const delivery = { lat: draft.addressLat, lng: draft.addressLng, address };
   // Le camion choisi par le client prime sur le camion recommandé.
-  const base = { material_slug: material.slug, address, delivery, truck_id: draft.truckId ?? null };
+  const ident = cat
+    ? { material_catalog_id: cat.materialId, material_variant_id: cat.variantId ?? null, granulometry_id: cat.granulometryId ?? null }
+    : { material_slug: material!.slug };
+  const base = { ...ident, address, delivery, truck_id: draft.truckId ?? null };
 
   if (draft.quantityMode === "tonnes") {
     const quantity = Number(draft.tonnes);
@@ -52,7 +60,7 @@ export function buildQuoteRequest(draft: VracDraft, ctx: QuoteContext = {}): Quo
     const unit = draft.quantityUnit === "verge" ? "verge" : draft.quantityUnit === "m3" ? "m3" : "tonne";
     if (needsDensity(unit) && ctx.hasDensity === false) {
       return {
-        unsupported: `Densité du matériau non configurée : impossible de convertir des ${unit === "m3" ? "m³" : "verges³"} en tonnes pour « ${material.name} ». Saisissez plutôt la quantité en tonnes.`,
+        unsupported: `Densité du matériau non configurée : impossible de convertir des ${unit === "m3" ? "m³" : "verges³"} en tonnes pour « ${label} ». Saisissez plutôt la quantité en tonnes.`,
         fixStep: 1,
       };
     }
@@ -70,7 +78,7 @@ export function buildQuoteRequest(draft: VracDraft, ctx: QuoteContext = {}): Quo
     }
     if (ctx.hasDensity === false) {
       return {
-        unsupported: `Densité du matériau non configurée : impossible de convertir un volume en tonnes pour « ${material.name} ». Saisissez plutôt la quantité en tonnes.`,
+        unsupported: `Densité du matériau non configurée : impossible de convertir un volume en tonnes pour « ${label} ». Saisissez plutôt la quantité en tonnes.`,
         fixStep: 1,
       };
     }
@@ -94,18 +102,24 @@ export function buildQuoteRequest(draft: VracDraft, ctx: QuoteContext = {}): Quo
   };
 }
 
+/** Clé stable identifiant une demande de calcul (variante incluse). */
+export function quoteKey(req: QuoteRequest | QuoteBlock): string {
+  return JSON.stringify(req);
+}
+
 export function useVracEstimate() {
   const [quote, setQuote] = useState<PublicQuote | null>(null);
+  const [quoteKeyState, setQuoteKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const seq = useRef(0);
-  const reset = useCallback(() => { seq.current++; setQuote(null); setError(null); setLoading(false); }, []);
+  const reset = useCallback(() => { seq.current++; setQuote(null); setQuoteKey(null); setError(null); setLoading(false); }, []);
   const calculate = useCallback(async (draft: VracDraft, ctx: QuoteContext = {}) => {
     const id = ++seq.current;
     const request = buildQuoteRequest(draft, ctx);
+    setQuote(null); setQuoteKey(null);
     if ("unsupported" in request) {
-      setQuote(null);
       setError(request.unsupported);
       return;
     }
@@ -115,6 +129,7 @@ export function useVracEstimate() {
       const q = await getPublicQuote(request);
       if (id !== seq.current) return; // réponse périmée
       setQuote(q);
+      setQuoteKey(quoteKey(request));
     } catch (e) {
       if (id !== seq.current) return;
       setQuote(null);
@@ -124,7 +139,11 @@ export function useVracEstimate() {
     }
   }, []);
 
-  return { quote, loading, error, calculate, reset };
+  /** Vrai seulement si l'estimation affichée correspond exactement au formulaire actuel. */
+  const isFresh = useCallback((draft: VracDraft, ctx: QuoteContext = {}) =>
+    quoteKeyState !== null && quoteKeyState === quoteKey(buildQuoteRequest(draft, ctx)), [quoteKeyState]);
+
+  return { quote, loading, error, calculate, reset, isFresh, key: quoteKeyState };
 }
 
 const money = new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" });

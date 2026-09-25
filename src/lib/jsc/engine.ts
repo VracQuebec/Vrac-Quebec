@@ -9,6 +9,10 @@ export interface QuoteRequest {
   material_id?: string;
   /** Identifiant lisible du matériau (parcours public) : résolu par le moteur. */
   material_slug?: string;
+  /** Catalogue central : matériau + variante exacte (aucun repli). */
+  material_catalog_id?: string | null;
+  material_variant_id?: string | null;
+  granulometry_id?: string | null;
   quantity: number;
   unit?: QuoteUnit;
   /** Adresse texte (géocodée par le moteur) ou coordonnées déjà connues */
