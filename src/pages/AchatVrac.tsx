@@ -100,13 +100,17 @@ export default function AchatVrac() {
     estimate.reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.materialId, draft.quantityMode, draft.quantityUnit, draft.tonnes, draft.trips,
-      draft.dims.length, draft.dims.width, draft.dims.depth, draft.address, draft.addressLat, draft.addressLng]);
+      draft.dims.length, draft.dims.width, draft.dims.depth, draft.address, draft.addressLat, draft.addressLng,
+      draft.catalog?.materialId, draft.catalog?.variantId, draft.catalog?.granulometryId, draft.catalog?.priceStatus]);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [step]);
 
-  const onDemand = !material && (!!draft.catalog || (draft.customMaterial ?? "").trim().length > 3);
+  const onDemand = draft.catalog
+    ? draft.catalog.priceStatus !== "prix_disponible"
+    : !material && (draft.customMaterial ?? "").trim().length > 3;
+  const quoteFresh = !!estimate.quote && estimate.isFresh(draft, quoteContext);
   const canContinue = [
-    !!material || onDemand,
+    !!material || !!draft.catalog || onDemand,
     draft.quantityMode === "inconnu"
       || (draft.quantityMode === "tonnes" && Number(draft.tonnes) > 0)
       || (draft.quantityMode === "voyages" && Number(draft.trips) > 0)
@@ -198,11 +202,11 @@ export default function AchatVrac() {
             <ManualRequest draft={draft} submission={submission} />
           )}
           {step === 4 && !onDemand && (
-            estimate.quote ? (
+            quoteFresh && estimate.quote ? (
               <QuoteCard
                 quote={estimate.quote}
                 address={draft.address}
-                onEmail={() => submission.send(draft, "submit", quoteContext)}
+                onEmail={() => { if (estimate.isFresh(draft, quoteContext)) submission.send(draft, "submit", quoteContext); }}
                 onCallback={() => submission.send(draft, "callback", quoteContext)}
                 onEdit={() => setStep(0)}
                 pending={submission.pending}
@@ -243,7 +247,7 @@ export default function AchatVrac() {
             >
               Continuer <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            ) : estimate.quote || manualReview || onDemand ? null : (
+            ) : quoteFresh || manualReview || onDemand ? null : (
               <Button
                 size="lg"
                 onClick={() => estimate.calculate(draft, quoteContext)}

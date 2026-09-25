@@ -69,6 +69,20 @@ Deno.serve(async (req) => {
       materialId = found.id;
     }
 
+    // Catalogue central : variante EXACTE, jamais de repli sur le matériau ou la famille.
+    const catalogId = typeof body?.material_catalog_id === 'string' && body.material_catalog_id.length >= 10 ? body.material_catalog_id : null;
+    if (typeof materialId !== 'string' && catalogId) {
+      const v = typeof body?.material_variant_id === 'string' && body.material_variant_id.length >= 10 ? body.material_variant_id : null;
+      const g = typeof body?.granulometry_id === 'string' && body.granulometry_id.length >= 10 ? body.granulometry_id : null;
+      let q = db.from('jsc_materials').select('id').eq('material_catalog_id', catalogId)
+        .eq('is_active', true).is('archived_at', null);
+      if (v) q = q.eq('variant_id', v);
+      else { q = g ? q.eq('granulometry_id', g) : q.is('granulometry_id', null); q = q.is('variant_id', null); }
+      const { data: rows } = await q.limit(2);
+      if (!rows || rows.length !== 1) return json({ error: 'Sur demande : aucun tarif pour cette variante.', on_demand: true }, 404);
+      materialId = rows[0].id;
+    }
+
     const quantity = Number(body?.quantity);
     const unit: Unit = body?.unit ?? 'tonne';
 
