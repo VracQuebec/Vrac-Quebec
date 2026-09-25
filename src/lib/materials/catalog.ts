@@ -41,7 +41,11 @@ export const FAMILY_CARDS: { key: string; label: string; emoji: string; families
   { key: "granulats", label: "Pierre / gravier", emoji: "🪨", families: ["GRANULATS"] },
   { key: "roche", label: "Roche", emoji: "⛰", families: ["ROCHE"] },
   { key: "recycle", label: "Béton / asphalte", emoji: "♻", families: ["BETON_MACONNERIE", "ASPHALTE"] },
-  { key: "vegetaux", label: "Végétaux", emoji: "🌳", families: ["ORGANIQUE"] },
+  { key: "vegetaux", label: "Végétaux / compost", emoji: "🌳", families: ["ORGANIQUE"] },
+  { key: "paillis", label: "Paillis / produits forestiers", emoji: "🪵", families: ["PAILLIS"] },
+  { key: "decoratif", label: "Pierres décoratives", emoji: "💎", families: ["DECORATIF"] },
+  { key: "hiver", label: "Hiver (sel, abrasifs)", emoji: "❄", families: ["HIVER"] },
+  { key: "speciaux", label: "Matériaux spéciaux", emoji: "🧱", families: ["SPECIAUX"] },
   { key: "inconnu", label: "Autre / Je ne sais pas", emoji: "❓", families: ["INCONNU"] },
 ];
 

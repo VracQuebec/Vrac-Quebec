@@ -29,21 +29,31 @@ export default function CatalogPicker({
   const [showCustom, setShowCustom] = useState(!!customMaterial);
   const groups = useMemo(() => groupByFamily(searchCatalog(items, q)), [items, q]);
 
-  const choose = (it: CatalogItem, granulometryId: string | null) => {
-    const variant = it.variants.find((v) => v.granulometry_id === granulometryId) ?? null;
-    const label = granulometryId ? granulometries.find((g) => g.id === granulometryId)?.label ?? variant?.label ?? null : null;
+  const choose = (it: CatalogItem, granulometryId: string | null, variantId: string | null = null) => {
+    const variant = (variantId
+      ? it.variants.find((v) => v.variant_id === variantId)
+      : it.variants.find((v) => !v.variant_id && v.granulometry_id === granulometryId)) ?? null;
+    const label = variant?.label ?? (granulometryId ? granulometries.find((g) => g.id === granulometryId)?.label ?? null : null);
     const priced = variant ? variant.price_available : false;
     onPick({
-      materialId: it.material_id, name: it.name, granulometryId, variantLabel: label,
+      materialId: it.material_id, name: it.name, granulometryId: variant?.granulometry_id ?? granulometryId,
+      variantId: variant?.variant_id ?? null, variantLabel: label,
       priceStatus: priced ? "prix_disponible" : "sur_demande",
     }, variant?.jsc_name ?? null);
     setPending(null);
   };
 
   const onItem = (it: CatalogItem) => {
-    const needsVariant = it.requires_granulometry || it.variants.some((v) => v.granulometry_id);
+    const needsVariant = it.requires_granulometry || it.variants.some((v) => v.granulometry_id || v.variant_id);
     if (needsVariant) setPending(it); else choose(it, null);
   };
+
+  const refVariants = pending ? pending.variants.filter((v) => v.variant_id) : [];
+  const granOptions = pending
+    ? (pending.variants.some((v) => v.granulometry_id && !v.variant_id)
+        ? granulometries.filter((g) => pending.variants.some((v) => !v.variant_id && v.granulometry_id === g.id))
+        : pending.requires_granulometry && refVariants.length === 0 ? granulometries : [])
+    : [];
 
   return (
     <div className="mt-8 space-y-4 rounded-2xl border border-border bg-card p-4">
@@ -62,18 +72,22 @@ export default function CatalogPicker({
         <div className="rounded-xl border border-primary/40 bg-primary/5 p-3">
           <p className="mb-2 text-sm font-medium text-foreground">Quelle variante de « {pending.name} » ?</p>
           <div className="flex flex-wrap gap-2">
-            {(pending.variants.some((v) => v.granulometry_id)
-              ? granulometries.filter((g) => pending.variants.some((v) => v.granulometry_id === g.id)).concat(
-                  pending.requires_granulometry ? granulometries.filter((g) => !pending.variants.some((v) => v.granulometry_id === g.id)) : [])
-              : granulometries
-            ).map((g) => {
-              const v = pending.variants.find((x) => x.granulometry_id === g.id);
+            {granOptions.map((g) => {
+              const v = pending.variants.find((x) => !x.variant_id && x.granulometry_id === g.id);
               return (
                 <Button key={g.id} type="button" size="sm" variant="outline" onClick={() => choose(pending, g.id)}>
                   {g.label}{v?.price_available ? " · Prix disponible" : ""}
                 </Button>
               );
             })}
+            {refVariants.map((v) => (
+              <Button key={v.variant_id!} type="button" size="sm" variant="outline" onClick={() => choose(pending, null, v.variant_id!)}>
+                {v.label}{v.price_available ? " · Prix disponible" : ""}
+              </Button>
+            ))}
+            {!pending.requires_granulometry && (
+              <Button type="button" size="sm" variant="secondary" onClick={() => choose(pending, null)}>Je ne sais pas / à préciser</Button>
+            )}
             <Button type="button" size="sm" variant="ghost" onClick={() => setPending(null)}>Annuler</Button>
           </div>
         </div>

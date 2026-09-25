@@ -243,8 +243,8 @@ export async function runJscQuote(
   const billableMinutes = flooredTripMinutes;
   const billableHours = Number((billableMinutes / 60).toFixed(3));
 
-  // 11. Coût du matériau.
-  const materialAmount = roundMoney(tonnage * unitPrice, decimals);
+  // 11. Coût du matériau : quantité × prix dans l'unité du tarif (tonne, m³, verge³, voyage, forfait).
+  const materialAmount = roundMoney(context.material.billed_quantity * context.material.unit_price, decimals);
 
   // 12. Coût du transport (tarif horaire du camion retenu par la préparation).
   const hourlyRate = truck.hourly_rate;
@@ -321,7 +321,7 @@ export async function runJscQuote(
     technical: {
       selected: {
         carrier_profile: "transport_jsc",
-        material: { id: material.id, name: material.name, unit_price: unitPrice, is_taxable: material.is_taxable },
+        material: { id: material.id, name: material.name, unit_price: context.material.unit_price, price_unit: context.material.price_unit, billed_quantity: context.material.billed_quantity, price_id: context.material.price_id, price_per_tonne: unitPrice, is_taxable: material.is_taxable },
         pickup: {
           id: pickup.id, name: pickup.name, type: pickup.type,
           supplier_id: pickup.supplier_id, supplier_name: pickup.supplier_name,

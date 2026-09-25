@@ -17,6 +17,7 @@ import AdminOverview from "@/components/jsc/AdminOverview";
 import QuotesBoard from "@/components/jsc/QuotesBoard";
 import QuickQuote from "@/components/jsc/QuickQuote";
 import MaterialPricing from "@/components/jsc/MaterialPricing";
+import CatalogAdmin from "@/components/jsc/CatalogAdmin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +35,7 @@ const TABS = [
   { id: "overview", label: "Tableau de bord", icon: LayoutDashboard },
   { id: "requests", label: "Demandes", icon: FileText },
   { id: "quick_quote", label: "Calculateur rapide", icon: Calculator },
+  { id: "catalog", label: "Catalogue matériaux", icon: Layers },
   { id: "pricing", label: "Tarifs matériaux", icon: Tags },
   { id: "materials", label: "Matériaux", icon: Layers },
   { id: "categories", label: "Catégories", icon: Tags },
@@ -177,6 +179,7 @@ export default function AdminSoumissionConfig() {
   const { isReady, user } = useAuthReady();
   const { isAdmin, loading: rolesLoading } = useUserRoles(user, isReady);
   const [tab, setTab] = useState<TabId>("overview");
+  const [pricingQuery, setPricingQuery] = useState("");
   const [companyId, setCompanyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -247,7 +250,8 @@ export default function AdminSoumissionConfig() {
           {tab === "overview" && <AdminOverview />}
           {tab === "requests" && <QuotesBoard />}
           {tab === "quick_quote" && <QuickQuote />}
-          {tab === "pricing" && <MaterialPricing />}
+          {tab === "catalog" && <CatalogAdmin onSetPrice={(name) => { setPricingQuery(name); setTab("pricing"); }} />}
+          {tab === "pricing" && <MaterialPricing initialQuery={pricingQuery} />}
           {tab === "materials" && <ResourceManager resource={SOUMISSION_MATERIALS} companyId={companyId} />}
           {tab === "categories" && <ResourceManager resource={SOUMISSION_CATEGORIES} companyId={companyId} />}
           {tab === "quarries" && <ResourceManager resource={SOUMISSION_QUARRIES} companyId={companyId} />}

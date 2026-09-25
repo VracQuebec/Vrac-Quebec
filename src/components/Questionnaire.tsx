@@ -87,7 +87,7 @@ const Questionnaire = ({
   };
 
   const canNext = () => {
-    if (step === 0) return data.materials.length > 0;
+    if (step === 0) return data.materials.length > 0 || (data.materialSelections?.length ?? 0) > 0;
     if (step === 1)
       return (
         data.propertyType &&
@@ -157,6 +157,7 @@ const Questionnaire = ({
         id: submissionId,
         materials: data.materials,
         other_material: data.otherMaterial,
+        material_selections: data.materialSelections?.length ? data.materialSelections : null,
         property_type: data.propertyType || (isRemblai ? "Remplissage / remblai" : ""),
         quantity: data.quantity,
         tonnage: data.tonnage,
@@ -422,6 +423,8 @@ const Questionnaire = ({
             otherMaterial={data.otherMaterial}
             onSelect={(materials) => update({ materials })}
             onOtherChange={(otherMaterial) => update({ otherMaterial })}
+            selections={data.materialSelections ?? []}
+            onSelectionsChange={(materialSelections) => update({ materialSelections })}
           />
           <div className="flex justify-end mt-8 pt-6 border-t border-border">
             <button
