@@ -35,6 +35,7 @@ export interface ParcoursLead {
   property_type?: string | null;
   materials?: string[] | null;
   other_material?: string | null;
+  material_selections?: { name: string; variant_label: string | null; stance: string; conditions: string }[] | null;
   quantity?: string | null;
   quantity_value?: number | string | null;
   quantity_unit?: string | null;
@@ -140,6 +141,10 @@ export default function LeadParcoursPanel({ lead }: { lead: ParcoursLead }) {
         <Grid>
           <Row label="Matériaux sélectionnés" value={(lead.materials ?? []).join(", ") || NA} />
           <Row label="Précision" value={txt(lead.other_material)} />
+          {(lead.material_selections ?? []).map((m, i) => (
+            <Row key={i} label={m.stance === "accepted" ? "Catalogue — accepté" : m.stance === "refused" ? "Catalogue — refusé" : "Catalogue — à confirmer"}
+              value={[m.name, m.variant_label, m.conditions].filter(Boolean).join(" · ")} />
+          ))}
         </Grid>
       </Section>
 
