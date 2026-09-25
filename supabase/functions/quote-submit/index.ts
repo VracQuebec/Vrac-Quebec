@@ -260,7 +260,7 @@ Deno.serve(async (req) => {
     const { data: request, error: requestError } = await sb.from('jsc_requests').insert({
       client_id: client.id,
       source: action === 'callback' ? 'rappel' : 'soumission_web',
-      material_id: materialId,
+      material_id: materialId, material_catalog_id: catalogId, granulometry_id: granulometryId,
       quantity,
       quantity_unit: unit,
       delivery_address: delivery.address,
