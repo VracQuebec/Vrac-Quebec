@@ -13,6 +13,86 @@ import {
 const isImage = (d: FleetDocument) =>
   (d.mime_type ?? "").startsWith("image/") || /\.(jpe?g|png|webp|gif|heic)$/i.test(d.url);
 
+/**
+ * Photos/documents choisis AVANT l'enregistrement : ils sont mis en attente
+ * dans le formulaire, puis envoyés en une seule étape avec l'enregistrement.
+ */
+export function PendingPhotos({ files, onChange, label = "Photos et documents" }: {
+  files: File[]; onChange: (files: File[]) => void; label?: string;
+}) {
+  const camRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const add = (list?: FileList | null) => {
+    if (!list?.length) return;
+    onChange([...files, ...Array.from(list)]);
+    if (camRef.current) camRef.current.value = "";
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs font-body text-muted-foreground">{label}</span>
+        <div className="flex gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => camRef.current?.click()}>
+            <Camera className="w-4 h-4 mr-1" /> Prendre une photo
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
+            <Paperclip className="w-4 h-4 mr-1" /> Joindre
+          </Button>
+        </div>
+        <input ref={camRef} type="file" className="hidden" accept="image/*" capture="environment"
+          onChange={(e) => add(e.target.files)} />
+        <input ref={fileRef} type="file" className="hidden" multiple accept="image/*,application/pdf"
+          onChange={(e) => add(e.target.files)} />
+      </div>
+      {files.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {files.map((f, i) => (
+            <div key={`${f.name}-${i}`} className="relative rounded-lg border border-border overflow-hidden bg-card">
+              {f.type.startsWith("image/") ? (
+                <img src={URL.createObjectURL(f)} alt={f.name} className="w-full h-20 object-cover" />
+              ) : (
+                <div className="w-full h-20 flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-muted-foreground" />
+                </div>
+              )}
+              <button type="button" aria-label="Retirer ce fichier"
+                onClick={() => onChange(files.filter((_, j) => j !== i))}
+                className="absolute top-1 right-1 p-1 rounded-full bg-background/80 text-muted-foreground">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {files.length > 0 && (
+        <p className="text-xs text-muted-foreground font-body">
+          {files.length} fichier(s) seront joints à l'enregistrement.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Envoie les fichiers mis en attente une fois l'enregistrement créé. */
+export async function uploadPendingDocuments(
+  ownerType: FleetOwnerType, ownerId: string, files: File[],
+) {
+  let ok = 0;
+  const errors: string[] = [];
+  for (const file of files) {
+    try {
+      await uploadDocument(ownerType, ownerId, file, file.type.startsWith("image/") ? "photo" : "document");
+      ok++;
+    } catch (e) {
+      errors.push(`${file.name} : ${(e as Error).message}`);
+    }
+  }
+  return { ok, errors };
+}
+
 export default function FleetDocuments({ ownerType, ownerId, label = "Photos et documents" }: {
   ownerType: FleetOwnerType; ownerId: string; label?: string;
 }) {
