@@ -95,6 +95,13 @@ export default function AchatVrac() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.truckId]);
 
+  // Tout changement de matériau, quantité, unité ou destination efface l'ancien prix.
+  useEffect(() => {
+    estimate.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.materialId, draft.quantityMode, draft.quantityUnit, draft.tonnes, draft.trips,
+      draft.dims.length, draft.dims.width, draft.dims.depth, draft.address, draft.addressLat, draft.addressLng]);
+
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [step]);
 
   const onDemand = !material && (!!draft.catalog || (draft.customMaterial ?? "").trim().length > 3);
