@@ -57,12 +57,14 @@ export function ExpenseDialog({ open, onOpenChange, vehicles, vehicleId, record,
   const { toast } = useToast();
   const today = new Date().toISOString().slice(0, 10);
   const [f, setF] = useState<Record<string, string>>({});
+  const [photos, setPhotos] = useState<File[]>([]);
   const [more, setMore] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setMore(false);
+    setPhotos([]);
     setF({
       vehicle_id: record?.vehicle_id ?? vehicleId ?? vehicles[0]?.id ?? "",
       spent_on: record?.spent_on ?? today,
@@ -96,7 +98,12 @@ export function ExpenseDialog({ open, onOpenChange, vehicles, vehicleId, record,
         odometer_km: f.odometer_km ? Number(f.odometer_km) : null,
         engine_hours: f.engine_hours ? Number(f.engine_hours) : null,
         notes: f.notes || null,
-      } as never);
+      } as never).then(async (savedId) => {
+        if (photos.length) {
+          const r = await uploadPendingDocuments("fleet_expense", savedId, photos);
+          if (r.errors.length) toast({ title: "Certaines photos n'ont pas pu être jointes", description: r.errors.join("\n"), variant: "destructive" });
+        }
+      });
       if (f.odometer_km || f.engine_hours) {
         await addReading({
           vehicleId: f.vehicle_id,
@@ -153,7 +160,7 @@ export function ExpenseDialog({ open, onOpenChange, vehicles, vehicleId, record,
           <div className="col-span-2">
             {record
               ? <FleetDocuments ownerType="fleet_expense" ownerId={record.id} label="Photos de la facture" />
-              : <p className="text-xs text-muted-foreground font-body">Enregistrez la dépense, puis rouvrez-la pour ajouter la photo de la facture.</p>}
+              : <PendingPhotos files={photos} onChange={setPhotos} label="Photo de la facture (jointe à l'enregistrement)" />}
           </div>
         </div>
         <DialogFooter>
