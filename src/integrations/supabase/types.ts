@@ -20203,6 +20203,14 @@ export type Database = {
           variants: Json
         }[]
       }
+      vrac_public_granulometries: {
+        Args: never
+        Returns: {
+          code: string
+          id: string
+          label: string
+        }[]
+      }
     }
     Enums: {
       app_role:
