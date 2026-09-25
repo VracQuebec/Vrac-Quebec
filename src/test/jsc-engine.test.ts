@@ -86,7 +86,7 @@ describe("source unique des prix", () => {
     expect(resolveMaterialPrice(makeConfig())).toBe(15);
   });
   it("échoue clairement si aucun prix n'est configuré dans la grille", () => {
-    expect(() => resolveMaterialPrice(makeConfig({ prices: [] } as any))).toThrow(/grille de prix/);
+    expect(() => resolveMaterialPrice(makeConfig({ prices: [] } as any))).toThrow(/aucun prix saisi/);
   });
 });
 

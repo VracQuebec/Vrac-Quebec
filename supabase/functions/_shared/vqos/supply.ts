@@ -169,27 +169,45 @@ export function pickTruck(trucks: TruckRow[], tonnage: number, preferredTruckId?
 
 /**
  * SOURCE UNIQUE DES PRIX — `jsc_material_prices`.
- * Aucun autre endroit du projet ne fournit un tarif matériau au moteur.
- * Priorité : tarif marqué préféré, puis tarif rattaché à la carrière
- * assignée, puis le premier tarif actif configuré.
+ * Un tarif est admissible seulement s'il est actif, activé pour le calcul
+ * automatique, dans sa période de validité, exprimé à la tonne, couvrant le
+ * tonnage demandé et avec un prix saisi (> 0, ou 0 $ confirmé explicitement).
+ * Priorité : préféré, puis carrière assignée, puis `priority` la plus haute.
+ * Égalité non départagée avec des prix différents => traitement manuel.
  */
-export function resolveMaterialPrice(config: EngineConfig): number {
+export function resolveMaterialPrice(config: EngineConfig, tonnage?: number, today = new Date().toISOString().slice(0, 10)): number {
   const material = config.material;
   const assignedPickup = (material as { pickup_location_id?: string | null }).pickup_location_id ?? null;
-  const rows = (config.prices ?? []).filter((p: any) =>
-    p.material_id === material.id && Number(p.selling_price) > 0
+  const all = (config.prices ?? []).filter((p: any) => p.material_id === material.id && p.is_active !== false && !p.archived_at);
+  const hasPrice = (p: any) => p.selling_price != null && (Number(p.selling_price) > 0 || (Number(p.selling_price) === 0 && p.zero_price_confirmed === true));
+  const rows = all.filter((p: any) =>
+    hasPrice(p) &&
+    p.auto_quote_enabled !== false &&
+    (!p.valid_from || p.valid_from <= today) &&
+    (!p.valid_to || p.valid_to >= today) &&
+    (p.unit ?? 'tonne') === 'tonne' &&
+    (tonnage == null || p.minimum_quantity == null || tonnage >= Number(p.minimum_quantity)) &&
+    (tonnage == null || p.max_quantity == null || tonnage <= Number(p.max_quantity))
   );
-  const chosen =
-    rows.find((p: any) => p.is_preferred) ??
-    rows.find((p: any) => assignedPickup && p.pickup_location_id === assignedPickup) ??
-    rows[0];
-  const price = Number(chosen?.selling_price ?? 0);
-  if (!(price > 0)) {
-    throw new Error(
-      `Aucun prix à la tonne configuré pour « ${material.name} » dans la grille de prix. Ajoutez-le dans Configuration des soumissions › Matériaux.`,
-    );
+  if (rows.length === 0) {
+    const expired = all.some((p: any) => hasPrice(p) && p.valid_to && p.valid_to < today);
+    const otherUnit = all.some((p: any) => hasPrice(p) && (p.unit ?? 'tonne') !== 'tonne');
+    const reason = expired ? 'tarif expiré'
+      : otherUnit ? 'tarif dans une unité non convertible automatiquement'
+      : all.some((p: any) => hasPrice(p)) ? 'aucun tarif admissible (calcul automatique désactivé, quantité hors paliers ou période non commencée)'
+      : 'aucun prix saisi';
+    throw new Error(`Soumission à confirmer : ${reason} pour « ${material.name} ».`);
   }
-  return price;
+  const tier = (p: any) => (p.is_preferred ? 2 : 0) + (assignedPickup && p.pickup_location_id === assignedPickup ? 1 : 0);
+  const best = Math.max(...rows.map(tier));
+  let top = rows.filter((p: any) => tier(p) === best);
+  const bestPrio = Math.max(...top.map((p: any) => Number(p.priority ?? 0)));
+  top = top.filter((p: any) => Number(p.priority ?? 0) === bestPrio);
+  const prices = new Set(top.map((p: any) => Number(p.selling_price)));
+  if (prices.size > 1) {
+    throw new Error(`Soumission à confirmer : plusieurs tarifs admissibles non départagés pour « ${material.name} ».`);
+  }
+  return Number(top[0].selling_price);
 }
 
 /**
@@ -199,7 +217,6 @@ export function resolveMaterialPrice(config: EngineConfig): number {
  */
 export function prepareQuoteContext(input: QuoteInput, config: EngineConfig): PreparedQuoteContext {
   const material = config.material;
-  const unitPrice = resolveMaterialPrice(config);
   if (!Number.isFinite(input.quantity) || input.quantity <= 0) {
     throw new Error("Quantité invalide.");
   }
@@ -223,6 +240,7 @@ export function prepareQuoteContext(input: QuoteInput, config: EngineConfig): Pr
   }
   const tonnage = toTonnes(input.quantity, input.unit, material.density_kg_per_m3);
   if (!Number.isFinite(tonnage) || tonnage <= 0) throw new Error("Quantité invalide.");
+  const unitPrice = resolveMaterialPrice(config, tonnage);
 
   if (!Number.isFinite(input.delivery?.lat) || !Number.isFinite(input.delivery?.lng)) {
     throw new Error("Adresse de livraison invalide : coordonnées manquantes.");

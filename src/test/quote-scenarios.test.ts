@@ -169,7 +169,7 @@ describe("données absentes ou invalides", () => {
   });
   it("refuse un prix matériau manquant", async () => {
     const c = config({ prices: [] });
-    await expect(runCarrierQuote(at(10), c, D)).rejects.toThrow(/grille de prix/);
+    await expect(runCarrierQuote(at(10), c, D)).rejects.toThrow(/aucun prix saisi/);
   });
   it("refuse une flotte sans tarif horaire", async () => {
     const c = config({ trucks: [{ id: "x", name: "X", capacity_tonnes: 15, hourly_rate: 0 }] });

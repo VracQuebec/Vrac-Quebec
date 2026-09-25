@@ -125,6 +125,10 @@ export type VracDraft = {
   dateMode: "precise" | "flexible" | "urgent";
   date: string;
   contact: { name: string; phone: string; email: string; company: string; comments: string };
+  /** Sélection dans le catalogue central (material_catalog). */
+  catalog?: { materialId: string; name: string; granulometryId: string | null; variantLabel: string | null; priceStatus: string } | null;
+  /** « Je ne trouve pas mon matériau » : description libre à qualifier. */
+  customMaterial?: string;
 };
 
 export const EMPTY_VRAC_DRAFT: VracDraft = {
@@ -143,6 +147,8 @@ export const EMPTY_VRAC_DRAFT: VracDraft = {
   dateMode: "precise",
   date: "",
   contact: { name: "", phone: "", email: "", company: "", comments: "" },
+  catalog: null,
+  customMaterial: "",
 };
 
 export function loadVracDraft(): VracDraft {

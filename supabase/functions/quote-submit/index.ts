@@ -44,14 +44,22 @@ async function readSetting(sb: any, key: string): Promise<string | null> {
   return data?.value ?? null;
 }
 
-async function resolveMaterialId(sb: any, body: any): Promise<string> {
+async function resolveMaterialId(sb: any, body: any): Promise<string | null> {
   if (typeof body?.material_id === 'string' && body.material_id.length >= 10) return body.material_id;
+  const catalogId = typeof body?.material_catalog_id === 'string' && body.material_catalog_id.length >= 10 ? body.material_catalog_id : null;
+  if (catalogId) {
+    let q = sb.from('jsc_materials').select('id').eq('material_catalog_id', catalogId)
+      .eq('is_active', true).is('archived_at', null);
+    const g = typeof body?.granulometry_id === 'string' && body.granulometry_id.length >= 10 ? body.granulometry_id : null;
+    q = g ? q.eq('granulometry_id', g) : q.is('granulometry_id', null);
+    const { data } = await q.limit(2);
+    return data?.length === 1 ? data[0].id : null;
+  }
   const slug = clean(body?.material_slug, 120);
-  if (!slug) throw new Error('Matériau requis.');
+  if (!slug) return null;
   const { data } = await sb.from('jsc_materials').select('id').eq('slug', slug)
     .eq('is_active', true).is('archived_at', null).maybeSingle();
-  if (!data) throw new Error(`Matériau « ${slug} » non configuré.`);
-  return data.id;
+  return data?.id ?? null;
 }
 
 /**
@@ -120,6 +128,10 @@ Deno.serve(async (req) => {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new Error('Un courriel valide est requis.');
 
     const materialId = await resolveMaterialId(sb, body);
+    const catalogId = typeof body?.material_catalog_id === 'string' && body.material_catalog_id.length >= 10 ? body.material_catalog_id : null;
+    const granulometryId = typeof body?.granulometry_id === 'string' && body.granulometry_id.length >= 10 ? body.granulometry_id : null;
+    const customMaterial = clean(body?.custom_material, 500);
+    if (!materialId && !catalogId && !customMaterial) throw new Error('Matériau requis.');
     const quantity = Number(body?.quantity);
     const unit: Unit = body?.unit ?? 'tonne';
     const address = clean(body?.address, 300);
@@ -129,7 +141,7 @@ Deno.serve(async (req) => {
 
     // ---------- Protection : robots, pourriel, débit, doublons ----------
     const fingerprint = [
-      email.toLowerCase(), body?.material_slug ?? body?.material_id ?? '',
+      email.toLowerCase(), body?.material_slug ?? body?.material_id ?? catalogId ?? customMaterial ?? '',
       quantity, unit, address.toLowerCase(), action,
     ].join('|');
     const guard = await guardPublicRequest(sb, {
@@ -157,15 +169,77 @@ Deno.serve(async (req) => {
 
     // ---------- Recalcul serveur (source unique de vérité) ----------
     const delivery = await geocode(address);
-    const config = await loadConfig(sb, materialId);
-    const result = await runCarrierQuote(
-      {
-        material_id: materialId, quantity, unit, delivery,
-        truck_id: typeof body?.truck_id === 'string' && body.truck_id.length >= 10 ? body.truck_id : null,
-      },
-      config,
-      distanceProvider,
-    );
+    let manualReason: string | null = null;
+    let result: any = null;
+    if (customMaterial) manualReason = 'Matériau introuvable dans le catalogue : qualification requise.';
+    else if (!materialId) manualReason = 'Aucun produit tarifé pour ce matériau / cette variante (Sur demande).';
+    else {
+      try {
+        const config = await loadConfig(sb, materialId);
+        result = await runCarrierQuote(
+          {
+            material_id: materialId, quantity, unit, delivery,
+            truck_id: typeof body?.truck_id === 'string' && body.truck_id.length >= 10 ? body.truck_id : null,
+          },
+          config,
+          distanceProvider,
+        );
+      } catch (e) {
+        manualReason = e instanceof Error ? e.message : String(e);
+      }
+    }
+
+    // ---------- Traitement manuel : aucune somme présentée comme définitive ----------
+    if (manualReason) {
+      let catalogName: string | null = null;
+      if (catalogId) {
+        const { data: c } = await sb.from('material_catalog').select('name_fr').eq('id', catalogId).maybeSingle();
+        catalogName = c?.name_fr ?? null;
+      }
+      let variantLabel: string | null = null;
+      if (granulometryId) {
+        const { data: g } = await sb.from('material_granulometries').select('label_fr').eq('id', granulometryId).maybeSingle();
+        variantLabel = g?.label_fr ?? null;
+      }
+      const materialLabel = customMaterial ? `Autre : ${customMaterial}` : [catalogName ?? 'Matériau', variantLabel].filter(Boolean).join(' ');
+      const { data: client, error: clientError } = await sb.from('jsc_clients').insert({
+        client_type: company ? 'entreprise' : 'particulier', name: company ?? name, contact_name: name, phone, email,
+        billing_address: delivery.address, city: delivery.city, postal_code: delivery.postal_code,
+        latitude: delivery.lat, longitude: delivery.lng,
+      }).select('id').single();
+      if (clientError) throw new Error(clientError.message);
+      const { data: request, error: requestError } = await sb.from('jsc_requests').insert({
+        client_id: client.id, source: 'soumission_web_manuelle',
+        material_id: materialId, material_catalog_id: catalogId, granulometry_id: granulometryId,
+        custom_material_description: customMaterial, manual_reason: manualReason,
+        quantity, quantity_unit: unit, delivery_address: delivery.address, city: delivery.city,
+        postal_code: delivery.postal_code, latitude: delivery.lat, longitude: delivery.lng,
+        desired_date: desiredDate,
+        notes: [`Soumission à confirmer — ${manualReason}`, comments ?? '', accessNotes ? `Accès : ${accessNotes}` : ''].filter(Boolean).join('\n'),
+      }).select('id,request_number').single();
+      if (requestError) throw new Error(requestError.message);
+      try {
+        const { error: leadErr } = await sb.from('submissions').insert({
+          materials: [materialLabel], property_type: 'Non spécifié', quantity: `${quantity} ${unit}`,
+          tonnage: unit === 'tonne' ? String(quantity) : '',
+          address: delivery.address, postal_code: delivery.postal_code ?? '', city: delivery.city ?? null,
+          name, email, phone: phone ?? '', company: company ?? null,
+          description: [`Soumission à confirmer (${request.request_number ?? ''})`, `Matériau : ${materialLabel}`, `Quantité : ${quantity} ${unit}`, `Motif : ${manualReason}`, comments ? `Notes : ${comments}` : ''].filter(Boolean).join('\n'),
+          request_type: 'vrac', service_type: 'vrac_achat', desired_date: desiredDate,
+        });
+        if (leadErr) throw new Error(leadErr.message);
+      } catch (e) {
+        await logEvent({ source: 'quote_submit', event: 'crm.lead_failed', level: 'error', message: e instanceof Error ? e.message : String(e) });
+      }
+      await sb.rpc('jsc_notify', {
+        _company_id: null, _event_code: 'quote_callback',
+        _title: `Soumission à confirmer ${request.request_number ?? ''}`,
+        _body: `${name} — ${materialLabel}, ${quantity} ${unit}. Motif : ${manualReason}`,
+        _audience: 'admin', _user_id: null, _entity_type: 'request', _entity_id: request.id,
+      });
+      await rememberResult(sb, 'quote-submit', fingerprint, { request_number: request.request_number, quote_number: null, valid_until: null });
+      return json({ ok: true, manual: true, request_number: request.request_number, quote_number: null, valid_until: null, emailed_to: email });
+    }
     const pub = result.public;
     const sel = result.technical.selected as Record<string, any>;
 
@@ -188,7 +262,7 @@ Deno.serve(async (req) => {
     const { data: request, error: requestError } = await sb.from('jsc_requests').insert({
       client_id: client.id,
       source: action === 'callback' ? 'rappel' : 'soumission_web',
-      material_id: materialId,
+      material_id: materialId, material_catalog_id: catalogId, granulometry_id: granulometryId,
       quantity,
       quantity_unit: unit,
       delivery_address: delivery.address,

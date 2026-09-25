@@ -6578,53 +6578,77 @@ export type Database = {
         Row: {
           archived_at: string | null
           archived_by: string | null
+          auto_quote_enabled: boolean
           company_id: string
           created_at: string
           id: string
           is_active: boolean
           is_preferred: boolean
           material_id: string
+          max_quantity: number | null
           minimum_quantity: number | null
           pickup_location_id: string | null
-          purchase_price: number
-          selling_price: number
+          priority: number
+          purchase_price: number | null
+          selling_price: number | null
           supplier_id: string | null
+          transport_included: boolean
           unit: string
           updated_at: string
+          valid_from: string | null
+          valid_to: string | null
+          zero_price_confirmed: boolean
+          zone_label: string | null
         }
         Insert: {
           archived_at?: string | null
           archived_by?: string | null
+          auto_quote_enabled?: boolean
           company_id?: string
           created_at?: string
           id?: string
           is_active?: boolean
           is_preferred?: boolean
           material_id: string
+          max_quantity?: number | null
           minimum_quantity?: number | null
           pickup_location_id?: string | null
-          purchase_price?: number
-          selling_price?: number
+          priority?: number
+          purchase_price?: number | null
+          selling_price?: number | null
           supplier_id?: string | null
+          transport_included?: boolean
           unit?: string
           updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          zero_price_confirmed?: boolean
+          zone_label?: string | null
         }
         Update: {
           archived_at?: string | null
           archived_by?: string | null
+          auto_quote_enabled?: boolean
           company_id?: string
           created_at?: string
           id?: string
           is_active?: boolean
           is_preferred?: boolean
           material_id?: string
+          max_quantity?: number | null
           minimum_quantity?: number | null
           pickup_location_id?: string | null
-          purchase_price?: number
-          selling_price?: number
+          priority?: number
+          purchase_price?: number | null
+          selling_price?: number | null
           supplier_id?: string | null
+          transport_included?: boolean
           unit?: string
           updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          zero_price_confirmed?: boolean
+          zone_label?: string | null
         }
         Relationships: [
           {
@@ -6772,6 +6796,7 @@ export type Database = {
           cover_image_url: string | null
           created_at: string
           density_kg_per_m3: number | null
+          granulometry_id: string | null
           id: string
           images: string[]
           internal_notes: string | null
@@ -6779,6 +6804,7 @@ export type Database = {
           is_public: boolean
           is_taxable: boolean
           margin_percent: number | null
+          material_catalog_id: string | null
           name: string
           pickup_location_id: string | null
           promo_ends_on: string | null
@@ -6810,6 +6836,7 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           density_kg_per_m3?: number | null
+          granulometry_id?: string | null
           id?: string
           images?: string[]
           internal_notes?: string | null
@@ -6817,6 +6844,7 @@ export type Database = {
           is_public?: boolean
           is_taxable?: boolean
           margin_percent?: number | null
+          material_catalog_id?: string | null
           name: string
           pickup_location_id?: string | null
           promo_ends_on?: string | null
@@ -6848,6 +6876,7 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           density_kg_per_m3?: number | null
+          granulometry_id?: string | null
           id?: string
           images?: string[]
           internal_notes?: string | null
@@ -6855,6 +6884,7 @@ export type Database = {
           is_public?: boolean
           is_taxable?: boolean
           margin_percent?: number | null
+          material_catalog_id?: string | null
           name?: string
           pickup_location_id?: string | null
           promo_ends_on?: string | null
@@ -6887,6 +6917,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_materials_granulometry_id_fkey"
+            columns: ["granulometry_id"]
+            isOneToOne: false
+            referencedRelation: "material_granulometries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_materials_material_catalog_id_fkey"
+            columns: ["material_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "material_catalog"
             referencedColumns: ["id"]
           },
           {
@@ -7974,12 +8018,16 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string | null
+          custom_material_description: string | null
           delivery_address: string | null
           desired_date: string | null
+          granulometry_id: string | null
           id: string
           internal_notes: string | null
           latitude: number | null
           longitude: number | null
+          manual_reason: string | null
+          material_catalog_id: string | null
           material_id: string | null
           notes: string | null
           postal_code: string | null
@@ -8000,12 +8048,16 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string | null
+          custom_material_description?: string | null
           delivery_address?: string | null
           desired_date?: string | null
+          granulometry_id?: string | null
           id?: string
           internal_notes?: string | null
           latitude?: number | null
           longitude?: number | null
+          manual_reason?: string | null
+          material_catalog_id?: string | null
           material_id?: string | null
           notes?: string | null
           postal_code?: string | null
@@ -8026,12 +8078,16 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string | null
+          custom_material_description?: string | null
           delivery_address?: string | null
           desired_date?: string | null
+          granulometry_id?: string | null
           id?: string
           internal_notes?: string | null
           latitude?: number | null
           longitude?: number | null
+          manual_reason?: string | null
+          material_catalog_id?: string | null
           material_id?: string | null
           notes?: string | null
           postal_code?: string | null
@@ -8057,6 +8113,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_requests_granulometry_id_fkey"
+            columns: ["granulometry_id"]
+            isOneToOne: false
+            referencedRelation: "material_granulometries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jsc_requests_material_catalog_id_fkey"
+            columns: ["material_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "material_catalog"
             referencedColumns: ["id"]
           },
           {
@@ -9240,6 +9310,8 @@ export type Database = {
           updated_at: string
           visible_detailed: boolean
           visible_simple: boolean
+          vrac_exclusion_reason: string | null
+          vrac_selectable: boolean
         }
         Insert: {
           created_at?: string
@@ -9263,6 +9335,8 @@ export type Database = {
           updated_at?: string
           visible_detailed?: boolean
           visible_simple?: boolean
+          vrac_exclusion_reason?: string | null
+          vrac_selectable?: boolean
         }
         Update: {
           created_at?: string
@@ -9286,6 +9360,8 @@ export type Database = {
           updated_at?: string
           visible_detailed?: boolean
           visible_simple?: boolean
+          vrac_exclusion_reason?: string | null
+          vrac_selectable?: boolean
         }
         Relationships: [
           {
@@ -9293,6 +9369,54 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "material_families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_catalog_legacy_map: {
+        Row: {
+          created_at: string
+          granulometry_id: string | null
+          id: string
+          legacy_label: string
+          mapping_status: string
+          material_id: string | null
+          note: string | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          granulometry_id?: string | null
+          id?: string
+          legacy_label: string
+          mapping_status?: string
+          material_id?: string | null
+          note?: string | null
+          source: string
+        }
+        Update: {
+          created_at?: string
+          granulometry_id?: string | null
+          id?: string
+          legacy_label?: string
+          mapping_status?: string
+          material_id?: string | null
+          note?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_catalog_legacy_map_granulometry_id_fkey"
+            columns: ["granulometry_id"]
+            isOneToOne: false
+            referencedRelation: "material_granulometries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_catalog_legacy_map_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_catalog"
             referencedColumns: ["id"]
           },
         ]
@@ -20064,6 +20188,28 @@ export type Database = {
       validate_selected_site: {
         Args: { p_submission_id: string }
         Returns: Json
+      }
+      vrac_public_catalog: {
+        Args: never
+        Returns: {
+          family: string
+          family_label: string
+          material_id: string
+          name: string
+          price_status: string
+          requires_granulometry: boolean
+          search_terms: string[]
+          slug: string
+          variants: Json
+        }[]
+      }
+      vrac_public_granulometries: {
+        Args: never
+        Returns: {
+          code: string
+          id: string
+          label: string
+        }[]
       }
     }
     Enums: {

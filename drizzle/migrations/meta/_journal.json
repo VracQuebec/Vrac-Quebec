@@ -281,6 +281,27 @@
       "when": 1790346204371,
       "tag": "0039_crm_documents_allow_fleet_owner_types",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1790347265630,
+      "tag": "0040_shared_material_catalog_vrac_pricing",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1790347358753,
+      "tag": "0041_vrac_public_granulometries",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1790347438404,
+      "tag": "0042_vrac_public_catalog_jsc_name",
+      "breakpoints": true
     }
   ]
 }
