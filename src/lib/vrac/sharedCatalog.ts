@@ -9,6 +9,7 @@ export type CatalogVariant = {
   granulometry_id: string | null;
   label: string | null;
   jsc_material_id: string;
+  jsc_name: string;
   price_available: boolean;
 };
 

@@ -20,7 +20,7 @@ export default function CatalogPicker({
 }: {
   value: Selection | null | undefined;
   customMaterial: string;
-  onPick: (sel: Selection, jscMaterialId: string | null) => void;
+  onPick: (sel: Selection, jscName: string | null) => void;
   onCustom: (text: string) => void;
 }) {
   const { items, granulometries, loading, error } = useSharedCatalog();
@@ -36,7 +36,7 @@ export default function CatalogPicker({
     onPick({
       materialId: it.material_id, name: it.name, granulometryId, variantLabel: label,
       priceStatus: priced ? "prix_disponible" : "sur_demande",
-    }, variant?.jsc_material_id ?? null);
+    }, variant?.jsc_name ?? null);
     setPending(null);
   };
 
