@@ -1,14 +1,17 @@
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
 import { PenLine, HelpCircle } from "lucide-react";
+import RemblaiCatalogSelector, { type RemblaiSelection } from "@/components/materials/RemblaiCatalogSelector";
 
 interface Props {
   selected: string[];
   otherMaterial: string;
   onSelect: (materials: string[]) => void;
   onOtherChange: (value: string) => void;
+  selections?: RemblaiSelection[];
+  onSelectionsChange?: (v: RemblaiSelection[]) => void;
 }
 
-const StepMaterials = ({ selected, otherMaterial, onSelect, onOtherChange }: Props) => {
+const StepMaterials = ({ selected, otherMaterial, onSelect, onOtherChange, selections, onSelectionsChange }: Props) => {
   const toggle = (id: string) => {
     onSelect(
       selected.includes(id)
@@ -86,6 +89,8 @@ const StepMaterials = ({ selected, otherMaterial, onSelect, onOtherChange }: Pro
           />
         </div>
       )}
+
+      {onSelectionsChange && <RemblaiCatalogSelector value={selections ?? []} onChange={onSelectionsChange} />}
     </div>
   );
 };

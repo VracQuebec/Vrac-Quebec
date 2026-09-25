@@ -55,6 +55,8 @@ export const TRUCK_ACCESS_OPTIONS = [
 
 export interface QuestionnaireData {
   materials: string[];
+  /** CATALOGUE-02 : précisions explicites du catalogue central (facultatif). */
+  materialSelections?: import("@/components/materials/RemblaiCatalogSelector").RemblaiSelection[];
   otherMaterial: string;
   propertyType: string;
   projectDescription: string;
@@ -90,6 +92,7 @@ export interface QuestionnaireData {
 
 export const initialFormData: QuestionnaireData = {
   materials: [],
+  materialSelections: [],
   otherMaterial: "",
   propertyType: "",
   projectDescription: "",
