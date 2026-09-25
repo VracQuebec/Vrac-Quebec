@@ -7,9 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type CatalogVariant = {
   granulometry_id: string | null;
+  variant_id?: string | null;
   label: string | null;
-  jsc_material_id: string;
-  jsc_name: string;
+  jsc_material_id: string | null;
+  jsc_name: string | null;
   price_available: boolean;
 };
 

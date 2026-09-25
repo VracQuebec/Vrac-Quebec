@@ -91,6 +91,7 @@ export function useQuoteSubmit() {
           action: "submit",
           material_catalog_id: draft.catalog?.materialId ?? null,
           granulometry_id: draft.catalog?.granulometryId ?? null,
+          material_variant_id: draft.catalog?.variantId ?? null,
           custom_material: draft.catalog ? null : (draft.customMaterial || null),
           quantity: qty > 0 ? qty : 1, unit,
           address: draft.address,

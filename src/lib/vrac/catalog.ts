@@ -126,7 +126,7 @@ export type VracDraft = {
   date: string;
   contact: { name: string; phone: string; email: string; company: string; comments: string };
   /** Sélection dans le catalogue central (material_catalog). */
-  catalog?: { materialId: string; name: string; granulometryId: string | null; variantLabel: string | null; priceStatus: string } | null;
+  catalog?: { materialId: string; name: string; granulometryId: string | null; variantId?: string | null; variantLabel: string | null; priceStatus: string } | null;
   /** « Je ne trouve pas mon matériau » : description libre à qualifier. */
   customMaterial?: string;
 };

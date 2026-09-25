@@ -132,6 +132,7 @@ Deno.serve(async (req) => {
 
     const materialId = await resolveMaterialId(sb, body);
     const catalogId = typeof body?.material_catalog_id === 'string' && body.material_catalog_id.length >= 10 ? body.material_catalog_id : null;
+    const variantId = typeof body?.material_variant_id === 'string' && body.material_variant_id.length >= 10 ? body.material_variant_id : null;
     const granulometryId = typeof body?.granulometry_id === 'string' && body.granulometry_id.length >= 10 ? body.granulometry_id : null;
     const customMaterial = clean(body?.custom_material, 500);
     if (!materialId && !catalogId && !customMaterial) throw new Error('Matériau requis.');
@@ -213,7 +214,7 @@ Deno.serve(async (req) => {
       if (clientError) throw new Error(clientError.message);
       const { data: request, error: requestError } = await sb.from('jsc_requests').insert({
         client_id: client.id, source: 'soumission_web_manuelle',
-        material_id: materialId, material_catalog_id: catalogId, granulometry_id: granulometryId,
+        material_id: materialId, material_catalog_id: catalogId, granulometry_id: granulometryId, material_variant_id: variantId,
         custom_material_description: customMaterial, manual_reason: manualReason,
         quantity, quantity_unit: unit, delivery_address: delivery.address, city: delivery.city,
         postal_code: delivery.postal_code, latitude: delivery.lat, longitude: delivery.lng,
@@ -265,7 +266,7 @@ Deno.serve(async (req) => {
     const { data: request, error: requestError } = await sb.from('jsc_requests').insert({
       client_id: client.id,
       source: action === 'callback' ? 'rappel' : 'soumission_web',
-      material_id: materialId, material_catalog_id: catalogId, granulometry_id: granulometryId,
+      material_id: materialId, material_catalog_id: catalogId, granulometry_id: granulometryId, material_variant_id: variantId,
       quantity,
       quantity_unit: unit,
       delivery_address: delivery.address,
