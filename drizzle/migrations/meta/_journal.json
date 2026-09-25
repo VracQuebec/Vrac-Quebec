@@ -295,6 +295,13 @@
       "when": 1790347358753,
       "tag": "0041_vrac_public_granulometries",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1790347438404,
+      "tag": "0042_vrac_public_catalog_jsc_name",
+      "breakpoints": true
     }
   ]
 }
