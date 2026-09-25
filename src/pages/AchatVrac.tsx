@@ -18,6 +18,7 @@ import {
   saveVracDraft, type VracDraft,
 } from "@/lib/vrac/catalog";
 import QuoteCard from "@/components/vrac/QuoteCard";
+import CatalogPicker from "@/components/vrac/CatalogPicker";
 import { buildQuoteRequest, useVracEstimate } from "@/lib/vrac/estimate";
 import { useQuoteSubmit } from "@/lib/vrac/submit";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
@@ -96,8 +97,9 @@ export default function AchatVrac() {
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [step]);
 
+  const onDemand = !material && (!!draft.catalog || (draft.customMaterial ?? "").trim().length > 3);
   const canContinue = [
-    !!material,
+    !!material || onDemand,
     draft.quantityMode === "inconnu"
       || (draft.quantityMode === "tonnes" && Number(draft.tonnes) > 0)
       || (draft.quantityMode === "voyages" && Number(draft.trips) > 0)
@@ -155,8 +157,21 @@ export default function AchatVrac() {
           </div>
 
           {step === 0 && (
-            <StepMaterial materials={materials} value={draft.materialId}
-              onSelect={(id) => { set({ materialId: id }); setStep(1); }} />
+            <>
+              <StepMaterial materials={materials} value={draft.materialId}
+                onSelect={(id) => { set({ materialId: id, catalog: null, customMaterial: "" }); setStep(1); }} />
+              <CatalogPicker
+                value={draft.catalog}
+                customMaterial={draft.customMaterial ?? ""}
+                onPick={(sel, jscName) => {
+                  // Produit tarifé déjà présent dans le parcours : calcul automatique inchangé.
+                  const featured = jscName ? materials.find((m) => m.name === jscName) : null;
+                  set({ materialId: featured?.id ?? null, catalog: sel, customMaterial: "" });
+                  setStep(1);
+                }}
+                onCustom={(text) => set({ customMaterial: text, materialId: null, catalog: null })}
+              />
+            </>
           )}
           {step === 1 && (
             <StepQuantity
@@ -172,7 +187,10 @@ export default function AchatVrac() {
             value={submission.honeypot} onChange={(e) => submission.setHoneypot(e.target.value)}
             className="absolute left-[-9999px] h-0 w-0 opacity-0"
           />
-          {step === 4 && (
+          {step === 4 && onDemand && (
+            <ManualRequest draft={draft} submission={submission} />
+          )}
+          {step === 4 && !onDemand && (
             estimate.quote ? (
               <QuoteCard
                 quote={estimate.quote}
@@ -218,7 +236,7 @@ export default function AchatVrac() {
             >
               Continuer <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            ) : estimate.quote || manualReview ? null : (
+            ) : estimate.quote || manualReview || onDemand ? null : (
               <Button
                 size="lg"
                 onClick={() => estimate.calculate(draft, quoteContext)}
@@ -372,6 +390,37 @@ function Recap({ draft, loading, error, manualReview, blockedReason, onFix }: {
 
       <Button variant="outline" asChild className="w-full sm:w-auto">
         <Link to="/">Retour à l'accueil</Link>
+      </Button>
+    </div>
+  );
+}
+
+/** Matériau « Sur demande » ou introuvable : transmis pour traitement manuel, sans montant. */
+function ManualRequest({ draft, submission }: { draft: VracDraft; submission: ReturnType<typeof useQuoteSubmit> }) {
+  const label = draft.catalog
+    ? [draft.catalog.name, draft.catalog.variantLabel].filter(Boolean).join(" — ")
+    : `Autre : ${draft.customMaterial}`;
+  if (submission.result) {
+    return (
+      <div className="rounded-2xl border border-primary/40 bg-primary/5 p-5 text-sm">
+        <p className="font-semibold text-foreground">Demande transmise {submission.result.request_number ?? ""}</p>
+        <p className="mt-1 text-muted-foreground">Soumission à confirmer : notre équipe vous contactera avec un prix.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-4 rounded-2xl border border-border p-5 text-sm">
+      <div>
+        <p className="font-semibold text-foreground">{label}</p>
+        <p className="text-muted-foreground">Adresse : {draft.address}</p>
+      </div>
+      <p className="rounded-xl bg-muted p-3 text-foreground">
+        <strong>Sur demande — Soumission à confirmer.</strong> Le prix de ce matériau n'est pas encore calculable
+        automatiquement. Votre demande est enregistrée et notre équipe vous transmettra une soumission.
+      </p>
+      {submission.error && <p className="text-destructive">{submission.error}</p>}
+      <Button size="lg" className="w-full sm:w-auto" disabled={!!submission.pending} onClick={() => submission.sendManual(draft)}>
+        {submission.pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Transmettre ma demande
       </Button>
     </div>
   );

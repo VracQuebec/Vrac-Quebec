@@ -73,5 +73,38 @@ export function useQuoteSubmit() {
     }
   }, [formStartedAt, honeypot]);
 
-  return { result, pending, error, send, honeypot, setHoneypot };
+  /** Demande « Sur demande » : envoyée sans calcul client, traitée côté serveur. */
+  const sendManual = useCallback(async (draft: VracDraft) => {
+    setPending("submit"); setError(null);
+    try {
+      const qty = draft.quantityMode === "tonnes" ? Number(draft.tonnes)
+        : draft.quantityMode === "voyages" ? Number(draft.trips) : 1;
+      const unit = draft.quantityMode === "tonnes" ? draft.quantityUnit : "tonne";
+      const notes = [
+        draft.quantityMode === "voyages" ? `Quantité : ${draft.trips} voyage(s)` : "",
+        draft.quantityMode === "dimensions" ? `Dimensions : ${draft.dims.length} × ${draft.dims.width} × ${draft.dims.depth}` : "",
+        draft.quantityMode === "inconnu" ? "Quantité à évaluer" : "",
+        draft.contact.comments,
+      ].filter(Boolean).join("\n");
+      const { data, error: fnError } = await supabase.functions.invoke("quote-submit", {
+        body: {
+          action: "submit",
+          material_catalog_id: draft.catalog?.materialId ?? null,
+          granulometry_id: draft.catalog?.granulometryId ?? null,
+          custom_material: draft.catalog ? null : (draft.customMaterial || null),
+          quantity: qty > 0 ? qty : 1, unit,
+          address: draft.address,
+          website: honeypot, form_started_at: formStartedAt,
+          desired_date: draft.date || null, access_notes: draft.addressNotes || null,
+          contact: { name: draft.contact.name, phone: draft.contact.phone, email: draft.contact.email, comments: notes || null },
+        },
+      });
+      if (fnError || data?.ok === false) throw new Error(data?.error || "Envoi impossible pour le moment.");
+      setResult({ quote_number: null, request_number: data?.request_number ?? null, valid_until: null, emailed_to: data?.emailed_to ?? null, action: "submit" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Envoi impossible pour le moment.");
+    } finally { setPending(null); }
+  }, [formStartedAt, honeypot]);
+
+  return { result, pending, error, send, sendManual, honeypot, setHoneypot };
 }
