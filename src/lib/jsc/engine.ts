@@ -3,7 +3,7 @@
 // répartition) passe ici : aucune interface ne refait un calcul.
 import { supabase } from "@/integrations/supabase/client";
 
-export type QuoteUnit = "tonne" | "verge" | "m3";
+export type QuoteUnit = "tonne" | "verge" | "m3" | "voyage";
 
 export interface QuoteRequest {
   material_id?: string;

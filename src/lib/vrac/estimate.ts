@@ -4,7 +4,7 @@
 // puis retourne le résultat public. Aucun prix, aucun tarif, aucune
 // carrière, aucun camion ici : tout provient des paramètres admin.
 // ============================================================
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { getPublicQuote, type PublicQuote, type QuoteRequest } from "@/lib/jsc/engine";
 import { findVracMaterial, type VracDraft } from "@/lib/vrac/catalog";
 // Facteurs de conversion : source unique (aucune duplication).
@@ -82,15 +82,9 @@ export function buildQuoteRequest(draft: VracDraft, ctx: QuoteContext = {}): Quo
     if (!(trips > 0)) {
       return { unsupported: "Nombre de voyages invalide : entrez un nombre supérieur à 0.", fixStep: 1 };
     }
-    const capacity = Number(ctx.truckCapacityTonnes);
-    if (!(capacity > 0)) {
-      return {
-        unsupported: "Capacité de camion non configurée : impossible de convertir des voyages en tonnes. Indiquez plutôt une quantité.",
-        fixStep: 1,
-      };
-    }
-    // Un voyage = la capacité du camion de référence configuré en administration.
-    return { ...base, quantity: Number((trips * capacity).toFixed(3)), unit: "tonne" };
+    // Un voyage n'est jamais converti en tonnage côté client : le serveur
+    // applique un prix par voyage s'il existe, sinon « à confirmer ».
+    return { ...base, quantity: trips, unit: "voyage" };
   }
 
   // Quantité réellement inconnue : aucune donnée à calculer.
@@ -105,7 +99,10 @@ export function useVracEstimate() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const seq = useRef(0);
+  const reset = useCallback(() => { seq.current++; setQuote(null); setError(null); setLoading(false); }, []);
   const calculate = useCallback(async (draft: VracDraft, ctx: QuoteContext = {}) => {
+    const id = ++seq.current;
     const request = buildQuoteRequest(draft, ctx);
     if ("unsupported" in request) {
       setQuote(null);
@@ -115,16 +112,19 @@ export function useVracEstimate() {
     setLoading(true);
     setError(null);
     try {
-      setQuote(await getPublicQuote(request));
+      const q = await getPublicQuote(request);
+      if (id !== seq.current) return; // réponse périmée
+      setQuote(q);
     } catch (e) {
+      if (id !== seq.current) return;
       setQuote(null);
       setError(e instanceof Error ? e.message : "Estimation indisponible pour le moment.");
     } finally {
-      setLoading(false);
+      if (id === seq.current) setLoading(false);
     }
   }, []);
 
-  return { quote, loading, error, calculate };
+  return { quote, loading, error, calculate, reset };
 }
 
 const money = new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" });
