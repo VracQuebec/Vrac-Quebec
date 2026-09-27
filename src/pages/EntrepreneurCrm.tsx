@@ -516,6 +516,7 @@ function Team({ companyId, canAdmin }: any) {
     const { error } = await db.rpc("entcrm_delete_stage", { _stage_id: s.id, _replacement: rep }); if (error) toast({ title: "Refusé", description: error.message }); reload(); };
   const saveTrades = async (t: string[]) => { setTrades(t); const { error } = await db.from("ent_crm_settings").upsert({ company_id: companyId, trades: t, updated_at: new Date().toISOString() }); if (error) toast({ title: "Refusé", description: error.message }); };
   const custom = stages.some((s) => s.id);
+  const preview = <JscAttachPreview />;
   return <div className="grid gap-6 lg:grid-cols-2">
     <section className="rounded-lg border border-border bg-card p-4"><div className="mb-2 flex items-center justify-between"><h2 className="font-display font-bold">Membres</h2>{canAdmin && <Button size="sm" onClick={add}><Plus className="mr-1 h-4 w-4" />Ajouter</Button>}</div>
       {err && <p className="text-sm text-destructive">{err}</p>}
@@ -530,4 +531,20 @@ function Team({ companyId, canAdmin }: any) {
     <section className="rounded-lg border border-border bg-card p-4"><h2 className="mb-2 font-display font-bold">Activités de l'entreprise</h2>
       {Object.entries(TRADES).map(([k, t]) => <label key={k} className="flex items-center gap-2 py-1 text-sm"><input type="checkbox" disabled={!canAdmin} checked={trades.includes(k)} onChange={(e) => saveTrades(e.target.checked ? [...trades, k] : trades.filter((x) => x !== k))} />{t.l}</label>)}</section>
   </div>;
+}
+
+/** Aperçu super admin du rattachement des clients historiques Transport JSC — lecture seule, rien n'est appliqué. */
+function JscAttachPreview() {
+  const [d, setD] = useState<any>(null);
+  useEffect(() => { db.rpc("entcrm_jsc_attach_preview").then(({ data, error }: any) => !error && setD(data)); }, []);
+  if (!d) return null;
+  return <section className="mt-6 rounded-lg border border-amber-500/40 p-3 text-sm">
+    <h3 className="font-display font-bold">Aperçu : rattachement des clients historiques Transport JSC (aucune application)</h3>
+    <p>Clients historiques au total : <strong>{d.total}</strong> · déjà reliés à un dossier CRM : {d.already_linked} · correspondances possibles (même courriel ou téléphone) : {d.possible_matches}</p>
+    <p className="mt-1 font-semibold">Entreprise actuellement propriétaire :</p>
+    <ul className="list-disc pl-5">{d.by_company.map((c: any) => <li key={c.company_id ?? "none"}>{c.name ?? "Aucune"} — <code className="text-xs">{c.company_id}</code> : {c.n} client(s)</li>)}</ul>
+    <p className="mt-1 font-semibold">Entreprises dont le nom contient « JSC » :</p>
+    <ul className="list-disc pl-5">{d.jsc_candidates.length ? d.jsc_candidates.map((c: any) => <li key={c.id}>{c.name} — <code className="text-xs">{c.id}</code></li>) : <li>Aucune</li>}</ul>
+    <p className="mt-1 text-xs text-muted-foreground">Effet d'un rattachement : le dossier CRM reprendrait l'identité du client historique (source d'autorité) ; les soumissions figées ne seraient jamais réécrites. Décision à prendre explicitement par le super admin.</p>
+  </section>;
 }
