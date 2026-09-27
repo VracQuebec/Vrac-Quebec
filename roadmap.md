@@ -21,3 +21,13 @@
 - [ ] Rôle « lecture seule », gestion des membres, étapes personnalisables, vues enregistrées.
 - [ ] Documents/photos privés par entreprise; suivi des demandes réseau; prestations/tarifs privés.
 - [ ] Vérification mobile/ordinateur.
+
+## CRM-ENT-02 — état
+- [x] Accès des membres d'entreprise à Mon CRM, contrôles de droits serveur sans faille (0048)
+- [x] Isolation A/B, lecture seule, employé, révoqué, journal confidentiel : vérifiés en sessions réelles
+- [x] Parcours complet A (ordinateur) et B (mobile 390) vérifié
+- [ ] Import CSV : test navigateur à faire
+- [ ] Session super admin distincte à préparer pour revérifier le bandeau
+- [ ] Changement d'entreprise A↔B (compte double) dans le navigateur
+- [ ] Lien client CRM ↔ clients Transport JSC (référence) à raccorder
+- [ ] Hors livraison : documents/photos privés, prestations/tarifs/modèles, suivi réseau Vrac
