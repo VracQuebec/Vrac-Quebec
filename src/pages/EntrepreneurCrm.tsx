@@ -15,7 +15,6 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { STAGES, SOURCES, TRADES, label, resolveCompanies, quoteSubtotal, toCsv, parseCsv, normalize, type Company, type Line } from "@/lib/entcrm/api";
 import { UNITS, unitLabel, ensureTemplates, subtotal, lineTotal, incomplete, copyLinks, type QLine } from "@/lib/entcrm/catalog";
-import { computeTaxes } from "@/lib/platform/tax";
 import CrmFiles from "@/components/entcrm/CrmFiles";
 import CrmServices from "@/components/entcrm/CrmServices";
 
@@ -403,11 +402,11 @@ function Quotes({ companyId, companyName, canWrite }: any) {
   const fin = async (q: any, k: string) => { const v = prompt(k === "invoiced_amount" ? "Montant facturé ?" : "Montant encaissé ?"); if (v == null) return; await db.from("ent_crm_quotes").update({ [k]: v === "" ? null : Number(v) }).eq("id", q.id); load(); };
   const openPrint = async (q: any) => { const { data } = await db.from("ent_crm_file_links").select("file:ent_crm_files(title,file_name)").eq("owner_type", "quote").eq("owner_id", q.id).eq("client_visible", true);
     setPrintDocs((data ?? []).map((d: any) => d.file?.title || d.file?.file_name).filter(Boolean)); setPrint(q); };
-  if (print) { const lines = print.lines as QLine[]; const st = subtotal(lines); const tx = computeTaxes(st, true);
+  if (print) { const lines = print.lines as QLine[]; const st = subtotal(lines);
     return <div className="print:p-0"><Button className="print:hidden mb-3" onClick={() => window.print()}>Télécharger / imprimer en PDF</Button> <Button variant="outline" className="print:hidden mb-3" onClick={() => setPrint(null)}>Fermer</Button>
     <div className="rounded border border-border bg-card p-6 text-sm"><p className="font-display text-lg font-bold">{companyName}</p><h2 className="font-display text-xl font-bold">Soumission {print.number ?? ""} (v{print.version})</h2><p>Client : {print.ent_crm_clients?.name ?? "—"}</p>
       <div className="mt-3 overflow-x-auto"><table className="w-full text-xs sm:text-sm [&_th]:whitespace-nowrap [&_th]:pr-1.5 [&_td]:pr-1.5 [&_td:not(:first-child)]:whitespace-nowrap"><thead><tr className="text-left"><th>Description</th><th>Qté</th><th>Unité</th><th>Prix</th><th>Total</th></tr></thead><tbody>{lines.map((l, i) => <tr key={i}><td>{l.section ? `${l.section} — ` : ""}{l.desc}</td><td>{l.qty ?? "À compléter"}</td><td>{unitLabel(l.unit)}</td><td>{l.price == null ? "À renseigner" : money(l.price)}</td><td>{lineTotal(l) == null ? "—" : money(lineTotal(l))}</td></tr>)}</tbody></table></div>
-      <p className="mt-2 font-bold">Sous-total avant taxes : {money(st)}</p><p>TPS : {money(tx.gst)} · TVQ : {money(tx.qst)} · <strong>Total : {money(tx.total)}</strong></p>
+      <p className="mt-2 font-bold">Sous-total avant taxes : {money(st)}</p><p className="text-xs text-muted-foreground">Taxes applicables selon votre inscription (TPS/TVQ), non calculées ici : aucun taux n'est saisi dans le CRM.</p>
       {incomplete(lines) > 0 && <p className="text-xs text-destructive">{incomplete(lines)} ligne(s) à compléter : montant partiel.</p>}
       {print.inclusions && <p className="mt-2"><strong>Inclusions :</strong> {print.inclusions}</p>}{print.exclusions && <p><strong>Exclusions :</strong> {print.exclusions}</p>}{print.conditions && <p><strong>Conditions :</strong> {print.conditions}</p>}{print.valid_until && <p>Valide jusqu'au {print.valid_until}</p>}
       {printDocs.length > 0 && <p className="mt-2"><strong>Pièces jointes :</strong> {printDocs.join(", ")}</p>}</div></div>; }
