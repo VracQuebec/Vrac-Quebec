@@ -138,6 +138,8 @@ const ScrollToTop = () => {
 const Ga4RouteTracker = () => {
   const location = useLocation();
   useEffect(() => {
+    // CRM privé des entreprises : aucune mesure d'audience (consultations confidentielles).
+    if (location.pathname.startsWith("/entrepreneur/crm")) return;
     // Laisse le temps au titre de se mettre à jour (Helmet) avant d'envoyer le page_view.
     const t = window.setTimeout(() => {
       trackPageView(location.pathname + location.search, document.title);
