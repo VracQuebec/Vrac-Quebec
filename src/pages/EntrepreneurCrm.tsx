@@ -530,6 +530,7 @@ function Team({ companyId, canAdmin }: any) {
         {canAdmin && s.id && <><Button size="sm" variant="ghost" onClick={async () => { const l = prompt("Nouveau nom ?", s.l); if (!l) return; await db.from("ent_crm_stages").update({ label: l }).eq("id", s.id); reload(); }}>Renommer</Button><Button size="sm" variant="ghost" onClick={() => delStage(s)}>Retirer</Button></>}</div>)}</section>
     <section className="rounded-lg border border-border bg-card p-4"><h2 className="mb-2 font-display font-bold">Activités de l'entreprise</h2>
       {Object.entries(TRADES).map(([k, t]) => <label key={k} className="flex items-center gap-2 py-1 text-sm"><input type="checkbox" disabled={!canAdmin} checked={trades.includes(k)} onChange={(e) => saveTrades(e.target.checked ? [...trades, k] : trades.filter((x) => x !== k))} />{t.l}</label>)}</section>
+    {preview}
   </div>;
 }
 
