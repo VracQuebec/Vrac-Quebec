@@ -26,7 +26,7 @@ const sel = "h-10 rounded-md border border-border bg-background px-2 text-sm fon
 const PAGE = 25;
 // Brouillon non enregistré : jamais transféré vers une autre entreprise active.
 let crmDirty: string | null = null;
-const PHONE = /^[+\d][\d\s().-]{6,}$/, MAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const PHONE = /^[+\d(][\d\s().-]{6,}$/, MAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export default function EntrepreneurCrm() {
   const [params, setParams] = useSearchParams();
@@ -313,7 +313,7 @@ function Clients({ companyId, canWrite }: any) {
   const linkJsc = async (j: any) => { const { error } = await db.rpc("entcrm_link_jsc_client", { _company_id: companyId, _jsc_client_id: j.jsc_client_id }); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" }); toast({ title: "Client rattaché", description: "Même dossier réutilisé, sans ressaisie." }); setJsc(null); load(); };
   const archive = async (c: any) => { if (!confirm("Archiver ce client ?")) return; await db.from("ent_crm_clients").update({ archived_at: new Date().toISOString() }).eq("id", c.id); load(); };
   const shown = rows.filter((r) => !q || normalize(`${r.name}${r.email}${r.phone}`).includes(normalize(q)));
-  return <div><div className="mb-3 flex gap-2"><Input placeholder="Rechercher un client" value={q} onChange={(e) => setQ(e.target.value)} className="h-10 sm:w-60" />{canWrite && <Button onClick={add}><Plus className="mr-1 h-4 w-4" />Nouveau client</Button>}{canWrite && <Button variant="outline" onClick={openJsc}>Clients existants de l'entreprise (Transport JSC)</Button>}</div>
+  return <div><div className="mb-3 flex flex-wrap gap-2"><Input placeholder="Rechercher un client" value={q} onChange={(e) => setQ(e.target.value)} className="h-10 w-full sm:w-60" />{canWrite && <Button onClick={add}><Plus className="mr-1 h-4 w-4" />Nouveau client</Button>}{canWrite && <Button variant="outline" onClick={openJsc}>Clients existants (Transport JSC)</Button>}</div>
     {jsc && <Dialog open onOpenChange={() => setJsc(null)}><DialogContent><DialogHeader><DialogTitle>Rattacher un client existant</DialogTitle></DialogHeader>
       <p className="text-xs text-muted-foreground">Seuls les dossiers clients appartenant à votre entreprise sont listés. Le rattachement est explicite : aucun rapprochement automatique par nom, téléphone ou courriel.</p>
       <div className="max-h-80 overflow-y-auto">{jsc.length === 0 ? <p className="text-sm text-muted-foreground">Aucun dossier client existant pour cette entreprise.</p> : jsc.map((j) => <div key={j.jsc_client_id} className="flex items-center justify-between gap-2 border-t border-border py-2 text-sm"><div><p className="font-semibold">{j.name}</p><p className="text-xs text-muted-foreground">{[j.contact_name, j.phone, j.email, j.city].filter(Boolean).join(" · ")}</p></div>{j.linked_client_id ? <span className="text-xs text-muted-foreground">Déjà rattaché</span> : <Button size="sm" onClick={() => linkJsc(j)}>Utiliser</Button>}</div>)}</div>
@@ -321,7 +321,7 @@ function Clients({ companyId, canWrite }: any) {
     <div className="grid gap-2 md:grid-cols-2">{shown.map((c) => <div key={c.id} className="rounded-lg border border-border bg-card p-3 text-sm">
       <p className="font-display font-bold">{c.name} <span className="text-xs font-normal text-muted-foreground">({c.kind})</span>{c.jsc_client_id && <span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-xs font-normal">Dossier Transport JSC</span>}</p>
       {c.jsc_client_id && refs[c.id] && <p className="text-xs text-muted-foreground">Historique existant : {refs[c.id].requests} demande(s) · {refs[c.id].quotes} soumission(s) · {refs[c.id].orders} commande(s) · {refs[c.id].invoices} facture(s)</p>}
-      <p className="text-xs text-muted-foreground">{c.phone} {c.email} {c.address}</p>
+      <p className="text-xs text-muted-foreground">{c.phone} {c.email} {c.address} {c.city}</p>
       <p className="mt-1 text-xs"><strong>Contacts :</strong> {c.ent_crm_contacts.map((x: any) => `${x.name}${x.phone ? " " + x.phone : ""}`).join(" · ") || "—"}</p>
       <p className="text-xs"><strong>Opportunités :</strong> {c.ent_crm_leads.map((x: any) => x.title).join(" · ") || "—"}</p>
       <p className="text-xs"><strong>Chantiers :</strong> {c.ent_crm_projects.map((x: any) => x.name).join(" · ") || "—"}</p>

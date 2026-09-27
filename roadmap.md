@@ -31,3 +31,11 @@
 - [ ] Changement d'entreprise A↔B (compte double) dans le navigateur
 - [ ] Lien client CRM ↔ clients Transport JSC (référence) à raccorder
 - [ ] Hors livraison : documents/photos privés, prestations/tarifs/modèles, suivi réseau Vrac
+
+## CRM-ENT-02B (prévisualisation)
+- [x] A super admin fictif distinct (consultation sans trace, corrections journalisées, retrait vérifié)
+- [x] B changement d'entreprise A/B (brouillon protégé, droits recalculés)
+- [x] C import CSV navigateur (aperçu, erreurs, doublons, entreprise imposée ignorée)
+- [x] D lien clients Transport JSC (jsc_client_id, rattachement explicite)
+- [ ] CRM-ENT-03 : documents/photos privés, prestations/tarifs, modèles métier, suivi demandes réseau
+- [ ] Décision de rattachement des 23 clients JSC réels (tous sur une seule entreprise) : à valider par Vrac Québec
