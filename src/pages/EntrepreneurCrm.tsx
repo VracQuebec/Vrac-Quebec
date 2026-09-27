@@ -24,6 +24,9 @@ type Tab = typeof TABS[number][0];
 const money = (n?: number | null) => n == null ? "—" : n.toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
 const sel = "h-10 rounded-md border border-border bg-background px-2 text-sm font-body";
 const PAGE = 25;
+// Brouillon non enregistré : jamais transféré vers une autre entreprise active.
+let crmDirty: string | null = null;
+const PHONE = /^[+\d][\d\s().-]{6,}$/, MAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export default function EntrepreneurCrm() {
   const [params, setParams] = useSearchParams();
@@ -51,6 +54,7 @@ export default function EntrepreneurCrm() {
   useEffect(() => {
     if (!companyId || !user) return;
     localStorage.setItem(`vq.entcrm.company.${user.id}`, companyId);
+    setRole(null);
     db.rpc("entcrm_role", { _company_id: companyId }).then(({ data }: any) => setRole(data));
   }, [companyId, user, isAdmin]);
 
@@ -73,13 +77,13 @@ export default function EntrepreneurCrm() {
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <Building2 className="h-4 w-4 text-muted-foreground" />
           {companies.length > 1 ? (
-            <select aria-label="Entreprise active" className={sel} value={companyId ?? ""} onChange={(e) => { setCompanyId(e.target.value); setParams(new URLSearchParams({ tab, ...(supportUser ? { support_user: supportUser } : {}) })); }}>
+            <select aria-label="Entreprise active" className={sel} value={companyId ?? ""} onChange={(e) => { if (crmDirty && !confirm(`Un formulaire non enregistré est ouvert dans « ${company?.name} ». Le fermer sans l'enregistrer pour changer d'entreprise ?`)) return; crmDirty = null; setRole(null); setCompanyId(e.target.value); setParams(new URLSearchParams({ tab, ...(supportUser ? { support_user: supportUser } : {}) })); }}>
               {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : <span className="font-display text-sm font-semibold">{company?.name ?? "Aucune entreprise"}</span>}
           {role && <span className="text-xs text-muted-foreground">· Rôle : {role === "support" ? "Assistance" : (ROLES.find((r) => r[0] === role)?.[1] ?? role)}</span>}
         </div>
-        {!companyId ? <p className="text-muted-foreground">Aucune entreprise accessible. Un compte approuvé est requis.</p> : (
+        {companyId && role === null ? <p className="text-muted-foreground">Vérification des droits…</p> : !companyId ? <p className="text-muted-foreground">Aucune entreprise accessible. Un compte approuvé est requis.</p> : (
           <>
             <nav className="mb-5 flex gap-1 overflow-x-auto border-b border-border pb-2">
               {visibleTabs.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-display font-semibold ${tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>{l}</button>)}
@@ -189,17 +193,24 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
     }
     const blob = new Blob([toCsv(all.map(({ trade_fields, ...r }) => ({ ...r, trade_fields: JSON.stringify(trade_fields) })))], { type: "text/csv" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "leads.csv"; a.click(); };
   const previewCsv = async (f: File) => { const rows = parseCsv(await f.text()); if (!rows.length) return toast({ title: "Fichier vide ou invalide", variant: "destructive" });
-    const heads = Object.keys(rows[0]); const guess = (c: string[]) => heads.find((h) => c.includes(h)) ?? "";
-    setImporting({ rows, heads, map: { title: guess(["titre", "nom", "title", "name"]), contact_name: guess(["contact", "personne"]), contact_value: guess(["telephone", "téléphone", "courriel", "email", "phone"]), need: guess(["besoin", "need", "description"]) } }); };
+    const heads = Object.keys(rows[0]);
+    const existing = (await db.from("ent_crm_leads").select("title,contact_value").eq("company_id", companyId)).data ?? []; const guess = (c: string[]) => heads.find((h) => c.includes(h)) ?? "";
+    setImporting({ rows, heads, map: { title: guess(["titre", "nom", "title", "name"]), contact_name: guess(["contact", "personne"]), contact_value: guess(["telephone", "téléphone", "courriel", "email", "phone"]), need: guess(["besoin", "need", "description"]) }, existing, dupMode: "ignorer", ignored: heads.filter((h) => /company|entreprise_id|owner|compagnie/.test(h)) }); };
+  const analyse = (imp: any) => { const m = imp.map; const seen = new Set(imp.existing.map((e: any) => normalize(e.contact_value) || normalize(e.title)));
+    return imp.rows.map((r: any, i: number) => { const title = (r[m.title] || r[m.contact_name] || "").trim(); const contact = (r[m.contact_value] ?? "").trim(); const key = normalize(contact) || normalize(title);
+      let status = "valide", why = "";
+      if (!title) { status = "invalide"; why = "nom/titre manquant"; } else if (contact && !PHONE.test(contact) && !MAIL.test(contact)) { status = "invalide"; why = `« ${contact} » n'est ni un téléphone ni un courriel`; } else if (seen.has(key)) { status = "doublon"; why = "fiche existante avec le même contact/nom"; }
+      if (status !== "invalide") seen.add(key);
+      return { line: i + 2, title, nom: (r[m.contact_name] ?? "").trim(), contact, besoin: (r[m.need] ?? "").trim(), status, why }; }); };
   const importCsv = async () => { if (!importing) return; const m = importing.map;
-    const recs = importing.rows.map((r) => ({ titre: r[m.title] ?? "", nom: r[m.contact_name] ?? "", contact: r[m.contact_value] ?? "", besoin: r[m.need] ?? "" })); setImporting(null); const existing = (await db.from("ent_crm_leads").select("title,contact_value").eq("company_id", companyId)).data ?? [];
-    const seen = new Set(existing.map((e: any) => normalize(e.contact_value) || normalize(e.title)));
+    void m; const recs = analyse(importing); const dupMode = importing.dupMode; setImporting(null);
     let ok = 0, dup = 0, bad = 0;
     for (const r of recs) {
-      const title = r.titre || r.nom; if (!title) { bad++; continue; }
-      const key = normalize(r.contact) || normalize(title); if (seen.has(key)) { dup++; continue; }
-      const { error } = await db.from("ent_crm_leads").insert({ company_id: companyId, title, contact_name: r.nom ?? null, contact_value: r.contact || null, need: r.besoin || null, source: "import" });
-      error ? bad++ : (ok++, seen.add(key));
+      if (r.status === "invalide") { bad++; continue; }
+      if (r.status === "doublon" && dupMode !== "creer") { dup++; continue; }
+      // company_id vient toujours de l'entreprise active validée par le serveur (RLS), jamais du fichier.
+      const { error } = await db.from("ent_crm_leads").insert({ company_id: companyId, title: r.title, contact_name: r.nom || null, contact_value: r.contact || null, need: r.besoin || null, source: "import" });
+      error ? bad++ : ok++;
     }
     toast({ title: "Import terminé", description: `${ok} ajoutés · ${dup} doublons ignorés · ${bad} invalides. Aucun message envoyé.` }); load();
   };
@@ -219,7 +230,10 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
     {views.length > 0 && <div className="mb-2 flex flex-wrap gap-1">{views.map((v) => <span key={v.id} className="inline-flex items-center rounded-full border border-border text-xs"><button className="px-3 py-1.5" onClick={() => { const n = new URLSearchParams(v.params); n.set("tab", "leads"); const su = params.get("support_user"); if (su) n.set("support_user", su); setParams(n); }}>{v.name}</button><button aria-label="Supprimer la vue" className="px-2" onClick={async () => { await db.from("ent_crm_saved_views").delete().eq("id", v.id); loadViews(); }}>×</button></span>)}</div>}
     {importing && <div className="mb-3 rounded-lg border border-border bg-card p-3 text-sm"><p className="font-display font-bold">Import : {importing.rows.length} ligne(s) — correspondance des colonnes</p>
       {(["title", "contact_name", "contact_value", "need"] as const).map((k) => <label key={k} className="mt-1 flex items-center gap-2"><span className="w-40">{{ title: "Nom / titre *", contact_name: "Personne contact", contact_value: "Téléphone / courriel", need: "Besoin" }[k]}</span><select className={sel} value={importing.map[k]} onChange={(e) => setImporting({ ...importing, map: { ...importing.map, [k]: e.target.value } })}><option value="">(aucune)</option>{importing.heads.map((h) => <option key={h} value={h}>{h}</option>)}</select></label>)}
-      <p className="mt-2 text-xs text-muted-foreground">Aperçu : {importing.rows.slice(0, 3).map((r) => r[importing.map.title] || "(sans nom)").join(" · ")}. L'entreprise propriétaire est toujours l'entreprise active; aucun message ne sera envoyé.</p>
+      {importing.ignored.length > 0 && <p className="mt-2 text-xs text-destructive">Colonne(s) ignorée(s) : {importing.ignored.join(", ")}. L'entreprise propriétaire est toujours l'entreprise active, jamais une valeur du fichier.</p>}
+      <div className="mt-2 max-h-60 overflow-auto"><table className="w-full text-xs"><tbody>{analyse(importing).map((r: any) => <tr key={r.line} className="border-t border-border"><td className="p-1">L{r.line}</td><td className="p-1">{r.title || "—"}</td><td className="p-1">{r.contact}</td><td className={`p-1 font-semibold ${r.status === "invalide" ? "text-destructive" : r.status === "doublon" ? "text-muted-foreground" : "text-primary"}`}>{r.status}</td><td className="p-1 text-muted-foreground">{r.why}</td></tr>)}</tbody></table></div>
+      {analyse(importing).some((r: any) => r.status === "doublon") && <label className="mt-2 flex items-center gap-2 text-xs">Doublons :<select aria-label="Traitement des doublons" className={sel} value={importing.dupMode} onChange={(e) => setImporting({ ...importing, dupMode: e.target.value })}><option value="ignorer">Ignorer (aucune fiche modifiée)</option><option value="creer">Créer quand même une nouvelle fiche</option></select></label>}
+      <p className="mt-2 text-xs text-muted-foreground">Aucune fiche existante n'est écrasée. Aucun courriel, SMS, compte ni invitation n'est créé.</p>
       <div className="mt-2 flex gap-2"><Button size="sm" disabled={!importing.map.title} onClick={importCsv}>Importer</Button><Button size="sm" variant="outline" onClick={() => setImporting(null)}>Annuler</Button></div></div>}
     <p className="mb-2 text-xs text-muted-foreground">{count} résultat(s)</p>
     {view === "kanban" ? (
@@ -252,7 +266,8 @@ function LeadDialog({ lead, companyId, clients, onClose, onSaved }: any) {
   const [tasks, setTasks] = useState<any[]>([]);
   const loadTasks = useCallback(async () => { if (lead.id) setTasks((await db.from("ent_crm_tasks").select("*").eq("lead_id", lead.id).order("created_at")).data ?? []); }, [lead.id]);
   useEffect(() => { void loadTasks(); }, [loadTasks]);
-  const set = (k: string, v: any) => setF((x: any) => ({ ...x, [k]: v }));
+  const set = (k: string, v: any) => { crmDirty = companyId; setF((x: any) => ({ ...x, [k]: v })); };
+  useEffect(() => () => { crmDirty = null; }, []);
   useEffect(() => { const n = normalize(f.contact_value); if (!n || n.length < 5 || lead.id) return setDups([]);
     db.from("ent_crm_leads").select("id,title,contact_value").eq("company_id", companyId).then(({ data }: any) => setDups((data ?? []).filter((d: any) => normalize(d.contact_value) === n))); }, [f.contact_value, companyId, lead.id]);
   const save = async () => {
@@ -292,11 +307,20 @@ function Clients({ companyId, canWrite }: any) {
     const { error } = await db.from("ent_crm_clients").insert({ company_id: companyId, name, kind }); error ? toast({ title: "Refusé", description: error.message, variant: "destructive" }) : load(); };
   const addContact = async (c: any) => { const name = prompt("Nom du contact ?"); if (!name) return; const phone = prompt("Téléphone ?") || null; const email = prompt("Courriel ?") || null;
     const { error } = await db.from("ent_crm_contacts").insert({ company_id: companyId, client_id: c.id, name, phone, email }); error ? toast({ title: "Refusé", description: error.message }) : load(); };
+  const [jsc, setJsc] = useState<any[] | null>(null); const [refs, setRefs] = useState<Record<string, any>>({});
+  useEffect(() => { rows.filter((r) => r.jsc_client_id && !refs[r.id]).forEach((r) => db.rpc("entcrm_jsc_client_refs", { _client_id: r.id }).then(({ data }: any) => setRefs((x) => ({ ...x, [r.id]: data })))); }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
+  const openJsc = async () => { const { data, error } = await db.rpc("entcrm_jsc_candidates", { _company_id: companyId }); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" }); setJsc(data ?? []); };
+  const linkJsc = async (j: any) => { const { error } = await db.rpc("entcrm_link_jsc_client", { _company_id: companyId, _jsc_client_id: j.jsc_client_id }); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" }); toast({ title: "Client rattaché", description: "Même dossier réutilisé, sans ressaisie." }); setJsc(null); load(); };
   const archive = async (c: any) => { if (!confirm("Archiver ce client ?")) return; await db.from("ent_crm_clients").update({ archived_at: new Date().toISOString() }).eq("id", c.id); load(); };
   const shown = rows.filter((r) => !q || normalize(`${r.name}${r.email}${r.phone}`).includes(normalize(q)));
-  return <div><div className="mb-3 flex gap-2"><Input placeholder="Rechercher un client" value={q} onChange={(e) => setQ(e.target.value)} className="h-10 sm:w-60" />{canWrite && <Button onClick={add}><Plus className="mr-1 h-4 w-4" />Nouveau client</Button>}</div>
+  return <div><div className="mb-3 flex gap-2"><Input placeholder="Rechercher un client" value={q} onChange={(e) => setQ(e.target.value)} className="h-10 sm:w-60" />{canWrite && <Button onClick={add}><Plus className="mr-1 h-4 w-4" />Nouveau client</Button>}{canWrite && <Button variant="outline" onClick={openJsc}>Clients existants de l'entreprise (Transport JSC)</Button>}</div>
+    {jsc && <Dialog open onOpenChange={() => setJsc(null)}><DialogContent><DialogHeader><DialogTitle>Rattacher un client existant</DialogTitle></DialogHeader>
+      <p className="text-xs text-muted-foreground">Seuls les dossiers clients appartenant à votre entreprise sont listés. Le rattachement est explicite : aucun rapprochement automatique par nom, téléphone ou courriel.</p>
+      <div className="max-h-80 overflow-y-auto">{jsc.length === 0 ? <p className="text-sm text-muted-foreground">Aucun dossier client existant pour cette entreprise.</p> : jsc.map((j) => <div key={j.jsc_client_id} className="flex items-center justify-between gap-2 border-t border-border py-2 text-sm"><div><p className="font-semibold">{j.name}</p><p className="text-xs text-muted-foreground">{[j.contact_name, j.phone, j.email, j.city].filter(Boolean).join(" · ")}</p></div>{j.linked_client_id ? <span className="text-xs text-muted-foreground">Déjà rattaché</span> : <Button size="sm" onClick={() => linkJsc(j)}>Utiliser</Button>}</div>)}</div>
+    </DialogContent></Dialog>}
     <div className="grid gap-2 md:grid-cols-2">{shown.map((c) => <div key={c.id} className="rounded-lg border border-border bg-card p-3 text-sm">
-      <p className="font-display font-bold">{c.name} <span className="text-xs font-normal text-muted-foreground">({c.kind})</span></p>
+      <p className="font-display font-bold">{c.name} <span className="text-xs font-normal text-muted-foreground">({c.kind})</span>{c.jsc_client_id && <span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-xs font-normal">Dossier Transport JSC</span>}</p>
+      {c.jsc_client_id && refs[c.id] && <p className="text-xs text-muted-foreground">Historique existant : {refs[c.id].requests} demande(s) · {refs[c.id].quotes} soumission(s) · {refs[c.id].orders} commande(s) · {refs[c.id].invoices} facture(s)</p>}
       <p className="text-xs text-muted-foreground">{c.phone} {c.email} {c.address}</p>
       <p className="mt-1 text-xs"><strong>Contacts :</strong> {c.ent_crm_contacts.map((x: any) => `${x.name}${x.phone ? " " + x.phone : ""}`).join(" · ") || "—"}</p>
       <p className="text-xs"><strong>Opportunités :</strong> {c.ent_crm_leads.map((x: any) => x.title).join(" · ") || "—"}</p>
@@ -304,7 +328,8 @@ function Clients({ companyId, canWrite }: any) {
       {canWrite && <div className="mt-2 flex flex-wrap gap-1"><Button size="sm" variant="outline" onClick={() => addContact(c)}>+ Contact</Button><Button size="sm" variant="outline" onClick={async () => { const title = prompt("Nouvelle opportunité ?"); if (!title) return; const { error } = await db.from("ent_crm_leads").insert({ company_id: companyId, client_id: c.id, title, contact_name: c.name, contact_value: c.phone || c.email, source: "autre" }); if (error) toast({ title: "Refusé", description: error.message }); load(); }}>+ Opportunité</Button><Button size="sm" variant="outline" onClick={() => setOpen(c)}>Modifier</Button><Button size="sm" variant="ghost" onClick={() => archive(c)}>Archiver</Button></div>}
     </div>)}</div>
     {open && <Dialog open onOpenChange={() => setOpen(null)}><DialogContent><DialogHeader><DialogTitle>{open.name}</DialogTitle></DialogHeader>
-      {["name", "phone", "email", "address", "city"].map((k) => <Input key={k} placeholder={k} value={open[k] ?? ""} onChange={(e) => setOpen({ ...open, [k]: e.target.value })} />)}
+      {open.jsc_client_id && <p className="text-xs text-muted-foreground">Identité gérée par le dossier client Transport JSC (source d'autorité) : non modifiable ici pour éviter deux versions divergentes.</p>}
+      {["name", "phone", "email", "address", "city"].map((k) => <Input key={k} disabled={!!open.jsc_client_id} placeholder={k} value={open[k] ?? ""} onChange={(e) => setOpen({ ...open, [k]: e.target.value })} />)}
       <Textarea placeholder="Notes internes" value={open.notes ?? ""} onChange={(e) => setOpen({ ...open, notes: e.target.value })} />
       <Button onClick={async () => { const { id, name, phone, email, address, city, notes } = open; const { error } = await db.from("ent_crm_clients").update({ name, phone, email, address, city, notes, updated_at: new Date().toISOString() }).eq("id", id); if (error) toast({ title: "Refusé", description: error.message }); else { setOpen(null); load(); } }}>Enregistrer</Button>
     </DialogContent></Dialog>}
