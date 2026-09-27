@@ -156,7 +156,7 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
   useEffect(() => { void loadViews(); }, [loadViews]);
   const saveView = async () => { const name = prompt("Nom de la vue ?"); if (!name) return; const p = new URLSearchParams(params); p.delete("page"); p.delete("support_user");
     const { error } = await db.from("ent_crm_saved_views").insert({ company_id: companyId, name, params: p.toString() }); if (error) toast({ title: "Refusé", description: error.message }); loadViews(); };
-  const [importing, setImporting] = useState<{ rows: Record<string, string>[]; heads: string[]; map: Record<string, string> } | null>(null);
+  const [importing, setImporting] = useState<{ rows: Record<string, string>[]; heads: string[]; map: Record<string, string>; existing: any[]; dupMode: string; ignored: string[] } | null>(null);
   const [rows, setRows] = useState<any[]>([]); const [count, setCount] = useState(0);
   const [clients, setClients] = useState<any[]>([]);
   const [open, setOpen] = useState<any>(null); const [view, setView] = useState<"liste" | "kanban">("liste");
