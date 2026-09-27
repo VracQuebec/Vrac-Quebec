@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { buildEntrepreneurRequests } from "@/lib/entrepreneur-app/requests";
 import { findChantierForSubmission } from "@/lib/parcours/chantiers";
+import AddToCrmButton from "@/components/entcrm/AddToCrmButton";
 
 const DetailLine = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
   <div className="flex gap-3 border-b border-border py-3 last:border-0">
@@ -87,6 +88,9 @@ export default function EntrepreneurDemandeDetail() {
                   {request.kind === "transport" ? "Nouvelle demande de transport" : "Trouver une dompe"}
                 </Link>
               </Button>
+              {(request.submission?.id || request.transport?.id) && (
+                <AddToCrmButton sourceType={request.submission ? "submission" : "transport_request"} sourceId={String(request.submission?.id ?? request.transport?.id)} />
+              )}
             </aside>
           </div>
         )}
