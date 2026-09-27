@@ -2389,6 +2389,7 @@ export type Database = {
           lines: Json
           number: string | null
           paid_amount: number | null
+          parent_quote_id: string | null
           status: string
           subtotal: number
           updated_at: string
@@ -2413,6 +2414,7 @@ export type Database = {
           lines?: Json
           number?: string | null
           paid_amount?: number | null
+          parent_quote_id?: string | null
           status?: string
           subtotal?: number
           updated_at?: string
@@ -2437,6 +2439,7 @@ export type Database = {
           lines?: Json
           number?: string | null
           paid_amount?: number | null
+          parent_quote_id?: string | null
           status?: string
           subtotal?: number
           updated_at?: string
@@ -2463,6 +2466,109 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "ent_crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_crm_quotes_parent_quote_id_fkey"
+            columns: ["parent_quote_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ent_crm_saved_views: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          params: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          params: string
+          user_id?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          params?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_saved_views_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ent_crm_settings: {
+        Row: {
+          company_id: string
+          trades: string[]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          trades?: string[]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          trades?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ent_crm_stages: {
+        Row: {
+          company_id: string
+          id: string
+          key: string
+          kind: string
+          label: string
+          position: number
+        }
+        Insert: {
+          company_id: string
+          id?: string
+          key: string
+          kind?: string
+          label: string
+          position?: number
+        }
+        Update: {
+          company_id?: string
+          id?: string
+          key?: string
+          kind?: string
+          label?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_stages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -19500,12 +19606,36 @@ export type Database = {
         Returns: string
       }
       entcrm_can_admin: { Args: { _company_id: string }; Returns: boolean }
+      entcrm_can_commercial: { Args: { _company_id: string }; Returns: boolean }
       entcrm_can_field: { Args: { _company_id: string }; Returns: boolean }
       entcrm_can_finance: { Args: { _company_id: string }; Returns: boolean }
       entcrm_can_read: { Args: { _company_id: string }; Returns: boolean }
       entcrm_can_write: { Args: { _company_id: string }; Returns: boolean }
+      entcrm_convert_lead: { Args: { _lead_id: string }; Returns: string }
+      entcrm_delete_stage: {
+        Args: { _replacement: string; _stage_id: string }
+        Returns: undefined
+      }
+      entcrm_list_members: {
+        Args: { _company_id: string }
+        Returns: {
+          email: string
+          is_active: boolean
+          role: string
+          user_id: string
+        }[]
+      }
       entcrm_open_support: { Args: { _company_id: string }; Returns: boolean }
       entcrm_role: { Args: { _company_id: string }; Returns: string }
+      entcrm_set_member: {
+        Args: {
+          _active: boolean
+          _company_id: string
+          _email: string
+          _role: string
+        }
+        Returns: undefined
+      }
       entr_status_label: { Args: { _status: string }; Returns: string }
       exec_claim_optim_tasks: {
         Args: { _run_id: string; _size: number }
