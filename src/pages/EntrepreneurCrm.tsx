@@ -26,7 +26,7 @@ const sel = "h-10 rounded-md border border-border bg-background px-2 text-sm fon
 const PAGE = 25;
 // Brouillon non enregistré : jamais transféré vers une autre entreprise active.
 let crmDirty: string | null = null;
-const PHONE = /^[+\d][\d\s().-]{6,}$/, MAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const PHONE = /^[+\d(][\d\s().-]{6,}$/, MAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export default function EntrepreneurCrm() {
   const [params, setParams] = useSearchParams();
