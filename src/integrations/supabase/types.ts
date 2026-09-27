@@ -2071,6 +2071,7 @@ export type Database = {
           created_by: string | null
           email: string | null
           id: string
+          jsc_client_id: string | null
           kind: string
           name: string
           notes: string | null
@@ -2087,6 +2088,7 @@ export type Database = {
           created_by?: string | null
           email?: string | null
           id?: string
+          jsc_client_id?: string | null
           kind?: string
           name: string
           notes?: string | null
@@ -2103,6 +2105,7 @@ export type Database = {
           created_by?: string | null
           email?: string | null
           id?: string
+          jsc_client_id?: string | null
           kind?: string
           name?: string
           notes?: string | null
@@ -2116,6 +2119,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_crm_clients_jsc_client_id_fkey"
+            columns: ["jsc_client_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_clients"
             referencedColumns: ["id"]
           },
         ]
@@ -19615,6 +19625,23 @@ export type Database = {
       entcrm_delete_stage: {
         Args: { _replacement: string; _stage_id: string }
         Returns: undefined
+      }
+      entcrm_jsc_candidates: {
+        Args: { _company_id: string }
+        Returns: {
+          city: string
+          contact_name: string
+          email: string
+          jsc_client_id: string
+          linked_client_id: string
+          name: string
+          phone: string
+        }[]
+      }
+      entcrm_jsc_client_refs: { Args: { _client_id: string }; Returns: Json }
+      entcrm_link_jsc_client: {
+        Args: { _company_id: string; _jsc_client_id: string }
+        Returns: string
       }
       entcrm_list_members: {
         Args: { _company_id: string }
