@@ -1,0 +1,1 @@
+- CRM entrepreneurs : un client Transport JSC se relie via ent_crm_clients.jsc_client_id (rattachement explicite, même company_id); jsc_clients fait autorité sur l'identité, synchronisée par trigger — évite les doubles saisies divergentes.
