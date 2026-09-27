@@ -12,3 +12,12 @@
 - [ ] Lot D : démonstration isolée avec messagerie capturée.
 - [ ] Lot E/F : sources Warwick/Bauval/Pomerleau/Savaria, régions, réconciliation 45→82, fichier de prix.
 - [ ] Lot G : tableau final par lot + matrice des modules.
+
+## CRM-ENT-01 (en cours — CATALOGUE-03 en pause)
+- [x] Fondations : tables ent_crm_*, droits par rôle côté base, cohérence entreprise, historique avec origine assistance.
+- [x] Page « Mon CRM » : aujourd'hui, leads (liste/Kanban, filtres, pagination, import/export CSV, doublons), clients/contacts, soumissions (versions, PDF, acceptation documentée, chantier unique), chantiers, tâches, rapports, historique.
+- [x] Bouton admin « Ouvrir le CRM de cette entreprise » + bandeau Assistance.
+- [ ] Tests d'isolation avec vraies sessions (2 entreprises, employé limité, membre révoqué).
+- [ ] Rôle « lecture seule », gestion des membres, étapes personnalisables, vues enregistrées.
+- [ ] Documents/photos privés par entreprise; suivi des demandes réseau; prestations/tarifs privés.
+- [ ] Vérification mobile/ordinateur.
