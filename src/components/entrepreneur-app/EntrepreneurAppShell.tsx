@@ -77,8 +77,9 @@ export default function EntrepreneurAppShell({
   backLabel = "Retour",
   headerActions,
   showFab = false,
+  allowCompanyMembers = false,
   children,
-}: Props) {
+}: Props & { allowCompanyMembers?: boolean }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isReady: authReady } = useAuthReady();
@@ -102,7 +103,8 @@ export default function EntrepreneurAppShell({
   if (!authReady || !user || roleLoading) {
     return <FullPageState title="Chargement" message="Votre espace entrepreneur se prépare." />;
   }
-  if (!isEntrepreneur && !isAdmin) {
+  // CRM : les membres d'une entreprise y accèdent; la base de données décide des droits.
+  if (!isEntrepreneur && !isAdmin && !allowCompanyMembers) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 text-center">
         <div>

@@ -62,7 +62,7 @@ export default function EntrepreneurCrm() {
   const visibleTabs = TABS.filter(([k]) => canCommercial || ["today", "projects", "tasks", "team"].includes(k));
 
   return (
-    <EntrepreneurAppShell title="Mon CRM" subtitle={company?.name ?? ""} backTo={null}>
+    <EntrepreneurAppShell title="Mon CRM" subtitle={company?.name ?? ""} backTo={null} allowCompanyMembers>
       {isAdmin && company && (
         <div role="status" className="border-b border-amber-500/40 bg-amber-500/15 px-4 py-2 text-sm text-amber-800 dark:text-amber-300 flex flex-wrap items-center gap-2">
           <LifeBuoy className="h-4 w-4" /><strong>Assistance Vrac Québec — {company.name}</strong>
@@ -77,7 +77,7 @@ export default function EntrepreneurCrm() {
               {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : <span className="font-display text-sm font-semibold">{company?.name ?? "Aucune entreprise"}</span>}
-          {role && <span className="text-xs text-muted-foreground">· Rôle : {role === "support" ? "Assistance" : role}</span>}
+          {role && <span className="text-xs text-muted-foreground">· Rôle : {role === "support" ? "Assistance" : (ROLES.find((r) => r[0] === role)?.[1] ?? role)}</span>}
         </div>
         {!companyId ? <p className="text-muted-foreground">Aucune entreprise accessible. Un compte approuvé est requis.</p> : (
           <>
@@ -331,7 +331,7 @@ function Quotes({ companyId, companyName, canWrite }: any) {
   const fin = async (q: any, k: string) => { const v = prompt(k === "invoiced_amount" ? "Montant facturé ?" : "Montant encaissé ?"); if (v == null) return; await db.from("ent_crm_quotes").update({ [k]: v === "" ? null : Number(v) }).eq("id", q.id); load(); };
   if (print) return <div className="print:p-0"><Button className="print:hidden mb-3" onClick={() => window.print()}>Télécharger / imprimer en PDF</Button> <Button variant="outline" className="print:hidden mb-3" onClick={() => setPrint(null)}>Fermer</Button>
     <div className="rounded border border-border bg-card p-6 text-sm"><p className="font-display text-lg font-bold">{companyName}</p><h2 className="font-display text-xl font-bold">Soumission {print.number ?? ""} (v{print.version})</h2><p>Client : {print.ent_crm_clients?.name ?? "—"}</p>
-      <table className="mt-3 w-full"><thead><tr className="text-left"><th>Description</th><th>Qté</th><th>Unité</th><th>Prix</th><th>Total</th></tr></thead><tbody>{(print.lines as Line[]).map((l, i) => <tr key={i}><td>{l.desc}</td><td>{l.qty}</td><td>{l.unit}</td><td>{money(l.price)}</td><td>{money(l.qty * l.price)}</td></tr>)}</tbody></table>
+      <div className="mt-3 overflow-x-auto"><table className="w-full text-xs sm:text-sm [&_th]:whitespace-nowrap [&_th]:pr-1.5 [&_td]:pr-1.5 [&_td:not(:first-child)]:whitespace-nowrap"><thead><tr className="text-left"><th>Description</th><th>Qté</th><th>Unité</th><th>Prix</th><th>Total</th></tr></thead><tbody>{(print.lines as Line[]).map((l, i) => <tr key={i}><td>{l.desc}</td><td>{l.qty}</td><td>{l.unit}</td><td>{money(l.price)}</td><td>{money(l.qty * l.price)}</td></tr>)}</tbody></table></div>
       <p className="mt-2 font-bold">Sous-total avant taxes : {money(Number(print.subtotal))}</p><p className="text-xs text-muted-foreground">Taxes applicables selon votre inscription (TPS/TVQ), non calculées ici.</p>
       {print.inclusions && <p className="mt-2"><strong>Inclusions :</strong> {print.inclusions}</p>}{print.exclusions && <p><strong>Exclusions :</strong> {print.exclusions}</p>}{print.conditions && <p><strong>Conditions :</strong> {print.conditions}</p>}{print.valid_until && <p>Valide jusqu'au {print.valid_until}</p>}</div></div>;
   return <div>{canWrite && <Button className="mb-3" onClick={() => setOpen({ lines: [{ desc: "", qty: 1, unit: "unité", price: 0 }] })}><Plus className="mr-1 h-4 w-4" />Nouvelle soumission</Button>}
@@ -343,7 +343,7 @@ function Quotes({ companyId, companyName, canWrite }: any) {
         <Button size="sm" variant="outline" onClick={() => setPrint(q)}>PDF</Button>
         {canWrite && q.status === "brouillon" && <><Button size="sm" variant="outline" onClick={() => setOpen(q)}>Modifier</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "remise")}>Marquer remise</Button></>}
         {canWrite && q.status === "remise" && <><Button size="sm" onClick={() => setStatus(q, "acceptee")}>Accepter (documenter)</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "refusee")}>Refusée</Button></>}
-        {canWrite && q.status === "acceptee" && !q.ent_crm_projects?.length && <Button size="sm" onClick={() => toProject(q)}>Créer le chantier</Button>}
+        {canWrite && q.status === "acceptee" && !(Array.isArray(q.ent_crm_projects) ? q.ent_crm_projects.length : q.ent_crm_projects) && <Button size="sm" onClick={() => toProject(q)}>Créer le chantier</Button>}
         {canWrite && q.status === "acceptee" && <><Button size="sm" variant="outline" onClick={() => revise(q)}>Réviser</Button><Button size="sm" variant="ghost" onClick={() => fin(q, "invoiced_amount")}>Facturé</Button><Button size="sm" variant="ghost" onClick={() => fin(q, "paid_amount")}>Encaissé</Button></>}
       </div></div>)}</div>
     {open && <Dialog open onOpenChange={() => setOpen(null)}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Soumission</DialogTitle></DialogHeader>
