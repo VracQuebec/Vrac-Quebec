@@ -1,7 +1,7 @@
 // CRM privé de l'entreprise (CRM-ENT-01). Données dans ent_crm_*,
 // cloisonnées par company_id côté base (RLS). Le super admin y entre
 // en mode « Assistance Vrac Québec » (journalisé côté serveur).
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Building2, Download, LifeBuoy, Plus, Upload } from "lucide-react";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
@@ -14,10 +14,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { STAGES, SOURCES, TRADES, label, resolveCompanies, quoteSubtotal, toCsv, parseCsv, normalize, type Company, type Line } from "@/lib/entcrm/api";
+import { UNITS, unitLabel, ensureTemplates, subtotal, lineTotal, incomplete, copyLinks, type QLine } from "@/lib/entcrm/catalog";
+import { computeTaxes } from "@/lib/platform/tax";
+import CrmFiles from "@/components/entcrm/CrmFiles";
+import CrmServices from "@/components/entcrm/CrmServices";
 
 const db = supabase as any;
 const TABS = [
-  ["today", "Aujourd'hui"], ["leads", "Leads"], ["clients", "Clients"], ["quotes", "Soumissions"],
+  ["today", "Aujourd'hui"], ["leads", "Leads"], ["clients", "Clients"], ["quotes", "Soumissions"], ["services", "Tarifs et modèles"],
   ["projects", "Chantiers"], ["tasks", "Tâches"], ["reports", "Rapports"], ["history", "Historique"], ["team", "Équipe et paramètres"],
 ] as const;
 type Tab = typeof TABS[number][0];
@@ -88,7 +92,7 @@ export default function EntrepreneurCrm() {
             <nav className="mb-5 flex gap-1 overflow-x-auto border-b border-border pb-2">
               {visibleTabs.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-display font-semibold ${tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>{l}</button>)}
             </nav>
-            <Body key={companyId} tab={tab} companyId={companyId} companyName={company?.name ?? ""} canWrite={canWrite} canFinance={canFinance} canAdmin={canAdmin} canCommercial={canCommercial} params={params} setParams={setParams} />
+            <Body key={companyId} tab={tab} companyId={companyId} companyName={company?.name ?? ""} canWrite={canWrite} canFinance={canFinance} canAdmin={canAdmin} canCommercial={canCommercial} canCost={["support", "proprietaire", "gestionnaire", "comptabilite"].includes(role ?? "")} params={params} setParams={setParams} />
           </>
         )}
       </div>
@@ -96,18 +100,41 @@ export default function EntrepreneurCrm() {
   );
 }
 
-function Body(p: { tab: Tab; companyId: string; companyName: string; canWrite: boolean; canFinance: boolean; canAdmin: boolean; canCommercial: boolean; params: URLSearchParams; setParams: (p: URLSearchParams) => void }) {
+const CrmCtx = createContext<{ companyId: string; canWrite: boolean; canAdmin: boolean }>({ companyId: "", canWrite: false, canAdmin: false });
+
+function Body(p: { tab: Tab; companyId: string; companyName: string; canWrite: boolean; canFinance: boolean; canAdmin: boolean; canCommercial: boolean; canCost: boolean; params: URLSearchParams; setParams: (p: URLSearchParams) => void }) {
+  return <CrmCtx.Provider value={{ companyId: p.companyId, canWrite: p.canWrite, canAdmin: p.canAdmin }}><BodyInner {...p} /></CrmCtx.Provider>;
+}
+function BodyInner(p: any) {
   const { tab } = p;
   if (tab === "today") return <Today {...p} />;
   if (tab === "team") return <Team {...p} />;
-  if (!p.canCommercial && ["leads", "clients", "quotes", "reports", "history"].includes(tab)) return <p className="text-muted-foreground">Section non autorisée pour votre rôle.</p>;
+  if (!p.canCommercial && ["leads", "clients", "quotes", "services", "reports", "history"].includes(tab)) return <p className="text-muted-foreground">Section non autorisée pour votre rôle.</p>;
   if (tab === "leads") return <Leads {...p} />;
   if (tab === "clients") return <Clients {...p} />;
   if (tab === "quotes") return p.canFinance ? <Quotes {...p} /> : <p className="text-muted-foreground">Accès financier non autorisé pour votre rôle.</p>;
+  if (tab === "services") return <CrmServices companyId={p.companyId} canWrite={p.canWrite} canAdmin={p.canAdmin} canCost={p.canCost} />;
   if (tab === "projects") return <Projects {...p} />;
   if (tab === "tasks") return <Tasks {...p} />;
   if (tab === "reports") return <Reports {...p} />;
   return <History {...p} />;
+}
+
+/** Bouton « Pièces » : ouvre les documents privés du dossier. */
+function FilesBtn({ t, id, clientToggle }: { t: "lead" | "client" | "quote" | "project"; id: string; clientToggle?: boolean }) {
+  const c = useContext(CrmCtx); const [o, setO] = useState(false);
+  return <div className="mt-2"><button className="text-xs font-semibold text-primary underline" onClick={() => setO(!o)}>{o ? "Masquer les pièces" : "Photos et documents"}</button>
+    {o && <div className="mt-2"><CrmFiles companyId={c.companyId} ownerType={t} ownerId={id} canWrite={c.canWrite} canAdmin={c.canAdmin} showClientToggle={clientToggle} /></div>}</div>;
+}
+
+/** État de la demande réseau source : jamais d'écrasement des données privées. */
+function NetworkStatus({ leadId }: { leadId: string }) {
+  const [s, setS] = useState<any>(null);
+  useEffect(() => { (async () => { const { data: l } = await db.from("ent_crm_network_links").select("id,source_snapshot").eq("lead_id", leadId).maybeSingle(); if (!l) return;
+    const { data } = await db.rpc("entcrm_network_check", { _link_id: l.id }); setS({ ...data, snap: l.source_snapshot }); })(); }, [leadId]);
+  if (!s) return null;
+  if (s.state === "revoked") return <p className="mt-1 text-xs text-muted-foreground">Demande source Vrac Québec : accès retiré. Vos notes et pièces privées sont conservées.</p>;
+  return <p className="mt-1 text-xs">Demande Vrac Québec {s.source?.number ?? ""} · {s.source?.status ?? ""}{s.state === "update_available" && <span className="ml-1 rounded bg-amber-500/20 px-1">Actualisation disponible dans la demande source</span>}</p>;
 }
 
 function Stat({ l, v }: { l: string; v: string | number }) {
@@ -179,9 +206,10 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
     if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else load();
   };
   const convert = async (l: any) => {
-    const { error } = await db.rpc("entcrm_convert_lead", { _lead_id: l.id });
+    const { data: clientId, error } = await db.rpc("entcrm_convert_lead", { _lead_id: l.id });
     if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" });
-    toast({ title: "Client créé, historique conservé" }); load();
+    if (clientId) await copyLinks(companyId, [{ t: "lead", id: l.id }], { t: "client", id: clientId });
+    toast({ title: "Client créé, historique et pièces conservés" }); load();
   };
   const exportCsv = async () => {
     const all: any[] = [];
@@ -257,6 +285,8 @@ function LeadCard({ r, stages, canWrite, move, convert, edit }: any) {
       <select aria-label="Étape" className="h-9 rounded border border-border bg-background text-xs" value={r.stage} onChange={(e) => move(r, e.target.value)}>{stages.map((s: any) => <option key={s.v} value={s.v}>{s.l}</option>)}</select>
       {!r.client_id ? <Button size="sm" variant="outline" onClick={() => convert(r)}>Convertir en client</Button> : <span className="self-center text-xs text-emerald-700 dark:text-emerald-400">Client lié</span>}
     </div>}
+    {r.network_ref && <NetworkStatus leadId={r.id} />}
+    <FilesBtn t="lead" id={r.id} />
   </div>;
 }
 
@@ -326,6 +356,7 @@ function Clients({ companyId, canWrite }: any) {
       <p className="text-xs"><strong>Opportunités :</strong> {c.ent_crm_leads.map((x: any) => x.title).join(" · ") || "—"}</p>
       <p className="text-xs"><strong>Chantiers :</strong> {c.ent_crm_projects.map((x: any) => x.name).join(" · ") || "—"}</p>
       {canWrite && <div className="mt-2 flex flex-wrap gap-1"><Button size="sm" variant="outline" onClick={() => addContact(c)}>+ Contact</Button><Button size="sm" variant="outline" onClick={async () => { const title = prompt("Nouvelle opportunité ?"); if (!title) return; const { error } = await db.from("ent_crm_leads").insert({ company_id: companyId, client_id: c.id, title, contact_name: c.name, contact_value: c.phone || c.email, source: "autre" }); if (error) toast({ title: "Refusé", description: error.message }); load(); }}>+ Opportunité</Button><Button size="sm" variant="outline" onClick={() => setOpen(c)}>Modifier</Button><Button size="sm" variant="ghost" onClick={() => archive(c)}>Archiver</Button></div>}
+      <FilesBtn t="client" id={c.id} />
     </div>)}</div>
     {open && <Dialog open onOpenChange={() => setOpen(null)}><DialogContent><DialogHeader><DialogTitle>{open.name}</DialogTitle></DialogHeader>
       {open.jsc_client_id && <p className="text-xs text-muted-foreground">Identité gérée par le dossier client Transport JSC (source d'autorité) : non modifiable ici pour éviter deux versions divergentes.</p>}
@@ -338,50 +369,82 @@ function Clients({ companyId, canWrite }: any) {
 
 function Quotes({ companyId, companyName, canWrite }: any) {
   const [rows, setRows] = useState<any[]>([]); const [clients, setClients] = useState<any[]>([]); const [open, setOpen] = useState<any>(null); const [print, setPrint] = useState<any>(null);
+  const [services, setServices] = useState<any[]>([]); const [tpls, setTpls] = useState<any[]>([]); const [diff, setDiff] = useState<any[] | null>(null); const [printDocs, setPrintDocs] = useState<string[]>([]);
   const load = useCallback(async () => { setRows((await db.from("ent_crm_quotes").select("*, ent_crm_clients(name), ent_crm_projects(id)").eq("company_id", companyId).order("created_at", { ascending: false })).data ?? []);
-    setClients((await db.from("ent_crm_clients").select("id,name").eq("company_id", companyId).is("archived_at", null)).data ?? []); }, [companyId]);
+    setClients((await db.from("ent_crm_clients").select("id,name").eq("company_id", companyId).is("archived_at", null)).data ?? []);
+    setServices((await db.from("ent_crm_services").select("id,label,unit,price,inclusions,exclusions").eq("company_id", companyId).is("archived_at", null).order("label")).data ?? []);
+    if (canWrite) await ensureTemplates(companyId);
+    setTpls((await db.from("ent_crm_templates").select("*").eq("company_id", companyId).is("archived_at", null).order("name")).data ?? []); }, [companyId, canWrite]);
   useEffect(() => { void load(); }, [load]);
-  const save = async () => { const lines: Line[] = open.lines ?? []; const row = { company_id: companyId, client_id: open.client_id || null, number: open.number || null, lines, inclusions: open.inclusions || null, exclusions: open.exclusions || null, conditions: open.conditions || null, valid_until: open.valid_until || null, subtotal: quoteSubtotal(lines), updated_at: new Date().toISOString() };
+  const save = async () => { const lines: QLine[] = open.lines ?? []; const row = { company_id: companyId, client_id: open.client_id || null, lead_id: open.lead_id || null, number: open.number || null, lines, inclusions: open.inclusions || null, exclusions: open.exclusions || null, conditions: open.conditions || null, valid_until: open.valid_until || null, subtotal: subtotal(lines), updated_at: new Date().toISOString() };
     const { error } = open.id ? await db.from("ent_crm_quotes").update(row).eq("id", open.id) : await db.from("ent_crm_quotes").insert(row);
-    if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else { setOpen(null); load(); } };
+    if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else { crmDirty = null; setOpen(null); load(); } };
+  const edit = (v: any) => { crmDirty = "quote"; setOpen(v); };
+  const applyTpl = (id: string) => { const t = tpls.find((x) => x.id === id); if (!t) return; if ((open.lines ?? []).some((l: QLine) => l.desc) && !confirm("Remplacer les lignes actuelles par celles du modèle ?")) return;
+    edit({ ...open, lines: (t.lines as QLine[]).map((l) => ({ ...l, qty: null, price: null })), inclusions: t.inclusions, exclusions: t.exclusions, conditions: t.conditions }); };
+  const addService = (id: string) => { const s = services.find((x) => x.id === id); if (!s) return;
+    edit({ ...open, lines: [...(open.lines ?? []).filter((l: QLine) => l.desc || l.price != null), { desc: s.label, qty: null, unit: s.unit, price: s.price == null ? null : Number(s.price), service_id: s.id, price_at: new Date().toISOString() }] }); };
+  // Actualisation explicite des tarifs sur un brouillon : différences présentées avant application.
+  const refreshPrices = () => { const d = (open.lines as QLine[]).map((l, i) => { const s = l.service_id && services.find((x) => x.id === l.service_id); if (!s) return null; const np = s.price == null ? null : Number(s.price); return np !== l.price ? { i, desc: l.desc, old: l.price, next: np } : null; }).filter(Boolean);
+    if (!d.length) return toast({ title: "Tarifs à jour", description: "Aucune différence avec le catalogue privé." }); setDiff(d); };
+  const applyDiff = () => { const lines = [...open.lines]; diff!.forEach((d: any) => { lines[d.i] = { ...lines[d.i], price: d.next, price_at: new Date().toISOString() }; }); edit({ ...open, lines }); setDiff(null); };
   const setStatus = async (q: any, status: string) => {
+    if (status === "remise" && incomplete(q.lines ?? [])) return toast({ title: "Soumission incomplète", description: `${incomplete(q.lines)} ligne(s) sans quantité ou prix.` });
     if (status === "acceptee") { const src = prompt("Source de l'acceptation (signature, courriel, appel…) ?"); const by = prompt("Accepté par (nom du client) ?"); if (!src || !by) return;
       const { error } = await db.rpc("entcrm_accept_quote", { _quote_id: q.id, _source: src, _by: by }); if (error) return toast({ title: "Refusé", description: error.message });
     } else await db.from("ent_crm_quotes").update({ status }).eq("id", q.id);
     load(); };
   const toProject = async (q: any) => { const name = prompt("Nom du chantier ?", q.ent_crm_clients?.name ?? "Chantier"); if (!name) return;
-    const { error } = await db.from("ent_crm_projects").insert({ company_id: companyId, client_id: q.client_id, quote_id: q.id, name }); toast({ title: error ? "Refusé" : "Chantier créé", description: error?.message.includes("duplicate") ? "Un chantier existe déjà pour cette soumission." : error?.message }); load(); };
+    const { data, error } = await db.from("ent_crm_projects").insert({ company_id: companyId, client_id: q.client_id, quote_id: q.id, name }).select("id").single();
+    if (!error && data) await copyLinks(companyId, [{ t: "quote", id: q.id }, ...(q.lead_id ? [{ t: "lead", id: q.lead_id }] : [])], { t: "project", id: data.id });
+    toast({ title: error ? "Refusé" : "Chantier créé avec les pièces de la soumission", description: error?.message.includes("duplicate") ? "Un chantier existe déjà pour cette soumission." : error?.message }); load(); };
   const revise = async (q: any) => { const { id, created_at, updated_at, ent_crm_clients, ent_crm_projects, accepted_source, accepted_by_name, accepted_at, accepted_recorded_by, invoiced_amount, paid_amount, ...rest } = q;
     const { error } = await db.from("ent_crm_quotes").insert({ ...rest, status: "brouillon", version: q.version + 1, parent_quote_id: q.id }); toast({ title: error ? "Refusé" : "Révision créée (la version acceptée reste inchangée)", description: error?.message }); load(); };
   const fin = async (q: any, k: string) => { const v = prompt(k === "invoiced_amount" ? "Montant facturé ?" : "Montant encaissé ?"); if (v == null) return; await db.from("ent_crm_quotes").update({ [k]: v === "" ? null : Number(v) }).eq("id", q.id); load(); };
-  if (print) return <div className="print:p-0"><Button className="print:hidden mb-3" onClick={() => window.print()}>Télécharger / imprimer en PDF</Button> <Button variant="outline" className="print:hidden mb-3" onClick={() => setPrint(null)}>Fermer</Button>
+  const openPrint = async (q: any) => { const { data } = await db.from("ent_crm_file_links").select("file:ent_crm_files(title,file_name)").eq("owner_type", "quote").eq("owner_id", q.id).eq("client_visible", true);
+    setPrintDocs((data ?? []).map((d: any) => d.file?.title || d.file?.file_name).filter(Boolean)); setPrint(q); };
+  if (print) { const lines = print.lines as QLine[]; const st = subtotal(lines); const tx = computeTaxes(st, true);
+    return <div className="print:p-0"><Button className="print:hidden mb-3" onClick={() => window.print()}>Télécharger / imprimer en PDF</Button> <Button variant="outline" className="print:hidden mb-3" onClick={() => setPrint(null)}>Fermer</Button>
     <div className="rounded border border-border bg-card p-6 text-sm"><p className="font-display text-lg font-bold">{companyName}</p><h2 className="font-display text-xl font-bold">Soumission {print.number ?? ""} (v{print.version})</h2><p>Client : {print.ent_crm_clients?.name ?? "—"}</p>
-      <div className="mt-3 overflow-x-auto"><table className="w-full text-xs sm:text-sm [&_th]:whitespace-nowrap [&_th]:pr-1.5 [&_td]:pr-1.5 [&_td:not(:first-child)]:whitespace-nowrap"><thead><tr className="text-left"><th>Description</th><th>Qté</th><th>Unité</th><th>Prix</th><th>Total</th></tr></thead><tbody>{(print.lines as Line[]).map((l, i) => <tr key={i}><td>{l.desc}</td><td>{l.qty}</td><td>{l.unit}</td><td>{money(l.price)}</td><td>{money(l.qty * l.price)}</td></tr>)}</tbody></table></div>
-      <p className="mt-2 font-bold">Sous-total avant taxes : {money(Number(print.subtotal))}</p><p className="text-xs text-muted-foreground">Taxes applicables selon votre inscription (TPS/TVQ), non calculées ici.</p>
-      {print.inclusions && <p className="mt-2"><strong>Inclusions :</strong> {print.inclusions}</p>}{print.exclusions && <p><strong>Exclusions :</strong> {print.exclusions}</p>}{print.conditions && <p><strong>Conditions :</strong> {print.conditions}</p>}{print.valid_until && <p>Valide jusqu'au {print.valid_until}</p>}</div></div>;
-  return <div>{canWrite && <Button className="mb-3" onClick={() => setOpen({ lines: [{ desc: "", qty: 1, unit: "unité", price: 0 }] })}><Plus className="mr-1 h-4 w-4" />Nouvelle soumission</Button>}
+      <div className="mt-3 overflow-x-auto"><table className="w-full text-xs sm:text-sm [&_th]:whitespace-nowrap [&_th]:pr-1.5 [&_td]:pr-1.5 [&_td:not(:first-child)]:whitespace-nowrap"><thead><tr className="text-left"><th>Description</th><th>Qté</th><th>Unité</th><th>Prix</th><th>Total</th></tr></thead><tbody>{lines.map((l, i) => <tr key={i}><td>{l.section ? `${l.section} — ` : ""}{l.desc}</td><td>{l.qty ?? "À compléter"}</td><td>{unitLabel(l.unit)}</td><td>{l.price == null ? "À renseigner" : money(l.price)}</td><td>{lineTotal(l) == null ? "—" : money(lineTotal(l))}</td></tr>)}</tbody></table></div>
+      <p className="mt-2 font-bold">Sous-total avant taxes : {money(st)}</p><p>TPS : {money(tx.gst)} · TVQ : {money(tx.qst)} · <strong>Total : {money(tx.total)}</strong></p>
+      {incomplete(lines) > 0 && <p className="text-xs text-destructive">{incomplete(lines)} ligne(s) à compléter : montant partiel.</p>}
+      {print.inclusions && <p className="mt-2"><strong>Inclusions :</strong> {print.inclusions}</p>}{print.exclusions && <p><strong>Exclusions :</strong> {print.exclusions}</p>}{print.conditions && <p><strong>Conditions :</strong> {print.conditions}</p>}{print.valid_until && <p>Valide jusqu'au {print.valid_until}</p>}
+      {printDocs.length > 0 && <p className="mt-2"><strong>Pièces jointes :</strong> {printDocs.join(", ")}</p>}</div></div>; }
+  return <div>{canWrite && <Button className="mb-3" onClick={() => edit({ lines: [] })}><Plus className="mr-1 h-4 w-4" />Nouvelle soumission</Button>}
     <div className="grid gap-2">{rows.map((q) => <div key={q.id} className="rounded-lg border border-border bg-card p-3 text-sm">
       <p className="font-display font-bold">{q.number || "Soumission"} · {q.ent_crm_clients?.name ?? "Sans client"} · v{q.version} · <span className="uppercase">{q.status}</span></p>
       <p className="text-xs">Estimé : {money(Number(q.subtotal))} · Facturé : {money(q.invoiced_amount)} · Encaissé : {money(q.paid_amount)}</p>
       {q.accepted_at && <p className="text-xs text-muted-foreground">Acceptée par {q.accepted_by_name} ({q.accepted_source}) le {new Date(q.accepted_at).toLocaleString("fr-CA")}</p>}
       <div className="mt-2 flex flex-wrap gap-1">
-        <Button size="sm" variant="outline" onClick={() => setPrint(q)}>PDF</Button>
-        {canWrite && q.status === "brouillon" && <><Button size="sm" variant="outline" onClick={() => setOpen(q)}>Modifier</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "remise")}>Marquer remise</Button></>}
+        <Button size="sm" variant="outline" onClick={() => openPrint(q)}>PDF</Button>
+        {canWrite && q.status === "brouillon" && <><Button size="sm" variant="outline" onClick={() => edit(q)}>Modifier</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "remise")}>Marquer remise</Button></>}
         {canWrite && q.status === "remise" && <><Button size="sm" onClick={() => setStatus(q, "acceptee")}>Accepter (documenter)</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "refusee")}>Refusée</Button></>}
         {canWrite && q.status === "acceptee" && !(Array.isArray(q.ent_crm_projects) ? q.ent_crm_projects.length : q.ent_crm_projects) && <Button size="sm" onClick={() => toProject(q)}>Créer le chantier</Button>}
         {canWrite && q.status === "acceptee" && <><Button size="sm" variant="outline" onClick={() => revise(q)}>Réviser</Button><Button size="sm" variant="ghost" onClick={() => fin(q, "invoiced_amount")}>Facturé</Button><Button size="sm" variant="ghost" onClick={() => fin(q, "paid_amount")}>Encaissé</Button></>}
-      </div></div>)}</div>
-    {open && <Dialog open onOpenChange={() => setOpen(null)}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Soumission</DialogTitle></DialogHeader>
-      <select className={sel} value={open.client_id ?? ""} onChange={(e) => setOpen({ ...open, client_id: e.target.value })}><option value="">Client…</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-      <Input placeholder="Numéro" value={open.number ?? ""} onChange={(e) => setOpen({ ...open, number: e.target.value })} />
-      {(open.lines as Line[]).map((l, i) => <div key={i} className="grid grid-cols-[1fr_4rem_5rem_5rem] gap-1">
-        {(["desc", "qty", "unit", "price"] as const).map((k) => <Input key={k} placeholder={{ desc: "Prestation / transport / machinerie", qty: "Qté", unit: "Unité", price: "Prix" }[k]} type={k === "qty" || k === "price" ? "number" : "text"} value={(l as any)[k]} onChange={(e) => { const lines = [...open.lines]; lines[i] = { ...l, [k]: k === "qty" || k === "price" ? Number(e.target.value) : e.target.value }; setOpen({ ...open, lines }); }} />)}</div>)}
-      <Button variant="outline" size="sm" onClick={() => setOpen({ ...open, lines: [...open.lines, { desc: "", qty: 1, unit: "unité", price: 0 }] })}>+ Ligne</Button>
-      <p className="text-sm font-bold">Sous-total : {money(quoteSubtotal(open.lines))}</p>
-      <Textarea placeholder="Inclusions" value={open.inclusions ?? ""} onChange={(e) => setOpen({ ...open, inclusions: e.target.value })} />
-      <Textarea placeholder="Exclusions" value={open.exclusions ?? ""} onChange={(e) => setOpen({ ...open, exclusions: e.target.value })} />
-      <Textarea placeholder="Conditions / échéancier" value={open.conditions ?? ""} onChange={(e) => setOpen({ ...open, conditions: e.target.value })} />
-      <Input type="date" value={open.valid_until ?? ""} onChange={(e) => setOpen({ ...open, valid_until: e.target.value })} />
+      </div>
+      <FilesBtn t="quote" id={q.id} clientToggle /></div>)}</div>
+    {open && <Dialog open onOpenChange={() => { if (!confirm("Fermer sans enregistrer ?")) return; crmDirty = null; setOpen(null); }}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Soumission</DialogTitle></DialogHeader>
+      <select className={sel} value={open.client_id ?? ""} onChange={(e) => edit({ ...open, client_id: e.target.value })}><option value="">Client…</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+      <Input placeholder="Numéro" value={open.number ?? ""} onChange={(e) => edit({ ...open, number: e.target.value })} />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <select aria-label="Modèle" className={sel} value="" onChange={(e) => applyTpl(e.target.value)}><option value="">Partir d'un modèle métier…</option>{tpls.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+        <select aria-label="Ajouter une prestation" className={sel} value="" onChange={(e) => addService(e.target.value)}><option value="">+ Prestation de mon catalogue…</option>{services.map((s) => <option key={s.id} value={s.id}>{s.label} ({s.price == null ? "À renseigner" : money(Number(s.price))}/{unitLabel(s.unit)})</option>)}</select>
+      </div>
+      {(open.lines as QLine[]).map((l, i) => <div key={i} className="grid grid-cols-[1fr_4rem_5.5rem_5.5rem_1.5rem] gap-1">
+        <Input aria-label="Description" placeholder={l.section ? `${l.section} — description` : "Description"} value={l.desc} onChange={(e) => { const lines = [...open.lines]; lines[i] = { ...l, desc: e.target.value }; edit({ ...open, lines }); }} />
+        <Input aria-label="Quantité" type="number" placeholder="Qté" value={l.qty ?? ""} onChange={(e) => { const lines = [...open.lines]; lines[i] = { ...l, qty: e.target.value === "" ? null : Number(e.target.value) }; edit({ ...open, lines }); }} />
+        <select aria-label="Unité" className="h-10 rounded-md border border-border bg-background px-1 text-xs" value={l.unit} onChange={(e) => { const lines = [...open.lines]; lines[i] = { ...l, unit: e.target.value }; edit({ ...open, lines }); }}>{UNITS.map((u) => <option key={u.v} value={u.v}>{u.l}</option>)}{!UNITS.some((u) => u.v === l.unit) && <option value={l.unit}>{l.unit}</option>}</select>
+        <Input aria-label="Prix" type="number" placeholder="Prix" value={l.price ?? ""} onChange={(e) => { const lines = [...open.lines]; lines[i] = { ...l, price: e.target.value === "" ? null : Number(e.target.value) }; edit({ ...open, lines }); }} />
+        <button aria-label="Retirer la ligne" onClick={() => edit({ ...open, lines: open.lines.filter((_: any, j: number) => j !== i) })}>×</button></div>)}
+      <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => edit({ ...open, lines: [...open.lines, { desc: "", qty: null, unit: "unite", price: null }] })}>+ Ligne libre</Button>
+        {(open.lines as QLine[]).some((l) => l.service_id) && <Button variant="outline" size="sm" onClick={refreshPrices}>Actualiser les tarifs</Button>}</div>
+      {diff && <div className="rounded border border-border p-2 text-xs"><p className="font-semibold">Différences avec le catalogue actuel :</p>{diff.map((d: any) => <p key={d.i}>{d.desc} : {d.old == null ? "À renseigner" : money(d.old)} → {d.next == null ? "À renseigner" : money(d.next)}</p>)}<div className="mt-1 flex gap-1"><Button size="sm" onClick={applyDiff}>Appliquer</Button><Button size="sm" variant="ghost" onClick={() => setDiff(null)}>Ignorer</Button></div></div>}
+      <p className="text-sm font-bold">Sous-total : {money(subtotal(open.lines))}{incomplete(open.lines) > 0 && <span className="ml-1 text-xs font-normal text-destructive">({incomplete(open.lines)} ligne(s) à compléter)</span>}</p>
+      <Textarea placeholder="Inclusions" value={open.inclusions ?? ""} onChange={(e) => edit({ ...open, inclusions: e.target.value })} />
+      <Textarea placeholder="Exclusions" value={open.exclusions ?? ""} onChange={(e) => edit({ ...open, exclusions: e.target.value })} />
+      <Textarea placeholder="Conditions / échéancier" value={open.conditions ?? ""} onChange={(e) => edit({ ...open, conditions: e.target.value })} />
+      <Input type="date" value={open.valid_until ?? ""} onChange={(e) => edit({ ...open, valid_until: e.target.value })} />
       <Button onClick={save}>Enregistrer</Button></DialogContent></Dialog>}
   </div>;
 }
@@ -393,6 +456,7 @@ function Projects({ companyId, canWrite }: any) {
   const upd = async (p: any, k: string, v: string) => { const { error } = await db.from("ent_crm_projects").update({ [k]: v || null, updated_at: new Date().toISOString() }).eq("id", p.id); if (error) toast({ title: "Refusé", description: error.message }); load(); };
   return <div className="grid gap-2 md:grid-cols-2">{rows.length === 0 && <p className="text-muted-foreground">Aucun chantier. Créez-en un depuis une soumission acceptée.</p>}{rows.map((p) => <div key={p.id} className="rounded-lg border border-border bg-card p-3 text-sm">
     <p className="font-display font-bold">{p.name}</p><p className="text-xs text-muted-foreground">{p.ent_crm_clients?.name}</p>
+    <FilesBtn t="project" id={p.id} />
     {canWrite ? <div className="mt-2 grid gap-1"><Input placeholder="Adresse" defaultValue={p.address ?? ""} onBlur={(e) => e.target.value !== (p.address ?? "") && upd(p, "address", e.target.value)} />
       <div className="flex gap-1"><Input type="date" defaultValue={p.start_date ?? ""} onBlur={(e) => upd(p, "start_date", e.target.value)} /><Input type="date" defaultValue={p.end_date ?? ""} onBlur={(e) => upd(p, "end_date", e.target.value)} /></div>
       <select className={sel} value={p.status} onChange={(e) => upd(p, "status", e.target.value)}>{["a_planifier", "planifie", "en_cours", "termine", "annule"].map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}</select></div>
