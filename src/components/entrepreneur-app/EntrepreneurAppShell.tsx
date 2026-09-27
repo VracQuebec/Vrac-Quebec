@@ -52,6 +52,7 @@ const PRIMARY_TABS = [
 ] as const;
 
 const MORE_ITEMS = [
+  { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ClipboardList },
   { to: "/entrepreneur/flotte", label: "Ma flotte", hint: "Vos véhicules", icon: Truck },
   { to: "/entrepreneur/compte", label: "Mon entreprise", hint: "Profil, camions, visibilité", icon: User },
   { to: "/entrepreneur/notifications", label: "Notifications", hint: "Ce qui demande votre attention", icon: Bell },
@@ -60,6 +61,7 @@ const MORE_ITEMS = [
 
 const SIDEBAR_ITEMS = [
   ...PRIMARY_TABS,
+  { to: "/entrepreneur/crm", label: "Mon CRM", icon: ClipboardList },
   { to: "/entrepreneur/flotte", label: "Ma flotte", icon: Truck },
   { to: "/entrepreneur/compte", label: "Mon entreprise", icon: User },
   { to: "/entrepreneur/notifications", label: "Notifications", icon: Bell },

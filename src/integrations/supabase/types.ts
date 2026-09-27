@@ -2061,6 +2061,486 @@ export type Database = {
         }
         Relationships: []
       }
+      ent_crm_clients: {
+        Row: {
+          address: string | null
+          archived_at: string | null
+          city: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          kind: string
+          name: string
+          notes: string | null
+          owner_user_id: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          archived_at?: string | null
+          city?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          kind?: string
+          name: string
+          notes?: string | null
+          owner_user_id?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          archived_at?: string | null
+          city?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ent_crm_contacts: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          role: string | null
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          role?: string | null
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_crm_contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ent_crm_history: {
+        Row: {
+          action: string
+          actor_id: string | null
+          after: Json | null
+          before: Json | null
+          company_id: string
+          created_at: string
+          entity: string
+          entity_id: string | null
+          id: string
+          origin: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          company_id: string
+          created_at?: string
+          entity: string
+          entity_id?: string | null
+          id?: string
+          origin?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          company_id?: string
+          created_at?: string
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          origin?: string
+        }
+        Relationships: []
+      }
+      ent_crm_leads: {
+        Row: {
+          archived_at: string | null
+          client_id: string | null
+          company_id: string
+          contact_name: string | null
+          contact_value: string | null
+          created_at: string
+          created_by: string | null
+          estimated_amount: number | null
+          id: string
+          lost_reason: string | null
+          need: string | null
+          network_ref: string | null
+          next_action: string | null
+          next_action_at: string | null
+          owner_user_id: string | null
+          priority: string
+          source: string
+          stage: string
+          title: string
+          trade: string | null
+          trade_fields: Json
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          client_id?: string | null
+          company_id: string
+          contact_name?: string | null
+          contact_value?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimated_amount?: number | null
+          id?: string
+          lost_reason?: string | null
+          need?: string | null
+          network_ref?: string | null
+          next_action?: string | null
+          next_action_at?: string | null
+          owner_user_id?: string | null
+          priority?: string
+          source?: string
+          stage?: string
+          title: string
+          trade?: string | null
+          trade_fields?: Json
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          client_id?: string | null
+          company_id?: string
+          contact_name?: string | null
+          contact_value?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimated_amount?: number | null
+          id?: string
+          lost_reason?: string | null
+          need?: string | null
+          network_ref?: string | null
+          next_action?: string | null
+          next_action_at?: string | null
+          owner_user_id?: string | null
+          priority?: string
+          source?: string
+          stage?: string
+          title?: string
+          trade?: string | null
+          trade_fields?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_leads_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_crm_leads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ent_crm_projects: {
+        Row: {
+          address: string | null
+          archived_at: string | null
+          client_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          id: string
+          name: string
+          owner_user_id: string | null
+          quote_id: string | null
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          archived_at?: string | null
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          owner_user_id?: string | null
+          quote_id?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          archived_at?: string | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          owner_user_id?: string | null
+          quote_id?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_crm_projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_crm_projects_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: true
+            referencedRelation: "ent_crm_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ent_crm_quotes: {
+        Row: {
+          accepted_at: string | null
+          accepted_by_name: string | null
+          accepted_recorded_by: string | null
+          accepted_source: string | null
+          client_id: string | null
+          company_id: string
+          conditions: string | null
+          created_at: string
+          created_by: string | null
+          exclusions: string | null
+          id: string
+          inclusions: string | null
+          invoiced_amount: number | null
+          lead_id: string | null
+          lines: Json
+          number: string | null
+          paid_amount: number | null
+          status: string
+          subtotal: number
+          updated_at: string
+          valid_until: string | null
+          version: number
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by_name?: string | null
+          accepted_recorded_by?: string | null
+          accepted_source?: string | null
+          client_id?: string | null
+          company_id: string
+          conditions?: string | null
+          created_at?: string
+          created_by?: string | null
+          exclusions?: string | null
+          id?: string
+          inclusions?: string | null
+          invoiced_amount?: number | null
+          lead_id?: string | null
+          lines?: Json
+          number?: string | null
+          paid_amount?: number | null
+          status?: string
+          subtotal?: number
+          updated_at?: string
+          valid_until?: string | null
+          version?: number
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by_name?: string | null
+          accepted_recorded_by?: string | null
+          accepted_source?: string | null
+          client_id?: string | null
+          company_id?: string
+          conditions?: string | null
+          created_at?: string
+          created_by?: string | null
+          exclusions?: string | null
+          id?: string
+          inclusions?: string | null
+          invoiced_amount?: number | null
+          lead_id?: string | null
+          lines?: Json
+          number?: string | null
+          paid_amount?: number | null
+          status?: string
+          subtotal?: number
+          updated_at?: string
+          valid_until?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_quotes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_crm_quotes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_crm_quotes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ent_crm_tasks: {
+        Row: {
+          assignee_user_id: string | null
+          client_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          done_at: string | null
+          due_at: string | null
+          id: string
+          lead_id: string | null
+          project_id: string | null
+          result: string | null
+          title: string
+        }
+        Insert: {
+          assignee_user_id?: string | null
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          due_at?: string | null
+          id?: string
+          lead_id?: string | null
+          project_id?: string | null
+          result?: string | null
+          title: string
+        }
+        Update: {
+          assignee_user_id?: string | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          due_at?: string | null
+          id?: string
+          lead_id?: string | null
+          project_id?: string | null
+          result?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_crm_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_crm_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_crm_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entrepreneur_profiles: {
         Row: {
           average_volume: string
@@ -19015,6 +19495,17 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      entcrm_accept_quote: {
+        Args: { _by: string; _quote_id: string; _source: string }
+        Returns: string
+      }
+      entcrm_can_admin: { Args: { _company_id: string }; Returns: boolean }
+      entcrm_can_field: { Args: { _company_id: string }; Returns: boolean }
+      entcrm_can_finance: { Args: { _company_id: string }; Returns: boolean }
+      entcrm_can_read: { Args: { _company_id: string }; Returns: boolean }
+      entcrm_can_write: { Args: { _company_id: string }; Returns: boolean }
+      entcrm_open_support: { Args: { _company_id: string }; Returns: boolean }
+      entcrm_role: { Args: { _company_id: string }; Returns: string }
       entr_status_label: { Args: { _status: string }; Returns: string }
       exec_claim_optim_tasks: {
         Args: { _run_id: string; _size: number }
