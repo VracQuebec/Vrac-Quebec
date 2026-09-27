@@ -19,6 +19,7 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){ dataLayer.push(arguments); }
       window.gtag = gtag;
+      if (location.pathname.indexOf('/entrepreneur/crm') === 0) { window['ga-disable-G-T6HYZVY8E0'] = true; }
       gtag('js', new Date());
       // send_page_view:false — le routeur SPA (src/lib/analytics/ga4.ts) envoie
       // page_view manuellement à chaque changement de route pour éviter les doublons.

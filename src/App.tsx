@@ -139,7 +139,10 @@ const Ga4RouteTracker = () => {
   const location = useLocation();
   useEffect(() => {
     // CRM privé des entreprises : aucune mesure d'audience (consultations confidentielles).
-    if (location.pathname.startsWith("/entrepreneur/crm")) return;
+    // Désactivation officielle GA4 : bloque tous les envois tant qu'on est dans le CRM.
+    const inCrm = location.pathname.startsWith("/entrepreneur/crm");
+    (window as unknown as Record<string, boolean>)["ga-disable-G-T6HYZVY8E0"] = inCrm;
+    if (inCrm) return;
     // Laisse le temps au titre de se mettre à jour (Helmet) avant d'envoyer le page_view.
     const t = window.setTimeout(() => {
       trackPageView(location.pathname + location.search, document.title);
