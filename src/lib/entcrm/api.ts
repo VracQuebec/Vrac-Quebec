@@ -27,10 +27,16 @@ export const label = (list: readonly { v: string; l: string }[], v?: string | nu
 export type Company = { id: string; name: string };
 
 export async function resolveCompanies(isAdmin: boolean, supportUserId?: string | null): Promise<Company[]> {
-  if (isAdmin && supportUserId) {
-    const { data } = await supabase.from("jsc_company_members").select("company_id, jsc_companies(id,name)")
-      .eq("user_id", supportUserId).eq("is_active", true).is("archived_at", null);
-    return ((data ?? []) as any[]).map((r) => r.jsc_companies).filter(Boolean);
+  if (isAdmin) {
+    // Assistance : toutes les entreprises (le serveur vérifie le rôle admin).
+    const { data: all } = await supabase.from("jsc_companies").select("id,name").is("archived_at", null).order("name");
+    const list = (all ?? []) as Company[];
+    if (supportUserId) {
+      const { data: m } = await supabase.from("jsc_company_members").select("company_id").eq("user_id", supportUserId);
+      const ids = new Set((m ?? []).map((r: any) => r.company_id));
+      return [...list.filter((c) => ids.has(c.id)), ...list.filter((c) => !ids.has(c.id))];
+    }
+    return list;
   }
   if (!isAdmin) { await supabase.rpc("fleet_ensure_my_company"); }
   const { data: u } = await supabase.auth.getUser();
