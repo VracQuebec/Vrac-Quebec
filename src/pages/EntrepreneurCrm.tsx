@@ -52,7 +52,6 @@ export default function EntrepreneurCrm() {
     if (!companyId || !user) return;
     localStorage.setItem(`vq.entcrm.company.${user.id}`, companyId);
     db.rpc("entcrm_role", { _company_id: companyId }).then(({ data }: any) => setRole(data));
-    if (isAdmin) db.rpc("entcrm_open_support", { _company_id: companyId });
   }, [companyId, user, isAdmin]);
 
   const company = companies.find((c) => c.id === companyId);

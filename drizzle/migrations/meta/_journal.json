@@ -323,6 +323,13 @@
       "when": 1790496762169,
       "tag": "0045_ent_crm_foundations",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1790497330461,
+      "tag": "0046_entcrm_confidential_support",
+      "breakpoints": true
     }
   ]
 }
