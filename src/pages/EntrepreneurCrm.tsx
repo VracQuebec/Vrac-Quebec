@@ -18,7 +18,7 @@ import { STAGES, SOURCES, TRADES, label, resolveCompanies, quoteSubtotal, toCsv,
 const db = supabase as any;
 const TABS = [
   ["today", "Aujourd'hui"], ["leads", "Leads"], ["clients", "Clients"], ["quotes", "Soumissions"],
-  ["projects", "Chantiers"], ["tasks", "Tâches"], ["reports", "Rapports"], ["history", "Historique"],
+  ["projects", "Chantiers"], ["tasks", "Tâches"], ["reports", "Rapports"], ["history", "Historique"], ["team", "Équipe et paramètres"],
 ] as const;
 type Tab = typeof TABS[number][0];
 const money = (n?: number | null) => n == null ? "—" : n.toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
@@ -56,7 +56,10 @@ export default function EntrepreneurCrm() {
 
   const company = companies.find((c) => c.id === companyId);
   const canWrite = ["support", "proprietaire", "gestionnaire"].includes(role ?? "");
-  const canFinance = ["support", "proprietaire", "gestionnaire", "comptabilite"].includes(role ?? "");
+  const canFinance = ["support", "proprietaire", "gestionnaire", "comptabilite", "lecture"].includes(role ?? "");
+  const canCommercial = canFinance;
+  const canAdmin = ["support", "proprietaire"].includes(role ?? "");
+  const visibleTabs = TABS.filter(([k]) => canCommercial || ["today", "projects", "tasks", "team"].includes(k));
 
   return (
     <EntrepreneurAppShell title="Mon CRM" subtitle={company?.name ?? ""} backTo={null}>
@@ -79,9 +82,9 @@ export default function EntrepreneurCrm() {
         {!companyId ? <p className="text-muted-foreground">Aucune entreprise accessible. Un compte approuvé est requis.</p> : (
           <>
             <nav className="mb-5 flex gap-1 overflow-x-auto border-b border-border pb-2">
-              {TABS.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-display font-semibold ${tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>{l}</button>)}
+              {visibleTabs.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-display font-semibold ${tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>{l}</button>)}
             </nav>
-            <Body key={companyId} tab={tab} companyId={companyId} canWrite={canWrite} canFinance={canFinance} params={params} setParams={setParams} />
+            <Body key={companyId} tab={tab} companyId={companyId} companyName={company?.name ?? ""} canWrite={canWrite} canFinance={canFinance} canAdmin={canAdmin} canCommercial={canCommercial} params={params} setParams={setParams} />
           </>
         )}
       </div>
@@ -89,9 +92,11 @@ export default function EntrepreneurCrm() {
   );
 }
 
-function Body(p: { tab: Tab; companyId: string; canWrite: boolean; canFinance: boolean; params: URLSearchParams; setParams: (p: URLSearchParams) => void }) {
+function Body(p: { tab: Tab; companyId: string; companyName: string; canWrite: boolean; canFinance: boolean; canAdmin: boolean; canCommercial: boolean; params: URLSearchParams; setParams: (p: URLSearchParams) => void }) {
   const { tab } = p;
   if (tab === "today") return <Today {...p} />;
+  if (tab === "team") return <Team {...p} />;
+  if (!p.canCommercial && ["leads", "clients", "quotes", "reports", "history"].includes(tab)) return <p className="text-muted-foreground">Section non autorisée pour votre rôle.</p>;
   if (tab === "leads") return <Leads {...p} />;
   if (tab === "clients") return <Clients {...p} />;
   if (tab === "quotes") return p.canFinance ? <Quotes {...p} /> : <p className="text-muted-foreground">Accès financier non autorisé pour votre rôle.</p>;
@@ -132,7 +137,22 @@ function Today({ companyId, canFinance }: { companyId: string; canFinance: boole
   </div>;
 }
 
+function useStages(companyId: string) {
+  const [st, setSt] = useState<{ v: string; l: string; kind: string; id?: string }[]>(STAGES.map((s) => ({ ...s, kind: s.v === "gagne" ? "gagnee" : s.v === "perdu" ? "perdue" : "ouverte" })));
+  const load = useCallback(async () => { const { data } = await db.from("ent_crm_stages").select("*").eq("company_id", companyId).order("position");
+    if (data?.length) setSt(data.map((d: any) => ({ v: d.key, l: d.label, kind: d.kind, id: d.id }))); }, [companyId]);
+  useEffect(() => { void load(); }, [load]);
+  return { stages: st, reload: load };
+}
+
 function Leads({ companyId, canWrite, params, setParams }: any) {
+  const { stages } = useStages(companyId);
+  const [views, setViews] = useState<any[]>([]);
+  const loadViews = useCallback(async () => setViews((await db.from("ent_crm_saved_views").select("*").eq("company_id", companyId).order("created_at")).data ?? []), [companyId]);
+  useEffect(() => { void loadViews(); }, [loadViews]);
+  const saveView = async () => { const name = prompt("Nom de la vue ?"); if (!name) return; const p = new URLSearchParams(params); p.delete("page"); p.delete("support_user");
+    const { error } = await db.from("ent_crm_saved_views").insert({ company_id: companyId, name, params: p.toString() }); if (error) toast({ title: "Refusé", description: error.message }); loadViews(); };
+  const [importing, setImporting] = useState<{ rows: Record<string, string>[]; heads: string[]; map: Record<string, string> } | null>(null);
   const [rows, setRows] = useState<any[]>([]); const [count, setCount] = useState(0);
   const [clients, setClients] = useState<any[]>([]);
   const [open, setOpen] = useState<any>(null); const [view, setView] = useState<"liste" | "kanban">("liste");
@@ -150,24 +170,35 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
   }, [companyId, q, stage, source, sort, page]);
   useEffect(() => { void load(); }, [load]);
   const move = async (l: any, st: string) => {
-    let lost_reason = l.lost_reason; if (st === "perdu") { lost_reason = prompt("Motif de perte ?") ?? ""; if (!lost_reason) return; }
+    let lost_reason = l.lost_reason; if (stages.find((x) => x.v === st)?.kind === "perdue") { lost_reason = prompt("Motif de perte ?") ?? ""; if (!lost_reason) return; }
     const { error } = await db.from("ent_crm_leads").update({ stage: st, lost_reason, updated_at: new Date().toISOString() }).eq("id", l.id);
     if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else load();
   };
   const convert = async (l: any) => {
-    const { data: c, error } = await db.from("ent_crm_clients").insert({ company_id: companyId, name: l.contact_name || l.title, phone: /\d{3}/.test(l.contact_value ?? "") ? l.contact_value : null, email: /@/.test(l.contact_value ?? "") ? l.contact_value : null, notes: l.need }).select().single();
+    const { error } = await db.rpc("entcrm_convert_lead", { _lead_id: l.id });
     if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" });
-    await db.from("ent_crm_leads").update({ client_id: c.id }).eq("id", l.id); toast({ title: "Client créé, historique conservé" }); load();
+    toast({ title: "Client créé, historique conservé" }); load();
   };
-  const exportCsv = () => { const blob = new Blob([toCsv(rows.map(({ trade_fields, ...r }) => ({ ...r, trade_fields: JSON.stringify(trade_fields) })))], { type: "text/csv" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "leads.csv"; a.click(); };
-  const importCsv = async (f: File) => {
-    const recs = parseCsv(await f.text()); const existing = (await db.from("ent_crm_leads").select("title,contact_value").eq("company_id", companyId)).data ?? [];
+  const exportCsv = async () => {
+    const all: any[] = [];
+    for (let from = 0; ; from += 1000) {
+      let r = db.from("ent_crm_leads").select("*").eq("company_id", companyId).is("archived_at", null);
+      if (q) r = r.or(`title.ilike.%${q.replace(/[,()%]/g, "")}%,contact_name.ilike.%${q.replace(/[,()%]/g, "")}%,need.ilike.%${q.replace(/[,()%]/g, "")}%`);
+      if (stage) r = r.eq("stage", stage); if (source) r = r.eq("source", source);
+      const { data } = await r.order("created_at", { ascending: false }).range(from, from + 999); all.push(...(data ?? [])); if (!data || data.length < 1000) break;
+    }
+    const blob = new Blob([toCsv(all.map(({ trade_fields, ...r }) => ({ ...r, trade_fields: JSON.stringify(trade_fields) })))], { type: "text/csv" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "leads.csv"; a.click(); };
+  const previewCsv = async (f: File) => { const rows = parseCsv(await f.text()); if (!rows.length) return toast({ title: "Fichier vide ou invalide", variant: "destructive" });
+    const heads = Object.keys(rows[0]); const guess = (c: string[]) => heads.find((h) => c.includes(h)) ?? "";
+    setImporting({ rows, heads, map: { title: guess(["titre", "nom", "title", "name"]), contact_name: guess(["contact", "personne"]), contact_value: guess(["telephone", "téléphone", "courriel", "email", "phone"]), need: guess(["besoin", "need", "description"]) } }); };
+  const importCsv = async () => { if (!importing) return; const m = importing.map;
+    const recs = importing.rows.map((r) => ({ titre: r[m.title] ?? "", nom: r[m.contact_name] ?? "", contact: r[m.contact_value] ?? "", besoin: r[m.need] ?? "" })); setImporting(null); const existing = (await db.from("ent_crm_leads").select("title,contact_value").eq("company_id", companyId)).data ?? [];
     const seen = new Set(existing.map((e: any) => normalize(e.contact_value) || normalize(e.title)));
     let ok = 0, dup = 0, bad = 0;
     for (const r of recs) {
-      const title = r.titre || r.nom || r.title; if (!title) { bad++; continue; }
-      const key = normalize(r.contact || r.telephone || r.courriel) || normalize(title); if (seen.has(key)) { dup++; continue; }
-      const { error } = await db.from("ent_crm_leads").insert({ company_id: companyId, title, contact_name: r.nom ?? null, contact_value: r.contact || r.telephone || r.courriel || null, need: r.besoin ?? null, source: "import" });
+      const title = r.titre || r.nom; if (!title) { bad++; continue; }
+      const key = normalize(r.contact) || normalize(title); if (seen.has(key)) { dup++; continue; }
+      const { error } = await db.from("ent_crm_leads").insert({ company_id: companyId, title, contact_name: r.nom ?? null, contact_value: r.contact || null, need: r.besoin || null, source: "import" });
       error ? bad++ : (ok++, seen.add(key));
     }
     toast({ title: "Import terminé", description: `${ok} ajoutés · ${dup} doublons ignorés · ${bad} invalides. Aucun message envoyé.` }); load();
@@ -176,35 +207,41 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
   return <div>
     <div className="mb-3 flex flex-wrap gap-2">
       <Input placeholder="Rechercher…" defaultValue={q} onKeyDown={(e) => e.key === "Enter" && setF("q", (e.target as HTMLInputElement).value)} className="h-10 w-full sm:w-60" />
-      <select className={sel} value={stage} onChange={(e) => setF("stage", e.target.value)}><option value="">Toutes étapes</option>{STAGES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}</select>
+      <select className={sel} value={stage} onChange={(e) => setF("stage", e.target.value)}><option value="">Toutes étapes</option>{stages.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}</select>
       <select className={sel} value={source} onChange={(e) => setF("source", e.target.value)}><option value="">Toutes provenances</option>{SOURCES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}</select>
       <select className={sel} value={sort} onChange={(e) => setF("sort", e.target.value)}><option value="recent">Plus récents</option><option value="ancien">Plus anciens</option><option value="relance">Prochaine relance</option><option value="montant">Montant</option></select>
       <select className={sel} value={view} onChange={(e) => setView(e.target.value as any)}><option value="liste">Liste</option><option value="kanban">Kanban</option></select>
       {canWrite && <Button onClick={() => setOpen({})}><Plus className="mr-1 h-4 w-4" />Nouveau lead</Button>}
+      <Button variant="outline" onClick={saveView}>Enregistrer la vue</Button>
       <Button variant="outline" onClick={exportCsv}><Download className="mr-1 h-4 w-4" />Exporter</Button>
-      {canWrite && <label className="inline-flex h-10 cursor-pointer items-center rounded-md border border-border px-3 text-sm"><Upload className="mr-1 h-4 w-4" />Importer CSV<input type="file" accept=".csv" hidden onChange={(e) => e.target.files?.[0] && importCsv(e.target.files[0])} /></label>}
+      {canWrite && <label className="inline-flex h-10 cursor-pointer items-center rounded-md border border-border px-3 text-sm"><Upload className="mr-1 h-4 w-4" />Importer CSV<input type="file" accept=".csv" hidden onChange={(e) => { e.target.files?.[0] && previewCsv(e.target.files[0]); e.target.value = ""; }} /></label>}
     </div>
+    {views.length > 0 && <div className="mb-2 flex flex-wrap gap-1">{views.map((v) => <span key={v.id} className="inline-flex items-center rounded-full border border-border text-xs"><button className="px-3 py-1.5" onClick={() => { const n = new URLSearchParams(v.params); n.set("tab", "leads"); const su = params.get("support_user"); if (su) n.set("support_user", su); setParams(n); }}>{v.name}</button><button aria-label="Supprimer la vue" className="px-2" onClick={async () => { await db.from("ent_crm_saved_views").delete().eq("id", v.id); loadViews(); }}>×</button></span>)}</div>}
+    {importing && <div className="mb-3 rounded-lg border border-border bg-card p-3 text-sm"><p className="font-display font-bold">Import : {importing.rows.length} ligne(s) — correspondance des colonnes</p>
+      {(["title", "contact_name", "contact_value", "need"] as const).map((k) => <label key={k} className="mt-1 flex items-center gap-2"><span className="w-40">{{ title: "Nom / titre *", contact_name: "Personne contact", contact_value: "Téléphone / courriel", need: "Besoin" }[k]}</span><select className={sel} value={importing.map[k]} onChange={(e) => setImporting({ ...importing, map: { ...importing.map, [k]: e.target.value } })}><option value="">(aucune)</option>{importing.heads.map((h) => <option key={h} value={h}>{h}</option>)}</select></label>)}
+      <p className="mt-2 text-xs text-muted-foreground">Aperçu : {importing.rows.slice(0, 3).map((r) => r[importing.map.title] || "(sans nom)").join(" · ")}. L'entreprise propriétaire est toujours l'entreprise active; aucun message ne sera envoyé.</p>
+      <div className="mt-2 flex gap-2"><Button size="sm" disabled={!importing.map.title} onClick={importCsv}>Importer</Button><Button size="sm" variant="outline" onClick={() => setImporting(null)}>Annuler</Button></div></div>}
     <p className="mb-2 text-xs text-muted-foreground">{count} résultat(s)</p>
     {view === "kanban" ? (
-      <div className="flex gap-3 overflow-x-auto pb-2">{STAGES.map((s) => <div key={s.v} className="w-60 shrink-0 rounded-lg bg-muted/40 p-2"><p className="mb-2 font-display text-sm font-bold">{s.l}</p>
-        {rows.filter((r) => r.stage === s.v).map((r) => <LeadCard key={r.id} r={r} canWrite={canWrite} move={move} convert={convert} edit={() => setOpen(r)} />)}</div>)}</div>
-    ) : <div className="grid gap-2">{rows.map((r) => <LeadCard key={r.id} r={r} canWrite={canWrite} move={move} convert={convert} edit={() => setOpen(r)} />)}</div>}
+      <div className="flex gap-3 overflow-x-auto pb-2">{stages.map((s) => <div key={s.v} className="w-60 shrink-0 rounded-lg bg-muted/40 p-2"><p className="mb-2 font-display text-sm font-bold">{s.l}</p>
+        {rows.filter((r) => r.stage === s.v).map((r) => <LeadCard key={r.id} r={r} stages={stages} canWrite={canWrite} move={move} convert={convert} edit={() => setOpen(r)} />)}</div>)}</div>
+    ) : <div className="grid gap-2">{rows.map((r) => <LeadCard key={r.id} r={r} stages={stages} canWrite={canWrite} move={move} convert={convert} edit={() => setOpen(r)} />)}</div>}
     <div className="mt-3 flex items-center gap-2 text-sm"><Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setF("page", String(page - 1))}>Précédent</Button>Page {page}/{pages}<Button variant="outline" size="sm" disabled={page >= pages} onClick={() => setF("page", String(page + 1))}>Suivant</Button></div>
     {open && <LeadDialog lead={open} companyId={companyId} clients={clients} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); load(); }} />}
   </div>;
 }
 
-function LeadCard({ r, canWrite, move, convert, edit }: any) {
+function LeadCard({ r, stages, canWrite, move, convert, edit }: any) {
   return <div className="mb-2 rounded-lg border border-border bg-card p-3 text-sm">
     <button className="text-left font-display font-bold hover:underline" onClick={edit}>{r.title}</button>
-    <p className="text-xs text-muted-foreground">{r.contact_name} {r.contact_value} · {label(SOURCES, r.source)}{r.network_ref ? " · Réseau Vrac Québec" : ""}</p>
+    <p className="text-xs text-muted-foreground">{label(stages, r.stage)} · {r.contact_name} {r.contact_value} · {label(SOURCES, r.source)}{r.network_ref ? " · Réseau Vrac Québec" : ""}</p>
     {r.need && <p className="mt-1 line-clamp-2">{r.need}</p>}
     <p className="mt-1 text-xs">Prochaine action : {r.next_action || "—"} {r.next_action_at ? `(${new Date(r.next_action_at).toLocaleDateString("fr-CA")})` : ""}</p>
     {r.estimated_amount != null && <p className="text-xs">Estimé : {money(Number(r.estimated_amount))}</p>}
     {r.lost_reason && <p className="text-xs text-destructive">Perdu : {r.lost_reason}</p>}
     {canWrite && <div className="mt-2 flex flex-wrap gap-1">
-      <select aria-label="Étape" className="h-9 rounded border border-border bg-background text-xs" value={r.stage} onChange={(e) => move(r, e.target.value)}>{STAGES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}</select>
-      {!r.client_id && <Button size="sm" variant="outline" onClick={() => convert(r)}>Convertir en client</Button>}
+      <select aria-label="Étape" className="h-9 rounded border border-border bg-background text-xs" value={r.stage} onChange={(e) => move(r, e.target.value)}>{stages.map((s: any) => <option key={s.v} value={s.v}>{s.l}</option>)}</select>
+      {!r.client_id ? <Button size="sm" variant="outline" onClick={() => convert(r)}>Convertir en client</Button> : <span className="self-center text-xs text-emerald-700 dark:text-emerald-400">Client lié</span>}
     </div>}
   </div>;
 }
