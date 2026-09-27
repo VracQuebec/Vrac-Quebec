@@ -1,0 +1,363 @@
+// CRM privé de l'entreprise (CRM-ENT-01). Données dans ent_crm_*,
+// cloisonnées par company_id côté base (RLS). Le super admin y entre
+// en mode « Assistance Vrac Québec » (journalisé côté serveur).
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Building2, Download, LifeBuoy, Plus, Upload } from "lucide-react";
+import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useUserRoles } from "@/hooks/useUserRole";
+import { STAGES, SOURCES, TRADES, label, resolveCompanies, quoteSubtotal, toCsv, parseCsv, normalize, type Company, type Line } from "@/lib/entcrm/api";
+
+const db = supabase as any;
+const TABS = [
+  ["today", "Aujourd'hui"], ["leads", "Leads"], ["clients", "Clients"], ["quotes", "Soumissions"],
+  ["projects", "Chantiers"], ["tasks", "Tâches"], ["reports", "Rapports"], ["history", "Historique"],
+] as const;
+type Tab = typeof TABS[number][0];
+const money = (n?: number | null) => n == null ? "—" : n.toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
+const sel = "h-10 rounded-md border border-border bg-background px-2 text-sm font-body";
+const PAGE = 25;
+
+export default function EntrepreneurCrm() {
+  const [params, setParams] = useSearchParams();
+  const { user, isReady } = useAuthReady();
+  const { isAdmin, loading: rl } = useUserRoles(user, isReady);
+  const supportUser = params.get("support_user");
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const tab = (params.get("tab") as Tab) || "today";
+  const setTab = (t: Tab) => { const p = new URLSearchParams(params); p.set("tab", t); p.delete("page"); setParams(p); };
+
+  useEffect(() => {
+    if (!isReady || rl || !user) return;
+    (async () => {
+      const list = await resolveCompanies(isAdmin, supportUser);
+      setCompanies(list);
+      const key = `vq.entcrm.company.${user.id}`;
+      const pref = params.get("company") || localStorage.getItem(key);
+      const c = list.find((x) => x.id === pref) ?? list[0] ?? null;
+      setCompanyId(c?.id ?? null);
+    })();
+  }, [isReady, rl, user, isAdmin, supportUser]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!companyId || !user) return;
+    localStorage.setItem(`vq.entcrm.company.${user.id}`, companyId);
+    db.rpc("entcrm_role", { _company_id: companyId }).then(({ data }: any) => setRole(data));
+    if (isAdmin) db.rpc("entcrm_open_support", { _company_id: companyId });
+  }, [companyId, user, isAdmin]);
+
+  const company = companies.find((c) => c.id === companyId);
+  const canWrite = ["support", "proprietaire", "gestionnaire"].includes(role ?? "");
+  const canFinance = ["support", "proprietaire", "gestionnaire", "comptabilite"].includes(role ?? "");
+
+  return (
+    <EntrepreneurAppShell title="Mon CRM" subtitle={company?.name ?? ""} backTo={null}>
+      {isAdmin && company && (
+        <div role="status" className="border-b border-amber-500/40 bg-amber-500/15 px-4 py-2 text-sm text-amber-800 dark:text-amber-300 flex flex-wrap items-center gap-2">
+          <LifeBuoy className="h-4 w-4" /><strong>Assistance Vrac Québec — {company.name}</strong>
+          <Link to="/admin/crm" className="ml-auto underline">Retour à l'administration</Link>
+        </div>
+      )}
+      <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+          {companies.length > 1 ? (
+            <select aria-label="Entreprise active" className={sel} value={companyId ?? ""} onChange={(e) => { setCompanyId(e.target.value); setParams(new URLSearchParams({ tab, ...(supportUser ? { support_user: supportUser } : {}) })); }}>
+              {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          ) : <span className="font-display text-sm font-semibold">{company?.name ?? "Aucune entreprise"}</span>}
+          {role && <span className="text-xs text-muted-foreground">· Rôle : {role === "support" ? "Assistance" : role}</span>}
+        </div>
+        {!companyId ? <p className="text-muted-foreground">Aucune entreprise accessible. Un compte approuvé est requis.</p> : (
+          <>
+            <nav className="mb-5 flex gap-1 overflow-x-auto border-b border-border pb-2">
+              {TABS.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-display font-semibold ${tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>{l}</button>)}
+            </nav>
+            <Body key={companyId} tab={tab} companyId={companyId} canWrite={canWrite} canFinance={canFinance} params={params} setParams={setParams} />
+          </>
+        )}
+      </div>
+    </EntrepreneurAppShell>
+  );
+}
+
+function Body(p: { tab: Tab; companyId: string; canWrite: boolean; canFinance: boolean; params: URLSearchParams; setParams: (p: URLSearchParams) => void }) {
+  const { tab } = p;
+  if (tab === "today") return <Today {...p} />;
+  if (tab === "leads") return <Leads {...p} />;
+  if (tab === "clients") return <Clients {...p} />;
+  if (tab === "quotes") return p.canFinance ? <Quotes {...p} /> : <p className="text-muted-foreground">Accès financier non autorisé pour votre rôle.</p>;
+  if (tab === "projects") return <Projects {...p} />;
+  if (tab === "tasks") return <Tasks {...p} />;
+  if (tab === "reports") return <Reports {...p} />;
+  return <History {...p} />;
+}
+
+function Stat({ l, v }: { l: string; v: string | number }) {
+  return <div className="rounded-lg border border-border bg-card p-4"><p className="text-xs text-muted-foreground">{l}</p><p className="mt-1 font-display text-2xl font-bold">{v}</p></div>;
+}
+
+function Today({ companyId, canFinance }: { companyId: string; canFinance: boolean }) {
+  const [s, setS] = useState<any>(null);
+  useEffect(() => { (async () => {
+    const now = new Date().toISOString(); const week = new Date(Date.now() - 7 * 864e5).toISOString();
+    const c = (t: string) => db.from(t).select("id", { count: "exact", head: true }).eq("company_id", companyId);
+    const [nl, late, open, won, lost, proj] = await Promise.all([
+      c("ent_crm_leads").gte("created_at", week), c("ent_crm_tasks").is("done_at", null).lt("due_at", now),
+      db.from("ent_crm_leads").select("estimated_amount").eq("company_id", companyId).not("stage", "in", "(gagne,perdu)").is("archived_at", null),
+      c("ent_crm_leads").eq("stage", "gagne"), c("ent_crm_leads").eq("stage", "perdu"),
+      c("ent_crm_projects").gte("start_date", now.slice(0, 10)),
+    ]);
+    const q = canFinance ? (await db.from("ent_crm_quotes").select("status,subtotal,invoiced_amount,paid_amount").eq("company_id", companyId)).data ?? [] : [];
+    setS({ nl: nl.count, late: late.count, pipe: (open.data ?? []).reduce((a: number, r: any) => a + (Number(r.estimated_amount) || 0), 0), won: won.count, lost: lost.count, proj: proj.count,
+      toFollow: q.filter((x: any) => x.status === "remise").length,
+      est: q.filter((x: any) => x.status !== "refusee").reduce((a: number, x: any) => a + Number(x.subtotal), 0),
+      acc: q.filter((x: any) => x.status === "acceptee").reduce((a: number, x: any) => a + Number(x.subtotal), 0),
+      inv: q.reduce((a: number, x: any) => a + (Number(x.invoiced_amount) || 0), 0), paid: q.reduce((a: number, x: any) => a + (Number(x.paid_amount) || 0), 0) });
+  })(); }, [companyId, canFinance]);
+  if (!s) return <p className="text-muted-foreground">Chargement…</p>;
+  return <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <Stat l="Nouveaux leads (7 j)" v={s.nl ?? 0} /><Stat l="Relances en retard" v={s.late ?? 0} />
+    <Stat l="Valeur du pipeline (estimée)" v={money(s.pipe)} /><Stat l="Gagnés / perdus" v={`${s.won ?? 0} / ${s.lost ?? 0}`} />
+    <Stat l="Chantiers à venir" v={s.proj ?? 0} />
+    {canFinance && <><Stat l="Soumissions à suivre" v={s.toFollow} /><Stat l="Montant estimé" v={money(s.est)} /><Stat l="Montant accepté" v={money(s.acc)} /><Stat l="Facturé" v={money(s.inv)} /><Stat l="Encaissé" v={money(s.paid)} /></>}
+  </div>;
+}
+
+function Leads({ companyId, canWrite, params, setParams }: any) {
+  const [rows, setRows] = useState<any[]>([]); const [count, setCount] = useState(0);
+  const [clients, setClients] = useState<any[]>([]);
+  const [open, setOpen] = useState<any>(null); const [view, setView] = useState<"liste" | "kanban">("liste");
+  const q = params.get("q") ?? ""; const stage = params.get("stage") ?? ""; const source = params.get("source") ?? "";
+  const sort = params.get("sort") ?? "recent"; const page = Number(params.get("page") ?? 1);
+  const setF = (k: string, v: string) => { const n = new URLSearchParams(params); v ? n.set(k, v) : n.delete(k); if (k !== "page") n.delete("page"); setParams(n); };
+  const load = useCallback(async () => {
+    let r = db.from("ent_crm_leads").select("*", { count: "exact" }).eq("company_id", companyId).is("archived_at", null);
+    if (q) r = r.or(`title.ilike.%${q.replace(/[,()%]/g, "")}%,contact_name.ilike.%${q.replace(/[,()%]/g, "")}%,need.ilike.%${q.replace(/[,()%]/g, "")}%`);
+    if (stage) r = r.eq("stage", stage); if (source) r = r.eq("source", source);
+    r = sort === "ancien" ? r.order("created_at") : sort === "relance" ? r.order("next_action_at", { nullsFirst: false }) : sort === "montant" ? r.order("estimated_amount", { ascending: false, nullsFirst: false }) : r.order("created_at", { ascending: false });
+    const { data, count: c } = await r.range((page - 1) * PAGE, page * PAGE - 1);
+    setRows(data ?? []); setCount(c ?? 0);
+    setClients((await db.from("ent_crm_clients").select("id,name").eq("company_id", companyId).is("archived_at", null).order("name")).data ?? []);
+  }, [companyId, q, stage, source, sort, page]);
+  useEffect(() => { void load(); }, [load]);
+  const move = async (l: any, st: string) => {
+    let lost_reason = l.lost_reason; if (st === "perdu") { lost_reason = prompt("Motif de perte ?") ?? ""; if (!lost_reason) return; }
+    const { error } = await db.from("ent_crm_leads").update({ stage: st, lost_reason, updated_at: new Date().toISOString() }).eq("id", l.id);
+    if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else load();
+  };
+  const convert = async (l: any) => {
+    const { data: c, error } = await db.from("ent_crm_clients").insert({ company_id: companyId, name: l.contact_name || l.title, phone: /\d{3}/.test(l.contact_value ?? "") ? l.contact_value : null, email: /@/.test(l.contact_value ?? "") ? l.contact_value : null, notes: l.need }).select().single();
+    if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" });
+    await db.from("ent_crm_leads").update({ client_id: c.id }).eq("id", l.id); toast({ title: "Client créé, historique conservé" }); load();
+  };
+  const exportCsv = () => { const blob = new Blob([toCsv(rows.map(({ trade_fields, ...r }) => ({ ...r, trade_fields: JSON.stringify(trade_fields) })))], { type: "text/csv" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "leads.csv"; a.click(); };
+  const importCsv = async (f: File) => {
+    const recs = parseCsv(await f.text()); const existing = (await db.from("ent_crm_leads").select("title,contact_value").eq("company_id", companyId)).data ?? [];
+    const seen = new Set(existing.map((e: any) => normalize(e.contact_value) || normalize(e.title)));
+    let ok = 0, dup = 0, bad = 0;
+    for (const r of recs) {
+      const title = r.titre || r.nom || r.title; if (!title) { bad++; continue; }
+      const key = normalize(r.contact || r.telephone || r.courriel) || normalize(title); if (seen.has(key)) { dup++; continue; }
+      const { error } = await db.from("ent_crm_leads").insert({ company_id: companyId, title, contact_name: r.nom ?? null, contact_value: r.contact || r.telephone || r.courriel || null, need: r.besoin ?? null, source: "import" });
+      error ? bad++ : (ok++, seen.add(key));
+    }
+    toast({ title: "Import terminé", description: `${ok} ajoutés · ${dup} doublons ignorés · ${bad} invalides. Aucun message envoyé.` }); load();
+  };
+  const pages = Math.max(1, Math.ceil(count / PAGE));
+  return <div>
+    <div className="mb-3 flex flex-wrap gap-2">
+      <Input placeholder="Rechercher…" defaultValue={q} onKeyDown={(e) => e.key === "Enter" && setF("q", (e.target as HTMLInputElement).value)} className="h-10 w-full sm:w-60" />
+      <select className={sel} value={stage} onChange={(e) => setF("stage", e.target.value)}><option value="">Toutes étapes</option>{STAGES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}</select>
+      <select className={sel} value={source} onChange={(e) => setF("source", e.target.value)}><option value="">Toutes provenances</option>{SOURCES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}</select>
+      <select className={sel} value={sort} onChange={(e) => setF("sort", e.target.value)}><option value="recent">Plus récents</option><option value="ancien">Plus anciens</option><option value="relance">Prochaine relance</option><option value="montant">Montant</option></select>
+      <select className={sel} value={view} onChange={(e) => setView(e.target.value as any)}><option value="liste">Liste</option><option value="kanban">Kanban</option></select>
+      {canWrite && <Button onClick={() => setOpen({})}><Plus className="mr-1 h-4 w-4" />Nouveau lead</Button>}
+      <Button variant="outline" onClick={exportCsv}><Download className="mr-1 h-4 w-4" />Exporter</Button>
+      {canWrite && <label className="inline-flex h-10 cursor-pointer items-center rounded-md border border-border px-3 text-sm"><Upload className="mr-1 h-4 w-4" />Importer CSV<input type="file" accept=".csv" hidden onChange={(e) => e.target.files?.[0] && importCsv(e.target.files[0])} /></label>}
+    </div>
+    <p className="mb-2 text-xs text-muted-foreground">{count} résultat(s)</p>
+    {view === "kanban" ? (
+      <div className="flex gap-3 overflow-x-auto pb-2">{STAGES.map((s) => <div key={s.v} className="w-60 shrink-0 rounded-lg bg-muted/40 p-2"><p className="mb-2 font-display text-sm font-bold">{s.l}</p>
+        {rows.filter((r) => r.stage === s.v).map((r) => <LeadCard key={r.id} r={r} canWrite={canWrite} move={move} convert={convert} edit={() => setOpen(r)} />)}</div>)}</div>
+    ) : <div className="grid gap-2">{rows.map((r) => <LeadCard key={r.id} r={r} canWrite={canWrite} move={move} convert={convert} edit={() => setOpen(r)} />)}</div>}
+    <div className="mt-3 flex items-center gap-2 text-sm"><Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setF("page", String(page - 1))}>Précédent</Button>Page {page}/{pages}<Button variant="outline" size="sm" disabled={page >= pages} onClick={() => setF("page", String(page + 1))}>Suivant</Button></div>
+    {open && <LeadDialog lead={open} companyId={companyId} clients={clients} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); load(); }} />}
+  </div>;
+}
+
+function LeadCard({ r, canWrite, move, convert, edit }: any) {
+  return <div className="mb-2 rounded-lg border border-border bg-card p-3 text-sm">
+    <button className="text-left font-display font-bold hover:underline" onClick={edit}>{r.title}</button>
+    <p className="text-xs text-muted-foreground">{r.contact_name} {r.contact_value} · {label(SOURCES, r.source)}{r.network_ref ? " · Réseau Vrac Québec" : ""}</p>
+    {r.need && <p className="mt-1 line-clamp-2">{r.need}</p>}
+    <p className="mt-1 text-xs">Prochaine action : {r.next_action || "—"} {r.next_action_at ? `(${new Date(r.next_action_at).toLocaleDateString("fr-CA")})` : ""}</p>
+    {r.estimated_amount != null && <p className="text-xs">Estimé : {money(Number(r.estimated_amount))}</p>}
+    {r.lost_reason && <p className="text-xs text-destructive">Perdu : {r.lost_reason}</p>}
+    {canWrite && <div className="mt-2 flex flex-wrap gap-1">
+      <select aria-label="Étape" className="h-9 rounded border border-border bg-background text-xs" value={r.stage} onChange={(e) => move(r, e.target.value)}>{STAGES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}</select>
+      {!r.client_id && <Button size="sm" variant="outline" onClick={() => convert(r)}>Convertir en client</Button>}
+    </div>}
+  </div>;
+}
+
+function LeadDialog({ lead, companyId, clients, onClose, onSaved }: any) {
+  const [f, setF] = useState<any>({ source: "appel", trade: "", trade_fields: {}, ...lead });
+  const [dups, setDups] = useState<any[]>([]);
+  const set = (k: string, v: any) => setF((x: any) => ({ ...x, [k]: v }));
+  useEffect(() => { const n = normalize(f.contact_value); if (!n || n.length < 5 || lead.id) return setDups([]);
+    db.from("ent_crm_leads").select("id,title,contact_value").eq("company_id", companyId).then(({ data }: any) => setDups((data ?? []).filter((d: any) => normalize(d.contact_value) === n))); }, [f.contact_value, companyId, lead.id]);
+  const save = async () => {
+    if (!f.title?.trim()) return toast({ title: "Nom requis", variant: "destructive" });
+    const row = { company_id: companyId, title: f.title, contact_name: f.contact_name || null, contact_value: f.contact_value || null, need: f.need || null, source: f.source, trade: f.trade || null, trade_fields: f.trade_fields, priority: f.priority || "normale", estimated_amount: f.estimated_amount === "" || f.estimated_amount == null ? null : Number(f.estimated_amount), next_action: f.next_action || null, next_action_at: f.next_action_at || null, client_id: f.client_id || null, updated_at: new Date().toISOString() };
+    const { error } = lead.id ? await db.from("ent_crm_leads").update(row).eq("id", lead.id) : await db.from("ent_crm_leads").insert(row);
+    if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else onSaved();
+  };
+  const addTask = async () => { const title = prompt("Tâche / relance ?"); const due = prompt("Échéance (AAAA-MM-JJ) ?"); if (!title) return;
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await db.from("ent_crm_tasks").insert({ company_id: companyId, title, due_at: due || null, lead_id: lead.id, assignee_user_id: u.user?.id }); toast({ title: error ? "Refusé" : "Tâche ajoutée", description: error?.message }); };
+  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>{lead.id ? "Lead" : "Nouveau lead"}</DialogTitle></DialogHeader>
+    <div className="grid gap-2">
+      <Input placeholder="Nom / titre *" value={f.title ?? ""} onChange={(e) => set("title", e.target.value)} />
+      <Input placeholder="Personne contact" value={f.contact_name ?? ""} onChange={(e) => set("contact_name", e.target.value)} />
+      <Input placeholder="Téléphone ou courriel" value={f.contact_value ?? ""} onChange={(e) => set("contact_value", e.target.value)} />
+      {dups.length > 0 && <p className="text-xs text-amber-700">Doublon probable dans votre CRM : {dups.map((d) => d.title).join(", ")}</p>}
+      <Textarea placeholder="Besoin" value={f.need ?? ""} onChange={(e) => set("need", e.target.value)} />
+      <select className={sel} value={f.source} onChange={(e) => set("source", e.target.value)}>{SOURCES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}</select>
+      <select className={sel} value={f.client_id ?? ""} onChange={(e) => set("client_id", e.target.value)}><option value="">Aucun client lié</option>{clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+      <select className={sel} value={f.priority ?? "normale"} onChange={(e) => set("priority", e.target.value)}><option value="basse">Priorité basse</option><option value="normale">Normale</option><option value="haute">Haute</option></select>
+      <Input type="number" placeholder="Budget / montant estimé (si connu)" value={f.estimated_amount ?? ""} onChange={(e) => set("estimated_amount", e.target.value)} />
+      <Input placeholder="Prochaine action" value={f.next_action ?? ""} onChange={(e) => set("next_action", e.target.value)} />
+      <Input type="date" value={(f.next_action_at ?? "").slice(0, 10)} onChange={(e) => set("next_action_at", e.target.value)} />
+      <select className={sel} value={f.trade ?? ""} onChange={(e) => set("trade", e.target.value)}><option value="">Métier (optionnel)</option>{Object.entries(TRADES).map(([k, t]) => <option key={k} value={k}>{t.l}</option>)}</select>
+      {f.trade && TRADES[f.trade]?.fields.map((x) => <Input key={x.k} placeholder={x.l} value={f.trade_fields?.[x.k] ?? ""} onChange={(e) => set("trade_fields", { ...f.trade_fields, [x.k]: e.target.value })} />)}
+      <div className="flex gap-2"><Button onClick={save}>Enregistrer</Button>{lead.id && <Button variant="outline" onClick={addTask}>Ajouter une relance</Button>}</div>
+    </div></DialogContent></Dialog>;
+}
+
+function Clients({ companyId, canWrite }: any) {
+  const [rows, setRows] = useState<any[]>([]); const [q, setQ] = useState(""); const [open, setOpen] = useState<any>(null);
+  const load = useCallback(async () => setRows((await db.from("ent_crm_clients").select("*, ent_crm_contacts(*), ent_crm_projects(id,name), ent_crm_leads(id,title,stage)").eq("company_id", companyId).is("archived_at", null).order("name")).data ?? []), [companyId]);
+  useEffect(() => { void load(); }, [load]);
+  const add = async () => { const name = prompt("Nom du client ?"); if (!name) return; const kind = prompt("Type : particulier, entreprise ou organisme", "particulier") || "particulier";
+    const { error } = await db.from("ent_crm_clients").insert({ company_id: companyId, name, kind }); error ? toast({ title: "Refusé", description: error.message, variant: "destructive" }) : load(); };
+  const addContact = async (c: any) => { const name = prompt("Nom du contact ?"); if (!name) return; const phone = prompt("Téléphone ?") || null; const email = prompt("Courriel ?") || null;
+    const { error } = await db.from("ent_crm_contacts").insert({ company_id: companyId, client_id: c.id, name, phone, email }); error ? toast({ title: "Refusé", description: error.message }) : load(); };
+  const archive = async (c: any) => { if (!confirm("Archiver ce client ?")) return; await db.from("ent_crm_clients").update({ archived_at: new Date().toISOString() }).eq("id", c.id); load(); };
+  const shown = rows.filter((r) => !q || normalize(`${r.name}${r.email}${r.phone}`).includes(normalize(q)));
+  return <div><div className="mb-3 flex gap-2"><Input placeholder="Rechercher un client" value={q} onChange={(e) => setQ(e.target.value)} className="h-10 sm:w-60" />{canWrite && <Button onClick={add}><Plus className="mr-1 h-4 w-4" />Nouveau client</Button>}</div>
+    <div className="grid gap-2 md:grid-cols-2">{shown.map((c) => <div key={c.id} className="rounded-lg border border-border bg-card p-3 text-sm">
+      <p className="font-display font-bold">{c.name} <span className="text-xs font-normal text-muted-foreground">({c.kind})</span></p>
+      <p className="text-xs text-muted-foreground">{c.phone} {c.email} {c.address}</p>
+      <p className="mt-1 text-xs"><strong>Contacts :</strong> {c.ent_crm_contacts.map((x: any) => `${x.name}${x.phone ? " " + x.phone : ""}`).join(" · ") || "—"}</p>
+      <p className="text-xs"><strong>Opportunités :</strong> {c.ent_crm_leads.map((x: any) => x.title).join(" · ") || "—"}</p>
+      <p className="text-xs"><strong>Chantiers :</strong> {c.ent_crm_projects.map((x: any) => x.name).join(" · ") || "—"}</p>
+      {canWrite && <div className="mt-2 flex gap-1"><Button size="sm" variant="outline" onClick={() => addContact(c)}>+ Contact</Button><Button size="sm" variant="outline" onClick={() => setOpen(c)}>Modifier</Button><Button size="sm" variant="ghost" onClick={() => archive(c)}>Archiver</Button></div>}
+    </div>)}</div>
+    {open && <Dialog open onOpenChange={() => setOpen(null)}><DialogContent><DialogHeader><DialogTitle>{open.name}</DialogTitle></DialogHeader>
+      {["name", "phone", "email", "address", "city"].map((k) => <Input key={k} placeholder={k} value={open[k] ?? ""} onChange={(e) => setOpen({ ...open, [k]: e.target.value })} />)}
+      <Textarea placeholder="Notes internes" value={open.notes ?? ""} onChange={(e) => setOpen({ ...open, notes: e.target.value })} />
+      <Button onClick={async () => { const { id, name, phone, email, address, city, notes } = open; const { error } = await db.from("ent_crm_clients").update({ name, phone, email, address, city, notes, updated_at: new Date().toISOString() }).eq("id", id); if (error) toast({ title: "Refusé", description: error.message }); else { setOpen(null); load(); } }}>Enregistrer</Button>
+    </DialogContent></Dialog>}
+  </div>;
+}
+
+function Quotes({ companyId, canWrite }: any) {
+  const [rows, setRows] = useState<any[]>([]); const [clients, setClients] = useState<any[]>([]); const [open, setOpen] = useState<any>(null); const [print, setPrint] = useState<any>(null);
+  const load = useCallback(async () => { setRows((await db.from("ent_crm_quotes").select("*, ent_crm_clients(name), ent_crm_projects(id)").eq("company_id", companyId).order("created_at", { ascending: false })).data ?? []);
+    setClients((await db.from("ent_crm_clients").select("id,name").eq("company_id", companyId).is("archived_at", null)).data ?? []); }, [companyId]);
+  useEffect(() => { void load(); }, [load]);
+  const save = async () => { const lines: Line[] = open.lines ?? []; const row = { company_id: companyId, client_id: open.client_id || null, number: open.number || null, lines, inclusions: open.inclusions || null, exclusions: open.exclusions || null, conditions: open.conditions || null, valid_until: open.valid_until || null, subtotal: quoteSubtotal(lines), updated_at: new Date().toISOString() };
+    const { error } = open.id ? await db.from("ent_crm_quotes").update({ ...row, version: (open.version ?? 1) + 1 }).eq("id", open.id) : await db.from("ent_crm_quotes").insert(row);
+    if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else { setOpen(null); load(); } };
+  const setStatus = async (q: any, status: string) => {
+    if (status === "acceptee") { const src = prompt("Source de l'acceptation (signature, courriel, appel…) ?"); const by = prompt("Accepté par (nom du client) ?"); if (!src || !by) return;
+      const { error } = await db.rpc("entcrm_accept_quote", { _quote_id: q.id, _source: src, _by: by }); if (error) return toast({ title: "Refusé", description: error.message });
+    } else await db.from("ent_crm_quotes").update({ status }).eq("id", q.id);
+    load(); };
+  const toProject = async (q: any) => { const name = prompt("Nom du chantier ?", q.ent_crm_clients?.name ?? "Chantier"); if (!name) return;
+    const { error } = await db.from("ent_crm_projects").insert({ company_id: companyId, client_id: q.client_id, quote_id: q.id, name }); toast({ title: error ? "Refusé" : "Chantier créé", description: error?.message.includes("duplicate") ? "Un chantier existe déjà pour cette soumission." : error?.message }); load(); };
+  const fin = async (q: any, k: string) => { const v = prompt(k === "invoiced_amount" ? "Montant facturé ?" : "Montant encaissé ?"); if (v == null) return; await db.from("ent_crm_quotes").update({ [k]: v === "" ? null : Number(v) }).eq("id", q.id); load(); };
+  if (print) return <div className="print:p-0"><Button className="print:hidden mb-3" onClick={() => window.print()}>Télécharger / imprimer en PDF</Button> <Button variant="outline" className="print:hidden mb-3" onClick={() => setPrint(null)}>Fermer</Button>
+    <div className="rounded border border-border bg-card p-6 text-sm"><h2 className="font-display text-xl font-bold">Soumission {print.number ?? ""} (v{print.version})</h2><p>Client : {print.ent_crm_clients?.name ?? "—"}</p>
+      <table className="mt-3 w-full"><thead><tr className="text-left"><th>Description</th><th>Qté</th><th>Unité</th><th>Prix</th><th>Total</th></tr></thead><tbody>{(print.lines as Line[]).map((l, i) => <tr key={i}><td>{l.desc}</td><td>{l.qty}</td><td>{l.unit}</td><td>{money(l.price)}</td><td>{money(l.qty * l.price)}</td></tr>)}</tbody></table>
+      <p className="mt-2 font-bold">Sous-total avant taxes : {money(Number(print.subtotal))}</p><p className="text-xs text-muted-foreground">Taxes applicables selon votre inscription (TPS/TVQ), non calculées ici.</p>
+      {print.inclusions && <p className="mt-2"><strong>Inclusions :</strong> {print.inclusions}</p>}{print.exclusions && <p><strong>Exclusions :</strong> {print.exclusions}</p>}{print.conditions && <p><strong>Conditions :</strong> {print.conditions}</p>}{print.valid_until && <p>Valide jusqu'au {print.valid_until}</p>}</div></div>;
+  return <div>{canWrite && <Button className="mb-3" onClick={() => setOpen({ lines: [{ desc: "", qty: 1, unit: "unité", price: 0 }] })}><Plus className="mr-1 h-4 w-4" />Nouvelle soumission</Button>}
+    <div className="grid gap-2">{rows.map((q) => <div key={q.id} className="rounded-lg border border-border bg-card p-3 text-sm">
+      <p className="font-display font-bold">{q.number || "Soumission"} · {q.ent_crm_clients?.name ?? "Sans client"} · v{q.version} · <span className="uppercase">{q.status}</span></p>
+      <p className="text-xs">Estimé : {money(Number(q.subtotal))} · Facturé : {money(q.invoiced_amount)} · Encaissé : {money(q.paid_amount)}</p>
+      {q.accepted_at && <p className="text-xs text-muted-foreground">Acceptée par {q.accepted_by_name} ({q.accepted_source}) le {new Date(q.accepted_at).toLocaleString("fr-CA")}</p>}
+      <div className="mt-2 flex flex-wrap gap-1">
+        <Button size="sm" variant="outline" onClick={() => setPrint(q)}>PDF</Button>
+        {canWrite && q.status === "brouillon" && <><Button size="sm" variant="outline" onClick={() => setOpen(q)}>Modifier</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "remise")}>Marquer remise</Button></>}
+        {canWrite && q.status === "remise" && <><Button size="sm" onClick={() => setStatus(q, "acceptee")}>Accepter (documenter)</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "refusee")}>Refusée</Button></>}
+        {canWrite && q.status === "acceptee" && !q.ent_crm_projects?.length && <Button size="sm" onClick={() => toProject(q)}>Créer le chantier</Button>}
+        {canWrite && q.status === "acceptee" && <><Button size="sm" variant="ghost" onClick={() => fin(q, "invoiced_amount")}>Facturé</Button><Button size="sm" variant="ghost" onClick={() => fin(q, "paid_amount")}>Encaissé</Button></>}
+      </div></div>)}</div>
+    {open && <Dialog open onOpenChange={() => setOpen(null)}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Soumission</DialogTitle></DialogHeader>
+      <select className={sel} value={open.client_id ?? ""} onChange={(e) => setOpen({ ...open, client_id: e.target.value })}><option value="">Client…</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+      <Input placeholder="Numéro" value={open.number ?? ""} onChange={(e) => setOpen({ ...open, number: e.target.value })} />
+      {(open.lines as Line[]).map((l, i) => <div key={i} className="grid grid-cols-[1fr_4rem_5rem_5rem] gap-1">
+        {(["desc", "qty", "unit", "price"] as const).map((k) => <Input key={k} placeholder={{ desc: "Prestation / transport / machinerie", qty: "Qté", unit: "Unité", price: "Prix" }[k]} type={k === "qty" || k === "price" ? "number" : "text"} value={(l as any)[k]} onChange={(e) => { const lines = [...open.lines]; lines[i] = { ...l, [k]: k === "qty" || k === "price" ? Number(e.target.value) : e.target.value }; setOpen({ ...open, lines }); }} />)}</div>)}
+      <Button variant="outline" size="sm" onClick={() => setOpen({ ...open, lines: [...open.lines, { desc: "", qty: 1, unit: "unité", price: 0 }] })}>+ Ligne</Button>
+      <p className="text-sm font-bold">Sous-total : {money(quoteSubtotal(open.lines))}</p>
+      <Textarea placeholder="Inclusions" value={open.inclusions ?? ""} onChange={(e) => setOpen({ ...open, inclusions: e.target.value })} />
+      <Textarea placeholder="Exclusions" value={open.exclusions ?? ""} onChange={(e) => setOpen({ ...open, exclusions: e.target.value })} />
+      <Textarea placeholder="Conditions / échéancier" value={open.conditions ?? ""} onChange={(e) => setOpen({ ...open, conditions: e.target.value })} />
+      <Input type="date" value={open.valid_until ?? ""} onChange={(e) => setOpen({ ...open, valid_until: e.target.value })} />
+      <Button onClick={save}>Enregistrer</Button></DialogContent></Dialog>}
+  </div>;
+}
+
+function Projects({ companyId, canWrite }: any) {
+  const [rows, setRows] = useState<any[]>([]);
+  const load = useCallback(async () => setRows((await db.from("ent_crm_projects").select("*, ent_crm_clients(name)").eq("company_id", companyId).is("archived_at", null).order("created_at", { ascending: false })).data ?? []), [companyId]);
+  useEffect(() => { void load(); }, [load]);
+  const upd = async (p: any, k: string, v: string) => { const { error } = await db.from("ent_crm_projects").update({ [k]: v || null, updated_at: new Date().toISOString() }).eq("id", p.id); if (error) toast({ title: "Refusé", description: error.message }); load(); };
+  return <div className="grid gap-2 md:grid-cols-2">{rows.length === 0 && <p className="text-muted-foreground">Aucun chantier. Créez-en un depuis une soumission acceptée.</p>}{rows.map((p) => <div key={p.id} className="rounded-lg border border-border bg-card p-3 text-sm">
+    <p className="font-display font-bold">{p.name}</p><p className="text-xs text-muted-foreground">{p.ent_crm_clients?.name}</p>
+    {canWrite ? <div className="mt-2 grid gap-1"><Input placeholder="Adresse" defaultValue={p.address ?? ""} onBlur={(e) => e.target.value !== (p.address ?? "") && upd(p, "address", e.target.value)} />
+      <div className="flex gap-1"><Input type="date" defaultValue={p.start_date ?? ""} onBlur={(e) => upd(p, "start_date", e.target.value)} /><Input type="date" defaultValue={p.end_date ?? ""} onBlur={(e) => upd(p, "end_date", e.target.value)} /></div>
+      <select className={sel} value={p.status} onChange={(e) => upd(p, "status", e.target.value)}>{["a_planifier", "planifie", "en_cours", "termine", "annule"].map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}</select></div>
+      : <p className="text-xs">{p.address} · {p.status}</p>}
+  </div>)}</div>;
+}
+
+function Tasks({ companyId, canWrite }: any) {
+  const [rows, setRows] = useState<any[]>([]); const [done, setDone] = useState(false);
+  const load = useCallback(async () => { let r = db.from("ent_crm_tasks").select("*, ent_crm_leads(title), ent_crm_projects(name), ent_crm_clients(name)").eq("company_id", companyId); r = done ? r.not("done_at", "is", null) : r.is("done_at", null); setRows((await r.order("due_at", { nullsFirst: false })).data ?? []); }, [companyId, done]);
+  useEffect(() => { void load(); }, [load]);
+  const finish = async (t: any) => { const result = prompt("Résultat ?"); if (result == null) return; const { error } = await db.from("ent_crm_tasks").update({ done_at: new Date().toISOString(), result }).eq("id", t.id); if (error) toast({ title: "Refusé", description: error.message }); load(); };
+  const add = async () => { const title = prompt("Tâche ?"); if (!title) return; const due = prompt("Échéance (AAAA-MM-JJ) ?"); const { data: u } = await supabase.auth.getUser();
+    const { error } = await db.from("ent_crm_tasks").insert({ company_id: companyId, title, due_at: due || null, assignee_user_id: u.user?.id }); if (error) toast({ title: "Refusé", description: error.message }); load(); };
+  return <div><div className="mb-3 flex gap-2">{canWrite && <Button onClick={add}><Plus className="mr-1 h-4 w-4" />Nouvelle tâche</Button>}<Button variant="outline" onClick={() => setDone(!done)}>{done ? "Voir à faire" : "Voir terminées"}</Button></div>
+    <div className="grid gap-2">{rows.map((t) => { const late = !t.done_at && t.due_at && new Date(t.due_at) < new Date(); return <div key={t.id} className={`rounded-lg border bg-card p-3 text-sm ${late ? "border-destructive" : "border-border"}`}>
+      <p className="font-display font-bold">{t.title}</p><p className="text-xs text-muted-foreground">Échéance : {t.due_at ? new Date(t.due_at).toLocaleDateString("fr-CA") : "—"}{late ? " · EN RETARD" : ""} · Dossier : {t.ent_crm_leads?.title ?? t.ent_crm_projects?.name ?? t.ent_crm_clients?.name ?? "—"}</p>
+      {t.result && <p className="text-xs">Résultat : {t.result}</p>}{!t.done_at && <Button size="sm" className="mt-2" onClick={() => finish(t)}>Terminer</Button>}</div>; })}</div></div>;
+}
+
+function Reports({ companyId }: any) {
+  const [d, setD] = useState<any[]>([]);
+  useEffect(() => { db.from("ent_crm_leads").select("stage,source,estimated_amount").eq("company_id", companyId).then(({ data }: any) => setD(data ?? [])); }, [companyId]);
+  const by = (k: string, list: readonly any[]) => list.map((s) => ({ l: s.l, n: d.filter((x) => x[k] === s.v).length })).filter((x) => x.n);
+  return <div className="grid gap-4 md:grid-cols-2">{[["Par étape", by("stage", STAGES)], ["Par provenance", by("source", SOURCES)]].map(([t, rows]: any) =>
+    <div key={t} className="rounded-lg border border-border bg-card p-4"><p className="mb-2 font-display font-bold">{t}</p>{rows.map((r: any) => <p key={r.l} className="flex justify-between text-sm"><span>{r.l}</span><span>{r.n}</span></p>)}{!rows.length && <p className="text-sm text-muted-foreground">Aucune donnée.</p>}</div>)}</div>;
+}
+
+function History({ companyId }: any) {
+  const [rows, setRows] = useState<any[]>([]);
+  useEffect(() => { db.from("ent_crm_history").select("*").eq("company_id", companyId).order("created_at", { ascending: false }).limit(100).then(({ data }: any) => setRows(data ?? [])); }, [companyId]);
+  const name = (r: any) => r.after?.title ?? r.after?.name ?? r.before?.title ?? r.before?.name ?? "";
+  return <div className="grid gap-1 text-sm">{rows.length === 0 && <p className="text-muted-foreground">Aucun historique visible pour votre rôle.</p>}{rows.map((r) => <p key={r.id} className="border-b border-border py-1">
+    <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString("fr-CA")}</span> · {r.entity.replace("ent_crm_", "")} · {r.action} {name(r)} {r.origin === "support_vrac_quebec" && <span className="rounded bg-amber-500/15 px-1 text-xs text-amber-800 dark:text-amber-300">Assistance Vrac Québec</span>}</p>)}</div>;
+}
