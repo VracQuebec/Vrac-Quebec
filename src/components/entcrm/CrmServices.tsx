@@ -26,7 +26,7 @@ export default function CrmServices({ companyId, canWrite, canAdmin, canCost }: 
     setTpls((await db.from("ent_crm_templates").select("*").eq("company_id", companyId).is("archived_at", null).order("name")).data ?? []);
   }, [companyId, archived, canCost, canWrite]);
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { db.from("material_catalog").select("id,name").eq("is_active", true).order("name").limit(500).then(({ data }: any) => setMats(data ?? [])); }, []);
+  useEffect(() => { db.from("material_catalog").select("id,name:name_fr").eq("is_active", true).order("name_fr").limit(500).then(({ data }: any) => setMats(data ?? [])); }, []);
 
   const save = async () => {
     const price = open.price === "" || open.price == null ? null : Number(open.price);
