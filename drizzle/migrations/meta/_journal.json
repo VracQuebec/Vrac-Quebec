@@ -330,6 +330,13 @@
       "when": 1790497330461,
       "tag": "0046_entcrm_confidential_support",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1790497975639,
+      "tag": "0047_entcrm_team_stages_views",
+      "breakpoints": true
     }
   ]
 }
