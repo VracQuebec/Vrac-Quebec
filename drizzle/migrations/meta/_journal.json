@@ -351,6 +351,13 @@
       "when": 1790521886930,
       "tag": "0049_entcrm_jsc_client_link",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1790524648396,
+      "tag": "0050_entcrm_files_services_templates_network",
+      "breakpoints": true
     }
   ]
 }
