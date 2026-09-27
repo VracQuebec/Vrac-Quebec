@@ -299,6 +299,7 @@ export default function EntrepreneursAdmin() {
                   <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"><dt className="text-muted-foreground">Réseau</dt><dd>{r.visible === true ? "Visible" : r.visible === false ? "Masqué" : "Non renseigné"}</dd></div>
                 </dl>
                 <Button type="button" className="mt-4 min-h-11 w-full" onClick={() => setOpenUserId(r.user_id)}>Voir la fiche</Button>
+                <a href={`/entrepreneur/crm?support_user=${r.user_id}`} className="mt-2 block min-h-11 rounded-md border border-border py-2.5 text-center text-sm font-semibold text-primary">Ouvrir le CRM de cette entreprise</a>
               </article>
             ))}
           </div>
