@@ -11,3 +11,4 @@
 - [Offres de matériaux](mem://features/offres-materiaux) — Table material_offers, géocodage abstrait, distance Haversine, branchement matching interne (LOT 20, drapeau false).
 - [Paramètres plateforme & forfaits](mem://features/parametres-plateforme-forfaits) — /admin/plateforme vs /admin/jsc, tables platform_*, règles « à définir » et « à configurer ».
 - [Catalogue CATALOGUE-02](mem://features/catalogue-02) — Référentiel central, variantes, provenance, moteur multi-unités, remblai catalogue, admin CSV
+- [CRM entrepreneur super admin](mem://features/crm-entrepreneur-super-admin) — Accès total confidentiel, aucune trace de lecture, modifications journalisées réservées aux super admins.
