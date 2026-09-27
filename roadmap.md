@@ -39,3 +39,11 @@
 - [x] D lien clients Transport JSC (jsc_client_id, rattachement explicite)
 - [ ] CRM-ENT-03 : documents/photos privés, prestations/tarifs, modèles métier, suivi demandes réseau
 - [ ] Décision de rattachement des 23 clients JSC réels (tous sur une seule entreprise) : à valider par Vrac Québec
+
+## CRM-ENT-03 (prévisualisation)
+- [x] Vue enregistrée : bouton masqué en lecture seule + contrôle serveur ; mise à jour d'une vue
+- [x] Documents privés multi-dossiers (migration 0050, stockage entcrm-files)
+- [x] Prestations/tarifs privés, coût interne réservé ; modèles métier ; soumission à valeurs figées + actualisation explicite
+- [x] « Ajouter à mon CRM » sans doublon ; statut source / accès retiré
+- [x] Aperçu super admin du rattachement JSC (lecture seule)
+- [ ] Parcours A/B/C en navigateur avec sessions fictives (390 px + ordinateur), étape personnalisée, isolation A/B des réglages — sessions à re-générer

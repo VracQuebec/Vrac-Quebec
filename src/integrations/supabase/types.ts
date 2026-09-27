@@ -2178,6 +2178,113 @@ export type Database = {
           },
         ]
       }
+      ent_crm_file_links: {
+        Row: {
+          client_visible: boolean
+          company_id: string
+          created_at: string
+          created_by: string | null
+          file_id: string
+          id: string
+          owner_id: string
+          owner_type: string
+        }
+        Insert: {
+          client_visible?: boolean
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          file_id: string
+          id?: string
+          owner_id: string
+          owner_type: string
+        }
+        Update: {
+          client_visible?: boolean
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_id?: string
+          id?: string
+          owner_id?: string
+          owner_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_file_links_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_crm_file_links_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ent_crm_files: {
+        Row: {
+          archived_at: string | null
+          category: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          file_name: string
+          id: string
+          is_field: boolean
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          category?: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_name: string
+          id?: string
+          is_field?: boolean
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          category?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_name?: string
+          id?: string
+          is_field?: boolean
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ent_crm_history: {
         Row: {
           action: string
@@ -2303,6 +2410,60 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ent_crm_network_links: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string
+          source_checked_at: string | null
+          source_fingerprint: string | null
+          source_id: string
+          source_snapshot: Json | null
+          source_type: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id: string
+          source_checked_at?: string | null
+          source_fingerprint?: string | null
+          source_id: string
+          source_snapshot?: Json | null
+          source_type: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string
+          source_checked_at?: string | null
+          source_fingerprint?: string | null
+          source_id?: string
+          source_snapshot?: Json | null
+          source_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_network_links_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_crm_network_links_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -2522,6 +2683,116 @@ export type Database = {
           },
         ]
       }
+      ent_crm_service_costs: {
+        Row: {
+          company_id: string
+          internal_cost: number | null
+          service_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          internal_cost?: number | null
+          service_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          internal_cost?: number | null
+          service_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_service_costs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ent_crm_service_costs_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: true
+            referencedRelation: "ent_crm_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ent_crm_services: {
+        Row: {
+          archived_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          equipment_ref: string | null
+          exclusions: string | null
+          id: string
+          inclusions: string | null
+          is_demo: boolean
+          label: string
+          material_id: string | null
+          price: number | null
+          price_zero_confirmed: boolean
+          private_notes: string | null
+          trades: string[]
+          unit: string
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          equipment_ref?: string | null
+          exclusions?: string | null
+          id?: string
+          inclusions?: string | null
+          is_demo?: boolean
+          label: string
+          material_id?: string | null
+          price?: number | null
+          price_zero_confirmed?: boolean
+          private_notes?: string | null
+          trades?: string[]
+          unit: string
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          equipment_ref?: string | null
+          exclusions?: string | null
+          id?: string
+          inclusions?: string | null
+          is_demo?: boolean
+          label?: string
+          material_id?: string | null
+          price?: number | null
+          price_zero_confirmed?: boolean
+          private_notes?: string | null
+          trades?: string[]
+          unit?: string
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_services_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ent_crm_settings: {
         Row: {
           company_id: string
@@ -2653,6 +2924,59 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "ent_crm_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ent_crm_templates: {
+        Row: {
+          archived_at: string | null
+          company_id: string
+          conditions: string | null
+          created_at: string
+          created_by: string | null
+          exclusions: string | null
+          id: string
+          inclusions: string | null
+          lines: Json
+          name: string
+          trade: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          company_id: string
+          conditions?: string | null
+          created_at?: string
+          created_by?: string | null
+          exclusions?: string | null
+          id?: string
+          inclusions?: string | null
+          lines?: Json
+          name: string
+          trade: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          company_id?: string
+          conditions?: string | null
+          created_at?: string
+          created_by?: string | null
+          exclusions?: string | null
+          id?: string
+          inclusions?: string | null
+          lines?: Json
+          name?: string
+          trade?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -19626,6 +19950,17 @@ export type Database = {
         Args: { _replacement: string; _stage_id: string }
         Returns: undefined
       }
+      entcrm_insert_network_link: {
+        Args: {
+          _company_id: string
+          _id: string
+          _lead: string
+          _snap: Json
+          _type: string
+        }
+        Returns: undefined
+      }
+      entcrm_jsc_attach_preview: { Args: never; Returns: Json }
       entcrm_jsc_candidates: {
         Args: { _company_id: string }
         Returns: {
@@ -19652,7 +19987,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      entcrm_network_check: { Args: { _link_id: string }; Returns: Json }
+      entcrm_network_source: {
+        Args: { _id: string; _type: string }
+        Returns: Json
+      }
       entcrm_open_support: { Args: { _company_id: string }; Returns: boolean }
+      entcrm_path_company: { Args: { _path: string }; Returns: string }
       entcrm_role: { Args: { _company_id: string }; Returns: string }
       entcrm_set_member: {
         Args: {
@@ -19662,6 +20003,10 @@ export type Database = {
           _role: string
         }
         Returns: undefined
+      }
+      entcrm_track_network: {
+        Args: { _company_id: string; _id: string; _type: string }
+        Returns: string
       }
       entr_status_label: { Args: { _status: string }; Returns: string }
       exec_claim_optim_tasks: {
