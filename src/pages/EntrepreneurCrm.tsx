@@ -249,6 +249,9 @@ function LeadCard({ r, stages, canWrite, move, convert, edit }: any) {
 function LeadDialog({ lead, companyId, clients, onClose, onSaved }: any) {
   const [f, setF] = useState<any>({ source: "appel", trade: "", trade_fields: {}, ...lead });
   const [dups, setDups] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const loadTasks = useCallback(async () => { if (lead.id) setTasks((await db.from("ent_crm_tasks").select("*").eq("lead_id", lead.id).order("created_at")).data ?? []); }, [lead.id]);
+  useEffect(() => { void loadTasks(); }, [loadTasks]);
   const set = (k: string, v: any) => setF((x: any) => ({ ...x, [k]: v }));
   useEffect(() => { const n = normalize(f.contact_value); if (!n || n.length < 5 || lead.id) return setDups([]);
     db.from("ent_crm_leads").select("id,title,contact_value").eq("company_id", companyId).then(({ data }: any) => setDups((data ?? []).filter((d: any) => normalize(d.contact_value) === n))); }, [f.contact_value, companyId, lead.id]);
@@ -260,7 +263,7 @@ function LeadDialog({ lead, companyId, clients, onClose, onSaved }: any) {
   };
   const addTask = async () => { const title = prompt("Tâche / relance ?"); const due = prompt("Échéance (AAAA-MM-JJ) ?"); if (!title) return;
     const { data: u } = await supabase.auth.getUser();
-    const { error } = await db.from("ent_crm_tasks").insert({ company_id: companyId, title, due_at: due || null, lead_id: lead.id, assignee_user_id: u.user?.id }); toast({ title: error ? "Refusé" : "Tâche ajoutée", description: error?.message }); };
+    const { error } = await db.from("ent_crm_tasks").insert({ company_id: companyId, title, due_at: due || null, lead_id: lead.id, assignee_user_id: u.user?.id }); toast({ title: error ? "Refusé" : "Tâche ajoutée", description: error?.message }); loadTasks(); };
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>{lead.id ? "Lead" : "Nouveau lead"}</DialogTitle></DialogHeader>
     <div className="grid gap-2">
       <Input placeholder="Nom / titre *" value={f.title ?? ""} onChange={(e) => set("title", e.target.value)} />
@@ -276,6 +279,7 @@ function LeadDialog({ lead, companyId, clients, onClose, onSaved }: any) {
       <Input type="date" value={(f.next_action_at ?? "").slice(0, 10)} onChange={(e) => set("next_action_at", e.target.value)} />
       <select className={sel} value={f.trade ?? ""} onChange={(e) => set("trade", e.target.value)}><option value="">Métier (optionnel)</option>{Object.entries(TRADES).map(([k, t]) => <option key={k} value={k}>{t.l}</option>)}</select>
       {f.trade && TRADES[f.trade]?.fields.map((x) => <Input key={x.k} placeholder={x.l} value={f.trade_fields?.[x.k] ?? ""} onChange={(e) => set("trade_fields", { ...f.trade_fields, [x.k]: e.target.value })} />)}
+      {lead.id && <div className="rounded border border-border p-2 text-xs"><p className="font-semibold">Tâches et relances</p>{tasks.length === 0 ? <p className="text-muted-foreground">Aucune</p> : tasks.map((t) => <p key={t.id}>{t.done_at ? "✓" : "•"} {t.title}{t.due_at ? ` (${t.due_at.slice(0, 10)})` : ""}{t.result ? ` — Résultat : ${t.result}` : ""}</p>)}</div>}
       <div className="flex gap-2"><Button onClick={save}>Enregistrer</Button>{lead.id && <Button variant="outline" onClick={addTask}>Ajouter une relance</Button>}</div>
     </div></DialogContent></Dialog>;
 }
@@ -297,7 +301,7 @@ function Clients({ companyId, canWrite }: any) {
       <p className="mt-1 text-xs"><strong>Contacts :</strong> {c.ent_crm_contacts.map((x: any) => `${x.name}${x.phone ? " " + x.phone : ""}`).join(" · ") || "—"}</p>
       <p className="text-xs"><strong>Opportunités :</strong> {c.ent_crm_leads.map((x: any) => x.title).join(" · ") || "—"}</p>
       <p className="text-xs"><strong>Chantiers :</strong> {c.ent_crm_projects.map((x: any) => x.name).join(" · ") || "—"}</p>
-      {canWrite && <div className="mt-2 flex gap-1"><Button size="sm" variant="outline" onClick={() => addContact(c)}>+ Contact</Button><Button size="sm" variant="outline" onClick={() => setOpen(c)}>Modifier</Button><Button size="sm" variant="ghost" onClick={() => archive(c)}>Archiver</Button></div>}
+      {canWrite && <div className="mt-2 flex flex-wrap gap-1"><Button size="sm" variant="outline" onClick={() => addContact(c)}>+ Contact</Button><Button size="sm" variant="outline" onClick={async () => { const title = prompt("Nouvelle opportunité ?"); if (!title) return; const { error } = await db.from("ent_crm_leads").insert({ company_id: companyId, client_id: c.id, title, contact_name: c.name, contact_value: c.phone || c.email, source: "autre" }); if (error) toast({ title: "Refusé", description: error.message }); load(); }}>+ Opportunité</Button><Button size="sm" variant="outline" onClick={() => setOpen(c)}>Modifier</Button><Button size="sm" variant="ghost" onClick={() => archive(c)}>Archiver</Button></div>}
     </div>)}</div>
     {open && <Dialog open onOpenChange={() => setOpen(null)}><DialogContent><DialogHeader><DialogTitle>{open.name}</DialogTitle></DialogHeader>
       {["name", "phone", "email", "address", "city"].map((k) => <Input key={k} placeholder={k} value={open[k] ?? ""} onChange={(e) => setOpen({ ...open, [k]: e.target.value })} />)}
@@ -307,13 +311,13 @@ function Clients({ companyId, canWrite }: any) {
   </div>;
 }
 
-function Quotes({ companyId, canWrite }: any) {
+function Quotes({ companyId, companyName, canWrite }: any) {
   const [rows, setRows] = useState<any[]>([]); const [clients, setClients] = useState<any[]>([]); const [open, setOpen] = useState<any>(null); const [print, setPrint] = useState<any>(null);
   const load = useCallback(async () => { setRows((await db.from("ent_crm_quotes").select("*, ent_crm_clients(name), ent_crm_projects(id)").eq("company_id", companyId).order("created_at", { ascending: false })).data ?? []);
     setClients((await db.from("ent_crm_clients").select("id,name").eq("company_id", companyId).is("archived_at", null)).data ?? []); }, [companyId]);
   useEffect(() => { void load(); }, [load]);
   const save = async () => { const lines: Line[] = open.lines ?? []; const row = { company_id: companyId, client_id: open.client_id || null, number: open.number || null, lines, inclusions: open.inclusions || null, exclusions: open.exclusions || null, conditions: open.conditions || null, valid_until: open.valid_until || null, subtotal: quoteSubtotal(lines), updated_at: new Date().toISOString() };
-    const { error } = open.id ? await db.from("ent_crm_quotes").update({ ...row, version: (open.version ?? 1) + 1 }).eq("id", open.id) : await db.from("ent_crm_quotes").insert(row);
+    const { error } = open.id ? await db.from("ent_crm_quotes").update(row).eq("id", open.id) : await db.from("ent_crm_quotes").insert(row);
     if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else { setOpen(null); load(); } };
   const setStatus = async (q: any, status: string) => {
     if (status === "acceptee") { const src = prompt("Source de l'acceptation (signature, courriel, appel…) ?"); const by = prompt("Accepté par (nom du client) ?"); if (!src || !by) return;
@@ -322,9 +326,11 @@ function Quotes({ companyId, canWrite }: any) {
     load(); };
   const toProject = async (q: any) => { const name = prompt("Nom du chantier ?", q.ent_crm_clients?.name ?? "Chantier"); if (!name) return;
     const { error } = await db.from("ent_crm_projects").insert({ company_id: companyId, client_id: q.client_id, quote_id: q.id, name }); toast({ title: error ? "Refusé" : "Chantier créé", description: error?.message.includes("duplicate") ? "Un chantier existe déjà pour cette soumission." : error?.message }); load(); };
+  const revise = async (q: any) => { const { id, created_at, updated_at, ent_crm_clients, ent_crm_projects, accepted_source, accepted_by_name, accepted_at, accepted_recorded_by, invoiced_amount, paid_amount, ...rest } = q;
+    const { error } = await db.from("ent_crm_quotes").insert({ ...rest, status: "brouillon", version: q.version + 1, parent_quote_id: q.id }); toast({ title: error ? "Refusé" : "Révision créée (la version acceptée reste inchangée)", description: error?.message }); load(); };
   const fin = async (q: any, k: string) => { const v = prompt(k === "invoiced_amount" ? "Montant facturé ?" : "Montant encaissé ?"); if (v == null) return; await db.from("ent_crm_quotes").update({ [k]: v === "" ? null : Number(v) }).eq("id", q.id); load(); };
   if (print) return <div className="print:p-0"><Button className="print:hidden mb-3" onClick={() => window.print()}>Télécharger / imprimer en PDF</Button> <Button variant="outline" className="print:hidden mb-3" onClick={() => setPrint(null)}>Fermer</Button>
-    <div className="rounded border border-border bg-card p-6 text-sm"><h2 className="font-display text-xl font-bold">Soumission {print.number ?? ""} (v{print.version})</h2><p>Client : {print.ent_crm_clients?.name ?? "—"}</p>
+    <div className="rounded border border-border bg-card p-6 text-sm"><p className="font-display text-lg font-bold">{companyName}</p><h2 className="font-display text-xl font-bold">Soumission {print.number ?? ""} (v{print.version})</h2><p>Client : {print.ent_crm_clients?.name ?? "—"}</p>
       <table className="mt-3 w-full"><thead><tr className="text-left"><th>Description</th><th>Qté</th><th>Unité</th><th>Prix</th><th>Total</th></tr></thead><tbody>{(print.lines as Line[]).map((l, i) => <tr key={i}><td>{l.desc}</td><td>{l.qty}</td><td>{l.unit}</td><td>{money(l.price)}</td><td>{money(l.qty * l.price)}</td></tr>)}</tbody></table>
       <p className="mt-2 font-bold">Sous-total avant taxes : {money(Number(print.subtotal))}</p><p className="text-xs text-muted-foreground">Taxes applicables selon votre inscription (TPS/TVQ), non calculées ici.</p>
       {print.inclusions && <p className="mt-2"><strong>Inclusions :</strong> {print.inclusions}</p>}{print.exclusions && <p><strong>Exclusions :</strong> {print.exclusions}</p>}{print.conditions && <p><strong>Conditions :</strong> {print.conditions}</p>}{print.valid_until && <p>Valide jusqu'au {print.valid_until}</p>}</div></div>;
@@ -338,7 +344,7 @@ function Quotes({ companyId, canWrite }: any) {
         {canWrite && q.status === "brouillon" && <><Button size="sm" variant="outline" onClick={() => setOpen(q)}>Modifier</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "remise")}>Marquer remise</Button></>}
         {canWrite && q.status === "remise" && <><Button size="sm" onClick={() => setStatus(q, "acceptee")}>Accepter (documenter)</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "refusee")}>Refusée</Button></>}
         {canWrite && q.status === "acceptee" && !q.ent_crm_projects?.length && <Button size="sm" onClick={() => toProject(q)}>Créer le chantier</Button>}
-        {canWrite && q.status === "acceptee" && <><Button size="sm" variant="ghost" onClick={() => fin(q, "invoiced_amount")}>Facturé</Button><Button size="sm" variant="ghost" onClick={() => fin(q, "paid_amount")}>Encaissé</Button></>}
+        {canWrite && q.status === "acceptee" && <><Button size="sm" variant="outline" onClick={() => revise(q)}>Réviser</Button><Button size="sm" variant="ghost" onClick={() => fin(q, "invoiced_amount")}>Facturé</Button><Button size="sm" variant="ghost" onClick={() => fin(q, "paid_amount")}>Encaissé</Button></>}
       </div></div>)}</div>
     {open && <Dialog open onOpenChange={() => setOpen(null)}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Soumission</DialogTitle></DialogHeader>
       <select className={sel} value={open.client_id ?? ""} onChange={(e) => setOpen({ ...open, client_id: e.target.value })}><option value="">Client…</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
@@ -383,10 +389,15 @@ function Tasks({ companyId, canWrite }: any) {
 }
 
 function Reports({ companyId }: any) {
-  const [d, setD] = useState<any[]>([]);
+  const [d, setD] = useState<any[]>([]); const [q, setQ] = useState<any[]>([]);
+  const { stages } = useStages(companyId);
+  useEffect(() => { db.from("ent_crm_quotes").select("status,subtotal,invoiced_amount,paid_amount").eq("company_id", companyId).then(({ data }: any) => setQ(data ?? [])); }, [companyId]);
+  const sum = (f: (x: any) => number) => q.reduce((a, x) => a + (f(x) || 0), 0);
   useEffect(() => { db.from("ent_crm_leads").select("stage,source,estimated_amount").eq("company_id", companyId).then(({ data }: any) => setD(data ?? [])); }, [companyId]);
   const by = (k: string, list: readonly any[]) => list.map((s) => ({ l: s.l, n: d.filter((x) => x[k] === s.v).length })).filter((x) => x.n);
-  return <div className="grid gap-4 md:grid-cols-2">{[["Par étape", by("stage", STAGES)], ["Par provenance", by("source", SOURCES)]].map(([t, rows]: any) =>
+  return <div className="grid gap-4 md:grid-cols-2">
+    <div className="rounded-lg border border-border bg-card p-4 md:col-span-2"><p className="mb-2 font-display font-bold">Montants</p>{[["Proposé (remis ou accepté)", sum((x) => ["remise", "acceptee"].includes(x.status) ? Number(x.subtotal) : 0)], ["Accepté", sum((x) => x.status === "acceptee" ? Number(x.subtotal) : 0)], ["Facturé", sum((x) => Number(x.invoiced_amount))], ["Encaissé", sum((x) => Number(x.paid_amount))]].map(([l, v]: any) => <p key={l} className="flex justify-between text-sm"><span>{l}</span><span>{money(v)}</span></p>)}</div>
+    {[["Par étape", by("stage", stages)], ["Par provenance", by("source", SOURCES)]].map(([t, rows]: any) =>
     <div key={t} className="rounded-lg border border-border bg-card p-4"><p className="mb-2 font-display font-bold">{t}</p>{rows.map((r: any) => <p key={r.l} className="flex justify-between text-sm"><span>{r.l}</span><span>{r.n}</span></p>)}{!rows.length && <p className="text-sm text-muted-foreground">Aucune donnée.</p>}</div>)}</div>;
 }
 
@@ -396,4 +407,39 @@ function History({ companyId }: any) {
   const name = (r: any) => r.after?.title ?? r.after?.name ?? r.before?.title ?? r.before?.name ?? "";
   return <div className="grid gap-1 text-sm">{rows.length === 0 && <p className="text-muted-foreground">Aucun historique visible pour votre rôle.</p>}{rows.map((r) => <p key={r.id} className="border-b border-border py-1">
     <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString("fr-CA")}</span> · {r.entity.replace("ent_crm_", "")} · {r.action} {name(r)} {r.origin === "support_vrac_quebec" && <span className="rounded bg-amber-500/15 px-1 text-xs text-amber-800 dark:text-amber-300">Assistance Vrac Québec</span>}</p>)}</div>;
+}
+
+const ROLES = [["proprietaire", "Propriétaire"], ["gestionnaire", "Gestionnaire / commercial"], ["comptabilite", "Comptabilité"], ["chauffeur", "Employé terrain / chauffeur"], ["operateur", "Opérateur"], ["mecanicien", "Mécanicien"], ["lecture", "Lecture seule"]] as const;
+
+function Team({ companyId, canAdmin }: any) {
+  const [members, setMembers] = useState<any[]>([]); const [err, setErr] = useState("");
+  const { stages, reload } = useStages(companyId);
+  const [trades, setTrades] = useState<string[]>([]);
+  const load = useCallback(async () => { const { data, error } = await db.rpc("entcrm_list_members", { _company_id: companyId }); setErr(error?.message ?? ""); setMembers(data ?? []);
+    const st = await db.from("ent_crm_settings").select("trades").eq("company_id", companyId).maybeSingle(); setTrades(st.data?.trades ?? []); }, [companyId]);
+  useEffect(() => { void load(); }, [load]);
+  const setMember = async (email: string, role: string, active: boolean) => { const { error } = await db.rpc("entcrm_set_member", { _company_id: companyId, _email: email, _role: role, _active: active });
+    toast({ title: error ? "Refusé" : "Accès mis à jour", description: error?.message }); load(); };
+  const add = async () => { const email = prompt("Courriel d'un compte existant ?"); if (!email) return; const role = prompt(`Rôle (${ROLES.map((r) => r[0]).join(", ")}) ?`, "lecture"); if (role) setMember(email, role, true); };
+  const initStages = async () => { const { error } = await db.from("ent_crm_stages").insert(STAGES.map((s, i) => ({ company_id: companyId, key: s.v, label: s.l, position: i, kind: s.v === "gagne" ? "gagnee" : s.v === "perdu" ? "perdue" : "ouverte" }))); if (error) toast({ title: "Refusé", description: error.message }); reload(); };
+  const addStage = async () => { const labelTxt = prompt("Nom de l'étape ?"); if (!labelTxt) return; const key = normalize(labelTxt).slice(0, 30) || "etape";
+    const { error } = await db.from("ent_crm_stages").insert({ company_id: companyId, key, label: labelTxt, position: stages.length, kind: "ouverte" }); if (error) toast({ title: "Refusé", description: error.message }); reload(); };
+  const delStage = async (s: any) => { const rep = prompt(`Étape de remplacement pour les dossiers (${stages.filter((x) => x.v !== s.v).map((x) => x.v).join(", ")}) ?`); if (!rep) return;
+    const { error } = await db.rpc("entcrm_delete_stage", { _stage_id: s.id, _replacement: rep }); if (error) toast({ title: "Refusé", description: error.message }); reload(); };
+  const saveTrades = async (t: string[]) => { setTrades(t); const { error } = await db.from("ent_crm_settings").upsert({ company_id: companyId, trades: t, updated_at: new Date().toISOString() }); if (error) toast({ title: "Refusé", description: error.message }); };
+  const custom = stages.some((s) => s.id);
+  return <div className="grid gap-6 lg:grid-cols-2">
+    <section className="rounded-lg border border-border bg-card p-4"><div className="mb-2 flex items-center justify-between"><h2 className="font-display font-bold">Membres</h2>{canAdmin && <Button size="sm" onClick={add}><Plus className="mr-1 h-4 w-4" />Ajouter</Button>}</div>
+      {err && <p className="text-sm text-destructive">{err}</p>}
+      {members.map((m) => <div key={m.user_id} className="flex flex-wrap items-center gap-2 border-t border-border py-2 text-sm"><span className="min-w-0 flex-1 break-all">{m.email}</span>
+        {canAdmin ? <><select aria-label={`Rôle de ${m.email}`} className={sel} value={m.role} onChange={(e) => setMember(m.email, e.target.value, m.is_active)}>{ROLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}{!ROLES.some((r) => r[0] === m.role) && <option value={m.role}>{m.role}</option>}</select>
+          <Button size="sm" variant={m.is_active ? "outline" : "default"} onClick={() => setMember(m.email, ROLES.some((r) => r[0] === m.role) ? m.role : "lecture", !m.is_active)}>{m.is_active ? "Retirer l'accès" : "Rétablir"}</Button></>
+          : <span className="text-xs text-muted-foreground">{ROLES.find((r) => r[0] === m.role)?.[1] ?? m.role}{m.is_active ? "" : " · retiré"}</span>}</div>)}
+      <p className="mt-2 text-xs text-muted-foreground">Seuls des comptes existants peuvent être ajoutés; aucune invitation n'est envoyée. Aucun rôle d'entreprise ne donne accès aux autres entreprises.</p></section>
+    <section className="rounded-lg border border-border bg-card p-4"><div className="mb-2 flex items-center justify-between"><h2 className="font-display font-bold">Étapes commerciales</h2>{canAdmin && (custom ? <Button size="sm" onClick={addStage}><Plus className="mr-1 h-4 w-4" />Étape</Button> : <Button size="sm" onClick={initStages}>Personnaliser</Button>)}</div>
+      {stages.map((s) => <div key={s.v} className="flex items-center gap-2 border-t border-border py-2 text-sm"><span className="flex-1">{s.l}</span><span className="text-xs text-muted-foreground">{s.kind}</span>
+        {canAdmin && s.id && <><Button size="sm" variant="ghost" onClick={async () => { const l = prompt("Nouveau nom ?", s.l); if (!l) return; await db.from("ent_crm_stages").update({ label: l }).eq("id", s.id); reload(); }}>Renommer</Button><Button size="sm" variant="ghost" onClick={() => delStage(s)}>Retirer</Button></>}</div>)}</section>
+    <section className="rounded-lg border border-border bg-card p-4"><h2 className="mb-2 font-display font-bold">Activités de l'entreprise</h2>
+      {Object.entries(TRADES).map(([k, t]) => <label key={k} className="flex items-center gap-2 py-1 text-sm"><input type="checkbox" disabled={!canAdmin} checked={trades.includes(k)} onChange={(e) => saveTrades(e.target.checked ? [...trades, k] : trades.filter((x) => x !== k))} />{t.l}</label>)}</section>
+  </div>;
 }
