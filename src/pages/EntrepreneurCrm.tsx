@@ -321,7 +321,7 @@ function Clients({ companyId, canWrite }: any) {
     <div className="grid gap-2 md:grid-cols-2">{shown.map((c) => <div key={c.id} className="rounded-lg border border-border bg-card p-3 text-sm">
       <p className="font-display font-bold">{c.name} <span className="text-xs font-normal text-muted-foreground">({c.kind})</span>{c.jsc_client_id && <span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-xs font-normal">Dossier Transport JSC</span>}</p>
       {c.jsc_client_id && refs[c.id] && <p className="text-xs text-muted-foreground">Historique existant : {refs[c.id].requests} demande(s) · {refs[c.id].quotes} soumission(s) · {refs[c.id].orders} commande(s) · {refs[c.id].invoices} facture(s)</p>}
-      <p className="text-xs text-muted-foreground">{c.phone} {c.email} {c.address}</p>
+      <p className="text-xs text-muted-foreground">{c.phone} {c.email} {c.address} {c.city}</p>
       <p className="mt-1 text-xs"><strong>Contacts :</strong> {c.ent_crm_contacts.map((x: any) => `${x.name}${x.phone ? " " + x.phone : ""}`).join(" · ") || "—"}</p>
       <p className="text-xs"><strong>Opportunités :</strong> {c.ent_crm_leads.map((x: any) => x.title).join(" · ") || "—"}</p>
       <p className="text-xs"><strong>Chantiers :</strong> {c.ent_crm_projects.map((x: any) => x.name).join(" · ") || "—"}</p>
