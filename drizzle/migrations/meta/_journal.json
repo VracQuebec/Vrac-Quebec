@@ -344,6 +344,13 @@
       "when": 1790498462877,
       "tag": "0048_entcrm_null_safe_rights",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1790521886930,
+      "tag": "0049_entcrm_jsc_client_link",
+      "breakpoints": true
     }
   ]
 }
