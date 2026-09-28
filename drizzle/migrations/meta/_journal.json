@@ -379,6 +379,13 @@
       "when": 1790617618294,
       "tag": "0053_access_request_status_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1790617947376,
+      "tag": "0054_single_entrepreneur_status_notification",
+      "breakpoints": true
     }
   ]
 }

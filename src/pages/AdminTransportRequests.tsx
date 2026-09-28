@@ -6,7 +6,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import FullPageState from "@/components/FullPageState";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Phone, Mail, MapPin, ArrowLeft, X, Clock } from "lucide-react";
-import { ACCESS_STATUSES, normalizeStatus, statusMeta, statusLabel } from "@/lib/access-requests/status";
+import { ACCESS_STATUSES, visibleStatuses, normalizeStatus, statusMeta, statusLabel } from "@/lib/access-requests/status";
 import AccessRequestStats from "@/components/admin/AccessRequestStats";
 
 interface TR {
@@ -150,7 +150,7 @@ const AdminTransportRequests = () => {
         {/* Status pills */}
         <div className="flex flex-wrap gap-1.5 mb-4">
           <StatusPill label={`Toutes (${counts.all})`} active={statusFilter === "all"} onClick={() => setStatusFilter("all")} />
-          {ACCESS_STATUSES.map((s) => (
+          {ACCESS_STATUSES.filter((s) => !s.hidden || (counts[s.value] || 0) > 0).map((s) => (
             <StatusPill
               key={s.value}
               label={`${s.label} (${counts[s.value] || 0})`}
@@ -237,7 +237,7 @@ const AdminTransportRequests = () => {
                   }}
                   className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm"
                 >
-                  {ACCESS_STATUSES.map((s) => (
+                  {visibleStatuses(selected.status).map((s) => (
                     <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
                 </select>
