@@ -406,14 +406,15 @@ function Quotes({ companyId, companyName, canWrite }: any) {
     return <div className="print:p-0"><Button className="print:hidden mb-3" onClick={() => window.print()}>Télécharger / imprimer en PDF</Button> <Button variant="outline" className="print:hidden mb-3" onClick={() => setPrint(null)}>Fermer</Button>
     <div className="rounded border border-border bg-card p-6 text-sm"><p className="font-display text-lg font-bold">{companyName}</p><h2 className="font-display text-xl font-bold">Soumission {print.number ?? ""} (v{print.version})</h2><p>Client : {print.ent_crm_clients?.name ?? "—"}</p>
       <div className="mt-3 overflow-x-auto"><table className="w-full text-xs sm:text-sm [&_th]:whitespace-nowrap [&_th]:pr-1.5 [&_td]:pr-1.5 [&_td:not(:first-child)]:whitespace-nowrap"><thead><tr className="text-left"><th>Description</th><th>Qté</th><th>Unité</th><th>Prix</th><th>Total</th></tr></thead><tbody>{lines.map((l, i) => <tr key={i}><td>{l.section ? `${l.section} — ` : ""}{l.desc}</td><td>{l.qty ?? "À compléter"}</td><td>{unitLabel(l.unit)}</td><td>{l.price == null ? "À renseigner" : money(l.price)}</td><td>{lineTotal(l) == null ? "—" : money(lineTotal(l))}</td></tr>)}</tbody></table></div>
-      <p className="mt-2 font-bold">Sous-total avant taxes : {money(st)}</p><p className="text-xs text-muted-foreground">Taxes applicables selon votre inscription (TPS/TVQ), non calculées ici : aucun taux n'est saisi dans le CRM.</p>
+      <p className="mt-2 font-bold">Montant hors taxes : {money(st)}</p>
+      <p className="text-xs">TPS/TVQ : non configurées — non calculées. Ce montant n'est ni un total taxes incluses ni un montant final à payer.</p>
       {incomplete(lines) > 0 && <p className="text-xs text-destructive">{incomplete(lines)} ligne(s) à compléter : montant partiel.</p>}
       {print.inclusions && <p className="mt-2"><strong>Inclusions :</strong> {print.inclusions}</p>}{print.exclusions && <p><strong>Exclusions :</strong> {print.exclusions}</p>}{print.conditions && <p><strong>Conditions :</strong> {print.conditions}</p>}{print.valid_until && <p>Valide jusqu'au {print.valid_until}</p>}
-      {printDocs.length > 0 && <p className="mt-2"><strong>Pièces jointes :</strong> {printDocs.join(", ")}</p>}</div></div>; }
+      {printDocs.length > 0 && <p className="mt-2"><strong>Pièces prévues pour le client (liste des noms, fichiers non inclus dans ce document) :</strong> {printDocs.join(", ")}</p>}</div></div>; }
   return <div>{canWrite && <Button className="mb-3" onClick={() => edit({ lines: [] })}><Plus className="mr-1 h-4 w-4" />Nouvelle soumission</Button>}
     <div className="grid gap-2">{rows.map((q) => <div key={q.id} className="rounded-lg border border-border bg-card p-3 text-sm">
       <p className="font-display font-bold">{q.number || "Soumission"} · {q.ent_crm_clients?.name ?? "Sans client"} · v{q.version} · <span className="uppercase">{q.status}</span></p>
-      <p className="text-xs">Estimé : {money(Number(q.subtotal))} · Facturé : {money(q.invoiced_amount)} · Encaissé : {money(q.paid_amount)}</p>
+      <p className="text-xs">Estimé (hors taxes, taxes non calculées) : {money(Number(q.subtotal))} · Facturé : {money(q.invoiced_amount)} · Encaissé : {money(q.paid_amount)}</p>
       {q.accepted_at && <p className="text-xs text-muted-foreground">Acceptée par {q.accepted_by_name} ({q.accepted_source}) le {new Date(q.accepted_at).toLocaleString("fr-CA")}</p>}
       <div className="mt-2 flex flex-wrap gap-1">
         <Button size="sm" variant="outline" onClick={() => openPrint(q)}>PDF</Button>
@@ -439,7 +440,8 @@ function Quotes({ companyId, companyName, canWrite }: any) {
       <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => edit({ ...open, lines: [...open.lines, { desc: "", qty: null, unit: "unite", price: null }] })}>+ Ligne libre</Button>
         {(open.lines as QLine[]).some((l) => l.service_id) && <Button variant="outline" size="sm" onClick={refreshPrices}>Actualiser les tarifs</Button>}</div>
       {diff && <div className="rounded border border-border p-2 text-xs"><p className="font-semibold">Différences avec le catalogue actuel :</p>{diff.map((d: any) => <p key={d.i}>{d.desc} : {d.old == null ? "À renseigner" : money(d.old)} → {d.next == null ? "À renseigner" : money(d.next)}</p>)}<div className="mt-1 flex gap-1"><Button size="sm" onClick={applyDiff}>Appliquer</Button><Button size="sm" variant="ghost" onClick={() => setDiff(null)}>Ignorer</Button></div></div>}
-      <p className="text-sm font-bold">Sous-total : {money(subtotal(open.lines))}{incomplete(open.lines) > 0 && <span className="ml-1 text-xs font-normal text-destructive">({incomplete(open.lines)} ligne(s) à compléter)</span>}</p>
+      <p className="text-sm font-bold">Montant hors taxes : {money(subtotal(open.lines))}{incomplete(open.lines) > 0 && <span className="ml-1 text-xs font-normal text-destructive">({incomplete(open.lines)} ligne(s) à compléter)</span>}</p>
+      <p className="text-xs text-muted-foreground">TPS/TVQ non configurées — non calculées.</p>
       <Textarea placeholder="Inclusions" value={open.inclusions ?? ""} onChange={(e) => edit({ ...open, inclusions: e.target.value })} />
       <Textarea placeholder="Exclusions" value={open.exclusions ?? ""} onChange={(e) => edit({ ...open, exclusions: e.target.value })} />
       <Textarea placeholder="Conditions / échéancier" value={open.conditions ?? ""} onChange={(e) => edit({ ...open, conditions: e.target.value })} />
