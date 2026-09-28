@@ -421,6 +421,13 @@
       "when": 1790631409087,
       "tag": "0059_crm_access_grant_log_fix",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1790633273993,
+      "tag": "0060_crm_gate_new_companies",
+      "breakpoints": true
     }
   ]
 }

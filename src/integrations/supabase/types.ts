@@ -13489,6 +13489,7 @@ export type Database = {
       }
       platform_access_settings: {
         Row: {
+          enforce_created_after: string | null
           enforced_company_ids: string[]
           enforcement_scope: string
           id: boolean
@@ -13496,6 +13497,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          enforce_created_after?: string | null
           enforced_company_ids?: string[]
           enforcement_scope?: string
           id?: boolean
@@ -13503,6 +13505,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          enforce_created_after?: string | null
           enforced_company_ids?: string[]
           enforcement_scope?: string
           id?: boolean
