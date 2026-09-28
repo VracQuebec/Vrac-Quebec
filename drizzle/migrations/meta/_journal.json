@@ -407,6 +407,20 @@
       "when": 1790628459262,
       "tag": "0057_entcrm_taxes_and_client_share",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1790631381750,
+      "tag": "0058_crm_subscription_gate",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1790631409087,
+      "tag": "0059_crm_access_grant_log_fix",
+      "breakpoints": true
     }
   ]
 }
