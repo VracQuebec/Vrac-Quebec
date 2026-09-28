@@ -1,1 +1,2 @@
 - CRM entrepreneurs : un client Transport JSC se relie via ent_crm_clients.jsc_client_id (rattachement explicite, même company_id); jsc_clients fait autorité sur l'identité, synchronisée par trigger — évite les doubles saisies divergentes.
+- Soumission client : partage par jeton unique (entcrm_public_quote/respond, fonction entcrm-quote-file); taxes calculées et figées côté serveur à la remise — le client ne voit que la version liée et les pièces cochées.
