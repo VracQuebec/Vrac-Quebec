@@ -267,6 +267,8 @@ async function checkoutHandler(user: { id: string; email?: string }, env: Stripe
     : (await stripe.customers.create({
         ...(company.email || user.email ? { email: company.email ?? user.email } : {}),
         name: company.companyName ?? undefined,
+        // Offre canadienne : pays prérempli au Canada (le client peut corriger son adresse).
+        address: { country: "CA" },
         metadata: { companyId: company.companyId, userId: user.id },
       })).id;
 
@@ -277,6 +279,9 @@ async function checkoutHandler(user: { id: string; email?: string }, env: Stripe
     customer: customerId,
     line_items: [{ price: price.id, quantity: 1 }],
     billing_address_collection: "required" as const,
+    // Aucune conversion automatique selon la localisation du navigateur : le prix reste en CAD.
+    adaptive_pricing: { enabled: false },
+    locale: "fr-CA" as const,
     subscription_data: {
       metadata: {
         companyId: company.companyId,
