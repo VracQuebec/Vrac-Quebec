@@ -428,6 +428,13 @@
       "when": 1790633273993,
       "tag": "0060_crm_gate_new_companies",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1790639318750,
+      "tag": "0061_entcrm_jsc_client_propagation",
+      "breakpoints": true
     }
   ]
 }
