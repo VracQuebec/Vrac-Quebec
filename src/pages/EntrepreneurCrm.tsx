@@ -560,3 +560,27 @@ function JscAttachPreview() {
     <p className="mt-1 text-xs text-muted-foreground">Effet d'un rattachement : le dossier CRM reprendrait l'identité du client historique (source d'autorité) ; les soumissions figées ne seraient jamais réécrites. Décision à prendre explicitement par le super admin.</p>
   </section>;
 }
+
+/** Taxes des soumissions : désactivées par défaut; taux et numéros saisis par l'entreprise. */
+function TaxSettings({ companyId, canAdmin }: { companyId: string; canAdmin: boolean }) {
+  const [s, setS] = useState<any>(null);
+  useEffect(() => { db.from("ent_crm_settings").select("taxes_enabled,gst_rate,qst_rate,gst_number,qst_number").eq("company_id", companyId).maybeSingle().then(({ data }: any) => setS(data ?? { taxes_enabled: false })); }, [companyId]);
+  if (!s) return null;
+  const save = async () => {
+    const g = s.gst_rate === "" || s.gst_rate == null ? null : Number(s.gst_rate), q = s.qst_rate === "" || s.qst_rate == null ? null : Number(s.qst_rate);
+    if (s.taxes_enabled && (g == null || q == null || g < 0 || q < 0 || g > 30 || q > 30)) return toast({ title: "Taux invalides", description: "Saisissez les deux taux (en %) avant d'activer les taxes.", variant: "destructive" });
+    const { error } = await db.from("ent_crm_settings").upsert({ company_id: companyId, taxes_enabled: !!s.taxes_enabled, gst_rate: g, qst_rate: q, gst_number: s.gst_number || null, qst_number: s.qst_number || null, updated_at: new Date().toISOString() });
+    toast({ title: error ? "Refusé" : "Taxes enregistrées", description: error?.message ?? "Appliquées aux prochaines soumissions remises; les soumissions déjà remises ne changent pas." });
+  };
+  return <section className="rounded-lg border border-border bg-card p-4"><h2 className="mb-2 font-display font-bold">Taxes des soumissions</h2>
+    <label className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={!canAdmin} checked={!!s.taxes_enabled} onChange={(e) => setS({ ...s, taxes_enabled: e.target.checked })} />Calculer TPS et TVQ sur mes soumissions</label>
+    <div className="mt-2 grid grid-cols-2 gap-2">
+      <Input aria-label="Taux TPS (%)" disabled={!canAdmin} type="number" step="0.001" placeholder="Taux TPS (%)" value={s.gst_rate ?? ""} onChange={(e) => setS({ ...s, gst_rate: e.target.value })} />
+      <Input aria-label="Taux TVQ (%)" disabled={!canAdmin} type="number" step="0.001" placeholder="Taux TVQ (%)" value={s.qst_rate ?? ""} onChange={(e) => setS({ ...s, qst_rate: e.target.value })} />
+      <Input aria-label="Numéro TPS" disabled={!canAdmin} placeholder="N° TPS" value={s.gst_number ?? ""} onChange={(e) => setS({ ...s, gst_number: e.target.value })} />
+      <Input aria-label="Numéro TVQ" disabled={!canAdmin} placeholder="N° TVQ" value={s.qst_number ?? ""} onChange={(e) => setS({ ...s, qst_number: e.target.value })} />
+    </div>
+    <p className="mt-2 text-xs text-muted-foreground">Vérifiez les taux en vigueur auprès de Revenu Québec. Les montants sont figés au moment où la soumission est remise.</p>
+    {canAdmin && <Button size="sm" className="mt-2" onClick={save}>Enregistrer</Button>}
+  </section>;
+}
