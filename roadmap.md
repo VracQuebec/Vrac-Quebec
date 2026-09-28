@@ -50,7 +50,11 @@
 
 ## CRM-FINAL (en cours)
 - [x] Relevé de départ : 1542 vérifications automatiques réussies; Mon CRM + Mon abonnement (compte fictif A) affichés sans erreur, ordinateur et mobile 390.
-- [ ] Parcours enrichis CRM-ENT-03B en navigateur : fichiers, coûts internes, rôles (A/B/opérateur/lecture), étape personnalisée.
+- [x] Fichiers (28/09) : envoi multiple, HEIC réel, limite 20 Mo serveur, reprise, téléchargement, liens multiples, retrait ≠ suppression, refus A/B — 25/25.
+- [x] Lien client : bonne version seule, pièces cochées seules, révocation (bouton « Retirer le lien » ajouté) — pas d'expiration par date (valide jusqu'au retrait).
+- [x] Rôles (28/09) : coûts internes, opérateur terrain, lecture seule, multi-entreprises, réglages isolés — 13/13.
+- [ ] Décision : l'abonnement ne conditionne pas encore l'accès au CRM (aucun contrôle de capacité branché) — à trancher avant d'appliquer, risque pour les entreprises réelles sans abonnement.
+- [ ] Autre métier sur téléphone, super admin (notre CRM + assistance), inscription nouvelle entreprise, clôture chantier mobile, import/export, retrait réseau, propagation JSC fictive.
 - [x] Soumission : taxes par entreprise figées à la remise, lien client, pièce téléchargeable, réponse client fictif, v2 révision, chantier — preuve navigateur (E2E 29209).
 - [ ] Super admin fictif : dossiers propres, supervision, assistance.
 - [ ] Cycle mensuel en mode test (renouvellement, échec, régularisation, annulation, factures).
