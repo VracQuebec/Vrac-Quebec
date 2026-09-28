@@ -397,17 +397,21 @@ function Quotes({ companyId, companyName, canWrite }: any) {
     const { data, error } = await db.from("ent_crm_projects").insert({ company_id: companyId, client_id: q.client_id, quote_id: q.id, name }).select("id").single();
     if (!error && data) await copyLinks(companyId, [{ t: "quote", id: q.id }, ...(q.lead_id ? [{ t: "lead", id: q.lead_id }] : [])], { t: "project", id: data.id });
     toast({ title: error ? "Refusé" : "Chantier créé avec les pièces de la soumission", description: error?.message.includes("duplicate") ? "Un chantier existe déjà pour cette soumission." : error?.message }); load(); };
-  const revise = async (q: any) => { const { id, created_at, updated_at, ent_crm_clients, ent_crm_projects, accepted_source, accepted_by_name, accepted_at, accepted_recorded_by, invoiced_amount, paid_amount, ...rest } = q;
+  const revise = async (q: any) => { const { id, created_at, updated_at, ent_crm_clients, ent_crm_projects, accepted_source, accepted_by_name, accepted_at, accepted_recorded_by, invoiced_amount, paid_amount, share_token, shared_at, client_viewed_at, client_response, client_response_name, client_response_note, client_responded_at, taxes_applied, gst_rate, qst_rate, tax_gst, tax_qst, total, ...rest } = q;
     const { error } = await db.from("ent_crm_quotes").insert({ ...rest, status: "brouillon", version: q.version + 1, parent_quote_id: q.id }); toast({ title: error ? "Refusé" : "Révision créée (la version acceptée reste inchangée)", description: error?.message }); load(); };
   const fin = async (q: any, k: string) => { const v = prompt(k === "invoiced_amount" ? "Montant facturé ?" : "Montant encaissé ?"); if (v == null) return; await db.from("ent_crm_quotes").update({ [k]: v === "" ? null : Number(v) }).eq("id", q.id); load(); };
+  const share = async (q: any) => { const { data, error } = await db.rpc("entcrm_share_quote", { _quote_id: q.id }); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" });
+    const url = `${window.location.origin}/s/${data}`; try { await navigator.clipboard.writeText(url); } catch { /* presse-papiers indisponible */ }
+    toast({ title: "Lien client prêt", description: `${url} — copié. Transmettez-le vous-même; aucun courriel n'est envoyé.` }); load(); };
   const openPrint = async (q: any) => { const { data } = await db.from("ent_crm_file_links").select("file:ent_crm_files(title,file_name)").eq("owner_type", "quote").eq("owner_id", q.id).eq("client_visible", true);
     setPrintDocs((data ?? []).map((d: any) => d.file?.title || d.file?.file_name).filter(Boolean)); setPrint(q); };
   if (print) { const lines = print.lines as QLine[]; const st = subtotal(lines);
     return <div className="print:p-0"><Button className="print:hidden mb-3" onClick={() => window.print()}>Télécharger / imprimer en PDF</Button> <Button variant="outline" className="print:hidden mb-3" onClick={() => setPrint(null)}>Fermer</Button>
     <div className="rounded border border-border bg-card p-6 text-sm"><p className="font-display text-lg font-bold">{companyName}</p><h2 className="font-display text-xl font-bold">Soumission {print.number ?? ""} (v{print.version})</h2><p>Client : {print.ent_crm_clients?.name ?? "—"}</p>
       <div className="mt-3 overflow-x-auto"><table className="w-full text-xs sm:text-sm [&_th]:whitespace-nowrap [&_th]:pr-1.5 [&_td]:pr-1.5 [&_td:not(:first-child)]:whitespace-nowrap"><thead><tr className="text-left"><th>Description</th><th>Qté</th><th>Unité</th><th>Prix</th><th>Total</th></tr></thead><tbody>{lines.map((l, i) => <tr key={i}><td>{l.section ? `${l.section} — ` : ""}{l.desc}</td><td>{l.qty ?? "À compléter"}</td><td>{unitLabel(l.unit)}</td><td>{l.price == null ? "À renseigner" : money(l.price)}</td><td>{lineTotal(l) == null ? "—" : money(lineTotal(l))}</td></tr>)}</tbody></table></div>
-      <p className="mt-2 font-bold">Montant hors taxes : {money(st)}</p>
-      <p className="text-xs">TPS/TVQ : non configurées — non calculées. Ce montant n'est ni un total taxes incluses ni un montant final à payer.</p>
+      <p className="mt-2 font-bold">Sous-total : {money(st)}</p>
+      {print.taxes_applied ? <><p>TPS ({print.gst_rate} %) : {money(print.tax_gst)}</p><p>TVQ ({print.qst_rate} %) : {money(print.tax_qst)}</p><p className="font-bold">Total : {money(print.total)}</p></>
+        : <p className="text-xs">Taxes non appliquées{print.status === "brouillon" ? " (calculées à la remise si activées dans les paramètres)" : ""}. Ce montant n'est pas un total taxes incluses.</p>}
       {incomplete(lines) > 0 && <p className="text-xs text-destructive">{incomplete(lines)} ligne(s) à compléter : montant partiel.</p>}
       {print.inclusions && <p className="mt-2"><strong>Inclusions :</strong> {print.inclusions}</p>}{print.exclusions && <p><strong>Exclusions :</strong> {print.exclusions}</p>}{print.conditions && <p><strong>Conditions :</strong> {print.conditions}</p>}{print.valid_until && <p>Valide jusqu'au {print.valid_until}</p>}
       {printDocs.length > 0 && <p className="mt-2"><strong>Pièces prévues pour le client (liste des noms, fichiers non inclus dans ce document) :</strong> {printDocs.join(", ")}</p>}</div></div>; }
@@ -424,7 +428,7 @@ function Quotes({ companyId, companyName, canWrite }: any) {
         {canWrite && q.status !== "brouillon" && <Button size="sm" variant="outline" onClick={() => share(q)}>{q.share_token ? "Copier le lien client" : "Créer le lien client"}</Button>}
         {canWrite && q.status === "remise" && <><Button size="sm" onClick={() => setStatus(q, "acceptee")}>Accepter (documenter)</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "refusee")}>Refusée</Button></>}
         {canWrite && q.status === "acceptee" && !(Array.isArray(q.ent_crm_projects) ? q.ent_crm_projects.length : q.ent_crm_projects) && <Button size="sm" onClick={() => toProject(q)}>Créer le chantier</Button>}
-        {canWrite && ["acceptee", "refusee", "remise"].includes(q.status) && <Button size="sm" variant="outline" onClick={() => revise(q)}>Réviser</Button>}
+        {canWrite && ["acceptee", "refusee"].includes(q.status) && <Button size="sm" variant="outline" onClick={() => revise(q)}>Réviser</Button>}
         {canWrite && q.status === "acceptee" && <><Button size="sm" variant="ghost" onClick={() => fin(q, "invoiced_amount")}>Facturé</Button><Button size="sm" variant="ghost" onClick={() => fin(q, "paid_amount")}>Encaissé</Button></>}
       </div>
       <FilesBtn t="quote" id={q.id} clientToggle /></div>)}</div>
@@ -445,7 +449,7 @@ function Quotes({ companyId, companyName, canWrite }: any) {
         {(open.lines as QLine[]).some((l) => l.service_id) && <Button variant="outline" size="sm" onClick={refreshPrices}>Actualiser les tarifs</Button>}</div>
       {diff && <div className="rounded border border-border p-2 text-xs"><p className="font-semibold">Différences avec le catalogue actuel :</p>{diff.map((d: any) => <p key={d.i}>{d.desc} : {d.old == null ? "À renseigner" : money(d.old)} → {d.next == null ? "À renseigner" : money(d.next)}</p>)}<div className="mt-1 flex gap-1"><Button size="sm" onClick={applyDiff}>Appliquer</Button><Button size="sm" variant="ghost" onClick={() => setDiff(null)}>Ignorer</Button></div></div>}
       <p className="text-sm font-bold">Montant hors taxes : {money(subtotal(open.lines))}{incomplete(open.lines) > 0 && <span className="ml-1 text-xs font-normal text-destructive">({incomplete(open.lines)} ligne(s) à compléter)</span>}</p>
-      <p className="text-xs text-muted-foreground">TPS/TVQ non configurées — non calculées.</p>
+      <p className="text-xs text-muted-foreground">Les taxes sont calculées et figées au moment de la remise, selon « Équipe et paramètres ».</p>
       <Textarea placeholder="Inclusions" value={open.inclusions ?? ""} onChange={(e) => edit({ ...open, inclusions: e.target.value })} />
       <Textarea placeholder="Exclusions" value={open.exclusions ?? ""} onChange={(e) => edit({ ...open, exclusions: e.target.value })} />
       <Textarea placeholder="Conditions / échéancier" value={open.conditions ?? ""} onChange={(e) => edit({ ...open, conditions: e.target.value })} />
