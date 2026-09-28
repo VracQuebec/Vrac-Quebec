@@ -386,6 +386,13 @@
       "when": 1790617947376,
       "tag": "0054_single_entrepreneur_status_notification",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1790624422091,
+      "tag": "0055_transport_request_owner_at_insert",
+      "breakpoints": true
     }
   ]
 }
