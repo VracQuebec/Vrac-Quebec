@@ -51,7 +51,7 @@
 ## CRM-FINAL (en cours)
 - [x] Relevé de départ : 1542 vérifications automatiques réussies; Mon CRM + Mon abonnement (compte fictif A) affichés sans erreur, ordinateur et mobile 390.
 - [ ] Parcours enrichis CRM-ENT-03B en navigateur : fichiers, coûts internes, rôles (A/B/opérateur/lecture), étape personnalisée.
-- [ ] Soumission : partage des pièces, consultation/réponse client, versions, chantier lié — preuve navigateur.
+- [x] Soumission : taxes par entreprise figées à la remise, lien client, pièce téléchargeable, réponse client fictif, v2 révision, chantier — preuve navigateur (E2E 29209).
 - [ ] Super admin fictif : dossiers propres, supervision, assistance.
 - [ ] Cycle mensuel en mode test (renouvellement, échec, régularisation, annulation, factures).
 - [ ] Bloqué : prix réel d'Entrepreneur Pro (à définir par Vrac Québec).
