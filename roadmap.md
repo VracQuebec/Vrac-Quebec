@@ -47,3 +47,13 @@
 - [x] « Ajouter à mon CRM » sans doublon ; statut source / accès retiré
 - [x] Aperçu super admin du rattachement JSC (lecture seule)
 - [ ] Parcours A/B/C en navigateur avec sessions fictives (390 px + ordinateur), étape personnalisée, isolation A/B des réglages — sessions à re-générer
+
+## CRM-FINAL (en cours)
+- [x] Relevé de départ : 1542 vérifications automatiques réussies; Mon CRM + Mon abonnement (compte fictif A) affichés sans erreur, ordinateur et mobile 390.
+- [ ] Parcours enrichis CRM-ENT-03B en navigateur : fichiers, coûts internes, rôles (A/B/opérateur/lecture), étape personnalisée.
+- [ ] Soumission : partage des pièces, consultation/réponse client, versions, chantier lié — preuve navigateur.
+- [ ] Super admin fictif : dossiers propres, supervision, assistance.
+- [ ] Cycle mensuel en mode test (renouvellement, échec, régularisation, annulation, factures).
+- [ ] Bloqué : prix réel d'Entrepreneur Pro (à définir par Vrac Québec).
+- [ ] Bloqué : compte de paiement réel non connecté (Stripe à réclamer et activer).
+- [ ] Bloqué : publication — autorisation explicite requise.
