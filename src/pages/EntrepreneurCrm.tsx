@@ -54,15 +54,19 @@ export default function EntrepreneurCrm() {
     })();
   }, [isReady, rl, user, isAdmin, supportUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [access, setAccess] = useState<{ paid: boolean; source: string; period_end?: string } | null>(null);
   useEffect(() => {
     if (!companyId || !user) return;
     localStorage.setItem(`vq.entcrm.company.${user.id}`, companyId);
-    setRole(null);
+    setRole(null); setAccess(null);
     db.rpc("entcrm_role", { _company_id: companyId }).then(({ data }: any) => setRole(data));
+    // Droits payants recalculés à chaque changement d'entreprise (jamais conservés).
+    db.rpc("entcrm_access_status", { _company_id: companyId }).then(({ data }: any) => setAccess(data ?? { paid: false, source: "none" }));
   }, [companyId, user, isAdmin]);
 
   const company = companies.find((c) => c.id === companyId);
-  const canWrite = ["support", "proprietaire", "gestionnaire"].includes(role ?? "");
+  const paid = role === "support" || !!access?.paid;
+  const canWrite = paid && ["support", "proprietaire", "gestionnaire"].includes(role ?? "");
   const canFinance = ["support", "proprietaire", "gestionnaire", "comptabilite", "lecture"].includes(role ?? "");
   const canCommercial = canFinance;
   const canAdmin = ["support", "proprietaire"].includes(role ?? "");
@@ -88,6 +92,16 @@ export default function EntrepreneurCrm() {
         </div>
         {companyId && role === null ? <p className="text-muted-foreground">Vérification des droits…</p> : !companyId ? <p className="text-muted-foreground">Aucune entreprise accessible. Un compte approuvé est requis.</p> : (
           <>
+            {access && !paid && (
+              <div role="alert" className="mb-4 rounded-md border border-border bg-muted p-3 text-sm">
+                <strong>Accès limité : aucun abonnement en cours pour cette entreprise.</strong>{" "}
+                Vos données sont conservées : vous pouvez les consulter, les exporter et gérer l'équipe. Les nouvelles opérations (leads, soumissions, fichiers, chantiers) reprennent dès l'abonnement.{" "}
+                {canAdmin && <Link to="/entrepreneur/abonnement" className="underline font-semibold">Voir l'abonnement et les factures</Link>}
+              </div>
+            )}
+            {access?.paid && access.source === "subscription" && access.period_end && (
+              <p className="mb-3 text-xs text-muted-foreground">Abonnement valable jusqu'au {new Date(access.period_end).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}.</p>
+            )}
             <nav className="mb-5 flex gap-1 overflow-x-auto border-b border-border pb-2">
               {visibleTabs.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-display font-semibold ${tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>{l}</button>)}
             </nav>
