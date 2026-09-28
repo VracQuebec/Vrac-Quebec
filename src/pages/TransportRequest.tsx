@@ -583,7 +583,7 @@ const TransportRequest = () => {
       // Le serveur ne retourne que les dompes au statut CRM « en attente de livraison ».
       // On exclut en plus toute dompe sans numéro CRM valide (jamais de numéro fabriqué).
       const filtered = all.filter((d) =>
-        crmDompeNumber(d) !== null && matchesMaterial(d.materials || [], material)
+        crmDompeNumber(d) !== null && (d.id === preselectDumpRef.current || matchesMaterial(d.materials || [], material))
       ) as DumpCandidate[];
 
       // Compute driving distance via edge function
