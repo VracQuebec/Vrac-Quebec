@@ -393,6 +393,13 @@
       "when": 1790624422091,
       "tag": "0055_transport_request_owner_at_insert",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1790625929840,
+      "tag": "0056_fix_notification_email_token",
+      "breakpoints": true
     }
   ]
 }
