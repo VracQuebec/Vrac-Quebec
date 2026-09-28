@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import UniversalNav from "@/components/UniversalNav";
+import AccessGrantsPanel from "@/components/platform/AccessGrantsPanel";
 import { isFeatureEnabled, type FeatureFlag, FEATURE_FLAGS } from "@/lib/flags";
 import {
   fetchPlans, savePlan, fetchSectors, createSector, setSectorActive,
@@ -334,6 +335,7 @@ export default function AdminPlatformSettings() {
                     {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
+                <AccessGrantsPanel companyId={companyId} companyName={companies.find((c) => c.id === companyId)?.name} />
                 <div className="divide-y rounded-xl border border-border bg-card">
                   {companies.map((c) => (
                     <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
