@@ -403,6 +403,9 @@ function Quotes({ companyId, companyName, canWrite }: any) {
   const share = async (q: any) => { const { data, error } = await db.rpc("entcrm_share_quote", { _quote_id: q.id }); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" });
     const url = `${window.location.origin}/s/${data}`; try { await navigator.clipboard.writeText(url); } catch { /* presse-papiers indisponible */ }
     toast({ title: "Lien client prêt", description: `${url} — copié. Transmettez-le vous-même; aucun courriel n'est envoyé.` }); load(); };
+  const unshare = async (q: any) => { if (!confirm("Retirer le lien client ? L'ancien lien affichera « Lien invalide ou retiré ». Les réponses déjà reçues sont conservées.")) return;
+    const { error } = await db.from("ent_crm_quotes").update({ share_token: null }).eq("id", q.id); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" });
+    toast({ title: "Lien client retiré" }); load(); };
   const openPrint = async (q: any) => { const { data } = await db.from("ent_crm_file_links").select("file:ent_crm_files(title,file_name)").eq("owner_type", "quote").eq("owner_id", q.id).eq("client_visible", true);
     setPrintDocs((data ?? []).map((d: any) => d.file?.title || d.file?.file_name).filter(Boolean)); setPrint(q); };
   if (print) { const lines = print.lines as QLine[]; const st = subtotal(lines);
@@ -426,6 +429,7 @@ function Quotes({ companyId, companyName, canWrite }: any) {
         <Button size="sm" variant="outline" onClick={() => openPrint(q)}>PDF</Button>
         {canWrite && q.status === "brouillon" && <><Button size="sm" variant="outline" onClick={() => edit(q)}>Modifier</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "remise")}>Marquer remise</Button></>}
         {canWrite && q.status !== "brouillon" && <Button size="sm" variant="outline" onClick={() => share(q)}>{q.share_token ? "Copier le lien client" : "Créer le lien client"}</Button>}
+        {canWrite && q.share_token && <Button size="sm" variant="ghost" onClick={() => unshare(q)}>Retirer le lien</Button>}
         {canWrite && q.status === "remise" && <><Button size="sm" onClick={() => setStatus(q, "acceptee")}>Accepter (documenter)</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "refusee")}>Refusée</Button></>}
         {canWrite && q.status === "acceptee" && !(Array.isArray(q.ent_crm_projects) ? q.ent_crm_projects.length : q.ent_crm_projects) && <Button size="sm" onClick={() => toProject(q)}>Créer le chantier</Button>}
         {canWrite && ["acceptee", "refusee"].includes(q.status) && <Button size="sm" variant="outline" onClick={() => revise(q)}>Réviser</Button>}
