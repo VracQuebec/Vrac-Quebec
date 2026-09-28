@@ -18,13 +18,15 @@ export interface AccessStatusMeta {
   color: string;
   /** Regroupement utilisé dans l'espace entrepreneur. */
   bucket: "pending" | "accepted" | "completed" | "refused";
+  /** Statut conservé pour les anciens dossiers, masqué des choix admin. */
+  hidden?: boolean;
 }
 
 export const ACCESS_STATUSES: AccessStatusMeta[] = [
   { value: "nouvelle", label: "Nouvelle demande", color: "#3b82f6", bucket: "pending" },
   { value: "en_analyse", label: "En analyse", color: "#8b5cf6", bucket: "pending" },
   { value: "informations_requises", label: "Informations requises", color: "#f97316", bucket: "pending" },
-  { value: "en_attente_proprietaire", label: "En attente du propriétaire", color: "#f59e0b", bucket: "pending" },
+  { value: "en_attente_proprietaire", label: "En attente du propriétaire", color: "#f59e0b", bucket: "pending", hidden: true },
   { value: "acceptee", label: "Acceptée", color: "#10b981", bucket: "accepted" },
   { value: "refusee", label: "Refusée", color: "#ef4444", bucket: "refused" },
   { value: "terminee", label: "Terminée", color: "#22c55e", bucket: "completed" },
@@ -61,3 +63,7 @@ export const statusBucket = (raw: string | null | undefined) => statusMeta(raw).
 export const OPEN_STATUSES: AccessStatus[] = ["nouvelle", "en_analyse", "informations_requises", "en_attente_proprietaire", "acceptee"];
 /** Statuts terminaux (historique). */
 export const CLOSED_STATUSES: AccessStatus[] = ["terminee", "annulee", "refusee"];
+
+/** Statuts proposés dans l'administration (parcours simplifié). */
+export const visibleStatuses = (current?: string | null) =>
+  ACCESS_STATUSES.filter((s) => !s.hidden || (current != null && normalizeStatus(current) === s.value));
