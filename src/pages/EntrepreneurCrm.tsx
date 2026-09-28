@@ -486,7 +486,7 @@ function Projects({ companyId, canWrite }: any) {
     <FilesBtn t="project" id={p.id} />
     {canWrite ? <div className="mt-2 grid gap-1"><Input placeholder="Adresse" defaultValue={p.address ?? ""} onBlur={(e) => e.target.value !== (p.address ?? "") && upd(p, "address", e.target.value)} />
       <div className="flex gap-1"><Input type="date" defaultValue={p.start_date ?? ""} onBlur={(e) => upd(p, "start_date", e.target.value)} /><Input type="date" defaultValue={p.end_date ?? ""} onBlur={(e) => upd(p, "end_date", e.target.value)} /></div>
-      <select className={sel} value={p.status} onChange={(e) => upd(p, "status", e.target.value)}>{["a_planifier", "planifie", "en_cours", "termine", "annule"].map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}</select></div>
+      <select className={sel} value={p.status} onChange={(e) => upd(p, "status", e.target.value)}>{([["a_planifier", "À planifier"], ["planifie", "Planifié"], ["en_cours", "En cours"], ["termine", "Terminé (clôturé)"], ["annule", "Annulé"]] as const).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
       : <p className="text-xs">{p.address} · {p.status}</p>}
   </div>)}</div>;
 }
