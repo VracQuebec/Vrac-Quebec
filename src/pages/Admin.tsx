@@ -711,6 +711,10 @@ const Admin = () => {
             className={`px-4 py-2 rounded-lg text-sm font-display font-semibold ${tab === "entrepreneurs" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
             Entrepreneurs
           </button>
+          <button onClick={() => setShowUsers(true)}
+            className="px-4 py-2 rounded-lg text-sm font-display font-semibold bg-secondary text-foreground">
+            Comptes et approbations
+          </button>
         </div>
 
         {tab === "entrepreneurs" ? (
