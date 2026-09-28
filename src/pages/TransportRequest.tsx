@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BULK_TRUCK_TYPES } from "@/lib/trucks/catalog";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
@@ -697,8 +698,8 @@ const TransportRequest = () => {
       distance_km: selectedDump.road_distance ? (selectedDump.distance_km ?? null) : null,
       travel_time_minutes: selectedDump.road_distance ? (selectedDump.duration_minutes ?? null) : null,
       // Le libellé sert à l'affichage CRM ; le code sert au recalcul serveur.
-      truck_type: selectedRate?.label ?? truckType ?? null,
-      truck_rate_code: selectedRate?.code ?? null,
+      truck_type: selectedRate?.label ?? (truckType || null),
+      truck_rate_code: selectedRate && Number(trips) > 0 ? selectedRate.code : null,
       estimated_trips: trips ? Number(trips) : null,
       desired_date: desiredDate || null,
       desired_time: desiredTime || null,
@@ -767,10 +768,8 @@ const TransportRequest = () => {
       // Le serveur exige toujours un numéro de téléphone.
       if (!clientPhone.trim()) missing.push("Téléphone");
       // Le prix du transport doit pouvoir être calculé avant l'envoi.
-      if (!truckType) missing.push("Type de camion");
-      else if (!selectedRate) missing.push("Tarif du camion (introuvable)");
-      if (!(Number(trips) > 0)) missing.push("Nombre de voyages");
-      else if (transportPricing && "error" in transportPricing) missing.push(transportPricing.error);
+      // Camion et voyages : facultatifs, déterminés plus tard par Vrac Québec.
+      if (trips && !(Number.isInteger(Number(trips)) && Number(trips) > 0)) missing.push("Nombre de voyages (entier supérieur à 0)");
     }
     return missing;
   }, [step, material, coords, address, quantity, unit, selectedDump, user, clientName, clientCompany, clientPhone, clientEmail, truckType, trips, selectedRate, transportPricing]);
@@ -1536,7 +1535,7 @@ const TransportRequest = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 text-sm">
                     <ReadOnlyRow label="Nom du contact" value={contactName || clientName} />
                     <ReadOnlyRow label="Entreprise" value={clientCompany} />
-                    <ReadOnlyRow label="Téléphone" value={clientPhone} />
+
                     <ReadOnlyRow label="Courriel" value={clientEmail} />
                     {billingAddress && (
                       <ReadOnlyRow label="Adresse de facturation" value={billingAddress} />
@@ -1544,31 +1543,16 @@ const TransportRequest = () => {
                   </div>
                 </div>
 
-                {profileLoaded && (!clientPhone.trim() || !clientCompany.trim()) && (
-                  <div className="mt-3 rounded-xl border-2 border-amber-400/60 bg-amber-50 dark:bg-amber-950/30 p-4">
-                    <p className="text-sm font-body text-foreground">
-                      Certaines informations de votre profil sont manquantes. Complétez votre profil
-                      pour poursuivre.
-                    </p>
-                    {!clientPhone.trim() && (
-                      <div className="mt-3">
-                        <Field
-                          label="Téléphone *"
-                          value={clientPhone}
-                          onChange={setClientPhone}
-                          placeholder="418-555-0000"
-                          type="tel"
-                        />
-                      </div>
-                    )}
-                    <Link
-                      to="/entrepreneur/compte"
-                      className="mt-3 inline-flex items-center rounded-lg bg-primary px-3.5 py-2 font-display font-bold text-xs text-primary-foreground"
-                    >
-                      Compléter mon profil
-                    </Link>
-                  </div>
-                )}
+                <div className="mt-3">
+                  <Field
+                    label="Téléphone pour cette demande *"
+                    value={clientPhone}
+                    onChange={setClientPhone}
+                    placeholder="418-555-0000"
+                    type="tel"
+                  />
+                </div>
+
               </div>
             ) : (
               <div className="mb-4">
@@ -1588,28 +1572,25 @@ const TransportRequest = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="block">
                 <span className="block text-xs font-display font-bold uppercase text-muted-foreground mb-1.5">
-                  Type de camion *
+                  Type de camion (facultatif)
                 </span>
                 <select
                   value={truckType}
                   onChange={(e) => setTruckType(e.target.value)}
                   className="h-12 w-full rounded-lg border border-input bg-background px-3 text-base sm:text-sm text-foreground"
                 >
-                  <option value="">Choisir un type de camion…</option>
-                  {truckRates.map((r) => (
-                    <option key={r.code} value={r.code}>
-                      {r.label} — {formatCad(r.price_per_trip)} / voyage
-                    </option>
+                  <option value="">À déterminer par Vrac Québec</option>
+                  {BULK_TRUCK_TYPES.map((t) => (
+                    <option key={t.key} value={t.label}>{t.label}</option>
                   ))}
-                  {/* Valeur historique ou préremplie hors grille : conservée */}
-                  {truckType && !truckRates.some((r) => r.code === truckType) && (
+                  {truckType && !BULK_TRUCK_TYPES.some((t) => t.label === truckType) && (
                     <option value={truckType}>{truckType}</option>
                   )}
                 </select>
               </label>
               <label className="block">
                 <span className="block text-xs font-display font-bold uppercase text-muted-foreground mb-1.5">
-                  Nombre de voyages *
+                  Nombre de voyages (facultatif)
                 </span>
                 <input
                   type="number"
@@ -1618,7 +1599,7 @@ const TransportRequest = () => {
                   inputMode="numeric"
                   value={trips}
                   onChange={(e) => setTrips(e.target.value)}
-                  placeholder="Ex. 3"
+                  placeholder="À déterminer"
                   className="h-12 w-full rounded-lg border border-input bg-background px-3 text-base sm:text-sm text-foreground"
                 />
               </label>
@@ -1626,9 +1607,11 @@ const TransportRequest = () => {
               <Field label="Heure souhaitée" value={desiredTime} onChange={setDesiredTime} type="time" />
             </div>
 
-            <div className="mt-4">
-              <TransportEstimate pricing={transportPricing} />
-            </div>
+            {selectedRate && (
+              <div className="mt-4">
+                <TransportEstimate pricing={transportPricing} />
+              </div>
+            )}
 
             <label className="block mt-3">
               <span className="block text-xs font-display font-bold uppercase text-muted-foreground mb-1.5">
