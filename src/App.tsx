@@ -19,6 +19,7 @@ function AdminNotificationsMount() {
 }
 
 const Login = lazy(() => import("./pages/Login"));
+const SoumissionClient = lazy(() => import("./pages/SoumissionClient"));
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminData = lazy(() => import("./pages/AdminData"));
 const AdminCalendar = lazy(() => import("./pages/AdminCalendar"));
@@ -249,6 +250,7 @@ const App = () => (
             <Route path="/portail/client" element={<ClientPortal />} />
             <Route path="/portail/chauffeur" element={<DriverPortal />} />
             <Route path="/soumission" element={<Soumission />} />
+            <Route path="/s/:token" element={<SoumissionClient />} />
             <Route path="/acheter-materiaux" element={<AchatVrac />} />
             <Route path="/materiaux" element={<Catalogue />} />
             <Route path="/remblai" element={<Remblai />} />

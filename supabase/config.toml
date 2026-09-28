@@ -52,3 +52,6 @@ verify_jwt = false
 
 [functions.payments-webhook]
 verify_jwt = false
+
+[functions.entcrm-quote-file]
+verify_jwt = false

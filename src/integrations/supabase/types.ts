@@ -2555,11 +2555,17 @@ export type Database = {
           accepted_recorded_by: string | null
           accepted_source: string | null
           client_id: string | null
+          client_responded_at: string | null
+          client_response: string | null
+          client_response_name: string | null
+          client_response_note: string | null
+          client_viewed_at: string | null
           company_id: string
           conditions: string | null
           created_at: string
           created_by: string | null
           exclusions: string | null
+          gst_rate: number | null
           id: string
           inclusions: string | null
           invoiced_amount: number | null
@@ -2568,8 +2574,15 @@ export type Database = {
           number: string | null
           paid_amount: number | null
           parent_quote_id: string | null
+          qst_rate: number | null
+          share_token: string | null
+          shared_at: string | null
           status: string
           subtotal: number
+          tax_gst: number | null
+          tax_qst: number | null
+          taxes_applied: boolean
+          total: number | null
           updated_at: string
           valid_until: string | null
           version: number
@@ -2580,11 +2593,17 @@ export type Database = {
           accepted_recorded_by?: string | null
           accepted_source?: string | null
           client_id?: string | null
+          client_responded_at?: string | null
+          client_response?: string | null
+          client_response_name?: string | null
+          client_response_note?: string | null
+          client_viewed_at?: string | null
           company_id: string
           conditions?: string | null
           created_at?: string
           created_by?: string | null
           exclusions?: string | null
+          gst_rate?: number | null
           id?: string
           inclusions?: string | null
           invoiced_amount?: number | null
@@ -2593,8 +2612,15 @@ export type Database = {
           number?: string | null
           paid_amount?: number | null
           parent_quote_id?: string | null
+          qst_rate?: number | null
+          share_token?: string | null
+          shared_at?: string | null
           status?: string
           subtotal?: number
+          tax_gst?: number | null
+          tax_qst?: number | null
+          taxes_applied?: boolean
+          total?: number | null
           updated_at?: string
           valid_until?: string | null
           version?: number
@@ -2605,11 +2631,17 @@ export type Database = {
           accepted_recorded_by?: string | null
           accepted_source?: string | null
           client_id?: string | null
+          client_responded_at?: string | null
+          client_response?: string | null
+          client_response_name?: string | null
+          client_response_note?: string | null
+          client_viewed_at?: string | null
           company_id?: string
           conditions?: string | null
           created_at?: string
           created_by?: string | null
           exclusions?: string | null
+          gst_rate?: number | null
           id?: string
           inclusions?: string | null
           invoiced_amount?: number | null
@@ -2618,8 +2650,15 @@ export type Database = {
           number?: string | null
           paid_amount?: number | null
           parent_quote_id?: string | null
+          qst_rate?: number | null
+          share_token?: string | null
+          shared_at?: string | null
           status?: string
           subtotal?: number
+          tax_gst?: number | null
+          tax_qst?: number | null
+          taxes_applied?: boolean
+          total?: number | null
           updated_at?: string
           valid_until?: string | null
           version?: number
@@ -2802,17 +2841,38 @@ export type Database = {
       }
       ent_crm_settings: {
         Row: {
+          brand_color: string | null
           company_id: string
+          gst_number: string | null
+          gst_rate: number | null
+          qst_number: string | null
+          qst_rate: number | null
+          quote_footer: string | null
+          taxes_enabled: boolean
           trades: string[]
           updated_at: string
         }
         Insert: {
+          brand_color?: string | null
           company_id: string
+          gst_number?: string | null
+          gst_rate?: number | null
+          qst_number?: string | null
+          qst_rate?: number | null
+          quote_footer?: string | null
+          taxes_enabled?: boolean
           trades?: string[]
           updated_at?: string
         }
         Update: {
+          brand_color?: string | null
           company_id?: string
+          gst_number?: string | null
+          gst_rate?: number | null
+          qst_number?: string | null
+          qst_rate?: number | null
+          quote_footer?: string | null
+          taxes_enabled?: boolean
           trades?: string[]
           updated_at?: string
         }
@@ -20233,6 +20293,16 @@ export type Database = {
       }
       entcrm_open_support: { Args: { _company_id: string }; Returns: boolean }
       entcrm_path_company: { Args: { _path: string }; Returns: string }
+      entcrm_public_quote: { Args: { _token: string }; Returns: Json }
+      entcrm_public_respond: {
+        Args: {
+          _decision: string
+          _name: string
+          _note: string
+          _token: string
+        }
+        Returns: string
+      }
       entcrm_role: { Args: { _company_id: string }; Returns: string }
       entcrm_set_member: {
         Args: {
@@ -20243,6 +20313,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      entcrm_share_quote: { Args: { _quote_id: string }; Returns: string }
       entcrm_track_network: {
         Args: { _company_id: string; _id: string; _type: string }
         Returns: string
