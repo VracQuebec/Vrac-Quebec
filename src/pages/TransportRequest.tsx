@@ -241,7 +241,7 @@ const matchesMaterial = (dumpMaterials: string[], selected: string): boolean => 
 const TransportRequest = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuthReady();
+  const { user, isReady: authReady } = useAuthReady();
   const { profile, saveProfile } = useEntrepreneurProfile();
   const [savingProfile, setSavingProfile] = useState(false);
   const [step, setStep] = useState<Step>(1);
@@ -319,7 +319,6 @@ const TransportRequest = () => {
   const submissionIdRef = useRef<string | null>(null);
   // Parcours ouvert depuis l'espace entrepreneur : connexion obligatoire.
   const fromEntrepreneurRef = useRef(false);
-  const { isReady: authReady } = useAuthReady();
   useEffect(() => {
     if (authReady && !user && fromEntrepreneurRef.current) navigate("/login", { replace: true });
   }, [authReady, user, navigate]);
