@@ -10,6 +10,7 @@ import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProv
 import { buildEntrepreneurRequests } from "@/lib/entrepreneur-app/requests";
 import { findChantierForSubmission } from "@/lib/parcours/chantiers";
 import AddToCrmButton from "@/components/entcrm/AddToCrmButton";
+import TransportLifecyclePanel from "@/components/entrepreneur-app/TransportLifecyclePanel";
 
 const DetailLine = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
   <div className="flex gap-3 border-b border-border py-3 last:border-0">
@@ -62,6 +63,8 @@ export default function EntrepreneurDemandeDetail() {
                   <LinkedTransportCard submissionId={request.submission.id} />
                 </>
               ) : (
+                <>
+                {request.transport?.id ? <TransportLifecyclePanel id={String(request.transport.id)} onChanged={refresh} /> : null}
                 <section>
                   <SectionHeader title="Transport associé" />
                   <AppCard>
@@ -69,6 +72,7 @@ export default function EntrepreneurDemandeDetail() {
                     {request.transport?.request_number ? <p className="mt-3 font-display text-sm font-bold">Nº {String(request.transport.request_number)}</p> : null}
                   </AppCard>
                 </section>
+                </>
               )}
             </div>
 

@@ -1,6 +1,7 @@
 import type { MySubmission } from "@/lib/parcours/mes-demandes";
 import type { AccessRequestRow } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { statusBucket, statusMeta } from "@/lib/access-requests/status";
+import { lifecycleMeta } from "@/lib/entrepreneur-app/lifecycle";
 import {
   findChantierForSubmission,
   findChantierForTransport,
@@ -72,20 +73,21 @@ export function buildEntrepreneurRequests(
     const meta = statusMeta(String(transport.status));
     const bucket = statusBucket(String(transport.status));
     const cancelled = ["annulee", "refusee"].includes(String(transport.status));
-    const filter = cancelled ? "cancelled" : bucket === "completed" ? "done" : bucket === "pending" ? "pending" : "active";
+    const life = lifecycleMeta(transport.lifecycle_status as string | undefined);
+    const filter = life ? life.filter : cancelled ? "cancelled" : bucket === "completed" ? "done" : bucket === "pending" ? "pending" : "active";
     const place = [transport.site_city, transport.site_address].filter(Boolean).join(" — ") || "Lieu à confirmer";
     const chantier = findChantierForTransport(chantiers, transport);
     return {
       id: `r-${String(transport.id)}`,
       sourceId: String(transport.id),
       kind: "transport",
-      title: String(transport.material_type ?? "Transport en vrac"),
+      title: `${transport.request_number ? `Nº ${String(transport.request_number)} · ` : ""}${String(transport.material_type ?? "Transport en vrac")}`,
       place,
       quantity: transport.estimated_trips != null ? `${String(transport.estimated_trips)} voyage(s)` : null,
       date: (transport.created_at as string | null) ?? null,
       status: String(transport.status),
-      statusLabel: meta.label,
-      tone: cancelled ? "refused" : bucket === "completed" ? "done" : bucket === "accepted" ? "active" : "pending",
+      statusLabel: life ? life.label : meta.label,
+      tone: life ? life.tone : cancelled ? "refused" : bucket === "completed" ? "done" : bucket === "accepted" ? "active" : "pending",
       filter,
       nextAction: filter === "pending" ? "En traitement par notre équipe" : filter === "active" ? "Suivre le transport" : "Consulter le dossier",
       chantierKey: chantier?.key ?? null,
