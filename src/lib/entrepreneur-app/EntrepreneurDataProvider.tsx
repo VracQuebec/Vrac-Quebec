@@ -71,6 +71,16 @@ export function EntrepreneurDataProvider({ children }: { children: ReactNode }) 
     };
   }, [isReady, user, tick]);
 
+  // Temps réel : tout changement de statut par l'administration est reflété immédiatement.
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`entr-requests-${user.id}-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "transport_requests", filter: `user_id=eq.${user.id}` }, () => refresh())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, refresh]);
+
   const value = useMemo<EntrepreneurData>(() => {
     const counts = { pending: 0, accepted: 0, completed: 0, refused: 0 };
     for (const r of accessRequests) counts[statusBucket(r.status)]++;

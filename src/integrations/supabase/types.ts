@@ -21627,6 +21627,11 @@ export type Database = {
         Returns: undefined
       }
       trq_actor_role: { Args: { _rid: string }; Returns: string }
+      trq_lifecycle_to_status: {
+        Args: { _current: string; _l: string }
+        Returns: string
+      }
+      trq_status_to_lifecycle: { Args: { _s: string }; Returns: string }
       unaccent_immutable: { Args: { _text: string }; Returns: string }
       unaccent_less: { Args: { _s: string }; Returns: string }
       unaccent_string: { Args: { input: string }; Returns: string }
@@ -21691,6 +21696,7 @@ export type Database = {
         | "annulee"
         | "en_attente_proprietaire"
         | "refusee"
+        | "informations_requises"
       trip_status:
         | "demande"
         | "soumission_envoyee"
@@ -21874,6 +21880,7 @@ export const Constants = {
         "annulee",
         "en_attente_proprietaire",
         "refusee",
+        "informations_requises",
       ],
       trip_status: [
         "demande",

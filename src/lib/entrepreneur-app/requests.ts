@@ -86,7 +86,8 @@ export function buildEntrepreneurRequests(
       quantity: transport.estimated_trips != null ? `${String(transport.estimated_trips)} voyage(s)` : null,
       date: (transport.created_at as string | null) ?? null,
       status: String(transport.status),
-      statusLabel: life ? life.label : meta.label,
+      // Libellé unique partagé avec l'administration (seule la revalidation est propre à l'entrepreneur).
+      statusLabel: transport.lifecycle_status === "revalidation_requise" && life ? life.label : meta.label,
       tone: life ? life.tone : cancelled ? "refused" : bucket === "completed" ? "done" : bucket === "accepted" ? "active" : "pending",
       filter,
       nextAction: filter === "pending" ? "En traitement par notre équipe" : filter === "active" ? "Suivre le transport" : "Consulter le dossier",

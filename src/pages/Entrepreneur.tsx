@@ -128,12 +128,13 @@ const Entrepreneur = () => {
   }, []);
 
   /** Demande d'accès : le contexte connu part avec la demande. */
-  const requestAccess = () => {
+  const requestAccess = (lead?: EntLead | null) => {
     setDetail(null);
-    navigate(
-      "/demande-transport",
-      activeChantier ? { state: { vqPrefill: prefillFromChantier(activeChantier) } } : undefined,
-    );
+    // La dompe consultée part avec la demande : jamais à resélectionner.
+    const base = activeChantier ? (prefillFromChantier(activeChantier) as Record<string, unknown>) : {};
+    navigate("/demande-transport", {
+      state: { vqPrefill: { ...base, ...(lead ? { dumpId: lead.id } : {}), fromEntrepreneur: true } },
+    });
   };
 
   const toggleFilter = (k: MaterialColorKey) => {
@@ -468,7 +469,7 @@ const Entrepreneur = () => {
                       selected={selectedId === l.id}
                       onOpen={() => focusLead(l)}
                       onDetail={() => setDetail(l)}
-                      onRequest={requestAccess}
+                      onRequest={() => requestAccess(l)}
                     />
                   );
                 })}
@@ -526,7 +527,7 @@ const Entrepreneur = () => {
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 pt-1">
                   <button
-                    onClick={requestAccess}
+                    onClick={() => requestAccess(detail)}
                     className="flex-1 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm py-3 hover:opacity-90 transition-opacity"
                   >
                     Faire une demande d'accès

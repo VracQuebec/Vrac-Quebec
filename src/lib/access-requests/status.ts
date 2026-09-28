@@ -5,6 +5,7 @@
 export type AccessStatus =
   | "nouvelle"
   | "en_analyse"
+  | "informations_requises"
   | "en_attente_proprietaire"
   | "acceptee"
   | "refusee"
@@ -22,6 +23,7 @@ export interface AccessStatusMeta {
 export const ACCESS_STATUSES: AccessStatusMeta[] = [
   { value: "nouvelle", label: "Nouvelle demande", color: "#3b82f6", bucket: "pending" },
   { value: "en_analyse", label: "En analyse", color: "#8b5cf6", bucket: "pending" },
+  { value: "informations_requises", label: "Informations requises", color: "#f97316", bucket: "pending" },
   { value: "en_attente_proprietaire", label: "En attente du propriétaire", color: "#f59e0b", bucket: "pending" },
   { value: "acceptee", label: "Acceptée", color: "#10b981", bucket: "accepted" },
   { value: "refusee", label: "Refusée", color: "#ef4444", bucket: "refused" },
@@ -56,6 +58,6 @@ export const statusColor = (raw: string | null | undefined) => statusMeta(raw).c
 export const statusBucket = (raw: string | null | undefined) => statusMeta(raw).bucket;
 
 /** Statuts considérés comme « en cours de coordination ». */
-export const OPEN_STATUSES: AccessStatus[] = ["nouvelle", "en_analyse", "en_attente_proprietaire", "acceptee"];
+export const OPEN_STATUSES: AccessStatus[] = ["nouvelle", "en_analyse", "informations_requises", "en_attente_proprietaire", "acceptee"];
 /** Statuts terminaux (historique). */
 export const CLOSED_STATUSES: AccessStatus[] = ["terminee", "annulee", "refusee"];
