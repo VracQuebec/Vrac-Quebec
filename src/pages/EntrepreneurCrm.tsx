@@ -237,11 +237,11 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
     const heads = Object.keys(rows[0]);
     const existing = (await db.from("ent_crm_leads").select("title,contact_value").eq("company_id", companyId)).data ?? []; const guess = (c: string[]) => heads.find((h) => c.includes(h)) ?? "";
     setImporting({ rows, heads, map: { title: guess(["titre", "nom", "title", "name"]), contact_name: guess(["contact", "personne"]), contact_value: guess(["telephone", "téléphone", "courriel", "email", "phone"]), need: guess(["besoin", "need", "description"]) }, existing, dupMode: "ignorer", ignored: heads.filter((h) => /company|entreprise_id|owner|compagnie/.test(h)) }); };
-  const analyse = (imp: any) => { const m = imp.map; const seen = new Set(imp.existing.map((e: any) => normalize(e.contact_value) || normalize(e.title)));
+  const analyse = (imp: any) => { const m = imp.map; const seen = new Set<string>(imp.existing.flatMap((e: any) => [normalize(e.contact_value), normalize(e.title)].filter(Boolean)));
     return imp.rows.map((r: any, i: number) => { const title = (r[m.title] || r[m.contact_name] || "").trim(); const contact = (r[m.contact_value] ?? "").trim(); const key = normalize(contact) || normalize(title);
       let status = "valide", why = "";
-      if (!title) { status = "invalide"; why = "nom/titre manquant"; } else if (contact && !PHONE.test(contact) && !MAIL.test(contact)) { status = "invalide"; why = `« ${contact} » n'est ni un téléphone ni un courriel`; } else if (seen.has(key)) { status = "doublon"; why = "fiche existante avec le même contact/nom"; }
-      if (status !== "invalide") seen.add(key);
+      if (!title) { status = "invalide"; why = "nom/titre manquant"; } else if (contact && !PHONE.test(contact) && !MAIL.test(contact)) { status = "invalide"; why = `« ${contact} » n'est ni un téléphone ni un courriel`; } else if ((contact && seen.has(normalize(contact))) || seen.has(normalize(title))) { status = "doublon"; why = "fiche existante avec le même contact ou le même nom"; }
+      if (status !== "invalide") { if (contact) seen.add(normalize(contact)); seen.add(normalize(title)); }
       return { line: i + 2, title, nom: (r[m.contact_name] ?? "").trim(), contact, besoin: (r[m.need] ?? "").trim(), status, why }; }); };
   const importCsv = async () => { if (!importing) return; const m = importing.map;
     void m; const recs = analyse(importing); const dupMode = importing.dupMode; setImporting(null);
@@ -486,7 +486,7 @@ function Projects({ companyId, canWrite }: any) {
     <FilesBtn t="project" id={p.id} />
     {canWrite ? <div className="mt-2 grid gap-1"><Input placeholder="Adresse" defaultValue={p.address ?? ""} onBlur={(e) => e.target.value !== (p.address ?? "") && upd(p, "address", e.target.value)} />
       <div className="flex gap-1"><Input type="date" defaultValue={p.start_date ?? ""} onBlur={(e) => upd(p, "start_date", e.target.value)} /><Input type="date" defaultValue={p.end_date ?? ""} onBlur={(e) => upd(p, "end_date", e.target.value)} /></div>
-      <select className={sel} value={p.status} onChange={(e) => upd(p, "status", e.target.value)}>{["a_planifier", "planifie", "en_cours", "termine", "annule"].map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}</select></div>
+      <select className={sel} value={p.status} onChange={(e) => upd(p, "status", e.target.value)}>{([["a_planifier", "À planifier"], ["planifie", "Planifié"], ["en_cours", "En cours"], ["termine", "Terminé (clôturé)"], ["annule", "Annulé"]] as const).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
       : <p className="text-xs">{p.address} · {p.status}</p>}
   </div>)}</div>;
 }
