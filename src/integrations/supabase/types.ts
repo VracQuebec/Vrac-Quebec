@@ -1719,6 +1719,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dispatch_scenarios_transport_request_id_fkey"
+            columns: ["transport_request_id"]
+            isOneToOne: false
+            referencedRelation: "transport_requests_a_identifier"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dispatch_scenarios_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: false
@@ -13950,6 +13957,39 @@ export type Database = {
         }
         Relationships: []
       }
+      request_critical_fields: {
+        Row: {
+          field: string
+          is_active: boolean
+          label: string
+        }
+        Insert: {
+          field: string
+          is_active?: boolean
+          label: string
+        }
+        Update: {
+          field?: string
+          is_active?: boolean
+          label?: string
+        }
+        Relationships: []
+      }
+      request_lifecycle_transitions: {
+        Row: {
+          from_status: string
+          to_status: string
+        }
+        Insert: {
+          from_status: string
+          to_status: string
+        }
+        Update: {
+          from_status?: string
+          to_status?: string
+        }
+        Relationships: []
+      }
       route_cache: {
         Row: {
           cache_key: string
@@ -17796,6 +17836,73 @@ export type Database = {
             referencedRelation: "transport_requests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transport_request_errors_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "transport_requests_a_identifier"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transport_request_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_role: string | null
+          created_at: string
+          details: Json
+          from_status: string | null
+          id: string
+          origin: string
+          reason: string | null
+          request_id: string
+          to_status: string | null
+          version: number | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string
+          details?: Json
+          from_status?: string | null
+          id?: string
+          origin?: string
+          reason?: string | null
+          request_id: string
+          to_status?: string | null
+          version?: number | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string
+          details?: Json
+          from_status?: string | null
+          id?: string
+          origin?: string
+          reason?: string | null
+          request_id?: string
+          to_status?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "transport_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "transport_requests_a_identifier"
+            referencedColumns: ["id"]
+          },
         ]
       }
       transport_request_history: {
@@ -17837,12 +17944,70 @@ export type Database = {
             referencedRelation: "transport_requests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "transport_request_history_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "transport_requests_a_identifier"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transport_request_versions: {
+        Row: {
+          changed_fields: string[]
+          created_at: string
+          created_by: string | null
+          id: string
+          request_id: string
+          snapshot: Json
+          version: number
+        }
+        Insert: {
+          changed_fields?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          request_id: string
+          snapshot: Json
+          version: number
+        }
+        Update: {
+          changed_fields?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          request_id?: string
+          snapshot?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_request_versions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "transport_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_request_versions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "transport_requests_a_identifier"
+            referencedColumns: ["id"]
+          },
         ]
       }
       transport_requests: {
         Row: {
+          access_conditions: string | null
           alternative_dumps: Json | null
           assigned_dispatcher: string | null
+          cancel_reason: string | null
+          cancellation_request_reason: string | null
+          cancellation_requested_at: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           client_company: string | null
           client_email: string | null
           client_id: string | null
@@ -17850,6 +18015,7 @@ export type Database = {
           client_notes: string | null
           client_phone: string
           created_at: string
+          current_version: number
           desired_date: string | null
           desired_time: string | null
           distance_km: number | null
@@ -17861,6 +18027,8 @@ export type Database = {
           idempotency_key: string | null
           internal_notes: string | null
           jsc_request_id: string | null
+          lifecycle_status: string
+          loading_point: string | null
           material_other: string | null
           material_type: string
           origin_stage: string
@@ -17876,6 +18044,7 @@ export type Database = {
           site_longitude: number | null
           source: string
           status: Database["public"]["Enums"]["transport_request_status"]
+          trailer_type: string | null
           transport_subtotal: number | null
           transport_total: number | null
           transport_tps_amount: number | null
@@ -17883,6 +18052,7 @@ export type Database = {
           transport_tvq_amount: number | null
           transport_tvq_rate: number | null
           travel_time_minutes: number | null
+          truck_config: string | null
           truck_id: string | null
           truck_rate_code: string | null
           truck_rate_label: string | null
@@ -17892,8 +18062,14 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          access_conditions?: string | null
           alternative_dumps?: Json | null
           assigned_dispatcher?: string | null
+          cancel_reason?: string | null
+          cancellation_request_reason?: string | null
+          cancellation_requested_at?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           client_company?: string | null
           client_email?: string | null
           client_id?: string | null
@@ -17901,6 +18077,7 @@ export type Database = {
           client_notes?: string | null
           client_phone: string
           created_at?: string
+          current_version?: number
           desired_date?: string | null
           desired_time?: string | null
           distance_km?: number | null
@@ -17912,6 +18089,8 @@ export type Database = {
           idempotency_key?: string | null
           internal_notes?: string | null
           jsc_request_id?: string | null
+          lifecycle_status?: string
+          loading_point?: string | null
           material_other?: string | null
           material_type: string
           origin_stage?: string
@@ -17927,6 +18106,7 @@ export type Database = {
           site_longitude?: number | null
           source?: string
           status?: Database["public"]["Enums"]["transport_request_status"]
+          trailer_type?: string | null
           transport_subtotal?: number | null
           transport_total?: number | null
           transport_tps_amount?: number | null
@@ -17934,6 +18114,7 @@ export type Database = {
           transport_tvq_amount?: number | null
           transport_tvq_rate?: number | null
           travel_time_minutes?: number | null
+          truck_config?: string | null
           truck_id?: string | null
           truck_rate_code?: string | null
           truck_rate_label?: string | null
@@ -17943,8 +18124,14 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          access_conditions?: string | null
           alternative_dumps?: Json | null
           assigned_dispatcher?: string | null
+          cancel_reason?: string | null
+          cancellation_request_reason?: string | null
+          cancellation_requested_at?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           client_company?: string | null
           client_email?: string | null
           client_id?: string | null
@@ -17952,6 +18139,7 @@ export type Database = {
           client_notes?: string | null
           client_phone?: string
           created_at?: string
+          current_version?: number
           desired_date?: string | null
           desired_time?: string | null
           distance_km?: number | null
@@ -17963,6 +18151,8 @@ export type Database = {
           idempotency_key?: string | null
           internal_notes?: string | null
           jsc_request_id?: string | null
+          lifecycle_status?: string
+          loading_point?: string | null
           material_other?: string | null
           material_type?: string
           origin_stage?: string
@@ -17978,6 +18168,7 @@ export type Database = {
           site_longitude?: number | null
           source?: string
           status?: Database["public"]["Enums"]["transport_request_status"]
+          trailer_type?: string | null
           transport_subtotal?: number | null
           transport_total?: number | null
           transport_tps_amount?: number | null
@@ -17985,6 +18176,7 @@ export type Database = {
           transport_tvq_amount?: number | null
           transport_tvq_rate?: number | null
           travel_time_minutes?: number | null
+          truck_config?: string | null
           truck_id?: string | null
           truck_rate_code?: string | null
           truck_rate_label?: string | null
@@ -18782,6 +18974,13 @@ export type Database = {
             columns: ["transport_request_id"]
             isOneToOne: false
             referencedRelation: "transport_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_transport_request_id_fkey"
+            columns: ["transport_request_id"]
+            isOneToOne: false
+            referencedRelation: "transport_requests_a_identifier"
             referencedColumns: ["id"]
           },
           {
@@ -19756,6 +19955,46 @@ export type Database = {
           total: number | null
           watchdog_events: Json | null
           wave: string | null
+        }
+        Relationships: []
+      }
+      transport_requests_a_identifier: {
+        Row: {
+          client_company: string | null
+          client_email: string | null
+          client_name: string | null
+          client_phone: string | null
+          created_at: string | null
+          id: string | null
+          lifecycle_status: string | null
+          request_number: string | null
+          status: Database["public"]["Enums"]["transport_request_status"] | null
+        }
+        Insert: {
+          client_company?: string | null
+          client_email?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          created_at?: string | null
+          id?: string | null
+          lifecycle_status?: string | null
+          request_number?: string | null
+          status?:
+            | Database["public"]["Enums"]["transport_request_status"]
+            | null
+        }
+        Update: {
+          client_company?: string | null
+          client_email?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          created_at?: string | null
+          id?: string | null
+          lifecycle_status?: string | null
+          request_number?: string | null
+          status?:
+            | Database["public"]["Enums"]["transport_request_status"]
+            | null
         }
         Relationships: []
       }
@@ -20917,6 +21156,16 @@ export type Database = {
         Args: { p_site_id: string; p_submission_id: string }
         Returns: Json
       }
+      request_cancel: { Args: { _id: string; _reason: string }; Returns: Json }
+      request_cancel_request: {
+        Args: { _id: string; _reason: string }
+        Returns: Json
+      }
+      request_transition: {
+        Args: { _id: string; _reason?: string; _to: string }
+        Returns: Json
+      }
+      request_update: { Args: { _changes: Json; _id: string }; Returns: Json }
       revoke_selected_site_validation: {
         Args: { p_submission_id: string }
         Returns: Json
@@ -21377,6 +21626,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      trq_actor_role: { Args: { _rid: string }; Returns: string }
       unaccent_immutable: { Args: { _text: string }; Returns: string }
       unaccent_less: { Args: { _s: string }; Returns: string }
       unaccent_string: { Args: { input: string }; Returns: string }
