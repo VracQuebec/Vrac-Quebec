@@ -13440,6 +13440,77 @@ export type Database = {
           },
         ]
       }
+      platform_access_grants: {
+        Row: {
+          company_id: string
+          expires_at: string | null
+          granted_at: string
+          granted_by: string
+          id: string
+          kind: string
+          reason: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+        }
+        Insert: {
+          company_id: string
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string
+          id?: string
+          kind?: string
+          reason: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string
+          id?: string
+          kind?: string
+          reason?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_access_grants_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_access_settings: {
+        Row: {
+          enforced_company_ids: string[]
+          enforcement_scope: string
+          id: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enforced_company_ids?: string[]
+          enforcement_scope?: string
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enforced_company_ids?: string[]
+          enforcement_scope?: string
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       platform_alerts: {
         Row: {
           acknowledged_at: string | null
@@ -20238,6 +20309,7 @@ export type Database = {
         Args: { _by: string; _quote_id: string; _source: string }
         Returns: string
       }
+      entcrm_access_status: { Args: { _company_id: string }; Returns: Json }
       entcrm_can_admin: { Args: { _company_id: string }; Returns: boolean }
       entcrm_can_commercial: { Args: { _company_id: string }; Returns: boolean }
       entcrm_can_field: { Args: { _company_id: string }; Returns: boolean }
@@ -20292,6 +20364,7 @@ export type Database = {
         Returns: Json
       }
       entcrm_open_support: { Args: { _company_id: string }; Returns: boolean }
+      entcrm_paid: { Args: { _company_id: string }; Returns: boolean }
       entcrm_path_company: { Args: { _path: string }; Returns: string }
       entcrm_public_quote: { Args: { _token: string }; Returns: Json }
       entcrm_public_respond: {
