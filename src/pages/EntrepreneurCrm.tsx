@@ -414,14 +414,18 @@ function Quotes({ companyId, companyName, canWrite }: any) {
   return <div>{canWrite && <Button className="mb-3" onClick={() => edit({ lines: [] })}><Plus className="mr-1 h-4 w-4" />Nouvelle soumission</Button>}
     <div className="grid gap-2">{rows.map((q) => <div key={q.id} className="rounded-lg border border-border bg-card p-3 text-sm">
       <p className="font-display font-bold">{q.number || "Soumission"} · {q.ent_crm_clients?.name ?? "Sans client"} · v{q.version} · <span className="uppercase">{q.status}</span></p>
-      <p className="text-xs">Estimé (hors taxes, taxes non calculées) : {money(Number(q.subtotal))} · Facturé : {money(q.invoiced_amount)} · Encaissé : {money(q.paid_amount)}</p>
+      <p className="text-xs">{q.taxes_applied ? <>Sous-total : {money(Number(q.subtotal))} · TPS : {money(q.tax_gst)} · TVQ : {money(q.tax_qst)} · <strong>Total : {money(q.total)}</strong></> : <>Estimé hors taxes : {money(Number(q.subtotal))}{q.status === "brouillon" ? " (taxes calculées à la remise si activées)" : " · taxes non appliquées"}</>} · Facturé : {money(q.invoiced_amount)} · Encaissé : {money(q.paid_amount)}</p>
       {q.accepted_at && <p className="text-xs text-muted-foreground">Acceptée par {q.accepted_by_name} ({q.accepted_source}) le {new Date(q.accepted_at).toLocaleString("fr-CA")}</p>}
+      {q.shared_at && <p className="text-xs text-muted-foreground">Lien client créé le {new Date(q.shared_at).toLocaleString("fr-CA")}{q.client_viewed_at ? ` · consulté le ${new Date(q.client_viewed_at).toLocaleString("fr-CA")}` : " · pas encore consulté"}{q.client_response ? ` · réponse : ${q.client_response === "acceptee" ? "acceptée" : "refusée"} par ${q.client_response_name}` : ""}</p>}
+      {q.client_response_note && <p className="text-xs">Commentaire du client : {q.client_response_note}</p>}
       <div className="mt-2 flex flex-wrap gap-1">
         <Button size="sm" variant="outline" onClick={() => openPrint(q)}>PDF</Button>
         {canWrite && q.status === "brouillon" && <><Button size="sm" variant="outline" onClick={() => edit(q)}>Modifier</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "remise")}>Marquer remise</Button></>}
+        {canWrite && q.status !== "brouillon" && <Button size="sm" variant="outline" onClick={() => share(q)}>{q.share_token ? "Copier le lien client" : "Créer le lien client"}</Button>}
         {canWrite && q.status === "remise" && <><Button size="sm" onClick={() => setStatus(q, "acceptee")}>Accepter (documenter)</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "refusee")}>Refusée</Button></>}
         {canWrite && q.status === "acceptee" && !(Array.isArray(q.ent_crm_projects) ? q.ent_crm_projects.length : q.ent_crm_projects) && <Button size="sm" onClick={() => toProject(q)}>Créer le chantier</Button>}
-        {canWrite && q.status === "acceptee" && <><Button size="sm" variant="outline" onClick={() => revise(q)}>Réviser</Button><Button size="sm" variant="ghost" onClick={() => fin(q, "invoiced_amount")}>Facturé</Button><Button size="sm" variant="ghost" onClick={() => fin(q, "paid_amount")}>Encaissé</Button></>}
+        {canWrite && ["acceptee", "refusee", "remise"].includes(q.status) && <Button size="sm" variant="outline" onClick={() => revise(q)}>Réviser</Button>}
+        {canWrite && q.status === "acceptee" && <><Button size="sm" variant="ghost" onClick={() => fin(q, "invoiced_amount")}>Facturé</Button><Button size="sm" variant="ghost" onClick={() => fin(q, "paid_amount")}>Encaissé</Button></>}
       </div>
       <FilesBtn t="quote" id={q.id} clientToggle /></div>)}</div>
     {open && <Dialog open onOpenChange={() => { if (!confirm("Fermer sans enregistrer ?")) return; crmDirty = null; setOpen(null); }}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Soumission</DialogTitle></DialogHeader>
