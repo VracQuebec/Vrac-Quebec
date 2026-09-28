@@ -317,6 +317,12 @@ const TransportRequest = () => {
   const preselectDumpRef = useRef<string | null>(null);
   // Demande existante (source de vérité) transmise par le CRM ou le parcours.
   const submissionIdRef = useRef<string | null>(null);
+  // Parcours ouvert depuis l'espace entrepreneur : connexion obligatoire.
+  const fromEntrepreneurRef = useRef(false);
+  const { isReady: authReady } = useAuthReady();
+  useEffect(() => {
+    if (authReady && !user && fromEntrepreneurRef.current) navigate("/login", { replace: true });
+  }, [authReady, user, navigate]);
 
   const hasProgress = () =>
     step > 1 || !!material || !!address || !!quantity || !!clientName || !!clientPhone;
@@ -384,7 +390,9 @@ const TransportRequest = () => {
     if (p.clientPhone) setClientPhone(p.clientPhone);
     if (p.clientEmail) setClientEmail(p.clientEmail);
     if (p.dumpId) preselectDumpRef.current = p.dumpId;
-    setStep(3);
+    if ((pf as { fromEntrepreneur?: boolean }).fromEntrepreneur) fromEntrepreneurRef.current = true;
+    // Étape 3 seulement si le chantier est déjà localisé ; sinon on commence au matériau.
+    setStep(p.address && p.coords ? 3 : p.material ? 2 : 1);
   }
 
   // Arrivée avec ?submission=<id> : la DEMANDE reste la source de vérité,
@@ -631,7 +639,11 @@ const TransportRequest = () => {
       // Réapplique le site choisi dans le comparateur, s'il est toujours listé.
       if (preselectDumpRef.current) {
         const pre = top.find((d) => d.id === preselectDumpRef.current);
-        if (pre) setSelectedDump(pre);
+        if (pre) {
+          setSelectedDump(pre);
+          // Dompe déjà choisie sur la carte : on passe directement au résumé.
+          setStep(5);
+        }
       }
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
@@ -643,6 +655,11 @@ const TransportRequest = () => {
 
   const submitRequest = async () => {
     if (!selectedDump || !coords) return;
+    if (fromEntrepreneurRef.current && !user) {
+      toast({ title: "Connexion requise", description: "Connectez-vous pour envoyer votre demande.", variant: "destructive" });
+      navigate("/login");
+      return;
+    }
     setSubmitting(true);
 
     // Stable idempotency key per submission. If the user double-clicks or the
