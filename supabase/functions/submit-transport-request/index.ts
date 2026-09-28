@@ -335,6 +335,10 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Propriétaire résolu côté serveur AVANT l'insertion (jamais depuis le
+  // formulaire) : la demande est liée au compte dès sa création.
+  const ownerId = authenticatedUserId ?? (await resolveUserIdByEmail(data.client_email));
+
   // Insert via service-role. Triggers still enforce internal defaults for
   // non-admin callers (enforce_transport_request_insert_defaults), and we
   // never trust anything the client sent for status/dispatch fields.
@@ -347,7 +351,7 @@ Deno.serve(async (req) => {
         client_company: data.client_company,
         client_phone: data.client_phone,
         client_email: data.client_email,
-        user_id: data.user_id,
+        user_id: ownerId,
         site_address: data.site_address,
         site_latitude: data.site_latitude,
         site_longitude: data.site_longitude,
@@ -425,16 +429,14 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: false, retry: true, message: "temporary_failure" }, 503);
     }
 
-    // The BEFORE INSERT trigger unconditionally nulls user_id when auth.uid()
-    // is NULL (which is the case under service-role). Reattach the id here so
-    // authenticated users can see their own requests in the CRM.
-    const ownerId = authenticatedUserId ?? (await resolveUserIdByEmail(data.client_email));
+    // Filet de sécurité : si le propriétaire n'a pas été conservé, le rattacher.
     if (ownerId && inserted?.id) {
       try {
         await admin
           .from("transport_requests")
           .update({ user_id: ownerId })
-          .eq("id", inserted.id);
+          .eq("id", inserted.id)
+          .is("user_id", null);
       } catch (_e) {
         // best-effort — the row is already persisted
       }
