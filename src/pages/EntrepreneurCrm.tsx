@@ -163,7 +163,7 @@ function Today({ companyId, canFinance }: { companyId: string; canFinance: boole
     <Stat l="Nouveaux leads (7 j)" v={s.nl ?? 0} /><Stat l="Relances en retard" v={s.late ?? 0} />
     <Stat l="Valeur du pipeline (estimée)" v={money(s.pipe)} /><Stat l="Gagnés / perdus" v={`${s.won ?? 0} / ${s.lost ?? 0}`} />
     <Stat l="Chantiers à venir" v={s.proj ?? 0} />
-    {canFinance && <><Stat l="Soumissions à suivre" v={s.toFollow} /><Stat l="Montant estimé" v={money(s.est)} /><Stat l="Montant accepté" v={money(s.acc)} /><Stat l="Facturé" v={money(s.inv)} /><Stat l="Encaissé" v={money(s.paid)} /></>}
+    {canFinance && <><Stat l="Soumissions à suivre" v={s.toFollow} /><Stat l="Montant estimé (hors taxes)" v={money(s.est)} /><Stat l="Montant accepté (hors taxes)" v={money(s.acc)} /><Stat l="Facturé" v={money(s.inv)} /><Stat l="Encaissé" v={money(s.paid)} /></>}
   </div>;
 }
 
@@ -486,7 +486,7 @@ function Reports({ companyId }: any) {
   useEffect(() => { db.from("ent_crm_leads").select("stage,source,estimated_amount").eq("company_id", companyId).then(({ data }: any) => setD(data ?? [])); }, [companyId]);
   const by = (k: string, list: readonly any[]) => list.map((s) => ({ l: s.l, n: d.filter((x) => x[k] === s.v).length })).filter((x) => x.n);
   return <div className="grid gap-4 md:grid-cols-2">
-    <div className="rounded-lg border border-border bg-card p-4 md:col-span-2"><p className="mb-2 font-display font-bold">Montants</p>{[["Proposé (remis ou accepté)", sum((x) => ["remise", "acceptee"].includes(x.status) ? Number(x.subtotal) : 0)], ["Accepté", sum((x) => x.status === "acceptee" ? Number(x.subtotal) : 0)], ["Facturé", sum((x) => Number(x.invoiced_amount))], ["Encaissé", sum((x) => Number(x.paid_amount))]].map(([l, v]: any) => <p key={l} className="flex justify-between text-sm"><span>{l}</span><span>{money(v)}</span></p>)}</div>
+    <div className="rounded-lg border border-border bg-card p-4 md:col-span-2"><p className="mb-2 font-display font-bold">Montants hors taxes (TPS/TVQ non calculées)</p>{[["Proposé (remis ou accepté)", sum((x) => ["remise", "acceptee"].includes(x.status) ? Number(x.subtotal) : 0)], ["Accepté", sum((x) => x.status === "acceptee" ? Number(x.subtotal) : 0)], ["Facturé", sum((x) => Number(x.invoiced_amount))], ["Encaissé", sum((x) => Number(x.paid_amount))]].map(([l, v]: any) => <p key={l} className="flex justify-between text-sm"><span>{l}</span><span>{money(v)}</span></p>)}</div>
     {[["Par étape", by("stage", stages)], ["Par provenance", by("source", SOURCES)]].map(([t, rows]: any) =>
     <div key={t} className="rounded-lg border border-border bg-card p-4"><p className="mb-2 font-display font-bold">{t}</p>{rows.map((r: any) => <p key={r.l} className="flex justify-between text-sm"><span>{r.l}</span><span>{r.n}</span></p>)}{!rows.length && <p className="text-sm text-muted-foreground">Aucune donnée.</p>}</div>)}</div>;
 }
