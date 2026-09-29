@@ -314,6 +314,10 @@ export default function EntrepreneurComparateur() {
 
   const withDistance = main.filter((e) => e.row.distance_km != null);
   const best = withDistance[0]?.row ?? null;
+  // « Dompe recommandée » = 1er résultat réel du classement (compatible + distance routière connue).
+  // Indépendant de la sélection manuelle : la dompe choisie ne reçoit jamais l'étoile par défaut.
+  const recommendedId =
+    main.find((e) => e.ev.material === "compatible" && e.ev.truck === "compatible" && e.row.distance_km != null)?.row.id ?? null;
   const worst = withDistance.length > 1 ? withDistance[withDistance.length - 1].row : null;
 
   // Sélection : rattachée à la demande existante et persistée.
@@ -408,8 +412,18 @@ export default function EntrepreneurComparateur() {
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="font-display text-base font-extrabold text-foreground">
-              {index === 0 && ev.material === "compatible" && ev.truck === "compatible" && r.distance_km != null ? "⭐ " : ""}
+              {r.id === recommendedId ? "⭐ " : ""}
               Dompe {label(r)}
+            </p>
+            <p className="mt-1 flex flex-wrap gap-1.5 font-body text-[11px] font-bold uppercase tracking-wide">
+              {selection?.siteId === r.id && (
+                <span className="rounded-full bg-primary px-2 py-0.5 text-primary-foreground">Dompe choisie</span>
+              )}
+              {ev.status !== "incompatible" && (
+                <span className={`rounded-full border px-2 py-0.5 ${r.id === recommendedId ? "border-primary text-foreground" : "border-border text-muted-foreground"}`}>
+                  {r.id === recommendedId ? "Dompe recommandée" : "Autres options"}
+                </span>
+              )}
             </p>
             <p className="mt-0.5 font-body text-xs text-muted-foreground">
               Secteur {r.postal_prefix || "—"}
