@@ -42,14 +42,14 @@ Deno.serve(async (req) => {
     return json({ file_id: fid });
   }
 
-  let body: { payment_id?: string; file_id?: string };
+  let body: { payment_id?: string; file_id?: string; mode?: string };
   try { body = await req.json(); } catch { return json({ error: "Requête invalide" }, 400); }
   if (!body.payment_id || !body.file_id || !UUID.test(body.payment_id) || !UUID.test(body.file_id)) return json({ error: "Requête invalide" }, 400);
   const { data: p, error } = await user.rpc("fin_payment_detail", { _payment: body.payment_id });
   if (error || !p) return json({ error: "Accès refusé" }, 403);
   const f = (p.files ?? []).find((x: any) => x.id === body.file_id);
   if (!f) return json({ error: "Pièce non disponible" }, 403);
-  const { data, error: e3 } = await admin.storage.from("entcrm-files").createSignedUrl(f.storage_path, 300, { download: f.file_name });
+  const { data, error: e3 } = await admin.storage.from("entcrm-files").createSignedUrl(f.storage_path, 300, body.mode === "view" ? undefined : { download: f.file_name });
   if (e3 || !data) return json({ error: "Téléchargement momentanément impossible, réessayez." }, 500);
-  return json({ url: data.signedUrl });
+  return json({ url: data.signedUrl, mime: f.mime_type, name: f.file_name, expires_in: 300 });
 });
