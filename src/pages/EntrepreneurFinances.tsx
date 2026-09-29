@@ -170,7 +170,7 @@ function Overview({ companyId, rev, add, onOpen }: { companyId: string; rev: num
     <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-muted-foreground">Aujourd'hui : {fmtDate(today)} ({TZ})</p>{add}</div>
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
       {card("Dû aujourd'hui", d.today)}
-      {card("Échéances passées (24 derniers mois)", d.past, "Le règlement n'est pas suivi dans ce module : ces montants ne sont pas forcément impayés.")}
+      {card("Échéances passées (24 derniers mois)", d.past, d.past ? `Reste à payer à ce jour : ${fmtMoney(d.past.remaining ?? 0)} · dont « règlement à confirmer » (antérieur au suivi) : ${fmtMoney(d.past.to_confirm_amount ?? 0)}.` : undefined)}
       {card("7 prochains jours", d.w)}
       {card("30 prochains jours", d.m)}
     </div>
@@ -181,7 +181,7 @@ function Overview({ companyId, rev, add, onOpen }: { companyId: string; rev: num
   </div>;
 }
 
-function Browse({ companyId, rev, cats, mode, add, onOpen }: { companyId: string; rev: number; cats: { id: string; name: string }[]; mode: "calendar" | "table"; add: React.ReactNode; onOpen: (o: Occ) => void }) {
+function Browse({ companyId, rev, cats, mode, add, onOpen, onPayMany }: { companyId: string; rev: number; cats: { id: string; name: string }[]; mode: "calendar" | "table"; add: React.ReactNode; onOpen: (o: Occ) => void; onPayMany?: (l: Occ[]) => void }) {
   const today = todayIn(TZ);
   const [kind, setKind] = useState<PeriodKind>("month");
   const [ref, setRef] = useState(today);
@@ -216,6 +216,8 @@ function Browse({ companyId, rev, cats, mode, add, onOpen }: { companyId: string
     else { const step = { month: 1, quarter: 3, half: 6, year: 12 }[kind as "month"] ?? 1; const n = addMonths(y, m, step * dir); setRef(ymd(n.y, n.m, 1)); }
   };
   const byDay = useMemo(() => { const g = new Map<string, Occ[]>(); (data?.rows ?? []).forEach((o) => g.set(o.ref_date, [...(g.get(o.ref_date) ?? []), o])); return g; }, [data]);
+  const [picked, setPicked] = useState<Occ[]>([]);
+  const pickErr = new Set(picked.map((o) => o.payee_key)).size > 1 ? "Bénéficiaires différents : préparez des règlements distincts." : null;
 
   return <div className="space-y-3">
     <div className="flex flex-wrap items-center gap-2">
@@ -238,6 +240,9 @@ function Browse({ companyId, rev, cats, mode, add, onOpen }: { companyId: string
       <select aria-label="Qualité du montant" className={sel} value={f.quality ?? ""} onChange={(e) => setF({ ...f, quality: e.target.value || undefined })}><option value="">Confirmé, estimé ou à compléter</option><option value="confirmed">Confirmé</option><option value="estimated">Estimé</option><option value="unknown">À compléter</option></select>
       <select aria-label="Fréquence" className={sel} value={f.frequency ?? ""} onChange={(e) => setF({ ...f, frequency: e.target.value || undefined })}><option value="">Toutes les fréquences</option>{FREQ_FILTERS.map((x) => <option key={x.v} value={x.v}>{x.l}</option>)}</select>
       <select aria-label="Saison" className={sel} value={f.seasonal ?? ""} onChange={(e) => setF({ ...f, seasonal: e.target.value || undefined })}><option value="">Avec ou sans saison</option><option value="1">Saisonnières seulement</option><option value="0">Sans saison</option></select>
+      <select aria-label="État du règlement" className={sel} value={f.settle ?? ""} onChange={(e) => setF({ ...f, settle: e.target.value || undefined })}><option value="">Tous états de règlement</option><option value="a_confirmer">Règlement à confirmer</option><option value="non_reglee">Non réglée</option><option value="partielle">Partiellement réglée</option><option value="reglee">Réglée</option><option value="late">En retard</option><option value="a_completer">À compléter</option></select>
+      <select aria-label="Moyen de règlement" className={sel} value={f.method ?? ""} onChange={(e) => setF({ ...f, method: e.target.value || undefined })}><option value="">Tous moyens de règlement</option>{Object.entries(st.METHOD_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+      <div className="flex items-center gap-1 text-xs">Réglée du <Input type="date" aria-label="Règlement du" className="h-9" value={f.paid_from ?? ""} onChange={(e) => setF({ ...f, paid_from: e.target.value || undefined })} /> au <Input type="date" aria-label="Règlement au" className="h-9" value={f.paid_to ?? ""} onChange={(e) => setF({ ...f, paid_to: e.target.value || undefined })} /></div>
       <Button variant="ghost" onClick={() => setF({})}>Effacer les filtres</Button>
     </div>}
     {b.to < b.from ? <p className="text-sm text-destructive">La date de fin doit suivre la date de début.</p> : <TotalsCards t={tot} />}
@@ -245,7 +250,11 @@ function Browse({ companyId, rev, cats, mode, add, onOpen }: { companyId: string
       {mode === "calendar" && data.total > data.rows.length && <p className="text-xs text-amber-700">Affichage limité aux {data.rows.length} premières échéances sur {data.total} ; les totaux ci-dessus couvrent toute la sélection. Réduisez la période pour tout voir.</p>}
       {mode === "calendar" && view === "month" ? <MonthGrid from={b.from} to={b.to} byDay={byDay} onDay={setDay} />
         : mode === "calendar" ? <div className="space-y-3">{[...byDay.entries()].map(([dte, list]) => <div key={dte}><p className="mb-1 font-display text-sm font-bold">{fmtDate(dte)}</p><div className="space-y-2">{list.map((o) => <OccRow key={o.id} o={o} onOpen={onOpen} />)}</div></div>)}</div>
-        : <div className="space-y-2">{data.rows.map((o) => <OccRow key={o.id} o={o} onOpen={onOpen} />)}
+        : <div className="space-y-2">
+          {onPayMany && <div className="flex flex-wrap items-center gap-2 text-xs"><span className="text-muted-foreground">Sélection groupée (même bénéficiaire) : {picked.length} échéance(s)</span>
+            {pickErr && <span className="text-destructive">{pickErr}</span>}
+            <Button size="sm" disabled={!picked.length || !!pickErr} onClick={() => onPayMany(picked)}>Préparer un règlement groupé</Button>{picked.length > 0 && <Button size="sm" variant="ghost" onClick={() => setPicked([])}>Vider</Button>}</div>}
+          {data.rows.map((o) => <OccRow key={o.id} o={o} onOpen={onOpen} pick={onPayMany ? { on: picked.some((x) => x.id === o.id), toggle: () => setPicked((l) => l.some((x) => x.id === o.id) ? l.filter((x) => x.id !== o.id) : [...l, o]) } : undefined} />)}
           <div className="flex items-center justify-between pt-2 text-sm"><span>{page * size + 1}–{Math.min((page + 1) * size, data.total)} sur {data.total}</span><div className="flex gap-2"><Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>Précédent</Button><Button variant="outline" size="sm" disabled={(page + 1) * size >= data.total} onClick={() => setPage(page + 1)}>Suivant</Button></div></div></div>}
     </>}
     {day && <Dialog open onOpenChange={() => setDay(null)}><DialogContent><DialogHeader><DialogTitle>{fmtDate(day)}</DialogTitle></DialogHeader><div className="space-y-2">{(byDay.get(day) ?? []).map((o) => <OccRow key={o.id} o={o} onOpen={(x) => { setDay(null); onOpen(x); }} />)}{!(byDay.get(day) ?? []).length && <p className="text-sm text-muted-foreground">Aucune échéance ce jour-là.</p>}</div></DialogContent></Dialog>}
