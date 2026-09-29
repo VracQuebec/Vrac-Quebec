@@ -353,7 +353,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
   };
   const lines: any[] = p.schedule ?? [];
   const setLine = (i: number, k: string, v: unknown) => up("schedule", lines.map((l, j) => (j === i ? { ...l, [k]: v } : l)));
-  const seasons: { from: string; to: string }[] = p.seasons ?? [];
+  const seasons: { from: string; to: string; restart?: boolean }[] = p.seasons ?? [];
   const showEnd = !["once", "schedule"].includes(p.frequency);
   const dis = locked;
 
@@ -408,7 +408,11 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
       <Button type="button" size="sm" variant="outline" disabled={dis} onClick={() => up("schedule", [...lines, { date: "", amount: "", quality: "confirmed" }])}>Ajouter un versement</Button>
     </div>}
     {!["once", "schedule"].includes(p.frequency) && <div className="space-y-1 rounded-md border border-border p-2 text-sm">
-      <p className="text-xs text-muted-foreground">Saison(s) active(s) — facultatif. Hors saison, aucune échéance n'est générée ; la cadence d'origine n'est pas décalée. Une saison peut traverser le 31 décembre.</p>
+      <p className="text-xs text-muted-foreground">Saison(s) active(s) — facultatif. Hors saison, aucune échéance n'est générée. Une saison peut traverser le 31 décembre.</p>
+      {seasons.length > 0 && <div className="space-y-1 text-xs">
+        <label className="flex items-start gap-2"><input type="radio" disabled={dis} checked={!seasons.some((s) => s.restart)} onChange={() => up("seasons", seasons.map((s) => ({ from: s.from, to: s.to })))} /><span>Rythme continu : la cadence d'origine se poursuit, les dates hors saison sont exclues.</span></label>
+        {["daily", "weekly", "monthly"].includes(p.frequency) && <label className="flex items-start gap-2"><input type="radio" disabled={dis} checked={seasons.some((s) => s.restart)} onChange={() => up("seasons", seasons.map((s) => ({ ...s, restart: true })))} /><span>Recommencer le rythme au début de chaque saison (le nombre maximal de versements porte sur toute la série).</span></label>}
+      </div>}
       {seasons.map((s, i) => <div key={i} className="flex flex-wrap items-center gap-1">Du <Input className="w-24" placeholder="MM-JJ" aria-label="Début de saison" disabled={dis} value={s.from} onChange={(e) => up("seasons", seasons.map((x, j) => (j === i ? { ...x, from: e.target.value } : x)))} /> au <Input className="w-24" placeholder="MM-JJ" aria-label="Fin de saison" disabled={dis} value={s.to} onChange={(e) => up("seasons", seasons.map((x, j) => (j === i ? { ...x, to: e.target.value } : x)))} /><Button type="button" size="sm" variant="ghost" disabled={dis} onClick={() => up("seasons", seasons.filter((_, j) => j !== i))}>Retirer</Button></div>)}
       <Button type="button" size="sm" variant="outline" disabled={dis} onClick={() => up("seasons", [...seasons, { from: "11-01", to: "04-30" }])}>Ajouter une saison</Button>
     </div>}
@@ -420,7 +424,8 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
         <p data-testid="phrase">{sentence(p)}</p>
         <ul className="text-xs text-muted-foreground">{policies(p).map((x) => <li key={x}>· {x}</li>)}</ul>
         <p className="text-xs">Prochaines échéances : {pv.next.length ? pv.next.map((d) => `${fmtDate(d.due)}${d.planned !== d.due ? ` (planifiée ${fmtDate(d.planned)})` : ""}`).join(" · ") : "aucune"}</p>
-        {pv.collisions.length > 0 && <p className="text-xs text-amber-700">Collision : les deux jours tombent le même jour en {pv.collisions.join(", ")} — politique retenue : {p.collision_policy ? COLLISION_LABEL[p.collision_policy] : "à choisir"}.</p>}
+        {pv.collisions.length > 0 && <p className="text-xs text-amber-700">Les deux jours tombent le même jour dans ces mois : {[...pv.collisions].sort().map(monthFr).join(", ")} — choix retenu : {p.collision_policy ? COLLISION_LABEL[p.collision_policy] : "à choisir"}. Deux échéances distinctes gardent deux identités.</p>}
+        {seasonSmp.length > 0 && <p className="text-xs" data-testid="saisons-apercu">Premières dates de deux saisons consécutives : {seasonSmp.map((s) => `${fmtDate(s.start)} → ${s.dates.map(fmtDate).join(", ") || "aucune"}`).join(" | ")}</p>}
         <div className="flex flex-wrap items-center gap-1 text-xs">Période de l'aperçu : <Input type="date" className="h-8 w-36" value={per?.from ?? ""} onChange={(e) => setPeriod({ from: e.target.value, to: per?.to ?? e.target.value })} /> au <Input type="date" className="h-8 w-36" value={per?.to ?? ""} onChange={(e) => setPeriod({ from: per?.from ?? e.target.value, to: e.target.value })} /> inclus</div>
         <p className="text-xs" data-testid="apercu-totaux"><strong>{pv.count} versement(s)</strong> · confirmé {fmtMoney(pv.confirmed)} · estimé {fmtMoney(pv.estimated)} · {pv.unknown_count} montant(s) à compléter</p>
         {ruleChange && impact && <div className="text-xs" data-testid="avant-apres"><p><strong>Avant / après au {fmtDate(eff)}</strong> — conservées (antérieures) : {impact.kept} · annulées de façon traçable : {Array.isArray(impact.cancelled) ? impact.cancelled.length : impact.cancelled}{impact.exceptions ? ` (dont ${impact.exceptions} exception(s) individuelle(s))` : ""} · nouvelles (12 mois) : {impact.new.length}</p>
@@ -451,7 +456,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
   </DialogContent></Dialog>;
 }
 
-function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleChange, onDuplicate }: { occ: Occ; canWrite: boolean; onClose: () => void; onChanged: () => void; onEdit: (id: string) => void; onRuleChange: (id: string, effective: string) => void; onDuplicate: (init: any) => void }) {
+function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleChange, onDuplicate, onPay, onOpenPayment }: { occ: Occ; canWrite: boolean; onClose: () => void; onChanged: () => void; onEdit: (id: string) => void; onRuleChange: (id: string, effective: string) => void; onDuplicate: (init: any) => void; onPay: (o: Occ) => void; onOpenPayment: (id: string) => void }) {
   const [o, setO] = useState(occ);
   const [hist, setHist] = useState<any[]>([]);
   const [vers, setVers] = useState<any[]>([]);
@@ -467,7 +472,13 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
   const [reason, setReason] = useState("");
   const [eff, setEff] = useState(todayIn(TZ));
   const [busy, setBusy] = useState(false);
-  const load = () => { api.history(o.obligation_id).then(setHist); api.versions(o.obligation_id).then(setVers); api.pauses(o.obligation_id).then(setPzs); };
+  const [detail, setDetail] = useState<any>(null);
+  const [lift, setLift] = useState<{ id: string; eff: string; reason: string } | null>(null);
+  const [liftPv, setLiftPv] = useState<Awaited<ReturnType<typeof st.liftPause>> | null>(null);
+  const load = () => {
+    api.history(o.obligation_id).then(setHist); api.versions(o.obligation_id).then(setVers); api.pauses(o.obligation_id).then(setPzs);
+    st.occDetail(o.id).then((d) => { setDetail(d); if (d?.occ) setO((x) => ({ ...x, ...d.occ })); }).catch(() => setDetail(null));
+  };
   useEffect(() => { setPzImpact(null); if (mode === "pause" && pz.start && pz.end && pz.reason.trim()) api.addPause(o.obligation_id, pz.start, pz.end, pz.reason, true).then((r) => setPzImpact(r.affected)).catch((e) => toast({ title: "Suspension impossible", description: e.message, variant: "destructive" })); }, [mode, pz.start, pz.end, pz.reason, o.obligation_id]);
   useEffect(load, [o.obligation_id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (mode === "amount" && canWrite) api.editAmount(o.id, scope, ql === "unknown" ? null : Number(amt || 0), ql, true).then(setImpact).catch(() => setImpact(null)); }, [mode, scope, amt, ql, o.id, canWrite]);
@@ -481,12 +492,26 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
       <dt className="text-muted-foreground">Échéance contractuelle</dt><dd>{fmtDate(o.due_date)}</dd>
       <dt className="text-muted-foreground">Paiement planifié</dt><dd>{fmtDate(o.planned_date)}{o.planned_reason ? ` — ${o.planned_reason}` : ""}</dd>
       <dt className="text-muted-foreground">Montant</dt><dd>{fmtMoney(o.amount)} ({QUALITY_LABEL[o.amount_quality]})</dd>
-      <dt className="text-muted-foreground">Fréquence</dt><dd className="first-letter:uppercase">{freqLabel(o.frequency, o.interval_n)}{o.seasonal ? " (saisonnière)" : ""}</dd>
+      <dt className="text-muted-foreground">Fréquence (version d'origine)</dt><dd className="first-letter:uppercase">{occFreq(o)}{o.seasonal ? " (saisonnière)" : ""}{o.rule_frequency && o.rule_frequency !== o.frequency ? ` — règle actuelle : ${freqLabel(o.frequency, o.interval_n)}` : ""}</dd>
       {o.payee && <><dt className="text-muted-foreground">Bénéficiaire</dt><dd>{o.payee}</dd></>}
       {o.category && <><dt className="text-muted-foreground">Catégorie</dt><dd>{o.category}</dd></>}
       <dt className="text-muted-foreground">Statut</dt><dd>{o.status === "cancelled" ? `Annulée — ${o.cancel_reason}` : "Active"}</dd>
     </dl>
-    <p className="text-xs text-muted-foreground">Échéance prévue, pas un paiement. Règlement non suivi dans ce module. Ventilation TPS/TVQ non effectuée.</p>
+    {o.status === "active" && <section aria-label="Règlement" className="space-y-1 rounded-md border border-border p-2 text-sm">
+      <div className="flex items-center justify-between"><p className="font-display font-bold">Règlement</p><SettleBadge o={o} /></div>
+      <p>Montant initial {fmtMoney(o.amount)} · déclaré réglé {fmtMoney(o.paid ?? 0)} · <strong>solde {o.settle === "aucun" ? "—" : fmtMoney(o.balance ?? null)}</strong></p>
+      {o.settle === "aucun" && <p className="text-xs">Aucun montant à régler.</p>}
+      {o.settle === "a_completer" && <p className="text-xs">Montant à compléter : renseignez-le (« Modifier le montant ») avant d'enregistrer un règlement.</p>}
+      {o.amount_quality === "estimated" && (o.paid ?? 0) > 0 && <p className="text-xs text-amber-700">Solde basé sur une estimation ; le versement ne confirme pas le coût final.</p>}
+      {o.settle === "a_confirmer" && <p className="text-xs">Échéance antérieure à l'activation du suivi : son règlement extérieur est inconnu. Enregistrez le règlement s'il a eu lieu, ou confirmez qu'elle reste à payer.</p>}
+      {detail?.allocations?.length > 0 && <ul className="text-xs">{detail.allocations.map((a: any) => <li key={a.id} className={a.reversed_at || a.pay_status !== "validated" ? "text-muted-foreground line-through" : ""}>
+        <button className="text-primary underline" onClick={() => onOpenPayment(a.payment_id)}>{fmtDate(a.paid_on)} · {st.METHOD_LABEL[a.method]}</button> : {fmtMoney(Number(a.amount))}{a.reference ? ` · ${a.reference}` : ""}{Number(a.files) === 0 ? " · pièce manquante" : ""}{a.reversed_reason ? ` — ${a.reversed_reason}` : a.pay_status !== "validated" ? ` — ${st.PAY_STATUS[a.pay_status]}` : ""}</li>)}</ul>}
+      {canWrite && !mode && <div className="flex flex-wrap gap-2">
+        {["non_reglee", "partielle", "a_confirmer"].includes(o.settle ?? "") && <Button size="sm" onClick={() => onPay(o)}>Enregistrer un règlement</Button>}
+        {o.settle === "a_confirmer" && <Button size="sm" variant="outline" onClick={() => run(() => st.confirmUnsettled(o.id), "Confirmée : reste à payer")}>Confirmer : toujours à payer</Button>}
+      </div>}
+      <p className="text-[11px] text-muted-foreground">Règlements déclarés — non rapprochés avec la banque. Ventilation TPS/TVQ non effectuée.</p>
+    </section>}
     {canWrite && o.status === "active" && !mode && <div className="flex flex-wrap gap-2">
       <Button size="sm" variant="outline" onClick={() => setMode("amount")}>Modifier le montant</Button>
       <Button size="sm" variant="outline" onClick={() => setMode("planned")}>Déplacer la date planifiée</Button>
@@ -516,7 +541,16 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
       {pzImpact && <p className="text-xs" data-testid="pause-impact">Échéances touchées (conservées, annulées avec motif) : {pzImpact.length ? pzImpact.map((a) => `${fmtDate(a.due)} (${fmtMoney(a.amount)})`).join(", ") : "aucune"}</p>}
       <div className="flex gap-2"><Button size="sm" disabled={busy || !pzImpact} onClick={() => run(() => api.addPause(o.obligation_id, pz.start, pz.end, pz.reason, false), "Suspension enregistrée")}>Confirmer la suspension</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div>
     </div>}
-    {pzs.length > 0 && <div><p className="font-display text-sm font-bold">Suspensions</p><ul className="text-xs">{pzs.map((z, i) => <li key={i}>Du {fmtDate(z.start_date)} au {fmtDate(z.end_date)} : {z.reason}</li>)}</ul></div>}
+    {pzs.length > 0 && <div><p className="font-display text-sm font-bold">Suspensions</p><ul className="space-y-1 text-xs">{pzs.map((z) => <li key={z.id}>Du {fmtDate(z.start_date)} au {fmtDate(z.end_date)} : {z.reason}{z.lifted_from ? ` — levée à partir du ${fmtDate(z.lifted_from)}${z.lift_reason ? ` (${z.lift_reason})` : ""}` : ""}
+      {canWrite && !z.lifted_from && z.end_date >= todayIn(TZ) && <Button size="sm" variant="ghost" onClick={() => { setLift({ id: z.id, eff: todayIn(TZ) > z.start_date ? todayIn(TZ) : z.start_date, reason: "" }); setLiftPv(null); }}>Lever la suspension</Button>}</li>)}</ul></div>}
+    {lift && <div className="space-y-2 rounded-md border border-border p-3 text-sm">
+      <p className="text-xs">Seules les échéances supprimées par cette suspension, encore prévues par la règle applicable, sont restaurées. Annulations manuelles, changements de règle et autres suspensions restent en place. Aucun rattrapage des dates passées.</p>
+      <Input type="date" aria-label="Reprise à partir du" value={lift.eff} onChange={(e) => setLift({ ...lift, eff: e.target.value })} />
+      <Textarea placeholder="Motif (obligatoire)" value={lift.reason} onChange={(e) => setLift({ ...lift, reason: e.target.value })} />
+      {liftPv && <p className="text-xs" data-testid="levee-apercu">Restaurées : {liftPv.restore.length ? liftPv.restore.map((r) => fmtDate(r.due)).join(", ") : "aucune"} · autres annulations conservées : {liftPv.kept_other}{liftPv.not_applicable.length ? ` · non restaurées (règle remplacée) : ${liftPv.not_applicable.map((r) => fmtDate(r.due)).join(", ")}` : ""}</p>}
+      <div className="flex gap-2"><Button size="sm" variant="outline" disabled={!lift.reason.trim()} onClick={() => st.liftPause(lift.id, lift.eff, lift.reason, true).then(setLiftPv).catch((e) => toast({ title: "Impossible", description: e.message, variant: "destructive" }))}>Aperçu</Button>
+        <Button size="sm" disabled={busy || !liftPv} onClick={() => run(() => st.liftPause(lift.id, lift.eff, lift.reason, false), "Suspension levée")}>Confirmer la reprise</Button><Button size="sm" variant="ghost" onClick={() => setLift(null)}>Retour</Button></div>
+    </div>}
     {vers.length > 1 && <div><p className="font-display text-sm font-bold">Versions du montant</p><ul className="text-xs">{vers.map((v, i) => <li key={i}>À partir du {fmtDate(v.effective_from)} : {fmtMoney(v.amount == null ? null : Number(v.amount))} ({QUALITY_LABEL[v.amount_quality as "confirmed"]})</li>)}</ul></div>}
     <div><p className="font-display text-sm font-bold">Historique</p><ul className="space-y-1 text-xs">{hist.map((h, i) => <li key={i}>{new Date(h.created_at).toLocaleString("fr-CA", { timeZone: TZ })} — {ACTIONS[h.action] ?? h.action}{h.reason ? ` : ${h.reason}` : ""}{h.is_support ? " (assistance Vrac Québec)" : ""}</li>)}</ul></div>
   </DialogContent></Dialog>;
