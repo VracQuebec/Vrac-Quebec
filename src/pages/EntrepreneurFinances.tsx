@@ -488,7 +488,7 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
     setBusy(true);
     try { await fn(); toast({ title: msg }); setMode(null); onChanged(); onClose(); } catch (e: any) { toast({ title: "Non enregistré", description: e.message, variant: "destructive" }); } finally { setBusy(false); }
   };
-  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto overflow-x-hidden sm:max-w-lg [&>*]:min-w-0">
     <DialogHeader><DialogTitle>{o.label}</DialogTitle></DialogHeader>
     <dl className="grid grid-cols-2 gap-1 text-sm">
       <dt className="text-muted-foreground">Échéance contractuelle</dt><dd>{fmtDate(o.due_date)}</dd>

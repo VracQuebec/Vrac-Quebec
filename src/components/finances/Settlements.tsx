@@ -65,7 +65,7 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
     finally { setBusy(false); }
   };
 
-  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl">
+  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] overflow-y-auto overflow-x-hidden sm:max-w-xl [&>*]:min-w-0">
     <DialogHeader><DialogTitle>Enregistrer un règlement</DialogTitle></DialogHeader>
     <p className="text-sm">Entreprise : <strong>{companyName}</strong> · Bénéficiaire : <strong>{targets[0]?.payee ?? "non précisé"}</strong></p>
     <p className="rounded-md bg-secondary p-2 text-xs">Déclaration d'un versement déjà effectué hors plateforme. Rien n'est envoyé et aucune banque n'est consultée.</p>
@@ -80,7 +80,7 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
       {!open ? <p className="text-xs text-muted-foreground">Chargement…</p> : open.length === 0 ? <p className="text-xs text-muted-foreground">Aucune échéance ouverte pour ce bénéficiaire.</p> :
         <ul className="max-h-56 space-y-1 overflow-y-auto">{open.map((o) => <li key={o.id} className="flex items-center gap-2 text-sm">
           <input type="checkbox" aria-label={`Couvrir ${o.label} du ${fmtDate(o.due_date)}`} checked={o.id in pick} onChange={(e) => setPick((p) => { const n = { ...p }; if (e.target.checked) n[o.id] = String(o.balance); else delete n[o.id]; return n; })} />
-          <span className="min-w-0 flex-1 truncate">{fmtDate(o.due_date)} · {o.label} · reste {fmtMoney(o.balance)}{o.amount_quality === "estimated" ? " (estimé)" : ""}</span>
+          <span className="min-w-0 flex-1 break-words">{fmtDate(o.due_date)} · {o.label} · reste {fmtMoney(o.balance)}{o.amount_quality === "estimated" ? " (estimé)" : ""}</span>
           {o.id in pick && <Input aria-label={`Affecté à ${fmtDate(o.due_date)}`} className="h-8 w-28" type="number" min="0" step="0.01" value={pick[o.id]} onChange={(e) => setPick({ ...pick, [o.id]: e.target.value })} />}
         </li>)}</ul>}
     </section>
@@ -90,7 +90,7 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
       <Input placeholder="Référence de transaction ou n° de chèque" aria-label="Référence" value={ref} onChange={(e) => setRef(e.target.value)} />
       <Textarea className="sm:col-span-2" placeholder="Note interne" value={note} onChange={(e) => setNote(e.target.value)} />
     </div>}
-    <label className="flex cursor-pointer items-center gap-2 text-sm"><Paperclip className="h-4 w-4" /><span>Pièces justificatives (facultatif)</span><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" className="text-xs" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} /></label>
+    <label className="flex cursor-pointer items-center gap-2 text-sm"><Paperclip className="h-4 w-4" /><span>Pièces justificatives (facultatif)</span><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" className="min-w-0 max-w-full text-xs" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} /></label>
     {!files.length && <p className="text-xs text-muted-foreground">Aucune pièce : le règlement sera marqué « pièce manquante ». Vous pourrez l'ajouter plus tard.</p>}
     {(sum || sumErr) && <section aria-label="Résumé" className="space-y-1 rounded-md border border-primary/40 bg-primary/5 p-2 text-sm">
       <p className="font-display font-bold">Résumé avant validation</p>
@@ -124,7 +124,7 @@ export function PaymentDetail({ id, companyId, canWrite, canCorrect, onClose, on
   };
   if (!p) return <Dialog open onOpenChange={onClose}><DialogContent><p className="text-sm">Chargement…</p></DialogContent></Dialog>;
   const active = p.status === "validated";
-  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
+  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] overflow-y-auto overflow-x-hidden sm:max-w-lg [&>*]:min-w-0">
     <DialogHeader><DialogTitle>Règlement — {p.payee_name}</DialogTitle></DialogHeader>
     <p className={`rounded-md p-2 text-xs font-semibold ${active ? "bg-primary/10" : "bg-secondary"}`}>{st.PAY_STATUS[p.status]}{p.void_reason ? ` : ${p.void_reason}` : ""}</p>
     <dl className="grid grid-cols-2 gap-1 text-sm">
