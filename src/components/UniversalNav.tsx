@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, BarChart3, Ban, Bell, BookOpen, Building2, CalendarDays, Database, Home, LayoutDashboard, LogOut, MapPin, Menu, Settings, Truck, X } from "lucide-react";
+import { Activity, ArrowLeft, BarChart3, Ban, Bell, BookOpen, Building2, CalendarDays, Database, Home, LayoutDashboard, LogOut, MapPin, Menu, Settings, Truck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import NotificationBell from "@/components/notifications/NotificationBell";
@@ -94,6 +94,7 @@ export default function UniversalNav() {
   if (hidden) return null;
 
   const adminLinks = [
+    { to: "/admin/centre-controle", label: "Centre de contrôle", icon: Activity },
     { to: "/admin", label: "Demandes (CRM)", icon: LayoutDashboard },
     { to: "/admin/notifications", label: "Centre de notifications", icon: Bell },
     { to: "/admin/demandes-acces", label: "Demandes d'accès", icon: Truck },

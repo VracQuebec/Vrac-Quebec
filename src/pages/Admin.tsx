@@ -45,7 +45,7 @@ import { Database as DatabaseIcon } from "lucide-react";
 import { Search, CalendarClock } from "lucide-react";
 import TodayPanel from "@/components/crm/TodayPanel";
 
-import { Activity } from "lucide-react";
+import { Activity, AlertTriangle as AlertTriangleCC } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import DompesApprobationPanel from "@/components/admin/DompesApprobationPanel";
 import {
@@ -827,6 +827,9 @@ const Admin = () => {
             </Link>
             <Link to="/admin/configuration-soumissions" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
               <Settings className="w-4 h-4" /> Configuration des soumissions
+            </Link>
+            <Link to="/admin/centre-controle" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-sm font-display font-semibold hover:opacity-90">
+              <AlertTriangleCC className="w-4 h-4" /> Centre de contrôle
             </Link>
             <Link to="/admin/centre-operations" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground text-background text-sm font-display font-semibold hover:opacity-90">
               <Truck className="w-4 h-4" /> Centre des Opérations
