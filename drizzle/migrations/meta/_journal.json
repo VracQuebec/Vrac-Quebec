@@ -463,6 +463,13 @@
       "when": 1790693750636,
       "tag": "0065_dompe_visible_identite_crm",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1790705932711,
+      "tag": "0066_restreindre_lecture_config_et_fichiers_crm",
+      "breakpoints": true
     }
   ]
 }
