@@ -1,3 +1,4 @@
 - CRM entrepreneurs : un client Transport JSC se relie via ent_crm_clients.jsc_client_id (rattachement explicite, même company_id); jsc_clients fait autorité sur l'identité, synchronisée par trigger — évite les doubles saisies divergentes.
 - Soumission client : partage par jeton unique (entcrm_public_quote/respond, fonction entcrm-quote-file); taxes calculées et figées côté serveur à la remise — le client ne voit que la version liée et les pièces cochées.
 - Contrôle d'abonnement CRM : platform_access_settings.enforce_created_after soumet les entreprises créées après cette date — les nouvelles inscriptions paient sans toucher aux entreprises existantes.
+- Corrections d'un client Transport JSC : le trigger entcrm_jsc_client_propagate (jsc_clients AFTER UPDATE) réapplique l'identité aux fiches CRM rattachées — jsc_clients reste la seule source d'autorité.
