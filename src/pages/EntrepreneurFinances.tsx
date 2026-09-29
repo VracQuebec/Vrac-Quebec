@@ -22,7 +22,7 @@ const TABS: { v: Tab; l: string }[] = [{ v: "apercu", l: "Vue d'ensemble" }, { v
 const sel = "h-10 rounded-md border border-input bg-background px-2 text-sm";
 const TZ = "America/Toronto";
 const NATURES = [["charge", "Charge à prévoir"], ["dette", "Dette"], ["taxe", "Taxe"], ["actif", "Actif"], ["depot", "Dépôt"], ["transfert", "Transfert"]];
-const ACTIONS: Record<string, string> = { create: "Création", update: "Modification", amount_this: "Montant modifié (cette échéance)", amount_following: "Montant modifié (échéances suivantes)", reschedule: "Date planifiée déplacée", cancel: "Échéance annulée", archive: "Série archivée" };
+const ACTIONS: Record<string, string> = { create: "Création", update: "Modification", amount_this: "Montant modifié (cette échéance)", amount_following: "Montant modifié (échéances suivantes)", reschedule: "Date planifiée déplacée", cancel: "Échéance annulée", archive: "Série archivée", rule_change: "Règle de récurrence changée", pause: "Suspension future" };
 
 export default function EntrepreneurFinances({ admin = false }: { admin?: boolean }) {
   const { user, isReady } = useAuthReady();
@@ -415,11 +415,14 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
   </DialogContent></Dialog>;
 }
 
-function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onDuplicate }: { occ: Occ; canWrite: boolean; onClose: () => void; onChanged: () => void; onEdit: (id: string) => void; onDuplicate: (init: any) => void }) {
+function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleChange, onDuplicate }: { occ: Occ; canWrite: boolean; onClose: () => void; onChanged: () => void; onEdit: (id: string) => void; onRuleChange: (id: string, effective: string) => void; onDuplicate: (init: any) => void }) {
   const [o, setO] = useState(occ);
   const [hist, setHist] = useState<any[]>([]);
   const [vers, setVers] = useState<any[]>([]);
-  const [mode, setMode] = useState<null | "amount" | "planned" | "cancel" | "archive">(null);
+  const [mode, setMode] = useState<null | "amount" | "planned" | "cancel" | "archive" | "pause">(null);
+  const [pz, setPz] = useState({ start: "", end: "", reason: "" });
+  const [pzImpact, setPzImpact] = useState<{ due: string; amount: number | null }[] | null>(null);
+  const [pzs, setPzs] = useState<{ start_date: string; end_date: string; reason: string }[]>([]);
   const [scope, setScope] = useState<"this" | "following">("this");
   const [amt, setAmt] = useState<string>(occ.amount?.toString() ?? "");
   const [ql, setQl] = useState<string>(occ.amount_quality);
@@ -428,7 +431,8 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onDuplica
   const [reason, setReason] = useState("");
   const [eff, setEff] = useState(todayIn(TZ));
   const [busy, setBusy] = useState(false);
-  const load = () => { api.history(o.obligation_id).then(setHist); api.versions(o.obligation_id).then(setVers); };
+  const load = () => { api.history(o.obligation_id).then(setHist); api.versions(o.obligation_id).then(setVers); api.pauses(o.obligation_id).then(setPzs); };
+  useEffect(() => { setPzImpact(null); if (mode === "pause" && pz.start && pz.end && pz.reason.trim()) api.addPause(o.obligation_id, pz.start, pz.end, pz.reason, true).then((r) => setPzImpact(r.affected)).catch((e) => toast({ title: "Suspension impossible", description: e.message, variant: "destructive" })); }, [mode, pz.start, pz.end, pz.reason, o.obligation_id]);
   useEffect(load, [o.obligation_id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (mode === "amount" && canWrite) api.editAmount(o.id, scope, ql === "unknown" ? null : Number(amt || 0), ql, true).then(setImpact).catch(() => setImpact(null)); }, [mode, scope, amt, ql, o.id, canWrite]);
   const run = async (fn: () => Promise<unknown>, msg: string) => {
@@ -439,9 +443,9 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onDuplica
     <DialogHeader><DialogTitle>{o.label}</DialogTitle></DialogHeader>
     <dl className="grid grid-cols-2 gap-1 text-sm">
       <dt className="text-muted-foreground">Échéance contractuelle</dt><dd>{fmtDate(o.due_date)}</dd>
-      <dt className="text-muted-foreground">Paiement planifié</dt><dd>{fmtDate(o.planned_date)}</dd>
+      <dt className="text-muted-foreground">Paiement planifié</dt><dd>{fmtDate(o.planned_date)}{o.planned_reason ? ` — ${o.planned_reason}` : ""}</dd>
       <dt className="text-muted-foreground">Montant</dt><dd>{fmtMoney(o.amount)} ({QUALITY_LABEL[o.amount_quality]})</dd>
-      <dt className="text-muted-foreground">Fréquence</dt><dd>{o.frequency === "monthly" ? "Mensuelle" : "Ponctuelle"}</dd>
+      <dt className="text-muted-foreground">Fréquence</dt><dd className="first-letter:uppercase">{freqLabel(o.frequency, o.interval_n)}{o.seasonal ? " (saisonnière)" : ""}</dd>
       {o.payee && <><dt className="text-muted-foreground">Bénéficiaire</dt><dd>{o.payee}</dd></>}
       {o.category && <><dt className="text-muted-foreground">Catégorie</dt><dd>{o.category}</dd></>}
       <dt className="text-muted-foreground">Statut</dt><dd>{o.status === "cancelled" ? `Annulée — ${o.cancel_reason}` : "Active"}</dd>
@@ -455,10 +459,13 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onDuplica
     {canWrite && !mode && <div className="flex flex-wrap gap-2">
       <Button size="sm" variant="ghost" onClick={() => onEdit(o.obligation_id)}>Modifier l'obligation</Button>
       <Button size="sm" variant="ghost" onClick={async () => { const ob = await api.obligation(o.obligation_id); const { id, business_event_ref, created_at, updated_at, created_by, status, archived_effective, anchor_date, first_planned_date, ...rest } = ob; onDuplicate({ ...rest, amount: o.amount ?? "", amount_quality: o.amount_quality, anchor_date: null }); }}>Dupliquer</Button>
-      {o.frequency === "monthly" && <Button size="sm" variant="ghost" onClick={() => setMode("archive")}>Archiver la série</Button>}
+      {o.frequency !== "once" && <>
+        <Button size="sm" variant="ghost" onClick={() => onRuleChange(o.obligation_id, o.due_date >= todayIn(TZ) ? o.due_date : todayIn(TZ))}>Changer la règle à partir d'une date</Button>
+        <Button size="sm" variant="ghost" onClick={() => setMode("pause")}>Suspendre une période future</Button>
+        <Button size="sm" variant="ghost" onClick={() => setMode("archive")}>Archiver la série</Button></>}
     </div>}
     {mode === "amount" && <div className="space-y-2 rounded-md border border-border p-3">
-      <div className="flex gap-3 text-sm"><label><input type="radio" checked={scope === "this"} onChange={() => setScope("this")} /> Cette échéance seulement</label>{o.frequency === "monthly" && <label><input type="radio" checked={scope === "following"} onChange={() => setScope("following")} /> Celle-ci et les suivantes</label>}</div>
+      <div className="flex gap-3 text-sm"><label><input type="radio" checked={scope === "this"} onChange={() => setScope("this")} /> Cette échéance seulement</label>{o.frequency !== "once" && <label><input type="radio" checked={scope === "following"} onChange={() => setScope("following")} /> Celle-ci et les suivantes</label>}</div>
       <div className="flex gap-2"><select className={sel} value={ql} onChange={(e) => setQl(e.target.value)}><option value="confirmed">Confirmé</option><option value="estimated">Estimé</option><option value="unknown">À compléter</option></select>{ql !== "unknown" && <Input type="number" min="0" step="0.01" value={amt} onChange={(e) => setAmt(e.target.value)} />}</div>
       {impact && <p className="text-xs">Impact : {impact.count} échéance(s){impact.dates?.length ? ` — ${impact.dates.slice(0, 6).map(fmtDate).join(", ")}${impact.dates.length > 6 ? "…" : ""}` : ""}. Les échéances passées déjà ajustées individuellement ne changent pas ; l'ancienne version est conservée.</p>}
       <div className="flex gap-2"><Button size="sm" disabled={busy} onClick={() => { if (ql !== "unknown" && (amt === "" || Number(amt) < 0)) return toast({ title: "Montant invalide", variant: "destructive" }); run(() => api.editAmount(o.id, scope, ql === "unknown" ? null : Number(amt), ql), "Montant mis à jour"); }}>Confirmer</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div>
@@ -466,6 +473,14 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onDuplica
     {mode === "planned" && <div className="space-y-2 rounded-md border border-border p-3"><p className="text-xs">L'échéance contractuelle ({fmtDate(o.due_date)}) reste inchangée.</p><Input type="date" value={planned} onChange={(e) => setPlanned(e.target.value)} /><div className="flex gap-2"><Button size="sm" disabled={busy || !planned} onClick={() => run(() => api.reschedule(o.id, planned), "Date planifiée déplacée")}>Confirmer</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div></div>}
     {mode === "cancel" && <div className="space-y-2 rounded-md border border-border p-3"><Textarea placeholder="Motif de l'annulation (obligatoire)" value={reason} onChange={(e) => setReason(e.target.value)} /><div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !reason.trim()} onClick={() => run(() => api.cancelOcc(o.id, reason), "Échéance annulée (conservée dans l'historique)")}>Annuler l'échéance</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div></div>}
     {mode === "archive" && <div className="space-y-2 rounded-md border border-border p-3"><p className="text-xs">Arrête les échéances à partir de cette date. Les échéances antérieures sont conservées.</p><Input type="date" value={eff} onChange={(e) => setEff(e.target.value)} /><div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !eff} onClick={() => run(() => api.archiveObligation(o.obligation_id, eff), "Série archivée")}>Archiver</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div></div>}
+    {mode === "pause" && <div className="space-y-2 rounded-md border border-border p-3 text-sm">
+      <p className="text-xs">Les échéances passées restent dues. Pendant la suspension, aucune échéance n'est générée ; à la reprise, l'ancrage d'origine est conservé et rien n'est rattrapé automatiquement.</p>
+      <div className="grid grid-cols-2 gap-2"><Input type="date" aria-label="Début de suspension" value={pz.start} onChange={(e) => setPz({ ...pz, start: e.target.value })} /><Input type="date" aria-label="Fin de suspension" value={pz.end} onChange={(e) => setPz({ ...pz, end: e.target.value })} /></div>
+      <Textarea placeholder="Motif (obligatoire)" value={pz.reason} onChange={(e) => setPz({ ...pz, reason: e.target.value })} />
+      {pzImpact && <p className="text-xs" data-testid="pause-impact">Échéances touchées (conservées, annulées avec motif) : {pzImpact.length ? pzImpact.map((a) => `${fmtDate(a.due)} (${fmtMoney(a.amount)})`).join(", ") : "aucune"}</p>}
+      <div className="flex gap-2"><Button size="sm" disabled={busy || !pzImpact} onClick={() => run(() => api.addPause(o.obligation_id, pz.start, pz.end, pz.reason, false), "Suspension enregistrée")}>Confirmer la suspension</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div>
+    </div>}
+    {pzs.length > 0 && <div><p className="font-display text-sm font-bold">Suspensions</p><ul className="text-xs">{pzs.map((z, i) => <li key={i}>Du {fmtDate(z.start_date)} au {fmtDate(z.end_date)} : {z.reason}</li>)}</ul></div>}
     {vers.length > 1 && <div><p className="font-display text-sm font-bold">Versions du montant</p><ul className="text-xs">{vers.map((v, i) => <li key={i}>À partir du {fmtDate(v.effective_from)} : {fmtMoney(v.amount == null ? null : Number(v.amount))} ({QUALITY_LABEL[v.amount_quality as "confirmed"]})</li>)}</ul></div>}
     <div><p className="font-display text-sm font-bold">Historique</p><ul className="space-y-1 text-xs">{hist.map((h, i) => <li key={i}>{new Date(h.created_at).toLocaleString("fr-CA", { timeZone: TZ })} — {ACTIONS[h.action] ?? h.action}{h.reason ? ` : ${h.reason}` : ""}{h.is_support ? " (assistance Vrac Québec)" : ""}</li>)}</ul></div>
   </DialogContent></Dialog>;
