@@ -2,3 +2,6 @@
 - Soumission client : partage par jeton unique (entcrm_public_quote/respond, fonction entcrm-quote-file); taxes calculées et figées côté serveur à la remise — le client ne voit que la version liée et les pièces cochées.
 - Contrôle d'abonnement CRM : platform_access_settings.enforce_created_after soumet les entreprises créées après cette date — les nouvelles inscriptions paient sans toucher aux entreprises existantes.
 - Corrections d'un client Transport JSC : le trigger entcrm_jsc_client_propagate (jsc_clients AFTER UPDATE) réapplique l'identité aux fiches CRM rattachées — jsc_clients reste la seule source d'autorité.
+- Centre de contrôle (/admin/centre-controle) : prise en charge, rappels, notes et résolutions vivent dans `request_followups` (+ `request_followup_events`, journal figé par trigger), jamais sur les demandes — les demandes historiques restent intactes.
+- Rappels automatiques du Centre de contrôle : `request_followups_sweep()` s'exécute dans la tâche existante `crm-notifications-sweep` (10 min), délais dans `crm_notification_settings.delays.cc_*` — pas de nouvelle tâche planifiée.
+- Adresses de test réservées (@*.invalid, .test, .example, example.com) : jamais d'envoi de courriel (garde dans send-transactional-email et process-email-queue) ni d'envoi téléphone (trigger sur crm_notifications).
