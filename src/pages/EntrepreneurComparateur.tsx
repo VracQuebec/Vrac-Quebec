@@ -255,20 +255,30 @@ export default function EntrepreneurComparateur() {
     setComputing(true);
     setRanked(null);
     try {
-      const { data, error } = await supabase.functions.invoke("transport-distance-matrix", {
-        body: {
-          origin: coords,
-          dumps: geoLeads.slice(0, 100).map((l) => ({ id: l.id, lat: l.latitude!, lng: l.longitude! })),
-        },
-      });
-      if (error) throw error;
-      const results = (data?.results ?? data ?? {}) as Record<
-        string, { distance_km: number; duration_minutes: number } | null
-      >;
+      // Candidates : dompes non écartées, les plus proches du chantier, par lots.
+      // (Jamais « les 100 premières de la liste ».)
+      const eligible = geoLeads.filter(
+        (l) => evaluateSite(l as Ranked, material || null, truck || null).status !== "incompatible",
+      );
+      const batches = routingBatches(eligible, coords);
+      const results: Record<string, { distance_km: number; duration_minutes: number } | null> = {};
+      let anyOk = false;
+      for (const batch of batches) {
+        const { data, error } = await supabase.functions.invoke("transport-distance-matrix", {
+          body: {
+            origin: coords,
+            dumps: batch.map((l) => ({ id: l.id, lat: l.latitude!, lng: l.longitude! })),
+          },
+        });
+        if (error) continue; // ce lot reste « Distance à confirmer »
+        anyOk = true;
+        Object.assign(results, (data?.results ?? {}) as typeof results);
+      }
+      if (batches.length > 0 && !anyOk) throw new Error("matrix");
       const rows: Ranked[] = geoLeads.map((l) => ({
         ...l,
-        distance_km: results[l.id]?.distance_km ?? null,
-        duration_minutes: results[l.id]?.duration_minutes ?? null,
+        distance_km: typeof results[l.id]?.distance_km === "number" ? results[l.id]!.distance_km : null,
+        duration_minutes: typeof results[l.id]?.duration_minutes === "number" ? results[l.id]!.duration_minutes : null,
       }));
       const rank = { compatible: 0, unknown: 1, incompatible: 2 } as const;
       const fit = (l: Ranked) => {
@@ -277,6 +287,9 @@ export default function EntrepreneurComparateur() {
           + (ev.truck === "compatible" ? 0 : ev.truck === "unknown" ? 1 : 3);
       };
       rows.sort((a, b) => {
+        // Distance routière connue d'abord : une dompe sans itinéraire n'est jamais « la plus proche ».
+        const ka = a.distance_km != null ? 0 : 1, kb = b.distance_km != null ? 0 : 1;
+        if (ka !== kb) return ka - kb;
         const fa = fit(a), fb = fit(b);
         if (fa !== fb) return fa - fb;
         return (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity);
