@@ -20,6 +20,7 @@ import {
   ArrowLeft,
   Truck,
   LifeBuoy,
+  Wallet,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
