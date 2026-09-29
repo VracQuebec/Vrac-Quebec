@@ -14109,6 +14109,122 @@ export type Database = {
         }
         Relationships: []
       }
+      request_followup_events: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          entity_id: string
+          entity_type: string
+          followup_id: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          entity_id: string
+          entity_type: string
+          followup_id: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          entity_id?: string
+          entity_type?: string
+          followup_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_followup_events_followup_id_fkey"
+            columns: ["followup_id"]
+            isOneToOne: false
+            referencedRelation: "request_followups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      request_followups: {
+        Row: {
+          assignee_email: string | null
+          assignee_id: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          escalation_stage: number
+          follow_status: string
+          id: string
+          is_test: boolean
+          next_action: string | null
+          next_reminder_at: string | null
+          received_at: string
+          reminder_fired_at: string | null
+          reminder_reason: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          seen_at: string | null
+          seen_by: string | null
+          seen_by_email: string | null
+          taken_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          assignee_email?: string | null
+          assignee_id?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          escalation_stage?: number
+          follow_status?: string
+          id?: string
+          is_test?: boolean
+          next_action?: string | null
+          next_reminder_at?: string | null
+          received_at?: string
+          reminder_fired_at?: string | null
+          reminder_reason?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          seen_at?: string | null
+          seen_by?: string | null
+          seen_by_email?: string | null
+          taken_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assignee_email?: string | null
+          assignee_id?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          escalation_stage?: number
+          follow_status?: string
+          id?: string
+          is_test?: boolean
+          next_action?: string | null
+          next_reminder_at?: string | null
+          received_at?: string
+          reminder_fired_at?: string | null
+          reminder_reason?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          seen_at?: string | null
+          seen_by?: string | null
+          seen_by_email?: string | null
+          taken_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       request_lifecycle_transitions: {
         Row: {
           from_status: string
@@ -21308,6 +21424,11 @@ export type Database = {
         Args: { _id: string; _reason: string }
         Returns: Json
       }
+      request_followup_mark_seen: {
+        Args: { _entity_id: string; _entity_type: string }
+        Returns: undefined
+      }
+      request_followups_sweep: { Args: never; Returns: Json }
       request_transition: {
         Args: { _id: string; _reason?: string; _to: string }
         Returns: Json
