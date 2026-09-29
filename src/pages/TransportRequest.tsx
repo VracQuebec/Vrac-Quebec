@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { rankDumps, dumpRoleLabel } from "@/lib/entrepreneur/dump-ranking";
 import { BULK_TRUCK_TYPES } from "@/lib/trucks/catalog";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -278,6 +279,7 @@ const TransportRequest = () => {
   const [loadingResults, setLoadingResults] = useState(false);
   const [dumps, setDumps] = useState<DumpCandidate[]>([]);
   const [selectedDump, setSelectedDump] = useState<DumpCandidate | null>(null);
+  const [recommendedId, setRecommendedId] = useState<string | null>(null);
 
   // Step 5: form
   const [clientName, setClientName] = useState("");
@@ -1392,7 +1394,8 @@ const TransportRequest = () => {
             ) : (
               <div className="space-y-3">
                 {dumps.map((d, i) => {
-                  const rank = RANKS[Math.min(i, 2)];
+                  const isRecommended = d.id === recommendedId;
+                  const rank = isRecommended ? RANKS[0] : RANKS[2];
                   const isSelected = selectedDump?.id === d.id;
                   return (
                     <button
@@ -1409,7 +1412,9 @@ const TransportRequest = () => {
                             <div className="font-display font-bold text-base">
                               Dompe #{crmDompeNumber(d)}
                             </div>
-                            <div className="text-[11px] text-muted-foreground font-body uppercase tracking-wide">{rank.label}</div>
+                            <div className="text-[11px] text-muted-foreground font-body uppercase tracking-wide" data-testid="dump-role">
+                              {dumpRoleLabel(d.id, recommendedId)}{isSelected ? " · Dompe choisie" : ""}
+                            </div>
                           </div>
                         </div>
                         <div className="text-right">
@@ -1422,7 +1427,7 @@ const TransportRequest = () => {
                             </>
                           ) : (
                             <div className="text-xs text-muted-foreground flex items-center gap-1 justify-end max-w-[9rem]">
-                              <Route className="w-3 h-3 flex-shrink-0" /> Distance routière à confirmer
+                              <Route className="w-3 h-3 flex-shrink-0" /> Distance à confirmer
                             </div>
                           )}
                         </div>
@@ -1481,7 +1486,7 @@ const TransportRequest = () => {
               ✅ Confirmation de votre demande d'accès
             </h1>
             <p className="text-muted-foreground text-sm mb-5">
-              L'assistant a déjà fait le travail — il ne vous reste qu'à confirmer votre demande d'accès à la dompe recommandée.
+              L'assistant a déjà fait le travail — il ne vous reste qu'à confirmer votre demande d'accès à la dompe choisie.
             </p>
 
             {/* Full summary card */}
@@ -1495,15 +1500,20 @@ const TransportRequest = () => {
                 <SummaryRow icon="📏" label="Quantité estimée" value={unit === "inconnu" ? "À déterminer" : `${quantity} ${unit}`} />
                 <SummaryRow icon="🚛" label="Voyages estimés" value={trips || "À confirmer"} />
                 <SummaryRow icon="⏱️" label="Temps de trajet" value={selectedDump.road_distance ? `${selectedDump.duration_minutes} min` : "À confirmer"} />
-                <SummaryRow icon="🎯" label="Dompe recommandée" value={selectedDump.road_distance ? `#${crmDompeNumber(selectedDump)} • ${selectedDump.distance_km} km` : `#${crmDompeNumber(selectedDump)} • distance à confirmer`} />
+                <SummaryRow icon="🎯" label="Dompe choisie" value={selectedDump.road_distance ? `#${crmDompeNumber(selectedDump)} • ${selectedDump.distance_km} km` : `#${crmDompeNumber(selectedDump)} • Distance à confirmer`} />
+                {(() => {
+                  const rec = dumps.find((d) => d.id === recommendedId);
+                  if (!rec || rec.id === selectedDump.id) return null;
+                  return <SummaryRow icon="⭐" label="Dompe recommandée" value={rec.road_distance ? `#${crmDompeNumber(rec)} • ${rec.distance_km} km` : `#${crmDompeNumber(rec)} • Distance à confirmer`} />;
+                })()}
               </div>
               {dumps.length > 1 && (
                 <div className="mt-3 pt-3 border-t border-border">
-                  <p className="text-xs font-display font-bold uppercase text-muted-foreground mb-1.5">Alternatives</p>
+                  <p className="text-xs font-display font-bold uppercase text-muted-foreground mb-1.5">Autres options</p>
                   <div className="space-y-1 text-xs">
-                    {dumps.filter((d) => d.id !== selectedDump.id).slice(0, 2).map((d, i) => (
+                    {dumps.filter((d) => d.id !== selectedDump.id && d.id !== recommendedId).slice(0, 2).map((d) => (
                       <p key={d.id}>
-                        {i === 0 ? "🥈" : "🥉"} Dompe #{crmDompeNumber(d)} — {d.road_distance ? `${d.distance_km} km (${d.duration_minutes} min)` : "distance routière à confirmer"}
+                        • Dompe #{crmDompeNumber(d)} — {d.road_distance ? `${d.distance_km} km (${d.duration_minutes} min)` : "distance routière à confirmer"}
                       </p>
                     ))}
                   </div>
