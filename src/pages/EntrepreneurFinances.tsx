@@ -12,6 +12,8 @@ import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import * as api from "@/lib/finances/api";
+import { supabase as _sb } from "@/integrations/supabase/client";
+const sb = _sb as any;
 import { PERIOD_LABELS, QUALITY_LABEL, addDays, addMonths, daysInMonth, fmtDate, fmtMoney, parse, periodBounds, previewMonthly, todayIn, ymd, type Occ, type PeriodKind } from "@/lib/finances/period";
 
 type Tab = "apercu" | "calendrier" | "apayer" | "parametres";
@@ -370,10 +372,8 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onDuplica
 function Settings({ companyId, cats, canWrite, onChange }: { companyId: string; cats: Awaited<ReturnType<typeof api.categories>>; canWrite: boolean; onChange: () => void }) {
   const [name, setName] = useState("");
   const [edit, setEdit] = useState<{ id: string; name: string } | null>(null);
-  const db = (api as any) && (window as any);
-  void db;
   const call = async (fn: () => Promise<any>, msg: string) => { try { const r = await fn(); if (r?.error) throw r.error; toast({ title: msg }); onChange(); } catch (e: any) { toast({ title: "Non enregistré", description: e.message?.includes("duplicate") ? "Cette catégorie existe déjà." : e.message, variant: "destructive" }); } };
-  const { supabase } = require_supabase();
+  const supabase = sb;
   return <div className="space-y-4">
     <section className="rounded-md border border-border p-3 text-sm"><p className="font-display font-bold">Paramètres de l'entreprise</p><p>Devise : CAD · Fuseau : {TZ}</p><p className="text-xs text-muted-foreground">Seule la devise canadienne est prise en charge dans ce premier lot.</p></section>
     <section className="space-y-2"><p className="font-display font-bold">Catégories</p>
@@ -393,6 +393,3 @@ function Settings({ companyId, cats, canWrite, onChange }: { companyId: string; 
     </section>
   </div>;
 }
-
-import { supabase as _sb } from "@/integrations/supabase/client";
-function require_supabase() { return { supabase: _sb as any }; }
