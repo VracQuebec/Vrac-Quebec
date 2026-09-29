@@ -28,7 +28,7 @@ const occFreq = (o: Occ) => o.rule_known === false ? "fréquence d'origine non r
 const sel = "h-10 rounded-md border border-input bg-background px-2 text-sm";
 const TZ = "America/Toronto";
 const NATURES = [["charge", "Charge à prévoir"], ["dette", "Dette"], ["taxe", "Taxe"], ["actif", "Actif"], ["depot", "Dépôt"], ["transfert", "Transfert"]];
-const ACTIONS: Record<string, string> = { create: "Création", update: "Modification", amount_this: "Montant modifié (cette échéance)", amount_following: "Montant modifié (échéances suivantes)", reschedule: "Date planifiée déplacée", cancel: "Échéance annulée", archive: "Série archivée", rule_change: "Règle de récurrence changée", pause: "Suspension future" };
+const ACTIONS: Record<string, string> = { create: "Création", update: "Modification", amount_this: "Montant modifié (cette échéance)", amount_following: "Montant modifié (échéances suivantes)", reschedule: "Date planifiée déplacée", cancel: "Échéance annulée", archive: "Série archivée", rule_change: "Règle de récurrence changée", pause: "Suspension future", pause_lift: "Suspension levée" };
 
 export default function EntrepreneurFinances({ admin = false }: { admin?: boolean }) {
   const { user, isReady } = useAuthReady();
@@ -554,7 +554,7 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
         <Button size="sm" disabled={busy || !liftPv} onClick={() => run(() => st.liftPause(lift.id, lift.eff, lift.reason, false), "Suspension levée")}>Confirmer la reprise</Button><Button size="sm" variant="ghost" onClick={() => setLift(null)}>Retour</Button></div>
     </div>}
     {vers.length > 1 && <div><p className="font-display text-sm font-bold">Versions du montant</p><ul className="text-xs">{vers.map((v, i) => <li key={i}>À partir du {fmtDate(v.effective_from)} : {fmtMoney(v.amount == null ? null : Number(v.amount))} ({QUALITY_LABEL[v.amount_quality as "confirmed"]})</li>)}</ul></div>}
-    <div><p className="font-display text-sm font-bold">Historique</p><ul className="space-y-1 text-xs">{hist.map((h, i) => <li key={i}>{new Date(h.created_at).toLocaleString("fr-CA", { timeZone: TZ })} — {ACTIONS[h.action] ?? h.action}{h.reason ? ` : ${h.reason}` : ""}{h.is_support ? " (assistance Vrac Québec)" : ""}</li>)}</ul></div>
+    <div><p className="font-display text-sm font-bold">Historique</p><ul className="space-y-1 text-xs">{hist.map((h, i) => <li key={i}>{new Date(h.created_at).toLocaleString("fr-CA", { timeZone: TZ })} — {ACTIONS[h.action] ?? st.EVENT_LABEL[h.action] ?? h.action}{h.reason ? ` : ${h.reason}` : ""}{h.is_support ? " (assistance Vrac Québec)" : ""}</li>)}</ul></div>
   </DialogContent></Dialog>;
 }
 

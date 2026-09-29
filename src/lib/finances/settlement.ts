@@ -42,19 +42,18 @@ export async function openForPayee(c: string, payee: string) { const { data, err
 export async function liftPause(id: string, eff: string, reason: string, dry: boolean) { const { data, error } = await db.rpc("fin_lift_pause", { _pause: id, _effective: eff, _reason: reason, _dry: dry }); err(error); return data as { restore: { due: string; amount: number | null }[]; not_applicable: { due: string }[]; kept_other: number; effective: string }; }
 export async function seasonSample(c: string, p: Record<string, unknown>) { const { data, error } = await db.rpc("fin_season_sample", { _company: c, _p: p }); err(error); return (data ?? []) as { start: string; end: string; dates: string[] }[]; }
 
-/** Justificatif : stockage privé existant (entcrm-files), fiche créée côté serveur après réception. */
-export async function attachFile(companyId: string, paymentId: string, file: File) {
+/** Justificatif : stockage privé existant, via une fonction serveur contrôlée par les droits Finances. */
+export async function attachFile(_companyId: string, paymentId: string, file: File) {
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
   if (!FILE_MIME[ext]) throw new Error("Format non accepté (PDF, JPG, PNG, WEBP, HEIC).");
   if (!file.size || file.size > FILE_MAX) throw new Error("Fichier vide ou trop lourd (20 Mo au maximum).");
-  const path = `company/${companyId}/fin/${crypto.randomUUID()}.${ext}`;
-  const up = await supabase.storage.from("entcrm-files").upload(path, file, { contentType: FILE_MIME[ext], upsert: false });
-  if (up.error) throw new Error(`Envoi refusé : ${up.error.message}`);
-  const { error } = await db.rpc("fin_attach_file", { _payment: paymentId, _path: path, _name: file.name, _mime: FILE_MIME[ext], _size: file.size });
-  if (error) { await supabase.storage.from("entcrm-files").remove([path]); throw new Error(error.message); }
+  const fd = new FormData(); fd.append("payment_id", paymentId); fd.append("file", file);
+  const { data, error } = await supabase.functions.invoke("fin-payment-file", { body: fd });
+  if (error || data?.error) throw new Error(data?.error || (await (error as any)?.context?.json?.().catch(() => null))?.error || "Envoi refusé");
 }
-export async function openFile(path: string, name: string) {
-  const { data, error } = await supabase.storage.from("entcrm-files").createSignedUrl(path, 300, { download: name });
-  if (error || !data) throw new Error("Accès refusé à cette pièce");
-  window.open(data.signedUrl, "_blank", "noopener");
+export async function openFile(paymentId: string, fileId: string) {
+  const w = window.open("", "_blank");
+  const { data, error } = await supabase.functions.invoke("fin-payment-file", { body: { payment_id: paymentId, file_id: fileId } });
+  if (error || !data?.url) { w?.close(); throw new Error("Accès refusé à cette pièce"); }
+  if (w) w.location.href = data.url; else window.open(data.url, "_blank", "noopener");
 }
