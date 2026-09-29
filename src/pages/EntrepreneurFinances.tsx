@@ -122,18 +122,31 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
 function TotalsCards({ t }: { t: api.Totals | null }) {
   if (!t) return <p className="text-sm text-muted-foreground">Calcul…</p>;
   const c = [["Total confirmé", fmtMoney(t.confirmed)], ["Total estimé", fmtMoney(t.estimated)], ["Total connu", fmtMoney(t.known)], ["Montants à compléter", String(t.unknown_count)], ["Échéances retenues", String(t.count)]];
-  return <div>
+  const m = Object.entries(t.declared_by_method ?? {}).map(([k, v]) => `${st.METHOD_LABEL[k] ?? k} ${fmtMoney(Number(v))}`).join(" · ");
+  const box = (l: string, v: string, note?: string, id?: string) => <div key={l} className="rounded-md border border-border bg-card p-3"><p className="text-xs text-muted-foreground">{l}</p><p className="font-display text-lg font-bold" data-testid={id ? `tot-${id}` : undefined}>{v}</p>{note && <p className="text-[11px] text-muted-foreground">{note}</p>}</div>;
+  return <div className="space-y-2">
+    <p className="text-xs font-semibold">Montants exigibles dans la période ({t.base === "planned" ? "par date de paiement planifiée" : "par date d'échéance"})</p>
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">{c.map(([l, v]) => <div key={l} className="rounded-md border border-border bg-card p-3"><p className="text-xs text-muted-foreground">{l}</p><p className="font-display text-lg font-bold" data-testid={`tot-${l}`}>{v}</p></div>)}</div>
-    <p className="mt-1 text-xs text-muted-foreground">Du {fmtDate(t.from)} au {fmtDate(t.to)} inclus · base : {t.base === "planned" ? "date de paiement planifiée" : "date d'échéance"} · fuseau {TZ}. Montants prévus : ni bénéfice, ni charge comptable, ni preuve de paiement.</p>
+    {t.remaining !== undefined && <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {box("Reste à payer sur ces échéances, à ce jour", fmtMoney(t.remaining), `${t.late_count ?? 0} en retard (${fmtMoney(t.late_amount ?? 0)})${t.remaining_estimated ? ` · dont basé sur estimation ${fmtMoney(t.remaining_estimated)}` : ""}${t.to_confirm_amount ? ` · dont règlement à confirmer ${fmtMoney(t.to_confirm_amount)}` : ""}`, "reste")}
+      {box("Versements déclarés dans la période (date du versement)", fmtMoney(t.declared ?? 0), m || "Aucun", "declare")}
+      {box("Reliquats non affectés (toutes dates)", fmtMoney(t.unallocated ?? 0), `${t.unallocated_count ?? 0} versement(s) avec avance / trop-payé`, "reliquat")}
+      {box("Remboursements reçus dans la période", fmtMoney(t.refunds ?? 0), `${t.unknown_count} montant(s) à compléter · ${t.drafts ?? 0} brouillon(s)`)}
+    </div>}
+    <p className="text-xs text-muted-foreground">Du {fmtDate(t.from)} au {fmtDate(t.to)} inclus · fuseau {TZ}. Les versements sont des règlements déclarés, non rapprochés avec la banque ; un paiement par carte ne prouve pas une sortie du compte bancaire. Ni bénéfice, ni charge comptable.</p>
   </div>;
 }
 
-function OccRow({ o, onOpen }: { o: Occ; onOpen: (o: Occ) => void }) {
-  return <button onClick={() => onOpen(o)} className={`flex w-full items-center justify-between gap-3 rounded-md border border-border bg-card p-3 text-left hover:bg-secondary/50 ${o.status === "cancelled" ? "opacity-60" : ""}`}>
+function OccRow({ o, onOpen, pick }: { o: Occ; onOpen: (o: Occ) => void; pick?: { on: boolean; toggle: () => void } }) {
+  return <div className="flex items-center gap-2">
+    {pick && <input type="checkbox" aria-label={`Sélectionner ${o.label} du ${fmtDate(o.due_date)}`} checked={pick.on} onChange={pick.toggle} disabled={!["non_reglee", "partielle", "a_confirmer"].includes(o.settle ?? "")} />}
+    <button onClick={() => onOpen(o)} className={`flex w-full items-center justify-between gap-3 rounded-md border border-border bg-card p-3 text-left hover:bg-secondary/50 ${o.status === "cancelled" ? "opacity-60" : ""}`}>
     <div className="min-w-0"><p className="truncate font-display text-sm font-semibold">{o.label}{o.status === "cancelled" && " — annulée"}</p>
-      <p className="truncate text-xs text-muted-foreground">{fmtDate(o.ref_date)}{o.payee ? ` · ${o.payee}` : ""}{o.category ? ` · ${o.category}` : ""}{o.frequency !== "once" ? ` · ${freqLabel(o.frequency, o.interval_n)}` : ""}{o.seasonal ? " · saisonnière" : ""}{o.planned_override ? ` · planifiée le ${fmtDate(o.planned_date)}` : ""}</p></div>
-    <div className="text-right"><p className="font-display text-sm font-bold">{fmtMoney(o.amount)}</p><p className="text-[11px] text-muted-foreground">{QUALITY_LABEL[o.amount_quality]}</p></div>
-  </button>;
+      <p className="truncate text-xs text-muted-foreground">{fmtDate(o.ref_date)}{o.payee ? ` · ${o.payee}` : ""}{o.category ? ` · ${o.category}` : ""}{(o.rule_frequency ?? o.frequency) !== "once" ? ` · ${occFreq(o)}` : ""}{o.seasonal ? " · saisonnière" : ""}{o.planned_override ? ` · planifiée le ${fmtDate(o.planned_date)}` : ""}</p>
+      {o.status === "active" && <div className="mt-1"><SettleBadge o={o} /></div>}</div>
+    <div className="text-right"><p className="font-display text-sm font-bold">{fmtMoney(o.amount)}</p><p className="text-[11px] text-muted-foreground">{QUALITY_LABEL[o.amount_quality]}</p>
+      {o.status === "active" && (o.paid ?? 0) > 0 && <p className="text-[11px]">Reste {fmtMoney(o.balance ?? null)}</p>}</div>
+  </button></div>;
 }
 
 function Overview({ companyId, rev, add, onOpen }: { companyId: string; rev: number; add: React.ReactNode; onOpen: (o: Occ) => void }) {
