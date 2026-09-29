@@ -484,6 +484,13 @@
       "when": 1790713260986,
       "tag": "0068_fin01_generation_depuis_ancrage",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1790715071249,
+      "tag": "0069_fin02_recurrences_avancees",
+      "breakpoints": true
     }
   ]
 }

@@ -3336,6 +3336,54 @@ export type Database = {
           },
         ]
       }
+      fin_obligation_rules: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          obligation_id: string
+          rule_gen: number
+          snapshot: Json
+          valid_until: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          obligation_id: string
+          rule_gen: number
+          snapshot: Json
+          valid_until: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          obligation_id?: string
+          rule_gen?: number
+          snapshot?: Json
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_obligation_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_obligation_rules_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "fin_obligations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_obligation_versions: {
         Row: {
           amount: number | null
@@ -3391,18 +3439,22 @@ export type Database = {
           autopay_declared: boolean
           business_event_ref: string
           category_id: string | null
+          collision_policy: string | null
           company_id: string
           contract_ref: string | null
           created_at: string
           created_by: string | null
           document_id: string | null
           end_date: string | null
+          feb29_policy: string | null
           first_planned_date: string | null
           frequency: string
           id: string
+          interval_n: number
           label: string
           max_count: number | null
           month_day: number | null
+          month_day2: number | null
           nature: string
           notes: string | null
           notice_date: string | null
@@ -3410,8 +3462,15 @@ export type Database = {
           payee_client_id: string | null
           payee_label: string | null
           payment_method: string | null
+          planned_shift: string
           project_id: string | null
           renewal_date: string | null
+          renewal_frequency: string | null
+          rev: number
+          rule_from: string | null
+          rule_gen: number
+          schedule: Json | null
+          seasons: Json
           service_end: string | null
           service_start: string | null
           short_month_policy: string
@@ -3419,6 +3478,7 @@ export type Database = {
           status: string
           truck_id: string | null
           updated_at: string
+          weekdays: number[] | null
         }
         Insert: {
           anchor_date: string
@@ -3426,18 +3486,22 @@ export type Database = {
           autopay_declared?: boolean
           business_event_ref?: string
           category_id?: string | null
+          collision_policy?: string | null
           company_id: string
           contract_ref?: string | null
           created_at?: string
           created_by?: string | null
           document_id?: string | null
           end_date?: string | null
+          feb29_policy?: string | null
           first_planned_date?: string | null
           frequency: string
           id?: string
+          interval_n?: number
           label: string
           max_count?: number | null
           month_day?: number | null
+          month_day2?: number | null
           nature?: string
           notes?: string | null
           notice_date?: string | null
@@ -3445,8 +3509,15 @@ export type Database = {
           payee_client_id?: string | null
           payee_label?: string | null
           payment_method?: string | null
+          planned_shift?: string
           project_id?: string | null
           renewal_date?: string | null
+          renewal_frequency?: string | null
+          rev?: number
+          rule_from?: string | null
+          rule_gen?: number
+          schedule?: Json | null
+          seasons?: Json
           service_end?: string | null
           service_start?: string | null
           short_month_policy?: string
@@ -3454,6 +3525,7 @@ export type Database = {
           status?: string
           truck_id?: string | null
           updated_at?: string
+          weekdays?: number[] | null
         }
         Update: {
           anchor_date?: string
@@ -3461,18 +3533,22 @@ export type Database = {
           autopay_declared?: boolean
           business_event_ref?: string
           category_id?: string | null
+          collision_policy?: string | null
           company_id?: string
           contract_ref?: string | null
           created_at?: string
           created_by?: string | null
           document_id?: string | null
           end_date?: string | null
+          feb29_policy?: string | null
           first_planned_date?: string | null
           frequency?: string
           id?: string
+          interval_n?: number
           label?: string
           max_count?: number | null
           month_day?: number | null
+          month_day2?: number | null
           nature?: string
           notes?: string | null
           notice_date?: string | null
@@ -3480,8 +3556,15 @@ export type Database = {
           payee_client_id?: string | null
           payee_label?: string | null
           payment_method?: string | null
+          planned_shift?: string
           project_id?: string | null
           renewal_date?: string | null
+          renewal_frequency?: string | null
+          rev?: number
+          rule_from?: string | null
+          rule_gen?: number
+          schedule?: Json | null
+          seasons?: Json
           service_end?: string | null
           service_start?: string | null
           short_month_policy?: string
@@ -3489,6 +3572,7 @@ export type Database = {
           status?: string
           truck_id?: string | null
           updated_at?: string
+          weekdays?: number[] | null
         }
         Relationships: [
           {
@@ -3550,6 +3634,7 @@ export type Database = {
           occ_key: string
           planned_date: string
           planned_override: boolean
+          planned_reason: string | null
           status: string
           updated_at: string
           version_id: string | null
@@ -3568,6 +3653,7 @@ export type Database = {
           occ_key: string
           planned_date: string
           planned_override?: boolean
+          planned_reason?: string | null
           status?: string
           updated_at?: string
           version_id?: string | null
@@ -3586,6 +3672,7 @@ export type Database = {
           occ_key?: string
           planned_date?: string
           planned_override?: boolean
+          planned_reason?: string | null
           status?: string
           updated_at?: string
           version_id?: string | null
@@ -3610,6 +3697,54 @@ export type Database = {
             columns: ["version_id"]
             isOneToOne: false
             referencedRelation: "fin_obligation_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_pauses: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          end_date: string
+          id: string
+          obligation_id: string
+          reason: string
+          start_date: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          id?: string
+          obligation_id: string
+          reason: string
+          start_date: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          obligation_id?: string
+          reason?: string
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_pauses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_pauses_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "fin_obligations"
             referencedColumns: ["id"]
           },
         ]
@@ -20936,6 +21071,16 @@ export type Database = {
           qa_before: number
         }[]
       }
+      fin_add_pause: {
+        Args: {
+          _dry?: boolean
+          _end: string
+          _id: string
+          _reason: string
+          _start: string
+        }
+        Returns: Json
+      }
       fin_archive_obligation: {
         Args: { _effective: string; _id: string }
         Returns: number
@@ -20945,6 +21090,16 @@ export type Database = {
       fin_cancel_occurrence: {
         Args: { _occ: string; _reason: string }
         Returns: undefined
+      }
+      fin_change_rule: {
+        Args: {
+          _dry?: boolean
+          _effective: string
+          _id: string
+          _p: Json
+          _rev: number
+        }
+        Returns: Json
       }
       fin_check_links: {
         Args: { _company: string; _p: Json }
@@ -20963,6 +21118,18 @@ export type Database = {
       fin_ensure_occurrences: {
         Args: { _company: string; _from: string; _to: string }
         Returns: number
+      }
+      fin_gen_dates: {
+        Args: { _from: string; _r: Json; _to: string }
+        Returns: {
+          due: string
+          from_line: boolean
+          l_amount: number
+          l_quality: string
+          occ_key: string
+          planned: string
+          slot: number
+        }[]
       }
       fin_list: {
         Args: {
@@ -21003,9 +21170,18 @@ export type Database = {
         }
         Returns: Json
       }
+      fin_preview: {
+        Args: { _company: string; _from: string; _p: Json; _to: string }
+        Returns: Json
+      }
       fin_reschedule: {
         Args: { _occ: string; _planned: string }
         Returns: undefined
+      }
+      fin_rule_fields: { Args: { _p: Json }; Returns: Json }
+      fin_rule_json: {
+        Args: { _o: Database["public"]["Tables"]["fin_obligations"]["Row"] }
+        Returns: Json
       }
       fin_save_obligation: {
         Args: { _company: string; _id: string; _p: Json }
@@ -21030,18 +21206,25 @@ export type Database = {
           due_date: string
           frequency: string
           id: string
+          interval_n: number
           label: string
           nature: string
           obligation_id: string
+          occ_key: string
           payee: string
           planned_date: string
           planned_override: boolean
+          planned_reason: string
           project_id: string
           ref_date: string
+          seasonal: boolean
           status: string
           truck_id: string
         }[]
       }
+      fin_shift: { Args: { _d: string; _p: string }; Returns: string }
+      fin_skip: { Args: { _d: string; _r: Json }; Returns: boolean }
+      fin_validate_rule: { Args: { _r: Json }; Returns: undefined }
       fleet_can_access: { Args: { _company_id: string }; Returns: boolean }
       fleet_can_administer: { Args: { _company_id: string }; Returns: boolean }
       fleet_can_manage: { Args: { _company_id: string }; Returns: boolean }
