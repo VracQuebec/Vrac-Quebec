@@ -53,7 +53,7 @@ export interface ControlRequest {
   raw: Record<string, unknown>;
   // enrichi
   notifs: NotifLite[];
-  followup: Followup | null;
+  track: Followup | null;
   critical: boolean;
   unseen: boolean;
   taken: boolean;
@@ -99,7 +99,7 @@ export const GROUP_LABEL: Record<Group, string> = {
 type Row = Record<string, unknown>;
 const s = (v: unknown) => (v == null ? "" : String(v));
 
-export function fromSubmission(r: Row): Omit<ControlRequest, "notifs" | "followup" | "critical" | "unseen" | "taken" | "overdue" | "followup" | "priority" | "lastAction"> {
+export function fromSubmission(r: Row): Omit<ControlRequest, "notifs" | "track" | "critical" | "unseen" | "taken" | "overdue" | "followup" | "priority" | "lastAction"> {
   const status = s(r.status);
   const mats = Array.isArray(r.materials) ? (r.materials as string[]).join(", ") : "";
   return {
@@ -173,17 +173,17 @@ export function enrich(
   else if (followup_) priority = "suivi";
   const last = [...notifs].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
   return {
-    ...base, followUpAt: reminderAt, notifs, followup, critical, unseen, taken, overdue,
-    followup: followup, followupDue: undefined as never, priority,
+    ...base, followUpAt: reminderAt, notifs, track: followup, critical, unseen, taken, overdue,
+    followup: followup_, priority,
     lastAction: last ? last.title : "Aucune action enregistrée",
-  } as unknown as ControlRequest & { followup: Followup | null } extends infer T ? T & { followup: Followup | null } : never;
+  };
 }
 
 export function matches(r: ControlRequest, f: Filter) {
   switch (f) {
     case "new": return r.group === "nouvelle" && !r.taken;
     case "unseen": return r.unseen;
-    case "urgent": return r.overdue || r.priority === "critique";
+    case "urgent": return r.overdue;
     case "waiting": return r.group === "attente";
     case "processing": return r.group === "traitement" || (r.group === "nouvelle" && r.taken);
     case "followup": return r.followup;
