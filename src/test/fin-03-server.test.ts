@@ -25,7 +25,9 @@ let seq = 0;
 async function obligation(amount: number, p: Record<string, unknown> = {}) {
   const label = `TEST FIN-03 AUTO ${run} ${++seq}`;
   const r = await rpc("fin_save_obligation", { _company: C, _id: null, _p: { label, payee_label: label, nature: "charge", frequency: "once", anchor_date: "2026-08-31", amount, amount_quality: "confirmed", short_month_policy: "last_day", ...p } });
-  expect(r.msg).toBe(""); 
+  expect(r.msg).toBe("");
+  // Les occurrences sont matérialisées par la lecture de période (moteur unique fin_gen_dates).
+  await rpc("fin_list", { _company: C, _from: "2026-01-01", _to: "2026-12-31", _base: "due", _f: {}, _sort: "due", _limit: 5, _offset: 0 });
   const occ = await get(`fin_occurrences?obligation_id=eq.${r.data}&status=eq.active&select=id,due_date,occ_key,amount&order=due_date`);
   return { id: r.data as string, occ: occ as { id: string; due_date: string; occ_key: string }[] };
 }
