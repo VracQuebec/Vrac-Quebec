@@ -186,9 +186,22 @@ Deno.serve(async (req) => {
 
   const { data: subsRaw } = await sb
     .from('crm_push_subscriptions')
-    .select('id, endpoint, p256dh, auth, categories, is_enabled')
+    .select('id, user_id, endpoint, p256dh, auth, categories, is_enabled')
     .eq('is_enabled', true);
-  const subs = (subsRaw ?? []) as Sub[];
+  // Les appareils des comptes de test ne reçoivent jamais les avis CRM réels.
+  // En cas de doute (lecture du compte impossible), l'appareil est CONSERVÉ :
+  // aucun appareil réel ne peut être retiré par erreur.
+  const subs: Sub[] = [];
+  let excludedTest = 0;
+  for (const s of (subsRaw ?? []) as (Sub & { user_id: string })[]) {
+    let test = false;
+    try {
+      const { data: u } = await sb.auth.admin.getUserById(s.user_id);
+      test = isTestEmail(u?.user?.email);
+    } catch { test = false; }
+    if (test) excludedTest++; else subs.push(s);
+  }
+  console.log(`dispatch targets: kept=${subs.length} excluded_test=${excludedTest}`);
 
   // Compteur badge = notifications ouvertes non lues
   const { count: unread } = await sb
