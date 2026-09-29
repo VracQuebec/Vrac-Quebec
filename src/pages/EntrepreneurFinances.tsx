@@ -14,7 +14,8 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import * as api from "@/lib/finances/api";
 import { supabase as _sb } from "@/integrations/supabase/client";
 const sb = _sb as any;
-import { PERIOD_LABELS, QUALITY_LABEL, addDays, addMonths, daysInMonth, fmtDate, fmtMoney, parse, periodBounds, previewMonthly, todayIn, ymd, type Occ, type PeriodKind } from "@/lib/finances/period";
+import { PERIOD_LABELS, QUALITY_LABEL, addDays, addMonths, daysInMonth, fmtDate, fmtMoney, parse, periodBounds, todayIn, ymd, type Occ, type PeriodKind } from "@/lib/finances/period";
+import { COLLISION_LABEL, DAYS, FEB29_LABEL, FREQ_FILTERS, PRESETS, RENEWAL_LABEL, SHIFT_LABEL, freqLabel, policies, presetRule, sentence, toPreset, type Preset } from "@/lib/finances/recurrence";
 
 type Tab = "apercu" | "calendrier" | "apayer" | "parametres";
 const TABS: { v: Tab; l: string }[] = [{ v: "apercu", l: "Vue d'ensemble" }, { v: "calendrier", l: "Calendrier" }, { v: "apayer", l: "À payer" }, { v: "parametres", l: "Paramètres" }];
@@ -87,7 +88,7 @@ export default function EntrepreneurFinances({ admin = false }: { admin?: boolea
 
 function Finance({ companyId, companyName, tab, canWrite }: { companyId: string; companyName: string; tab: Tab; canWrite: boolean }) {
   const [rev, setRev] = useState(0);
-  const [form, setForm] = useState<{ id: string | null; init?: any } | null>(null);
+  const [form, setForm] = useState<{ id: string | null; init?: any; ruleChange?: { effective: string } } | null>(null);
   const [occ, setOcc] = useState<Occ | null>(null);
   const [cats, setCats] = useState<Awaited<ReturnType<typeof api.categories>>>([]);
   const refresh = useCallback(() => setRev((r) => r + 1), []);
@@ -98,9 +99,9 @@ function Finance({ companyId, companyName, tab, canWrite }: { companyId: string;
     {tab === "calendrier" && <Browse companyId={companyId} rev={rev} cats={cats} mode="calendar" add={add} onOpen={setOcc} />}
     {tab === "apayer" && <Browse companyId={companyId} rev={rev} cats={cats} mode="table" add={add} onOpen={setOcc} />}
     {tab === "parametres" && <Settings companyId={companyId} cats={cats} canWrite={canWrite} onChange={refresh} />}
-    {form && <ObligationForm companyId={companyId} companyName={companyName} id={form.id} init={form.init} cats={cats.filter((c) => !c.archived_at)} onClose={() => setForm(null)} onSaved={() => { setForm(null); refresh(); }} />}
+    {form && <ObligationForm companyId={companyId} companyName={companyName} id={form.id} init={form.init} ruleChange={form.ruleChange} cats={cats.filter((c) => !c.archived_at)} onClose={() => setForm(null)} onSaved={() => { setForm(null); refresh(); }} />}
     {occ && <OccurrenceDialog occ={occ} canWrite={canWrite} onClose={() => setOcc(null)} onChanged={refresh}
-      onEdit={(id) => { setOcc(null); setForm({ id }); }} onDuplicate={(init) => { setOcc(null); setForm({ id: null, init }); }} />}
+      onEdit={(id) => { setOcc(null); setForm({ id }); }} onRuleChange={(id, effective) => { setOcc(null); setForm({ id, ruleChange: { effective } }); }} onDuplicate={(init) => { setOcc(null); setForm({ id: null, init }); }} />}
   </>;
 }
 
@@ -116,7 +117,7 @@ function TotalsCards({ t }: { t: api.Totals | null }) {
 function OccRow({ o, onOpen }: { o: Occ; onOpen: (o: Occ) => void }) {
   return <button onClick={() => onOpen(o)} className={`flex w-full items-center justify-between gap-3 rounded-md border border-border bg-card p-3 text-left hover:bg-secondary/50 ${o.status === "cancelled" ? "opacity-60" : ""}`}>
     <div className="min-w-0"><p className="truncate font-display text-sm font-semibold">{o.label}{o.status === "cancelled" && " — annulée"}</p>
-      <p className="truncate text-xs text-muted-foreground">{fmtDate(o.ref_date)}{o.payee ? ` · ${o.payee}` : ""}{o.category ? ` · ${o.category}` : ""}{o.frequency === "monthly" ? " · mensuelle" : ""}{o.planned_override ? ` · planifiée le ${fmtDate(o.planned_date)}` : ""}</p></div>
+      <p className="truncate text-xs text-muted-foreground">{fmtDate(o.ref_date)}{o.payee ? ` · ${o.payee}` : ""}{o.category ? ` · ${o.category}` : ""}{o.frequency !== "once" ? ` · ${freqLabel(o.frequency, o.interval_n)}` : ""}{o.seasonal ? " · saisonnière" : ""}{o.planned_override ? ` · planifiée le ${fmtDate(o.planned_date)}` : ""}</p></div>
     <div className="text-right"><p className="font-display text-sm font-bold">{fmtMoney(o.amount)}</p><p className="text-[11px] text-muted-foreground">{QUALITY_LABEL[o.amount_quality]}</p></div>
   </button>;
 }
@@ -208,7 +209,8 @@ function Browse({ companyId, rev, cats, mode, add, onOpen }: { companyId: string
       <select aria-label="Catégorie" className={sel} value={f.category_id ?? ""} onChange={(e) => setF({ ...f, category_id: e.target.value || undefined })}><option value="">Toutes catégories</option>{cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
       <select aria-label="Statut" className={sel} value={f.status ?? ""} onChange={(e) => setF({ ...f, status: (e.target.value || undefined) as any })}><option value="">Actives</option><option value="cancelled">Annulées</option><option value="all">Actives et annulées</option></select>
       <select aria-label="Qualité du montant" className={sel} value={f.quality ?? ""} onChange={(e) => setF({ ...f, quality: e.target.value || undefined })}><option value="">Confirmé, estimé ou à compléter</option><option value="confirmed">Confirmé</option><option value="estimated">Estimé</option><option value="unknown">À compléter</option></select>
-      <select aria-label="Fréquence" className={sel} value={f.frequency ?? ""} onChange={(e) => setF({ ...f, frequency: e.target.value || undefined })}><option value="">Ponctuelle ou mensuelle</option><option value="once">Ponctuelle</option><option value="monthly">Mensuelle</option></select>
+      <select aria-label="Fréquence" className={sel} value={f.frequency ?? ""} onChange={(e) => setF({ ...f, frequency: e.target.value || undefined })}><option value="">Toutes les fréquences</option>{FREQ_FILTERS.map((x) => <option key={x.v} value={x.v}>{x.l}</option>)}</select>
+      <select aria-label="Saison" className={sel} value={f.seasonal ?? ""} onChange={(e) => setF({ ...f, seasonal: e.target.value || undefined })}><option value="">Avec ou sans saison</option><option value="1">Saisonnières seulement</option><option value="0">Sans saison</option></select>
       <Button variant="ghost" onClick={() => setF({})}>Effacer les filtres</Button>
     </div>}
     {b.to < b.from ? <p className="text-sm text-destructive">La date de fin doit suivre la date de début.</p> : <TotalsCards t={tot} />}
@@ -241,23 +243,61 @@ function MonthGrid({ from, to, byDay, onDay }: { from: string; to: string; byDay
   })}</div>;
 }
 
-function ObligationForm({ companyId, companyName, id, init, cats, onClose, onSaved }: { companyId: string; companyName: string; id: string | null; init?: any; cats: { id: string; name: string }[]; onClose: () => void; onSaved: () => void }) {
-  const [p, setP] = useState<any>(init ?? { frequency: "once", amount_quality: "confirmed", nature: "charge" });
+const L = ({ l, children, className = "" }: { l: string; children: React.ReactNode; className?: string }) => <label className={`block text-sm ${className}`}><span className="mb-1 block text-xs text-muted-foreground">{l}</span>{children}</label>;
+const RULE_KEYS = ["frequency", "interval_n", "weekdays", "month_day", "month_day2", "collision_policy", "feb29_policy", "short_month_policy", "seasons", "planned_shift", "schedule", "anchor_date", "end_date", "max_count", "amount", "amount_quality", "first_planned_date"];
+
+/** Formulaire d'obligation (création, brouillon, modification) ou changement de règle d'une série active à partir d'une date. */
+function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, onClose, onSaved }: { companyId: string; companyName: string; id: string | null; init?: any; cats: { id: string; name: string }[]; ruleChange?: { effective: string }; onClose: () => void; onSaved: () => void }) {
+  const [p, setP] = useState<any>(init ?? { frequency: "once", interval_n: 1, amount_quality: "confirmed", nature: "charge", planned_shift: "none", short_month_policy: "last_day", seasons: [] });
+  const [preset, setPreset] = useState<Preset>(toPreset(p.frequency, p.interval_n));
+  const [unit, setUnit] = useState<"days" | "weeks" | "months">("days");
   const [status, setStatus] = useState<string>(init ? "draft" : "active");
   const [adv, setAdv] = useState(false);
   const [lk, setLk] = useState<Awaited<ReturnType<typeof api.lookups>> | null>(null);
   const [busy, setBusy] = useState(false);
   const [dup, setDup] = useState<string | null>(null);
-  useEffect(() => { api.lookups(companyId).then(setLk); if (id) api.obligation(id).then(async (o) => { const v = await api.versions(id); const last: any = v[v.length - 1]; setStatus(o.status); setP({ ...o, amount: last?.amount ?? "", amount_quality: last?.amount_quality ?? "unknown" }); }); }, [companyId, id]);
-  const locked = !!id && status !== "draft";
+  const [conflict, setConflict] = useState<string | null>(null);
+  const [eff, setEff] = useState(ruleChange?.effective ?? todayIn(TZ));
+  const [pv, setPv] = useState<api.Preview | null>(null);
+  const [pvErr, setPvErr] = useState<string | null>(null);
+  const [period, setPeriod] = useState<{ from: string; to: string } | null>(null);
+  const [impact, setImpact] = useState<Awaited<ReturnType<typeof api.changeRule>> | null>(null);
+  const load = useCallback(() => {
+    if (!id) return;
+    api.obligation(id).then(async (o) => {
+      const v = await api.versions(id); const last: any = v[v.length - 1]; setStatus(o.status);
+      const x = { ...o, amount: last?.amount ?? "", amount_quality: last?.amount_quality ?? "unknown", seasons: o.seasons ?? [] };
+      if (ruleChange) { x.amount_quality = "keep"; x.anchor_date = eff; }
+      setP(x); setPreset(toPreset(o.frequency, o.interval_n)); if (o.frequency === "weekly" && ![1, 2, 4].includes(o.interval_n)) setUnit("weeks"); if (o.frequency === "monthly" && ![1, 2, 3, 4, 6].includes(o.interval_n)) setUnit("months");
+    });
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { api.lookups(companyId).then(setLk); load(); }, [companyId, load]);
+  const locked = !!id && status !== "draft" && !ruleChange;
   const up = (k: string, v: unknown) => setP((x: any) => ({ ...x, [k]: v === "" ? null : v }));
-  const preview = p.frequency === "monthly" && p.anchor_date ? previewMonthly(p.anchor_date, Number(p.month_day || parse(p.anchor_date).d), 4, p.end_date) : [];
+  const setPr = (v: Preset, n = Number(p.interval_n || 2), u = unit) => { setPreset(v); setP((x: any) => ({ ...x, ...presetRule(v, n, u) })); };
+  const rulePayload = useMemo(() => { const r: any = {}; RULE_KEYS.forEach((k) => (r[k] = p[k])); if (r.frequency === "once" || r.frequency === "schedule") { r.end_date = null; r.max_count = null; } return r; }, [p]);
+  const anchor = p.frequency === "schedule" ? [...(p.schedule ?? [])].map((l: any) => l.date).filter(Boolean).sort()[0] : p.anchor_date;
+  const per = period ?? (anchor ? { from: anchor, to: addDays(anchor, 364) } : null);
+
+  // Aperçu serveur (même moteur que le calendrier et les totaux)
+  useEffect(() => {
+    if (locked || !per) { setPv(null); return; }
+    const t = setTimeout(() => {
+      const body = { ...rulePayload, amount_quality: rulePayload.amount_quality === "keep" ? "unknown" : rulePayload.amount_quality };
+      api.preview(companyId, body, per.from, per.to).then((r) => { setPv(r); setPvErr(null); }).catch((e) => { setPv(null); setPvErr(e.message); });
+      if (ruleChange && id) api.changeRule(id, p.rev ?? null, rulePayload, eff, true).then(setImpact).catch((e) => { setImpact(null); setPvErr(e.message); });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [JSON.stringify(rulePayload), per?.from, per?.to, eff, locked]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fail = (e: any) => { if (String(e.message).startsWith("Conflit")) setConflict(e.message); else toast({ title: "Non enregistré", description: e.message, variant: "destructive" }); };
   const save = async (force = false) => {
     if (!p.label?.trim()) return toast({ title: "Libellé requis", variant: "destructive" });
-    if (!p.anchor_date) return toast({ title: "Date d'échéance requise", variant: "destructive" });
-    if (p.amount_quality !== "unknown" && (p.amount === null || p.amount === undefined || p.amount === "")) return toast({ title: "Montant requis", description: "Saisissez un montant ou choisissez « À compléter ». Un montant manquant n'est pas zéro.", variant: "destructive" });
-    if (Number(p.amount) < 0) return toast({ title: "Montant négatif refusé", variant: "destructive" });
-    if (!id && !force) {
+    if (p.frequency !== "schedule" && !p.anchor_date) return toast({ title: "Date d'échéance requise", variant: "destructive" });
+    if (p.frequency !== "schedule" && !["unknown", "keep"].includes(p.amount_quality) && (p.amount === null || p.amount === undefined || p.amount === "")) return toast({ title: "Montant requis", description: "Saisissez un montant ou choisissez « À compléter ». Un montant manquant n'est pas zéro.", variant: "destructive" });
+    if (Number(p.amount) < 0 || (p.schedule ?? []).some((l: any) => Number(l.amount) < 0)) return toast({ title: "Montant négatif refusé", variant: "destructive" });
+    if (!locked && pvErr) return toast({ title: "Règle invalide", description: pvErr, variant: "destructive" });
+    if (!id && !force && p.frequency !== "schedule") {
       const payee = p.payee_label || lk?.clients.find((c) => c.id === p.payee_client_id)?.name;
       const { rows } = await api.listOcc(companyId, addDays(p.anchor_date, -45), addDays(p.anchor_date, 45), "due", { q: p.label.trim() }, "date_asc", 20);
       const hit = rows.find((r) => r.label.toLowerCase() === p.label.trim().toLowerCase() && (!payee || r.payee === payee));
@@ -265,51 +305,113 @@ function ObligationForm({ companyId, companyName, id, init, cats, onClose, onSav
     }
     setBusy(true);
     try {
+      if (ruleChange && id) {
+        await api.changeRule(id, p.rev ?? null, rulePayload, eff, false);
+        toast({ title: "Nouvelle règle appliquée", description: `À partir du ${fmtDate(eff)} ; les échéances antérieures sont conservées.` }); onSaved(); return;
+      }
       const body = { ...p, amount: p.amount_quality === "unknown" ? null : Number(p.amount), status: status === "draft" && !init ? "active" : status === "draft" ? "draft" : "active" };
       if (id && status === "draft") body.status = "active";
       await api.saveObligation(companyId, id, body);
       toast({ title: id ? "Obligation modifiée" : "Obligation enregistrée" }); onSaved();
-    } catch (e: any) { toast({ title: "Non enregistré", description: e.message, variant: "destructive" }); } finally { setBusy(false); }
+    } catch (e: any) { fail(e); } finally { setBusy(false); }
   };
-  const L = ({ l, children }: { l: string; children: React.ReactNode }) => <label className="block text-sm"><span className="mb-1 block text-xs text-muted-foreground">{l}</span>{children}</label>;
-  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
-    <DialogHeader><DialogTitle>{id ? "Modifier l'obligation" : init ? "Dupliquer (nouvelle date requise)" : "Ajouter une obligation"}</DialogTitle></DialogHeader>
+  const lines: any[] = p.schedule ?? [];
+  const setLine = (i: number, k: string, v: unknown) => up("schedule", lines.map((l, j) => (j === i ? { ...l, [k]: v } : l)));
+  const seasons: { from: string; to: string }[] = p.seasons ?? [];
+  const showEnd = !["once", "schedule"].includes(p.frequency);
+  const dis = locked;
+
+  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+    <DialogHeader><DialogTitle>{ruleChange ? "Changer la règle à partir d'une date" : id ? "Modifier l'obligation" : init ? "Dupliquer (nouvelle date requise)" : "Ajouter une obligation"}</DialogTitle></DialogHeader>
     <p className="text-sm">Entreprise : <strong>{companyName}</strong></p>
+    {conflict && <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-sm">{conflict}<div className="mt-2"><Button size="sm" variant="outline" onClick={() => { setConflict(null); load(); }}>Recharger l'état actuel</Button></div></div>}
+    {ruleChange && <L l="La nouvelle règle s'applique à partir du (inclus)"><Input type="date" value={eff} onChange={(e) => { setEff(e.target.value); up("anchor_date", e.target.value); }} /></L>}
     <div className="grid gap-3 sm:grid-cols-2">
-      <L l="Libellé *"><Input value={p.label ?? ""} onChange={(e) => up("label", e.target.value)} /></L>
-      <L l="Fournisseur / bénéficiaire"><select className={`${sel} w-full`} value={p.payee_client_id ?? ""} onChange={(e) => up("payee_client_id", e.target.value)}><option value="">Saisie libre ci-dessous</option>{lk?.clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-        {!p.payee_client_id && <Input className="mt-1" placeholder="Nom (sans créer de fiche CRM)" value={p.payee_label ?? ""} onChange={(e) => up("payee_label", e.target.value)} />}</L>
-      <L l="Catégorie"><select className={`${sel} w-full`} value={p.category_id ?? ""} onChange={(e) => up("category_id", e.target.value)}><option value="">Aucune</option>{cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></L>
-      <L l="Qualité du montant"><select className={`${sel} w-full`} disabled={locked} value={p.amount_quality} onChange={(e) => up("amount_quality", e.target.value)}><option value="confirmed">Confirmé</option><option value="estimated">Estimé</option><option value="unknown">À compléter</option></select></L>
-      {p.amount_quality !== "unknown" && <L l="Montant total prévu (CAD) *"><Input type="number" min="0" step="0.01" inputMode="decimal" disabled={locked} value={p.amount ?? ""} onChange={(e) => up("amount", e.target.value)} /></L>}
-      <L l="Fréquence"><select className={`${sel} w-full`} disabled={locked} value={p.frequency} onChange={(e) => up("frequency", e.target.value)}><option value="once">Ponctuelle</option><option value="monthly">Mensuelle</option></select></L>
-      <L l={p.frequency === "monthly" ? "Première échéance *" : "Date d'échéance *"}><Input type="date" disabled={locked} value={p.anchor_date ?? ""} onChange={(e) => up("anchor_date", e.target.value)} /></L>
-      {p.frequency === "monthly" && <>
-        <L l="Jour du mois"><Input type="number" min="1" max="31" disabled={locked} value={p.month_day ?? (p.anchor_date ? parse(p.anchor_date).d : "")} onChange={(e) => up("month_day", e.target.value)} /></L>
-        <L l="Dernière échéance (incluse)"><Input type="date" value={p.end_date ?? ""} onChange={(e) => up("end_date", e.target.value)} /></L>
-        <L l="ou nombre d'échéances"><Input type="number" min="1" value={p.max_count ?? ""} onChange={(e) => up("max_count", e.target.value)} /></L>
+      {!ruleChange && <>
+        <L l="Libellé *"><Input value={p.label ?? ""} onChange={(e) => up("label", e.target.value)} /></L>
+        <L l="Fournisseur / bénéficiaire"><select className={`${sel} w-full`} value={p.payee_client_id ?? ""} onChange={(e) => up("payee_client_id", e.target.value)}><option value="">Saisie libre ci-dessous</option>{lk?.clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+          {!p.payee_client_id && <Input className="mt-1" placeholder="Nom (sans créer de fiche CRM)" value={p.payee_label ?? ""} onChange={(e) => up("payee_label", e.target.value)} />}</L>
+        <L l="Catégorie"><select className={`${sel} w-full`} value={p.category_id ?? ""} onChange={(e) => up("category_id", e.target.value)}><option value="">Aucune</option>{cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></L>
       </>}
+      <L l="Fréquence de paiement"><select aria-label="Fréquence de paiement" className={`${sel} w-full`} disabled={dis} value={preset} onChange={(e) => setPr(e.target.value as Preset, ["every_n_days", "every_n_years", "custom"].includes(e.target.value) ? Number(p.interval_n) > 1 ? Number(p.interval_n) : 2 : 1)}>{PRESETS.map((x) => <option key={x.v} value={x.v}>{x.l}</option>)}</select></L>
+      {["every_n_days", "every_n_years", "custom"].includes(preset) && <L l={preset === "every_n_days" ? "Nombre de jours" : preset === "every_n_years" ? "Nombre d'années" : "Intervalle"}>
+        <div className="flex gap-2"><Input type="number" min="1" disabled={dis} value={p.interval_n ?? ""} onChange={(e) => setPr(preset, Number(e.target.value))} />
+          {preset === "custom" && <select aria-label="Unité" className={sel} disabled={dis} value={unit} onChange={(e) => { const u = e.target.value as "days"; setUnit(u); setPr(preset, Number(p.interval_n || 2), u); }}><option value="days">jours</option><option value="weeks">semaines</option><option value="months">mois</option></select>}</div></L>}
+      {p.frequency !== "schedule" && <>
+        {!["keep"].includes(p.amount_quality) || ruleChange ? <L l="Qualité du montant"><select aria-label="Qualité du montant" className={`${sel} w-full`} disabled={dis} value={p.amount_quality} onChange={(e) => up("amount_quality", e.target.value)}>{ruleChange && <option value="keep">Conserver les montants actuels</option>}<option value="confirmed">Confirmé</option><option value="estimated">Estimé</option><option value="unknown">À compléter</option></select></L> : null}
+        {!["unknown", "keep"].includes(p.amount_quality) && <L l="Montant de chaque versement (CAD) *"><Input aria-label="Montant" type="number" min="0" step="0.01" inputMode="decimal" disabled={dis} value={p.amount ?? ""} onChange={(e) => up("amount", e.target.value)} /></L>}
+        {!ruleChange && <L l={p.frequency === "once" ? "Date d'échéance *" : "Première échéance (ancrage) *"}><Input aria-label="Date d'échéance" type="date" disabled={dis} value={p.anchor_date ?? ""} onChange={(e) => up("anchor_date", e.target.value)} /></L>}
+      </>}
+      {p.frequency === "weekdays" && <div className="sm:col-span-2 text-sm"><span className="mb-1 block text-xs text-muted-foreground">Jours</span>
+        <div className="flex flex-wrap gap-2">{DAYS.map((d, i) => <label key={d} className="flex items-center gap-1"><input type="checkbox" disabled={dis} checked={(p.weekdays ?? []).includes(i + 1)} onChange={(e) => up("weekdays", e.target.checked ? [...(p.weekdays ?? []), i + 1].sort() : (p.weekdays ?? []).filter((x: number) => x !== i + 1))} />{d}</label>)}
+          <Button type="button" size="sm" variant="outline" disabled={dis} onClick={() => up("weekdays", [1, 2, 3, 4, 5])}>Lundi à vendredi</Button></div></div>}
+      {p.frequency === "monthly" && <>
+        <L l="Jour du mois (31 = dernier jour)"><Input type="number" min="1" max="31" disabled={dis} value={p.month_day ?? (p.anchor_date ? parse(p.anchor_date).d : "")} onChange={(e) => up("month_day", e.target.value)} /></L>
+        <L l="Si le mois n'a pas ce jour"><select className={`${sel} w-full`} disabled={dis} value={p.short_month_policy ?? "last_day"} onChange={(e) => up("short_month_policy", e.target.value)}><option value="last_day">Dernier jour disponible</option><option value="skip">Sauter le mois sans ce jour</option></select></L>
+      </>}
+      {p.frequency === "twice_monthly" && <>
+        <L l="Premier jour"><Input aria-label="Premier jour" type="number" min="1" max="31" disabled={dis} value={p.month_day ?? ""} onChange={(e) => up("month_day", e.target.value)} /></L>
+        <L l="Second jour (31 = dernier jour du mois)"><Input aria-label="Second jour" type="number" min="1" max="31" disabled={dis} value={p.month_day2 ?? ""} onChange={(e) => up("month_day2", e.target.value)} /></L>
+        {Math.min(Number(p.month_day || 0), Number(p.month_day2 || 0)) >= 29 && <L l="Si les deux jours tombent le même jour (mois court) *" className="sm:col-span-2"><select className={`${sel} w-full`} disabled={dis} value={p.collision_policy ?? ""} onChange={(e) => up("collision_policy", e.target.value)}><option value="">— Choisir —</option>{Object.entries(COLLISION_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></L>}
+      </>}
+      {p.frequency === "yearly" && p.anchor_date?.slice(5) === "02-29" && <L l="Anniversaire du 29 février *" className="sm:col-span-2"><select className={`${sel} w-full`} disabled={dis} value={p.feb29_policy ?? ""} onChange={(e) => up("feb29_policy", e.target.value)}><option value="">— Choisir —</option>{Object.entries(FEB29_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></L>}
+      {showEnd && <>
+        <L l="Dernière échéance possible (incluse)"><Input aria-label="Date de fin" type="date" disabled={dis && false} value={p.end_date ?? ""} onChange={(e) => up("end_date", e.target.value)} /></L>
+        <L l="ou nombre maximal de versements"><Input type="number" min="1" value={p.max_count ?? ""} onChange={(e) => up("max_count", e.target.value)} /></L>
+      </>}
+      {p.frequency !== "schedule" && <L l="Date de paiement planifiée"><select aria-label="Report de date planifiée" className={`${sel} w-full`} disabled={dis} value={p.planned_shift ?? "none"} onChange={(e) => up("planned_shift", e.target.value)}>{Object.entries(SHIFT_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></L>}
     </div>
-    {locked && <p className="text-xs text-muted-foreground">Montant et règle de récurrence : modifiez-les depuis une échéance (« cette échéance » ou « celle-ci et les suivantes ») pour conserver l'historique.</p>}
-    {preview.length > 0 && <p className="text-xs">Prochaines dates : {preview.map(fmtDate).join(" · ")} <span className="text-muted-foreground">(mois trop court : dernier jour du mois)</span></p>}
-    <p className="text-xs text-muted-foreground">Montant de trésorerie saisi tel quel : la ventilation TPS/TVQ n'est pas effectuée dans ce module.</p>
-    <button type="button" className="text-left text-sm font-semibold text-primary" onClick={() => setAdv(!adv)}>{adv ? "Masquer" : "Afficher"} les champs avancés</button>
-    {adv && <div className="grid gap-3 sm:grid-cols-2">
-      {p.frequency === "once" && <L l="Date de paiement planifiée"><Input type="date" disabled={locked} value={p.first_planned_date ?? ""} onChange={(e) => up("first_planned_date", e.target.value)} /></L>}
+    {p.frequency === "schedule" && <div className="space-y-2 rounded-md border border-border p-2">
+      <p className="text-xs text-muted-foreground">Chaque ligne est un versement distinct. Un montant variable reste estimé jusqu'à confirmation ; aucune indexation n'est ajoutée.</p>
+      {lines.map((l, i) => <div key={l.id ?? i} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-1">
+        <Input type="date" aria-label={`Date du versement ${i + 1}`} disabled={dis} value={l.date ?? ""} onChange={(e) => setLine(i, "date", e.target.value)} />
+        <select className={sel} disabled={dis} value={l.quality ?? "confirmed"} onChange={(e) => setLine(i, "quality", e.target.value)}><option value="confirmed">Confirmé</option><option value="estimated">Estimé</option><option value="unknown">À compléter</option></select>
+        {l.quality === "unknown" ? <span className="self-center text-xs text-muted-foreground">À compléter</span> : <Input type="number" min="0" step="0.01" aria-label={`Montant du versement ${i + 1}`} disabled={dis} value={l.amount ?? ""} onChange={(e) => setLine(i, "amount", e.target.value)} />}
+        <Button type="button" size="sm" variant="ghost" disabled={dis} onClick={() => up("schedule", lines.filter((_, j) => j !== i))}>Retirer</Button>
+      </div>)}
+      <Button type="button" size="sm" variant="outline" disabled={dis} onClick={() => up("schedule", [...lines, { date: "", amount: "", quality: "confirmed" }])}>Ajouter un versement</Button>
+    </div>}
+    {!["once", "schedule"].includes(p.frequency) && <div className="space-y-1 rounded-md border border-border p-2 text-sm">
+      <p className="text-xs text-muted-foreground">Saison(s) active(s) — facultatif. Hors saison, aucune échéance n'est générée ; la cadence d'origine n'est pas décalée. Une saison peut traverser le 31 décembre.</p>
+      {seasons.map((s, i) => <div key={i} className="flex flex-wrap items-center gap-1">Du <Input className="w-24" placeholder="MM-JJ" aria-label="Début de saison" disabled={dis} value={s.from} onChange={(e) => up("seasons", seasons.map((x, j) => (j === i ? { ...x, from: e.target.value } : x)))} /> au <Input className="w-24" placeholder="MM-JJ" aria-label="Fin de saison" disabled={dis} value={s.to} onChange={(e) => up("seasons", seasons.map((x, j) => (j === i ? { ...x, to: e.target.value } : x)))} /><Button type="button" size="sm" variant="ghost" disabled={dis} onClick={() => up("seasons", seasons.filter((_, j) => j !== i))}>Retirer</Button></div>)}
+      <Button type="button" size="sm" variant="outline" disabled={dis} onClick={() => up("seasons", [...seasons, { from: "11-01", to: "04-30" }])}>Ajouter une saison</Button>
+    </div>}
+    {locked && <p className="text-xs text-muted-foreground">Montant et règle de récurrence d'une série active : utilisez « Changer la règle à partir d'une date » ou « Suspendre » depuis une échéance, pour conserver l'historique.</p>}
+
+    {!locked && (pv || pvErr) && <section aria-label="Aperçu" className="space-y-1 rounded-md border border-primary/40 bg-primary/5 p-2 text-sm">
+      <p className="font-display font-bold">Aperçu avant enregistrement</p>
+      {pvErr ? <p className="text-destructive" role="alert">{pvErr}</p> : pv && <>
+        <p data-testid="phrase">{sentence(p)}</p>
+        <ul className="text-xs text-muted-foreground">{policies(p).map((x) => <li key={x}>· {x}</li>)}</ul>
+        <p className="text-xs">Prochaines échéances : {pv.next.length ? pv.next.map((d) => `${fmtDate(d.due)}${d.planned !== d.due ? ` (planifiée ${fmtDate(d.planned)})` : ""}`).join(" · ") : "aucune"}</p>
+        {pv.collisions.length > 0 && <p className="text-xs text-amber-700">Collision : les deux jours tombent le même jour en {pv.collisions.join(", ")} — politique retenue : {p.collision_policy ? COLLISION_LABEL[p.collision_policy] : "à choisir"}.</p>}
+        <div className="flex flex-wrap items-center gap-1 text-xs">Période de l'aperçu : <Input type="date" className="h-8 w-36" value={per?.from ?? ""} onChange={(e) => setPeriod({ from: e.target.value, to: per?.to ?? e.target.value })} /> au <Input type="date" className="h-8 w-36" value={per?.to ?? ""} onChange={(e) => setPeriod({ from: per?.from ?? e.target.value, to: e.target.value })} /> inclus</div>
+        <p className="text-xs" data-testid="apercu-totaux"><strong>{pv.count} versement(s)</strong> · confirmé {fmtMoney(pv.confirmed)} · estimé {fmtMoney(pv.estimated)} · {pv.unknown_count} montant(s) à compléter</p>
+        {ruleChange && impact && <div className="text-xs" data-testid="avant-apres"><p><strong>Avant / après au {fmtDate(eff)}</strong> — conservées (antérieures) : {impact.kept} · annulées de façon traçable : {Array.isArray(impact.cancelled) ? impact.cancelled.length : impact.cancelled}{impact.exceptions ? ` (dont ${impact.exceptions} exception(s) individuelle(s))` : ""} · nouvelles (12 mois) : {impact.new.length}</p>
+          {Array.isArray(impact.cancelled) && impact.cancelled.length > 0 && <p>Annulées : {impact.cancelled.slice(0, 8).map((c: any) => fmtDate(c.due)).join(", ")}{impact.cancelled.length > 8 ? "…" : ""}</p>}
+          <p>Nouvelles : {impact.new.slice(0, 8).map((c) => fmtDate(c.due)).join(", ")}{impact.new.length > 8 ? "…" : ""}</p></div>}
+      </>}
+    </section>}
+    <p className="text-xs text-muted-foreground">Montant de trésorerie saisi tel quel : la ventilation TPS/TVQ n'est pas effectuée dans ce module. Montants prévus, pas des paiements effectués.</p>
+    {!ruleChange && <button type="button" className="text-left text-sm font-semibold text-primary" onClick={() => setAdv(!adv)}>{adv ? "Masquer" : "Afficher"} les champs avancés</button>}
+    {adv && !ruleChange && <div className="grid gap-3 sm:grid-cols-2">
+      {p.frequency === "once" && <L l="Date de paiement planifiée (précise)"><Input type="date" disabled={locked} value={p.first_planned_date ?? ""} onChange={(e) => up("first_planned_date", e.target.value)} /></L>}
       <L l="Nature"><select className={`${sel} w-full`} value={p.nature} onChange={(e) => up("nature", e.target.value)}>{NATURES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></L>
       <L l="Contrat / référence fournisseur"><Input value={p.contract_ref ?? ""} onChange={(e) => up("contract_ref", e.target.value)} /></L>
       <L l="Moyen envisagé"><Input value={p.payment_method ?? ""} onChange={(e) => up("payment_method", e.target.value)} /></L>
       <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={!!p.autopay_declared} onChange={(e) => up("autopay_declared", e.target.checked)} />Prélèvement déjà organisé chez le fournisseur</label>
       <L l="Début de service"><Input type="date" value={p.service_start ?? ""} onChange={(e) => up("service_start", e.target.value)} /></L>
       <L l="Fin de service"><Input type="date" value={p.service_end ?? ""} onChange={(e) => up("service_end", e.target.value)} /></L>
-      <L l="Renouvellement"><Input type="date" value={p.renewal_date ?? ""} onChange={(e) => up("renewal_date", e.target.value)} /></L>
+      <L l="Renouvellement du contrat (date)"><Input type="date" value={p.renewal_date ?? ""} onChange={(e) => up("renewal_date", e.target.value)} /></L>
+      <L l="Fréquence de renouvellement (information seulement)"><select className={`${sel} w-full`} value={p.renewal_frequency ?? ""} onChange={(e) => up("renewal_frequency", e.target.value)}><option value="">Non précisée</option>{Object.entries(RENEWAL_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></L>
+      <p className="text-xs text-muted-foreground sm:col-span-2">Le renouvellement est distinct de la fréquence de paiement : il ne crée aucune nouvelle année de dette.</p>
       <L l="Préavis"><Input type="date" value={p.notice_date ?? ""} onChange={(e) => up("notice_date", e.target.value)} /></L>
       <L l="Camion"><select className={`${sel} w-full`} value={p.truck_id ?? ""} onChange={(e) => up("truck_id", e.target.value)}><option value="">Aucun</option>{lk?.trucks.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></L>
       <L l="Chantier"><select className={`${sel} w-full`} value={p.project_id ?? ""} onChange={(e) => up("project_id", e.target.value)}><option value="">Aucun</option>{lk?.projects.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></L>
       <div className="sm:col-span-2"><L l="Notes privées"><Textarea value={p.notes ?? ""} onChange={(e) => up("notes", e.target.value)} /></L></div>
     </div>}
     {dup && <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm">{dup}<div className="mt-2 flex gap-2"><Button size="sm" onClick={() => { setDup(null); save(true); }}>Enregistrer quand même</Button><Button size="sm" variant="outline" onClick={() => setDup(null)}>Revoir</Button></div></div>}
-    <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Annuler</Button><Button disabled={busy} onClick={() => save()}>{busy ? "Enregistrement…" : "Enregistrer"}</Button></div>
+    <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Annuler</Button><Button disabled={busy} onClick={() => save()}>{busy ? "Enregistrement…" : ruleChange ? "Appliquer la nouvelle règle" : "Enregistrer"}</Button></div>
   </DialogContent></Dialog>;
 }
 
