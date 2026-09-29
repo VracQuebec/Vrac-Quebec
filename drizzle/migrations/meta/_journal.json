@@ -477,6 +477,13 @@
       "when": 1790713200194,
       "tag": "0067_fin01_obligations_calendrier",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1790713260986,
+      "tag": "0068_fin01_generation_depuis_ancrage",
+      "breakpoints": true
     }
   ]
 }
