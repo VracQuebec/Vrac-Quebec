@@ -1513,7 +1513,7 @@ const TransportRequest = () => {
                   <div className="space-y-1 text-xs">
                     {dumps.filter((d) => d.id !== selectedDump.id && d.id !== recommendedId).slice(0, 2).map((d) => (
                       <p key={d.id}>
-                        • Dompe #{crmDompeNumber(d)} — {d.road_distance ? `${d.distance_km} km (${d.duration_minutes} min)` : "distance routière à confirmer"}
+                        • Dompe #{crmDompeNumber(d)} — {d.road_distance ? `${d.distance_km} km (${d.duration_minutes} min)` : "Distance à confirmer"}
                       </p>
                     ))}
                   </div>
@@ -1654,7 +1654,7 @@ const TransportRequest = () => {
             truckType={truckType || suggestedTruck}
             desiredDate={desiredDate}
             desiredTime={desiredTime}
-            dump={selectedDump ? `#${crmDompeNumber(selectedDump)} — ${selectedDump.road_distance ? `${selectedDump.distance_km} km (${selectedDump.duration_minutes} min)` : "distance routière à confirmer"}` : ""}
+            dump={selectedDump ? `#${crmDompeNumber(selectedDump)} — ${selectedDump.road_distance ? `${selectedDump.distance_km} km (${selectedDump.duration_minutes} min)` : "Distance à confirmer"}` : ""}
             onHome={() => navigate("/")}
           />
         )}
