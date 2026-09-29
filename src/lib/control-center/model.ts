@@ -187,7 +187,7 @@ export function matches(r: ControlRequest, f: Filter) {
     case "waiting": return r.group === "attente";
     case "processing": return r.group === "traitement" || (r.group === "nouvelle" && r.taken);
     case "followup": return r.followup;
-    case "done": return r.group === "traitee";
+    case "done": return r.group === "traitee" || r.track?.follow_status === "resolue";
     case "cancelled": return r.group === "annulee";
     default: return true;
   }
