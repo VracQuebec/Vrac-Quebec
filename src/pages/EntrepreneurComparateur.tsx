@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getEligibleEntrepreneurDumpSites, crmDompeNumber } from "@/lib/entrepreneur/dompes";
+import { routingBatches } from "@/lib/entrepreneur/comparateur-candidates";
 import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
@@ -287,11 +288,9 @@ export default function EntrepreneurComparateur() {
           + (ev.truck === "compatible" ? 0 : ev.truck === "unknown" ? 1 : 3);
       };
       rows.sort((a, b) => {
-        // Distance routière connue d'abord : une dompe sans itinéraire n'est jamais « la plus proche ».
-        const ka = a.distance_km != null ? 0 : 1, kb = b.distance_km != null ? 0 : 1;
-        if (ka !== kb) return ka - kb;
         const fa = fit(a), fb = fit(b);
         if (fa !== fb) return fa - fb;
+        // Sans itinéraire : Infinity → toujours après les distances routières connues.
         return (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity);
       });
       setRanked(rows);
