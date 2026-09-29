@@ -11,7 +11,7 @@ import {
   ArrowRight, CheckCircle2, Clock, Loader2, MapPin, Route, Search, TrendingDown, Truck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { getEligibleEntrepreneurDumpSites } from "@/lib/entrepreneur/dompes";
+import { getEligibleEntrepreneurDumpSites, crmDompeNumber } from "@/lib/entrepreneur/dompes";
 import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
@@ -55,8 +55,8 @@ type Lead = SiteLike & {
 
 type Ranked = Lead & { distance_km: number | null; duration_minutes: number | null };
 
-const label = (l: Lead) =>
-  (l.dompe_number && l.dompe_number.replace(/^dompe\s*/i, "").trim()) || String(l.submission_number);
+// Numéro CRM réel uniquement — aucun repli (les fiches sans numéro sont écartées au chargement).
+const label = (l: Lead) => crmDompeNumber(l) ?? "";
 
 const MATERIAL_TO_WIZARD: Record<MaterialKey, string> = {
   terre: "terre_propre",
@@ -206,7 +206,7 @@ export default function EntrepreneurComparateur() {
     void (async () => {
       const { sites, error } = await getEligibleEntrepreneurDumpSites();
       if (error) toast({ title: "Erreur", description: error, variant: "destructive" });
-      else setLeads(sites as unknown as Lead[]);
+      else setLeads((sites as unknown as Lead[]).filter((d) => crmDompeNumber(d) !== null));
       setLoading(false);
     })();
   }, [isReady, roleLoading, isEntrepreneur, isAdmin]);

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getEligibleEntrepreneurDumpSites } from "@/lib/entrepreneur/dompes";
+import { getEligibleEntrepreneurDumpSites, crmDompeNumber } from "@/lib/entrepreneur/dompes";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -94,8 +94,8 @@ const hasBigVolume = (l: EntLead) => /gros|grand|illimit|vrac|volume/.test(`${l.
 const has12Roues = (l: EntLead) => /12\s*roue|douze roue|camion/.test(accessText(l));
 const hasSemi = (l: EntLead) => /semi|remorque|fardier|train routier/.test(accessText(l));
 
-const dompeLabel = (l: EntLead) =>
-  (l.dompe_number && l.dompe_number.replace(/^dompe\s*/i, "").trim()) || String(l.submission_number);
+// Numéro CRM réel uniquement — aucun repli (les fiches sans numéro sont écartées au chargement).
+const dompeLabel = (l: EntLead) => crmDompeNumber(l) ?? "";
 
 const Entrepreneur = () => {
   const [leads, setLeads] = useState<EntLead[]>([]);
@@ -207,7 +207,7 @@ const Entrepreneur = () => {
     setLoading(true);
     const { sites, error } = await getEligibleEntrepreneurDumpSites();
     if (error) toast({ title: "Erreur", description: error, variant: "destructive" });
-    else setLeads(sites as any);
+    else setLeads((sites as any[]).filter((d) => crmDompeNumber(d) !== null));
     setLoading(false);
   };
 
