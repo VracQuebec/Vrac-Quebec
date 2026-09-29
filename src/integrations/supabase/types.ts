@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      _crmfinal_log: {
+        Row: {
+          at: string | null
+          k: string | null
+          v: string | null
+        }
+        Insert: {
+          at?: string | null
+          k?: string | null
+          v?: string | null
+        }
+        Update: {
+          at?: string | null
+          k?: string | null
+          v?: string | null
+        }
+        Relationships: []
+      }
       admin_notifications: {
         Row: {
           body: string | null
