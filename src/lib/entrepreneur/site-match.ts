@@ -131,6 +131,12 @@ export interface AvailabilityInfo {
 
 const STALE_DAYS = 30;
 
+/** Statut CRM qui interdit toute sélection (carte, recommandations, comparateur). */
+export const isDompeClosed = (status?: string | null): boolean => {
+  const raw = (status ?? "").toLowerCase();
+  return raw === "unavailable" || raw === "owner_closed";
+};
+
 export const availabilityInfo = (s: SiteLike): AvailabilityInfo => {
   const raw = (s.availability_status ?? "").toLowerCase();
   const iso = s.availability_updated_at;
@@ -148,6 +154,7 @@ export const availabilityInfo = (s: SiteLike): AvailabilityInfo => {
             : `Mise à jour il y a ${days} jours — à reconfirmer`;
 
   if (raw === "unavailable") return { level: "unavailable", label: "Indisponible", freshness, stale };
+  if (raw === "owner_closed") return { level: "unavailable", label: "Fermée par le propriétaire", freshness, stale };
   if (raw === "approval" || raw === "on_approval")
     return { level: "approval", label: "Sur approbation", freshness, stale };
   if (raw === "limited") return { level: "limited", label: "Disponibilité limitée", freshness, stale };

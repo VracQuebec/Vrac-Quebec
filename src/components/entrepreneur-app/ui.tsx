@@ -293,6 +293,7 @@ export const SiteCard = ({
   onDetail,
   onRequest,
   requestLabel = "Demander l'accès",
+  requestDisabled = false,
 }: {
   title: string;
   sector: string;
@@ -304,6 +305,7 @@ export const SiteCard = ({
   onDetail: () => void;
   onRequest: () => void;
   requestLabel?: string;
+  requestDisabled?: boolean;
 }) => (
   <article
     className={`overflow-hidden rounded-2xl border bg-card transition-all ${
@@ -347,8 +349,9 @@ export const SiteCard = ({
       </button>
       <button
         type="button"
-        onClick={onRequest}
-        className="min-h-11 flex-1 rounded-xl bg-primary font-display text-xs font-semibold text-primary-foreground"
+        onClick={requestDisabled ? undefined : onRequest}
+        disabled={requestDisabled}
+        className="min-h-11 flex-1 rounded-xl bg-primary font-display text-xs font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
       >
         {requestLabel}
       </button>

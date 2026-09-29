@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { getEligibleEntrepreneurDumpSites, crmDompeNumber } from "@/lib/entrepreneur/dompes";
+import { isDompeClosed } from "@/lib/entrepreneur/site-match";
 import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
@@ -583,8 +584,10 @@ const TransportRequest = () => {
       // Filter by material
       // Le serveur ne retourne que les dompes au statut CRM « en attente de livraison ».
       // On exclut en plus toute dompe sans numéro CRM valide (jamais de numéro fabriqué).
+      // Dompe fermée ou indisponible dans le CRM : jamais proposée comme option.
       const filtered = all.filter((d) =>
-        crmDompeNumber(d) !== null && (d.id === preselectDumpRef.current || matchesMaterial(d.materials || [], material))
+        crmDompeNumber(d) !== null && !isDompeClosed(d.availability_status) &&
+        (d.id === preselectDumpRef.current || matchesMaterial(d.materials || [], material))
       ) as DumpCandidate[];
 
       // Compute driving distance via edge function

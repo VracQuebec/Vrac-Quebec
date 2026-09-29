@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getEligibleEntrepreneurDumpSites, crmDompeNumber } from "@/lib/entrepreneur/dompes";
+import { isDompeClosed } from "@/lib/entrepreneur/site-match";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -129,6 +130,8 @@ const Entrepreneur = () => {
 
   /** Demande d'accès : le contexte connu part avec la demande. */
   const requestAccess = (lead?: EntLead | null) => {
+    // Dompe fermée ou indisponible dans le CRM : jamais sélectionnable.
+    if (lead && isDompeClosed(lead.availability_status)) return;
     setDetail(null);
     // La dompe consultée part avec la demande : jamais à resélectionner.
     const base = activeChantier ? (prefillFromChantier(activeChantier) as Record<string, unknown>) : {};
@@ -470,6 +473,8 @@ const Entrepreneur = () => {
                       onOpen={() => focusLead(l)}
                       onDetail={() => setDetail(l)}
                       onRequest={() => requestAccess(l)}
+                      requestDisabled={isDompeClosed(l.availability_status)}
+                      requestLabel={isDompeClosed(l.availability_status) ? av.label : "Demander l'accès"}
                     />
                   );
                 })}
@@ -528,9 +533,10 @@ const Entrepreneur = () => {
                 <div className="flex flex-col sm:flex-row gap-2 pt-1">
                   <button
                     onClick={() => requestAccess(detail)}
-                    className="flex-1 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm py-3 hover:opacity-90 transition-opacity"
+                    disabled={isDompeClosed(detail.availability_status)}
+                    className="flex-1 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm py-3 hover:opacity-90 transition-opacity disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
                   >
-                    Faire une demande d'accès
+                    {isDompeClosed(detail.availability_status) ? "Demande d'accès impossible" : "Faire une demande d'accès"}
                   </button>
                   <a
                     href={`tel:${PHONE_PRIMARY}`}
