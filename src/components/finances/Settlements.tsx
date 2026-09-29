@@ -90,7 +90,7 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
       <Input placeholder="Référence de transaction ou n° de chèque" aria-label="Référence" value={ref} onChange={(e) => setRef(e.target.value)} />
       <Textarea className="sm:col-span-2" placeholder="Note interne" value={note} onChange={(e) => setNote(e.target.value)} />
     </div>}
-    <label className="flex cursor-pointer items-center gap-2 text-sm"><Paperclip className="h-4 w-4" /><span>Pièces justificatives (facultatif)</span><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" className="min-w-0 max-w-full text-xs" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} /></label>
+    <label className="flex cursor-pointer flex-wrap items-center gap-2 text-sm"><Paperclip className="h-4 w-4" /><span>Pièces justificatives (facultatif)</span><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" className="min-w-0 max-w-full text-xs" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} /></label>
     {!files.length && <p className="text-xs text-muted-foreground">Aucune pièce : le règlement sera marqué « pièce manquante ». Vous pourrez l'ajouter plus tard.</p>}
     {(sum || sumErr) && <section aria-label="Résumé" className="space-y-1 rounded-md border border-primary/40 bg-primary/5 p-2 text-sm">
       <p className="font-display font-bold">Résumé avant validation</p>
