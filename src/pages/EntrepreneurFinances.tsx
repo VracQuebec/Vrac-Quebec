@@ -16,9 +16,15 @@ import { supabase as _sb } from "@/integrations/supabase/client";
 const sb = _sb as any;
 import { PERIOD_LABELS, QUALITY_LABEL, addDays, addMonths, daysInMonth, fmtDate, fmtMoney, parse, periodBounds, todayIn, ymd, type Occ, type PeriodKind } from "@/lib/finances/period";
 import { COLLISION_LABEL, DAYS, FEB29_LABEL, FREQ_FILTERS, PRESETS, RENEWAL_LABEL, SHIFT_LABEL, freqLabel, policies, presetRule, sentence, toPreset, type Preset } from "@/lib/finances/recurrence";
+import * as st from "@/lib/finances/settlement";
+import { PaymentDetail, PaymentDialog, PaymentsTab, type PayTarget } from "@/components/finances/Settlements";
 
-type Tab = "apercu" | "calendrier" | "apayer" | "parametres";
-const TABS: { v: Tab; l: string }[] = [{ v: "apercu", l: "Vue d'ensemble" }, { v: "calendrier", l: "Calendrier" }, { v: "apayer", l: "À payer" }, { v: "parametres", l: "Paramètres" }];
+type Tab = "apercu" | "calendrier" | "apayer" | "reglements" | "parametres";
+const TABS: { v: Tab; l: string }[] = [{ v: "apercu", l: "Vue d'ensemble" }, { v: "calendrier", l: "Calendrier" }, { v: "apayer", l: "À payer" }, { v: "reglements", l: "Règlements" }, { v: "parametres", l: "Paramètres" }];
+const monthFr = (ym: string) => new Date(`${ym}-01T12:00:00Z`).toLocaleDateString("fr-CA", { timeZone: "UTC", month: "long", year: "numeric" });
+const SettleBadge = ({ o }: { o: Occ }) => o.settle ? <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold ${st.SETTLE_TONE[o.settle] ?? ""}`}>{st.SETTLE_LABEL[o.settle]}{o.late ? " · en retard" : ""}</span> : null;
+/** Fréquence de la version qui a produit l'échéance (jamais réécrite par une règle ultérieure). */
+const occFreq = (o: Occ) => o.rule_known === false ? "fréquence d'origine non récupérable" : freqLabel(o.rule_frequency ?? o.frequency, o.rule_interval ?? o.interval_n);
 const sel = "h-10 rounded-md border border-input bg-background px-2 text-sm";
 const TZ = "America/Toronto";
 const NATURES = [["charge", "Charge à prévoir"], ["dette", "Dette"], ["taxe", "Taxe"], ["actif", "Actif"], ["depot", "Dépôt"], ["transfert", "Transfert"]];
@@ -54,6 +60,7 @@ export default function EntrepreneurFinances({ admin = false }: { admin?: boolea
   const company = companies?.find((c) => c.id === companyId);
   const canRead = ["support", "proprietaire", "gestionnaire", "comptabilite", "lecture"].includes(role ?? "");
   const canWrite = ["support", "proprietaire", "gestionnaire", "comptabilite"].includes(role ?? "");
+  const canCorrect = ["support", "proprietaire", "comptabilite"].includes(role ?? "");
   const go = (t: Tab) => { const p = new URLSearchParams(params); p.set("tab", t); if (companyId) p.set("company", companyId); setParams(p); };
 
   return (
@@ -79,29 +86,36 @@ export default function EntrepreneurFinances({ admin = false }: { admin?: boolea
               {TABS.map((t) => <button key={t.v} onClick={() => go(t.v)} className={`whitespace-nowrap px-3 py-2 text-sm font-display font-semibold ${tab === t.v ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}>{t.l}</button>)}
             </nav>
             {!canWrite && <p className="mb-3 rounded-md bg-secondary p-2 text-xs">Accès en lecture seule.</p>}
-            <Finance key={companyId} companyId={companyId} companyName={company?.name ?? ""} tab={tab} canWrite={canWrite} />
+            <Finance key={companyId} companyId={companyId} companyName={company?.name ?? ""} tab={tab} canWrite={canWrite} canCorrect={canCorrect} />
           </>}
       </div>
     </EntrepreneurAppShell>
   );
 }
 
-function Finance({ companyId, companyName, tab, canWrite }: { companyId: string; companyName: string; tab: Tab; canWrite: boolean }) {
+function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { companyId: string; companyName: string; tab: Tab; canWrite: boolean; canCorrect: boolean }) {
   const [rev, setRev] = useState(0);
   const [form, setForm] = useState<{ id: string | null; init?: any; ruleChange?: { effective: string } } | null>(null);
   const [occ, setOcc] = useState<Occ | null>(null);
+  const [pay, setPay] = useState<PayTarget[] | null>(null);
+  const [payOpen, setPayOpen] = useState<string | null>(null);
   const [cats, setCats] = useState<Awaited<ReturnType<typeof api.categories>>>([]);
   const refresh = useCallback(() => setRev((r) => r + 1), []);
   useEffect(() => { api.categories(companyId).then(setCats); }, [companyId, rev]);
   const add = canWrite ? <Button onClick={() => setForm({ id: null })}><Plus className="mr-1 h-4 w-4" />Ajouter une obligation</Button> : null;
+  const onPayMany = canWrite ? (list: Occ[]) => setPay(list.map((o) => ({ id: o.id, label: o.label, due_date: o.due_date, balance: o.balance, amount_quality: o.amount_quality, payee: o.payee, payee_key: o.payee_key }))) : undefined;
   return <>
     {tab === "apercu" && <Overview companyId={companyId} rev={rev} add={add} onOpen={setOcc} />}
     {tab === "calendrier" && <Browse companyId={companyId} rev={rev} cats={cats} mode="calendar" add={add} onOpen={setOcc} />}
-    {tab === "apayer" && <Browse companyId={companyId} rev={rev} cats={cats} mode="table" add={add} onOpen={setOcc} />}
+    {tab === "apayer" && <Browse companyId={companyId} rev={rev} cats={cats} mode="table" add={add} onOpen={setOcc} onPayMany={onPayMany} />}
+    {tab === "reglements" && <PaymentsTab companyId={companyId} rev={rev} canWrite={canWrite} canCorrect={canCorrect} onChanged={refresh} />}
     {tab === "parametres" && <Settings companyId={companyId} cats={cats} canWrite={canWrite} onChange={refresh} />}
     {form && <ObligationForm companyId={companyId} companyName={companyName} id={form.id} init={form.init} ruleChange={form.ruleChange} cats={cats.filter((c) => !c.archived_at)} onClose={() => setForm(null)} onSaved={() => { setForm(null); refresh(); }} />}
     {occ && <OccurrenceDialog occ={occ} canWrite={canWrite} onClose={() => setOcc(null)} onChanged={refresh}
+      onPay={(o) => { setOcc(null); onPayMany?.([o]); }} onOpenPayment={(id) => { setOcc(null); setPayOpen(id); }}
       onEdit={(id) => { setOcc(null); setForm({ id }); }} onRuleChange={(id, effective) => { setOcc(null); setForm({ id, ruleChange: { effective } }); }} onDuplicate={(init) => { setOcc(null); setForm({ id: null, init }); }} />}
+    {pay && <PaymentDialog companyId={companyId} companyName={companyName} targets={pay} onClose={() => setPay(null)} onDone={() => { setPay(null); refresh(); }} />}
+    {payOpen && <PaymentDetail id={payOpen} companyId={companyId} canWrite={canWrite} canCorrect={canCorrect} onClose={() => setPayOpen(null)} onChanged={refresh} />}
   </>;
 }
 

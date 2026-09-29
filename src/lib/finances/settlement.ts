@@ -22,7 +22,7 @@ export const EVENT_LABEL: Record<string, string> = {
 };
 
 export type Alloc = { occurrence_id: string; amount: number };
-export type SaveResult = { rows: { occurrence_id: string; label: string; due: string; amount: number; quality: string; paid_before: number; alloc: number; balance_after: number }[]; total: number; remainder: number; payee: string; duplicates: { id: string; paid_on: string; amount: number }[]; payment_id?: string; replayed?: boolean; draft?: boolean };
+export type SaveResult = { rows: { occurrence_id: string; label: string; due: string; amount: number; quality: string; paid_before: number; alloc: number; balance_after: number }[]; total: number; remainder: number; payee: string; amount?: number; duplicates: { id: string; paid_on: string; amount: number }[]; payment_id?: string; replayed?: boolean; draft?: boolean };
 
 export async function savePayment(c: string, p: Record<string, unknown>, dry: boolean) { const { data, error } = await db.rpc("fin_payment_save", { _company: c, _p: p, _dry: dry }); err(error); return data as SaveResult; }
 export async function validateDraft(id: string, dry: boolean) { const { data, error } = await db.rpc("fin_payment_validate", { _payment: id, _dry: dry }); err(error); return data; }
