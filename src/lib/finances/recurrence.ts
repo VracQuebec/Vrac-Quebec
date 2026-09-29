@@ -117,7 +117,7 @@ export function sentence(p: any): string {
 /** Politiques actives à rappeler dans l'aperçu. */
 export function policies(p: any): string[] {
   const out: string[] = [];
-  if (p.frequency === "monthly" || p.frequency === "twice_monthly") out.push(SHORT_MONTH_LABEL[p.short_month_policy || "last_day"]);
+  if (p.frequency === "monthly") out.push(SHORT_MONTH_LABEL[p.short_month_policy || "last_day"]);
   if (p.frequency === "yearly" && p.anchor_date?.slice(5) === "02-29") out.push(FEB29_LABEL[p.feb29_policy || "feb28"] ?? "");
   if (p.frequency === "twice_monthly" && p.collision_policy) out.push(`Collision : ${COLLISION_LABEL[p.collision_policy]}`);
   if ((p.seasons ?? []).length) out.push(`Saison(s) : ${(p.seasons as { from: string; to: string }[]).map((s) => `${s.from} au ${s.to}`).join(" ; ")} (hors saison : aucune échéance, cadence d'origine conservée)`);
