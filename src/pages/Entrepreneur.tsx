@@ -129,6 +129,8 @@ const Entrepreneur = () => {
 
   /** Demande d'accès : le contexte connu part avec la demande. */
   const requestAccess = (lead?: EntLead | null) => {
+    // Dompe fermée ou indisponible dans le CRM : jamais sélectionnable.
+    if (lead && isDompeClosed(lead.availability_status)) return;
     setDetail(null);
     // La dompe consultée part avec la demande : jamais à resélectionner.
     const base = activeChantier ? (prefillFromChantier(activeChantier) as Record<string, unknown>) : {};
@@ -470,6 +472,8 @@ const Entrepreneur = () => {
                       onOpen={() => focusLead(l)}
                       onDetail={() => setDetail(l)}
                       onRequest={() => requestAccess(l)}
+                      requestDisabled={isDompeClosed(l.availability_status)}
+                      requestLabel={isDompeClosed(l.availability_status) ? av.label : "Demander l'accès"}
                     />
                   );
                 })}
