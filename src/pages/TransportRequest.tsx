@@ -1442,7 +1442,12 @@ const TransportRequest = () => {
                       </div>
                       <div className="flex flex-wrap gap-1.5 text-[11px]">
                         <span className="px-2 py-0.5 rounded-full bg-background border border-border font-body">
-                          🟢 Disponible
+                          {/* Même libellé que la carte : statut CRM + fraîcheur réelle. */}
+                          {d.availability_status === "limited"
+                            ? "🟡 Disponibilité limitée"
+                            : (d as { freshness?: string | null }).freshness === "confirmed"
+                              ? "🟢 Disponible — confirmée"
+                              : "🟡 Disponible — à revalider"}
                         </span>
                         {d.opening_hours && (
                           <span className="px-2 py-0.5 rounded-full bg-background border border-border font-body">🕐 {d.opening_hours}</span>
