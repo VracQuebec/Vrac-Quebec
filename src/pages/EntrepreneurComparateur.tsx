@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getEligibleEntrepreneurDumpSites, crmDompeNumber } from "@/lib/entrepreneur/dompes";
+import { routingBatches } from "@/lib/entrepreneur/comparateur-candidates";
 import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
@@ -255,20 +256,30 @@ export default function EntrepreneurComparateur() {
     setComputing(true);
     setRanked(null);
     try {
-      const { data, error } = await supabase.functions.invoke("transport-distance-matrix", {
-        body: {
-          origin: coords,
-          dumps: geoLeads.slice(0, 100).map((l) => ({ id: l.id, lat: l.latitude!, lng: l.longitude! })),
-        },
-      });
-      if (error) throw error;
-      const results = (data?.results ?? data ?? {}) as Record<
-        string, { distance_km: number; duration_minutes: number } | null
-      >;
+      // Candidates : dompes non écartées, les plus proches du chantier, par lots.
+      // (Jamais « les 100 premières de la liste ».)
+      const eligible = geoLeads.filter(
+        (l) => evaluateSite(l as Ranked, material || null, truck || null).status !== "incompatible",
+      );
+      const batches = routingBatches(eligible, coords);
+      const results: Record<string, { distance_km: number; duration_minutes: number } | null> = {};
+      let anyOk = false;
+      for (const batch of batches) {
+        const { data, error } = await supabase.functions.invoke("transport-distance-matrix", {
+          body: {
+            origin: coords,
+            dumps: batch.map((l) => ({ id: l.id, lat: l.latitude!, lng: l.longitude! })),
+          },
+        });
+        if (error) continue; // ce lot reste « Distance à confirmer »
+        anyOk = true;
+        Object.assign(results, (data?.results ?? {}) as typeof results);
+      }
+      if (batches.length > 0 && !anyOk) throw new Error("matrix");
       const rows: Ranked[] = geoLeads.map((l) => ({
         ...l,
-        distance_km: results[l.id]?.distance_km ?? null,
-        duration_minutes: results[l.id]?.duration_minutes ?? null,
+        distance_km: typeof results[l.id]?.distance_km === "number" ? results[l.id]!.distance_km : null,
+        duration_minutes: typeof results[l.id]?.duration_minutes === "number" ? results[l.id]!.duration_minutes : null,
       }));
       const rank = { compatible: 0, unknown: 1, incompatible: 2 } as const;
       const fit = (l: Ranked) => {
@@ -279,6 +290,7 @@ export default function EntrepreneurComparateur() {
       rows.sort((a, b) => {
         const fa = fit(a), fb = fit(b);
         if (fa !== fb) return fa - fb;
+        // Sans itinéraire : Infinity → toujours après les distances routières connues.
         return (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity);
       });
       setRanked(rows);
@@ -302,6 +314,10 @@ export default function EntrepreneurComparateur() {
 
   const withDistance = main.filter((e) => e.row.distance_km != null);
   const best = withDistance[0]?.row ?? null;
+  // « Dompe recommandée » = 1er résultat réel du classement (compatible + distance routière connue).
+  // Indépendant de la sélection manuelle : la dompe choisie ne reçoit jamais l'étoile par défaut.
+  const recommendedId =
+    main.find((e) => e.ev.material === "compatible" && e.ev.truck === "compatible" && e.row.distance_km != null)?.row.id ?? null;
   const worst = withDistance.length > 1 ? withDistance[withDistance.length - 1].row : null;
 
   // Sélection : rattachée à la demande existante et persistée.
@@ -396,8 +412,18 @@ export default function EntrepreneurComparateur() {
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="font-display text-base font-extrabold text-foreground">
-              {index === 0 && ev.material === "compatible" && ev.truck === "compatible" && r.distance_km != null ? "⭐ " : ""}
+              {r.id === recommendedId ? "⭐ " : ""}
               Dompe {label(r)}
+            </p>
+            <p className="mt-1 flex flex-wrap gap-1.5 font-body text-[11px] font-bold uppercase tracking-wide">
+              {selection?.siteId === r.id && (
+                <span className="rounded-full bg-primary px-2 py-0.5 text-primary-foreground">Dompe choisie</span>
+              )}
+              {ev.status !== "incompatible" && (
+                <span className={`rounded-full border px-2 py-0.5 ${r.id === recommendedId ? "border-primary text-foreground" : "border-border text-muted-foreground"}`}>
+                  {r.id === recommendedId ? "Dompe recommandée" : "Autres options"}
+                </span>
+              )}
             </p>
             <p className="mt-0.5 font-body text-xs text-muted-foreground">
               Secteur {r.postal_prefix || "—"}
