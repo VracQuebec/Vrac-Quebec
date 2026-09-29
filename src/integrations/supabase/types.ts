@@ -21424,6 +21424,10 @@ export type Database = {
         Args: { _id: string; _reason: string }
         Returns: Json
       }
+      request_followup_add_note: {
+        Args: { _entity_id: string; _entity_type: string; _note: string }
+        Returns: undefined
+      }
       request_followup_mark_seen: {
         Args: { _entity_id: string; _entity_type: string }
         Returns: undefined
