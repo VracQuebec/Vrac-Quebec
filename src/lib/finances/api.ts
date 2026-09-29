@@ -5,8 +5,10 @@ import type { Occ } from "./period";
 
 const db = supabase as any;
 export type Base = "due" | "planned";
-export type Filters = { q?: string; payee?: string; category_id?: string; status?: "active" | "cancelled" | "all"; quality?: string; frequency?: string; seasonal?: string; truck_id?: string; project_id?: string };
-export type Totals = { confirmed: number; estimated: number; known: number; unknown_count: number; count: number; from: string; to: string; base: Base };
+export type Filters = { q?: string; payee?: string; category_id?: string; status?: "active" | "cancelled" | "all"; quality?: string; frequency?: string; seasonal?: string; truck_id?: string; project_id?: string; settle?: string; method?: string; paid_from?: string; paid_to?: string };
+export type Totals = { confirmed: number; estimated: number; known: number; unknown_count: number; count: number; from: string; to: string; base: Base;
+  remaining?: number; remaining_estimated?: number; to_confirm_amount?: number; paid_on_these?: number; late_count?: number; late_amount?: number; by_settle?: Record<string, number>;
+  declared?: number; declared_count?: number; declared_by_method?: Record<string, number>; refunds?: number; returned?: number; drafts?: number; unallocated?: number; unallocated_count?: number };
 
 const clean = (f: Filters) => Object.fromEntries(Object.entries(f).filter(([, v]) => v !== undefined && v !== ""));
 const err = (e: any) => { if (e) throw new Error(e.message || "Erreur serveur"); };
@@ -54,4 +56,4 @@ export type Preview = { count: number; confirmed: number; estimated: number; unk
 export async function preview(c: string, p: Record<string, unknown>, from: string, to: string) { const { data, error } = await db.rpc("fin_preview", { _company: c, _p: p, _from: from, _to: to }); err(error); return data as Preview; }
 export async function changeRule(id: string, rev: number | null, p: Record<string, unknown>, effective: string, dry: boolean) { const { data, error } = await db.rpc("fin_change_rule", { _id: id, _rev: rev, _p: p, _effective: effective, _dry: dry }); err(error); return data as { kept: number; cancelled: any; exceptions?: number; new: { due: string; planned: string }[] }; }
 export async function addPause(id: string, start: string, end: string, reason: string, dry: boolean) { const { data, error } = await db.rpc("fin_add_pause", { _id: id, _start: start, _end: end, _reason: reason, _dry: dry }); err(error); return data as { affected: { id: string; due: string; amount: number | null }[]; cancelled?: number }; }
-export async function pauses(oblId: string) { const { data } = await db.from("fin_pauses").select("start_date,end_date,reason,created_at").eq("obligation_id", oblId).order("start_date"); return (data ?? []) as { start_date: string; end_date: string; reason: string }[]; }
+export async function pauses(oblId: string) { const { data } = await db.from("fin_pauses").select("id,start_date,end_date,reason,created_at,lifted_from,lift_reason").eq("obligation_id", oblId).order("start_date"); return (data ?? []) as { id: string; start_date: string; end_date: string; reason: string; lifted_from: string | null; lift_reason: string | null }[]; }
