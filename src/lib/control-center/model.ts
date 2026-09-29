@@ -20,6 +20,21 @@ export interface NotifLite {
   category: string; title: string; created_at: string; read_at: string | null;
 }
 
+export interface Followup {
+  id: string; entity_type: string; entity_id: string; received_at: string; is_test: boolean;
+  follow_status: "nouvelle" | "consultee" | "prise_en_charge" | "en_attente" | "resolue";
+  seen_at: string | null; seen_by_email: string | null;
+  assignee_email: string | null; taken_at: string | null;
+  next_action: string | null; next_reminder_at: string | null; reminder_reason: string | null;
+  reminder_fired_at: string | null; escalation_stage: number;
+  resolved_at: string | null; resolution_note: string | null;
+}
+
+export const FOLLOW_LABEL: Record<Followup["follow_status"], string> = {
+  nouvelle: "Nouvelle", consultee: "Consultée", prise_en_charge: "Prise en charge",
+  en_attente: "En attente", resolue: "Résolue",
+};
+
 export interface ControlRequest {
   key: string;
   id: string;
@@ -38,6 +53,8 @@ export interface ControlRequest {
   raw: Record<string, unknown>;
   // enrichi
   notifs: NotifLite[];
+  track: Followup | null;
+  critical: boolean;
   unseen: boolean;
   taken: boolean;
   overdue: boolean;
@@ -82,7 +99,7 @@ export const GROUP_LABEL: Record<Group, string> = {
 type Row = Record<string, unknown>;
 const s = (v: unknown) => (v == null ? "" : String(v));
 
-export function fromSubmission(r: Row): Omit<ControlRequest, "notifs" | "unseen" | "taken" | "overdue" | "followup" | "priority" | "lastAction"> {
+export function fromSubmission(r: Row): Omit<ControlRequest, "notifs" | "track" | "critical" | "unseen" | "taken" | "overdue" | "followup" | "priority" | "lastAction"> {
   const status = s(r.status);
   const mats = Array.isArray(r.materials) ? (r.materials as string[]).join(", ") : "";
   return {
@@ -125,32 +142,39 @@ export function fromTransport(r: Row): ReturnType<typeof fromSubmission> {
   };
 }
 
-export interface Delays { untreatedHours: number; followupDays: number }
+export interface Delays { firstMin: number; secondMin: number; criticalHours: number; followupDays: number }
 
 export function enrich(
   base: ReturnType<typeof fromSubmission>,
   notifs: NotifLite[],
+  followup: Followup | null,
   delays: Delays,
   now = Date.now(),
 ): ControlRequest {
-  const open = base.group === "nouvelle" || base.group === "attente" || base.group === "traitement";
-  const unseen = notifs.some((n) => n.status === "unread");
-  const taken = base.group !== "nouvelle" || notifs.some((n) => n.status === "in_progress");
-  const ageH = (now - new Date(base.createdAt).getTime()) / 3_600_000;
-  const overdue = base.group === "nouvelle" && !taken && ageH > delays.untreatedHours;
+  const resolved = followup?.follow_status === "resolue";
+  const open = !resolved && (base.group === "nouvelle" || base.group === "attente" || base.group === "traitement");
+  // Afficher une demande ne la rend jamais « traitée » : seule une action enregistrée compte.
+  const unseen = followup ? !followup.seen_at && followup.follow_status === "nouvelle" : notifs.some((n) => n.status === "unread");
+  const taken = !!followup?.taken_at || resolved || base.group !== "nouvelle" || notifs.some((n) => n.status === "in_progress");
+  const ageMin = (now - new Date(base.createdAt).getTime()) / 60_000;
+  const overdue = open && base.group === "nouvelle" && !taken && ageMin > delays.firstMin;
+  const critical = overdue && ageMin > delays.criticalHours * 60;
+  const reminderAt = followup?.next_reminder_at ?? base.followUpAt;
   const updAgeD = base.updatedAt ? (now - new Date(base.updatedAt).getTime()) / 86_400_000 : 0;
-  const followup = open && (
-    (!!base.followUpAt && new Date(base.followUpAt).getTime() <= now) ||
+  const followup_ = open && (
+    (!!reminderAt && new Date(reminderAt).getTime() <= now) ||
     (base.group === "attente" && updAgeD > delays.followupDays)
   );
   let priority: Priority = "normal";
-  if (!open) priority = base.group === "traitee" ? "ok" : "normal";
-  else if (overdue && unseen) priority = "critique";
-  else if (base.group === "nouvelle" && !taken) priority = overdue ? "attention" : "urgent";
-  else if (followup) priority = "suivi";
+  if (!open) priority = base.group === "traitee" || resolved ? "ok" : "normal";
+  else if (critical) priority = "critique";
+  else if (overdue) priority = "attention";
+  else if (base.group === "nouvelle" && !taken) priority = "urgent";
+  else if (followup_) priority = "suivi";
   const last = [...notifs].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
   return {
-    ...base, notifs, unseen, taken, overdue, followup, priority,
+    ...base, followUpAt: reminderAt, notifs, track: followup, critical, unseen, taken, overdue,
+    followup: followup_, priority,
     lastAction: last ? last.title : "Aucune action enregistrée",
   };
 }
@@ -159,11 +183,11 @@ export function matches(r: ControlRequest, f: Filter) {
   switch (f) {
     case "new": return r.group === "nouvelle" && !r.taken;
     case "unseen": return r.unseen;
-    case "urgent": return r.overdue || r.priority === "critique";
+    case "urgent": return r.overdue;
     case "waiting": return r.group === "attente";
     case "processing": return r.group === "traitement" || (r.group === "nouvelle" && r.taken);
     case "followup": return r.followup;
-    case "done": return r.group === "traitee";
+    case "done": return r.group === "traitee" || r.track?.follow_status === "resolue";
     case "cancelled": return r.group === "annulee";
     default: return true;
   }
