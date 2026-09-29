@@ -16,13 +16,19 @@ import { supabase as _sb } from "@/integrations/supabase/client";
 const sb = _sb as any;
 import { PERIOD_LABELS, QUALITY_LABEL, addDays, addMonths, daysInMonth, fmtDate, fmtMoney, parse, periodBounds, todayIn, ymd, type Occ, type PeriodKind } from "@/lib/finances/period";
 import { COLLISION_LABEL, DAYS, FEB29_LABEL, FREQ_FILTERS, PRESETS, RENEWAL_LABEL, SHIFT_LABEL, freqLabel, policies, presetRule, sentence, toPreset, type Preset } from "@/lib/finances/recurrence";
+import * as st from "@/lib/finances/settlement";
+import { PaymentDetail, PaymentDialog, PaymentsTab, type PayTarget } from "@/components/finances/Settlements";
 
-type Tab = "apercu" | "calendrier" | "apayer" | "parametres";
-const TABS: { v: Tab; l: string }[] = [{ v: "apercu", l: "Vue d'ensemble" }, { v: "calendrier", l: "Calendrier" }, { v: "apayer", l: "À payer" }, { v: "parametres", l: "Paramètres" }];
+type Tab = "apercu" | "calendrier" | "apayer" | "reglements" | "parametres";
+const TABS: { v: Tab; l: string }[] = [{ v: "apercu", l: "Vue d'ensemble" }, { v: "calendrier", l: "Calendrier" }, { v: "apayer", l: "À payer" }, { v: "reglements", l: "Règlements" }, { v: "parametres", l: "Paramètres" }];
+const monthFr = (ym: string) => new Date(`${ym}-01T12:00:00Z`).toLocaleDateString("fr-CA", { timeZone: "UTC", month: "long", year: "numeric" });
+const SettleBadge = ({ o }: { o: Occ }) => o.settle ? <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold ${st.SETTLE_TONE[o.settle] ?? ""}`}>{st.SETTLE_LABEL[o.settle]}{o.late ? " · en retard" : ""}</span> : null;
+/** Fréquence de la version qui a produit l'échéance (jamais réécrite par une règle ultérieure). */
+const occFreq = (o: Occ) => o.rule_known === false ? "fréquence d'origine non récupérable" : freqLabel(o.rule_frequency ?? o.frequency, o.rule_interval ?? o.interval_n);
 const sel = "h-10 rounded-md border border-input bg-background px-2 text-sm";
 const TZ = "America/Toronto";
 const NATURES = [["charge", "Charge à prévoir"], ["dette", "Dette"], ["taxe", "Taxe"], ["actif", "Actif"], ["depot", "Dépôt"], ["transfert", "Transfert"]];
-const ACTIONS: Record<string, string> = { create: "Création", update: "Modification", amount_this: "Montant modifié (cette échéance)", amount_following: "Montant modifié (échéances suivantes)", reschedule: "Date planifiée déplacée", cancel: "Échéance annulée", archive: "Série archivée", rule_change: "Règle de récurrence changée", pause: "Suspension future" };
+const ACTIONS: Record<string, string> = { create: "Création", update: "Modification", amount_this: "Montant modifié (cette échéance)", amount_following: "Montant modifié (échéances suivantes)", reschedule: "Date planifiée déplacée", cancel: "Échéance annulée", archive: "Série archivée", rule_change: "Règle de récurrence changée", pause: "Suspension future", pause_lift: "Suspension levée" };
 
 export default function EntrepreneurFinances({ admin = false }: { admin?: boolean }) {
   const { user, isReady } = useAuthReady();
@@ -54,6 +60,7 @@ export default function EntrepreneurFinances({ admin = false }: { admin?: boolea
   const company = companies?.find((c) => c.id === companyId);
   const canRead = ["support", "proprietaire", "gestionnaire", "comptabilite", "lecture"].includes(role ?? "");
   const canWrite = ["support", "proprietaire", "gestionnaire", "comptabilite"].includes(role ?? "");
+  const canCorrect = ["support", "proprietaire", "comptabilite"].includes(role ?? "");
   const go = (t: Tab) => { const p = new URLSearchParams(params); p.set("tab", t); if (companyId) p.set("company", companyId); setParams(p); };
 
   return (
@@ -79,47 +86,67 @@ export default function EntrepreneurFinances({ admin = false }: { admin?: boolea
               {TABS.map((t) => <button key={t.v} onClick={() => go(t.v)} className={`whitespace-nowrap px-3 py-2 text-sm font-display font-semibold ${tab === t.v ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}>{t.l}</button>)}
             </nav>
             {!canWrite && <p className="mb-3 rounded-md bg-secondary p-2 text-xs">Accès en lecture seule.</p>}
-            <Finance key={companyId} companyId={companyId} companyName={company?.name ?? ""} tab={tab} canWrite={canWrite} />
+            <Finance key={companyId} companyId={companyId} companyName={company?.name ?? ""} tab={tab} canWrite={canWrite} canCorrect={canCorrect} />
           </>}
       </div>
     </EntrepreneurAppShell>
   );
 }
 
-function Finance({ companyId, companyName, tab, canWrite }: { companyId: string; companyName: string; tab: Tab; canWrite: boolean }) {
+function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { companyId: string; companyName: string; tab: Tab; canWrite: boolean; canCorrect: boolean }) {
   const [rev, setRev] = useState(0);
   const [form, setForm] = useState<{ id: string | null; init?: any; ruleChange?: { effective: string } } | null>(null);
   const [occ, setOcc] = useState<Occ | null>(null);
+  const [pay, setPay] = useState<PayTarget[] | null>(null);
+  const [payOpen, setPayOpen] = useState<string | null>(null);
   const [cats, setCats] = useState<Awaited<ReturnType<typeof api.categories>>>([]);
   const refresh = useCallback(() => setRev((r) => r + 1), []);
   useEffect(() => { api.categories(companyId).then(setCats); }, [companyId, rev]);
   const add = canWrite ? <Button onClick={() => setForm({ id: null })}><Plus className="mr-1 h-4 w-4" />Ajouter une obligation</Button> : null;
+  const onPayMany = canWrite ? (list: Occ[]) => setPay(list.map((o) => ({ id: o.id, label: o.label, due_date: o.due_date, balance: o.balance, amount_quality: o.amount_quality, payee: o.payee, payee_key: o.payee_key }))) : undefined;
   return <>
     {tab === "apercu" && <Overview companyId={companyId} rev={rev} add={add} onOpen={setOcc} />}
     {tab === "calendrier" && <Browse companyId={companyId} rev={rev} cats={cats} mode="calendar" add={add} onOpen={setOcc} />}
-    {tab === "apayer" && <Browse companyId={companyId} rev={rev} cats={cats} mode="table" add={add} onOpen={setOcc} />}
+    {tab === "apayer" && <Browse companyId={companyId} rev={rev} cats={cats} mode="table" add={add} onOpen={setOcc} onPayMany={onPayMany} />}
+    {tab === "reglements" && <PaymentsTab companyId={companyId} rev={rev} canWrite={canWrite} canCorrect={canCorrect} onChanged={refresh} />}
     {tab === "parametres" && <Settings companyId={companyId} cats={cats} canWrite={canWrite} onChange={refresh} />}
     {form && <ObligationForm companyId={companyId} companyName={companyName} id={form.id} init={form.init} ruleChange={form.ruleChange} cats={cats.filter((c) => !c.archived_at)} onClose={() => setForm(null)} onSaved={() => { setForm(null); refresh(); }} />}
     {occ && <OccurrenceDialog occ={occ} canWrite={canWrite} onClose={() => setOcc(null)} onChanged={refresh}
+      onPay={(o) => { setOcc(null); onPayMany?.([o]); }} onOpenPayment={(id) => { setOcc(null); setPayOpen(id); }}
       onEdit={(id) => { setOcc(null); setForm({ id }); }} onRuleChange={(id, effective) => { setOcc(null); setForm({ id, ruleChange: { effective } }); }} onDuplicate={(init) => { setOcc(null); setForm({ id: null, init }); }} />}
+    {pay && <PaymentDialog companyId={companyId} companyName={companyName} targets={pay} onClose={() => setPay(null)} onDone={() => { setPay(null); refresh(); }} />}
+    {payOpen && <PaymentDetail id={payOpen} companyId={companyId} canWrite={canWrite} canCorrect={canCorrect} onClose={() => setPayOpen(null)} onChanged={refresh} />}
   </>;
 }
 
 function TotalsCards({ t }: { t: api.Totals | null }) {
   if (!t) return <p className="text-sm text-muted-foreground">Calcul…</p>;
   const c = [["Total confirmé", fmtMoney(t.confirmed)], ["Total estimé", fmtMoney(t.estimated)], ["Total connu", fmtMoney(t.known)], ["Montants à compléter", String(t.unknown_count)], ["Échéances retenues", String(t.count)]];
-  return <div>
+  const m = Object.entries(t.declared_by_method ?? {}).map(([k, v]) => `${st.METHOD_LABEL[k] ?? k} ${fmtMoney(Number(v))}`).join(" · ");
+  const box = (l: string, v: string, note?: string, id?: string) => <div key={l} className="rounded-md border border-border bg-card p-3"><p className="text-xs text-muted-foreground">{l}</p><p className="font-display text-lg font-bold" data-testid={id ? `tot-${id}` : undefined}>{v}</p>{note && <p className="text-[11px] text-muted-foreground">{note}</p>}</div>;
+  return <div className="space-y-2">
+    <p className="text-xs font-semibold">Montants exigibles dans la période ({t.base === "planned" ? "par date de paiement planifiée" : "par date d'échéance"})</p>
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">{c.map(([l, v]) => <div key={l} className="rounded-md border border-border bg-card p-3"><p className="text-xs text-muted-foreground">{l}</p><p className="font-display text-lg font-bold" data-testid={`tot-${l}`}>{v}</p></div>)}</div>
-    <p className="mt-1 text-xs text-muted-foreground">Du {fmtDate(t.from)} au {fmtDate(t.to)} inclus · base : {t.base === "planned" ? "date de paiement planifiée" : "date d'échéance"} · fuseau {TZ}. Montants prévus : ni bénéfice, ni charge comptable, ni preuve de paiement.</p>
+    {t.remaining !== undefined && <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {box("Reste à payer sur ces échéances, à ce jour", fmtMoney(t.remaining), `${t.late_count ?? 0} en retard (${fmtMoney(t.late_amount ?? 0)})${t.remaining_estimated ? ` · dont basé sur estimation ${fmtMoney(t.remaining_estimated)}` : ""}${t.to_confirm_amount ? ` · dont règlement à confirmer ${fmtMoney(t.to_confirm_amount)}` : ""}`, "reste")}
+      {box("Versements déclarés dans la période (date du versement)", fmtMoney(t.declared ?? 0), m || "Aucun", "declare")}
+      {box("Reliquats non affectés (toutes dates)", fmtMoney(t.unallocated ?? 0), `${t.unallocated_count ?? 0} versement(s) avec avance / trop-payé`, "reliquat")}
+      {box("Remboursements reçus dans la période", fmtMoney(t.refunds ?? 0), `${t.unknown_count} montant(s) à compléter · ${t.drafts ?? 0} brouillon(s)`)}
+    </div>}
+    <p className="text-xs text-muted-foreground">Du {fmtDate(t.from)} au {fmtDate(t.to)} inclus · fuseau {TZ}. Les versements sont des règlements déclarés, non rapprochés avec la banque ; un paiement par carte ne prouve pas une sortie du compte bancaire. Ni bénéfice, ni charge comptable.</p>
   </div>;
 }
 
-function OccRow({ o, onOpen }: { o: Occ; onOpen: (o: Occ) => void }) {
-  return <button onClick={() => onOpen(o)} className={`flex w-full items-center justify-between gap-3 rounded-md border border-border bg-card p-3 text-left hover:bg-secondary/50 ${o.status === "cancelled" ? "opacity-60" : ""}`}>
+function OccRow({ o, onOpen, pick }: { o: Occ; onOpen: (o: Occ) => void; pick?: { on: boolean; toggle: () => void } }) {
+  return <div className="flex items-center gap-2">
+    {pick && <input type="checkbox" aria-label={`Sélectionner ${o.label} du ${fmtDate(o.due_date)}`} checked={pick.on} onChange={pick.toggle} disabled={!["non_reglee", "partielle", "a_confirmer"].includes(o.settle ?? "")} />}
+    <button onClick={() => onOpen(o)} className={`flex w-full items-center justify-between gap-3 rounded-md border border-border bg-card p-3 text-left hover:bg-secondary/50 ${o.status === "cancelled" ? "opacity-60" : ""}`}>
     <div className="min-w-0"><p className="truncate font-display text-sm font-semibold">{o.label}{o.status === "cancelled" && " — annulée"}</p>
-      <p className="truncate text-xs text-muted-foreground">{fmtDate(o.ref_date)}{o.payee ? ` · ${o.payee}` : ""}{o.category ? ` · ${o.category}` : ""}{o.frequency !== "once" ? ` · ${freqLabel(o.frequency, o.interval_n)}` : ""}{o.seasonal ? " · saisonnière" : ""}{o.planned_override ? ` · planifiée le ${fmtDate(o.planned_date)}` : ""}</p></div>
-    <div className="text-right"><p className="font-display text-sm font-bold">{fmtMoney(o.amount)}</p><p className="text-[11px] text-muted-foreground">{QUALITY_LABEL[o.amount_quality]}</p></div>
-  </button>;
+      <p className="truncate text-xs text-muted-foreground">{fmtDate(o.ref_date)}{o.payee ? ` · ${o.payee}` : ""}{o.category ? ` · ${o.category}` : ""}{(o.rule_frequency ?? o.frequency) !== "once" ? ` · ${occFreq(o)}` : ""}{o.seasonal ? " · saisonnière" : ""}{o.planned_override ? ` · planifiée le ${fmtDate(o.planned_date)}` : ""}</p>
+      {o.status === "active" && <div className="mt-1"><SettleBadge o={o} /></div>}</div>
+    <div className="text-right"><p className="font-display text-sm font-bold">{fmtMoney(o.amount)}</p><p className="text-[11px] text-muted-foreground">{QUALITY_LABEL[o.amount_quality]}</p>
+      {o.status === "active" && (o.paid ?? 0) > 0 && <p className="text-[11px]">Reste {fmtMoney(o.balance ?? null)}</p>}</div>
+  </button></div>;
 }
 
 function Overview({ companyId, rev, add, onOpen }: { companyId: string; rev: number; add: React.ReactNode; onOpen: (o: Occ) => void }) {
@@ -143,7 +170,7 @@ function Overview({ companyId, rev, add, onOpen }: { companyId: string; rev: num
     <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-muted-foreground">Aujourd'hui : {fmtDate(today)} ({TZ})</p>{add}</div>
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
       {card("Dû aujourd'hui", d.today)}
-      {card("Échéances passées (24 derniers mois)", d.past, "Le règlement n'est pas suivi dans ce module : ces montants ne sont pas forcément impayés.")}
+      {card("Échéances passées (24 derniers mois)", d.past, d.past ? `Reste à payer à ce jour : ${fmtMoney(d.past.remaining ?? 0)} · dont « règlement à confirmer » (antérieur au suivi) : ${fmtMoney(d.past.to_confirm_amount ?? 0)}.` : undefined)}
       {card("7 prochains jours", d.w)}
       {card("30 prochains jours", d.m)}
     </div>
@@ -154,7 +181,7 @@ function Overview({ companyId, rev, add, onOpen }: { companyId: string; rev: num
   </div>;
 }
 
-function Browse({ companyId, rev, cats, mode, add, onOpen }: { companyId: string; rev: number; cats: { id: string; name: string }[]; mode: "calendar" | "table"; add: React.ReactNode; onOpen: (o: Occ) => void }) {
+function Browse({ companyId, rev, cats, mode, add, onOpen, onPayMany }: { companyId: string; rev: number; cats: { id: string; name: string }[]; mode: "calendar" | "table"; add: React.ReactNode; onOpen: (o: Occ) => void; onPayMany?: (l: Occ[]) => void }) {
   const today = todayIn(TZ);
   const [kind, setKind] = useState<PeriodKind>("month");
   const [ref, setRef] = useState(today);
@@ -189,6 +216,8 @@ function Browse({ companyId, rev, cats, mode, add, onOpen }: { companyId: string
     else { const step = { month: 1, quarter: 3, half: 6, year: 12 }[kind as "month"] ?? 1; const n = addMonths(y, m, step * dir); setRef(ymd(n.y, n.m, 1)); }
   };
   const byDay = useMemo(() => { const g = new Map<string, Occ[]>(); (data?.rows ?? []).forEach((o) => g.set(o.ref_date, [...(g.get(o.ref_date) ?? []), o])); return g; }, [data]);
+  const [picked, setPicked] = useState<Occ[]>([]);
+  const pickErr = new Set(picked.map((o) => o.payee_key)).size > 1 ? "Bénéficiaires différents : préparez des règlements distincts." : null;
 
   return <div className="space-y-3">
     <div className="flex flex-wrap items-center gap-2">
@@ -211,6 +240,9 @@ function Browse({ companyId, rev, cats, mode, add, onOpen }: { companyId: string
       <select aria-label="Qualité du montant" className={sel} value={f.quality ?? ""} onChange={(e) => setF({ ...f, quality: e.target.value || undefined })}><option value="">Confirmé, estimé ou à compléter</option><option value="confirmed">Confirmé</option><option value="estimated">Estimé</option><option value="unknown">À compléter</option></select>
       <select aria-label="Fréquence" className={sel} value={f.frequency ?? ""} onChange={(e) => setF({ ...f, frequency: e.target.value || undefined })}><option value="">Toutes les fréquences</option>{FREQ_FILTERS.map((x) => <option key={x.v} value={x.v}>{x.l}</option>)}</select>
       <select aria-label="Saison" className={sel} value={f.seasonal ?? ""} onChange={(e) => setF({ ...f, seasonal: e.target.value || undefined })}><option value="">Avec ou sans saison</option><option value="1">Saisonnières seulement</option><option value="0">Sans saison</option></select>
+      <select aria-label="État du règlement" className={sel} value={f.settle ?? ""} onChange={(e) => setF({ ...f, settle: e.target.value || undefined })}><option value="">Tous états de règlement</option><option value="a_confirmer">Règlement à confirmer</option><option value="non_reglee">Non réglée</option><option value="partielle">Partiellement réglée</option><option value="reglee">Réglée</option><option value="late">En retard</option><option value="a_completer">À compléter</option></select>
+      <select aria-label="Moyen de règlement" className={sel} value={f.method ?? ""} onChange={(e) => setF({ ...f, method: e.target.value || undefined })}><option value="">Tous moyens de règlement</option>{Object.entries(st.METHOD_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+      <div className="flex items-center gap-1 text-xs">Réglée du <Input type="date" aria-label="Règlement du" className="h-9" value={f.paid_from ?? ""} onChange={(e) => setF({ ...f, paid_from: e.target.value || undefined })} /> au <Input type="date" aria-label="Règlement au" className="h-9" value={f.paid_to ?? ""} onChange={(e) => setF({ ...f, paid_to: e.target.value || undefined })} /></div>
       <Button variant="ghost" onClick={() => setF({})}>Effacer les filtres</Button>
     </div>}
     {b.to < b.from ? <p className="text-sm text-destructive">La date de fin doit suivre la date de début.</p> : <TotalsCards t={tot} />}
@@ -218,7 +250,11 @@ function Browse({ companyId, rev, cats, mode, add, onOpen }: { companyId: string
       {mode === "calendar" && data.total > data.rows.length && <p className="text-xs text-amber-700">Affichage limité aux {data.rows.length} premières échéances sur {data.total} ; les totaux ci-dessus couvrent toute la sélection. Réduisez la période pour tout voir.</p>}
       {mode === "calendar" && view === "month" ? <MonthGrid from={b.from} to={b.to} byDay={byDay} onDay={setDay} />
         : mode === "calendar" ? <div className="space-y-3">{[...byDay.entries()].map(([dte, list]) => <div key={dte}><p className="mb-1 font-display text-sm font-bold">{fmtDate(dte)}</p><div className="space-y-2">{list.map((o) => <OccRow key={o.id} o={o} onOpen={onOpen} />)}</div></div>)}</div>
-        : <div className="space-y-2">{data.rows.map((o) => <OccRow key={o.id} o={o} onOpen={onOpen} />)}
+        : <div className="space-y-2">
+          {onPayMany && <div className="flex flex-wrap items-center gap-2 text-xs"><span className="text-muted-foreground">Sélection groupée (même bénéficiaire) : {picked.length} échéance(s)</span>
+            {pickErr && <span className="text-destructive">{pickErr}</span>}
+            <Button size="sm" disabled={!picked.length || !!pickErr} onClick={() => onPayMany(picked)}>Préparer un règlement groupé</Button>{picked.length > 0 && <Button size="sm" variant="ghost" onClick={() => setPicked([])}>Vider</Button>}</div>}
+          {data.rows.map((o) => <OccRow key={o.id} o={o} onOpen={onOpen} pick={onPayMany ? { on: picked.some((x) => x.id === o.id), toggle: () => setPicked((l) => l.some((x) => x.id === o.id) ? l.filter((x) => x.id !== o.id) : [...l, o]) } : undefined} />)}
           <div className="flex items-center justify-between pt-2 text-sm"><span>{page * size + 1}–{Math.min((page + 1) * size, data.total)} sur {data.total}</span><div className="flex gap-2"><Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>Précédent</Button><Button variant="outline" size="sm" disabled={(page + 1) * size >= data.total} onClick={() => setPage(page + 1)}>Suivant</Button></div></div></div>}
     </>}
     {day && <Dialog open onOpenChange={() => setDay(null)}><DialogContent><DialogHeader><DialogTitle>{fmtDate(day)}</DialogTitle></DialogHeader><div className="space-y-2">{(byDay.get(day) ?? []).map((o) => <OccRow key={o.id} o={o} onOpen={(x) => { setDay(null); onOpen(x); }} />)}{!(byDay.get(day) ?? []).length && <p className="text-sm text-muted-foreground">Aucune échéance ce jour-là.</p>}</div></DialogContent></Dialog>}
@@ -260,6 +296,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
   const [eff, setEff] = useState(ruleChange?.effective ?? todayIn(TZ));
   const [pv, setPv] = useState<api.Preview | null>(null);
   const [pvErr, setPvErr] = useState<string | null>(null);
+  const [seasonSmp, setSeasonSmp] = useState<{ start: string; end: string; dates: string[] }[]>([]);
   const [period, setPeriod] = useState<{ from: string; to: string } | null>(null);
   const [impact, setImpact] = useState<Awaited<ReturnType<typeof api.changeRule>> | null>(null);
   const load = useCallback(() => {
@@ -285,6 +322,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
     const t = setTimeout(() => {
       const body = { ...rulePayload, amount_quality: rulePayload.amount_quality === "keep" ? "unknown" : rulePayload.amount_quality };
       api.preview(companyId, body, per.from, per.to).then((r) => { setPv(r); setPvErr(null); }).catch((e) => { setPv(null); setPvErr(e.message); });
+      if ((body.seasons ?? []).length && body.anchor_date) st.seasonSample(companyId, body).then(setSeasonSmp).catch(() => setSeasonSmp([])); else setSeasonSmp([]);
       if (ruleChange && id) api.changeRule(id, p.rev ?? null, rulePayload, eff, true).then(setImpact).catch((e) => { setImpact(null); setPvErr(e.message); });
     }, 350);
     return () => clearTimeout(t);
@@ -317,7 +355,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
   };
   const lines: any[] = p.schedule ?? [];
   const setLine = (i: number, k: string, v: unknown) => up("schedule", lines.map((l, j) => (j === i ? { ...l, [k]: v } : l)));
-  const seasons: { from: string; to: string }[] = p.seasons ?? [];
+  const seasons: { from: string; to: string; restart?: boolean }[] = p.seasons ?? [];
   const showEnd = !["once", "schedule"].includes(p.frequency);
   const dis = locked;
 
@@ -372,7 +410,11 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
       <Button type="button" size="sm" variant="outline" disabled={dis} onClick={() => up("schedule", [...lines, { date: "", amount: "", quality: "confirmed" }])}>Ajouter un versement</Button>
     </div>}
     {!["once", "schedule"].includes(p.frequency) && <div className="space-y-1 rounded-md border border-border p-2 text-sm">
-      <p className="text-xs text-muted-foreground">Saison(s) active(s) — facultatif. Hors saison, aucune échéance n'est générée ; la cadence d'origine n'est pas décalée. Une saison peut traverser le 31 décembre.</p>
+      <p className="text-xs text-muted-foreground">Saison(s) active(s) — facultatif. Hors saison, aucune échéance n'est générée. Une saison peut traverser le 31 décembre.</p>
+      {seasons.length > 0 && <div className="space-y-1 text-xs">
+        <label className="flex items-start gap-2"><input type="radio" disabled={dis} checked={!seasons.some((s) => s.restart)} onChange={() => up("seasons", seasons.map((s) => ({ from: s.from, to: s.to })))} /><span>Rythme continu : la cadence d'origine se poursuit, les dates hors saison sont exclues.</span></label>
+        {["daily", "weekly", "monthly"].includes(p.frequency) && <label className="flex items-start gap-2"><input type="radio" disabled={dis} checked={seasons.some((s) => s.restart)} onChange={() => up("seasons", seasons.map((s) => ({ ...s, restart: true })))} /><span>Recommencer le rythme au début de chaque saison (le nombre maximal de versements porte sur toute la série).</span></label>}
+      </div>}
       {seasons.map((s, i) => <div key={i} className="flex flex-wrap items-center gap-1">Du <Input className="w-24" placeholder="MM-JJ" aria-label="Début de saison" disabled={dis} value={s.from} onChange={(e) => up("seasons", seasons.map((x, j) => (j === i ? { ...x, from: e.target.value } : x)))} /> au <Input className="w-24" placeholder="MM-JJ" aria-label="Fin de saison" disabled={dis} value={s.to} onChange={(e) => up("seasons", seasons.map((x, j) => (j === i ? { ...x, to: e.target.value } : x)))} /><Button type="button" size="sm" variant="ghost" disabled={dis} onClick={() => up("seasons", seasons.filter((_, j) => j !== i))}>Retirer</Button></div>)}
       <Button type="button" size="sm" variant="outline" disabled={dis} onClick={() => up("seasons", [...seasons, { from: "11-01", to: "04-30" }])}>Ajouter une saison</Button>
     </div>}
@@ -384,7 +426,8 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
         <p data-testid="phrase">{sentence(p)}</p>
         <ul className="text-xs text-muted-foreground">{policies(p).map((x) => <li key={x}>· {x}</li>)}</ul>
         <p className="text-xs">Prochaines échéances : {pv.next.length ? pv.next.map((d) => `${fmtDate(d.due)}${d.planned !== d.due ? ` (planifiée ${fmtDate(d.planned)})` : ""}`).join(" · ") : "aucune"}</p>
-        {pv.collisions.length > 0 && <p className="text-xs text-amber-700">Collision : les deux jours tombent le même jour en {pv.collisions.join(", ")} — politique retenue : {p.collision_policy ? COLLISION_LABEL[p.collision_policy] : "à choisir"}.</p>}
+        {pv.collisions.length > 0 && <p className="text-xs text-amber-700">Les deux jours tombent le même jour dans ces mois : {[...pv.collisions].sort().map(monthFr).join(", ")} — choix retenu : {p.collision_policy ? COLLISION_LABEL[p.collision_policy] : "à choisir"}. Deux échéances distinctes gardent deux identités.</p>}
+        {seasonSmp.length > 0 && <p className="text-xs" data-testid="saisons-apercu">Premières dates de deux saisons consécutives : {seasonSmp.map((s) => `${fmtDate(s.start)} → ${s.dates.map(fmtDate).join(", ") || "aucune"}`).join(" | ")}</p>}
         <div className="flex flex-wrap items-center gap-1 text-xs">Période de l'aperçu : <Input type="date" className="h-8 w-36" value={per?.from ?? ""} onChange={(e) => setPeriod({ from: e.target.value, to: per?.to ?? e.target.value })} /> au <Input type="date" className="h-8 w-36" value={per?.to ?? ""} onChange={(e) => setPeriod({ from: per?.from ?? e.target.value, to: e.target.value })} /> inclus</div>
         <p className="text-xs" data-testid="apercu-totaux"><strong>{pv.count} versement(s)</strong> · confirmé {fmtMoney(pv.confirmed)} · estimé {fmtMoney(pv.estimated)} · {pv.unknown_count} montant(s) à compléter</p>
         {ruleChange && impact && <div className="text-xs" data-testid="avant-apres"><p><strong>Avant / après au {fmtDate(eff)}</strong> — conservées (antérieures) : {impact.kept} · annulées de façon traçable : {Array.isArray(impact.cancelled) ? impact.cancelled.length : impact.cancelled}{impact.exceptions ? ` (dont ${impact.exceptions} exception(s) individuelle(s))` : ""} · nouvelles (12 mois) : {impact.new.length}</p>
@@ -415,14 +458,14 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
   </DialogContent></Dialog>;
 }
 
-function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleChange, onDuplicate }: { occ: Occ; canWrite: boolean; onClose: () => void; onChanged: () => void; onEdit: (id: string) => void; onRuleChange: (id: string, effective: string) => void; onDuplicate: (init: any) => void }) {
+function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleChange, onDuplicate, onPay, onOpenPayment }: { occ: Occ; canWrite: boolean; onClose: () => void; onChanged: () => void; onEdit: (id: string) => void; onRuleChange: (id: string, effective: string) => void; onDuplicate: (init: any) => void; onPay: (o: Occ) => void; onOpenPayment: (id: string) => void }) {
   const [o, setO] = useState(occ);
   const [hist, setHist] = useState<any[]>([]);
   const [vers, setVers] = useState<any[]>([]);
   const [mode, setMode] = useState<null | "amount" | "planned" | "cancel" | "archive" | "pause">(null);
   const [pz, setPz] = useState({ start: "", end: "", reason: "" });
   const [pzImpact, setPzImpact] = useState<{ due: string; amount: number | null }[] | null>(null);
-  const [pzs, setPzs] = useState<{ start_date: string; end_date: string; reason: string }[]>([]);
+  const [pzs, setPzs] = useState<Awaited<ReturnType<typeof api.pauses>>>([]);
   const [scope, setScope] = useState<"this" | "following">("this");
   const [amt, setAmt] = useState<string>(occ.amount?.toString() ?? "");
   const [ql, setQl] = useState<string>(occ.amount_quality);
@@ -431,7 +474,13 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
   const [reason, setReason] = useState("");
   const [eff, setEff] = useState(todayIn(TZ));
   const [busy, setBusy] = useState(false);
-  const load = () => { api.history(o.obligation_id).then(setHist); api.versions(o.obligation_id).then(setVers); api.pauses(o.obligation_id).then(setPzs); };
+  const [detail, setDetail] = useState<any>(null);
+  const [lift, setLift] = useState<{ id: string; eff: string; reason: string } | null>(null);
+  const [liftPv, setLiftPv] = useState<Awaited<ReturnType<typeof st.liftPause>> | null>(null);
+  const load = () => {
+    api.history(o.obligation_id).then(setHist); api.versions(o.obligation_id).then(setVers); api.pauses(o.obligation_id).then(setPzs);
+    st.occDetail(o.id).then((d) => { setDetail(d); if (d?.occ) setO((x) => ({ ...x, ...d.occ })); }).catch(() => setDetail(null));
+  };
   useEffect(() => { setPzImpact(null); if (mode === "pause" && pz.start && pz.end && pz.reason.trim()) api.addPause(o.obligation_id, pz.start, pz.end, pz.reason, true).then((r) => setPzImpact(r.affected)).catch((e) => toast({ title: "Suspension impossible", description: e.message, variant: "destructive" })); }, [mode, pz.start, pz.end, pz.reason, o.obligation_id]);
   useEffect(load, [o.obligation_id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (mode === "amount" && canWrite) api.editAmount(o.id, scope, ql === "unknown" ? null : Number(amt || 0), ql, true).then(setImpact).catch(() => setImpact(null)); }, [mode, scope, amt, ql, o.id, canWrite]);
@@ -439,18 +488,32 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
     setBusy(true);
     try { await fn(); toast({ title: msg }); setMode(null); onChanged(); onClose(); } catch (e: any) { toast({ title: "Non enregistré", description: e.message, variant: "destructive" }); } finally { setBusy(false); }
   };
-  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto overflow-x-hidden sm:max-w-lg [&>*]:min-w-0">
     <DialogHeader><DialogTitle>{o.label}</DialogTitle></DialogHeader>
     <dl className="grid grid-cols-2 gap-1 text-sm">
       <dt className="text-muted-foreground">Échéance contractuelle</dt><dd>{fmtDate(o.due_date)}</dd>
       <dt className="text-muted-foreground">Paiement planifié</dt><dd>{fmtDate(o.planned_date)}{o.planned_reason ? ` — ${o.planned_reason}` : ""}</dd>
       <dt className="text-muted-foreground">Montant</dt><dd>{fmtMoney(o.amount)} ({QUALITY_LABEL[o.amount_quality]})</dd>
-      <dt className="text-muted-foreground">Fréquence</dt><dd className="first-letter:uppercase">{freqLabel(o.frequency, o.interval_n)}{o.seasonal ? " (saisonnière)" : ""}</dd>
+      <dt className="text-muted-foreground">Fréquence (version d'origine)</dt><dd className="first-letter:uppercase">{occFreq(o)}{o.seasonal ? " (saisonnière)" : ""}{o.rule_frequency && o.rule_frequency !== o.frequency ? ` — règle actuelle : ${freqLabel(o.frequency, o.interval_n)}` : ""}</dd>
       {o.payee && <><dt className="text-muted-foreground">Bénéficiaire</dt><dd>{o.payee}</dd></>}
       {o.category && <><dt className="text-muted-foreground">Catégorie</dt><dd>{o.category}</dd></>}
       <dt className="text-muted-foreground">Statut</dt><dd>{o.status === "cancelled" ? `Annulée — ${o.cancel_reason}` : "Active"}</dd>
     </dl>
-    <p className="text-xs text-muted-foreground">Échéance prévue, pas un paiement. Règlement non suivi dans ce module. Ventilation TPS/TVQ non effectuée.</p>
+    {o.status === "active" && <section aria-label="Règlement" className="space-y-1 rounded-md border border-border p-2 text-sm">
+      <div className="flex items-center justify-between"><p className="font-display font-bold">Règlement</p><SettleBadge o={o} /></div>
+      <p>Montant initial {fmtMoney(o.amount)} · déclaré réglé {fmtMoney(o.paid ?? 0)} · <strong>solde {o.settle === "aucun" ? "—" : fmtMoney(o.balance ?? null)}</strong></p>
+      {o.settle === "aucun" && <p className="text-xs">Aucun montant à régler.</p>}
+      {o.settle === "a_completer" && <p className="text-xs">Montant à compléter : renseignez-le (« Modifier le montant ») avant d'enregistrer un règlement.</p>}
+      {o.amount_quality === "estimated" && (o.paid ?? 0) > 0 && <p className="text-xs text-amber-700">Solde basé sur une estimation ; le versement ne confirme pas le coût final.</p>}
+      {o.settle === "a_confirmer" && <p className="text-xs">Échéance antérieure à l'activation du suivi : son règlement extérieur est inconnu. Enregistrez le règlement s'il a eu lieu, ou confirmez qu'elle reste à payer.</p>}
+      {detail?.allocations?.length > 0 && <ul className="text-xs">{detail.allocations.map((a: any) => <li key={a.id} className={a.reversed_at || a.pay_status !== "validated" ? "text-muted-foreground line-through" : ""}>
+        <button className="text-primary underline" onClick={() => onOpenPayment(a.payment_id)}>{fmtDate(a.paid_on)} · {st.METHOD_LABEL[a.method]}</button> : {fmtMoney(Number(a.amount))}{a.reference ? ` · ${a.reference}` : ""}{Number(a.files) === 0 ? " · pièce manquante" : ""}{a.reversed_reason ? ` — ${a.reversed_reason}` : a.pay_status !== "validated" ? ` — ${st.PAY_STATUS[a.pay_status]}` : ""}</li>)}</ul>}
+      {canWrite && !mode && <div className="flex flex-wrap gap-2">
+        {["non_reglee", "partielle", "a_confirmer"].includes(o.settle ?? "") && <Button size="sm" onClick={() => onPay(o)}>Enregistrer un règlement</Button>}
+        {o.settle === "a_confirmer" && <Button size="sm" variant="outline" onClick={() => run(() => st.confirmUnsettled(o.id), "Confirmée : reste à payer")}>Confirmer : toujours à payer</Button>}
+      </div>}
+      <p className="text-[11px] text-muted-foreground">Règlements déclarés — non rapprochés avec la banque. Ventilation TPS/TVQ non effectuée.</p>
+    </section>}
     {canWrite && o.status === "active" && !mode && <div className="flex flex-wrap gap-2">
       <Button size="sm" variant="outline" onClick={() => setMode("amount")}>Modifier le montant</Button>
       <Button size="sm" variant="outline" onClick={() => setMode("planned")}>Déplacer la date planifiée</Button>
@@ -474,15 +537,24 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
     {mode === "cancel" && <div className="space-y-2 rounded-md border border-border p-3"><Textarea placeholder="Motif de l'annulation (obligatoire)" value={reason} onChange={(e) => setReason(e.target.value)} /><div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !reason.trim()} onClick={() => run(() => api.cancelOcc(o.id, reason), "Échéance annulée (conservée dans l'historique)")}>Annuler l'échéance</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div></div>}
     {mode === "archive" && <div className="space-y-2 rounded-md border border-border p-3"><p className="text-xs">Arrête les échéances à partir de cette date. Les échéances antérieures sont conservées.</p><Input type="date" value={eff} onChange={(e) => setEff(e.target.value)} /><div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !eff} onClick={() => run(() => api.archiveObligation(o.obligation_id, eff), "Série archivée")}>Archiver</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div></div>}
     {mode === "pause" && <div className="space-y-2 rounded-md border border-border p-3 text-sm">
-      <p className="text-xs">Les échéances passées restent dues. Pendant la suspension, aucune échéance n'est générée ; à la reprise, l'ancrage d'origine est conservé et rien n'est rattrapé automatiquement.</p>
+      <p className="text-xs">Les échéances passées restent dues ; celles qui ont un règlement déclaré sont conservées. Pendant la suspension, aucune échéance n'est générée ; à la reprise, l'ancrage d'origine est conservé et rien n'est rattrapé automatiquement.</p>
       <div className="grid grid-cols-2 gap-2"><Input type="date" aria-label="Début de suspension" value={pz.start} onChange={(e) => setPz({ ...pz, start: e.target.value })} /><Input type="date" aria-label="Fin de suspension" value={pz.end} onChange={(e) => setPz({ ...pz, end: e.target.value })} /></div>
       <Textarea placeholder="Motif (obligatoire)" value={pz.reason} onChange={(e) => setPz({ ...pz, reason: e.target.value })} />
       {pzImpact && <p className="text-xs" data-testid="pause-impact">Échéances touchées (conservées, annulées avec motif) : {pzImpact.length ? pzImpact.map((a) => `${fmtDate(a.due)} (${fmtMoney(a.amount)})`).join(", ") : "aucune"}</p>}
       <div className="flex gap-2"><Button size="sm" disabled={busy || !pzImpact} onClick={() => run(() => api.addPause(o.obligation_id, pz.start, pz.end, pz.reason, false), "Suspension enregistrée")}>Confirmer la suspension</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div>
     </div>}
-    {pzs.length > 0 && <div><p className="font-display text-sm font-bold">Suspensions</p><ul className="text-xs">{pzs.map((z, i) => <li key={i}>Du {fmtDate(z.start_date)} au {fmtDate(z.end_date)} : {z.reason}</li>)}</ul></div>}
+    {pzs.length > 0 && <div><p className="font-display text-sm font-bold">Suspensions</p><ul className="space-y-1 text-xs">{pzs.map((z) => <li key={z.id}>Du {fmtDate(z.start_date)} au {fmtDate(z.end_date)} : {z.reason}{z.lifted_from ? ` — levée à partir du ${fmtDate(z.lifted_from)}${z.lift_reason ? ` (${z.lift_reason})` : ""}` : ""}
+      {canWrite && !z.lifted_from && z.end_date >= todayIn(TZ) && <Button size="sm" variant="ghost" onClick={() => { setLift({ id: z.id, eff: todayIn(TZ) > z.start_date ? todayIn(TZ) : z.start_date, reason: "" }); setLiftPv(null); }}>Lever la suspension</Button>}</li>)}</ul></div>}
+    {lift && <div className="space-y-2 rounded-md border border-border p-3 text-sm">
+      <p className="text-xs">Seules les échéances supprimées par cette suspension, encore prévues par la règle applicable, sont restaurées. Annulations manuelles, changements de règle et autres suspensions restent en place. Aucun rattrapage des dates passées.</p>
+      <Input type="date" aria-label="Reprise à partir du" value={lift.eff} onChange={(e) => setLift({ ...lift, eff: e.target.value })} />
+      <Textarea placeholder="Motif (obligatoire)" value={lift.reason} onChange={(e) => setLift({ ...lift, reason: e.target.value })} />
+      {liftPv && <p className="text-xs" data-testid="levee-apercu">Restaurées : {liftPv.restore.length ? liftPv.restore.map((r) => fmtDate(r.due)).join(", ") : "aucune"} · autres annulations conservées : {liftPv.kept_other}{liftPv.not_applicable.length ? ` · non restaurées (règle remplacée) : ${liftPv.not_applicable.map((r) => fmtDate(r.due)).join(", ")}` : ""}</p>}
+      <div className="flex gap-2"><Button size="sm" variant="outline" disabled={!lift.reason.trim()} onClick={() => st.liftPause(lift.id, lift.eff, lift.reason, true).then(setLiftPv).catch((e) => toast({ title: "Impossible", description: e.message, variant: "destructive" }))}>Aperçu</Button>
+        <Button size="sm" disabled={busy || !liftPv} onClick={() => run(() => st.liftPause(lift.id, lift.eff, lift.reason, false), "Suspension levée")}>Confirmer la reprise</Button><Button size="sm" variant="ghost" onClick={() => setLift(null)}>Retour</Button></div>
+    </div>}
     {vers.length > 1 && <div><p className="font-display text-sm font-bold">Versions du montant</p><ul className="text-xs">{vers.map((v, i) => <li key={i}>À partir du {fmtDate(v.effective_from)} : {fmtMoney(v.amount == null ? null : Number(v.amount))} ({QUALITY_LABEL[v.amount_quality as "confirmed"]})</li>)}</ul></div>}
-    <div><p className="font-display text-sm font-bold">Historique</p><ul className="space-y-1 text-xs">{hist.map((h, i) => <li key={i}>{new Date(h.created_at).toLocaleString("fr-CA", { timeZone: TZ })} — {ACTIONS[h.action] ?? h.action}{h.reason ? ` : ${h.reason}` : ""}{h.is_support ? " (assistance Vrac Québec)" : ""}</li>)}</ul></div>
+    <div><p className="font-display text-sm font-bold">Historique</p><ul className="space-y-1 text-xs">{hist.map((h, i) => <li key={i}>{new Date(h.created_at).toLocaleString("fr-CA", { timeZone: TZ })} — {ACTIONS[h.action] ?? st.EVENT_LABEL[h.action] ?? h.action}{h.reason ? ` : ${h.reason}` : ""}{h.is_support ? " (assistance Vrac Québec)" : ""}</li>)}</ul></div>
   </DialogContent></Dialog>;
 }
 
