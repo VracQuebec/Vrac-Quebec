@@ -498,6 +498,13 @@
       "when": 1790715330609,
       "tag": "0070_fin02_conflit_code_erreur",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1790716717095,
+      "tag": "0071_fin03_reglements_soldes",
+      "breakpoints": true
     }
   ]
 }

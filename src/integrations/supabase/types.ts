@@ -3231,6 +3231,73 @@ export type Database = {
         }
         Relationships: []
       }
+      fin_allocations: {
+        Row: {
+          allocated_on: string
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          idem_key: string | null
+          occurrence_id: string
+          payment_id: string
+          reversed_at: string | null
+          reversed_by: string | null
+          reversed_reason: string | null
+        }
+        Insert: {
+          allocated_on?: string
+          amount: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idem_key?: string | null
+          occurrence_id: string
+          payment_id: string
+          reversed_at?: string | null
+          reversed_by?: string | null
+          reversed_reason?: string | null
+        }
+        Update: {
+          allocated_on?: string
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idem_key?: string | null
+          occurrence_id?: string
+          payment_id?: string
+          reversed_at?: string | null
+          reversed_by?: string | null
+          reversed_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_allocations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_allocations_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "fin_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "fin_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_categories: {
         Row: {
           archived_at: string | null
@@ -3284,6 +3351,7 @@ export type Database = {
           is_support: boolean
           obligation_id: string | null
           occurrence_id: string | null
+          payment_id: string | null
           reason: string | null
         }
         Insert: {
@@ -3297,6 +3365,7 @@ export type Database = {
           is_support?: boolean
           obligation_id?: string | null
           occurrence_id?: string | null
+          payment_id?: string | null
           reason?: string | null
         }
         Update: {
@@ -3310,6 +3379,7 @@ export type Database = {
           is_support?: boolean
           obligation_id?: string | null
           occurrence_id?: string | null
+          payment_id?: string | null
           reason?: string | null
         }
         Relationships: [
@@ -3332,6 +3402,13 @@ export type Database = {
             columns: ["occurrence_id"]
             isOneToOne: false
             referencedRelation: "fin_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_events_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "fin_payments"
             referencedColumns: ["id"]
           },
         ]
@@ -3626,6 +3703,7 @@ export type Database = {
           amount_quality: string
           business_event_ref: string
           cancel_reason: string | null
+          cancel_source: string | null
           company_id: string
           created_at: string
           due_date: string
@@ -3635,6 +3713,8 @@ export type Database = {
           planned_date: string
           planned_override: boolean
           planned_reason: string | null
+          settle_confirmed_at: string | null
+          settle_confirmed_by: string | null
           status: string
           updated_at: string
           version_id: string | null
@@ -3645,6 +3725,7 @@ export type Database = {
           amount_quality: string
           business_event_ref?: string
           cancel_reason?: string | null
+          cancel_source?: string | null
           company_id: string
           created_at?: string
           due_date: string
@@ -3654,6 +3735,8 @@ export type Database = {
           planned_date: string
           planned_override?: boolean
           planned_reason?: string | null
+          settle_confirmed_at?: string | null
+          settle_confirmed_by?: string | null
           status?: string
           updated_at?: string
           version_id?: string | null
@@ -3664,6 +3747,7 @@ export type Database = {
           amount_quality?: string
           business_event_ref?: string
           cancel_reason?: string | null
+          cancel_source?: string | null
           company_id?: string
           created_at?: string
           due_date?: string
@@ -3673,6 +3757,8 @@ export type Database = {
           planned_date?: string
           planned_override?: boolean
           planned_reason?: string | null
+          settle_confirmed_at?: string | null
+          settle_confirmed_by?: string | null
           status?: string
           updated_at?: string
           version_id?: string | null
@@ -3708,6 +3794,10 @@ export type Database = {
           created_by: string | null
           end_date: string
           id: string
+          lift_reason: string | null
+          lifted_at: string | null
+          lifted_by: string | null
+          lifted_from: string | null
           obligation_id: string
           reason: string
           start_date: string
@@ -3718,6 +3808,10 @@ export type Database = {
           created_by?: string | null
           end_date: string
           id?: string
+          lift_reason?: string | null
+          lifted_at?: string | null
+          lifted_by?: string | null
+          lifted_from?: string | null
           obligation_id: string
           reason: string
           start_date: string
@@ -3728,6 +3822,10 @@ export type Database = {
           created_by?: string | null
           end_date?: string
           id?: string
+          lift_reason?: string | null
+          lifted_at?: string | null
+          lifted_by?: string | null
+          lifted_from?: string | null
           obligation_id?: string
           reason?: string
           start_date?: string
@@ -3749,10 +3847,200 @@ export type Database = {
           },
         ]
       }
+      fin_payment_files: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          file_id: string
+          id: string
+          payment_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          file_id: string
+          id?: string
+          payment_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_id?: string
+          id?: string
+          payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_payment_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_payment_files_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_payment_files_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "fin_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_payments: {
+        Row: {
+          amount: number
+          bank_date: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          draft_alloc: Json | null
+          entered_at: string
+          id: string
+          idem_key: string
+          is_support: boolean
+          method: string
+          note: string | null
+          paid_on: string
+          payee_key: string
+          payee_name: string
+          reference: string | null
+          source_label: string | null
+          status: string
+          validated_at: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount: number
+          bank_date?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          draft_alloc?: Json | null
+          entered_at?: string
+          id?: string
+          idem_key: string
+          is_support?: boolean
+          method: string
+          note?: string | null
+          paid_on: string
+          payee_key: string
+          payee_name: string
+          reference?: string | null
+          source_label?: string | null
+          status?: string
+          validated_at?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_date?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          draft_alloc?: Json | null
+          entered_at?: string
+          id?: string
+          idem_key?: string
+          is_support?: boolean
+          method?: string
+          note?: string | null
+          paid_on?: string
+          payee_key?: string
+          payee_name?: string
+          reference?: string | null
+          source_label?: string | null
+          status?: string
+          validated_at?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_refunds: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          payment_id: string
+          reason: string
+          refunded_on: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payment_id: string
+          reason: string
+          refunded_on: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payment_id?: string
+          reason?: string
+          refunded_on?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_refunds_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_refunds_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "fin_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_settings: {
         Row: {
           company_id: string
           currency: string
+          settlement_since: string
           timezone: string
           updated_at: string
           updated_by: string | null
@@ -3760,6 +4048,7 @@ export type Database = {
         Insert: {
           company_id: string
           currency?: string
+          settlement_since?: string
           timezone?: string
           updated_at?: string
           updated_by?: string | null
@@ -3767,6 +4056,7 @@ export type Database = {
         Update: {
           company_id?: string
           currency?: string
+          settlement_since?: string
           timezone?: string
           updated_at?: string
           updated_by?: string | null
@@ -21071,6 +21361,18 @@ export type Database = {
           qa_before: number
         }[]
       }
+      fin__alloc: {
+        Args: {
+          _allocs: Json
+          _avail: number
+          _company: string
+          _dry: boolean
+          _idem?: string
+          _payee: string
+          _pid?: string
+        }
+        Returns: Json
+      }
       fin_add_pause: {
         Args: {
           _dry?: boolean
@@ -21081,10 +21383,25 @@ export type Database = {
         }
         Returns: Json
       }
+      fin_allocation_reverse: {
+        Args: { _alloc: string; _reason: string }
+        Returns: undefined
+      }
       fin_archive_obligation: {
         Args: { _effective: string; _id: string }
         Returns: number
       }
+      fin_attach_file: {
+        Args: {
+          _mime: string
+          _name: string
+          _path: string
+          _payment: string
+          _size: number
+        }
+        Returns: string
+      }
+      fin_can_correct: { Args: { _company_id: string }; Returns: boolean }
       fin_can_read: { Args: { _company_id: string }; Returns: boolean }
       fin_can_write: { Args: { _company_id: string }; Returns: boolean }
       fin_cancel_occurrence: {
@@ -21105,6 +21422,7 @@ export type Database = {
         Args: { _company: string; _p: Json }
         Returns: undefined
       }
+      fin_confirm_unsettled: { Args: { _occ: string }; Returns: undefined }
       fin_edit_amount: {
         Args: {
           _amount: number
@@ -21119,6 +21437,7 @@ export type Database = {
         Args: { _company: string; _from: string; _to: string }
         Returns: number
       }
+      fin_exploitant_candidates: { Args: never; Returns: Json }
       fin_gen_dates: {
         Args: { _from: string; _r: Json; _to: string }
         Returns: {
@@ -21130,6 +21449,15 @@ export type Database = {
           planned: string
           slot: number
         }[]
+      }
+      fin_lift_pause: {
+        Args: {
+          _dry?: boolean
+          _effective: string
+          _pause: string
+          _reason: string
+        }
+        Returns: Json
       }
       fin_list: {
         Args: {
@@ -21156,9 +21484,53 @@ export type Database = {
         }
         Returns: undefined
       }
+      fin_log_pay: {
+        Args: {
+          _action: string
+          _after: Json
+          _company: string
+          _obl: string
+          _occ: string
+          _pay: string
+          _reason: string
+        }
+        Returns: undefined
+      }
       fin_month_date: {
         Args: { _anchor: string; _day: number; _k: number }
         Returns: string
+      }
+      fin_occ_paid: { Args: { _occ: string }; Returns: number }
+      fin_occurrence_detail: { Args: { _occ: string }; Returns: Json }
+      fin_open_for_payee: {
+        Args: { _company: string; _payee: string }
+        Returns: Json
+      }
+      fin_payee_key: {
+        Args: { _o: Database["public"]["Tables"]["fin_obligations"]["Row"] }
+        Returns: string
+      }
+      fin_payment_allocate: {
+        Args: { _allocs: Json; _dry?: boolean; _idem: string; _payment: string }
+        Returns: Json
+      }
+      fin_payment_avail: { Args: { _pay: string }; Returns: number }
+      fin_payment_detail: { Args: { _payment: string }; Returns: Json }
+      fin_payment_save: {
+        Args: { _company: string; _dry?: boolean; _p: Json }
+        Returns: Json
+      }
+      fin_payment_validate: {
+        Args: { _dry?: boolean; _payment: string }
+        Returns: Json
+      }
+      fin_payment_void: {
+        Args: { _kind: string; _payment: string; _reason: string }
+        Returns: Json
+      }
+      fin_payments_list: {
+        Args: { _company: string; _f?: Json; _from: string; _to: string }
+        Returns: Json
       }
       fin_period_totals: {
         Args: {
@@ -21174,6 +21546,20 @@ export type Database = {
         Args: { _company: string; _from: string; _p: Json; _to: string }
         Returns: Json
       }
+      fin_refund_add: {
+        Args: {
+          _amount: number
+          _date: string
+          _dry?: boolean
+          _payment: string
+          _reason: string
+        }
+        Returns: Json
+      }
+      fin_refund_void: {
+        Args: { _reason: string; _refund: string }
+        Returns: undefined
+      }
       fin_reschedule: {
         Args: { _occ: string; _planned: string }
         Returns: undefined
@@ -21187,6 +21573,7 @@ export type Database = {
         Args: { _company: string; _id: string; _p: Json }
         Returns: string
       }
+      fin_season_sample: { Args: { _company: string; _p: Json }; Returns: Json }
       fin_seed_categories: { Args: { _company: string }; Returns: number }
       fin_select: {
         Args: {
@@ -21200,6 +21587,7 @@ export type Database = {
           amount: number
           amount_override: boolean
           amount_quality: string
+          balance: number
           cancel_reason: string
           category: string
           category_id: string
@@ -21208,20 +21596,28 @@ export type Database = {
           id: string
           interval_n: number
           label: string
+          late: boolean
           nature: string
           obligation_id: string
           occ_key: string
+          paid: number
           payee: string
+          payee_key: string
           planned_date: string
           planned_override: boolean
           planned_reason: string
           project_id: string
           ref_date: string
+          rule_frequency: string
+          rule_interval: number
+          rule_known: boolean
           seasonal: boolean
+          settle: string
           status: string
           truck_id: string
         }[]
       }
+      fin_settle_since: { Args: { _company: string }; Returns: string }
       fin_shift: { Args: { _d: string; _p: string }; Returns: string }
       fin_skip: { Args: { _d: string; _r: Json }; Returns: boolean }
       fin_validate_rule: { Args: { _r: Json }; Returns: undefined }
