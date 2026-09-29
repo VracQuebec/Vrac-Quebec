@@ -36,3 +36,20 @@ export function routingBatches<T extends GeoCandidate>(
   for (let i = 0; i < nearest.length; i += batchSize) out.push(nearest.slice(i, i + batchSize));
   return out;
 }
+
+/**
+ * Ordre du comparateur : 1) trajet routier connu avant inconnu,
+ * 2) compatibilité (score plus bas = plus compatible), 3) distance routière réelle.
+ * Une distance inconnue (null) n'est jamais remplacée par une distance à vol d'oiseau.
+ */
+export function compareRankedDumps(
+  a: { distance_km: number | null; fit: number },
+  b: { distance_km: number | null; fit: number },
+): number {
+  const ka = a.distance_km != null ? 0 : 1;
+  const kb = b.distance_km != null ? 0 : 1;
+  if (ka !== kb) return ka - kb;
+  if (a.fit !== b.fit) return a.fit - b.fit;
+  if (a.distance_km != null && b.distance_km != null) return a.distance_km - b.distance_km;
+  return 0;
+}

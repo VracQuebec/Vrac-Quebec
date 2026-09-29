@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getEligibleEntrepreneurDumpSites, crmDompeNumber } from "@/lib/entrepreneur/dompes";
-import { routingBatches } from "@/lib/entrepreneur/comparateur-candidates";
+import { routingBatches, compareRankedDumps } from "@/lib/entrepreneur/comparateur-candidates";
 import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
@@ -287,12 +287,10 @@ export default function EntrepreneurComparateur() {
         return rank[ev.status] * 10 + (ev.material === "compatible" ? 0 : ev.material === "unknown" ? 2 : 4)
           + (ev.truck === "compatible" ? 0 : ev.truck === "unknown" ? 1 : 3);
       };
-      rows.sort((a, b) => {
-        const fa = fit(a), fb = fit(b);
-        if (fa !== fb) return fa - fb;
-        // Sans itinéraire : Infinity → toujours après les distances routières connues.
-        return (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity);
-      });
+      // Trajet connu d'abord, puis compatibilité, puis distance routière réelle.
+      rows.sort((a, b) =>
+        compareRankedDumps({ distance_km: a.distance_km, fit: fit(a) }, { distance_km: b.distance_km, fit: fit(b) }),
+      );
       setRanked(rows);
     } catch {
       toast({
