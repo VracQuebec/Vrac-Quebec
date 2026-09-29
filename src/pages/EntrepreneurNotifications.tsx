@@ -12,6 +12,7 @@ import { markNotificationRead, type MktNotification } from "@/lib/marketplace/ap
 import { useEntrepreneurNotifications } from "@/hooks/useEntrepreneurNotifications";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCheck, ChevronRight, Bell, Truck, ClipboardList, MapPin, AlertTriangle } from "lucide-react";
+import TestPushPanel from "@/components/notifications/TestPushPanel";
 
 /** Depuis quand ? Formulation courte, comme une application mobile. */
 const ago = (iso: string) => {
@@ -88,6 +89,7 @@ export default function EntrepreneurNotifications() {
       }
     >
       <div className="mx-auto w-full max-w-3xl px-4 py-4 sm:px-6 space-y-4">
+        <TestPushPanel />
         {/* Segments Non lues / Toutes */}
         <div className="grid grid-cols-2 gap-1 rounded-2xl bg-secondary p-1">
           {([["unread", `Non lues${unread.length ? ` (${unread.length})` : ""}`], ["all", "Toutes"]] as const).map(

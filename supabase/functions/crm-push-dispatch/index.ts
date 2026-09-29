@@ -36,6 +36,22 @@ async function currentAdmin(sb: ReturnType<typeof db>, req: Request) {
 
 const ICON = '/icons/icon-192.png';
 
+// Adresses de test réservées (même règle que les gardes de courriel).
+function isTestEmail(email?: string | null) {
+  const e = (email ?? '').toLowerCase().trim();
+  return /\.(invalid|test|example)$/.test(e) || e.endsWith('@example.com');
+}
+
+// Texte fixe du test personnel : jamais de donnée client, adresse ou demande.
+const SELF_TEST_PAYLOAD = {
+  title: 'TEST — Vrac Québec',
+  body: 'Notification de test',
+  url: '/entrepreneur/notifications',
+  tag: 'self-test',
+  badge: 0,
+  icon: ICON,
+};
+
 interface Sub {
   id: string;
   endpoint: string;
@@ -87,6 +103,38 @@ Deno.serve(async (req) => {
   webpush.setVapidDetails(SUBJECT, PUBLIC_KEY, PRIVATE_KEY);
 
   const sb = db();
+
+  // TEST PERSONNEL — réservé aux comptes de test, vers leurs propres appareils.
+  // Identité tirée de la session (jamais du corps de la demande); texte fixe :
+  // aucune donnée CRM n'est lue ni transmise.
+  if (action === 'self_test') {
+    const token = req.headers.get('Authorization')?.replace('Bearer ', '') ?? '';
+    const { data: u } = token ? await sb.auth.getUser(token) : { data: null };
+    const user = u?.user;
+    if (!user) return json({ ok: false, message: 'Non autorisé' }, 401);
+    if (!isTestEmail(user.email)) return json({ ok: false, message: 'Réservé aux comptes de test' }, 403);
+    const { data: subs } = await sb
+      .from('crm_push_subscriptions')
+      .select('id, endpoint, p256dh, auth, categories, is_enabled')
+      .eq('user_id', user.id)
+      .eq('is_enabled', true);
+    let sent = 0;
+    const errors: string[] = [];
+    for (const s of (subs ?? []) as Sub[]) {
+      if (await sendTo(s, SELF_TEST_PAYLOAD, sb)) sent++;
+      else {
+        const { data: row } = await sb.from('crm_push_subscriptions').select('last_error').eq('id', s.id).maybeSingle();
+        errors.push(String(row?.last_error ?? 'Appareil retiré par le service (404/410)'));
+      }
+    }
+    if ((subs ?? []).length) {
+      await sb.from('crm_push_subscriptions')
+        .update({ last_test_at: new Date().toISOString() })
+        .in('id', (subs ?? []).map((s: Sub) => s.id));
+    }
+    return json({ ok: true, sent, devices: (subs ?? []).length, errors });
+  }
+
   const cronSecret = Deno.env.get('CRM_PUSH_CRON_SECRET') ?? '';
   const isCron = cronSecret.length > 0 && req.headers.get('x-cron-secret') === cronSecret;
   const admin = isCron ? null : await currentAdmin(sb, req);
@@ -138,9 +186,22 @@ Deno.serve(async (req) => {
 
   const { data: subsRaw } = await sb
     .from('crm_push_subscriptions')
-    .select('id, endpoint, p256dh, auth, categories, is_enabled')
+    .select('id, user_id, endpoint, p256dh, auth, categories, is_enabled')
     .eq('is_enabled', true);
-  const subs = (subsRaw ?? []) as Sub[];
+  // Les appareils des comptes de test ne reçoivent jamais les avis CRM réels.
+  // En cas de doute (lecture du compte impossible), l'appareil est CONSERVÉ :
+  // aucun appareil réel ne peut être retiré par erreur.
+  const subs: Sub[] = [];
+  let excludedTest = 0;
+  for (const s of (subsRaw ?? []) as (Sub & { user_id: string })[]) {
+    let test = false;
+    try {
+      const { data: u } = await sb.auth.admin.getUserById(s.user_id);
+      test = isTestEmail(u?.user?.email);
+    } catch { test = false; }
+    if (test) excludedTest++; else subs.push(s);
+  }
+  console.log(`dispatch targets: kept=${subs.length} excluded_test=${excludedTest}`);
 
   // Compteur badge = notifications ouvertes non lues
   const { count: unread } = await sb

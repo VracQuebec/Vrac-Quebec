@@ -143,6 +143,15 @@ export async function sendTestPush() {
   return data as { sent: number; devices: number };
 }
 
+/** Test personnel (comptes de test seulement) : texte fixe, vers ses propres appareils. */
+export async function sendSelfTestPush() {
+  const { data, error } = await supabase.functions.invoke("crm-push-dispatch", {
+    body: { action: "self_test" },
+  });
+  if (error) throw error;
+  return data as { sent: number; devices: number; errors: string[] };
+}
+
 /** Badge sur l'icône de la Web App (iOS 16.4+ / Chrome). */
 export async function setAppBadge(count: number) {
   try {
