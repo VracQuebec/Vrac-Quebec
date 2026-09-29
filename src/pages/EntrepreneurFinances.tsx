@@ -465,7 +465,7 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
   const [mode, setMode] = useState<null | "amount" | "planned" | "cancel" | "archive" | "pause">(null);
   const [pz, setPz] = useState({ start: "", end: "", reason: "" });
   const [pzImpact, setPzImpact] = useState<{ due: string; amount: number | null }[] | null>(null);
-  const [pzs, setPzs] = useState<{ start_date: string; end_date: string; reason: string }[]>([]);
+  const [pzs, setPzs] = useState<Awaited<ReturnType<typeof api.pauses>>>([]);
   const [scope, setScope] = useState<"this" | "following">("this");
   const [amt, setAmt] = useState<string>(occ.amount?.toString() ?? "");
   const [ql, setQl] = useState<string>(occ.amount_quality);
