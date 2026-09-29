@@ -440,6 +440,11 @@ function Detail({ r, takeMode, myEmail, onChanged }: { r: ControlRequest; takeMo
   const takeCharge = () => run(async () => {
     if (!assignee.trim()) throw new Error("Indiquez le responsable.");
     await ensureRow();
+    // La prise en charge vaut consultation : les avis liés passent à « lu » (historique conservé).
+    if (!t?.seen_at) {
+      const { error: eSeen } = await supabase.rpc("request_followup_mark_seen", { _entity_type: entityType, _entity_id: r.id });
+      if (eSeen) throw eSeen;
+    }
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from("request_followups").update({
       follow_status: "prise_en_charge",

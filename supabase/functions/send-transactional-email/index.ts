@@ -263,7 +263,11 @@ Deno.serve(async (req) => {
     )
   }
 
-  if (suppressed) {
+  // Adresses réservées aux essais (RFC 2606 / 6761) : jamais d'envoi réel.
+  const isReservedTestAddress = /@([^@]+\.)?(invalid|test|example|localhost)$|@example\.(com|org|net)$/i
+    .test(effectiveRecipient.trim())
+
+  if (suppressed || isReservedTestAddress) {
     // Log the suppressed attempt
     await supabase.from('email_send_log').insert({
       message_id: messageId,
