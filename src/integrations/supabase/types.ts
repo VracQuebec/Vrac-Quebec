@@ -3231,6 +3231,421 @@ export type Database = {
         }
         Relationships: []
       }
+      fin_categories: {
+        Row: {
+          archived_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_suggested: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_suggested?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_suggested?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          after: Json | null
+          before: Json | null
+          company_id: string
+          created_at: string
+          id: string
+          is_support: boolean
+          obligation_id: string | null
+          occurrence_id: string | null
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_support?: boolean
+          obligation_id?: string | null
+          occurrence_id?: string | null
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_support?: boolean
+          obligation_id?: string | null
+          occurrence_id?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_events_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "fin_obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_events_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "fin_occurrences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_obligation_versions: {
+        Row: {
+          amount: number | null
+          amount_quality: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          id: string
+          obligation_id: string
+        }
+        Insert: {
+          amount?: number | null
+          amount_quality: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          id?: string
+          obligation_id: string
+        }
+        Update: {
+          amount?: number | null
+          amount_quality?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          obligation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_obligation_versions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_obligation_versions_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "fin_obligations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_obligations: {
+        Row: {
+          anchor_date: string
+          archived_effective: string | null
+          autopay_declared: boolean
+          business_event_ref: string
+          category_id: string | null
+          company_id: string
+          contract_ref: string | null
+          created_at: string
+          created_by: string | null
+          document_id: string | null
+          end_date: string | null
+          first_planned_date: string | null
+          frequency: string
+          id: string
+          label: string
+          max_count: number | null
+          month_day: number | null
+          nature: string
+          notes: string | null
+          notice_date: string | null
+          owner_user_id: string | null
+          payee_client_id: string | null
+          payee_label: string | null
+          payment_method: string | null
+          project_id: string | null
+          renewal_date: string | null
+          service_end: string | null
+          service_start: string | null
+          short_month_policy: string
+          source_document_id: string | null
+          status: string
+          truck_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          anchor_date: string
+          archived_effective?: string | null
+          autopay_declared?: boolean
+          business_event_ref?: string
+          category_id?: string | null
+          company_id: string
+          contract_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_id?: string | null
+          end_date?: string | null
+          first_planned_date?: string | null
+          frequency: string
+          id?: string
+          label: string
+          max_count?: number | null
+          month_day?: number | null
+          nature?: string
+          notes?: string | null
+          notice_date?: string | null
+          owner_user_id?: string | null
+          payee_client_id?: string | null
+          payee_label?: string | null
+          payment_method?: string | null
+          project_id?: string | null
+          renewal_date?: string | null
+          service_end?: string | null
+          service_start?: string | null
+          short_month_policy?: string
+          source_document_id?: string | null
+          status?: string
+          truck_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anchor_date?: string
+          archived_effective?: string | null
+          autopay_declared?: boolean
+          business_event_ref?: string
+          category_id?: string | null
+          company_id?: string
+          contract_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_id?: string | null
+          end_date?: string | null
+          first_planned_date?: string | null
+          frequency?: string
+          id?: string
+          label?: string
+          max_count?: number | null
+          month_day?: number | null
+          nature?: string
+          notes?: string | null
+          notice_date?: string | null
+          owner_user_id?: string | null
+          payee_client_id?: string | null
+          payee_label?: string | null
+          payment_method?: string | null
+          project_id?: string | null
+          renewal_date?: string | null
+          service_end?: string | null
+          service_start?: string | null
+          short_month_policy?: string
+          source_document_id?: string | null
+          status?: string
+          truck_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_obligations_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "fin_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_obligations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_obligations_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_obligations_payee_client_id_fkey"
+            columns: ["payee_client_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_obligations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_obligations_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_occurrences: {
+        Row: {
+          amount: number | null
+          amount_override: boolean
+          amount_quality: string
+          business_event_ref: string
+          cancel_reason: string | null
+          company_id: string
+          created_at: string
+          due_date: string
+          id: string
+          obligation_id: string
+          occ_key: string
+          planned_date: string
+          planned_override: boolean
+          status: string
+          updated_at: string
+          version_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          amount_override?: boolean
+          amount_quality: string
+          business_event_ref?: string
+          cancel_reason?: string | null
+          company_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          obligation_id: string
+          occ_key: string
+          planned_date: string
+          planned_override?: boolean
+          status?: string
+          updated_at?: string
+          version_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          amount_override?: boolean
+          amount_quality?: string
+          business_event_ref?: string
+          cancel_reason?: string | null
+          company_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          obligation_id?: string
+          occ_key?: string
+          planned_date?: string
+          planned_override?: boolean
+          status?: string
+          updated_at?: string
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_occurrences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_occurrences_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "fin_obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_occurrences_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "fin_obligation_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_settings: {
+        Row: {
+          company_id: string
+          currency: string
+          timezone: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          currency?: string
+          timezone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          currency?: string
+          timezone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fleet_costs: {
         Row: {
           amount: number
@@ -20519,6 +20934,112 @@ export type Database = {
           max_attempts: number
           page_id: string
           qa_before: number
+        }[]
+      }
+      fin_archive_obligation: {
+        Args: { _effective: string; _id: string }
+        Returns: number
+      }
+      fin_can_read: { Args: { _company_id: string }; Returns: boolean }
+      fin_can_write: { Args: { _company_id: string }; Returns: boolean }
+      fin_cancel_occurrence: {
+        Args: { _occ: string; _reason: string }
+        Returns: undefined
+      }
+      fin_check_links: {
+        Args: { _company: string; _p: Json }
+        Returns: undefined
+      }
+      fin_edit_amount: {
+        Args: {
+          _amount: number
+          _dry?: boolean
+          _occ: string
+          _quality: string
+          _scope: string
+        }
+        Returns: Json
+      }
+      fin_ensure_occurrences: {
+        Args: { _company: string; _from: string; _to: string }
+        Returns: number
+      }
+      fin_list: {
+        Args: {
+          _base?: string
+          _company: string
+          _f?: Json
+          _from: string
+          _limit?: number
+          _offset?: number
+          _sort?: string
+          _to: string
+        }
+        Returns: Json
+      }
+      fin_log: {
+        Args: {
+          _action: string
+          _after: Json
+          _before: Json
+          _company: string
+          _obl: string
+          _occ: string
+          _reason: string
+        }
+        Returns: undefined
+      }
+      fin_month_date: {
+        Args: { _anchor: string; _day: number; _k: number }
+        Returns: string
+      }
+      fin_period_totals: {
+        Args: {
+          _base?: string
+          _company: string
+          _f?: Json
+          _from: string
+          _to: string
+        }
+        Returns: Json
+      }
+      fin_reschedule: {
+        Args: { _occ: string; _planned: string }
+        Returns: undefined
+      }
+      fin_save_obligation: {
+        Args: { _company: string; _id: string; _p: Json }
+        Returns: string
+      }
+      fin_seed_categories: { Args: { _company: string }; Returns: number }
+      fin_select: {
+        Args: {
+          _base: string
+          _company: string
+          _f: Json
+          _from: string
+          _to: string
+        }
+        Returns: {
+          amount: number
+          amount_override: boolean
+          amount_quality: string
+          cancel_reason: string
+          category: string
+          category_id: string
+          due_date: string
+          frequency: string
+          id: string
+          label: string
+          nature: string
+          obligation_id: string
+          payee: string
+          planned_date: string
+          planned_override: boolean
+          project_id: string
+          ref_date: string
+          status: string
+          truck_id: string
         }[]
       }
       fleet_can_access: { Args: { _company_id: string }; Returns: boolean }

@@ -470,6 +470,20 @@
       "when": 1790705932711,
       "tag": "0066_restreindre_lecture_config_et_fichiers_crm",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1790713200194,
+      "tag": "0067_fin01_obligations_calendrier",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1790713260986,
+      "tag": "0068_fin01_generation_depuis_ancrage",
+      "breakpoints": true
     }
   ]
 }
