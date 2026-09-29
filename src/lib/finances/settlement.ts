@@ -51,9 +51,10 @@ export async function attachFile(_companyId: string, paymentId: string, file: Fi
   const { data, error } = await supabase.functions.invoke("fin-payment-file", { body: fd });
   if (error || data?.error) throw new Error(data?.error || (await (error as any)?.context?.json?.().catch(() => null))?.error || "Envoi refusé");
 }
-export async function openFile(paymentId: string, fileId: string) {
+/** mode "view" : ouverture dans un nouvel onglet (aperçu du navigateur); "download" : téléchargement. Lien temporaire de 5 min, renouvelé à chaque clic après contrôle des droits. */
+export async function openFile(paymentId: string, fileId: string, mode: "view" | "download" = "view") {
   const w = window.open("", "_blank");
-  const { data, error } = await supabase.functions.invoke("fin-payment-file", { body: { payment_id: paymentId, file_id: fileId } });
-  if (error || !data?.url) { w?.close(); throw new Error("Accès refusé à cette pièce"); }
+  const { data, error } = await supabase.functions.invoke("fin-payment-file", { body: { payment_id: paymentId, file_id: fileId, mode } });
+  if (error || !data?.url) { w?.close(); throw new Error("Consultation impossible : la pièce existe mais n'a pas pu être ouverte (accès refusé ou service indisponible). Réessayez."); }
   if (w) w.location.href = data.url; else window.open(data.url, "_blank", "noopener");
 }
