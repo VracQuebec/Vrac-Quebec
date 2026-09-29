@@ -123,6 +123,7 @@ const AdminJsc = lazy(() => import("./pages/AdminJsc"));
 const AdminPlatformSettings = lazy(() => import("./pages/AdminPlatformSettings"));
 const MonAbonnement = lazy(() => import("./pages/MonAbonnement"));
 const OpsCenter = lazy(() => import("./pages/OpsCenter"));
+const AdminControlCenter = lazy(() => import("./pages/AdminControlCenter"));
 const AdminIaCenter = lazy(() => import("./pages/AdminIaCenter"));
 const AdminOrchestrator = lazy(() => import("./pages/AdminOrchestrator"));
 
@@ -297,6 +298,7 @@ const App = () => (
             <Route path="/admin/soumissions" element={<AdminSoumissions />} />
             <Route path="/admin/supervision" element={<AdminMonitoring />} />
             <Route path="/admin/centre-operations" element={<OpsCenter />} />
+            <Route path="/admin/centre-controle" element={<AdminControlCenter />} />
             <Route path="/admin/intelligence" element={<AdminIntelligence />} />
             <Route path="/admin/direction" element={<AdminDirection />} />
             <Route path="/admin/ia" element={<AdminIaCenter />} />
