@@ -296,6 +296,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
   const [eff, setEff] = useState(ruleChange?.effective ?? todayIn(TZ));
   const [pv, setPv] = useState<api.Preview | null>(null);
   const [pvErr, setPvErr] = useState<string | null>(null);
+  const [seasonSmp, setSeasonSmp] = useState<{ start: string; end: string; dates: string[] }[]>([]);
   const [period, setPeriod] = useState<{ from: string; to: string } | null>(null);
   const [impact, setImpact] = useState<Awaited<ReturnType<typeof api.changeRule>> | null>(null);
   const load = useCallback(() => {
@@ -321,6 +322,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
     const t = setTimeout(() => {
       const body = { ...rulePayload, amount_quality: rulePayload.amount_quality === "keep" ? "unknown" : rulePayload.amount_quality };
       api.preview(companyId, body, per.from, per.to).then((r) => { setPv(r); setPvErr(null); }).catch((e) => { setPv(null); setPvErr(e.message); });
+      if ((body.seasons ?? []).length && body.anchor_date) st.seasonSample(companyId, body).then(setSeasonSmp).catch(() => setSeasonSmp([])); else setSeasonSmp([]);
       if (ruleChange && id) api.changeRule(id, p.rev ?? null, rulePayload, eff, true).then(setImpact).catch((e) => { setImpact(null); setPvErr(e.message); });
     }, 350);
     return () => clearTimeout(t);
