@@ -449,6 +449,13 @@
       "when": 1790686316212,
       "tag": "0063_control_center_followup_note",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1790686694929,
+      "tag": "0064_control_center_realtime",
+      "breakpoints": true
     }
   ]
 }
