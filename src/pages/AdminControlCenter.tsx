@@ -141,7 +141,9 @@ export default function AdminControlCenter() {
   }), [rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const priorityList = useMemo(() => rows.filter((r) => actionRank(r) < 9)
-    .sort((a, b) => actionRank(a) - actionRank(b) || a.createdAt.localeCompare(b.createdAt)).slice(0, 8), [rows]);
+    .sort((a, b) => actionRank(a) - actionRank(b) || a.createdAt.localeCompare(b.createdAt))
+    // Les suivis sont plafonnés à 6 pour ne jamais masquer une nouvelle demande.
+    .filter((r, _i, arr) => actionRank(r) !== 2 || arr.filter((x) => actionRank(x) === 2).indexOf(r) < 6), [rows]);
 
   const reminders = useMemo(() => rows
     .filter((r) => r.followUpAt && r.group !== "traitee" && r.group !== "annulee")
