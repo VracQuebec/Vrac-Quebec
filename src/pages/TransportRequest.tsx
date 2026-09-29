@@ -605,46 +605,33 @@ const TransportRequest = () => {
         console.warn("Distance matrix unavailable, using Haversine fallback", e);
       }
 
-      const ranked = withCoords
-        .map((d) => {
-          const mx = matrix[d.id];
-          // Distance routière UNIQUEMENT lorsque le serveur retourne les deux valeurs.
-          // Sinon, repli à vol d'oiseau pour le classement, mais JAMAIS affiché comme routier.
-          const road = typeof mx?.distance_km === "number" && typeof mx?.duration_minutes === "number";
-          const distance_km = road ? (mx!.distance_km as number) : haversine(coords, { lat: d.latitude, lng: d.longitude });
-          const duration_minutes = road ? (mx!.duration_minutes as number) : Math.round((distance_km / 60) * 60);
-
-          // Classement uniquement : la disponibilité n'exclut jamais une dompe admissible.
-          let score = 100 - Math.min(80, distance_km);
-          if (d.availability_status === "unavailable" || d.availability_status === "owner_closed") score -= 20;
-          else if (d.availability_status === "limited") score -= 5;
-          else score += 10;
-          if (d.truck_types_allowed && d.truck_types_allowed.length > 0) score += 3;
-          if (d.accessibility && d.accessibility.length > 0) score += 2;
-
-          const reasons: string[] = [];
-          reasons.push(road ? `${distance_km} km` : "Distance routière à confirmer");
-          if (d.availability_status !== "unavailable") reasons.push(availLabel(d.availability_status));
-          if (d.truck_types_allowed?.length) reasons.push(`Camions: ${d.truck_types_allowed.join(", ")}`);
-
-          return { ...d, distance_km, duration_minutes, road_distance: road, score, reason: reasons.join(" • ") };
-        })
-        .sort((a, b) => (b.score! - a.score!));
+      // Le classement ne considère QUE les dompes compatibles avec le matériau;
+      // la dompe choisie sur la carte n'y reçoit aucun avantage.
+      const matching = withCoords.filter((d) => matchesMaterial(d.materials || [], material));
+      const rankedAll = rankDumps(withCoords, matrix).map((d) => ({
+        ...d,
+        reason: [
+          d.road_distance ? `${d.distance_km} km` : "Distance à confirmer",
+          ...(d.availability_status !== "unavailable" ? [availLabel(d.availability_status)] : []),
+          ...(d.truck_types_allowed?.length ? [`Camions: ${d.truck_types_allowed.join(", ")}`] : []),
+        ].join(" • "),
+      })) as DumpCandidate[];
+      const matchingIds = new Set(matching.map((d) => d.id));
+      const ranked = rankedAll.filter((d) => matchingIds.has(d.id));
+      setRecommendedId(ranked[0]?.id ?? null);
 
       const top = ranked.slice(0, 10);
-      // Le site choisi dans le comparateur reste toujours visible, même hors top 10.
+      // Le site choisi dans le comparateur reste visible, même hors top 10, sans changer le classement.
       if (preselectDumpRef.current && !top.some((d) => d.id === preselectDumpRef.current)) {
-        const pre = ranked.find((d) => d.id === preselectDumpRef.current);
-        if (pre) top.unshift(pre);
+        const pre = rankedAll.find((d) => d.id === preselectDumpRef.current);
+        if (pre) top.push(pre);
       }
 
       setDumps(top);
-      // Réapplique le site choisi dans le comparateur, s'il est toujours listé.
       if (preselectDumpRef.current) {
         const pre = top.find((d) => d.id === preselectDumpRef.current);
         if (pre) {
           setSelectedDump(pre);
-          // Dompe déjà choisie sur la carte : on passe directement au résumé.
           setStep(5);
         }
       }
