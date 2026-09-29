@@ -134,11 +134,11 @@ describe.skipIf(!on)("FIN-03 — invariants serveur", () => {
   });
 
   it("suspension après règlement partiel → échéance et affectation conservées, aucun doublon", async () => {
-    const { id, occ } = await obligation(300, { frequency: "monthly", anchor_date: "2026-06-10", month_day: 10, max_count: 3 });
+    const { id, occ } = await obligation(300, { frequency: "monthly", anchor_date: "2026-10-10", month_day: 10, max_count: 3 });
     expect(occ.length).toBe(3);
     const jul = occ[1];
     expect((await pay(100, [{ occurrence_id: jul.id, amount: 100 }])).msg).toBe("");
-    const pz = await rpc("fin_add_pause", { _id: id, _start: "2026-07-01", _end: "2026-08-31", _reason: "AUTO", _dry: false });
+    const pz = await rpc("fin_add_pause", { _id: id, _start: "2026-11-01", _end: "2026-12-31", _reason: "AUTO", _dry: false });
     expect(pz.msg).toBe("");
     const all = await get(`fin_occurrences?obligation_id=eq.${id}&select=id,occ_key,status`);
     expect(all.find((x: any) => x.id === jul.id).status).toBe("active");
