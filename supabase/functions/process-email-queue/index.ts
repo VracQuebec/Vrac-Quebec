@@ -248,6 +248,16 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Adresses réservées aux essais : retirées de la file sans envoi réel.
+      if (/@([^@]+\.)?(invalid|test|example|localhost)$|@example\.(com|org|net)$/i.test(String(payload.to ?? '').trim())) {
+        await supabase.from('email_send_log').insert({
+          message_id: payload.message_id, template_name: payload.label || queue,
+          recipient_email: payload.to, status: 'suppressed', error_message: 'Adresse de test réservée — non envoyé',
+        })
+        await supabase.rpc('delete_email', { queue_name: queue, message_id: msg.msg_id })
+        continue
+      }
+
       try {
         await sendLovableEmail(
           {
