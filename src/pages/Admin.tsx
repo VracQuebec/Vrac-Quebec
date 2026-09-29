@@ -828,6 +828,9 @@ const Admin = () => {
             <Link to="/admin/configuration-soumissions" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
               <Settings className="w-4 h-4" /> Configuration des soumissions
             </Link>
+            <Link to="/admin/finances" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
+              <Settings className="w-4 h-4" /> Finances (assistance)
+            </Link>
             <Link to="/admin/centre-controle" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-sm font-display font-semibold hover:opacity-90">
               <AlertTriangleCC className="w-4 h-4" /> Centre de contrôle
             </Link>
