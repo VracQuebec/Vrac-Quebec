@@ -72,6 +72,7 @@
 - [ ] J3 CRM entrepreneur, flotte, éditeur d'articles, admin, autres routes
 - [ ] J3 Listes/cartes : recherche, filtres, défilement après fiche
 - [x] J4 Isolation serveur entre 2 comptes fictifs d'entreprises différentes; vrai conflit A/B résolu et persistant; saisie gardée après abandon ailleurs
+- [~] Copie de récupération après abandon ailleurs (code fait, survit à l'actualisation) — essai navigateur B→A→actualisation→reprise→3e contexte à faire; reprise réutilise la même clé serveur (réouverture explicite), pas encore un nouvel identifiant
 - [ ] J4 Même entreprise (2 utilisateurs), utilisateur à 2 entreprises, droit retiré
 - [ ] J4 A, B, C, F, notification admin, connexion par l'interface
 - [ ] Fiche d'essai sur téléphone réel
