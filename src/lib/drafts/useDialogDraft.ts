@@ -5,7 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useDraft } from "./useDraft";
 
-export function useDialogDraft<T extends Record<string, unknown>>(opts: {
+export function useDialogDraft<T extends object>(opts: {
   open: boolean; module: string; form: string; company: string | null; recordId: string | null;
   data: T; setData: (d: T) => void; label: (d: T) => string; route?: string;
   /** Noms de fichiers sélectionnés (jamais le contenu : un fichier local ne survit pas à une actualisation). */
