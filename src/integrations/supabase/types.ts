@@ -3645,6 +3645,55 @@ export type Database = {
           },
         ]
       }
+      fin_obligation_accounts: {
+        Row: {
+          account_id: string | null
+          archived_at: string | null
+          company_id: string
+          obligation_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          archived_at?: string | null
+          company_id: string
+          obligation_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          archived_at?: string | null
+          company_id?: string
+          obligation_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_obligation_accounts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_obligation_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_obligation_accounts_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: true
+            referencedRelation: "fin_obligations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_obligation_rules: {
         Row: {
           company_id: string
