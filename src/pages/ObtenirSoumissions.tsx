@@ -70,13 +70,14 @@ export default function ObtenirSoumissions() {
   // NAV-01 : brouillon local des champs texte (les fichiers ne peuvent pas être conservés).
   const draft = useDraft({
     id: { module: "obtenir-soumissions", form: "assistant", owner: "anon" },
-    data: { slug, address, city, region, title, description, answers, desiredDate, scheduleNote, contact },
+    data: { step, slug, address, city, region, title, description, answers, desiredDate, scheduleNote, contact },
     isEmpty: (d) => !d.slug && !d.address && !d.city && !d.title && !d.description && !Object.keys(d.answers).length
       && !d.desiredDate && !d.scheduleNote && !d.contact.contact_name && !d.contact.contact_phone && !d.contact.contact_email,
     onRestore: (d) => {
       setSlug(d.slug); setAddress(d.address); setCity(d.city); setRegion(d.region); setTitle(d.title);
       setDescription(d.description); setAnswers(d.answers ?? {}); setDesiredDate(d.desiredDate);
       setScheduleNote(d.scheduleNote); setContact({ ...EMPTY_CONTACT, ...d.contact });
+      if (d.step > 0) setParams((p) => { if (p.get("etape")) return p; const q = new URLSearchParams(p); q.set("etape", String(Math.min(d.step, STEPS.length - 1) + 1)); return q; }, { replace: true });
     },
   });
   const startOver = () => {
@@ -86,8 +87,13 @@ export default function ObtenirSoumissions() {
   };
   // Étape impossible sans service (lien direct, brouillon abandonné) : retour au choix du service.
   useEffect(() => {
-    if (draft.ready && step > 0 && !slug) setParams((p) => { const q = new URLSearchParams(p); q.delete("etape"); return q; }, { replace: true });
-  }, [draft.ready, step, slug]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!draft.ready || confirmation) return;
+    const contactOk = !!(contact.contact_phone.trim() || contact.contact_email.trim());
+    const bad = step > 0 && !slug ? 0 : step > 6 && !contactOk ? 6 : -1;
+    if (bad < 0) return;
+    setParams((p) => { const q = new URLSearchParams(p); if (bad === 0) q.delete("etape"); else q.set("etape", String(bad + 1)); return q; }, { replace: true });
+    toast.message(`Étape « ${STEPS[bad]} » à compléter`, { description: "Cette information manque pour poursuivre; vos autres réponses sont conservées." });
+  }, [draft.ready, step, slug, contact.contact_phone, contact.contact_email]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const form = useMemo(() => (slug ? findForm(slug) : null), [slug]);
 

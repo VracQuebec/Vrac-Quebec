@@ -88,7 +88,7 @@ export default function Soumission() {
 
   // NAV-01 : brouillon local (même navigateur) — champs déclarés, aucun secret.
   const [pendingMaterialId, setPendingMaterialId] = useState<string | null>(null);
-  const draftData = { categoryId, materialId: material?.id ?? pendingMaterialId, mode, tonnes, dims, dimUnits, trips, truckId, address, date, contact };
+  const draftData = { step, categoryId, materialId: material?.id ?? pendingMaterialId, mode, tonnes, dims, dimUnits, trips, truckId, address, date, contact };
   const draft = useDraft({
     id: loadingCatalog ? null : { module: "soumission-publique", form: "assistant", owner: "anon" },
     data: draftData,
@@ -98,6 +98,8 @@ export default function Soumission() {
       setTrips(d.trips); setTruckId(d.truckId); setAddress(d.address); setDate(d.date); setContact(d.contact);
       const m = materials.find((x) => x.id === d.materialId) ?? null;
       setMaterial(m); setPendingMaterialId(m ? null : d.materialId);
+      // Nouvelle ouverture sans ?etape= : reprise de l'étape du brouillon (validée ensuite).
+      if (d.step > 0) setParams((p) => { if (p.get("etape")) return p; const q = new URLSearchParams(p); q.set("etape", String(Math.min(d.step, STEPS.length - 1) + 1)); return q; }, { replace: true });
     },
   });
   const startOver = () => {
@@ -106,12 +108,6 @@ export default function Soumission() {
     setTrips(""); setTruckId(null); setAddress(""); setDate(""); setContact({ name: "", phone: "", email: "", company: "", comments: "" });
     setQuote(null); setStep(0);
   };
-  // Arrivée directe sur une étape impossible : on rejoint une étape valable, brouillon conservé.
-  useEffect(() => {
-    if (loadingCatalog || confirmation || !draft.ready || pendingMaterialId) return;
-    if (step >= 2 && !material) setParams((p) => { const q = new URLSearchParams(p); q.set("etape", categoryId ? "2" : "1"); if (!categoryId) q.delete("etape"); return q; }, { replace: true });
-  }, [step, material, loadingCatalog, draft.ready, pendingMaterialId]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Retour sur l'étape Estimation (rechargement, Avance natif) : estimation recalculée, jamais inventée.
   useEffect(() => {
     if (step === 6 && material && quantityPayload && !quote && !quoting && !quoteError && !confirmation) void runEstimate();
@@ -153,7 +149,7 @@ export default function Soumission() {
     return v > 0 ? { quantity: Number(v.toFixed(3)), unit: "m3" as const } : null;
   }, [mode, tonnes, dims, dimUnits, trips, truckId, trucks]);
 
-  const canContinue = [
+  const valid = [
     Boolean(categoryId) || Boolean(material),
     Boolean(material),
     Boolean(quantityPayload),
@@ -162,7 +158,18 @@ export default function Soumission() {
     contact.name.trim().length > 1 && contact.phone.replace(/\D/g, "").length >= 10 &&
       /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(contact.email.trim()),
     true,
-  ][step];
+  ];
+  const canContinue = valid[step];
+  // Reprise sur une étape dont une condition précédente n'est plus remplie : retour à la
+  // première étape à corriger, avec explication; les autres saisies restent intactes.
+  useEffect(() => {
+    if (loadingCatalog || confirmation || !draft.ready || pendingMaterialId) return;
+    const bad = valid.findIndex((v, i) => i < step && !v);
+    if (bad < 0) return;
+    setParams((p) => { const q = new URLSearchParams(p); if (bad === 0) q.delete("etape"); else q.set("etape", String(bad + 1)); return q; }, { replace: true });
+    toast({ title: `Étape « ${STEPS[bad]} » à compléter`, description: "Cette information manque pour poursuivre; vos autres réponses sont conservées." });
+  }, [step, loadingCatalog, draft.ready, pendingMaterialId, valid.join()]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   const runEstimate = async () => {
     if (!material || !quantityPayload) return;

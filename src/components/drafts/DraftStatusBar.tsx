@@ -19,7 +19,7 @@ export default function DraftStatusBar({ status, savedAt, restored, onDiscard, s
         {text}{status !== "error" ? " · brouillon, pas encore envoyé" : ""}
       </span>
       {(restored || status === "saved_local") && onDiscard && (
-        <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={onDiscard}>Abandonner le brouillon</Button>
+        <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { if (window.confirm("Abandonner ce brouillon ? Les informations saisies seront effacées de ce navigateur. Aucune demande déjà envoyée n'est annulée.")) onDiscard(); }}>Abandonner le brouillon</Button>
       )}
     </div>
   );
