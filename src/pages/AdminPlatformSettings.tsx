@@ -124,7 +124,7 @@ export default function AdminPlatformSettings() {
       setSectors(sec); setPlans(pl); setSubs(sb); setLog(lg); setEvents(ev);
       const first = pl.find((p) => p.slug === "entrepreneur-pro") ?? pl[0] ?? null;
       // Une préparation retrouvée n'est jamais remplacée par le chargement.
-      if (first && !planEdRef.current.held) planEdRef.current.open({ ...first, _price: priceOf(first) });
+      if (first && !planEdRef.current.dirty) planEdRef.current.open({ ...first, _price: priceOf(first) });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur de chargement");
     } finally {
@@ -623,6 +623,7 @@ export default function AdminPlatformSettings() {
                       <RefreshCw className="h-4 w-4" /> Recharger
                     </button>
                   </div>
+                  <div className="mt-2 min-w-0"><DraftStatusBar {...planEd.barProps} onDiscard={() => { planEd.discard(); void loadAll(); }} discardConfirm="Abandonner les modifications non enregistrées de ce forfait ?" /></div>
                 </div>
 
                 {/* Aperçu de l'offre */}
