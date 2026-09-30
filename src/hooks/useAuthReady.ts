@@ -15,9 +15,13 @@ export const useAuthReady = () => {
       setUser(session?.user ?? null);
       setIsReady(true);
 
+      // NAV-01 : un renouvellement de jeton (même utilisateur) ne doit pas
+      // changer l'identité de l'objet user — sinon rôles rechargés, écrans
+      // remplacés par « Chargement… » et formulaires démontés (saisie perdue).
       const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
         if (!active) return;
-        setUser(nextSession?.user ?? null);
+        const next = nextSession?.user ?? null;
+        setUser((prev) => (prev && next && prev.id === next.id ? prev : next));
       });
       subscription = data.subscription;
     }).catch(() => {

@@ -57,12 +57,17 @@ export const useUserRoles = (authUser?: User | null, authReady?: boolean) => {
     }
 
     loadFromStoredSession();
+    let lastId: string | null | undefined;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!active) return;
+      const id = session?.user?.id ?? null;
+      if (id === lastId) return; // renouvellement du même compte : rien à recharger
+      lastId = id;
       load(session?.user ?? null);
     });
     return () => { active = false; subscription.unsubscribe(); };
-  }, [authReady, authUser, load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authReady, authUser?.id, load]);
 
   return {
     roles,
