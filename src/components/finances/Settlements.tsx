@@ -130,18 +130,54 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
 export function PaymentDetail({ id, companyId, canWrite, canCorrect, onClose, onChanged }: { id: string; companyId: string; canWrite: boolean; canCorrect: boolean; onClose: () => void; onChanged: () => void }) {
   const [p, setP] = useState<any>(null);
   const [mode, setMode] = useState<null | "void" | "refund" | "alloc">(null);
-  const [kind, setKind] = useState<"entry_error" | "returned">("entry_error");
-  const [reason, setReason] = useState(""); const [amt, setAmt] = useState(""); const [date, setDate] = useState(todayIn(TZ));
-  const [open, setOpen] = useState<Awaited<ReturnType<typeof st.openForPayee>>>([]); const [target, setTarget] = useState("");
-  const [idem, setIdem] = useState(() => crypto.randomUUID());
+  // NAV-01B : chaque correction (annulation, remboursement, affectation) garde ses propres champs, en brouillon
+  // séparé par compte + entreprise + règlement. Rien n'est appliqué sans « Confirmer »; seule l'action réussie est close.
+  const EMPTY = { void: { kind: "entry_error" as "entry_error" | "returned", reason: "" }, refund: { amt: "", date: "", reason: "" }, alloc: { target: "", amt: "", idem: "" } };
+  const [prep, setPrep] = useState(EMPTY);
+  const kind = prep.void.kind; const setKind = (k: "entry_error" | "returned") => setPrep((x) => ({ ...x, void: { ...x.void, kind: k } }));
+  const reason = mode === "void" ? prep.void.reason : prep.refund.reason;
+  const setReason = (v: string) => setPrep((x) => mode === "void" ? { ...x, void: { ...x.void, reason: v } } : { ...x, refund: { ...x.refund, reason: v } });
+  const amt = mode === "alloc" ? prep.alloc.amt : prep.refund.amt;
+  const setAmt = (v: string) => setPrep((x) => mode === "alloc" ? { ...x, alloc: { ...x.alloc, amt: v } } : { ...x, refund: { ...x.refund, amt: v } });
+  const date = prep.refund.date || todayIn(TZ); const setDate = (v: string) => setPrep((x) => ({ ...x, refund: { ...x.refund, date: v } }));
+  const target = prep.alloc.target; const setTarget = (v: string) => setPrep((x) => ({ ...x, alloc: { ...x.alloc, target: v } }));
+  const [open, setOpen] = useState<Awaited<ReturnType<typeof st.openForPayee>>>([]);
+  // Clé d'idempotence conservée dans le brouillon : un réessai après réponse incertaine retrouve la même affectation.
+  const idem = prep.alloc.idem || "";
   const [busy, setBusy] = useState(false);
+  const [staleNote, setStaleNote] = useState<string | null>(null);
+  const [keptNote, setKeptNote] = useState<string | null>(null);
+  const { user: me } = useAuthReady();
+  const stamp = (x: any) => (x ? `${x.status}|${x.available}|${x.allocations?.length ?? 0}|${x.refunds?.length ?? 0}` : "");
+  const store = useDraft({
+    id: me && p && canWrite && companyId ? { module: "finances", form: "reglement-correction", owner: me.id, company: companyId, recordId: id } : null,
+    data: { prep, mode, base: stamp(p) },
+    label: () => `Correction du règlement — ${p?.payee_name ?? ""} ${p ? fmtMoney(p.amount) : ""}`,
+    route: `/entrepreneur/finances?company=${companyId}&tab=reglements&brouillon=reglement-correction&reglement=${id}`,
+    isEmpty: (d) => JSON.stringify({ ...d.prep, alloc: { ...d.prep.alloc, idem: "" } }) === JSON.stringify(EMPTY),
+    onRestore: (d) => {
+      setPrep(d.prep); setMode(d.mode);
+      if (d.base !== stamp(p)) setStaleNote("Ce règlement a changé depuis votre préparation (statut, reliquat, affectations ou remboursements). Sa situation actuelle est affichée ; vos saisies sont conservées mais rien n'a été appliqué — vérifiez-les avant de confirmer.");
+    },
+  });
   const load = () => st.payDetail(id).then(setP).catch((e) => toast({ title: "Accès refusé", description: e.message, variant: "destructive" }));
   useEffect(() => { void load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (mode === "alloc" && p) st.openForPayee(companyId, p.payee_key).then(setOpen); }, [mode, p, companyId]);
-  const run = async (fn: () => Promise<unknown>, msg: string) => {
-    setBusy(true);
-    try { await fn(); toast({ title: msg }); setMode(null); setReason(""); setAmt(""); setIdem(crypto.randomUUID()); await load(); onChanged(); }
-    catch (e: any) { toast({ title: "Non enregistré", description: e.message, variant: "destructive" }); await load(); } finally { setBusy(false); }
+  useEffect(() => { if (mode === "alloc" && p) st.openForPayee(companyId, p.payee_key).then(setOpen); if (mode === "alloc" && !prep.alloc.idem) setPrep((x) => ({ ...x, alloc: { ...x.alloc, idem: crypto.randomUUID() } })); }, [mode, p, companyId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [inFlight, setInFlight] = useState(false);
+  const run = async (fn: () => Promise<unknown>, msg: string, act?: "void" | "refund" | "alloc") => {
+    if (inFlight) return; setInFlight(true); setBusy(true);
+    try {
+      await fn(); toast({ title: msg }); setMode(null);
+      if (act) {
+        const next = { ...prep, [act]: EMPTY[act] };
+        const rest = (["void", "refund", "alloc"] as const).filter((k) => k !== act && JSON.stringify({ ...next[k], idem: "" }) !== JSON.stringify({ ...EMPTY[k], idem: "" }));
+        setPrep(next);
+        if (rest.length) setKeptNote(`Autres préparations conservées (non appliquées) : ${rest.map((k) => ({ void: "annulation / correction", refund: "remboursement", alloc: "affectation du reliquat" })[k]).join(", ")}. Vérifiez qu'elles s'appliquent encore.`);
+        else store.finalize();
+      }
+      await load(); onChanged();
+    }
+    catch (e: any) { toast({ title: "Non enregistré", description: `${e.message} — votre préparation est conservée.`, variant: "destructive" }); await load(); } finally { setInFlight(false); setBusy(false); }
   };
   if (!p) return <Dialog open onOpenChange={onClose}><DialogContent><p className="text-sm">Chargement…</p></DialogContent></Dialog>;
   const active = p.status === "validated";
@@ -171,30 +207,33 @@ export function PaymentDetail({ id, companyId, canWrite, canCorrect, onClose, on
       {canWrite && p.status !== "voided" && <label className="mt-1 flex cursor-pointer items-center gap-2 text-xs"><Paperclip className="h-3 w-3" />Ajouter une pièce<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" className="text-xs" onChange={(e) => { const f = e.target.files?.[0]; if (f) void run(() => st.attachFile(companyId, p.id, f), "Pièce jointe"); }} /></label>}
     </section>
     {!canWrite && <p className="text-xs text-muted-foreground">Accès en lecture seule : l'enregistrement, l'affectation, la correction, le remboursement et l'ajout de pièces sont réservés aux rôles Finances habilités (correction : propriétaire, comptabilité ou assistance).</p>}
+    {canWrite && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setPrep(EMPTY); setMode(null); setStaleNote(null); setKeptNote(null); }} discardLabel="Abandonner les corrections préparées de ce règlement" discardConfirm="Abandonner les corrections préparées de ce règlement (annulation, remboursement, affectation) ? Aucune opération déjà confirmée n'est annulée." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+    {staleNote && <p role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">{staleNote} <Button size="sm" variant="ghost" onClick={() => setStaleNote(null)}>Compris</Button></p>}
+    {keptNote && <p role="status" className="rounded-md border border-border bg-secondary p-2 text-xs">{keptNote} <Button size="sm" variant="ghost" onClick={() => setKeptNote(null)}>Compris</Button></p>}
     {!mode && <div className="flex flex-wrap gap-2">
       {canWrite && p.status === "draft" && <Button size="sm" onClick={() => run(() => st.validateDraft(p.id, false), "Brouillon validé — règlement déclaré")}>Valider le brouillon</Button>}
       {canWrite && active && p.available > 0 && <Button size="sm" variant="outline" onClick={() => setMode("alloc")}>Affecter le reliquat</Button>}
-      {canWrite && active && p.available > 0 && <Button size="sm" variant="outline" onClick={() => { setAmt(String(p.available)); setMode("refund"); }}>Enregistrer un remboursement reçu</Button>}
+      {canWrite && active && p.available > 0 && <Button size="sm" variant="outline" onClick={() => { setMode("refund"); if (!prep.refund.amt) setPrep((x) => ({ ...x, refund: { ...x.refund, amt: String(p.available) } })); }}>Enregistrer un remboursement reçu</Button>}
       {canCorrect && ["validated", "draft"].includes(p.status) && <Button size="sm" variant="ghost" onClick={() => setMode("void")}>Annuler / corriger</Button>}
     </div>}
     {mode === "alloc" && <div className="space-y-2 rounded-md border border-border p-3 text-sm">
       <p className="text-xs">Aucun second versement n'est créé : le reliquat ({fmtMoney(p.available)}) couvre une autre échéance du même bénéficiaire, avec sa propre date d'affectation.</p>
-      <select aria-label="Échéance à couvrir" className={`${sel} w-full`} value={target} onChange={(e) => { setTarget(e.target.value); const o = open.find((x) => x.id === e.target.value); if (o) setAmt(String(Math.min(o.balance, p.available))); }}><option value="">— Choisir une échéance —</option>{open.map((o) => <option key={o.id} value={o.id}>{fmtDate(o.due_date)} · {o.label} · reste {fmtMoney(o.balance)}</option>)}</select>
+      <select aria-label="Échéance à couvrir" className={`${sel} w-full`} value={target} onChange={(e) => { const v = e.target.value; const o = open.find((x) => x.id === v); setPrep((x) => ({ ...x, alloc: { ...x.alloc, target: v, amt: o ? String(Math.min(o.balance, p.available)) : x.alloc.amt } })); }}><option value="">— Choisir une échéance —</option>{open.map((o) => <option key={o.id} value={o.id}>{fmtDate(o.due_date)} · {o.label} · reste {fmtMoney(o.balance)}</option>)}</select>
       <Input type="number" aria-label="Montant à affecter" min="0" step="0.01" value={amt} onChange={(e) => setAmt(e.target.value)} />
-      <div className="flex gap-2"><Button size="sm" disabled={busy || !target || !(Number(amt) > 0)} onClick={() => run(() => st.allocate(p.id, [{ occurrence_id: target, amount: Number(amt) }], idem, false), "Reliquat affecté")}>Confirmer</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div>
+      <div className="flex gap-2"><Button size="sm" disabled={busy || !target || !(Number(amt) > 0)} onClick={() => run(() => st.allocate(p.id, [{ occurrence_id: target, amount: Number(amt) }], idem, false), "Reliquat affecté", "alloc")}>Confirmer</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div>
     </div>}
     {mode === "refund" && <div className="space-y-2 rounded-md border border-border p-3 text-sm">
       <p className="text-xs">Retour d'argent déclaré par le bénéficiaire, lié à ce versement. Le paiement initial reste dans l'historique ; ce n'est pas une note de crédit fiscale.</p>
       <div className="grid grid-cols-2 gap-2"><Input type="number" aria-label="Montant remboursé" min="0" step="0.01" value={amt} onChange={(e) => setAmt(e.target.value)} /><Input type="date" aria-label="Date du remboursement" value={date} onChange={(e) => setDate(e.target.value)} /></div>
       <Textarea placeholder="Motif (obligatoire)" value={reason} onChange={(e) => setReason(e.target.value)} />
-      <div className="flex gap-2"><Button size="sm" disabled={busy || !reason.trim() || !(Number(amt) > 0)} onClick={() => run(() => st.addRefund(p.id, Number(amt), date, reason, false), "Remboursement enregistré")}>Confirmer</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div>
+      <div className="flex gap-2"><Button size="sm" disabled={busy || !reason.trim() || !(Number(amt) > 0)} onClick={() => run(() => st.addRefund(p.id, Number(amt), date, reason, false), "Remboursement enregistré", "refund")}>Confirmer</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div>
     </div>}
     {mode === "void" && <div className="space-y-2 rounded-md border border-border p-3 text-sm">
       <label className="flex gap-2"><input type="radio" checked={kind === "entry_error"} onChange={() => setKind("entry_error")} /><span><strong>Erreur de saisie</strong> — le versement n'a jamais eu lieu tel que saisi. Aucune entrée d'argent n'est créée.</span></label>
       {p.status === "validated" && <label className="flex gap-2"><input type="radio" checked={kind === "returned"} onChange={() => setKind("returned")} /><span><strong>Paiement retourné / refusé</strong> — le versement a échoué (chèque sans provision, virement rejeté…).</span></label>}
       <p className="text-xs text-muted-foreground">L'original est conservé ; les échéances couvertes retrouvent leur solde. Saisissez ensuite le bon règlement si nécessaire.</p>
       <Textarea placeholder="Motif (obligatoire)" value={reason} onChange={(e) => setReason(e.target.value)} />
-      <div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !reason.trim()} onClick={() => run(() => st.voidPayment(p.id, kind, reason), kind === "entry_error" ? "Saisie annulée" : "Paiement marqué retourné")}>Confirmer</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div>
+      <div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !reason.trim()} onClick={() => run(() => st.voidPayment(p.id, kind, reason), kind === "entry_error" ? "Saisie annulée" : "Paiement marqué retourné", "void")}>Confirmer</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div>
     </div>}
     <section><p className="font-display text-sm font-bold">Historique</p><ul className="space-y-1 text-xs">{p.events.map((h: any, i: number) => <li key={i}>{new Date(h.created_at).toLocaleString("fr-CA", { timeZone: TZ })} — {st.EVENT_LABEL[h.action] ?? h.action}{h.after?.amount != null ? ` (${fmtMoney(Number(h.after.amount))})` : ""}{h.reason ? ` : ${h.reason}` : ""}{h.is_support ? " (assistance Vrac Québec)" : ""}</li>)}</ul></section>
   </DialogContent></Dialog>;
