@@ -578,8 +578,7 @@ function OccurrenceDialog({ companyId, occ, canWrite, onClose, onChanged, onEdit
   // « Retour » ne fait que replier le formulaire : la préparation reste conservée.
   const [liftOpen, setLiftOpen] = useState(false);
   const back = () => { setMode(null); setLiftOpen(false); setDateNote(null); };
-  const abandonAll = () => { if (!window.confirm("Abandonner toutes les préparations de cette échéance ? Les saisies non confirmées seront supprimées.")) return;
-    store.discard(); setMode(null); setLift(null); setLiftOpen(false); setDateNote(null); setScope("this"); setAmt(occ.amount?.toString() ?? ""); setQl(occ.amount_quality); setPlanned(occ.planned_date); setReason(""); setEff(todayIn(TZ)); setPz({ start: "", end: "", reason: "" }); };
+  const abandonAll = () => { store.discard(); setMode(null); setLift(null); setLiftOpen(false); setDateNote(null); setScope("this"); setAmt(occ.amount?.toString() ?? ""); setQl(occ.amount_quality); setPlanned(occ.planned_date); setReason(""); setEff(todayIn(TZ)); setPz({ start: "", end: "", reason: "" }); };
   const load = () => {
     api.history(o.obligation_id).then(setHist); api.versions(o.obligation_id).then(setVers); api.pauses(o.obligation_id).then(setPzs);
     st.occDetail(o.id).then((d) => { setDetail(d); if (d?.occ) setO((x) => ({ ...x, ...d.occ })); }).catch(() => setDetail(null));
