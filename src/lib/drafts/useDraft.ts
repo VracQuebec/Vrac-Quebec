@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { discardDraft, draftKey, keepConflictCopy, patchMeta, readAlias, readDraft, routeWithInstance, writeAlias, writeDraft, type DraftIdentity, type DraftMeta } from "./draftStore";
 import {
-  closeServerDraft, fetchServerDraft, flushCloseQueue, isCloseQueued, isSynced, queueClose, reopenServerDraft,
+  closeServerDraft, fetchServerDraft, flushCloseQueue, isCloseQueued, isSynced, queueClose,
   saveServerDraft, type DraftSyncError, type ServerDraft,
 } from "./serverSync";
 

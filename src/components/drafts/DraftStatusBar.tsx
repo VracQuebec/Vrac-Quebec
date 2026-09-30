@@ -4,9 +4,9 @@ import type { DraftStatus, SyncStatus } from "@/lib/drafts/useDraft";
 
 const time = (iso: string | null) => iso ? new Date(iso).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" }) : "";
 
-export default function DraftStatusBar({ status, savedAt, restored, onDiscard, scope = "cet appareil", sync, synced, conflict, onUseServer, onKeepLocal, onRestartAsNew }: {
+export default function DraftStatusBar({ status, savedAt, restored, onDiscard, scope = "cet appareil", sync, synced, conflict, onUseServer, onKeepLocal, onRestartAsNew, restartError, onRetry }: {
   status: DraftStatus; savedAt: string | null; restored: boolean; onDiscard?: () => void; scope?: string;
-  sync?: SyncStatus; synced?: boolean; conflict?: unknown; onUseServer?: () => void; onKeepLocal?: () => void; onRestartAsNew?: () => void;
+  sync?: SyncStatus; synced?: boolean; conflict?: unknown; onUseServer?: () => void; onKeepLocal?: () => void; onRestartAsNew?: () => void; restartError?: string | null; onRetry?: () => void;
 }) {
   if (sync === "denied") return <p role="status" className="rounded-md bg-secondary px-3 py-1.5 text-xs text-muted-foreground" data-testid="draft-status">Brouillon non repris : l'accès à cette entreprise n'est plus autorisé pour ce compte.</p>;
   if (sync === "closed") return (
@@ -16,7 +16,9 @@ export default function DraftStatusBar({ status, savedAt, restored, onDiscard, s
           ? "Échec de l'enregistrement sur cet appareil : cessez la saisie et reprenez-la dans un nouveau brouillon."
           : `Ce brouillon a été terminé ou abandonné depuis un autre onglet ou appareil. Copie de récupération conservée sur cet appareil seulement (non synchronisée)${savedAt ? ` · ${time(savedAt)}` : ""}.`}
       </span>
+      {status === "error" && onRetry && <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={onRetry}>Réessayer l'enregistrement</Button>}
       {onRestartAsNew && <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={onRestartAsNew}>Reprendre dans un nouveau brouillon</Button>}
+      {restartError && <span role="alert" className="w-full text-destructive">{restartError}</span>}
     </div>
   );
   if (status === "idle" || status === "finalized") return null;
@@ -26,7 +28,7 @@ export default function DraftStatusBar({ status, savedAt, restored, onDiscard, s
     : "sur cet appareil — synchronisation en attente";
   const text =
     status === "dirty" ? "Modifications en cours…" :
-    status === "error" ? "Échec de l'enregistrement sur cet appareil — gardez cette page ouverte" :
+    status === "error" ? "Échec de l'enregistrement sur cet appareil : la saisie est bloquée pour ne rien perdre. Votre texte reste affiché — réessayez, ou copiez-le avant de quitter." :
     status === "restored" ? `Brouillon repris (enregistré ${where}${savedAt ? ` · ${time(savedAt)}` : ""})` :
     `Enregistré ${where} à ${time(savedAt)}`;
   return (
@@ -35,6 +37,7 @@ export default function DraftStatusBar({ status, savedAt, restored, onDiscard, s
         <span role="status" aria-live="polite" className={status === "error" ? "text-destructive" : "text-muted-foreground"} data-sync={sync ?? "local"}>
           {text}{status !== "error" ? " · brouillon, pas encore envoyé" : ""}
         </span>
+        {status === "error" && onRetry && <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onRetry}>Réessayer l'enregistrement</Button>}
         {(restored || status === "saved_local") && onDiscard && (
           <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { if (window.confirm("Abandonner ce brouillon ? Les informations saisies seront effacées. Aucune demande ni opération déjà envoyée n'est annulée.")) onDiscard(); }}>Abandonner le brouillon</Button>
         )}

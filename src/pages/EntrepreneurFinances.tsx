@@ -99,7 +99,7 @@ export default function EntrepreneurFinances({ admin = false }: { admin?: boolea
 
 function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { companyId: string; companyName: string; tab: Tab; canWrite: boolean; canCorrect: boolean }) {
   const [rev, setRev] = useState(0);
-  const [form, setForm] = useState<{ id: string | null; init?: any; ruleChange?: { effective: string } } | null>(null);
+  const [form, setForm] = useState<{ id: string | null; init?: any; ruleChange?: { effective: string }; instance?: string } | null>(null);
   const [occ, setOcc] = useState<Occ | null>(null);
   const [pay, setPay] = useState<PayTarget[] | null>(null);
   const [payOpen, setPayOpen] = useState<string | null>(null);
@@ -110,7 +110,7 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     if (canWrite && q.get("brouillon") === "obligation") {
-      setForm({ id: null }); q.delete("brouillon");
+      setForm({ id: null, instance: q.get("instance") || undefined }); q.delete("brouillon"); q.delete("instance");
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
     }
   }, [canWrite]);
@@ -123,7 +123,7 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
     {tab === "reglements" && <FinanceSearch key="pay" companyId={companyId} companyName={companyName} ctx="pay" rev={rev} canWrite={canWrite} canCorrect={canCorrect} onOpenPayment={setPayOpen} renderOcc={(o) => <OccRow o={o} onOpen={setOcc} />} />}
     {tab === "moyennes" && <Averages companyId={companyId} cats={cats.filter((c) => !c.archived_at)} />}
     {tab === "parametres" && <Settings companyId={companyId} cats={cats} canWrite={canWrite} onChange={refresh} />}
-    {form && <ObligationForm companyId={companyId} companyName={companyName} id={form.id} init={form.init} ruleChange={form.ruleChange} cats={cats.filter((c) => !c.archived_at)} onClose={() => setForm(null)} onSaved={() => { setForm(null); refresh(); }} />}
+    {form && <ObligationForm companyId={companyId} companyName={companyName} id={form.id} init={form.init} ruleChange={form.ruleChange} draftInstance={form.instance} cats={cats.filter((c) => !c.archived_at)} onClose={() => setForm(null)} onSaved={() => { setForm(null); refresh(); }} />}
     {occ && <OccurrenceDialog occ={occ} canWrite={canWrite} onClose={() => setOcc(null)} onChanged={refresh}
       onPay={(o) => { setOcc(null); onPayMany?.([o]); }} onOpenPayment={(id) => { setOcc(null); setPayOpen(id); }}
       onEdit={(id) => { setOcc(null); setForm({ id }); }} onRuleChange={(id, effective) => { setOcc(null); setForm({ id, ruleChange: { effective } }); }} onDuplicate={(init) => { setOcc(null); setForm({ id: null, init }); }} />}
@@ -297,7 +297,7 @@ const RULE_KEYS = ["frequency", "interval_n", "weekdays", "month_day", "month_da
 
 /** Formulaire d'obligation (création, brouillon, modification) ou changement de règle d'une série active à partir d'une date. */
 const DEFAULT_OBLIGATION = { frequency: "once", interval_n: 1, amount_quality: "confirmed", nature: "charge", planned_shift: "none", short_month_policy: "last_day", seasons: [] };
-function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, onClose, onSaved }: { companyId: string; companyName: string; id: string | null; init?: any; cats: { id: string; name: string }[]; ruleChange?: { effective: string }; onClose: () => void; onSaved: () => void }) {
+function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, draftInstance, onClose, onSaved }: { draftInstance?: string; companyId: string; companyName: string; id: string | null; init?: any; cats: { id: string; name: string }[]; ruleChange?: { effective: string }; onClose: () => void; onSaved: () => void }) {
   const [p, setP] = useState<any>(init ?? DEFAULT_OBLIGATION);
   const [preset, setPreset] = useState<Preset>(toPreset(p.frequency, p.interval_n));
   const [unit, setUnit] = useState<"days" | "weeks" | "months">("days");
@@ -318,7 +318,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
   const { user: me } = useAuthReady();
   const draftable = !id && !ruleChange && !init;
   const store = useDraft({
-    id: draftable && me ? { module: "finances", form: "obligation", owner: me.id, company: companyId } : null,
+    id: draftable && me ? { module: "finances", form: "obligation", owner: me.id, company: companyId, instance: draftInstance } : null,
     data: { p, preset, unit, adv },
     label: (d) => d.p.label ? `Obligation « ${d.p.label} »` : "Nouvelle obligation",
     route: `/entrepreneur/finances?company=${companyId}&brouillon=obligation`,
@@ -390,7 +390,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
     <DialogHeader><DialogTitle>{ruleChange ? "Changer la règle à partir d'une date" : id ? "Modifier l'obligation" : init ? "Dupliquer (nouvelle date requise)" : "Ajouter une obligation"}</DialogTitle></DialogHeader>
     <p className="text-sm">Entreprise : <strong>{companyName}</strong></p>
-    {draftable && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={abandon} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} />}
+    {draftable && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={abandon} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
     {conflict && <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-sm">{conflict}<div className="mt-2"><Button size="sm" variant="outline" onClick={() => { setConflict(null); load(); }}>Recharger l'état actuel</Button></div></div>}
     {ruleChange && <L l="La nouvelle règle s'applique à partir du (inclus)"><Input type="date" value={eff} onChange={(e) => { setEff(e.target.value); up("anchor_date", e.target.value); }} /></L>}
     <div className="grid gap-3 sm:grid-cols-2">
