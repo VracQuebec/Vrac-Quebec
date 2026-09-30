@@ -62,6 +62,8 @@ export function useDraft<T>(opts: {
   const serialized = JSON.stringify(data);
   useEffect(() => {
     if (!armed.current || finalized.current || serialized === lastWritten.current) return;
+    // Formulaire vide sans brouillon existant (visite vierge, après abandon) : rien à signaler.
+    if (!meta.current && cb.current.isEmpty(data)) { if (timer.current) clearTimeout(timer.current); firstPending.current = null; setStatus("idle"); return; }
     setStatus("dirty");
     if (firstPending.current == null) firstPending.current = Date.now();
     const wait = Math.max(0, Math.min(PAUSE_MS, MAX_MS - (Date.now() - firstPending.current)));
