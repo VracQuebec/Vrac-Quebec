@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { Truck, Loader2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
+import { consumeReturnTo } from "@/lib/navigation/returnTo";
 import TransportBanner from "@/components/TransportBanner";
 
 const Login = () => {
