@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Activity, ArrowLeft, BarChart3, Ban, Bell, BookOpen, Building2, CalendarDays, Database, Home, LayoutDashboard, LogOut, MapPin, Menu, Settings, Truck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -166,7 +167,7 @@ export default function UniversalNav() {
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={async () => { setAdminMenuOpen(false); await supabase.auth.signOut(); navigate("/login"); }}
+                    onClick={async () => { setAdminMenuOpen(false); markVoluntarySignOut(); await supabase.auth.signOut(); navigate("/login"); }}
                     className="min-h-11 w-full justify-start gap-3 text-muted-foreground"
                   >
                     <LogOut className="h-4 w-4" /> Déconnexion

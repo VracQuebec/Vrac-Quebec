@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
+import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { ReactNode, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Truck, LogOut, ArrowLeft } from "lucide-react";
@@ -17,7 +18,7 @@ const EntrepreneurShell = ({ title, description, children }: Props) => {
   const navigate = useNavigate();
   const { user, isReady: authReady } = useAuthReady();
   const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
-  const handleLogout = async () => { await supabase.auth.signOut(); navigate("/login"); };
+  const handleLogout = async () => { markVoluntarySignOut(); await supabase.auth.signOut(); navigate("/login"); };
 
   useEffect(() => {
     if (!authReady) return;

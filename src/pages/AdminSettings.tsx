@@ -7,6 +7,7 @@
 // n'en supprime aucune et ne touche à aucune donnée métier.
 // ============================================================
 import { useCallback, useEffect, useState } from "react";
+import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
@@ -413,7 +414,7 @@ function AccountCard({ email }: { email: string | null }) {
         <p className="flex justify-between gap-2"><span className="text-muted-foreground">Courriel</span><span className="truncate">{email ?? "—"}</span></p>
         <p className="flex justify-between gap-2"><span className="text-muted-foreground">Statut</span><span>🟢 Administrateur actif</span></p>
         <button
-          onClick={async () => { await supabase.auth.signOut(); navigate("/login", { replace: true }); }}
+          onClick={async () => { markVoluntarySignOut(); await supabase.auth.signOut(); navigate("/login", { replace: true }); }}
           className="mt-2 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary text-foreground text-xs font-display font-semibold min-h-[40px]"
         >
           <LogOut className="w-3.5 h-3.5" /> Déconnexion
