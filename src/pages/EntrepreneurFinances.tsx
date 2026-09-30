@@ -20,6 +20,7 @@ import { PERIOD_LABELS, QUALITY_LABEL, addDays, addMonths, daysInMonth, fmtDate,
 import { COLLISION_LABEL, DAYS, FEB29_LABEL, FREQ_FILTERS, PRESETS, RENEWAL_LABEL, SHIFT_LABEL, freqLabel, policies, presetRule, sentence, toPreset, type Preset } from "@/lib/finances/recurrence";
 import * as st from "@/lib/finances/settlement";
 import { PaymentDetail, PaymentDialog, type PayTarget } from "@/components/finances/Settlements";
+import { useListContext, useListScroll } from "@/lib/navigation/listContext";
 import FinanceSearch from "@/components/finances/FinanceSearch";
 import Averages from "@/components/finances/Averages";
 
@@ -235,16 +236,18 @@ function Overview({ companyId, rev, add, onOpen }: { companyId: string; rev: num
 
 function Browse({ companyId, rev, cats, mode, add, onOpen, onPayMany }: { companyId: string; rev: number; cats: { id: string; name: string }[]; mode: "calendar" | "table"; add: React.ReactNode; onOpen: (o: Occ) => void; onPayMany?: (l: Occ[]) => void }) {
   const today = todayIn(TZ);
-  const [kind, setKind] = useState<PeriodKind>("month");
-  const [ref, setRef] = useState(today);
-  const [custom, setCustom] = useState({ from: today, to: addDays(today, 30) });
-  const [base, setBase] = useState<api.Base>("due");
-  const [f, setF] = useState<api.Filters>({});
-  const [q, setQ] = useState("");
+  // NAV-01B : contexte commun (compte + entreprise + liste), jamais dans l'adresse.
+  const { user } = useAuthReady();
+  const lid = user ? { owner: user.id, company: companyId, list: `finances-${mode}` } : null;
+  type BCtx = { kind: PeriodKind; ref: string; custom: { from: string; to: string }; base: api.Base; f: api.Filters; q: string; view: "agenda" | "month"; sort: string; page: number };
+  const [c, setC, lcReady] = useListContext<BCtx>(lid, { kind: "month", ref: today, custom: { from: today, to: addDays(today, 30) }, base: "due", f: {}, q: "", view: typeof window !== "undefined" && window.innerWidth >= 768 ? "month" : "agenda", sort: "date_asc", page: 0 });
+  const { kind, ref, custom, base, f, q, view, sort, page } = c;
+  // Tout changement de critère revient à la première page (dans le même enregistrement : la page relue n'est pas écrasée).
+  const crit = <K extends keyof BCtx>(k: K) => (v: BCtx[K] | ((p: BCtx[K]) => BCtx[K])) => setC((p) => ({ ...p, [k]: typeof v === "function" ? (v as (x: BCtx[K]) => BCtx[K])(p[k]) : v, page: 0 }));
+  const setKind = crit("kind"), setRef = crit("ref"), setCustom = crit("custom"), setBase = crit("base"), setF = crit("f"), setQ = crit("q"), setSort = crit("sort");
+  const setView = (v: "agenda" | "month") => setC({ view: v });
+  const setPage = (v: number | ((n: number) => number)) => setC((p) => ({ ...p, page: typeof v === "function" ? v(p.page) : v }));
   const [showF, setShowF] = useState(false);
-  const [view, setView] = useState<"agenda" | "month">(typeof window !== "undefined" && window.innerWidth >= 768 ? "month" : "agenda");
-  const [sort, setSort] = useState("date_asc");
-  const [page, setPage] = useState(0);
   const [tot, setTot] = useState<api.Totals | null>(null);
   const [data, setData] = useState<{ rows: Occ[]; total: number } | null>(null);
   const [day, setDay] = useState<string | null>(null);
@@ -252,16 +255,16 @@ function Browse({ companyId, rev, cats, mode, add, onOpen, onPayMany }: { compan
   const filters = useMemo(() => ({ ...f, q: q.trim() || undefined }), [f, q]);
   const nActive = Object.values(f).filter(Boolean).length;
   const size = mode === "table" ? 25 : 500;
-  useEffect(() => { setPage(0); }, [kind, ref, custom.from, custom.to, base, filters, sort]);
+  useListScroll(lid, lcReady && !!data);
   useEffect(() => {
-    if (b.to < b.from) return;
+    if (!lcReady || b.to < b.from) return;
     setTot(null); setData(null);
     const t = setTimeout(() => {
       Promise.all([api.periodTotals(companyId, b.from, b.to, base, filters), api.listOcc(companyId, b.from, b.to, base, filters, sort, size, page * size)])
         .then(([t, l]) => { setTot(t); setData(l); }).catch((e) => toast({ title: "Erreur", description: e.message, variant: "destructive" }));
     }, 200);
     return () => clearTimeout(t);
-  }, [companyId, rev, b.from, b.to, base, filters, sort, page, size]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [companyId, rev, b.from, b.to, base, filters, sort, page, size, lcReady]); // eslint-disable-line react-hooks/exhaustive-deps
   const shift = (dir: number) => {
     const { y, m } = parse(ref);
     if (kind === "day") setRef(addDays(ref, dir)); else if (kind === "week") setRef(addDays(ref, 7 * dir));

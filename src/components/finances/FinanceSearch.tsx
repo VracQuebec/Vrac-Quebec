@@ -12,6 +12,8 @@ import { FREQ_FILTERS } from "@/lib/finances/recurrence";
 import * as st from "@/lib/finances/settlement";
 import { DEFAULT_QUERY, REL_LABELS, activeCount, download, resolvePeriod, sanitizeView, serverFilters, toCsv, type Ctx, type FinQuery, type RelKind } from "@/lib/finances/query";
 import * as fs from "@/lib/finances/search";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { readListCtx, useListContext, useListScroll } from "@/lib/navigation/listContext";
 
 const TZ = "America/Toronto";
 const sel = "h-10 rounded-md border border-input bg-background px-2 text-sm";
@@ -20,7 +22,6 @@ const NATURES: Record<string, string> = { charge: "Charge à prévoir", dette: "
 const SETTLES: [string, string][] = [["a_confirmer", "Règlement à confirmer"], ["non_reglee", "Non réglée"], ["partielle", "Partiellement réglée"], ["reglee", "Réglée"], ["a_completer", "Montant à compléter"], ["aucun", "Aucun montant"]];
 const OCC_SORTS: [string, string][] = [["date_asc", "Échéance la plus ancienne"], ["date_desc", "Échéance la plus récente"], ["planned_asc", "Date planifiée"], ["amount_desc", "Montant décroissant"], ["amount_asc", "Montant croissant"], ["balance_desc", "Solde restant décroissant"], ["payee_asc", "Fournisseur (A → Z)"], ["late_first", "En retard d'abord"]];
 const PAY_SORTS: [string, string][] = [["paid_desc", "Versement le plus récent"], ["paid_asc", "Versement le plus ancien"], ["entered_desc", "Saisie la plus récente"], ["amount_desc", "Montant décroissant"], ["amount_asc", "Montant croissant"], ["available_desc", "Reliquat décroissant"], ["payee_asc", "Bénéficiaire (A → Z)"]];
-const stateKey = (c: string, ctx: Ctx) => `vq.fin.search.${c}.${ctx}`;
 
 type Lk = { cats: { id: string; name: string; archived_at?: string | null }[]; trucks: { id: string; name: string }[]; projects: { id: string; name: string }[] };
 
@@ -29,8 +30,15 @@ export default function FinanceSearch({ companyId, companyName, ctx, rev, canWri
   renderOcc: (o: Occ, pick?: { on: boolean; toggle: () => void }) => React.ReactNode; onOpenPayment: (id: string) => void; onPayMany?: (l: Occ[]) => void; add?: React.ReactNode;
 }) {
   const today = todayIn(TZ);
-  const [qy, setQy] = useState<FinQuery>(() => { try { return sanitizeView(JSON.parse(sessionStorage.getItem(stateKey(companyId, ctx)) ?? "null"), ctx) ?? DEFAULT_QUERY(ctx); } catch { return DEFAULT_QUERY(ctx); } });
-  const [page, setPage] = useState(() => Number(sessionStorage.getItem(stateKey(companyId, ctx) + ".page") ?? 0) || 0);
+  // NAV-01B : contexte commun (compte + entreprise + liste), jamais dans l'adresse.
+  const { user } = useAuthReady();
+  const lid = user ? { owner: user.id, company: companyId, list: `finances-${ctx}` } : null;
+  const qKey = (q: FinQuery) => JSON.stringify([q.ctx, serverFilters(q), q.period, q.base, q.sort]);
+  const [lc, setLc, lcReady] = useListContext<{ qy: FinQuery; page: number }>(lid, { qy: DEFAULT_QUERY(ctx), page: 0 },
+    (v) => { const o = v as { qy?: unknown; page?: unknown } | null; const q = o && sanitizeView(o.qy, ctx); return q ? { qy: q, page: Math.max(0, Number(o!.page) || 0) } : null; });
+  const qy = lc.qy, page = lc.page;
+  const setQy = (u: FinQuery | ((q: FinQuery) => FinQuery)) => setLc((p) => { const nq = typeof u === "function" ? u(p.qy) : u; return { qy: nq, page: qKey(nq) === qKey(p.qy) ? p.page : 0 }; });
+  const setPage = (u: number | ((n: number) => number)) => setLc((p) => ({ ...p, page: typeof u === "function" ? u(p.page) : u }));
   const [showF, setShowF] = useState(false);
   const [lk, setLk] = useState<Lk>({ cats: [], trucks: [], projects: [] });
   const [occ, setOcc] = useState<{ rows: Occ[]; total: number } | null>(null);
@@ -53,24 +61,21 @@ export default function FinanceSearch({ companyId, companyName, ctx, rev, canWri
   const loadViews = useCallback(() => fs.listViews(companyId, ctx).then(setViews).catch(() => setViews([])), [companyId, ctx]);
   // Vue par défaut : seulement si aucun état en cours n'est mémorisé pour cette entreprise.
   useEffect(() => {
+    if (!lid) return;
     fs.listViews(companyId, ctx).then((v) => {
       setViews(v);
-      if (!sessionStorage.getItem(stateKey(companyId, ctx))) { const d = v.find((x) => x.is_default); const s = d && sanitizeView(d.params, ctx); if (s) { setQy(s); setViewId(d!.id); } }
+      if (!readListCtx(lid)) { const d = v.find((x) => x.is_default); const s = d && sanitizeView(d.params, ctx); if (s) { setQy(s); setViewId(d!.id); } }
     }).catch(() => setViews([]));
-  }, [companyId, ctx]);
-  useEffect(() => { sessionStorage.setItem(stateKey(companyId, ctx), JSON.stringify(qy)); }, [qy, companyId, ctx]);
-  useEffect(() => { sessionStorage.setItem(stateKey(companyId, ctx) + ".page", String(page)); }, [page, companyId, ctx]);
-
-  const [first, setFirst] = useState(true);
-  useEffect(() => { if (first) { setFirst(false); return; } setPage(0); }, [fKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [companyId, ctx, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useListScroll(lid, lcReady && (ctx === "occ" ? !!occ : !!pay));
   useEffect(() => {
-    if (b.to < b.from) return;
+    if (!lcReady || b.to < b.from) return;
     const t = setTimeout(() => {
       if (ctx === "occ") { setOcc(null); setOt(null); Promise.all([fs.occTotals(companyId, b.from, b.to, qy), fs.searchOcc(companyId, b.from, b.to, qy, SIZE, page * SIZE)]).then(([t, l]) => { setOt(t); setOcc(l); }).catch((e) => toast({ title: "Erreur", description: e.message, variant: "destructive" })); }
       else { setPay(null); fs.searchPayments(companyId, b.from, b.to, qy, SIZE, page * SIZE).then(setPay).catch((e) => toast({ title: "Erreur", description: e.message, variant: "destructive" })); }
     }, 250);
     return () => clearTimeout(t);
-  }, [companyId, fKey, page, rev, b.from, b.to]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [companyId, fKey, page, rev, b.from, b.to, lcReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setF = (patch: Record<string, unknown>) => setQy((q) => ctx === "occ" ? { ...q, occ: { ...q.occ, ...patch } } : { ...q, pay: { ...q.pay, ...patch } });
   const F = (ctx === "occ" ? qy.occ : qy.pay) as Record<string, any>;
