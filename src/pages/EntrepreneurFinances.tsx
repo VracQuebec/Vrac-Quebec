@@ -24,6 +24,7 @@ import { useListContext, useListScroll } from "@/lib/navigation/listContext";
 import FinanceSearch from "@/components/finances/FinanceSearch";
 import Averages from "@/components/finances/Averages";
 import Treasury from "@/components/finances/Treasury";
+import Reminders from "@/components/finances/Reminders";
 
 type Tab = "tresorerie" | "rappels" | "apercu" | "calendrier" | "apayer" | "reglements" | "moyennes" | "parametres";
 const TABS: { v: Tab; l: string }[] = [{ v: "apercu", l: "Vue d'ensemble" }, { v: "calendrier", l: "Calendrier" }, { v: "apayer", l: "À payer" }, { v: "reglements", l: "Règlements" }, { v: "moyennes", l: "Moyennes et équivalents" }, { v: "tresorerie", l: "Trésorerie" }, { v: "rappels", l: "Rappels" }, { v: "parametres", l: "Paramètres" }];
