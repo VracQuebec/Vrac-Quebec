@@ -65,7 +65,8 @@ export default function AdminControlCenter() {
   const [pushFailed, setPushFailed] = useState(0);
   const [delays, setDelays] = useState<Delays>(DEFAULT_DELAYS);
   const [rawDelays, setRawDelays] = useState<Record<string, number>>({});
-  const [showSettings, setShowSettings] = useState(false);
+  const showSettings = params.get("reglages") === "1";
+  const setShowSettings = (b: boolean | ((x: boolean) => boolean)) => setParams((p) => { const n = new URLSearchParams(p); const v = typeof b === "function" ? b(p.get("reglages") === "1") : b; v ? n.set("reglages", "1") : n.delete("reglages"); return n; }, { replace: true });
   // NAV-01B : filtre dans l'adresse (remplacement, sans entrée d'historique); recherche et position en mémoire de session
   // (la recherche peut contenir un nom : jamais dans l'adresse). La fiche ouverte vit dans ?demande= → Retour la referme.
   const filter = ((params.get("f") as Filter) || "all") as Filter;
@@ -123,7 +124,7 @@ export default function AdminControlCenter() {
         for (const k of keys) if (!knownFollowups.current.has(k)) {
           const r = enriched.find((x) => x.key === k);
           if (r) toast.error(`Nouvelle demande ${r.number} — ${r.requester}`, {
-            duration: 20000, action: { label: "Ouvrir", onClick: () => setSelectedKey(k) },
+            duration: 20000, action: { label: "Ouvrir", onClick: () => setParams((p) => { const n = new URLSearchParams(p); n.set("demande", k); return n; }) },
           });
         }
       }
