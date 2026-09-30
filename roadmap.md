@@ -135,3 +135,9 @@
 - [x] NAV-01B listes admin + carte CRM : contexte commun (useScreenContext); sélection carte non essayée
 - [x] NAV-01B finale : article existant (copie de secours + conflit par updated_at, statut jamais repris), référencement (5 fiches), territoire, offre de matériau, forfait plateforme ; correctif reprise après abandon (clôture en file)
 - [ ] NAV-01B réserves : session expirée/changement de compte/accès retiré non réessayés ce lot ; CRM admin sans formulaire propre (non applicable) ; fiche appareils réels à faire par l'utilisateur
+
+## FIN-05 — Trésorerie, budgets et scénarios
+- [x] Tables comptes/soldes/entrées attendues/transferts/budgets/réserves/scénarios (RLS fin_can_*, même entreprise par trigger)
+- [x] Moteur pur treasury.ts (cents, solde inconnu ≠ 0, retard « À replanifier », transferts nuls, carte hors encaisse, réserves sans double déduction) + 7 essais
+- [x] Onglet Trésorerie (prévision 13 sem./30-90 j/6-12 mois/perso, graphique, détail, CSV, comptes, entrées + brouillon, budgets, réserves, scénarios)
+- [ ] Parcours navigateur mobile représentatif (non exécuté)
