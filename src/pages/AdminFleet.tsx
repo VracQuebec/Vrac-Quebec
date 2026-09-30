@@ -2,6 +2,7 @@
 // Réutilise : rôles admin existants, calendrier `calendar_events`, notifications CRM.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useListContext, useListScroll } from "@/lib/navigation/listContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
@@ -66,6 +67,15 @@ export default function AdminFleet() {
   const tenant = useFleetTenant(isAdmin, isReady && !roleLoading);
   const [params, setParams] = useSearchParams();
   const tab = (params.get("tab") as TabKey) || "dashboard";
+  // NAV-01B : contexte commun (compte + entreprise + liste, par onglet pour le défilement), jamais dans l'adresse.
+  const lid = user ? { owner: user.id, company: tenant.companyId ?? null, list: "flotte" } : null;
+  type TodoF = "tous" | "urgent" | "avenir" | "retard";
+  const [lc, setLc, lcReady] = useListContext<{ search: string; vehFilter: string; todoFilter: TodoF; todoVehicle: string }>(lid, { search: "", vehFilter: "tous", todoFilter: "tous", todoVehicle: "tous" });
+  const { search, vehFilter, todoFilter, todoVehicle } = lc;
+  const setSearch = (v: string) => setLc({ search: v });
+  const setVehFilter = (v: string) => setLc({ vehFilter: v });
+  const setTodoFilter = (v: TodoF) => setLc({ todoFilter: v });
+  const setTodoVehicle = (v: string) => setLc({ todoVehicle: v });
   const setTab = (t: TabKey) => setParams({ tab: t }, { replace: true });
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -78,7 +88,6 @@ export default function AdminFleet() {
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
 
   const [vehicleDialog, setVehicleDialog] = useState(false);
   const [maintDialog, setMaintDialog] = useState<{ open: boolean; record?: Maintenance | null }>({ open: false });
@@ -86,11 +95,8 @@ export default function AdminFleet() {
   const [inspDialog, setInspDialog] = useState<{ open: boolean; record?: Inspection | null }>({ open: false });
   const [complete, setComplete] = useState<
     { kind: "entretien"; record: Maintenance } | { kind: "reparation"; record: Repair } | null>(null);
-  const [todoFilter, setTodoFilter] = useState<"tous" | "urgent" | "avenir" | "retard">("tous");
-  const [todoVehicle, setTodoVehicle] = useState("tous");
   const [expenseDialog, setExpenseDialog] = useState<{ open: boolean; record?: Expense | null }>({ open: false });
   const [workDialog, setWorkDialog] = useState<{ open: boolean; record?: WorkItem | null }>({ open: false });
-  const [vehFilter, setVehFilter] = useState("tous");
 
   useEffect(() => {
     if (!isReady || roleLoading) return;
@@ -120,6 +126,7 @@ export default function AdminFleet() {
   // Rechargement complet quand le Super Admin change d'entreprise.
   useEffect(() => { if (isAdmin && tenant.companyId) load(); }, [isAdmin, tenant.companyId, load]);
 
+  useListScroll(lid ? { ...lid, list: `flotte-${tab}` } : null, lcReady && !loading);
   const byId = useMemo(() => new Map(vehicles.map((v) => [v.id, v])), [vehicles]);
   const todo = useMemo(() => buildTodo(maint, repairs, inspections), [maint, repairs, inspections]);
   const totals = useMemo(() => costTotals(costs), [costs]);

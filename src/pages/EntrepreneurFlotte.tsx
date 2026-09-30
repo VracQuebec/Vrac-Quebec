@@ -16,6 +16,8 @@ import { ErrorState, LoadingSkeleton } from "@/components/entrepreneur-app/AppSt
 import { Button } from "@/components/ui/button";
 import { VehicleDialog } from "@/components/fleet/FleetDialogs";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useListScroll } from "@/lib/navigation/listContext";
 import { setActiveCompanyId } from "@/lib/fleet/tenant";
 import type { Vehicle } from "@/lib/fleet/api";
 import { adminStatusLabel, categoryLabel, opsStatus, TONE_CLASS } from "@/lib/fleet/v2";
@@ -59,6 +61,9 @@ export default function EntrepreneurFlotte() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  // NAV-01B : défilement de la liste (compte + entreprise), mécanisme commun; pas de recherche/filtre/tri sur cet écran.
+  const { user } = useAuthReady();
+  useListScroll(user && companyId ? { owner: user.id, company: companyId, list: "ma-flotte" } : null, !loading && vehicles.length > 0, open);
 
   const add = () => openFor("nouveau");
 
