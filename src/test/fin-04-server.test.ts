@@ -83,7 +83,7 @@ describe.skipIf(!on)("FIN-04 — serveur", () => {
     expect(a.msg).toBe(""); expect(a.data.count).toBe(1); expect(Number(a.data.confirmed)).toBe(12000);
     const apr = await rpc("fin_preview", { _company: C, _p: { frequency: "once", anchor_date: "2027-03-01", amount: 12000, amount_quality: "confirmed" }, _from: "2027-04-01", _to: "2027-04-30" });
     expect(apr.data.count).toBe(0);
-    const b = await rpc("fin_preview", { _company: C, _p: { frequency: "every_n_days", interval_n: 14, anchor_date: "2026-01-01", amount: 100, amount_quality: "confirmed" }, _from: "2026-01-01", _to: "2026-12-31" });
+    const b = await rpc("fin_preview", { _company: C, _p: { frequency: "daily", interval_n: 14, anchor_date: "2026-01-01", amount: 100, amount_quality: "confirmed" }, _from: "2026-01-01", _to: "2026-12-31" });
     expect(b.msg).toBe(""); expect(b.data.count).toBe(27); expect(Number(b.data.confirmed)).toBe(2700);
   });
 
