@@ -2,6 +2,8 @@
 // Catégorie → sous-catégorie → service : renommer, trier, activer/désactiver, ajouter.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useDraft } from "@/lib/drafts/useDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import FullPageState from "@/components/FullPageState";
@@ -45,11 +47,23 @@ export default function AdminMarketplaceCategories() {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
+  // NAV-01B : modifications non enregistrées par catégorie + ajout en préparation (remplace la question native).
+  // Rien n'est écrit au serveur avant le bouton d'enregistrement de la ligne ou « Ajouter ».
+  const [edits, setEdits] = useState<Record<string, Partial<ServiceCategory>>>({});
+  const [adding, setAdding] = useState<{ parentId: string | null; name: string } | null>(null);
+  const { user: me } = useAuthReady();
+  const catDraft = useDraft({
+    id: me && isAdmin ? { module: "admin", form: "marche-categories", owner: me.id, company: null, recordId: "arbre" } : null,
+    data: { edits, adding }, label: () => "Place de marché — catégories (modifications en cours)", route: "/admin/marche/categories",
+    isEmpty: (d) => !Object.keys(d.edits ?? {}).length && !d.adding?.name?.trim(),
+    onRestore: (d) => { setEdits(d.edits ?? {}); setAdding(d.adding ?? null); },
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setRows(await fetchCategories(false));
+      const fresh = await fetchCategories(false);
+      setRows(fresh);
     } catch (e) {
       toast({ title: "Chargement impossible", description: String((e as Error).message), variant: "destructive" });
     } finally {
@@ -63,24 +77,26 @@ export default function AdminMarketplaceCategories() {
 
   const nodes = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return tree(rows);
+    if (!term) return tree(view);
     const match = (r: ServiceCategory) => r.name.toLowerCase().includes(term);
     const keep = new Set<string>();
-    rows.forEach((r) => {
+    view.forEach((r) => {
       if (match(r)) {
         keep.add(r.id);
         let parent = r.parent_id;
         while (parent) {
           keep.add(parent);
-          parent = rows.find((x) => x.id === parent)?.parent_id ?? null;
+          parent = view.find((x) => x.id === parent)?.parent_id ?? null;
         }
       }
     });
-    return tree(rows.filter((r) => keep.has(r.id)));
-  }, [rows, search]);
+    return tree(view.filter((r) => keep.has(r.id)));
+  }, [view, search]);
 
+  // Les modifications en cours (restaurées ou saisies) s'appliquent par-dessus la version serveur, sans l'écraser.
+  const view = useMemo(() => rows.map((r) => (edits[r.id] ? { ...r, ...edits[r.id] } : r)), [rows, edits]);
   const patch = (id: string, updates: Partial<ServiceCategory>) =>
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...updates } : r)));
+    setEdits((prev) => ({ ...prev, [id]: { ...prev[id], ...updates } }));
 
   const persist = async (row: ServiceCategory) => {
     setSaving(true);
@@ -95,6 +111,8 @@ export default function AdminMarketplaceCategories() {
         is_active: row.is_active,
       } as Partial<ServiceCategory> & { name: string; slug: string });
       toast({ title: "Enregistré" });
+      setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, ...row } : r)));
+      setEdits((prev) => { const n = { ...prev }; delete n[row.id]; if (!Object.keys(n).length && !adding?.name?.trim()) catDraft.finalize(); return n; });
     } catch (e) {
       toast({ title: "Enregistrement impossible", description: String((e as Error).message), variant: "destructive" });
     } finally {
@@ -105,8 +123,8 @@ export default function AdminMarketplaceCategories() {
   const addChild = async (parent: Node | null) => {
     const level = parent === null ? "categorie" : parent.level === "categorie" ? "sous_categorie" : "service";
     const label = level === "categorie" ? "Nouvelle catégorie" : level === "sous_categorie" ? "Nouvelle sous-catégorie" : "Nouveau service";
-    const name = window.prompt(`Nom : ${label}`)?.trim();
-    if (!name) return;
+    if (!adding || adding.parentId !== (parent?.id ?? null) || !adding.name.trim()) { setAdding({ parentId: parent?.id ?? null, name: adding?.parentId === (parent?.id ?? null) ? adding.name : "" }); void label; return; }
+    const name = adding.name.trim();
     const siblings = parent ? parent.children : nodes;
     try {
       await saveCategory({
@@ -117,6 +135,7 @@ export default function AdminMarketplaceCategories() {
         sort_order: (siblings.length + 1) * 10,
         is_active: true,
       } as Partial<ServiceCategory> & { name: string; slug: string });
+      setAdding(null); if (!Object.keys(edits).length) catDraft.finalize();
       await load();
     } catch (e) {
       toast({ title: "Ajout impossible", description: String((e as Error).message), variant: "destructive" });
