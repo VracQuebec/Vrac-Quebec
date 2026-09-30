@@ -393,6 +393,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
     {draftable && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={abandon} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
     {conflict && <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-sm">{conflict}<div className="mt-2"><Button size="sm" variant="outline" onClick={() => { setConflict(null); load(); }}>Recharger l'état actuel</Button></div></div>}
     {ruleChange && <L l="La nouvelle règle s'applique à partir du (inclus)"><Input type="date" value={eff} onChange={(e) => { setEff(e.target.value); up("anchor_date", e.target.value); }} /></L>}
+    <fieldset disabled={draftable && store.blocked} aria-describedby="draft-status" className="contents disabled:opacity-60">
     <div className="grid gap-3 sm:grid-cols-2">
       {!ruleChange && <>
         <L l="Libellé *"><Input value={p.label ?? ""} onChange={(e) => up("label", e.target.value)} /></L>
@@ -447,6 +448,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
       {seasons.map((s, i) => <div key={i} className="flex flex-wrap items-center gap-1">Du <Input className="w-24" placeholder="MM-JJ" aria-label="Début de saison" disabled={dis} value={s.from} onChange={(e) => up("seasons", seasons.map((x, j) => (j === i ? { ...x, from: e.target.value } : x)))} /> au <Input className="w-24" placeholder="MM-JJ" aria-label="Fin de saison" disabled={dis} value={s.to} onChange={(e) => up("seasons", seasons.map((x, j) => (j === i ? { ...x, to: e.target.value } : x)))} /><Button type="button" size="sm" variant="ghost" disabled={dis} onClick={() => up("seasons", seasons.filter((_, j) => j !== i))}>Retirer</Button></div>)}
       <Button type="button" size="sm" variant="outline" disabled={dis} onClick={() => up("seasons", [...seasons, { from: "11-01", to: "04-30" }])}>Ajouter une saison</Button>
     </div>}
+    </fieldset>
     {locked && <p className="text-xs text-muted-foreground">Montant et règle de récurrence d'une série active : utilisez « Changer la règle à partir d'une date » ou « Suspendre » depuis une échéance, pour conserver l'historique.</p>}
 
     {!locked && (pv || pvErr) && <section aria-label="Aperçu" className="space-y-1 rounded-md border border-primary/40 bg-primary/5 p-2 text-sm">
