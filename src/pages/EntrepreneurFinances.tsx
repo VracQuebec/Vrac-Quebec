@@ -20,7 +20,6 @@ import { PERIOD_LABELS, QUALITY_LABEL, addDays, addMonths, daysInMonth, fmtDate,
 import { COLLISION_LABEL, DAYS, FEB29_LABEL, FREQ_FILTERS, PRESETS, RENEWAL_LABEL, SHIFT_LABEL, freqLabel, policies, presetRule, sentence, toPreset, type Preset } from "@/lib/finances/recurrence";
 import * as st from "@/lib/finances/settlement";
 import { PaymentDetail, PaymentDialog, type PayTarget } from "@/components/finances/Settlements";
-import { useAuthReady } from "@/hooks/useAuthReady";
 import { useListContext, useListScroll } from "@/lib/navigation/listContext";
 import FinanceSearch from "@/components/finances/FinanceSearch";
 import Averages from "@/components/finances/Averages";
