@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useDraft } from "@/lib/drafts/useDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import * as st from "@/lib/finances/settlement";
 import { addDays, fmtDate, fmtMoney, todayIn } from "@/lib/finances/period";
 
@@ -19,7 +22,7 @@ export type PayTarget = { id: string; label: string; due_date: string; balance: 
 /** Enregistrer un règlement : une ou plusieurs échéances du même bénéficiaire. */
 export function PaymentDialog({ companyId, companyName, targets, onClose, onDone }: { companyId: string; companyName: string; targets: PayTarget[]; onClose: () => void; onDone: () => void }) {
   const payeeKey = targets[0]?.payee_key ?? "";
-  const [idem] = useState(() => crypto.randomUUID());
+  const [idem, setIdem] = useState(() => crypto.randomUUID());
   const [open, setOpen] = useState<Awaited<ReturnType<typeof st.openForPayee>> | null>(null);
   const [pick, setPick] = useState<Record<string, string>>(() => Object.fromEntries(targets.map((t) => [t.id, String(t.balance ?? "")])));
   const [amount, setAmount] = useState(() => String(r2(targets.reduce((s, t) => s + Number(t.balance ?? 0), 0))));
@@ -33,6 +36,19 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
   const [conflict, setConflict] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const future = date > todayIn(TZ);
+  // NAV-01B : préparation d'un règlement = brouillon (compte + entreprise + échéances visées). Le brouillon ne
+  // déclenche AUCUN règlement; la clé d'idempotence est conservée : un réessai retrouve le même règlement.
+  const { user: me } = useAuthReady();
+  const tkey = useMemo(() => targets.map((t) => t.id).sort().join(",").slice(0, 180), [targets]);
+  const [fileNames, setFileNames] = useState<string[]>([]);
+  const store = useDraft({
+    id: me ? { module: "finances", form: "reglement", owner: me.id, company: companyId, instance: tkey } : null,
+    data: { pick, amount, date, method, more, src, ref, note, idem, fileNames: files.length ? files.map((f) => f.name) : fileNames },
+    label: () => `Règlement à ${targets[0]?.payee ?? "bénéficiaire non précisé"} (${targets.length} échéance${targets.length > 1 ? "s" : ""})`,
+    route: `/entrepreneur/finances?company=${companyId}&tab=apayer&brouillon=reglement&cibles=${encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(targets)))))}`,
+    isEmpty: (d) => !d.method && !d.src && !d.ref && !d.note && d.date === todayIn(TZ) && d.amount === String(r2(targets.reduce((s, t) => s + Number(t.balance ?? 0), 0))) && JSON.stringify(d.pick) === JSON.stringify(Object.fromEntries(targets.map((t) => [t.id, String(t.balance ?? "")]))),
+    onRestore: (d) => { setPick(d.pick); setAmount(d.amount); setDate(d.date); setMethod(d.method); setMore(d.more); setSrc(d.src); setRef(d.ref); setNote(d.note); if (d.idem) setIdem(d.idem); setFileNames(d.fileNames ?? []); void loadOpen(); },
+  });
   const loadOpen = () => st.openForPayee(companyId, payeeKey).then((l) => {
     setOpen(l);
     setPick((p) => Object.fromEntries(Object.entries(p).filter(([id]) => l.some((o) => o.id === id)).map(([id, v]) => [id, String(Math.min(Number(v || 0), l.find((o) => o.id === id)!.balance))])));
@@ -60,6 +76,7 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
       let missing = 0;
       for (const f of files) { try { await st.attachFile(companyId, r.payment_id!, f); } catch (e: any) { missing++; toast({ title: `Pièce « ${f.name} » non jointe`, description: e.message, variant: "destructive" }); } }
       toast({ title: future ? "Brouillon enregistré (sans effet sur les soldes)" : r.replayed ? "Règlement déjà enregistré (aucun doublon créé)" : "Règlement déclaré — non rapproché", description: !files.length || missing ? "Aucune pièce justificative jointe pour l'instant." : undefined });
+      store.finalize();
       onDone();
     } catch (e: any) { if (isConflict(e.message)) setConflict(e.message); else toast({ title: "Non enregistré", description: e.message, variant: "destructive" }); }
     finally { setBusy(false); }
@@ -69,7 +86,9 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
     <DialogHeader><DialogTitle>Enregistrer un règlement</DialogTitle></DialogHeader>
     <p className="text-sm">Entreprise : <strong>{companyName}</strong> · Bénéficiaire : <strong>{targets[0]?.payee ?? "non précisé"}</strong></p>
     <p className="rounded-md bg-secondary p-2 text-xs">Déclaration d'un versement déjà effectué hors plateforme. Rien n'est envoyé et aucune banque n'est consultée.</p>
+    <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={store.discard} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />
     {conflict && <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-sm">{conflict}<div className="mt-2"><Button size="sm" variant="outline" onClick={() => { setConflict(null); void loadOpen(); }}>Recharger les soldes actuels</Button></div></div>}
+    <fieldset disabled={store.blocked} className="contents">
     <div className="grid gap-2 sm:grid-cols-2">
       <label className="text-sm"><span className="mb-1 block text-xs text-muted-foreground">Montant versé (CAD) *</span><Input aria-label="Montant versé" type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
       <label className="text-sm"><span className="mb-1 block text-xs text-muted-foreground">Date du versement effectué *</span><Input aria-label="Date du versement" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
@@ -91,6 +110,8 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
       <Textarea className="sm:col-span-2" placeholder="Note interne" value={note} onChange={(e) => setNote(e.target.value)} />
     </div>}
     <label className="flex cursor-pointer flex-wrap items-center gap-2 text-sm"><Paperclip className="h-4 w-4" /><span>Pièces justificatives (facultatif)</span><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" className="min-w-0 max-w-full text-xs" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} /></label>
+    </fieldset>
+    {!files.length && fileNames.length > 0 && <p className="text-xs text-amber-700" data-testid="pieces-a-rejoindre">Pièces choisies avant l'interruption, à joindre de nouveau (un fichier n'est jamais gardé dans un brouillon) : {fileNames.join(", ")}</p>}
     {!files.length && <p className="text-xs text-muted-foreground">Aucune pièce : le règlement sera marqué « pièce manquante ». Vous pourrez l'ajouter plus tard.</p>}
     {(sum || sumErr) && <section aria-label="Résumé" className="space-y-1 rounded-md border border-primary/40 bg-primary/5 p-2 text-sm">
       <p className="font-display font-bold">Résumé avant validation</p>

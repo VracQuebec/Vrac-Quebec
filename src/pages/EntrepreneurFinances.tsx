@@ -112,6 +112,10 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
     if (canWrite && q.get("brouillon") === "obligation") {
       setForm({ id: null, instance: q.get("instance") || undefined }); q.delete("brouillon"); q.delete("instance");
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
+    } else if (canWrite && q.get("brouillon") === "reglement" && q.get("cibles")) {
+      try { const t = JSON.parse(decodeURIComponent(escape(atob(q.get("cibles")!)))); if (Array.isArray(t) && t.length) setPay(t); } catch { /* adresse invalide : rien n'est ouvert */ }
+      q.delete("brouillon"); q.delete("cibles");
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
     } else if (canWrite && q.get("brouillon") === "obligation-modif" && q.get("obligation")) {
       setForm({ id: q.get("obligation") }); q.delete("brouillon"); q.delete("obligation");
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
