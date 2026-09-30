@@ -1,6 +1,8 @@
 // FIN-01 — Finances : obligations à payer et calendrier.
 // Une obligation prévoit un montant ; ce n'est pas un paiement bancaire.
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDraft } from "@/lib/drafts/useDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { useSearchParams } from "react-router-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, LifeBuoy, List, Plus, SlidersHorizontal } from "lucide-react";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
@@ -286,8 +288,9 @@ const L = ({ l, children, className = "" }: { l: string; children: React.ReactNo
 const RULE_KEYS = ["frequency", "interval_n", "weekdays", "month_day", "month_day2", "collision_policy", "feb29_policy", "short_month_policy", "seasons", "planned_shift", "schedule", "anchor_date", "end_date", "max_count", "amount", "amount_quality", "first_planned_date"];
 
 /** Formulaire d'obligation (création, brouillon, modification) ou changement de règle d'une série active à partir d'une date. */
+const DEFAULT_OBLIGATION = { frequency: "once", interval_n: 1, amount_quality: "confirmed", nature: "charge", planned_shift: "none", short_month_policy: "last_day", seasons: [] };
 function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, onClose, onSaved }: { companyId: string; companyName: string; id: string | null; init?: any; cats: { id: string; name: string }[]; ruleChange?: { effective: string }; onClose: () => void; onSaved: () => void }) {
-  const [p, setP] = useState<any>(init ?? { frequency: "once", interval_n: 1, amount_quality: "confirmed", nature: "charge", planned_shift: "none", short_month_policy: "last_day", seasons: [] });
+  const [p, setP] = useState<any>(init ?? DEFAULT_OBLIGATION);
   const [preset, setPreset] = useState<Preset>(toPreset(p.frequency, p.interval_n));
   const [unit, setUnit] = useState<"days" | "weeks" | "months">("days");
   const [status, setStatus] = useState<string>(init ? "draft" : "active");
@@ -302,6 +305,17 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
   const [seasonSmp, setSeasonSmp] = useState<{ start: string; end: string; dates: string[] }[]>([]);
   const [period, setPeriod] = useState<{ from: string; to: string } | null>(null);
   const [impact, setImpact] = useState<Awaited<ReturnType<typeof api.changeRule>> | null>(null);
+  // NAV-01 : brouillon d'une NOUVELLE obligation (compte + entreprise). Fermer la fenêtre le garde;
+  // seul « Abandonner le brouillon » l'efface. Un brouillon ne crée aucune échéance ni paiement.
+  const { user: me } = useAuthReady();
+  const draftable = !id && !ruleChange && !init;
+  const store = useDraft({
+    id: draftable && me ? { module: "finances", form: "obligation", owner: me.id, company: companyId } : null,
+    data: { p, preset, unit, adv },
+    isEmpty: (d) => !d.p.label && (d.p.amount == null || d.p.amount === "") && !d.p.anchor_date && !d.p.payee_label && !d.p.notes,
+    onRestore: (d) => { setP(d.p); setPreset(d.preset); setUnit(d.unit); setAdv(d.adv); },
+  });
+  const abandon = () => { store.discard(); setP(DEFAULT_OBLIGATION); setPreset(toPreset("once", 1)); setUnit("days"); setAdv(false); };
   const load = useCallback(() => {
     if (!id) return;
     api.obligation(id).then(async (o) => {
@@ -353,6 +367,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
       const body = { ...p, amount: p.amount_quality === "unknown" ? null : Number(p.amount), status: status === "draft" && !init ? "active" : status === "draft" ? "draft" : "active" };
       if (id && status === "draft") body.status = "active";
       await api.saveObligation(companyId, id, body);
+      if (draftable) store.finalize();
       toast({ title: id ? "Obligation modifiée" : "Obligation enregistrée" }); onSaved();
     } catch (e: any) { fail(e); } finally { setBusy(false); }
   };
@@ -365,6 +380,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
     <DialogHeader><DialogTitle>{ruleChange ? "Changer la règle à partir d'une date" : id ? "Modifier l'obligation" : init ? "Dupliquer (nouvelle date requise)" : "Ajouter une obligation"}</DialogTitle></DialogHeader>
     <p className="text-sm">Entreprise : <strong>{companyName}</strong></p>
+    {draftable && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={abandon} />}
     {conflict && <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-sm">{conflict}<div className="mt-2"><Button size="sm" variant="outline" onClick={() => { setConflict(null); load(); }}>Recharger l'état actuel</Button></div></div>}
     {ruleChange && <L l="La nouvelle règle s'applique à partir du (inclus)"><Input type="date" value={eff} onChange={(e) => { setEff(e.target.value); up("anchor_date", e.target.value); }} /></L>}
     <div className="grid gap-3 sm:grid-cols-2">
