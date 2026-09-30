@@ -208,6 +208,7 @@ export default function AchatVrac() {
         </header>
 
         <Progress step={step} />
+        <div className="mt-3"><DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={startOver} scope="ce navigateur" /></div>
 
         <section className="mt-8 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">
           <div className="mb-8 space-y-4">
