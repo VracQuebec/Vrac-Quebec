@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -9,6 +9,7 @@ export type AppRole = "admin" | "entrepreneur" | "proprietaire" | "transporteur"
 export const useUserRoles = (authUser?: User | null, authReady?: boolean) => {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const loadedFor = useRef<string | null>(null);
 
   // NAV-01 : une erreur réseau ou serveur sur la lecture des rôles n'est PAS
   // une absence de rôle. On réessaie, puis on reprend les derniers rôles connus
@@ -20,12 +21,14 @@ export const useUserRoles = (authUser?: User | null, authReady?: boolean) => {
       return;
     }
     const cacheKey = `vq.roles.${user.id}`;
-    setLoading(true);
+    // Même compte déjà chargé : on rafraîchit en arrière-plan sans repasser en « chargement ».
+    if (loadedFor.current !== user.id) setLoading(true);
     for (let attempt = 0; attempt < 3; attempt++) {
       const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
       if (!error) {
         const next = (data || []).map((r) => r.role as AppRole);
         try { sessionStorage.setItem(cacheKey, JSON.stringify(next)); } catch { /* stockage indisponible */ }
+        loadedFor.current = user.id;
         setRoles(next);
         setLoading(false);
         return;
