@@ -78,12 +78,12 @@ export default function AdminMarketplaceRequests() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [nouvelleNote, setNouvelleNote] = useState("");
   const { user: me } = useAuthReady();
+  useEffect(() => { setNouvelleNote(""); }, [selected]);
   const noteDraft = useDraft({
     id: me && selected ? { module: "admin", form: "marche-note-interne", owner: me.id, company: null, recordId: selected } : null,
     data: { note: nouvelleNote }, label: () => "Place de marché — note interne", route: `/admin/marche/soumissions?demande=${selected ?? ""}`,
     isEmpty: (d) => !d.note?.trim(), onRestore: (d) => setNouvelleNote(d.note ?? ""),
   });
-  useEffect(() => { setNouvelleNote(""); }, [selected]);
 
   const charger = useCallback(async () => {
     setLoading(true);
