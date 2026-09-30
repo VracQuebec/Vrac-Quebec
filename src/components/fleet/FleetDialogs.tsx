@@ -567,10 +567,18 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
   const [signature, setSignature] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
+  const insp = { vehicle, driver, date, km, hours, checks, comment, signature };
+  const dd = useDialogDraft({ open, module: "flotte", form: "inspection", company: getActiveCompanyId(), recordId: record?.id ?? null,
+    data: insp, setData: (d: typeof insp) => { setVehicle(d.vehicle); setDriver(d.driver); setDate(d.date); setKm(d.km); setHours(d.hours); setChecks(d.checks ?? {}); setComment(d.comment); setSignature(d.signature); },
+    label: (d: typeof insp) => `Flotte — Inspection du ${d.date}`, route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined,
+    fileNames: photos.map((p) => p.name) });
 
   useEffect(() => {
     if (!open) return;
     setPhotos([]);
+    dd.base({ vehicle: record?.vehicle_id ?? vehicleId ?? vehicles[0]?.id ?? "", driver: record?.driver_id ?? "none", date: record?.inspected_on ?? today,
+      km: record?.odometer_km != null ? String(record.odometer_km) : "", hours: record?.engine_hours != null ? String(record.engine_hours) : "",
+      checks: (record?.checks as Record<string, CheckValue>) ?? {}, comment: record?.comment ?? "", signature: record?.signature ?? "" });
     setVehicle(record?.vehicle_id ?? vehicleId ?? vehicles[0]?.id ?? "");
     setDriver(record?.driver_id ?? "none");
     setDate(record?.inspected_on ?? today);
@@ -582,6 +590,7 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
   }, [open, record, vehicleId, vehicles, today]);
 
   const save = async () => {
+    if (busy) return;
     if (!vehicle) { toast({ title: "Choisissez un véhicule", variant: "destructive" }); return; }
     setBusy(true);
     try {
@@ -613,7 +622,7 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
           ? `${problems} problème(s) transformé(s) en réparation à planifier.`
           : undefined,
       });
-      onOpenChange(false); onSaved();
+      dd.finalize(); onOpenChange(false); onSaved();
     } catch (e) {
       toast({ title: "Enregistrement impossible", description: (e as Error).message, variant: "destructive" });
     } finally { setBusy(false); }
@@ -633,6 +642,8 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{record ? "Modifier l'inspection" : "Inspection quotidienne"}</DialogTitle></DialogHeader>
+        {dd.active && <DraftStatusBar {...dd.barProps} onDiscard={() => { dd.discard(); onOpenChange(false); }} discardConfirm="Abandonner cette préparation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." />}
+        {dd.lostFiles.length > 0 && <p role="status" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Photos non enregistrées — à joindre de nouveau : {dd.lostFiles.join(", ")}</p>}
         <div className="space-y-3">
           <Field label="Véhicule *">
             <Select value={vehicle} onValueChange={setVehicle}>
