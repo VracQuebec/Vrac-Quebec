@@ -63,7 +63,7 @@ export default function AchatVrac() {
       // Camion choisi dans le calculateur : évite une seconde saisie.
       truckId: truck || saved.truckId,
     });
-    setStep(1);
+    if (!searchParams.get("etape")) setStep(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => { saveVracDraft(draft); }, [draft]);
