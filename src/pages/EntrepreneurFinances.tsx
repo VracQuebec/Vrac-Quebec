@@ -17,10 +17,12 @@ const sb = _sb as any;
 import { PERIOD_LABELS, QUALITY_LABEL, addDays, addMonths, daysInMonth, fmtDate, fmtMoney, parse, periodBounds, todayIn, ymd, type Occ, type PeriodKind } from "@/lib/finances/period";
 import { COLLISION_LABEL, DAYS, FEB29_LABEL, FREQ_FILTERS, PRESETS, RENEWAL_LABEL, SHIFT_LABEL, freqLabel, policies, presetRule, sentence, toPreset, type Preset } from "@/lib/finances/recurrence";
 import * as st from "@/lib/finances/settlement";
-import { PaymentDetail, PaymentDialog, PaymentsTab, type PayTarget } from "@/components/finances/Settlements";
+import { PaymentDetail, PaymentDialog, type PayTarget } from "@/components/finances/Settlements";
+import FinanceSearch from "@/components/finances/FinanceSearch";
+import Averages from "@/components/finances/Averages";
 
-type Tab = "apercu" | "calendrier" | "apayer" | "reglements" | "parametres";
-const TABS: { v: Tab; l: string }[] = [{ v: "apercu", l: "Vue d'ensemble" }, { v: "calendrier", l: "Calendrier" }, { v: "apayer", l: "À payer" }, { v: "reglements", l: "Règlements" }, { v: "parametres", l: "Paramètres" }];
+type Tab = "apercu" | "calendrier" | "apayer" | "reglements" | "moyennes" | "parametres";
+const TABS: { v: Tab; l: string }[] = [{ v: "apercu", l: "Vue d'ensemble" }, { v: "calendrier", l: "Calendrier" }, { v: "apayer", l: "À payer" }, { v: "reglements", l: "Règlements" }, { v: "moyennes", l: "Moyennes et équivalents" }, { v: "parametres", l: "Paramètres" }];
 const monthFr = (ym: string) => new Date(`${ym}-01T12:00:00Z`).toLocaleDateString("fr-CA", { timeZone: "UTC", month: "long", year: "numeric" });
 const SettleBadge = ({ o }: { o: Occ }) => o.settle ? <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold ${st.SETTLE_TONE[o.settle] ?? ""}`}>{st.SETTLE_LABEL[o.settle]}{o.late ? " · en retard" : ""}</span> : null;
 /** Fréquence de la version qui a produit l'échéance (jamais réécrite par une règle ultérieure). */
@@ -107,8 +109,9 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
   return <>
     {tab === "apercu" && <Overview companyId={companyId} rev={rev} add={add} onOpen={setOcc} />}
     {tab === "calendrier" && <Browse companyId={companyId} rev={rev} cats={cats} mode="calendar" add={add} onOpen={setOcc} />}
-    {tab === "apayer" && <Browse companyId={companyId} rev={rev} cats={cats} mode="table" add={add} onOpen={setOcc} onPayMany={onPayMany} />}
-    {tab === "reglements" && <PaymentsTab companyId={companyId} rev={rev} canWrite={canWrite} canCorrect={canCorrect} onChanged={refresh} />}
+    {tab === "apayer" && <FinanceSearch key="occ" companyId={companyId} companyName={companyName} ctx="occ" rev={rev} canWrite={canWrite} canCorrect={canCorrect} add={add} onPayMany={onPayMany} onOpenPayment={setPayOpen} renderOcc={(o, pick) => <OccRow o={o} onOpen={setOcc} pick={pick} />} />}
+    {tab === "reglements" && <FinanceSearch key="pay" companyId={companyId} companyName={companyName} ctx="pay" rev={rev} canWrite={canWrite} canCorrect={canCorrect} onOpenPayment={setPayOpen} renderOcc={(o) => <OccRow o={o} onOpen={setOcc} />} />}
+    {tab === "moyennes" && <Averages companyId={companyId} cats={cats.filter((c) => !c.archived_at)} />}
     {tab === "parametres" && <Settings companyId={companyId} cats={cats} canWrite={canWrite} onChange={refresh} />}
     {form && <ObligationForm companyId={companyId} companyName={companyName} id={form.id} init={form.init} ruleChange={form.ruleChange} cats={cats.filter((c) => !c.archived_at)} onClose={() => setForm(null)} onSaved={() => { setForm(null); refresh(); }} />}
     {occ && <OccurrenceDialog occ={occ} canWrite={canWrite} onClose={() => setOcc(null)} onChanged={refresh}

@@ -505,6 +505,13 @@
       "when": 1790716717095,
       "tag": "0071_fin03_reglements_soldes",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1790728117021,
+      "tag": "0072_fin04_recherche_vues",
+      "breakpoints": true
     }
   ]
 }
