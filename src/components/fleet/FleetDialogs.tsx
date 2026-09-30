@@ -678,7 +678,7 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
                   {(["ok", "surveiller", "probleme"] as CheckValue[]).map((v) => (
                     <button
                       key={v}
-                      type="button"
+                      type="button" aria-pressed={checks[p.key] === v}
                       onClick={() => setChecks({ ...checks, [p.key]: v })}
                       className={`px-3 py-2 rounded-lg text-xs font-display font-semibold min-w-[64px] ${tone(v, checks[p.key] === v)}`}
                     >
