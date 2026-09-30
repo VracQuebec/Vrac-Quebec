@@ -88,6 +88,7 @@ function ServiceDialog({ initial, companyId, canCost, mats, onClose, onSaved }: 
   });
   const save = async () => { if (busy.current) return; busy.current = true; try {
     const price = open.price === "" || open.price == null ? null : Number(open.price);
+    if (price != null && (!Number.isFinite(price) || price < 0)) return toast({ title: "Prix invalide", description: "Saisissez un montant positif, ou laissez vide (À renseigner).", variant: "destructive" });
     if (price === 0 && !open.price_zero_confirmed) return toast({ title: "Prix à zéro", description: "Cochez « Zéro volontaire » ou laissez le prix vide (À renseigner)." });
     const row = { company_id: companyId, label: open.label, description: open.description || null, trades: open.trades ?? [], unit: open.unit ?? "heure", price, price_zero_confirmed: price === 0, inclusions: open.inclusions || null, exclusions: open.exclusions || null, valid_until: open.valid_until || null, material_id: open.material_id || null, equipment_ref: open.equipment_ref || null, private_notes: open.private_notes || null, is_demo: !!open.is_demo, updated_at: new Date().toISOString() };
     if (!row.label) return toast({ title: "Libellé requis" });
