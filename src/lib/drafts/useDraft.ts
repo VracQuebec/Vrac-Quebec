@@ -91,5 +91,5 @@ export function useDraft<T>(opts: {
     meta.current = null; lastWritten.current = ""; setRestoredMeta(null); setSavedAt(null); setStatus("idle");
   }, [key]);
 
-  return { status, savedAt, restoredMeta, flush, finalize, discard };
+  return { status, savedAt, restoredMeta, ready, flush, finalize, discard };
 }
