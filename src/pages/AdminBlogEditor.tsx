@@ -381,7 +381,7 @@ export default function AdminBlogEditor() {
             <h1 className="font-display font-extrabold text-base sm:text-lg text-foreground truncate">
               {isNew ? "Nouvel article" : title || "Sans titre"}
             </h1>
-            {isNew && !postId && user && <div className="hidden md:block"><DraftStatusBar status={draft.status} savedAt={draft.savedAt} restored={!!draft.restoredMeta} onDiscard={() => { draft.discard(); window.location.reload(); }} discardConfirm="Abandonner ce nouvel article non enregistré ? Les saisies seront effacées." sync={draft.sync} synced={draft.synced} conflict={draft.conflict} onUseServer={draft.useServerVersion} onKeepLocal={draft.keepLocalVersion} onRestartAsNew={draft.restartAsNew} restartError={draft.restartError} onRetry={draft.retrySave} /></div>}
+            {isNew && !postId && user && <div className="min-w-0"><DraftStatusBar status={draft.status} savedAt={draft.savedAt} restored={!!draft.restoredMeta} onDiscard={() => { draft.discard(); window.location.reload(); }} discardConfirm="Abandonner ce nouvel article non enregistré ? Les saisies seront effacées." sync={draft.sync} synced={draft.synced} conflict={draft.conflict} onUseServer={draft.useServerVersion} onKeepLocal={draft.keepLocalVersion} onRestartAsNew={draft.restartAsNew} restartError={draft.restartError} onRetry={draft.retrySave} /></div>}
             {savedAt && <span className="hidden sm:inline text-[11px] text-muted-foreground">Enregistré {savedAt.toLocaleTimeString("fr-CA")}</span>}
           </div>
           <div className="flex items-center gap-2">
