@@ -526,6 +526,20 @@
       "when": 1790770274494,
       "tag": "0074_nav01_user_drafts",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1790802597365,
+      "tag": "0075_fin05_tresorerie",
+      "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1790802627641,
+      "tag": "0076_fin05_same_company_fix",
+      "breakpoints": true
     }
   ]
 }

@@ -5,9 +5,4 @@
 - Centre de contrôle (/admin/centre-controle) : prise en charge, rappels, notes et résolutions vivent dans `request_followups` (+ `request_followup_events`, journal figé par trigger), jamais sur les demandes — les demandes historiques restent intactes.
 - Rappels automatiques du Centre de contrôle : `request_followups_sweep()` s'exécute dans la tâche existante `crm-notifications-sweep` (10 min), délais dans `crm_notification_settings.delays.cc_*` — pas de nouvelle tâche planifiée.
 - Adresses de test réservées (@*.invalid, .test, .example, example.com) : jamais d'envoi de courriel (garde dans send-transactional-email et process-email-queue) ni d'envoi téléphone (trigger sur crm_notifications).
-- Finances : écritures via RPC fin_* SECURITY DEFINER ; un seul moteur fin_gen_dates (aperçu/calendrier/totaux), unicité (obligation, occ_key, suffixe @gN après changement de règle) ; conflit rev = ERRCODE P0409 (jamais 40001) — sans doublon ni boucle API.
-- FIN-04 : recherche Finances = contrat unique (lib/finances/query.ts → fin_select / fin_pay_select) pour écran, totaux et CSV; vues dans fin_saved_views (RLS fin_can_*) — aucune divergence entre écran et export.
-- Brouillons de formulaires : toujours via src/lib/drafts (useDraft + DraftStatusBar), étape d'assistant dans ?etape= — une seule mécanique, reprise après Retour/rechargement.
-
-- Brouillons des comptes connectés : synchronisés dans public.user_drafts via RPC draft_* (version contrôlée, refus après clôture) — reprise entre appareils sans écrasement silencieux.
-- Brouillon clos ailleurs : la saisie continue en copie de récupération locale, et la reprise crée un NOUVEL identifiant (instance r-…, alias local + ?instance= dans l'adresse) — un identifiant clos n'est jamais rouvert.
+- Règles Finances : src/lib/finances/AGENTS.md ; brouillons : src/lib/drafts/AGENTS.md.
