@@ -70,7 +70,7 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
   const { toast } = useToast();
   const [f, setF] = useState<Record<string, string>>({});
   const dd = useDialogDraft({ open: open, module: "flotte", form: "vehicule", company: getActiveCompanyId(), recordId: vehicle?.id ?? null,
-    data: f, setData: setF, label: (d) => `Flotte — Véhicule${d.name ? ` « ${String(d.name).slice(0, 40)} »` : ""}`,
+    data: f, setData: setF, label: (d: Record<string, string>) => `Flotte — Véhicule${d.name ? ` « ${String(d.name).slice(0, 40)} »` : ""}`,
     route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined, fileNames: [] });
   const [section, setSection] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -288,7 +288,7 @@ export function MaintenanceDialog({ open, onOpenChange, vehicles, vehicleId, rec
   const [f, setF] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<File[]>([]);
   const dd = useDialogDraft({ open: open, module: "flotte", form: "entretien", company: getActiveCompanyId(), recordId: record?.id ?? null,
-    data: f, setData: setF, label: (d) => `Flotte — Entretien${d.maintenance_type ? ` « ${String(d.maintenance_type).slice(0, 40)} »` : ""}`,
+    data: f, setData: setF, label: (d: Record<string, string>) => `Flotte — Entretien${d.maintenance_type ? ` « ${String(d.maintenance_type).slice(0, 40)} »` : ""}`,
     route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined, fileNames: photos.map((p) => p.name) });
   const [busy, setBusy] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
@@ -424,7 +424,7 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
   const [f, setF] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<File[]>([]);
   const dd = useDialogDraft({ open: open, module: "flotte", form: "reparation", company: getActiveCompanyId(), recordId: record?.id ?? null,
-    data: f, setData: setF, label: (d) => `Flotte — Réparation${d.title ? ` « ${String(d.title).slice(0, 40)} »` : ""}`,
+    data: f, setData: setF, label: (d: Record<string, string>) => `Flotte — Réparation${d.title ? ` « ${String(d.title).slice(0, 40)} »` : ""}`,
     route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined, fileNames: photos.map((p) => p.name) });
   const [busy, setBusy] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
