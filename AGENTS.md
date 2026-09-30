@@ -7,3 +7,4 @@
 - Adresses de test réservées (@*.invalid, .test, .example, example.com) : jamais d'envoi de courriel (garde dans send-transactional-email et process-email-queue) ni d'envoi téléphone (trigger sur crm_notifications).
 - Finances : écritures via RPC fin_* SECURITY DEFINER ; un seul moteur fin_gen_dates (aperçu/calendrier/totaux), unicité (obligation, occ_key, suffixe @gN après changement de règle) ; conflit rev = ERRCODE P0409 (jamais 40001) — sans doublon ni boucle API.
 - FIN-04 : recherche Finances = contrat unique (lib/finances/query.ts → fin_select / fin_pay_select) pour écran, totaux et CSV; vues dans fin_saved_views (RLS fin_can_*) — aucune divergence entre écran et export.
+- Brouillons de formulaires : toujours via src/lib/drafts (useDraft + DraftStatusBar), étape d'assistant dans ?etape= — une seule mécanique, reprise après Retour/rechargement.

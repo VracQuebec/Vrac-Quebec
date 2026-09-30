@@ -61,3 +61,11 @@
 - [ ] Bloqué : prix réel d'Entrepreneur Pro (à définir par Vrac Québec).
 - [ ] Bloqué : compte de paiement réel non connecté (Stripe à réclamer et activer).
 - [ ] Bloqué : publication — autorisation explicite requise.
+
+## NAV-01 — navigation fiable et brouillons
+- [x] Connexion : renouvellement silencieux sans démontage; rôles conservés en cas d'erreur réseau
+- [x] Brouillons locaux communs (draftStore / useDraft / DraftStatusBar)
+- [x] /soumission, /obtenir-des-soumissions, /acheter-materiaux : étape dans l'historique + reprise vérifiées au navigateur
+- [x] Lien de notification admin sans rechargement complet
+- [ ] Raccorder les formulaires connectés (CRM entrepreneur, flotte, finances, éditeur blog) — essais avec session fictive
+- [ ] Retour après reconnexion vers la page de travail
