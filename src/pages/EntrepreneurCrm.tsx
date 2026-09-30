@@ -137,7 +137,10 @@ function BodyInner(p: any) {
 
 /** Bouton « Pièces » : ouvre les documents privés du dossier. */
 function FilesBtn({ t, id, clientToggle }: { t: "lead" | "client" | "quote" | "project"; id: string; clientToggle?: boolean }) {
-  const c = useContext(CrmCtx); const [o, setO] = useState(false);
+  // Panneau ouvert gardé sur cet appareil : Retour et actualisation le rouvrent au même endroit.
+  const c = useContext(CrmCtx); const k = `vq.crmFilesOpen.${c.companyId}.${t}.${id}`;
+  const [o, setOpen] = useState(() => { try { return sessionStorage.getItem(k) === "1"; } catch { return false; } });
+  const setO = (v: boolean) => { setOpen(v); try { v ? sessionStorage.setItem(k, "1") : sessionStorage.removeItem(k); } catch { /* ignore */ } };
   return <div className="mt-2"><button className="text-xs font-semibold text-primary underline" onClick={() => setO(!o)}>{o ? "Masquer les pièces" : "Photos et documents"}</button>
     {o && <div className="mt-2"><CrmFiles companyId={c.companyId} ownerType={t} ownerId={id} canWrite={c.canWrite} canAdmin={c.canAdmin} showClientToggle={clientToggle} /></div>}</div>;
 }
