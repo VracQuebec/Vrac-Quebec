@@ -133,3 +133,5 @@
 - [ ] Listes Finances et flotte : contexte (recherche, filtres, tri, pagination, position), cartes
 - [x] NAV-01B listes Finances/flotte : contexte commun (lib/navigation/listContext)
 - [x] NAV-01B listes admin + carte CRM : contexte commun (useScreenContext); sélection carte non essayée
+- [x] NAV-01B finale : article existant (copie de secours + conflit par updated_at, statut jamais repris), référencement (5 fiches), territoire, offre de matériau, forfait plateforme ; correctif reprise après abandon (clôture en file)
+- [ ] NAV-01B réserves : session expirée/changement de compte/accès retiré non réessayés ce lot ; CRM admin sans formulaire propre (non applicable) ; fiche appareils réels à faire par l'utilisateur
