@@ -77,3 +77,11 @@
 - [ ] J4 Même entreprise (2 utilisateurs), utilisateur à 2 entreprises, droit retiré
 - [ ] J4 A, B, C, F, notification admin, connexion par l'interface
 - [ ] Fiche d'essai sur téléphone réel
+
+## NAV-01B — suite (30 sept.)
+- [x] Fenêtre d'échéance : préparation (montant, date planifiée, annulation, archivage, suspension, levée) en brouillon par compte+entreprise+échéance; reprise ?brouillon=echeance; dates passées signalées, jamais remplacées
+- [x] Changement de règle : brouillon séparé (obligation-regle), date d'effet conservée
+- [ ] Essais navigateur restants : montant, déplacement, archivage, suspension, changement de règle, reprise depuis le menu
+- [ ] Correction d'un règlement (Settlements), pièces jointes réelles, doubles envois confirmés au serveur
+- [ ] Recherches/filtres/position Finances puis CRM, flotte, articles, administration
+- [ ] Session/droits (lente, renouvellement, coupure, changement de compte, 2 utilisateurs, 2 entreprises, accès retiré); fiche téléphone
