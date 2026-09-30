@@ -1,6 +1,6 @@
 // FIN-01 — Finances : obligations à payer et calendrier.
 // Une obligation prévoit un montant ; ce n'est pas un paiement bancaire.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDraft } from "@/lib/drafts/useDraft";
 import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { useSearchParams } from "react-router-dom";
