@@ -22,7 +22,7 @@ const OCC_SORTS: [string, string][] = [["date_asc", "Échéance la plus ancienne
 const PAY_SORTS: [string, string][] = [["paid_desc", "Versement le plus récent"], ["paid_asc", "Versement le plus ancien"], ["entered_desc", "Saisie la plus récente"], ["amount_desc", "Montant décroissant"], ["amount_asc", "Montant croissant"], ["available_desc", "Reliquat décroissant"], ["payee_asc", "Bénéficiaire (A → Z)"]];
 const stateKey = (c: string, ctx: Ctx) => `vq.fin.search.${c}.${ctx}`;
 
-type Lk = { cats: { id: string; name: string }[]; trucks: { id: string; name: string }[]; projects: { id: string; name: string }[] };
+type Lk = { cats: { id: string; name: string; archived_at?: string | null }[]; trucks: { id: string; name: string }[]; projects: { id: string; name: string }[] };
 
 export default function FinanceSearch({ companyId, companyName, ctx, rev, canWrite, canCorrect, renderOcc, onOpenPayment, onPayMany, add }: {
   companyId: string; companyName: string; ctx: Ctx; rev: number; canWrite: boolean; canCorrect: boolean;
