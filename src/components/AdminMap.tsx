@@ -269,7 +269,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
 
         const selId = mctxRef.current.sel; const selM = selId ? markersRef.current.get(selId) : undefined;
         const selSub = selId ? geoSubs.find((x) => x.id === selId) : undefined;
-        if (selM && selSub && !infoRef.current?.getMap()) { infoRef.current?.setContent(buildPopup(selSub, leadStatuses)); infoRef.current?.open({ anchor: selM, map: mapRef.current!, shouldFocus: false }); }
+        if (selM && selSub && !(infoRef.current as any)?.getMap?.()) { infoRef.current?.setContent(buildPopup(selSub, leadStatuses)); infoRef.current?.open({ anchor: selM, map: mapRef.current!, shouldFocus: false }); }
         if (markersRef.current.size > 0 && !center && !(mapRef.current as any).__restored) {
           mapRef.current!.fitBounds(bounds, 50);
           if (markersRef.current.size === 1) {
