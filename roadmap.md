@@ -93,7 +93,8 @@
 ## NAV-01B — état au 30 sept. 2026
 - [x] CRM : fiche lead (création/modification) raccordée, ?lead= dans l'adresse, recherche clients ?cq= — essayé (Retour, actualisation, menu, double clic = 1 seul lead, 0 notification/courriel)
 - [ ] CRM : fiche client (modification), soumissions, chantiers, tâches, Tarifs et modèles (CrmServices), pièces (CrmFiles); position de défilement
-- [ ] Finances : essais montant, archivage, suspension/levée, changement de règle, tous champs obligation, changement de jour, pièce jointe, Entrée répétée, réessai incertain; règlement fictif avec reliquat (données d'essai à créer)
+- [x] Finances essayés : montant, archivage, suspension, changement de règle, modification d'obligation (7 champs), changement de jour, pièce jointe, Entrée x3, réessai après réponse perdue (déplacement)
+- [ ] Finances : levée de suspension (aucune suspension active), remboursement/affectation (reliquat manquant — accord requis), réessai incertain des autres actions
 - [ ] Flotte : VehicleDialog, FleetDialogs(V2), CompleteDialog, FleetDocuments, FleetManager
 - [ ] Articles : éditeur /admin/blogue/editer/:id (AdminBlogEditor), génération /admin/blogue/generer
 - [ ] Administration : centre de contrôle, marché (transactions, commissions, lots, catégories, jumelage), SEO, territoires, CRM admin, plateforme, offres matériaux
