@@ -108,9 +108,9 @@ export default function Soumission() {
   };
   // Arrivée directe sur une étape impossible : on rejoint une étape valable, brouillon conservé.
   useEffect(() => {
-    if (loadingCatalog || confirmation) return;
+    if (loadingCatalog || confirmation || !draft.ready || pendingMaterialId) return;
     if (step >= 2 && !material) setParams((p) => { const q = new URLSearchParams(p); q.set("etape", categoryId ? "2" : "1"); if (!categoryId) q.delete("etape"); return q; }, { replace: true });
-  }, [step, material, loadingCatalog]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, material, loadingCatalog, draft.ready, pendingMaterialId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Retour sur l'étape Estimation (rechargement, Avance natif) : estimation recalculée, jamais inventée.
   useEffect(() => {

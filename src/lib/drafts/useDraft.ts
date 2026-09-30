@@ -21,6 +21,7 @@ export function useDraft<T>(opts: {
   const [status, setStatus] = useState<DraftStatus>("idle");
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [restoredMeta, setRestoredMeta] = useState<DraftMeta | null>(null);
+  const [ready, setReady] = useState(false); // lecture/restauration terminée
   const armed = useRef(false);      // sauvegarde active seulement après la restauration
   const finalized = useRef(false);  // après finalisation/abandon, aucune écriture tardive
   const meta = useRef<DraftMeta | null>(null);
@@ -54,13 +55,15 @@ export function useDraft<T>(opts: {
       setRestoredMeta(rec.meta); setSavedAt(rec.meta.updatedAt); setStatus("restored");
     }
     // Activation au tour suivant : la restauration a eu le temps d'appliquer ses valeurs.
-    const t = setTimeout(() => { armed.current = true; }, 0);
-    return () => clearTimeout(t);
+    const t = setTimeout(() => { armed.current = true; setReady(true); }, 0);
+    return () => { clearTimeout(t); setReady(false); };
   }, [key]);
 
   const serialized = JSON.stringify(data);
   useEffect(() => {
     if (!armed.current || finalized.current || serialized === lastWritten.current) return;
+    // Formulaire vide sans brouillon existant (visite vierge, après abandon) : rien à signaler.
+    if (!meta.current && cb.current.isEmpty(data)) { if (timer.current) clearTimeout(timer.current); firstPending.current = null; setStatus("idle"); return; }
     setStatus("dirty");
     if (firstPending.current == null) firstPending.current = Date.now();
     const wait = Math.max(0, Math.min(PAUSE_MS, MAX_MS - (Date.now() - firstPending.current)));
@@ -88,5 +91,5 @@ export function useDraft<T>(opts: {
     meta.current = null; lastWritten.current = ""; setRestoredMeta(null); setSavedAt(null); setStatus("idle");
   }, [key]);
 
-  return { status, savedAt, restoredMeta, flush, finalize, discard };
+  return { status, savedAt, restoredMeta, ready, flush, finalize, discard };
 }

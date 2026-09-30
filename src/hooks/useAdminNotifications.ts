@@ -35,7 +35,13 @@ export function useAdminNotifications() {
           const opts = {
             description: n.body ?? undefined,
             action: n.link
-              ? { label: "Ouvrir", onClick: () => { window.location.href = n.link!; } }
+              ? { label: "Ouvrir", onClick: () => {
+                  // NAV-01 : lien interne sans rechargement complet — saisies et session conservées.
+                  if (n.link!.startsWith("/") && !n.link!.startsWith("//")) {
+                    window.history.pushState({}, "", n.link!);
+                    window.dispatchEvent(new PopStateEvent("popstate"));
+                  } else window.location.href = n.link!;
+                } }
               : undefined,
           };
           switch (n.level) {

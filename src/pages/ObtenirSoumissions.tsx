@@ -6,7 +6,9 @@
 // ============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useDraft } from "@/lib/drafts/useDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +38,14 @@ interface Contact {
 const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mkt-request-submit`;
 
 export default function ObtenirSoumissions() {
-  const [step, setStep] = useState(0);
+  // NAV-01 : étape dans l'historique (?etape=) — Retour/Avance natifs et rechargement gardent la place.
+  const [params, setParams] = useSearchParams();
+  const step = Math.min(Math.max(Number(params.get("etape") || 1) - 1, 0), STEPS.length - 1);
+  const setStep = (v: number | ((s: number) => number)) => {
+    const n = Math.min(Math.max(typeof v === "function" ? v(step) : v, 0), STEPS.length - 1);
+    if (n === step) return;
+    setParams((p) => { const q = new URLSearchParams(p); if (n === 0) q.delete("etape"); else q.set("etape", String(n + 1)); return q; });
+  };
   const [slug, setSlug] = useState<string | null>(null);
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
@@ -47,15 +56,38 @@ export default function ObtenirSoumissions() {
   const [desiredDate, setDesiredDate] = useState("");
   const [scheduleNote, setScheduleNote] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  const [contact, setContact] = useState<Contact>({
+  const EMPTY_CONTACT: Contact = {
     contact_name: "", contact_phone: "", contact_email: "",
     organization_name: "", client_type: "particulier",
-  });
+  };
+  const [contact, setContact] = useState<Contact>(EMPTY_CONTACT);
   const [honeypot, setHoneypot] = useState("");
   const [sending, setSending] = useState(false);
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const startedAt = useRef(Date.now());
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // NAV-01 : brouillon local des champs texte (les fichiers ne peuvent pas être conservés).
+  const draft = useDraft({
+    id: { module: "obtenir-soumissions", form: "assistant", owner: "anon" },
+    data: { slug, address, city, region, title, description, answers, desiredDate, scheduleNote, contact },
+    isEmpty: (d) => !d.slug && !d.address && !d.city && !d.title && !d.description && !Object.keys(d.answers).length
+      && !d.desiredDate && !d.scheduleNote && !d.contact.contact_name && !d.contact.contact_phone && !d.contact.contact_email,
+    onRestore: (d) => {
+      setSlug(d.slug); setAddress(d.address); setCity(d.city); setRegion(d.region); setTitle(d.title);
+      setDescription(d.description); setAnswers(d.answers ?? {}); setDesiredDate(d.desiredDate);
+      setScheduleNote(d.scheduleNote); setContact({ ...EMPTY_CONTACT, ...d.contact });
+    },
+  });
+  const startOver = () => {
+    draft.discard();
+    setSlug(null); setAddress(""); setCity(""); setRegion(""); setTitle(""); setDescription("");
+    setAnswers({}); setDesiredDate(""); setScheduleNote(""); setFiles([]); setContact(EMPTY_CONTACT); setStep(0);
+  };
+  // Étape impossible sans service (lien direct, brouillon abandonné) : retour au choix du service.
+  useEffect(() => {
+    if (draft.ready && step > 0 && !slug) setParams((p) => { const q = new URLSearchParams(p); q.delete("etape"); return q; }, { replace: true });
+  }, [draft.ready, step, slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const form = useMemo(() => (slug ? findForm(slug) : null), [slug]);
 
@@ -136,6 +168,7 @@ export default function ObtenirSoumissions() {
       });
       const payload = await res.json();
       if (!res.ok) throw new Error(payload?.error ?? "Envoi impossible.");
+      draft.finalize();
       setConfirmation(payload.request_number as string);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
@@ -176,6 +209,7 @@ export default function ObtenirSoumissions() {
       <p className="mt-1 text-sm text-muted-foreground">
         Étape {step + 1} sur {STEPS.length} — {STEPS[step]}
       </p>
+      <div className="mt-2"><DraftStatusBar status={draft.status} savedAt={draft.savedAt} restored={!!draft.restoredMeta} onDiscard={startOver} scope="ce navigateur" /></div>
       <div className="mt-3 h-2 w-full rounded-full bg-muted">
         <div className="h-2 rounded-full bg-primary transition-all"
           style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
