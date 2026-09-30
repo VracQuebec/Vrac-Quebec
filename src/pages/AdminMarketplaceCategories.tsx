@@ -215,6 +215,15 @@ export default function AdminMarketplaceCategories() {
           Structure officielle des services offerts par les entreprises partenaires. Une entreprise peut être associée à
           plusieurs catégories et services.
         </p>
+        <DraftStatusBar status={catDraft.status} savedAt={catDraft.savedAt} restored={!!catDraft.restoredMeta} onDiscard={() => { catDraft.discard(); setEdits({}); setAdding(null); }} discardConfirm="Abandonner les modifications non enregistrées des catégories ? Rien d'enregistré n'est modifié." sync={catDraft.sync} synced={catDraft.synced} conflict={catDraft.conflict} onUseServer={catDraft.useServerVersion} onKeepLocal={catDraft.keepLocalVersion} onRestartAsNew={catDraft.restartAsNew} restartError={catDraft.restartError} onRetry={catDraft.retrySave} />
+        {Object.keys(edits).length > 0 && <p className="mb-2 text-xs text-muted-foreground">{Object.keys(edits).length} ligne(s) modifiée(s) non enregistrée(s) — utilisez le bouton d'enregistrement de chaque ligne.</p>}
+        {adding && (() => { const parent = adding.parentId ? view.find((r) => r.id === adding.parentId) ?? null : null; const pNode = parent ? { ...parent, children: view.filter((r) => r.parent_id === parent.id) } as Node : null;
+          return <form className="mb-4 flex flex-wrap items-end gap-2 rounded-lg border border-border bg-card p-3" onSubmit={(e) => { e.preventDefault(); void addChild(pNode); }}>
+            <label className="text-sm">{parent ? `Nouveau sous « ${parent.name} »` : "Nouvelle catégorie"}
+              <Input aria-label="Nom du nouvel élément" autoFocus value={adding.name} onChange={(e) => setAdding({ ...adding, name: e.target.value })} className="mt-1 h-9 w-64" /></label>
+            <Button size="sm" type="submit" disabled={!adding.name.trim()}>Ajouter</Button>
+            <Button size="sm" type="button" variant="ghost" onClick={() => setAdding(null)}>Fermer</Button>
+          </form>; })()}
         {loading ? (
           <p className="font-body text-muted-foreground">Chargement…</p>
         ) : nodes.length === 0 ? (
