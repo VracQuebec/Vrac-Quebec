@@ -4,7 +4,8 @@ import type { DraftStatus, SyncStatus } from "@/lib/drafts/useDraft";
 
 const time = (iso: string | null) => iso ? new Date(iso).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" }) : "";
 
-export default function DraftStatusBar({ status, savedAt, restored, onDiscard, scope = "cet appareil", sync, synced, conflict, onUseServer, onKeepLocal, onRestartAsNew, restartError, onRetry }: {
+export default function DraftStatusBar({ status, savedAt, restored, onDiscard, scope = "cet appareil", sync, synced, conflict, onUseServer, onKeepLocal, onRestartAsNew, restartError, onRetry, discardLabel, discardConfirm }: {
+  discardLabel?: string; discardConfirm?: string;
   status: DraftStatus; savedAt: string | null; restored: boolean; onDiscard?: () => void; scope?: string;
   sync?: SyncStatus; synced?: boolean; conflict?: unknown; onUseServer?: () => void; onKeepLocal?: () => void; onRestartAsNew?: () => void; restartError?: string | null; onRetry?: () => void;
 }) {
@@ -39,7 +40,7 @@ export default function DraftStatusBar({ status, savedAt, restored, onDiscard, s
         </span>
         {status === "error" && onRetry && <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onRetry}>Réessayer l'enregistrement</Button>}
         {(restored || status === "saved_local") && onDiscard && (
-          <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { if (window.confirm("Abandonner ce brouillon ? Les informations saisies seront effacées. Aucune demande ni opération déjà envoyée n'est annulée.")) onDiscard(); }}>Abandonner le brouillon</Button>
+          <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { if (window.confirm(discardConfirm ?? "Abandonner ce brouillon ? Les informations saisies seront effacées. Aucune demande ni opération déjà envoyée n'est annulée.")) onDiscard(); }}>{discardLabel ?? "Abandonner le brouillon"}</Button>
         )}
       </div>
       {!!conflict && sync === "conflict" && (

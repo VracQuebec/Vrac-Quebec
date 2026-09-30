@@ -587,10 +587,29 @@ function OccurrenceDialog({ companyId, occ, canWrite, onClose, onChanged, onEdit
   useEffect(load, [o.obligation_id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (mode === "amount" && canWrite) api.editAmount(o.id, scope, ql === "unknown" ? null : Number(amt || 0), ql, true).then(setImpact).catch(() => setImpact(null)); }, [mode, scope, amt, ql, o.id, canWrite]);
   const inFlight = useRef(false);
-  const run = async (fn: () => Promise<unknown>, msg: string) => {
+  type Act = "amount" | "planned" | "cancel" | "archive" | "pause" | "lift";
+  const resetAct = (a: Act) => { if (a === "amount") { setScope("this"); setAmt(occ.amount?.toString() ?? ""); setQl(occ.amount_quality); } if (a === "planned") setPlanned(occ.planned_date); if (a === "cancel") setReason(""); if (a === "archive") setEff(todayIn(TZ)); if (a === "pause") setPz({ start: "", end: "", reason: "" }); if (a === "lift") { setLift(null); setLiftOpen(false); } };
+  const pending = (skip?: Act) => ([
+    skip !== "amount" && (scope !== "this" || amt !== (occ.amount?.toString() ?? "") || ql !== occ.amount_quality) && "montant",
+    skip !== "planned" && planned !== occ.planned_date && "date planifiée",
+    skip !== "cancel" && reason.trim() && "annulation",
+    skip !== "archive" && eff !== todayIn(TZ) && "archivage",
+    skip !== "pause" && (pz.start || pz.end || pz.reason) && "suspension",
+    skip !== "lift" && lift && "levée de suspension",
+  ].filter(Boolean) as string[]);
+  const [keptNote, setKeptNote] = useState<string | null>(null);
+  const run = async (fn: () => Promise<unknown>, msg: string, act?: Act) => {
     if (inFlight.current) return; // double clic / Entrée répétée : une seule opération
     inFlight.current = true; setBusy(true);
-    try { await fn(); store.finalize(); toast({ title: msg }); setMode(null); setLift(null); onChanged(); onClose(); } catch (e: any) { toast({ title: "Non enregistré", description: `${e.message} — votre préparation est conservée.`, variant: "destructive" }); } finally { inFlight.current = false; setBusy(false); }
+    try {
+      await fn(); toast({ title: msg });
+      // Seule la préparation exécutée est close ; les autres restent en brouillon et sont signalées.
+      const rest = act ? pending(act) : [];
+      if (act) resetAct(act);
+      setMode(null); onChanged();
+      if (rest.length) { setKeptNote(`Autres préparations conservées (non exécutées) : ${rest.join(", ")}. Vérifiez qu'elles s'appliquent encore après cette opération avant de les confirmer.`); load(); }
+      else { store.finalize(); onClose(); }
+    } catch (e: any) { toast({ title: "Non enregistré", description: `${e.message} — votre préparation est conservée.`, variant: "destructive" }); } finally { inFlight.current = false; setBusy(false); }
   };
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto overflow-x-hidden sm:max-w-lg [&>*]:min-w-0">
     <DialogHeader><DialogTitle>{o.label}</DialogTitle></DialogHeader>
@@ -631,24 +650,25 @@ function OccurrenceDialog({ companyId, occ, canWrite, onClose, onChanged, onEdit
         <Button size="sm" variant="ghost" onClick={() => setMode("pause")}>Suspendre une période future</Button>
         <Button size="sm" variant="ghost" onClick={() => setMode("archive")}>Archiver la série</Button></>}
     </div>}
-    {canWrite && (mode || liftOpen || store.restoredMeta || store.savedAt) && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={abandonAll} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+    {canWrite && (mode || liftOpen || store.restoredMeta || store.savedAt) && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={abandonAll} discardLabel="Abandonner toutes les préparations de cette échéance" discardConfirm={`Abandonner toutes les préparations de cette échéance (${pending().join(", ") || "aucune saisie"}) ? Aucune opération déjà confirmée n'est annulée.`} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+    {keptNote && <p role="status" className="rounded-md border border-border bg-secondary p-2 text-sm">{keptNote} <Button size="sm" variant="ghost" onClick={() => setKeptNote(null)}>Compris</Button></p>}
     {dateNote && (mode || liftOpen) && <p role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-sm">{dateNote} <Button size="sm" variant="ghost" onClick={() => setDateNote(null)}>Compris</Button></p>}
     <fieldset disabled={store.blocked} className="contents">
     {mode === "amount" && <div className="space-y-2 rounded-md border border-border p-3">
       <div className="flex gap-3 text-sm"><label><input type="radio" checked={scope === "this"} onChange={() => setScope("this")} /> Cette échéance seulement</label>{o.frequency !== "once" && <label><input type="radio" checked={scope === "following"} onChange={() => setScope("following")} /> Celle-ci et les suivantes</label>}</div>
       <div className="flex gap-2"><select className={sel} value={ql} onChange={(e) => setQl(e.target.value)}><option value="confirmed">Confirmé</option><option value="estimated">Estimé</option><option value="unknown">À compléter</option></select>{ql !== "unknown" && <Input type="number" min="0" step="0.01" value={amt} onChange={(e) => setAmt(e.target.value)} />}</div>
       {impact && <p className="text-xs">Impact : {impact.count} échéance(s){impact.dates?.length ? ` — ${impact.dates.slice(0, 6).map(fmtDate).join(", ")}${impact.dates.length > 6 ? "…" : ""}` : ""}. Les échéances passées déjà ajustées individuellement ne changent pas ; l'ancienne version est conservée.</p>}
-      <div className="flex gap-2"><Button size="sm" disabled={busy} onClick={() => { if (ql !== "unknown" && (amt === "" || Number(amt) < 0)) return toast({ title: "Montant invalide", variant: "destructive" }); run(() => api.editAmount(o.id, scope, ql === "unknown" ? null : Number(amt), ql), "Montant mis à jour"); }}>Confirmer</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div>
+      <div className="flex gap-2"><Button size="sm" disabled={busy} onClick={() => { if (ql !== "unknown" && (amt === "" || Number(amt) < 0)) return toast({ title: "Montant invalide", variant: "destructive" }); run(() => api.editAmount(o.id, scope, ql === "unknown" ? null : Number(amt), ql), "Montant mis à jour", "amount"); }}>Confirmer</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div>
     </div>}
-    {mode === "planned" && <div className="space-y-2 rounded-md border border-border p-3"><p className="text-xs">L'échéance contractuelle ({fmtDate(o.due_date)}) reste inchangée.</p><Input type="date" value={planned} onChange={(e) => setPlanned(e.target.value)} /><div className="flex gap-2"><Button size="sm" disabled={busy || !planned} onClick={() => run(() => api.reschedule(o.id, planned), "Date planifiée déplacée")}>Confirmer</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div></div>}
-    {mode === "cancel" && <div className="space-y-2 rounded-md border border-border p-3"><Textarea placeholder="Motif de l'annulation (obligatoire)" value={reason} onChange={(e) => setReason(e.target.value)} /><div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !reason.trim()} onClick={() => run(() => api.cancelOcc(o.id, reason), "Échéance annulée (conservée dans l'historique)")}>Annuler l'échéance</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div></div>}
-    {mode === "archive" && <div className="space-y-2 rounded-md border border-border p-3"><p className="text-xs">Arrête les échéances à partir de cette date. Les échéances antérieures sont conservées.</p><Input type="date" value={eff} onChange={(e) => setEff(e.target.value)} /><div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !eff} onClick={() => run(() => api.archiveObligation(o.obligation_id, eff), "Série archivée")}>Archiver</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div></div>}
+    {mode === "planned" && <div className="space-y-2 rounded-md border border-border p-3"><p className="text-xs">L'échéance contractuelle ({fmtDate(o.due_date)}) reste inchangée.</p><Input type="date" value={planned} onChange={(e) => setPlanned(e.target.value)} /><div className="flex gap-2"><Button size="sm" disabled={busy || !planned} onClick={() => run(() => api.reschedule(o.id, planned), "Date planifiée déplacée", "planned")}>Confirmer</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div></div>}
+    {mode === "cancel" && <div className="space-y-2 rounded-md border border-border p-3"><Textarea placeholder="Motif de l'annulation (obligatoire)" value={reason} onChange={(e) => setReason(e.target.value)} /><div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !reason.trim()} onClick={() => run(() => api.cancelOcc(o.id, reason), "Échéance annulée (conservée dans l'historique)", "cancel")}>Annuler l'échéance</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div></div>}
+    {mode === "archive" && <div className="space-y-2 rounded-md border border-border p-3"><p className="text-xs">Arrête les échéances à partir de cette date. Les échéances antérieures sont conservées.</p><Input type="date" value={eff} onChange={(e) => setEff(e.target.value)} /><div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !eff} onClick={() => run(() => api.archiveObligation(o.obligation_id, eff), "Série archivée", "archive")}>Archiver</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div></div>}
     {mode === "pause" && <div className="space-y-2 rounded-md border border-border p-3 text-sm">
       <p className="text-xs">Les échéances passées restent dues ; celles qui ont un règlement déclaré sont conservées. Pendant la suspension, aucune échéance n'est générée ; à la reprise, l'ancrage d'origine est conservé et rien n'est rattrapé automatiquement.</p>
       <div className="grid grid-cols-2 gap-2"><Input type="date" aria-label="Début de suspension" value={pz.start} onChange={(e) => setPz({ ...pz, start: e.target.value })} /><Input type="date" aria-label="Fin de suspension" value={pz.end} onChange={(e) => setPz({ ...pz, end: e.target.value })} /></div>
       <Textarea placeholder="Motif (obligatoire)" value={pz.reason} onChange={(e) => setPz({ ...pz, reason: e.target.value })} />
       {pzImpact && <p className="text-xs" data-testid="pause-impact">Échéances touchées (conservées, annulées avec motif) : {pzImpact.length ? pzImpact.map((a) => `${fmtDate(a.due)} (${fmtMoney(a.amount)})`).join(", ") : "aucune"}</p>}
-      <div className="flex gap-2"><Button size="sm" disabled={busy || !pzImpact} onClick={() => run(() => api.addPause(o.obligation_id, pz.start, pz.end, pz.reason, false), "Suspension enregistrée")}>Confirmer la suspension</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div>
+      <div className="flex gap-2"><Button size="sm" disabled={busy || !pzImpact} onClick={() => run(() => api.addPause(o.obligation_id, pz.start, pz.end, pz.reason, false), "Suspension enregistrée", "pause")}>Confirmer la suspension</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div>
     </div>}
     {pzs.length > 0 && <div><p className="font-display text-sm font-bold">Suspensions</p><ul className="space-y-1 text-xs">{pzs.map((z) => <li key={z.id}>Du {fmtDate(z.start_date)} au {fmtDate(z.end_date)} : {z.reason}{z.lifted_from ? ` — levée à partir du ${fmtDate(z.lifted_from)}${z.lift_reason ? ` (${z.lift_reason})` : ""}` : ""}
       {canWrite && !z.lifted_from && z.end_date >= todayIn(TZ) && <Button size="sm" variant="ghost" onClick={() => { if (lift?.id !== z.id) setLift({ id: z.id, eff: todayIn(TZ) > z.start_date ? todayIn(TZ) : z.start_date, reason: "" }); setLiftOpen(true); setLiftPv(null); }}>Lever la suspension</Button>}</li>)}</ul></div>}
@@ -658,7 +678,7 @@ function OccurrenceDialog({ companyId, occ, canWrite, onClose, onChanged, onEdit
       <Textarea placeholder="Motif (obligatoire)" value={lift.reason} onChange={(e) => setLift({ ...lift, reason: e.target.value })} />
       {liftPv && <p className="text-xs" data-testid="levee-apercu">Restaurées : {liftPv.restore.length ? liftPv.restore.map((r) => fmtDate(r.due)).join(", ") : "aucune"} · autres annulations conservées : {liftPv.kept_other}{liftPv.not_applicable.length ? ` · non restaurées (règle remplacée) : ${liftPv.not_applicable.map((r) => fmtDate(r.due)).join(", ")}` : ""}</p>}
       <div className="flex gap-2"><Button size="sm" variant="outline" disabled={!lift.reason.trim()} onClick={() => st.liftPause(lift.id, lift.eff, lift.reason, true).then(setLiftPv).catch((e) => toast({ title: "Impossible", description: e.message, variant: "destructive" }))}>Aperçu</Button>
-        <Button size="sm" disabled={busy || !liftPv} onClick={() => run(() => st.liftPause(lift.id, lift.eff, lift.reason, false), "Suspension levée")}>Confirmer la reprise</Button><Button size="sm" variant="ghost" onClick={back}>Retour</Button></div>
+        <Button size="sm" disabled={busy || !liftPv} onClick={() => run(() => st.liftPause(lift.id, lift.eff, lift.reason, false), "Suspension levée", "lift")}>Confirmer la reprise</Button><Button size="sm" variant="ghost" onClick={back}>Retour</Button></div>
     </div>}
     </fieldset>
     {vers.length > 1 && <div><p className="font-display text-sm font-bold">Versions du montant</p><ul className="text-xs">{vers.map((v, i) => <li key={i}>À partir du {fmtDate(v.effective_from)} : {fmtMoney(v.amount == null ? null : Number(v.amount))} ({QUALITY_LABEL[v.amount_quality as "confirmed"]})</li>)}</ul></div>}

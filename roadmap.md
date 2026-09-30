@@ -85,3 +85,5 @@
 - [ ] Correction d'un règlement (Settlements), pièces jointes réelles, doubles envois confirmés au serveur
 - [ ] Recherches/filtres/position Finances puis CRM, flotte, articles, administration
 - [ ] Session/droits (lente, renouvellement, coupure, changement de compte, 2 utilisateurs, 2 entreprises, accès retiré); fiche téléphone
+- [x] Échéance : seule l'action confirmée est close; autres préparations conservées et signalées; abandon global nommé explicitement (refus/acceptation vérifiés); double clic → 1 seul déplacement au serveur
+- [ ] Inventaire préliminaire (17 fichiers sans brouillon) : CRM (EntrepreneurCrm, CrmServices), flotte (FleetDialogs, FleetDialogsV2, CompleteDialog, FleetManager), articles (à préciser), admin (ControlCenter, Marketplace ×4, Matching ×2, MaterialOffers, MaterialAssistant, MaterialLanguageLab)
