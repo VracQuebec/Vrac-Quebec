@@ -335,33 +335,54 @@ export default function AdminBlogEditor() {
         if (!opts.silent) toast.success("Article créé");
         navigate(`/admin/blogue/editer/${data.id}`, { replace: true });
       } else {
-        const { error } = await supabase.from("blog_posts").update(payload as never).eq("id", postId);
+        // Contrôle de conflit : l'écriture ne s'applique que si l'article n'a pas changé ailleurs depuis le chargement.
+        const snap = JSON.stringify(editableRef.current);
+        let q = supabase.from("blog_posts").update(payload as never).eq("id", postId);
+        if (serverStamp) q = q.eq("updated_at", serverStamp);
+        const { data: upd, error } = await q.select("updated_at");
         if (error) throw error;
+        if (!upd || upd.length === 0) {
+          setEditConflict(true);
+          editDraft.flush();
+          throw new Error("Cet article a été modifié ailleurs. Vos modifications sont gardées en brouillon; rien n'a été écrasé.");
+        }
         await persistTags(postId);
+        setServerStamp((upd[0] as { updated_at: string }).updated_at);
+        baseline.current = snap;
+        // Confirmé par le serveur et aucune frappe depuis : la copie de secours n'a plus lieu d'être.
+        if (JSON.stringify(editableRef.current) === snap) editDraft.discard();
+        setAutoSaveError(null);
         setSavedAt(new Date());
         if (!opts.silent) toast.success("Enregistré");
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      if (postId) { setAutoSaveError(msg); editDraft.flush(); }
       if (!opts.silent) toast.error(msg);
     } finally {
       setSaving(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, slug, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, postId, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs]);
+  }, [title, slug, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, postId, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs, serverStamp]);
 
   // Auto-save (debounced) — only for existing posts to avoid firing on empty new post
   const timerRef = useRef<number | null>(null);
   useEffect(() => {
     if (!postId) return;
-    if (loading) return;
+    if (loading || editConflict) return; // conflit : plus d'écriture automatique tant que la personne n'a pas choisi
     if (timerRef.current) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
+      if (JSON.stringify(editableRef.current) === baseline.current && !statusDirty.current) return; // rien à enregistrer
+      statusDirty.current = false;
       save({ silent: true });
     }, 3000);
     return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, slug, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs]);
+  }, [title, slug, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs, editConflict]);
+  // Un changement de statut (hors brouillon) déclenche toujours l'enregistrement automatique, comme avant.
+  const statusDirty = useRef(false);
+  const loadedStatus = useRef<string | null>(null);
+  useEffect(() => { if (loading) { loadedStatus.current = null; return; } if (loadedStatus.current === null) { loadedStatus.current = status; return; } if (status !== loadedStatus.current) { statusDirty.current = true; loadedStatus.current = status; } }, [status, loading]);
 
   const uploadCover = async (file: File) => {
     setUploading(true);
