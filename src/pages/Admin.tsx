@@ -197,7 +197,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
-  const __lc = useScreenContext("crm-demandes", { view: ("list") as "list" | "map" | "today", filterStatus: ("all") as string, filterType: ("all") as string, searchQuery: ("") as string, filterSource: ("all") as string, showArchivedOnMap: (false), tab: ("leads") as "leads" | "billing" | "entrepreneurs", filterTrips: ("all") as string, filterPriority: ("all") as string, filterAssigned: ("all") as string, filterMaterial: ("all") as string, filterDateFrom: ("") as string, filterDateTo: ("") as string });
+  const __lc = useScreenContext("crm-demandes", { view: ("list") as "list" | "map" | "today", filterStatus: ("all") as string, filterType: ("all") as string, searchQuery: ("") as string, filterSource: ("all") as string, showArchivedOnMap: (false), tab: ("leads") as "leads" | "billing" | "entrepreneurs", filterTrips: ("all") as string, filterPriority: ("all") as string, filterAssigned: ("all") as string, filterMaterial: ("all") as string, filterDateFrom: ("") as string, filterDateTo: ("") as string }, { dataReady: !loading });
   const view = __lc.v.view; const setView = __lc.field("view");
   const filterStatus = __lc.v.filterStatus; const setFilterStatus = __lc.field("filterStatus");
   const filterType = __lc.v.filterType; const setFilterType = __lc.field("filterType");
