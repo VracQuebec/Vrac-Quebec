@@ -5,7 +5,9 @@
 // messages, notes internes, journal d'activité).
 // ============================================================
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useDraft } from "@/lib/drafts/useDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { ArrowLeft, Loader2, Pin, RefreshCw, Trash2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
@@ -58,8 +60,13 @@ export default function AdminMarketplaceRequests() {
 
   const [rows, setRows] = useState<BoardRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [queue, setQueue] = useState<WorkQueue | "toutes">("toutes");
-  const [selected, setSelected] = useState<string | null>(null);
+  // NAV-01B : file et demande ouverte dans l'adresse (identifiants seulement). La file remplace l'entrée d'historique;
+  // ouvrir une demande en crée une → Retour revient à la liste.
+  const [params, setParams] = useSearchParams();
+  const queue = (params.get("file") as WorkQueue | null) ?? "toutes";
+  const setQueue = (q: WorkQueue | "toutes") => setParams((p) => { const n = new URLSearchParams(p); q === "toutes" ? n.delete("file") : n.set("file", q); return n; }, { replace: true });
+  const selected = params.get("demande");
+  const setSelected = (id: string | null) => setParams((p) => { const n = new URLSearchParams(p); id ? n.set("demande", id) : n.delete("demande"); return n; });
 
   const [request, setRequest] = useState<QuoteRequest | null>(null);
   const [lots, setLots] = useState<RequestLot[]>([]);
@@ -70,6 +77,13 @@ export default function AdminMarketplaceRequests() {
   const [journal, setJournal] = useState<ActivityEntry[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [nouvelleNote, setNouvelleNote] = useState("");
+  const { user: me } = useAuthReady();
+  useEffect(() => { setNouvelleNote(""); }, [selected]);
+  const noteDraft = useDraft({
+    id: me && selected ? { module: "admin", form: "marche-note-interne", owner: me.id, company: null, recordId: selected } : null,
+    data: { note: nouvelleNote }, label: () => "Place de marché — note interne", route: `/admin/marche/soumissions?demande=${selected ?? ""}`,
+    isEmpty: (d) => !d.note?.trim(), onRestore: (d) => setNouvelleNote(d.note ?? ""),
+  });
 
   const charger = useCallback(async () => {
     setLoading(true);
@@ -133,7 +147,7 @@ export default function AdminMarketplaceRequests() {
     if (!selected || !nouvelleNote.trim()) return;
     try {
       await addAdminNote(selected, nouvelleNote.trim(), pinned);
-      setNouvelleNote("");
+      noteDraft.finalize(); setNouvelleNote("");
       setNotes(await fetchAdminNotes(selected));
     } catch (e) {
       toast({ title: "Note non enregistrée", description: (e as Error).message, variant: "destructive" });
@@ -327,7 +341,9 @@ export default function AdminMarketplaceRequests() {
                 <Card className="p-4">
                   <h3 className="mb-2 font-semibold">Notes internes</h3>
                   <p className="mb-2 text-xs text-muted-foreground">Invisibles au client et aux entreprises partenaires.</p>
+                  <DraftStatusBar status={noteDraft.status} savedAt={noteDraft.savedAt} restored={!!noteDraft.restoredMeta} onDiscard={() => { noteDraft.discard(); setNouvelleNote(""); }} discardConfirm="Abandonner cette note non enregistrée ?" sync={noteDraft.sync} synced={noteDraft.synced} conflict={noteDraft.conflict} onUseServer={noteDraft.useServerVersion} onKeepLocal={noteDraft.keepLocalVersion} onRestartAsNew={noteDraft.restartAsNew} restartError={noteDraft.restartError} onRetry={noteDraft.retrySave} />
                   <Textarea
+                    aria-label="Note interne"
                     value={nouvelleNote}
                     onChange={(e) => setNouvelleNote(e.target.value)}
                     placeholder="Ajouter une note interne…"

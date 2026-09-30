@@ -125,3 +125,9 @@
 - [ ] CRM : renommer/retirer une étape — données d'essai manquantes (aucune étape personnalisée dans TEST B)
 - [x] Centre de contrôle : suivi (action, raison, note, résolution, responsable, date) et délais en brouillon; filtre dans l'adresse (remplacement), recherche+position en mémoire de session; fiche dans ?demande= — essayés; serveur inchangé
 - [x] /admin : Retour n'est plus bloqué quand une page précédente interne existe
+- [x] /admin : interception du Retour supprimée (Retour/Avancer natifs normaux, y compris page extérieure); Retour interne → accueil en accès direct
+- [x] Centre de contrôle : responsable/date et délais essayés; tri/pagination non applicables (tri fixe, 100 premières)
+- [x] Marché : règle tarifaire, prix, tarif, offre, catégories (ajout + modifications de lignes), note interne (demandes), lots — code; essayés : règle, prix, offre, nouvelle catégorie
+- [ ] Marché : lots et note interne non essayés (aucune demande TEST); tarif et modifications de lignes de catégories non essayés
+- [ ] Jumelage (réglages enregistrés immédiatement — inchangés; recherche non conservée), référencement, territoires, CRM admin, plateforme, offres de matériaux
+- [ ] Listes Finances et flotte : contexte (recherche, filtres, tri, pagination, position), cartes

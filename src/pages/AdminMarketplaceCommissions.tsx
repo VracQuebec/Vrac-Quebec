@@ -17,6 +17,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useEditorDraft } from "@/lib/drafts/useEditorDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import {
   COMMISSION_STATUSES, PRICING_MODELS, commissionStatusLabel, deletePricingRule,
   fetchCategories, fetchCommissions, fetchPartnerCompanies, fetchPricingRules,
@@ -61,6 +63,8 @@ export default function AdminMarketplaceCommissions() {
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [filtre, setFiltre] = useState("toutes");
+  // NAV-01B : préparation de la règle conservée (Annuler, Retour, actualisation, reprise); rien n'est enregistré sans « Enregistrer ».
+  const ed = useEditorDraft<Draft>({ form: "marche-regle-tarifaire", value: draft, setValue: setDraft, label: (d) => `Règle tarifaire — ${d.label || "sans nom"}`, route: "/admin/marche/commissions" });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -101,7 +105,7 @@ export default function AdminMarketplaceCommissions() {
     try {
       await savePricingRule(row);
       setRules(await fetchPricingRules());
-      setDraft(null);
+      ed.finalize(); setDraft(null);
       toast({ title: "Règle enregistrée" });
     } catch (e) {
       toast({ title: "Enregistrement impossible", description: (e as Error).message, variant: "destructive" });
@@ -186,18 +190,19 @@ export default function AdminMarketplaceCommissions() {
         {!loading && onglet === "regles" && (
           <div className="space-y-4">
             <div className="flex justify-end">
-              <Button size="sm" onClick={() => setDraft({ ...NOUVELLE })}>
+              <Button size="sm" onClick={() => ed.open({ ...NOUVELLE })}>
                 <Plus className="mr-2 h-4 w-4" /> Nouvelle règle
               </Button>
             </div>
 
             {draft && (
               <Card>
-                <CardHeader><CardTitle className="text-base">Règle tarifaire</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">Règle tarifaire</CardTitle>
+                  <DraftStatusBar {...ed.barProps} onDiscard={ed.discard} discardConfirm="Abandonner cette préparation ? Les règles enregistrées ne changent pas." /></CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-2">
                   <div className="md:col-span-2">
                     <Label>Nom de la règle</Label>
-                    <Input value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })}
+                    <Input aria-label="Nom de la règle" value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })}
                       placeholder="Ex. : Excavation — 5 % de commission" />
                   </div>
                   <div>
@@ -292,7 +297,7 @@ export default function AdminMarketplaceCommissions() {
                     <Button onClick={() => void enregistrer(draft)} disabled={busy}>
                       {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Enregistrer
                     </Button>
-                    <Button variant="ghost" onClick={() => setDraft(null)}>Annuler</Button>
+                    <Button variant="ghost" onClick={ed.close}>Fermer (préparation conservée)</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -322,7 +327,7 @@ export default function AdminMarketplaceCommissions() {
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setDraft({ ...r })}>Modifier</Button>
+                      <Button variant="outline" size="sm" onClick={() => ed.open({ ...r })}>Modifier</Button>
                       <Button variant="ghost" size="sm" onClick={() => void supprimer(r)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>

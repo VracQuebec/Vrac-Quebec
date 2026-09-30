@@ -5,7 +5,7 @@
 // projet complet).
 // ============================================================
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Layers, Loader2, Plus, RefreshCw, Trash2, Wand2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useEditorDraft } from "@/lib/drafts/useEditorDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import {
   buildLotStrategies, deleteLot, fetchAdminRequests, fetchLots, fetchRequestBids, saveLot,
 } from "@/lib/marketplace/api";
@@ -65,6 +67,11 @@ export default function AdminMarketplaceLots() {
   const [bids, setBids] = useState<LotBid[]>([]);
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState<LotDraft | null>(null);
+  // NAV-01B : demande ouverte dans l'adresse (?demande=id, identifiant seulement); préparation du lot par demande.
+  const [params, setParams] = useSearchParams();
+  const reqParam = params.get("demande");
+  const ed = useEditorDraft<LotDraft>({ form: `marche-lot@${selected?.id ?? "-"}`, enabled: !!selected, value: draft, setValue: setDraft,
+    label: (d) => `Lot ${d.lot_number} — ${d.title || "sans titre"} (${selected?.request_number ?? ""})`, route: `/admin/marche/lots?demande=${selected?.id ?? ""}` });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -84,6 +91,7 @@ export default function AdminMarketplaceLots() {
   const openRequest = useCallback(async (request: QuoteRequest) => {
     setSelected(request);
     setDraft(null);
+    setParams((p) => { const n = new URLSearchParams(p); if (n.get("demande") === request.id) return p; n.set("demande", request.id); return n; });
     setBusy(true);
     try {
       const [l, b] = await Promise.all([fetchLots(request.id), fetchRequestBids(request.id)]);
@@ -95,6 +103,12 @@ export default function AdminMarketplaceLots() {
       setBusy(false);
     }
   }, [toast]);
+
+  useEffect(() => {
+    if (!reqParam) { if (selected) { setSelected(null); setDraft(null); } return; }
+    if (selected?.id === reqParam) return;
+    const r = requests.find((x) => x.id === reqParam); if (r) void openRequest(r);
+  }, [reqParam, requests]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refreshLots = useCallback(async () => {
     if (!selected) return;
@@ -122,7 +136,7 @@ export default function AdminMarketplaceLots() {
         sort_order: row.sort_order ?? (Number(row.lot_number) || lots.length + 1),
       });
       await refreshLots();
-      setDraft(null);
+      ed.finalize(); setDraft(null);
       toast({ title: "Lot enregistré" });
     } catch (e) {
       toast({ title: "Enregistrement impossible", description: (e as Error).message, variant: "destructive" });
@@ -257,7 +271,7 @@ export default function AdminMarketplaceLots() {
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
-                    onClick={() => setDraft({ lot_number: nextNumber(), title: "", status: "a_distribuer" })}
+                    onClick={() => ed.open({ lot_number: nextNumber(), title: "", status: "a_distribuer" })}
                   >
                     <Plus className="mr-2 h-4 w-4" />Ajouter un lot
                   </Button>
@@ -271,6 +285,7 @@ export default function AdminMarketplaceLots() {
               <CardContent className="space-y-3">
                 {busy && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Traitement…</div>}
 
+                {draft && <DraftStatusBar {...ed.barProps} onDiscard={ed.discard} discardConfirm="Abandonner cette préparation ? Les lots enregistrés ne changent pas." />}
                 {draft && (
                   <div className="grid gap-3 rounded-lg border bg-muted/40 p-4 sm:grid-cols-2">
                     <div>
@@ -325,7 +340,7 @@ export default function AdminMarketplaceLots() {
                     </div>
                     <div className="flex gap-2 sm:col-span-2">
                       <Button size="sm" disabled={busy} onClick={() => void enregistrer(draft)}>Enregistrer</Button>
-                      <Button size="sm" variant="ghost" onClick={() => setDraft(null)}>Annuler</Button>
+                      <Button size="sm" variant="ghost" onClick={ed.close}>Fermer (préparation conservée)</Button>
                     </div>
                   </div>
                 )}
@@ -354,7 +369,7 @@ export default function AdminMarketplaceLots() {
                               )}
                             </div>
                             <div className="flex gap-2">
-                              <Button size="sm" variant="outline" onClick={() => setDraft(lot)}>Modifier</Button>
+                              <Button size="sm" variant="outline" onClick={() => ed.open(lot)}>Modifier</Button>
                               <Button size="sm" variant="ghost" onClick={() => void supprimer(lot)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
