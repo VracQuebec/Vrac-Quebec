@@ -3,6 +3,7 @@
 // Demandes reçues → entrepreneurs suggérés (score, distance, raisons)
 // → invitations envoyées (mode AUTO ou MANUEL).
 // ============================================================
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Loader2, MapPin, RefreshCw, Send, Sparkles } from "lucide-react";
@@ -16,7 +17,6 @@ import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
-import { useScreenContext } from "@/lib/navigation/listContext";
   fetchAdminRequests, fetchLots, fetchMarketplaceSettings, invitePartners,
   matchPartners, saveMarketplaceSettings, CONTACT_RULES, revealContact, setRequestContactRule,
 } from "@/lib/marketplace/api";

@@ -6,6 +6,7 @@
 // modification de demande, de statut, de disponibilité ou de capacité,
 // aucune communication automatique. Matching public : INACTIF.
 // ============================================================
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Brain, Loader2, Map as MapIcon, Play, TriangleAlert } from "lucide-react";
@@ -22,7 +23,6 @@ import { VEHICLE_CONFIG_CODES, kgToTonnes } from "@/lib/transport/capacity";
 import type { VehicleProfileLite } from "@/lib/matching/engine";
 import { interpretDescription, DEFAULT_SYNONYMS, type SynonymEntry } from "@/lib/matching/interpreter";
 import {
-import { useScreenContext } from "@/lib/navigation/listContext";
   MATCHING_V2_VERSION,
   DEFAULT_V2_WEIGHTS,
   buildMatchingMatrix,

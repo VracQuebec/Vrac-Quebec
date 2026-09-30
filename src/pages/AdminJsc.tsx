@@ -1,9 +1,9 @@
 // Vrac Québec OS — Back Office administrateur (ERP).
 // Tout est configurable ici : aucune valeur ne doit être modifiée en base.
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-import { useScreenContext } from "@/lib/navigation/listContext";
   ArrowLeft, Layers, Building2, Building, MapPin, DollarSign, Truck, Route, Globe2, Percent,
   Settings2, ShieldCheck, History, DatabaseBackup, Loader2, FolderTree, UserCog, Users,
   Inbox, FileText, ClipboardList, Receipt, LayoutDashboard, Table2, Columns3, Calculator,

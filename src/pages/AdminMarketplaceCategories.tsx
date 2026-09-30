@@ -1,5 +1,6 @@
 // TAXONOMIE DES SERVICES — administration de la place de marché.
 // Catégorie → sous-catégorie → service : renommer, trier, activer/désactiver, ajouter.
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDraft } from "@/lib/drafts/useDraft";
@@ -14,7 +15,6 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ChevronDown, ChevronRight, Plus, Save, Search } from "lucide-react";
 import { fetchCategories, saveCategory } from "@/lib/marketplace/api";
 import type { ServiceCategory } from "@/lib/marketplace/types";
-import { useScreenContext } from "@/lib/navigation/listContext";
 
 type Node = ServiceCategory & { children: Node[] };
 

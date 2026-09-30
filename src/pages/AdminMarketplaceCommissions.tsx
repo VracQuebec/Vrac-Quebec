@@ -5,6 +5,7 @@
 // Les commissions conservent une copie figée de la règle appliquée :
 // modifier une règle ne change jamais un contrat déjà attribué.
 // ============================================================
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Coins, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
@@ -20,7 +21,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useEditorDraft } from "@/lib/drafts/useEditorDraft";
 import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import {
-import { useScreenContext } from "@/lib/navigation/listContext";
   COMMISSION_STATUSES, PRICING_MODELS, commissionStatusLabel, deletePricingRule,
   fetchCategories, fetchCommissions, fetchPartnerCompanies, fetchPricingRules,
   pricingModelLabel, savePricingRule, setCommissionStatus,

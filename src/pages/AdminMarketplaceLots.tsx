@@ -4,6 +4,7 @@
 // et comparer les stratégies d'attribution (lot par lot, regroupements,
 // projet complet).
 // ============================================================
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Layers, Loader2, Plus, RefreshCw, Trash2, Wand2 } from "lucide-react";
@@ -19,7 +20,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useEditorDraft } from "@/lib/drafts/useEditorDraft";
 import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import {
-import { useScreenContext } from "@/lib/navigation/listContext";
   buildLotStrategies, deleteLot, fetchAdminRequests, fetchLots, fetchRequestBids, saveLot,
 } from "@/lib/marketplace/api";
 import type { LotBid, LotStrategy } from "@/lib/marketplace/api";

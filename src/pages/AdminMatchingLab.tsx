@@ -5,6 +5,7 @@
 // statut CRM, de disponibilité, de capacité, ni d'envoi de courriel/SMS.
 // Le matching public reste INACTIF (matching_v2_enabled_public = false).
 // ============================================================
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, FlaskConical, Loader2, Search, TriangleAlert } from "lucide-react";
@@ -16,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
-import { useScreenContext } from "@/lib/navigation/listContext";
   rankCandidates,
   planAllocation,
   computeQuantity,
