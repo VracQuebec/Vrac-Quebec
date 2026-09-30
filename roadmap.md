@@ -67,10 +67,11 @@
 - [x] J1 Effacement : achat en vrac et obligation effacés seulement après réponse confirmée (vérifié dans le code)
 - [x] J2 « Reprendre mon travail » (/entrepreneur/brouillons) + reprise dans un contexte indépendant, abandon ailleurs bloque l'écriture tardive
 - [x] Assistants publics (P01-P03), retour après reconnexion (D partiel), déconnexion (E)
-- [ ] J1 Verrou double clic achat en vrac (le serveur dédoublonne déjà les demandes identiques)
+- [x] J1 Verrou double clic / répétition après confirmation (achat en vrac)
 - [ ] J3 Finances : modifier une obligation, règlements, paramètres; tous les champs de « Ajouter une obligation » vérifiés
 - [ ] J3 CRM entrepreneur, flotte, éditeur d'articles, admin, autres routes
 - [ ] J3 Listes/cartes : recherche, filtres, défilement après fiche
-- [ ] J4 Isolation avec un 2e compte ordinaire (nécessite l'accord pour ouvrir une session d'essai de ce compte), 2 entreprises, droit retiré, 2 onglets
+- [x] J4 Isolation serveur entre 2 comptes fictifs d'entreprises différentes; vrai conflit A/B résolu et persistant; saisie gardée après abandon ailleurs
+- [ ] J4 Même entreprise (2 utilisateurs), utilisateur à 2 entreprises, droit retiré
 - [ ] J4 A, B, C, F, notification admin, connexion par l'interface
 - [ ] Fiche d'essai sur téléphone réel
