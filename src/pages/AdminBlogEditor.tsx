@@ -145,7 +145,7 @@ export default function AdminBlogEditor() {
 
   // NAV-01B — Nouvel article (pas encore créé au serveur) : saisie gardée en brouillon (Retour, actualisation, reprise).
   // Un article existant est déjà enregistré automatiquement au serveur (3 s); il n'utilise pas ce brouillon.
-  const art = { title, slug, slugTouched, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs };
+  const art = { title, slug, slugTouched, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs, aiKeyword, coverPrompt };
   const draft = useDraft({
     id: user && isAdmin && isNew && !postId ? { module: "blog", form: "article", owner: user.id, company: null, recordId: null } : null,
     data: art,
@@ -155,7 +155,7 @@ export default function AdminBlogEditor() {
     onRestore: (d) => { setTitle(d.title); setSlug(d.slug); setSlugTouched(d.slugTouched); setExcerpt(d.excerpt); setContent(d.content); setCoverUrl(d.coverUrl); setCoverAlt(d.coverAlt);
       setCategoryId(d.categoryId); setAuthorId(d.authorId); setStatus(d.status); setScheduledAt(d.scheduledAt); setMetaTitle(d.metaTitle); setMetaDescription(d.metaDescription);
       setOgImage(d.ogImage); setCanonical(d.canonical); setIsFeatured(d.isFeatured); setIsPopular(d.isPopular); setNoindex(d.noindex); setTags(d.tags ?? []);
-      setRelCitySlugs(d.relCitySlugs ?? []); setRelMaterialSlugs(d.relMaterialSlugs ?? []); setRelServiceSlugs(d.relServiceSlugs ?? []); },
+      setRelCitySlugs(d.relCitySlugs ?? []); setRelMaterialSlugs(d.relMaterialSlugs ?? []); setRelServiceSlugs(d.relServiceSlugs ?? []); setAiKeyword(d.aiKeyword ?? ""); setCoverPrompt(d.coverPrompt ?? ""); },
   });
   const creating = useRef(false);
 
