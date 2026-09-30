@@ -215,6 +215,19 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
     setClients((await db.from("ent_crm_clients").select("id,name").eq("company_id", companyId).is("archived_at", null).order("name")).data ?? []);
   }, [companyId, q, stage, source, sort, page]);
   useEffect(() => { void load(); }, [load]);
+  // NAV-01B : la fiche ouverte vit dans l'adresse (?lead=) → Retour la replie, actualisation et « Reprendre mon travail » la rouvrent.
+  const leadParam = params.get("lead");
+  const openLead = (v: string) => { const n = new URLSearchParams(params); n.set("lead", v); setParams(n); };
+  const closeLead = () => { const n = new URLSearchParams(params); n.delete("lead"); setParams(n); };
+  useEffect(() => {
+    if (!leadParam) { setOpen(null); return; }
+    if (leadParam === "nouveau") { setOpen((o: any) => (o && !o.id ? o : {})); return; }
+    if (open?.id === leadParam) return;
+    // Fiche relue au serveur (droits RLS de l'entreprise active) avant ouverture.
+    db.from("ent_crm_leads").select("*").eq("company_id", companyId).eq("id", leadParam).maybeSingle().then(({ data }: any) => {
+      if (data) setOpen(data); else { toast({ title: "Fiche introuvable ou non accessible", variant: "destructive" }); closeLead(); }
+    });
+  }, [leadParam, companyId]); // eslint-disable-line react-hooks/exhaustive-deps
   const move = async (l: any, st: string) => {
     let lost_reason = l.lost_reason; if (stages.find((x) => x.v === st)?.kind === "perdue") { lost_reason = prompt("Motif de perte ?") ?? ""; if (!lost_reason) return; }
     const { error } = await db.from("ent_crm_leads").update({ stage: st, lost_reason, updated_at: new Date().toISOString() }).eq("id", l.id);
@@ -273,7 +286,7 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
       <select className={sel} value={source} onChange={(e) => setF("source", e.target.value)}><option value="">Toutes provenances</option>{SOURCES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}</select>
       <select className={sel} value={sort} onChange={(e) => setF("sort", e.target.value)}><option value="recent">Plus récents</option><option value="ancien">Plus anciens</option><option value="relance">Prochaine relance</option><option value="montant">Montant</option></select>
       <select className={sel} value={view} onChange={(e) => setView(e.target.value as any)}><option value="liste">Liste</option><option value="kanban">Kanban</option></select>
-      {canWrite && <Button onClick={() => setOpen({})}><Plus className="mr-1 h-4 w-4" />Nouveau lead</Button>}
+      {canWrite && <Button onClick={() => openLead("nouveau")}><Plus className="mr-1 h-4 w-4" />Nouveau lead</Button>}
       {canWrite && <Button variant="outline" onClick={saveView}>Enregistrer la vue</Button>}
       <Button variant="outline" onClick={exportCsv}><Download className="mr-1 h-4 w-4" />Exporter</Button>
       {canWrite && <label className="inline-flex h-10 cursor-pointer items-center rounded-md border border-border px-3 text-sm"><Upload className="mr-1 h-4 w-4" />Importer CSV<input type="file" accept=".csv" hidden onChange={(e) => { e.target.files?.[0] && previewCsv(e.target.files[0]); e.target.value = ""; }} /></label>}
@@ -290,10 +303,10 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
     <p className="mb-2 text-xs text-muted-foreground">{count} résultat(s)</p>
     {view === "kanban" ? (
       <div className="flex gap-3 overflow-x-auto pb-2">{stages.map((s) => <div key={s.v} className="w-60 shrink-0 rounded-lg bg-muted/40 p-2"><p className="mb-2 font-display text-sm font-bold">{s.l}</p>
-        {rows.filter((r) => r.stage === s.v).map((r) => <LeadCard key={r.id} r={r} stages={stages} canWrite={canWrite} move={move} convert={convert} edit={() => setOpen(r)} />)}</div>)}</div>
-    ) : <div className="grid gap-2">{rows.map((r) => <LeadCard key={r.id} r={r} stages={stages} canWrite={canWrite} move={move} convert={convert} edit={() => setOpen(r)} />)}</div>}
+        {rows.filter((r) => r.stage === s.v).map((r) => <LeadCard key={r.id} r={r} stages={stages} canWrite={canWrite} move={move} convert={convert} edit={() => openLead(r.id)} />)}</div>)}</div>
+    ) : <div className="grid gap-2">{rows.map((r) => <LeadCard key={r.id} r={r} stages={stages} canWrite={canWrite} move={move} convert={convert} edit={() => openLead(r.id)} />)}</div>}
     <div className="mt-3 flex items-center gap-2 text-sm"><Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setF("page", String(page - 1))}>Précédent</Button>Page {page}/{pages}<Button variant="outline" size="sm" disabled={page >= pages} onClick={() => setF("page", String(page + 1))}>Suivant</Button></div>
-    {open && <LeadDialog lead={open} companyId={companyId} clients={clients} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); load(); }} />}
+    {open && <LeadDialog lead={open} companyId={companyId} clients={clients} onClose={closeLead} onSaved={() => { closeLead(); load(); }} />}
   </div>;
 }
 
