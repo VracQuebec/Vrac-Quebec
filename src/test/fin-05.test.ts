@@ -43,3 +43,33 @@ describe("FIN-05 — trésorerie", () => {
     expect(sourceHash([...base, mv({ id: "z", cents: 1 })])).not.toBe(h);
   });
 });
+
+import { netPaid } from "@/lib/finances/treasury";
+describe("FIN-05B — cartes, non affecté, paiements nets", () => {
+  const acc: Account[] = [{ id: "b1", name: "Banque", kind: "bank", currency: "CAD", included: true }, { id: "c", name: "Visa", kind: "card", currency: "CAD", included: false }];
+  const b = [{ account_id: "b1", amount: 1000, as_of: "2026-10-04", source: "relevé" }];
+  it("achat par carte sans effet bancaire; le remboursement de carte sort une fois", () => {
+    const f = forecast({ from: "2026-10-05", to: "2026-10-31", accounts: acc, balances: b, moves: [
+      mv({ account_id: "c", cents: 30000 }), mv({ kind: "payment", date: "2026-10-05", cents: 20000, via_card: true }), mv({ account_id: "b1", cents: 50000, date: "2026-10-20", label: "Remboursement Visa" })] });
+    expect(f.endC).toBe(50000); expect(f.partial).toEqual([]);
+  });
+  it("échéance non affectée : comptée globalement, prévision partielle si une carte existe", () => {
+    const f = forecast({ from: "2026-10-05", to: "2026-10-31", accounts: acc, balances: b, moves: [mv({ cents: 10000, unassigned: true })] });
+    expect(f.endC).toBe(90000); expect(f.unassignedC).toBe(10000); expect(f.partial.length).toBe(1);
+    expect(forecast({ from: "2026-10-05", to: "2026-10-31", accounts: acc.slice(0, 1), balances: b, moves: [mv({ cents: 10000, unassigned: true })] }).partial).toEqual([]);
+  });
+  it("1 300 versés − 100 remboursés = 1 200 nets", () => {
+    const r = netPaid({ from: "2026-10-01", to: "2026-10-31", payments: { p: 130000 }, allocs: [{ payment_id: "p", cents: 130000, date: "2026-10-02", match: true }], refunds: [{ id: "r", payment_id: "p", cents: 10000, date: "2026-10-10" }] });
+    expect(r.netC).toBe(120000); expect(r.lines.length).toBe(2);
+  });
+  it("remboursement du reliquat non affecté : catégorie inchangée; remboursement hors période ignoré", () => {
+    const base = { payments: { p: 130000 }, allocs: [{ payment_id: "p", cents: 120000, date: "2026-10-02", match: true }] };
+    expect(netPaid({ ...base, from: "2026-10-01", to: "2026-10-31", refunds: [{ id: "r", payment_id: "p", cents: 10000, date: "2026-10-10" }] }).netC).toBe(120000);
+    expect(netPaid({ ...base, from: "2026-10-01", to: "2026-10-31", refunds: [{ id: "r", payment_id: "p", cents: 15000, date: "2026-10-10" }] }).netC).toBe(115000);
+    expect(netPaid({ ...base, from: "2026-10-01", to: "2026-10-31", refunds: [{ id: "r", payment_id: "p", cents: 50000, date: "2026-11-10" }] }).netC).toBe(120000);
+  });
+  it("remboursement réparti au prorata entre catégories", () => {
+    const r = netPaid({ from: "2026-10-01", to: "2026-10-31", payments: { p: 100000 }, allocs: [{ payment_id: "p", cents: 60000, date: "2026-10-02", match: true }, { payment_id: "p", cents: 40000, date: "2026-10-02", match: false }], refunds: [{ id: "r", payment_id: "p", cents: 10000, date: "2026-10-05" }] });
+    expect(r.netC).toBe(54000);
+  });
+});
