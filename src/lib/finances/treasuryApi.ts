@@ -84,17 +84,19 @@ export async function budgetActuals(c: string, b: Budget) {
   const pids = [...new Set([...(inPer.data ?? []), ...(refs.data ?? [])].map((r: any) => r.payment_id))];
   let net = { grossC: 0, refundC: 0, netC: 0, lines: [] as ReturnType<typeof netPaid>["lines"] };
   if (pids.length) {
-    const [al, pays] = await Promise.all([
+    const [al, pays, allRefs] = await Promise.all([
       db.from("fin_allocations").select("payment_id,amount,allocated_on,occurrence_id,fin_occurrences(obligation_id,fin_obligations(category_id,truck_id,project_id))").eq("company_id", c).is("reversed_at", null).in("payment_id", pids).limit(10000),
       db.from("fin_payments").select("id,amount,status").eq("company_id", c).in("id", pids),
+      // Tous les remboursements de ces paiements : les antérieurs consomment d'abord le reliquat non affecté.
+      db.from("fin_refunds").select("id,payment_id,amount,refunded_on").eq("company_id", c).is("voided_at", null).in("payment_id", pids).limit(10000),
     ]);
-    err(al.error); err(pays.error);
+    err(al.error); err(pays.error); err(allRefs.error);
     const okPay = new Set((pays.data ?? []).filter((p: any) => p.status === "validated").map((p: any) => p.id));
     const match = (o: any) => !!o && (!b.category_id || o.category_id === b.category_id) && (!b.truck_id || o.truck_id === b.truck_id) && (!b.project_id || o.project_id === b.project_id);
     net = netPaid({ from: b.period_from, to: b.period_to,
       allocs: (al.data ?? []).filter((a: any) => okPay.has(a.payment_id)).map((a: any) => ({ payment_id: a.payment_id, cents: toCents(a.amount)!, date: a.allocated_on, match: match(a.fin_occurrences?.fin_obligations) })),
       payments: Object.fromEntries((pays.data ?? []).map((p: any) => [p.id, toCents(p.amount)!])),
-      refunds: (refs.data ?? []).filter((r: any) => okPay.has(r.payment_id)).map((r: any) => ({ id: r.id, payment_id: r.payment_id, cents: toCents(r.amount)!, date: r.refunded_on })) });
+      refunds: (allRefs.data ?? []).filter((r: any) => okPay.has(r.payment_id)).map((r: any) => ({ id: r.id, payment_id: r.payment_id, cents: toCents(r.amount)!, date: r.refunded_on })) });
   }
   return { paidC: net.netC, grossC: net.grossC, refundC: net.refundC, lines: net.lines, remainC, unknown, gapC: (toCents(b.amount) ?? 0) - net.netC - remainC };
 }
