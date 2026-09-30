@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useListContext } from "@/lib/navigation/listContext";
 import { MATERIAL_TYPES } from "@/lib/questionnaire-data";
 import { colorForMaterials } from "@/lib/material-colors";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
@@ -177,6 +179,19 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
     { id: string; label: string; lat: number; lng: number; from: { lat: number; lng: number } } | null
   >(null);
 
+  // NAV-01B : centre, zoom, fiche sélectionnée et rayon gardés par le mécanisme commun (compte + écran), jamais dans l'adresse.
+  const { user } = useAuthReady();
+  type MapCtx = { c?: { lat: number; lng: number }; z?: number; sel?: string | null; rc?: { lat: number; lng: number } | null; rk?: number };
+  const [mctx, setMctx, mReady] = useListContext<MapCtx>(user ? { owner: user.id, company: null, list: "carte-crm" } : null, {});
+  const mctxRef = useRef(mctx); mctxRef.current = mctx;
+  const setMctxRef = useRef(setMctx); setMctxRef.current = setMctx;
+  const radiusRestored = useRef(false);
+  useEffect(() => {
+    if (!mReady || radiusRestored.current) return; radiusRestored.current = true;
+    if (mctx.rc) { setCenter(mctx.rc); setRadiusMode(true); if (mctx.rk) setRadiusKm(mctx.rk); }
+  }, [mReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (radiusRestored.current) setMctx({ rc: center, rk: radiusKm }); }, [center, radiusKm]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const geoSubs = submissions.filter(
     (s) =>
       s.latitude &&
@@ -186,7 +201,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
   );
 
   useEffect(() => {
-    if (!containerRef.current || geoSubs.length === 0) return;
+    if (!containerRef.current || geoSubs.length === 0 || !mReady) return;
     let cancelled = false;
 
     loadGoogleMaps()
@@ -202,6 +217,13 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
             gestureHandling: "greedy",
           });
           infoRef.current = new g.maps.InfoWindow();
+          const v = mctxRef.current;
+          if (v.c && v.z) { mapRef.current.setCenter(v.c); mapRef.current.setZoom(v.z); (mapRef.current as any).__restored = true; }
+          mapRef.current.addListener("idle", () => {
+            const c = mapRef.current!.getCenter(); const z = mapRef.current!.getZoom();
+            if (c && z) setMctxRef.current({ c: { lat: c.lat(), lng: c.lng() }, z });
+          });
+          infoRef.current.addListener("closeclick", () => setMctxRef.current({ sel: null }));
         }
         // Clear existing markers
         markersRef.current.forEach((m) => m.setMap(null));
@@ -226,6 +248,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
           marker.addListener("click", () => {
             infoRef.current?.setContent(buildPopup(sub, leadStatuses));
             infoRef.current?.open({ anchor: marker, map: mapRef.current! });
+            setMctxRef.current({ sel: sub.id });
           });
           if (onMove) {
             marker.addListener("dragend", () => {
@@ -244,7 +267,10 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
           bounds.extend(pos);
         });
 
-        if (markersRef.current.size > 0 && !center) {
+        const selId = mctxRef.current.sel; const selM = selId ? markersRef.current.get(selId) : undefined;
+        const selSub = selId ? geoSubs.find((x) => x.id === selId) : undefined;
+        if (selM && selSub && !(infoRef.current as any)?.getMap?.()) { infoRef.current?.setContent(buildPopup(selSub, leadStatuses)); infoRef.current?.open({ anchor: selM, map: mapRef.current!, shouldFocus: false }); }
+        if (markersRef.current.size > 0 && !center && !(mapRef.current as any).__restored) {
           mapRef.current!.fitBounds(bounds, 50);
           if (markersRef.current.size === 1) {
             mapRef.current!.setZoom(13);
@@ -286,7 +312,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
       });
 
     return () => { cancelled = true; };
-  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}:${s.availability_status || ""}`).join(","), leadStatuses?.map((s) => s.value).join(","), editMode]);
+  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}:${s.availability_status || ""}`).join(","), leadStatuses?.map((s) => s.value).join(","), editMode, mReady]);
 
   const confirmMove = () => {
     if (!pendingMove) return;

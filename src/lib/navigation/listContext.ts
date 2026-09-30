@@ -3,6 +3,7 @@
 // jamais dans l'adresse (aucune recherche personnelle dans l'URL, aucune entrée d'historique à la frappe).
 // Clé séparée par compte, entreprise et liste : un autre compte ou une autre entreprise ne retrouve rien.
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 export type ListCtxId = { owner: string; company: string | null; list: string };
 
@@ -63,4 +64,19 @@ export function useListScroll(id: ListCtxId | null, ready: boolean, paused = fal
     };
     requestAnimationFrame(tick);
   }, [key, ready]);
+}
+
+/**
+ * Raccourci pour un écran : contexte (compte courant + entreprise + écran) et défilement.
+ * `dataReady` = liste affichée (le défilement n'est rétabli qu'une fois les lignes présentes).
+ */
+export function useScreenContext<T extends object>(list: string, initial: T, opts: { company?: string | null; dataReady?: boolean } = {}) {
+  const { user } = useAuthReady();
+  const id = user ? { owner: user.id, company: opts.company ?? null, list } : null;
+  const [v, set, ready] = useListContext<T>(id, initial);
+  useListScroll(id, ready && opts.dataReady !== false);
+  /** Setter par champ, à brancher à la place d'un `useState` existant. */
+  const field = <K extends keyof T>(k: K) => (x: T[K] | ((p: T[K]) => T[K])) =>
+    set((p) => ({ ...p, [k]: typeof x === "function" ? (x as (y: T[K]) => T[K])(p[k]) : x }));
+  return { v, set, field, ready };
 }

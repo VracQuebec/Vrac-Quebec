@@ -5,6 +5,7 @@
 // Les commissions conservent une copie figée de la règle appliquée :
 // modifier une règle ne change jamais un contrat déjà attribué.
 // ============================================================
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Coins, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
@@ -54,7 +55,11 @@ export default function AdminMarketplaceCommissions() {
   const { isAdmin, loading: roleLoading } = useUserRoles();
   const { toast } = useToast();
 
-  const [onglet, setOnglet] = useState<"regles" | "revenus">("regles");
+
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+
+  const __lc = useScreenContext("marche-commissions", { onglet: ("regles") as "regles" | "revenus", filtre: ("toutes") });
+  const onglet = __lc.v.onglet; const setOnglet = __lc.field("onglet");
   const [rules, setRules] = useState<PricingRule[]>([]);
   const [commissions, setCommissions] = useState<CommissionRow[]>([]);
   const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
@@ -62,7 +67,7 @@ export default function AdminMarketplaceCommissions() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [filtre, setFiltre] = useState("toutes");
+  const filtre = __lc.v.filtre; const setFiltre = __lc.field("filtre");
   // NAV-01B : préparation de la règle conservée (Annuler, Retour, actualisation, reprise); rien n'est enregistré sans « Enregistrer ».
   const ed = useEditorDraft<Draft>({ form: "marche-regle-tarifaire", value: draft, setValue: setDraft, label: (d) => `Règle tarifaire — ${d.label || "sans nom"}`, route: "/admin/marche/commissions" });
 

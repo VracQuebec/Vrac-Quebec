@@ -7,6 +7,7 @@
 // Lecture seule : aucune demande, adresse ou page SEO n'est
 // modifiée depuis cette page.
 // ============================================================
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -50,10 +51,14 @@ export default function AdminTerritories() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [region, setRegion] = useState("all");
-  const [service, setService] = useState("all");
-  const [status, setStatus] = useState("all");
+
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+
+  const __lc = useScreenContext("territoires", { search: (""), region: ("all"), service: ("all"), status: ("all") });
+  const search = __lc.v.search; const setSearch = __lc.field("search");
+  const region = __lc.v.region; const setRegion = __lc.field("region");
+  const service = __lc.v.service; const setService = __lc.field("service");
+  const status = __lc.v.status; const setStatus = __lc.field("status");
 
   const [selected, setSelected] = useState<Territory | null>(null);
   const [detail, setDetail] = useState<TerritoryDetail | null>(null);

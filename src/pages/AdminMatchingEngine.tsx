@@ -6,6 +6,7 @@
 // modification de demande, de statut, de disponibilité ou de capacité,
 // aucune communication automatique. Matching public : INACTIF.
 // ============================================================
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Brain, Loader2, Map as MapIcon, Play, TriangleAlert } from "lucide-react";
@@ -59,7 +60,11 @@ export default function AdminMatchingEngine() {
   const { isReady: ready } = useAuthReady();
   const { isAdmin, loading: rolesLoading } = useUserRoles();
 
-  const [tab, setTab] = useState<Tab>("offre");
+
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+
+  const __lc = useScreenContext("jumelage-moteur", { tab: ("offre") as Tab });
+  const tab = __lc.v.tab; const setTab = __lc.field("tab");
   const [text, setText] = useState(EXAMPLE_OFFER);
   const [lat, setLat] = useState("46.81");
   const [lng, setLng] = useState("-71.21");

@@ -1,5 +1,6 @@
 // Vrac Québec OS — Back Office administrateur (ERP).
 // Tout est configurable ici : aucune valeur ne doit être modifiée en base.
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -53,7 +54,9 @@ export default function AdminJsc() {
   const [reloadKey, setReloadKey] = useState(0);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
-  const [view, setView] = useState<"kanban" | "table">("kanban");
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+  const __lc = useScreenContext("crm-admin", { view: ("kanban") as "kanban" | "table" }, { company: companyId });
+  const view = __lc.v.view; const setView = __lc.field("view");
   const [mode, setMode] = useState<"test" | "production">("test");
 
   useEffect(() => {

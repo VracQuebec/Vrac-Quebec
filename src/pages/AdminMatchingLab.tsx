@@ -5,6 +5,7 @@
 // statut CRM, de disponibilité, de capacité, ni d'envoi de courriel/SMS.
 // Le matching public reste INACTIF (matching_v2_enabled_public = false).
 // ============================================================
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, FlaskConical, Loader2, Search, TriangleAlert } from "lucide-react";
@@ -49,7 +50,9 @@ export default function AdminMatchingLab() {
   const [results, setResults] = useState<MatchResult[]>([]);
   const [vehicles, setVehicles] = useState<Record<string, VehicleProfileLite>>({});
   const [publicFlag, setPublicFlag] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"recherche" | "assistant" | "interpreteur">("recherche");
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+  const __lc = useScreenContext("jumelage-labo", { tab: ("recherche") as "recherche" | "assistant" | "interpreteur" });
+  const tab = __lc.v.tab; const setTab = __lc.field("tab");
 
   useEffect(() => {
     if (!ready || !isAdmin) return;

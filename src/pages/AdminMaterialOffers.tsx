@@ -6,6 +6,7 @@
 // d'une offre est un geste humain explicite, protégé par le drapeau
 // `material_offers_v1` (FAUX en production).
 // ============================================================
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Loader2, PackageSearch } from "lucide-react";
@@ -188,6 +189,8 @@ function OfferDetail({ offer, targets }: { offer: MaterialOffer; targets: Reques
 }
 
 export default function AdminMaterialOffers() {
+  // NAV-01B : pas de recherche/filtre/tri sur cet écran; seul le défilement est gardé (mécanisme commun).
+  useScreenContext("offres-materiaux", {});
   const { isReady } = useAuthReady();
   const { isAdmin, loading: rolesLoading } = useUserRoles();
   const [offers, setOffers] = useState<MaterialOffer[] | null>(null);

@@ -1,5 +1,6 @@
 // TAXONOMIE DES SERVICES — administration de la place de marché.
 // Catégorie → sous-catégorie → service : renommer, trier, activer/désactiver, ajouter.
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDraft } from "@/lib/drafts/useDraft";
@@ -45,7 +46,9 @@ export default function AdminMarketplaceCategories() {
   const [rows, setRows] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<Record<string, boolean>>({});
-  const [search, setSearch] = useState("");
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+  const __lc = useScreenContext("marche-categories", { search: ("") });
+  const search = __lc.v.search; const setSearch = __lc.field("search");
   const [saving, setSaving] = useState(false);
   // NAV-01B : modifications non enregistrées par catégorie + ajout en préparation (remplace la question native).
   // Rien n'est écrit au serveur avant le bouton d'enregistrement de la ligne ou « Ajouter ».

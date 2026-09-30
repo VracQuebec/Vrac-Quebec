@@ -132,3 +132,4 @@
 - [ ] Jumelage (réglages enregistrés immédiatement — inchangés; recherche non conservée), référencement, territoires, CRM admin, plateforme, offres de matériaux
 - [ ] Listes Finances et flotte : contexte (recherche, filtres, tri, pagination, position), cartes
 - [x] NAV-01B listes Finances/flotte : contexte commun (lib/navigation/listContext)
+- [x] NAV-01B listes admin + carte CRM : contexte commun (useScreenContext); sélection carte non essayée

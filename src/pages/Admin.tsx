@@ -1,3 +1,4 @@
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { neutralizeSpreadsheetCell } from "@/lib/security/filters";
@@ -195,10 +196,12 @@ const Admin = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [view, setView] = useState<"list" | "map" | "today">("list");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterType, setFilterType] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+  const __lc = useScreenContext("crm-demandes", { view: ("list") as "list" | "map" | "today", filterStatus: ("all") as string, filterType: ("all") as string, searchQuery: ("") as string, filterSource: ("all") as string, showArchivedOnMap: (false), tab: ("leads") as "leads" | "billing" | "entrepreneurs", filterTrips: ("all") as string, filterPriority: ("all") as string, filterAssigned: ("all") as string, filterMaterial: ("all") as string, filterDateFrom: ("") as string, filterDateTo: ("") as string }, { dataReady: !loading });
+  const view = __lc.v.view; const setView = __lc.field("view");
+  const filterStatus = __lc.v.filterStatus; const setFilterStatus = __lc.field("filterStatus");
+  const filterType = __lc.v.filterType; const setFilterType = __lc.field("filterType");
+  const searchQuery = __lc.v.searchQuery; const setSearchQuery = __lc.field("searchQuery");
   const [showUsers, setShowUsers] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showSheetImport, setShowSheetImport] = useState(false);
@@ -210,16 +213,16 @@ const Admin = () => {
   // Sur téléphone, les actions secondaires sont regroupées sous un bouton
   // « Toutes les actions » : rien n'est retiré, tout reste accessible.
   const [actionsOpen, setActionsOpen] = useState(false);
-  const [filterSource, setFilterSource] = useState<string>("all");
-  const [showArchivedOnMap, setShowArchivedOnMap] = useState(false);
-  const [tab, setTab] = useState<"leads" | "billing" | "entrepreneurs">("leads");
-  const [filterTrips, setFilterTrips] = useState<string>("all");
+  const filterSource = __lc.v.filterSource; const setFilterSource = __lc.field("filterSource");
+  const showArchivedOnMap = __lc.v.showArchivedOnMap; const setShowArchivedOnMap = __lc.field("showArchivedOnMap");
+  const tab = __lc.v.tab; const setTab = __lc.field("tab");
+  const filterTrips = __lc.v.filterTrips; const setFilterTrips = __lc.field("filterTrips");
   
-  const [filterPriority, setFilterPriority] = useState<string>("all");
-  const [filterAssigned, setFilterAssigned] = useState<string>("all");
-  const [filterMaterial, setFilterMaterial] = useState<string>("all");
-  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
-  const [filterDateTo, setFilterDateTo] = useState<string>("");
+  const filterPriority = __lc.v.filterPriority; const setFilterPriority = __lc.field("filterPriority");
+  const filterAssigned = __lc.v.filterAssigned; const setFilterAssigned = __lc.field("filterAssigned");
+  const filterMaterial = __lc.v.filterMaterial; const setFilterMaterial = __lc.field("filterMaterial");
+  const filterDateFrom = __lc.v.filterDateFrom; const setFilterDateFrom = __lc.field("filterDateFrom");
+  const filterDateTo = __lc.v.filterDateTo; const setFilterDateTo = __lc.field("filterDateTo");
   const [entrepreneursList, setEntrepreneursList] = useState<{ user_id: string; email: string }[]>([]);
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
   const overdueNotifiedRef = useRef(false);

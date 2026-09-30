@@ -4,6 +4,7 @@
 // et comparer les stratégies d'attribution (lot par lot, regroupements,
 // projet complet).
 // ============================================================
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Layers, Loader2, Plus, RefreshCw, Trash2, Wand2 } from "lucide-react";
@@ -61,7 +62,9 @@ export default function AdminMarketplaceLots() {
 
   const [requests, setRequests] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+  const __lc = useScreenContext("marche-lots", { search: ("") });
+  const search = __lc.v.search; const setSearch = __lc.field("search");
   const [selected, setSelected] = useState<QuoteRequest | null>(null);
   const [lots, setLots] = useState<RequestLot[]>([]);
   const [bids, setBids] = useState<LotBid[]>([]);
