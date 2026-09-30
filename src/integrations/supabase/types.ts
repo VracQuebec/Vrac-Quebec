@@ -4317,6 +4317,271 @@ export type Database = {
           },
         ]
       }
+      fin_reminder_deliveries: {
+        Row: {
+          attempts: number
+          channel: string
+          company_id: string
+          created_at: string
+          history: Json
+          id: string
+          last_error: string | null
+          next_attempt_at: string | null
+          read_at: string | null
+          reminder_id: string
+          sent_at: string | null
+          state: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          channel: string
+          company_id: string
+          created_at?: string
+          history?: Json
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string | null
+          read_at?: string | null
+          reminder_id: string
+          sent_at?: string | null
+          state?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          channel?: string
+          company_id?: string
+          created_at?: string
+          history?: Json
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string | null
+          read_at?: string | null
+          reminder_id?: string
+          sent_at?: string | null
+          state?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_reminder_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_reminder_deliveries_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: false
+            referencedRelation: "fin_reminders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_reminder_overrides: {
+        Row: {
+          company_id: string
+          muted: boolean
+          obligation_id: string
+          stages: number[] | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          muted?: boolean
+          obligation_id: string
+          stages?: number[] | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          muted?: boolean
+          obligation_id?: string
+          stages?: number[] | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_reminder_overrides_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_reminder_overrides_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: true
+            referencedRelation: "fin_obligations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_reminder_settings: {
+        Row: {
+          cash_alert: boolean
+          cash_horizon_days: number
+          cash_threshold: number
+          channels: string[]
+          company_id: string
+          digest: string
+          missing_docs: boolean
+          overdue_every_days: number
+          quiet_end: number
+          quiet_start: number
+          recipients: string[] | null
+          renewal_days: number
+          stages: number[]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cash_alert?: boolean
+          cash_horizon_days?: number
+          cash_threshold?: number
+          channels?: string[]
+          company_id: string
+          digest?: string
+          missing_docs?: boolean
+          overdue_every_days?: number
+          quiet_end?: number
+          quiet_start?: number
+          recipients?: string[] | null
+          renewal_days?: number
+          stages?: number[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cash_alert?: boolean
+          cash_horizon_days?: number
+          cash_threshold?: number
+          channels?: string[]
+          company_id?: string
+          digest?: string
+          missing_docs?: boolean
+          overdue_every_days?: number
+          quiet_end?: number
+          quiet_start?: number
+          recipients?: string[] | null
+          renewal_days?: number
+          stages?: number[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_reminder_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_reminders: {
+        Row: {
+          amount_known: number | null
+          company_id: string
+          created_at: string
+          dedupe_key: string
+          event_date: string
+          history: Json
+          id: string
+          kind: string
+          meta: Json
+          obligation_id: string | null
+          occurrence_id: string | null
+          payment_id: string | null
+          reason: string
+          remaining: number | null
+          resolved_at: string | null
+          resolved_reason: string | null
+          snoozed_until: string | null
+          stage: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_known?: number | null
+          company_id: string
+          created_at?: string
+          dedupe_key: string
+          event_date: string
+          history?: Json
+          id?: string
+          kind: string
+          meta?: Json
+          obligation_id?: string | null
+          occurrence_id?: string | null
+          payment_id?: string | null
+          reason: string
+          remaining?: number | null
+          resolved_at?: string | null
+          resolved_reason?: string | null
+          snoozed_until?: string | null
+          stage: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_known?: number | null
+          company_id?: string
+          created_at?: string
+          dedupe_key?: string
+          event_date?: string
+          history?: Json
+          id?: string
+          kind?: string
+          meta?: Json
+          obligation_id?: string | null
+          occurrence_id?: string | null
+          payment_id?: string | null
+          reason?: string
+          remaining?: number | null
+          resolved_at?: string | null
+          resolved_reason?: string | null
+          snoozed_until?: string | null
+          stage?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_reminders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_reminders_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "fin_obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_reminders_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "fin_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_reminders_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "fin_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_reserves: {
         Row: {
           archived_at: string | null
@@ -22006,6 +22271,10 @@ export type Database = {
         Returns: undefined
       }
       fin_confirm_unsettled: { Args: { _occ: string }; Returns: undefined }
+      fin_digest_at: {
+        Args: { _digest: string; _now: string }
+        Returns: string
+      }
       fin_edit_amount: {
         Args: {
           _amount: number
@@ -22079,6 +22348,10 @@ export type Database = {
           _reason: string
         }
         Returns: undefined
+      }
+      fin_member_can_read: {
+        Args: { _company: string; _user: string }
+        Returns: boolean
       }
       fin_month_date: {
         Args: { _anchor: string; _day: number; _k: number }
@@ -22164,6 +22437,10 @@ export type Database = {
         Args: { _company: string; _from: string; _p: Json; _to: string }
         Returns: Json
       }
+      fin_quiet_until: {
+        Args: { _now: string; _qe: number; _qs: number }
+        Returns: string
+      }
       fin_refund_add: {
         Args: {
           _amount: number
@@ -22177,6 +22454,49 @@ export type Database = {
       fin_refund_void: {
         Args: { _reason: string; _refund: string }
         Returns: undefined
+      }
+      fin_rem_resolve: {
+        Args: { _id: string; _why: string }
+        Returns: undefined
+      }
+      fin_rem_upsert: {
+        Args: {
+          _amount: number
+          _company: string
+          _date: string
+          _key: string
+          _kind: string
+          _meta: Json
+          _obl: string
+          _occ: string
+          _pay: string
+          _reason: string
+          _remaining: number
+          _stage: string
+          _status: string
+        }
+        Returns: undefined
+      }
+      fin_reminder_mark_read: {
+        Args: { _reminder: string }
+        Returns: undefined
+      }
+      fin_reminder_override_save: {
+        Args: { _muted: boolean; _obligation: string; _stages: number[] }
+        Returns: undefined
+      }
+      fin_reminder_prefs_save: {
+        Args: { _company: string; _p: Json }
+        Returns: undefined
+      }
+      fin_reminder_snooze: {
+        Args: { _reminder: string; _until: string }
+        Returns: undefined
+      }
+      fin_reminders_run: { Args: { _company: string }; Returns: Json }
+      fin_reminders_sweep: {
+        Args: { _company?: string; _now?: string }
+        Returns: Json
       }
       fin_reschedule: {
         Args: { _occ: string; _planned: string }
