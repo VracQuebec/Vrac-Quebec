@@ -1,0 +1,3 @@
+- Finances : écritures via RPC fin_* SECURITY DEFINER ; un seul moteur fin_gen_dates (aperçu/calendrier/totaux), unicité (obligation, occ_key, suffixe @gN après changement de règle) ; conflit rev = ERRCODE P0409 (jamais 40001) — sans doublon ni boucle API.
+- FIN-04 : recherche Finances = contrat unique (lib/finances/query.ts → fin_select / fin_pay_select) pour écran, totaux et CSV; vues dans fin_saved_views (RLS fin_can_*) — aucune divergence entre écran et export.
+- FIN-05 : trésorerie calculée côté client par un moteur pur (src/lib/finances/treasury.ts) sur les données lues sous RLS; scénarios = copies en mémoire, jamais d'écriture sur obligations/règlements — une seule logique testable.
