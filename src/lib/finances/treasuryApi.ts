@@ -2,7 +2,7 @@
 // Aucune écriture sur les obligations ni les règlements.
 import { supabase } from "@/integrations/supabase/client";
 import * as api from "./api";
-import { toCents, type Account, type Balance, type Movement, type Reserve } from "./treasury";
+import { netPaid, toCents, type Account, type Balance, type Movement, type Reserve } from "./treasury";
 import { addDays } from "./period";
 
 const db = supabase as any;
@@ -35,7 +35,7 @@ async function allOcc(c: string, from: string, to: string, f: api.Filters = {}) 
 
 /** Construit les mouvements réels (base de toute prévision et de tout scénario). */
 export async function loadTreasury(c: string, from: string, to: string) {
-  const [acc, bal, inf, trf, res] = await Promise.all([accounts(c), balances(c), inflows(c), transfers(c), reserves(c)]);
+  const [acc, bal, inf, trf, res, oa] = await Promise.all([accounts(c), balances(c), inflows(c), transfers(c), reserves(c), obligationAccounts(c)]);
   const oldest = bal.map((b) => b.as_of).sort()[0] ?? from;
   const [occ, pays, refs] = await Promise.all([
     allOcc(c, addDays(from, -730), to),
@@ -48,24 +48,53 @@ export async function loadTreasury(c: string, from: string, to: string) {
     if (o.status !== "active" || ["reglee", "aucun", "annulee"].includes(o.settle)) continue;
     const rest = o.amount == null ? null : toCents(o.balance ?? o.amount);
     if (rest !== null && rest <= 0) continue; // paiement partiel : seul le reste dû est prévu
-    moves.push({ id: `o:${o.id}`, ref: o.id, date: o.planned_date, cents: rest, dir: "out", kind: o.planned_date < from ? "late" : "occurrence", label: o.label, obligation_id: o.obligation_id, category: o.category });
+    const account_id = oa[o.obligation_id] ?? null; // sans compte prévu : « Non affecté », compté dans la prévision globale seulement
+    moves.push({ id: `o:${o.id}`, ref: o.id, date: o.planned_date, cents: rest, dir: "out", kind: o.planned_date < from ? "late" : "occurrence", label: o.label, obligation_id: o.obligation_id, category: o.category, account_id, unassigned: !account_id });
   }
-  for (const p of pays.data ?? []) moves.push({ id: `p:${p.id}`, ref: p.id, date: p.paid_on, cents: toCents(p.amount), dir: "out", kind: "payment", label: `Règlement déclaré — ${p.payee_name ?? ""}` });
+  for (const p of pays.data ?? []) moves.push({ id: `p:${p.id}`, ref: p.id, date: p.paid_on, cents: toCents(p.amount), dir: "out", kind: "payment", label: `Règlement déclaré — ${p.payee_name ?? ""}${p.method === "carte" ? " (carte)" : ""}`, via_card: p.method === "carte" });
   for (const r of refs.data ?? []) moves.push({ id: `r:${r.id}`, ref: r.id, date: r.refunded_on, cents: toCents(r.amount), dir: "in", kind: "refund", label: `Remboursement reçu${r.reason ? ` — ${r.reason}` : ""}` });
   for (const i of inf) {
     const left = Math.max(0, (toCents(i.amount) ?? 0) - (toCents(i.received) ?? 0)); // encaissement déclaré : réduit l'entrée attendue
     if (left > 0 && i.kind !== "credit") moves.push({ id: `i:${i.id}`, ref: i.id, date: i.expected_on, cents: left, dir: "in", kind: "inflow", label: `${i.counterparty} (${i.certainty})`, account_id: i.account_id, certainty: i.certainty, currency: (acc.find((a) => a.id === i.account_id)?.currency) ?? "CAD" });
   }
   for (const t of trf) moves.push({ id: `t:${t.id}`, ref: t.id, date: t.planned_on, cents: toCents(t.amount), dir: "out", kind: "transfer", label: "Transfert entre comptes", account_id: t.from_account, transfer_to: t.to_account });
-  return { accounts: acc, balances: bal, inflows: inf, transfers: trf, reserves: res.map((r) => ({ ...r, target: Number(r.target), reserved: Number(r.reserved) })), moves };
+  return { obligationAccounts: oa, accounts: acc, balances: bal, inflows: inf, transfers: trf, reserves: res.map((r) => ({ ...r, target: Number(r.target), reserved: Number(r.reserved) })), moves };
 }
 
-/** Budget : paiements déclarés (nets) + engagements restants sur la période, jamais de paiement créé. */
+export async function obligationAccounts(c: string) {
+  const { data, error } = await db.from("fin_obligation_accounts").select("obligation_id,account_id").eq("company_id", c).is("archived_at", null); err(error);
+  return Object.fromEntries((data ?? []).filter((r: any) => r.account_id).map((r: any) => [r.obligation_id, r.account_id])) as Record<string, string>;
+}
+export async function setObligationAccount(c: string, obligation_id: string, account_id: string | null) {
+  const { error } = await db.from("fin_obligation_accounts").upsert({ obligation_id, company_id: c, account_id, updated_at: new Date().toISOString() }, { onConflict: "obligation_id" }); err(error);
+}
+
+/** Budget (FIN-05B) : versements affectés − remboursements reçus (dates), + engagements restants. Même résultat pour écran, détail et export. */
 export async function budgetActuals(c: string, b: Budget) {
   const rows = await allOcc(c, b.period_from, b.period_to, { category_id: b.category_id ?? undefined, truck_id: b.truck_id ?? undefined, project_id: b.project_id ?? undefined });
   const act = rows.filter((r) => r.status === "active");
-  const paidC = act.reduce((s, r) => s + (toCents(r.paid ?? 0) ?? 0), 0);
   const remainC = act.reduce((s, r) => s + Math.max(0, toCents(r.balance ?? r.amount ?? 0) ?? 0), 0);
   const unknown = act.filter((r) => r.amount == null).length;
-  return { paidC, remainC, unknown, gapC: (toCents(b.amount) ?? 0) - paidC - remainC };
+  // Affectations actives (réaffectations annulées exclues) et remboursements non annulés de la période.
+  const [inPer, refs] = await Promise.all([
+    db.from("fin_allocations").select("payment_id").eq("company_id", c).is("reversed_at", null).gte("allocated_on", b.period_from).lte("allocated_on", b.period_to).limit(5000),
+    db.from("fin_refunds").select("id,payment_id,amount,refunded_on").eq("company_id", c).is("voided_at", null).gte("refunded_on", b.period_from).lte("refunded_on", b.period_to).limit(5000),
+  ]);
+  err(inPer.error); err(refs.error);
+  const pids = [...new Set([...(inPer.data ?? []), ...(refs.data ?? [])].map((r: any) => r.payment_id))];
+  let net = { grossC: 0, refundC: 0, netC: 0, lines: [] as ReturnType<typeof netPaid>["lines"] };
+  if (pids.length) {
+    const [al, pays] = await Promise.all([
+      db.from("fin_allocations").select("payment_id,amount,allocated_on,occurrence_id,fin_occurrences(obligation_id,fin_obligations(category_id,truck_id,project_id))").eq("company_id", c).is("reversed_at", null).in("payment_id", pids).limit(10000),
+      db.from("fin_payments").select("id,amount,status").eq("company_id", c).in("id", pids),
+    ]);
+    err(al.error); err(pays.error);
+    const okPay = new Set((pays.data ?? []).filter((p: any) => p.status === "validated").map((p: any) => p.id));
+    const match = (o: any) => !!o && (!b.category_id || o.category_id === b.category_id) && (!b.truck_id || o.truck_id === b.truck_id) && (!b.project_id || o.project_id === b.project_id);
+    net = netPaid({ from: b.period_from, to: b.period_to,
+      allocs: (al.data ?? []).filter((a: any) => okPay.has(a.payment_id)).map((a: any) => ({ payment_id: a.payment_id, cents: toCents(a.amount)!, date: a.allocated_on, match: match(a.fin_occurrences?.fin_obligations) })),
+      payments: Object.fromEntries((pays.data ?? []).map((p: any) => [p.id, toCents(p.amount)!])),
+      refunds: (refs.data ?? []).filter((r: any) => okPay.has(r.payment_id)).map((r: any) => ({ id: r.id, payment_id: r.payment_id, cents: toCents(r.amount)!, date: r.refunded_on })) });
+  }
+  return { paidC: net.netC, grossC: net.grossC, refundC: net.refundC, lines: net.lines, remainC, unknown, gapC: (toCents(b.amount) ?? 0) - net.netC - remainC };
 }
