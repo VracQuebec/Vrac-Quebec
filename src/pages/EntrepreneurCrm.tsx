@@ -399,13 +399,17 @@ function LeadDialog({ lead, companyId, clients, onClose, onSaved }: any) {
 function Clients({ companyId, canWrite, params, setParams }: any) {
   // Recherche gardée dans l'adresse (?cq=) : conservée après Retour et actualisation.
   const q = params.get("cq") ?? ""; const setQ = (v: string) => { const n = new URLSearchParams(params); v ? n.set("cq", v) : n.delete("cq"); setParams(n, { replace: true }); };
-  const [rows, setRows] = useState<any[]>([]); const [open, setOpen] = useState<any>(null);
+  const [rows, setRows] = useState<any[]>([]);
   const load = useCallback(async () => setRows((await db.from("ent_crm_clients").select("*, ent_crm_contacts(*), ent_crm_projects(id,name), ent_crm_leads(id,title,stage)").eq("company_id", companyId).is("archived_at", null).order("name")).data ?? []), [companyId]);
   useEffect(() => { void load(); }, [load]);
-  const add = async () => { const name = prompt("Nom du client ?"); if (!name) return; const kind = prompt("Type : particulier, entreprise ou organisme", "particulier") || "particulier";
-    const { error } = await db.from("ent_crm_clients").insert({ company_id: companyId, name, kind }); error ? toast({ title: "Refusé", description: error.message, variant: "destructive" }) : load(); };
-  const addContact = async (c: any) => { const name = prompt("Nom du contact ?"); if (!name) return; const phone = prompt("Téléphone ?") || null; const email = prompt("Courriel ?") || null;
-    const { error } = await db.from("ent_crm_contacts").insert({ company_id: companyId, client_id: c.id, name, phone, email }); error ? toast({ title: "Refusé", description: error.message }) : load(); };
+  // Fiche client et contact : fenêtres contrôlées avec brouillon (plus de question native qui perd la saisie).
+  const openId = params.get("client"); const contactFor = params.get("contact");
+  const setOpenId = (v: string | null, key = "client") => { const n = new URLSearchParams(params); v ? n.set(key, v) : n.delete(key); setParams(n); };
+  const open = openId === "nouveau" ? { kind: "particulier" } : rows.find((r) => r.id === openId) ?? null;
+  const contactClient = rows.find((r) => r.id === contactFor) ?? null;
+  const add = () => setOpenId("nouveau");
+  const addContact = (c: any) => setOpenId(c.id, "contact");
+  const setOpen = (c: any) => setOpenId(c ? c.id : null);
   const [jsc, setJsc] = useState<any[] | null>(null); const [refs, setRefs] = useState<Record<string, any>>({});
   useEffect(() => { rows.filter((r) => r.jsc_client_id && !refs[r.id]).forEach((r) => db.rpc("entcrm_jsc_client_refs", { _client_id: r.id }).then(({ data }: any) => setRefs((x) => ({ ...x, [r.id]: data })))); }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
   const openJsc = async () => { const { data, error } = await db.rpc("entcrm_jsc_candidates", { _company_id: companyId }); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" }); setJsc(data ?? []); };
@@ -427,13 +431,74 @@ function Clients({ companyId, canWrite, params, setParams }: any) {
       {canWrite && <div className="mt-2 flex flex-wrap gap-1"><Button size="sm" variant="outline" onClick={() => addContact(c)}>+ Contact</Button><Button size="sm" variant="outline" onClick={async () => { const title = prompt("Nouvelle opportunité ?"); if (!title) return; const { error } = await db.from("ent_crm_leads").insert({ company_id: companyId, client_id: c.id, title, contact_name: c.name, contact_value: c.phone || c.email, source: "autre" }); if (error) toast({ title: "Refusé", description: error.message }); load(); }}>+ Opportunité</Button><Button size="sm" variant="outline" onClick={() => setOpen(c)}>Modifier</Button><Button size="sm" variant="ghost" onClick={() => archive(c)}>Archiver</Button></div>}
       <FilesBtn t="client" id={c.id} />
     </div>)}</div>
-    {open && <Dialog open onOpenChange={() => setOpen(null)}><DialogContent><DialogHeader><DialogTitle>{open.name}</DialogTitle></DialogHeader>
-      {open.jsc_client_id && <p className="rounded border border-border bg-muted p-2 text-xs">Les champs marqués « Synchronisé depuis Transport JSC » (nom, téléphone, courriel, adresse, ville, type de client) viennent du dossier client Transport JSC, source d'autorité. Ils ne sont pas modifiables ici : toute correction se fait dans le dossier Transport JSC et s'applique automatiquement. Seules les notes internes sont enregistrées depuis cette fiche.</p>}
-      {([["name", "Nom"], ["phone", "Téléphone"], ["email", "Courriel"], ["address", "Adresse"], ["city", "Ville"]] as const).map(([k, l]) => <label key={k} className="block text-xs"><span className="flex items-center gap-1">{l}{open.jsc_client_id && <span className="rounded bg-muted px-1">Synchronisé depuis Transport JSC</span>}</span><Input readOnly={!!open.jsc_client_id} disabled={!!open.jsc_client_id} aria-label={l} value={open[k] ?? ""} onChange={(e) => setOpen({ ...open, [k]: e.target.value })} /></label>)}
-      <label className="block text-xs">Notes internes<Textarea value={open.notes ?? ""} onChange={(e) => setOpen({ ...open, notes: e.target.value })} /></label>
-      <Button onClick={async () => { const { id, name, phone, email, address, city, notes } = open; const patch = open.jsc_client_id ? { notes, updated_at: new Date().toISOString() } : { name, phone, email, address, city, notes, updated_at: new Date().toISOString() }; const { error } = await db.from("ent_crm_clients").update(patch).eq("id", id); if (error) toast({ title: "Refusé", description: error.message }); else { toast({ title: open.jsc_client_id ? "Notes internes enregistrées" : "Client enregistré" }); setOpen(null); load(); } }}>{open.jsc_client_id ? "Enregistrer les notes" : "Enregistrer"}</Button>
-    </DialogContent></Dialog>}
+    {open && <ClientDialog key={openId} client={open} companyId={companyId} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); load(); }} />}
+    {contactClient && <ContactDialog key={contactFor} client={contactClient} companyId={companyId} onClose={() => setOpenId(null, "contact")} onSaved={() => { setOpenId(null, "contact"); load(); }} />}
   </div>;
+}
+
+const CLIENT_KEYS = ["name", "kind", "phone", "email", "address", "city", "notes"] as const;
+const pickClient = (c: any) => Object.fromEntries(CLIENT_KEYS.map((k) => [k, c[k] ?? ""]));
+function ClientDialog({ client, companyId, onClose, onSaved }: any) {
+  const { user: me } = useAuthReady(); const { canWrite } = useContext(CrmCtx);
+  const [f, setF] = useState<any>(pickClient(client)); const [stale, setStale] = useState<any>(null); const saving = useRef(false);
+  const initial = useMemo(() => JSON.stringify(pickClient(client)), [client.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const locked = !!client.jsc_client_id;
+  const store = useDraft({
+    id: me && canWrite ? { module: "crm", form: "client", owner: me.id, company: companyId, recordId: client.id ?? null } : null,
+    data: { v: f, base: client.updated_at ?? null },
+    label: (d) => `CRM — ${client.id ? "Client" : "Nouveau client"}${d.v.name ? ` « ${d.v.name} »` : ""}`,
+    route: `/entrepreneur/crm?company=${companyId}&tab=clients&client=${client.id ?? "nouveau"}`,
+    isEmpty: (d) => JSON.stringify(d.v) === initial,
+    onRestore: (d) => { if (client.id && d.base && client.updated_at && d.base !== client.updated_at) setStale(d.v); else setF((x: any) => ({ ...x, ...d.v })); },
+  });
+  const set = (k: string, v: string) => { crmDirty = companyId; setF((x: any) => ({ ...x, [k]: v })); };
+  useEffect(() => () => { crmDirty = null; }, []);
+  const save = async () => {
+    if (saving.current) return; if (!f.name?.trim()) return toast({ title: "Nom requis", variant: "destructive" });
+    saving.current = true;
+    try {
+      const now = new Date().toISOString(); const n = (v: string) => (v?.trim() ? v.trim() : null);
+      const patch = locked ? { notes: n(f.notes), updated_at: now } : { name: f.name.trim(), kind: f.kind || "particulier", phone: n(f.phone), email: n(f.email), address: n(f.address), city: n(f.city), notes: n(f.notes), updated_at: now };
+      const { error } = client.id ? await db.from("ent_crm_clients").update(patch).eq("id", client.id) : await db.from("ent_crm_clients").insert({ company_id: companyId, ...patch });
+      if (error) toast({ title: "Refusé — votre saisie est conservée", description: error.message, variant: "destructive" }); else { store.finalize(); toast({ title: locked ? "Notes internes enregistrées" : "Client enregistré" }); onSaved(); }
+    } finally { saving.current = false; }
+  };
+  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>{client.id ? client.name : "Nouveau client"}</DialogTitle></DialogHeader>
+    {canWrite && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setF(pickClient(client)); setStale(null); }} discardConfirm="Abandonner la préparation de ce client ? Les saisies non enregistrées seront effacées; la fiche enregistrée n'est pas modifiée." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+    {stale && <div role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Cette fiche a été modifiée ailleurs depuis votre préparation. L'état actuel est affiché; votre saisie est conservée à part.
+      <div className="mt-1 flex gap-2"><Button size="sm" variant="outline" onClick={() => { setF((x: any) => ({ ...x, ...stale })); setStale(null); }}>Appliquer ma saisie préparée</Button><Button size="sm" variant="ghost" onClick={() => setStale(null)}>Garder l'état actuel</Button></div></div>}
+    {locked && <p className="rounded border border-border bg-muted p-2 text-xs">Les champs marqués « Synchronisé depuis Transport JSC » (nom, téléphone, courriel, adresse, ville, type de client) viennent du dossier client Transport JSC, source d'autorité. Ils ne sont pas modifiables ici : toute correction se fait dans le dossier Transport JSC et s'applique automatiquement. Seules les notes internes sont enregistrées depuis cette fiche.</p>}
+    {([["name", "Nom *"], ["phone", "Téléphone"], ["email", "Courriel"], ["address", "Adresse"], ["city", "Ville"]] as const).map(([k, l]) => <label key={k} className="block text-xs"><span className="flex items-center gap-1">{l}{locked && <span className="rounded bg-muted px-1">Synchronisé depuis Transport JSC</span>}</span><Input readOnly={locked} disabled={locked} aria-label={l} value={f[k] ?? ""} onChange={(e) => set(k, e.target.value)} /></label>)}
+    <label className="block text-xs">Type de client<select aria-label="Type de client" disabled={locked} className={`${sel} w-full`} value={f.kind || "particulier"} onChange={(e) => set("kind", e.target.value)}><option value="particulier">Particulier</option><option value="entreprise">Entreprise</option><option value="organisme">Organisme</option></select></label>
+    <label className="block text-xs">Notes internes<Textarea aria-label="Notes internes" value={f.notes ?? ""} onChange={(e) => set("notes", e.target.value)} /></label>
+    <Button onClick={save}>{locked ? "Enregistrer les notes" : "Enregistrer"}</Button>
+  </DialogContent></Dialog>;
+}
+
+function ContactDialog({ client, companyId, onClose, onSaved }: any) {
+  const { user: me } = useAuthReady(); const { canWrite } = useContext(CrmCtx);
+  const empty = { name: "", phone: "", email: "" }; const [f, setF] = useState<any>(empty); const saving = useRef(false);
+  const store = useDraft({
+    id: me && canWrite ? { module: "crm", form: "contact", owner: me.id, company: companyId, recordId: client.id } : null,
+    data: f, label: (d) => `CRM — Nouveau contact pour « ${client.name} »${d.name ? ` : ${d.name}` : ""}`,
+    route: `/entrepreneur/crm?company=${companyId}&tab=clients&contact=${client.id}`,
+    isEmpty: (d) => !d.name && !d.phone && !d.email, onRestore: (d) => setF({ ...empty, ...d }),
+  });
+  const save = async () => {
+    if (saving.current) return; if (!f.name?.trim()) return toast({ title: "Nom requis", variant: "destructive" });
+    saving.current = true;
+    try {
+      const { error } = await db.from("ent_crm_contacts").insert({ company_id: companyId, client_id: client.id, name: f.name.trim(), phone: f.phone?.trim() || null, email: f.email?.trim() || null });
+      if (error) toast({ title: "Refusé — votre saisie est conservée", description: error.message, variant: "destructive" }); else { store.finalize(); onSaved(); }
+    } finally { saving.current = false; }
+  };
+  return <Dialog open onOpenChange={onClose}><DialogContent><DialogHeader><DialogTitle>Nouveau contact — {client.name}</DialogTitle></DialogHeader>
+    {canWrite && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setF(empty); }} discardConfirm="Abandonner ce contact non enregistré ?" sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+    <Input aria-label="Nom du contact" placeholder="Nom du contact *" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+    <Input aria-label="Téléphone du contact" placeholder="Téléphone" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
+    <Input aria-label="Courriel du contact" placeholder="Courriel" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
+    <Button onClick={save}>Enregistrer le contact</Button>
+  </DialogContent></Dialog>;
 }
 
 function Quotes({ companyId, companyName, canWrite }: any) {
