@@ -4,7 +4,9 @@
 // Aucun paiement réel, aucun abonnement réel, aucune communication.
 // ============================================================
 import { useScreenContext } from "@/lib/navigation/listContext";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEditorDraft } from "@/lib/drafts/useEditorDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
