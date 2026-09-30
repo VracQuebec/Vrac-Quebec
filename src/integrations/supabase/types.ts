@@ -3231,6 +3231,53 @@ export type Database = {
         }
         Relationships: []
       }
+      fin_accounts: {
+        Row: {
+          archived_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          credit_limit: number | null
+          currency: string
+          id: string
+          included: boolean
+          kind: string
+          name: string
+        }
+        Insert: {
+          archived_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          credit_limit?: number | null
+          currency?: string
+          id?: string
+          included?: boolean
+          kind?: string
+          name: string
+        }
+        Update: {
+          archived_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          credit_limit?: number | null
+          currency?: string
+          id?: string
+          included?: boolean
+          kind?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_allocations: {
         Row: {
           allocated_on: string
@@ -3294,6 +3341,125 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "fin_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_balances: {
+        Row: {
+          account_id: string
+          amount: number
+          as_of: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          source: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          as_of: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          source: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          as_of?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_balances_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_balances_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_budgets: {
+        Row: {
+          amount: number
+          archived_at: string | null
+          category_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          period_from: string
+          period_to: string
+          project_id: string | null
+          truck_id: string | null
+        }
+        Insert: {
+          amount: number
+          archived_at?: string | null
+          category_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          period_from: string
+          period_to: string
+          project_id?: string | null
+          truck_id?: string | null
+        }
+        Update: {
+          amount?: number
+          archived_at?: string | null
+          category_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          period_from?: string
+          period_to?: string
+          project_id?: string | null
+          truck_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_budgets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "fin_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_budgets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_budgets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_budgets_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_trucks"
             referencedColumns: ["id"]
           },
         ]
@@ -3409,6 +3575,72 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "fin_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_expected_inflows: {
+        Row: {
+          account_id: string | null
+          amount: number
+          archived_at: string | null
+          certainty: string
+          company_id: string
+          counterparty: string
+          created_at: string
+          created_by: string | null
+          expected_on: string
+          id: string
+          kind: string
+          note: string | null
+          received: number
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          archived_at?: string | null
+          certainty?: string
+          company_id: string
+          counterparty: string
+          created_at?: string
+          created_by?: string | null
+          expected_on: string
+          id?: string
+          kind?: string
+          note?: string | null
+          received?: number
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          archived_at?: string | null
+          certainty?: string
+          company_id?: string
+          counterparty?: string
+          created_at?: string
+          created_by?: string | null
+          expected_on?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          received?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_expected_inflows_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_expected_inflows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -4036,6 +4268,63 @@ export type Database = {
           },
         ]
       }
+      fin_reserves: {
+        Row: {
+          archived_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          name: string
+          obligation_id: string | null
+          reserved: number
+          target: number
+          target_date: string
+        }
+        Insert: {
+          archived_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          name: string
+          obligation_id?: string | null
+          reserved?: number
+          target: number
+          target_date: string
+        }
+        Update: {
+          archived_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          obligation_id?: string | null
+          reserved?: number
+          target?: number
+          target_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_reserves_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_reserves_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "fin_obligations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_saved_views: {
         Row: {
           company_id: string
@@ -4083,6 +4372,50 @@ export type Database = {
           },
         ]
       }
+      fin_scenarios: {
+        Row: {
+          archived_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          hypotheses: Json
+          id: string
+          name: string
+          source_hash: string | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          hypotheses?: Json
+          id?: string
+          name: string
+          source_hash?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          hypotheses?: Json
+          id?: string
+          name?: string
+          source_hash?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_scenarios_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_settings: {
         Row: {
           company_id: string
@@ -4114,6 +4447,67 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: true
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_transfers: {
+        Row: {
+          amount: number
+          archived_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          from_account: string
+          id: string
+          note: string | null
+          planned_on: string
+          to_account: string
+        }
+        Insert: {
+          amount: number
+          archived_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          from_account: string
+          id?: string
+          note?: string | null
+          planned_on: string
+          to_account: string
+        }
+        Update: {
+          amount?: number
+          archived_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          from_account?: string
+          id?: string
+          note?: string | null
+          planned_on?: string
+          to_account?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_transfers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_transfers_from_account_fkey"
+            columns: ["from_account"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_transfers_to_account_fkey"
+            columns: ["to_account"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
             referencedColumns: ["id"]
           },
         ]
