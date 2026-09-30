@@ -5,7 +5,9 @@
 // client (manuel, semi-automatique, ou automatique plus tard).
 // ============================================================
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useDraft } from "@/lib/drafts/useDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { ArrowLeft, Calculator, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
@@ -44,7 +46,10 @@ export default function AdminMarketplaceDeals() {
   const { isAdmin, loading: roleLoading } = useUserRoles();
   const { toast } = useToast();
 
-  const [onglet, setOnglet] = useState<"materiaux" | "transport" | "offres">("materiaux");
+  // NAV-01B : onglet dans l'adresse (remplacement, sans entrée d'historique).
+  const [params, setParams] = useSearchParams();
+  const onglet = ((params.get("onglet") as "materiaux" | "transport" | "offres" | null) ?? "materiaux");
+  const setOnglet = (k: "materiaux" | "transport" | "offres") => setParams((p) => { const n = new URLSearchParams(p); k === "materiaux" ? n.delete("onglet") : n.set("onglet", k); return n; }, { replace: true });
   const [loading, setLoading] = useState(true);
   const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
   const [prices, setPrices] = useState<SupplyPrice[]>([]);
@@ -58,6 +63,17 @@ export default function AdminMarketplaceDeals() {
   const [offre, setOffre] = useState<Partial<Deal>>({ mode: "manuel", unit: "tonne", margin_percent: 15 });
   const [suggestion, setSuggestion] = useState<DealSuggestion | null>(null);
   const [busy, setBusy] = useState(false);
+  // NAV-01B : trois préparations distinctes (prix, tarif, offre) conservées; rien n'est enregistré sans le bouton explicite.
+  const { user: me } = useAuthReady();
+  const mk = <T,>(form: string, onglet: string, data: T, set: (v: T) => void, init: T, label: string) => ({
+    id: me ? { module: "admin", form, owner: me.id, company: null, recordId: "nouveau" } : null,
+    data, label: () => label, route: `/admin/marche/transactions${onglet === "materiaux" ? "" : `?onglet=${onglet}`}`,
+    isEmpty: (d: T) => JSON.stringify(d) === JSON.stringify(init), onRestore: (d: T) => set(d),
+  });
+  const dPrix = useDraft(mk("marche-prix", "materiaux", prix, setPrix, { unit: "tonne", is_active: true, is_taxable: true }, "Place de marché — nouveau prix"));
+  const dTarif = useDraft(mk("marche-tarif", "transport", tarif, setTarif, { truck_type: "10_roues", price_model: "voyage", is_active: true }, "Place de marché — nouveau tarif"));
+  const dOffre = useDraft(mk("marche-offre", "offres", offre, setOffre, { mode: "manuel", unit: "tonne", margin_percent: 15 }, "Place de marché — offre en préparation"));
+  const bar = (d: typeof dPrix, reset: () => void) => <DraftStatusBar status={d.status} savedAt={d.savedAt} restored={!!d.restoredMeta} onDiscard={() => { d.discard(); reset(); }} discardConfirm="Abandonner cette préparation ? Rien d'enregistré n'est modifié." sync={d.sync} synced={d.synced} conflict={d.conflict} onUseServer={d.useServerVersion} onKeepLocal={d.keepLocalVersion} onRestartAsNew={d.restartAsNew} restartError={d.restartError} onRetry={d.retrySave} />;
 
   const nomEntreprise = useCallback(
     (id: string | null | undefined) => companies.find((c) => c.id === id)?.name ?? "—",
@@ -97,7 +113,7 @@ export default function AdminMarketplaceDeals() {
     setBusy(true);
     try {
       await saveSupplyPrice(prix as SupplyPrice);
-      setPrix({ unit: "tonne", is_active: true, is_taxable: true });
+      dPrix.finalize(); setPrix({ unit: "tonne", is_active: true, is_taxable: true });
       await charger();
       toast({ title: "Prix enregistré" });
     } catch (e) {
@@ -110,7 +126,7 @@ export default function AdminMarketplaceDeals() {
     setBusy(true);
     try {
       await saveTransportRate(tarif as TransportRate);
-      setTarif({ truck_type: "10_roues", price_model: "voyage", is_active: true });
+      dTarif.finalize(); setTarif({ truck_type: "10_roues", price_model: "voyage", is_active: true });
       await charger();
       toast({ title: "Tarif enregistré" });
     } catch (e) {
@@ -139,7 +155,7 @@ export default function AdminMarketplaceDeals() {
         gst: calcul.gst, qst: calcul.qst, total: calcul.total,
         breakdown: { suggestion: suggestion ?? null },
       } as Deal);
-      setOffre({ mode: "manuel", unit: "tonne", margin_percent: 15 });
+      dOffre.finalize(); setOffre({ mode: "manuel", unit: "tonne", margin_percent: 15 });
       setSuggestion(null);
       await charger();
       toast({ title: "Offre enregistrée" });
@@ -179,7 +195,7 @@ export default function AdminMarketplaceDeals() {
         {onglet === "materiaux" && (
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-1">
-              <CardHeader><CardTitle className="text-base">Nouveau prix</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">Nouveau prix</CardTitle>{bar(dPrix, () => setPrix({ unit: "tonne", is_active: true, is_taxable: true }))}</CardHeader>
               <CardContent className="space-y-3">
                 <Field label="Fournisseur">
                   <select className="h-10 w-full rounded-md border bg-background px-3 text-sm"
@@ -188,7 +204,7 @@ export default function AdminMarketplaceDeals() {
                     {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </Field>
-                <Field label="Matériau"><Input value={s(prix.material_label)} onChange={(e) => setPrix({ ...prix, material_label: e.target.value })} placeholder="Ex. : MG-20" /></Field>
+                <Field label="Matériau"><Input aria-label="Matériau du prix" value={s(prix.material_label)} onChange={(e) => setPrix({ ...prix, material_label: e.target.value })} placeholder="Ex. : MG-20" /></Field>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Unité">
                     <select className="h-10 w-full rounded-md border bg-background px-3 text-sm"
@@ -237,7 +253,7 @@ export default function AdminMarketplaceDeals() {
         {onglet === "transport" && (
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-1">
-              <CardHeader><CardTitle className="text-base">Nouveau tarif</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">Nouveau tarif</CardTitle>{bar(dTarif, () => setTarif({ truck_type: "10_roues", price_model: "voyage", is_active: true }))}</CardHeader>
               <CardContent className="space-y-3">
                 <Field label="Transporteur">
                   <select className="h-10 w-full rounded-md border bg-background px-3 text-sm"
@@ -297,7 +313,7 @@ export default function AdminMarketplaceDeals() {
         {onglet === "offres" && (
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
-              <CardHeader><CardTitle className="text-base">Préparer une offre</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">Préparer une offre</CardTitle>{bar(dOffre, () => setOffre({ mode: "manuel", unit: "tonne", margin_percent: 15 }))}</CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Demande">
@@ -377,7 +393,7 @@ export default function AdminMarketplaceDeals() {
                   <Field label="Marge (%)"><Input inputMode="decimal" value={s(offre.margin_percent)} onChange={(e) => setOffre({ ...offre, margin_percent: num(e.target.value) ?? 0 })} /></Field>
                   <Field label="Nombre de voyages"><Input inputMode="numeric" value={s(offre.trips)} onChange={(e) => setOffre({ ...offre, trips: num(e.target.value) })} /></Field>
                 </div>
-                <Field label="Notes internes"><Textarea rows={2} value={s(offre.notes)} onChange={(e) => setOffre({ ...offre, notes: e.target.value })} /></Field>
+                <Field label="Notes internes"><Textarea aria-label="Notes de l'offre" rows={2} value={s(offre.notes)} onChange={(e) => setOffre({ ...offre, notes: e.target.value })} /></Field>
                 <Button onClick={() => void enregistrerOffre()} disabled={busy}>Enregistrer l'offre</Button>
               </CardContent>
             </Card>
