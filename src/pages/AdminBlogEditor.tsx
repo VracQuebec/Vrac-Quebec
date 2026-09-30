@@ -436,6 +436,15 @@ export default function AdminBlogEditor() {
               {isNew ? "Nouvel article" : title || "Sans titre"}
             </h1>
             {isNew && !postId && user && <div className="min-w-0"><DraftStatusBar status={draft.status} savedAt={draft.savedAt} restored={!!draft.restoredMeta} onDiscard={() => { draft.discard(); window.location.reload(); }} discardConfirm="Abandonner ce nouvel article non enregistré ? Les saisies seront effacées." sync={draft.sync} synced={draft.synced} conflict={draft.conflict} onUseServer={draft.useServerVersion} onKeepLocal={draft.keepLocalVersion} onRestartAsNew={draft.restartAsNew} restartError={draft.restartError} onRetry={draft.retrySave} /></div>}
+            {postId && !isNew && user && (editConflict || autoSaveError) && (
+              <div role="alert" className="min-w-0 rounded border border-destructive/40 bg-destructive/10 px-2 py-1 text-[11px] text-destructive flex flex-wrap items-center gap-2">
+                <span>{editConflict ? "Article modifié ailleurs : enregistrement automatique suspendu. Vos modifications restent en brouillon." : `Non enregistré (${autoSaveError}). Vos modifications restent en brouillon.`}</span>
+                {editConflict ? (<>
+                  <button type="button" className="underline" onClick={() => { if (window.confirm("Remplacer la version enregistrée ailleurs par votre version ?")) { setServerStamp(null); setEditConflict(false); setTimeout(() => save({}), 0); } }}>Garder ma version</button>
+                  <button type="button" className="underline" onClick={() => { if (window.confirm("Reprendre la version enregistrée ? Vos modifications non confirmées seront effacées.")) { editDraft.discard(); window.location.reload(); } }}>Reprendre la version enregistrée</button>
+                </>) : <button type="button" className="underline" onClick={() => save({})}>Réessayer</button>}
+              </div>
+            )}
             {savedAt && <span className="hidden sm:inline text-[11px] text-muted-foreground">Enregistré {savedAt.toLocaleTimeString("fr-CA")}</span>}
           </div>
           <div className="flex items-center gap-2">
