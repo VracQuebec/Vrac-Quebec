@@ -1,5 +1,9 @@
 // Catalogue privé de prestations et tarifs, et modèles de soumission par métier.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useDraft } from "@/lib/drafts/useDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +20,18 @@ const money = (n?: number | null) => n == null ? "À renseigner" : Number(n).toL
 
 export default function CrmServices({ companyId, canWrite, canAdmin, canCost }: { companyId: string; canWrite: boolean; canAdmin: boolean; canCost: boolean }) {
   const [rows, setRows] = useState<any[]>([]); const [costs, setCosts] = useState<Record<string, number | null>>({});
-  const [mats, setMats] = useState<any[]>([]); const [open, setOpen] = useState<any>(null); const [archived, setArchived] = useState(false);
-  const [tpls, setTpls] = useState<any[]>([]); const [tpl, setTpl] = useState<any>(null);
+  const [mats, setMats] = useState<any[]>([]);
+  const [tpls, setTpls] = useState<any[]>([]);
+  // Fenêtres et filtre dans l'adresse (?svc=, ?tpl=, ?sa=1) : conservés après Retour et actualisation.
+  const [sp, setSp] = useSearchParams(); const archived = sp.get("sa") === "1";
+  const setP = (k: string, v: string | null, replace = false) => { const n = new URLSearchParams(sp); v ? n.set(k, v) : n.delete(k); setSp(n, replace ? { replace: true } : undefined); };
+  const setArchived = (b: boolean) => setP("sa", b ? "1" : null, true);
+  const svcId = sp.get("svc"), tplId = sp.get("tpl");
+  const found = rows.find((r) => r.id === svcId);
+  const open = svcId === "nouveau" ? { unit: "heure", trades: [] } : found ? { ...found, internal_cost: canCost ? (costs[found.id] ?? "") : undefined } : null;
+  const tpl = tplId === "nouveau" ? { trade: "autre", name: "", lines: [], inclusions: "", exclusions: "", conditions: "" } : tpls.find((t) => t.id === tplId) ?? null;
+  const setOpen = (v: any) => setP("svc", v ? v.id ?? "nouveau" : null);
+  const setTpl = (v: any) => setP("tpl", v ? v.id ?? "nouveau" : null);
   const load = useCallback(async () => {
     const q = db.from("ent_crm_services").select("*").eq("company_id", companyId).order("label");
     setRows((await (archived ? q.not("archived_at", "is", null) : q.is("archived_at", null))).data ?? []);
@@ -27,21 +41,6 @@ export default function CrmServices({ companyId, canWrite, canAdmin, canCost }: 
   }, [companyId, archived, canCost, canWrite]);
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { db.from("material_catalog").select("id,name:name_fr").eq("is_active", true).order("name_fr").limit(500).then(({ data }: any) => setMats(data ?? [])); }, []);
-
-  const save = async () => {
-    const price = open.price === "" || open.price == null ? null : Number(open.price);
-    if (price === 0 && !open.price_zero_confirmed) return toast({ title: "Prix à zéro", description: "Cochez « Zéro volontaire » ou laissez le prix vide (À renseigner)." });
-    const row = { company_id: companyId, label: open.label, description: open.description || null, trades: open.trades ?? [], unit: open.unit ?? "heure", price, price_zero_confirmed: price === 0, inclusions: open.inclusions || null, exclusions: open.exclusions || null, valid_until: open.valid_until || null, material_id: open.material_id || null, equipment_ref: open.equipment_ref || null, private_notes: open.private_notes || null, is_demo: !!open.is_demo, updated_at: new Date().toISOString() };
-    if (!row.label) return toast({ title: "Libellé requis" });
-    const r = open.id ? await db.from("ent_crm_services").update(row).eq("id", open.id).select("id").single() : await db.from("ent_crm_services").insert(row).select("id").single();
-    if (r.error) return toast({ title: "Refusé", description: r.error.message, variant: "destructive" });
-    if (canCost && open.internal_cost !== undefined) {
-      const c = await db.from("ent_crm_service_costs").upsert({ service_id: r.data.id, company_id: companyId, internal_cost: open.internal_cost === "" ? null : Number(open.internal_cost), updated_at: new Date().toISOString() });
-      if (c.error) toast({ title: "Coût interne refusé", description: c.error.message });
-    }
-    setOpen(null); load();
-  };
-  const saveTpl = async () => { const { id, created_at, created_by, company_id, ...rest } = tpl; const { error } = id ? await db.from("ent_crm_templates").update({ ...rest, updated_at: new Date().toISOString() }).eq("id", id) : await db.from("ent_crm_templates").insert({ ...rest, company_id: companyId }); if (error) toast({ title: "Refusé", description: error.message }); else { setTpl(null); load(); } };
 
   return <div className="space-y-6">
     <section>
@@ -71,7 +70,39 @@ export default function CrmServices({ companyId, canWrite, canAdmin, canCost }: 
       </div>)}</div>
     </section>
 
-    {open && <Dialog open onOpenChange={() => setOpen(null)}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Prestation</DialogTitle></DialogHeader>
+    {open && <ServiceDialog key={svcId} initial={open} companyId={companyId} canCost={canCost} mats={mats} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); load(); }} />}
+    {tpl && <TplDialog key={tplId} initial={tpl} companyId={companyId} onClose={() => setTpl(null)} onSaved={() => { setTpl(null); load(); }} />}
+  </div>;
+}
+
+function ServiceDialog({ initial, companyId, canCost, mats, onClose, onSaved }: any) {
+  const { user: me } = useAuthReady(); const [open, setOpen] = useState<any>(initial); const [stale, setStale] = useState<any>(null); const busy = useRef(false);
+  const init = useMemo(() => JSON.stringify(initial), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const store = useDraft({
+    id: me ? { module: "crm", form: "tarif", owner: me.id, company: companyId, recordId: initial.id ?? null } : null,
+    data: { v: open, base: initial.updated_at ?? null },
+    label: (d) => `CRM — Prestation ${d.v.label ? `« ${d.v.label} »` : "(nouveau)"}`,
+    route: `/entrepreneur/crm?company=${companyId}&tab=services&svc=${initial.id ?? "nouveau"}`,
+    isEmpty: (d) => JSON.stringify(d.v) === init,
+    onRestore: (d) => { if (initial.id && d.base && initial.updated_at && d.base !== initial.updated_at) setStale(d.v); else setOpen((x: any) => ({ ...x, ...d.v })); },
+  });
+  const save = async () => { if (busy.current) return; busy.current = true; try {
+    const price = open.price === "" || open.price == null ? null : Number(open.price);
+    if (price != null && (!Number.isFinite(price) || price < 0)) return toast({ title: "Prix invalide", description: "Saisissez un montant positif, ou laissez vide (À renseigner).", variant: "destructive" });
+    if (price === 0 && !open.price_zero_confirmed) return toast({ title: "Prix à zéro", description: "Cochez « Zéro volontaire » ou laissez le prix vide (À renseigner)." });
+    const row = { company_id: companyId, label: open.label, description: open.description || null, trades: open.trades ?? [], unit: open.unit ?? "heure", price, price_zero_confirmed: price === 0, inclusions: open.inclusions || null, exclusions: open.exclusions || null, valid_until: open.valid_until || null, material_id: open.material_id || null, equipment_ref: open.equipment_ref || null, private_notes: open.private_notes || null, is_demo: !!open.is_demo, updated_at: new Date().toISOString() };
+    if (!row.label) return toast({ title: "Libellé requis" });
+    const r = open.id ? await db.from("ent_crm_services").update(row).eq("id", open.id).select("id").single() : await db.from("ent_crm_services").insert(row).select("id").single();
+    if (r.error) return toast({ title: "Refusé — votre saisie est conservée", description: r.error.message, variant: "destructive" });
+    if (canCost && open.internal_cost !== undefined) {
+      const c = await db.from("ent_crm_service_costs").upsert({ service_id: r.data.id, company_id: companyId, internal_cost: open.internal_cost === "" ? null : Number(open.internal_cost), updated_at: new Date().toISOString() });
+      if (c.error) toast({ title: "Coût interne refusé", description: c.error.message });
+    }
+    store.finalize(); onSaved();
+  } finally { busy.current = false; } };
+  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Prestation</DialogTitle></DialogHeader>
+      <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setOpen(initial); setStale(null); }} discardConfirm="Abandonner la préparation de prestation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />
+      {stale && <div role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Cette fiche a été modifiée ailleurs depuis votre préparation. L'état actuel est affiché; votre saisie est conservée à part.<div className="mt-1 flex gap-2"><Button size="sm" variant="outline" onClick={() => { setOpen((x: any) => ({ ...x, ...stale })); setStale(null); }}>Appliquer ma saisie préparée</Button><Button size="sm" variant="ghost" onClick={() => setStale(null)}>Garder l'état actuel</Button></div></div>}
       <Input placeholder="Libellé (ex. Camion 12 roues à l'heure)" value={open.label ?? ""} onChange={(e) => setOpen({ ...open, label: e.target.value })} />
       <Textarea placeholder="Description" value={open.description ?? ""} onChange={(e) => setOpen({ ...open, description: e.target.value })} />
       <div className="flex flex-wrap gap-2 text-xs">{Object.entries(TRADES).map(([k, t]) => <label key={k} className="flex items-center gap-1"><input type="checkbox" checked={(open.trades ?? []).includes(k)} onChange={(e) => setOpen({ ...open, trades: e.target.checked ? [...(open.trades ?? []), k] : open.trades.filter((x: string) => x !== k) })} />{t.l}</label>)}</div>
@@ -88,9 +119,26 @@ export default function CrmServices({ companyId, canWrite, canAdmin, canCost }: 
       <label className="text-xs">Validité<Input type="date" value={open.valid_until ?? ""} onChange={(e) => setOpen({ ...open, valid_until: e.target.value })} /></label>
       <Textarea placeholder="Notes privées" value={open.private_notes ?? ""} onChange={(e) => setOpen({ ...open, private_notes: e.target.value })} />
       <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={!!open.is_demo} onChange={(e) => setOpen({ ...open, is_demo: e.target.checked })} />Exemple fictif de démonstration</label>
-      <Button onClick={save}>Enregistrer</Button></DialogContent></Dialog>}
+      <Button onClick={save}>Enregistrer</Button></DialogContent></Dialog>;
 
-    {tpl && <Dialog open onOpenChange={() => setTpl(null)}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Modèle de soumission</DialogTitle></DialogHeader>
+}
+
+function TplDialog({ initial, companyId, canCost, mats, onClose, onSaved }: any) {
+  const { user: me } = useAuthReady(); const [tpl, setTpl] = useState<any>(initial); const [stale, setStale] = useState<any>(null); const busy = useRef(false);
+  const init = useMemo(() => JSON.stringify(initial), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const store = useDraft({
+    id: me ? { module: "crm", form: "modele", owner: me.id, company: companyId, recordId: initial.id ?? null } : null,
+    data: { v: tpl, base: initial.updated_at ?? null },
+    label: (d) => `CRM — Modèle de soumission ${d.v.name ? `« ${d.v.name} »` : "(nouveau)"}`,
+    route: `/entrepreneur/crm?company=${companyId}&tab=services&tpl=${initial.id ?? "nouveau"}`,
+    isEmpty: (d) => JSON.stringify(d.v) === init,
+    onRestore: (d) => { if (initial.id && d.base && initial.updated_at && d.base !== initial.updated_at) setStale(d.v); else setTpl((x: any) => ({ ...x, ...d.v })); },
+  });
+  const saveTpl = async () => { if (busy.current) return; busy.current = true; try { const { id, created_at, created_by, company_id, ...rest } = tpl; const { error } = id ? await db.from("ent_crm_templates").update({ ...rest, updated_at: new Date().toISOString() }).eq("id", id) : await db.from("ent_crm_templates").insert({ ...rest, company_id: companyId }); if (error) toast({ title: "Refusé — votre saisie est conservée", description: error.message }); else { store.finalize(); onSaved(); } } finally { busy.current = false; } };
+
+  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Modèle de soumission</DialogTitle></DialogHeader>
+      <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setTpl(initial); setStale(null); }} discardConfirm="Abandonner la préparation de modèle de soumission ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />
+      {stale && <div role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Cette fiche a été modifiée ailleurs depuis votre préparation. L'état actuel est affiché; votre saisie est conservée à part.<div className="mt-1 flex gap-2"><Button size="sm" variant="outline" onClick={() => { setTpl((x: any) => ({ ...x, ...stale })); setStale(null); }}>Appliquer ma saisie préparée</Button><Button size="sm" variant="ghost" onClick={() => setStale(null)}>Garder l'état actuel</Button></div></div>}
       <Input placeholder="Nom" value={tpl.name} onChange={(e) => setTpl({ ...tpl, name: e.target.value })} />
       <select className={sel} value={tpl.trade} onChange={(e) => setTpl({ ...tpl, trade: e.target.value })}>{Object.entries(TRADES).map(([k, t]) => <option key={k} value={k}>{t.l}</option>)}</select>
       {(tpl.lines as QLine[]).map((l, i) => <div key={i} className="grid grid-cols-[6rem_1fr_6rem_2rem] gap-1">
@@ -102,6 +150,5 @@ export default function CrmServices({ companyId, canWrite, canAdmin, canCost }: 
       <Textarea placeholder="Inclusions" value={tpl.inclusions ?? ""} onChange={(e) => setTpl({ ...tpl, inclusions: e.target.value })} />
       <Textarea placeholder="Exclusions" value={tpl.exclusions ?? ""} onChange={(e) => setTpl({ ...tpl, exclusions: e.target.value })} />
       <Textarea placeholder="Conditions" value={tpl.conditions ?? ""} onChange={(e) => setTpl({ ...tpl, conditions: e.target.value })} />
-      <Button onClick={saveTpl}>Enregistrer</Button></DialogContent></Dialog>}
-  </div>;
+      <Button onClick={saveTpl}>Enregistrer</Button></DialogContent></Dialog>;
 }

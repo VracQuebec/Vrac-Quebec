@@ -9,6 +9,7 @@
 // (`fleet_can_access` / `fleet_can_administer`).
 // ============================================================
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Pencil, Plus, Truck } from "lucide-react";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import { ErrorState, LoadingSkeleton } from "@/components/entrepreneur-app/AppStates";
@@ -26,8 +27,12 @@ export default function EntrepreneurFlotte() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [denied, setDenied] = useState(false);
-  const [editing, setEditing] = useState<Vehicle | null>(null);
-  const [open, setOpen] = useState(false);
+  // Fenêtre ouverte gardée dans l'adresse (?vehicule=<id|nouveau>) : Retour et actualisation la rouvrent.
+  const [sp, setSp] = useSearchParams(); const vid = sp.get("vehicule");
+  const editing = vehicles.find((v) => v.id === vid) ?? null;
+  const open = vid === "nouveau" || !!editing;
+  const openFor = (id: string | null) => { const n = new URLSearchParams(sp); id ? n.set("vehicule", id) : n.delete("vehicule"); setSp(n); };
+  const setOpen = (o: boolean) => { if (!o) openFor(null); };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,7 +60,7 @@ export default function EntrepreneurFlotte() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const add = () => { setEditing(null); setOpen(true); };
+  const add = () => openFor("nouveau");
 
   return (
     <EntrepreneurAppShell title="Ma flotte" subtitle="Vos véhicules" backTo={null}>
@@ -113,7 +118,7 @@ export default function EntrepreneurFlotte() {
                     ))}
                   </dl>
                   <Button variant="outline" size="sm" className="mt-3 w-full"
-                    onClick={() => { setEditing(v); setOpen(true); }}>
+                    onClick={() => openFor(v.id)}>
                     <Pencil className="mr-2 h-4 w-4" />Modifier
                   </Button>
                 </li>

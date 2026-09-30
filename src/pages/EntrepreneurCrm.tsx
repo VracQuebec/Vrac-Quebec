@@ -137,7 +137,10 @@ function BodyInner(p: any) {
 
 /** Bouton « Pièces » : ouvre les documents privés du dossier. */
 function FilesBtn({ t, id, clientToggle }: { t: "lead" | "client" | "quote" | "project"; id: string; clientToggle?: boolean }) {
-  const c = useContext(CrmCtx); const [o, setO] = useState(false);
+  // Panneau ouvert gardé sur cet appareil : Retour et actualisation le rouvrent au même endroit.
+  const c = useContext(CrmCtx); const k = `vq.crmFilesOpen.${c.companyId}.${t}.${id}`;
+  const [o, setOpen] = useState(() => { try { return sessionStorage.getItem(k) === "1"; } catch { return false; } });
+  const setO = (v: boolean) => { setOpen(v); try { v ? sessionStorage.setItem(k, "1") : sessionStorage.removeItem(k); } catch { /* ignore */ } };
   return <div className="mt-2"><button className="text-xs font-semibold text-primary underline" onClick={() => setO(!o)}>{o ? "Masquer les pièces" : "Photos et documents"}</button>
     {o && <div className="mt-2"><CrmFiles companyId={c.companyId} ownerType={t} ownerId={id} canWrite={c.canWrite} canAdmin={c.canAdmin} showClientToggle={clientToggle} /></div>}</div>;
 }
@@ -370,9 +373,7 @@ function LeadDialog({ lead, companyId, clients, onClose, onSaved }: any) {
       if (error) toast({ title: "Refusé — votre saisie est conservée", description: error.message, variant: "destructive" }); else { store.finalize(); onSaved(); }
     } finally { saving.current = false; }
   };
-  const addTask = async () => { const title = prompt("Tâche / relance ?"); const due = prompt("Échéance (AAAA-MM-JJ) ?"); if (!title) return;
-    const { data: u } = await supabase.auth.getUser();
-    const { error } = await db.from("ent_crm_tasks").insert({ company_id: companyId, title, due_at: due || null, lead_id: lead.id, assignee_user_id: u.user?.id }); toast({ title: error ? "Refusé" : "Tâche ajoutée", description: error?.message }); loadTasks(); };
+  const [taskOpen, setTaskOpen] = useState(false); const addTask = () => setTaskOpen(true);
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>{lead.id ? "Lead" : "Nouveau lead"}</DialogTitle></DialogHeader>
     {canWrite && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setF({ source: "appel", trade: "", trade_fields: {}, ...lead }); setStale(null); }} discardConfirm="Abandonner la préparation de ce lead ? Les saisies non enregistrées seront effacées; la fiche enregistrée n'est pas modifiée." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
     {stale && <div role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Cette fiche a été modifiée ailleurs depuis votre préparation. L'état actuel est affiché; votre saisie est conservée à part.
@@ -407,6 +408,7 @@ function Clients({ companyId, canWrite, params, setParams }: any) {
   const setOpenId = (v: string | null, key = "client") => { const n = new URLSearchParams(params); v ? n.set(key, v) : n.delete(key); setParams(n); };
   const open = openId === "nouveau" ? { kind: "particulier" } : rows.find((r) => r.id === openId) ?? null;
   const contactClient = rows.find((r) => r.id === contactFor) ?? null;
+  const oppClient = rows.find((r) => r.id === params.get("opp")) ?? null;
   const add = () => setOpenId("nouveau");
   const addContact = (c: any) => setOpenId(c.id, "contact");
   const setOpen = (c: any) => setOpenId(c ? c.id : null);
@@ -428,10 +430,13 @@ function Clients({ companyId, canWrite, params, setParams }: any) {
       <p className="mt-1 text-xs"><strong>Contacts :</strong> {c.ent_crm_contacts.map((x: any) => `${x.name}${x.phone ? " " + x.phone : ""}`).join(" · ") || "—"}</p>
       <p className="text-xs"><strong>Opportunités :</strong> {c.ent_crm_leads.map((x: any) => x.title).join(" · ") || "—"}</p>
       <p className="text-xs"><strong>Chantiers :</strong> {c.ent_crm_projects.map((x: any) => x.name).join(" · ") || "—"}</p>
-      {canWrite && <div className="mt-2 flex flex-wrap gap-1"><Button size="sm" variant="outline" onClick={() => addContact(c)}>+ Contact</Button><Button size="sm" variant="outline" onClick={async () => { const title = prompt("Nouvelle opportunité ?"); if (!title) return; const { error } = await db.from("ent_crm_leads").insert({ company_id: companyId, client_id: c.id, title, contact_name: c.name, contact_value: c.phone || c.email, source: "autre" }); if (error) toast({ title: "Refusé", description: error.message }); load(); }}>+ Opportunité</Button><Button size="sm" variant="outline" onClick={() => setOpen(c)}>Modifier</Button><Button size="sm" variant="ghost" onClick={() => archive(c)}>Archiver</Button></div>}
+      {canWrite && <div className="mt-2 flex flex-wrap gap-1"><Button size="sm" variant="outline" onClick={() => addContact(c)}>+ Contact</Button><Button size="sm" variant="outline" onClick={() => setOpenId(c.id, "opp")}>+ Opportunité</Button><Button size="sm" variant="outline" onClick={() => setOpen(c)}>Modifier</Button><Button size="sm" variant="ghost" onClick={() => archive(c)}>Archiver</Button></div>}
       <FilesBtn t="client" id={c.id} />
     </div>)}</div>
     {open && <ClientDialog key={openId} client={open} companyId={companyId} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); load(); }} />}
+    {oppClient && <FieldsDialog key={`opp-${oppClient.id}`} form="opportunite" recordId={oppClient.id} companyId={companyId} title={`Nouvelle opportunité — ${oppClient.name}`} route={`/entrepreneur/crm?company=${companyId}&tab=clients&opp=${oppClient.id}`}
+      fields={[{ k: "title", l: "Nom de l'opportunité", required: true }]} submitLabel="Créer l'opportunité" onClose={() => setOpenId(null, "opp")}
+      onSubmit={async (v) => { const { error } = await db.from("ent_crm_leads").insert({ company_id: companyId, client_id: oppClient.id, title: v.title, contact_name: oppClient.name, contact_value: oppClient.phone || oppClient.email, source: "autre" }); if (error) return error.message; setOpenId(null, "opp"); load(); return null; }} />}
     {contactClient && <ContactDialog key={contactFor} client={contactClient} companyId={companyId} onClose={() => setOpenId(null, "contact")} onSaved={() => { setOpenId(null, "contact"); load(); }} />}
   </div>;
 }
@@ -502,39 +507,33 @@ function ContactDialog({ client, companyId, onClose, onSaved }: any) {
 }
 
 function Quotes({ companyId, companyName, canWrite }: any) {
-  const [rows, setRows] = useState<any[]>([]); const [clients, setClients] = useState<any[]>([]); const [open, setOpen] = useState<any>(null); const [print, setPrint] = useState<any>(null);
-  const [services, setServices] = useState<any[]>([]); const [tpls, setTpls] = useState<any[]>([]); const [diff, setDiff] = useState<any[] | null>(null); const [printDocs, setPrintDocs] = useState<string[]>([]);
+  const [rows, setRows] = useState<any[]>([]); const [clients, setClients] = useState<any[]>([]); const [print, setPrint] = useState<any>(null);
+  const [services, setServices] = useState<any[]>([]); const [tpls, setTpls] = useState<any[]>([]); const [printDocs, setPrintDocs] = useState<string[]>([]);
   const load = useCallback(async () => { setRows((await db.from("ent_crm_quotes").select("*, ent_crm_clients(name), ent_crm_projects(id)").eq("company_id", companyId).order("created_at", { ascending: false })).data ?? []);
     setClients((await db.from("ent_crm_clients").select("id,name").eq("company_id", companyId).is("archived_at", null)).data ?? []);
     setServices((await db.from("ent_crm_services").select("id,label,unit,price,inclusions,exclusions").eq("company_id", companyId).is("archived_at", null).order("label")).data ?? []);
     if (canWrite) await ensureTemplates(companyId);
     setTpls((await db.from("ent_crm_templates").select("*").eq("company_id", companyId).is("archived_at", null).order("name")).data ?? []); }, [companyId, canWrite]);
   useEffect(() => { void load(); }, [load]);
-  const save = async () => { const lines: QLine[] = open.lines ?? []; const row = { company_id: companyId, client_id: open.client_id || null, lead_id: open.lead_id || null, number: open.number || null, lines, inclusions: open.inclusions || null, exclusions: open.exclusions || null, conditions: open.conditions || null, valid_until: open.valid_until || null, subtotal: subtotal(lines), updated_at: new Date().toISOString() };
-    const { error } = open.id ? await db.from("ent_crm_quotes").update(row).eq("id", open.id) : await db.from("ent_crm_quotes").insert(row);
-    if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else { crmDirty = null; setOpen(null); load(); } };
-  const edit = (v: any) => { crmDirty = "quote"; setOpen(v); };
-  const applyTpl = (id: string) => { const t = tpls.find((x) => x.id === id); if (!t) return; if ((open.lines ?? []).some((l: QLine) => l.desc) && !confirm("Remplacer les lignes actuelles par celles du modèle ?")) return;
-    edit({ ...open, lines: (t.lines as QLine[]).map((l) => ({ ...l, qty: null, price: null })), inclusions: t.inclusions, exclusions: t.exclusions, conditions: t.conditions }); };
-  const addService = (id: string) => { const s = services.find((x) => x.id === id); if (!s) return;
-    edit({ ...open, lines: [...(open.lines ?? []).filter((l: QLine) => l.desc || l.price != null), { desc: s.label, qty: null, unit: s.unit, price: s.price == null ? null : Number(s.price), service_id: s.id, price_at: new Date().toISOString() }] }); };
-  // Actualisation explicite des tarifs sur un brouillon : différences présentées avant application.
-  const refreshPrices = () => { const d = (open.lines as QLine[]).map((l, i) => { const s = l.service_id && services.find((x) => x.id === l.service_id); if (!s) return null; const np = s.price == null ? null : Number(s.price); return np !== l.price ? { i, desc: l.desc, old: l.price, next: np } : null; }).filter(Boolean);
-    if (!d.length) return toast({ title: "Tarifs à jour", description: "Aucune différence avec le catalogue privé." }); setDiff(d); };
-  const applyDiff = () => { const lines = [...open.lines]; diff!.forEach((d: any) => { lines[d.i] = { ...lines[d.i], price: d.next, price_at: new Date().toISOString() }; }); edit({ ...open, lines }); setDiff(null); };
+  // Fenêtre de soumission : ?quote=<id|nouveau> dans l'adresse, brouillon par compte + entreprise + soumission.
+  const [qp, setQp] = useSearchParams(); const qid = qp.get("quote"); const fd = qp.get("fd");
+  const setParam = (k: string, v: string | null) => { const n = new URLSearchParams(qp); v ? n.set(k, v) : n.delete(k); setQp(n); };
+  const open = qid === "nouveau" ? { lines: [] } : rows.find((r) => r.id === qid && r.status === "brouillon") ?? null;
+  const edit = (q: any) => setParam("quote", q.id ?? "nouveau");
   const setStatus = async (q: any, status: string) => {
     if (status === "remise" && incomplete(q.lines ?? [])) return toast({ title: "Soumission incomplète", description: `${incomplete(q.lines)} ligne(s) sans quantité ou prix.` });
-    if (status === "acceptee") { const src = prompt("Source de l'acceptation (signature, courriel, appel…) ?"); const by = prompt("Accepté par (nom du client) ?"); if (!src || !by) return;
-      const { error } = await db.rpc("entcrm_accept_quote", { _quote_id: q.id, _source: src, _by: by }); if (error) return toast({ title: "Refusé", description: error.message });
-    } else await db.from("ent_crm_quotes").update({ status }).eq("id", q.id);
+    if (status === "acceptee") return setParam("fd", `accept:${q.id}`);
+    await db.from("ent_crm_quotes").update({ status }).eq("id", q.id);
     load(); };
-  const toProject = async (q: any) => { const name = prompt("Nom du chantier ?", q.ent_crm_clients?.name ?? "Chantier"); if (!name) return;
+  const toProject = (q: any) => setParam("fd", `chantier:${q.id}`);
+  const createProject = async (q: any, name: string) => {
     const { data, error } = await db.from("ent_crm_projects").insert({ company_id: companyId, client_id: q.client_id, quote_id: q.id, name }).select("id").single();
     if (!error && data) await copyLinks(companyId, [{ t: "quote", id: q.id }, ...(q.lead_id ? [{ t: "lead", id: q.lead_id }] : [])], { t: "project", id: data.id });
-    toast({ title: error ? "Refusé" : "Chantier créé avec les pièces de la soumission", description: error?.message.includes("duplicate") ? "Un chantier existe déjà pour cette soumission." : error?.message }); load(); };
+    toast({ title: error ? "Refusé" : "Chantier créé avec les pièces de la soumission", description: error?.message.includes("duplicate") ? "Un chantier existe déjà pour cette soumission." : error?.message }); load(); return error ? error.message : null; };
   const revise = async (q: any) => { const { id, created_at, updated_at, ent_crm_clients, ent_crm_projects, accepted_source, accepted_by_name, accepted_at, accepted_recorded_by, invoiced_amount, paid_amount, share_token, shared_at, client_viewed_at, client_response, client_response_name, client_response_note, client_responded_at, taxes_applied, gst_rate, qst_rate, tax_gst, tax_qst, total, ...rest } = q;
     const { error } = await db.from("ent_crm_quotes").insert({ ...rest, status: "brouillon", version: q.version + 1, parent_quote_id: q.id }); toast({ title: error ? "Refusé" : "Révision créée (la version acceptée reste inchangée)", description: error?.message }); load(); };
-  const fin = async (q: any, k: string) => { const v = prompt(k === "invoiced_amount" ? "Montant facturé ?" : "Montant encaissé ?"); if (v == null) return; await db.from("ent_crm_quotes").update({ [k]: v === "" ? null : Number(v) }).eq("id", q.id); load(); };
+  const fin = (q: any, k: string) => setParam("fd", `${k === "invoiced_amount" ? "facture" : "encaisse"}:${q.id}`);
+  const [fdKind, fdId] = (fd ?? "").split(":"); const fdQuote = rows.find((r) => r.id === fdId);
   const share = async (q: any) => { const { data, error } = await db.rpc("entcrm_share_quote", { _quote_id: q.id }); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" });
     const url = `${window.location.origin}/s/${data}`; try { await navigator.clipboard.writeText(url); } catch { /* presse-papiers indisponible */ }
     toast({ title: "Lien client prêt", description: `${url} — copié. Transmettez-le vous-même; aucun courriel n'est envoyé.` }); load(); };
@@ -571,7 +570,50 @@ function Quotes({ companyId, companyName, canWrite }: any) {
         {canWrite && q.status === "acceptee" && <><Button size="sm" variant="ghost" onClick={() => fin(q, "invoiced_amount")}>Facturé</Button><Button size="sm" variant="ghost" onClick={() => fin(q, "paid_amount")}>Encaissé</Button></>}
       </div>
       <FilesBtn t="quote" id={q.id} clientToggle /></div>)}</div>
-    {open && <Dialog open onOpenChange={() => { if (!confirm("Fermer sans enregistrer ?")) return; crmDirty = null; setOpen(null); }}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Soumission</DialogTitle></DialogHeader>
+    {open && <QuoteDialog key={qid} quote={open} companyId={companyId} clients={clients} services={services} tpls={tpls} onClose={() => setParam("quote", null)} onSaved={() => { setParam("quote", null); load(); }} />}
+    {fdQuote && fdKind === "accept" && <FieldsDialog key={fd} form="soumission-acceptation" recordId={fdQuote.id} companyId={companyId} title="Documenter l'acceptation" route={`/entrepreneur/crm?company=${companyId}&tab=quotes&fd=${fd}`}
+      fields={[{ k: "src", l: "Source de l'acceptation (signature, courriel, appel…)", required: true }, { k: "by", l: "Accepté par (nom du client)", required: true }]} submitLabel="Confirmer l'acceptation"
+      onClose={() => setParam("fd", null)} onSubmit={async (v) => { const { error } = await db.rpc("entcrm_accept_quote", { _quote_id: fdQuote.id, _source: v.src, _by: v.by }); if (error) return error.message; setParam("fd", null); load(); return null; }} />}
+    {fdQuote && fdKind === "chantier" && <FieldsDialog key={fd} form="soumission-chantier" recordId={fdQuote.id} companyId={companyId} title="Créer le chantier" route={`/entrepreneur/crm?company=${companyId}&tab=quotes&fd=${fd}`}
+      fields={[{ k: "name", l: "Nom du chantier", required: true }]} initial={{ name: fdQuote.ent_crm_clients?.name ?? "Chantier" }} submitLabel="Créer le chantier"
+      onClose={() => setParam("fd", null)} onSubmit={async (v) => { const err = await createProject(fdQuote, v.name); if (!err) setParam("fd", null); return err; }} />}
+    {fdQuote && (fdKind === "facture" || fdKind === "encaisse") && <FieldsDialog key={fd} form={`soumission-${fdKind}`} recordId={fdQuote.id} companyId={companyId} title={fdKind === "facture" ? "Montant facturé" : "Montant encaissé"} route={`/entrepreneur/crm?company=${companyId}&tab=quotes&fd=${fd}`}
+      fields={[{ k: "amount", l: "Montant ($, vide pour effacer)", type: "number" }]} initial={{ amount: String((fdKind === "facture" ? fdQuote.invoiced_amount : fdQuote.paid_amount) ?? "") }} submitLabel="Enregistrer le montant"
+      onClose={() => setParam("fd", null)} onSubmit={async (v) => { const n = v.amount === "" ? null : Number(v.amount); if (n != null && (!Number.isFinite(n) || n < 0)) return "Montant invalide."; const { error } = await db.from("ent_crm_quotes").update({ [fdKind === "facture" ? "invoiced_amount" : "paid_amount"]: n }).eq("id", fdQuote.id); if (error) return error.message; setParam("fd", null); load(); return null; }} />}
+  </div>;
+}
+
+const QUOTE_KEYS = ["client_id", "number", "lines", "inclusions", "exclusions", "conditions", "valid_until"] as const;
+const pickQuote = (q: any) => Object.fromEntries(QUOTE_KEYS.map((k) => [k, q[k] ?? (k === "lines" ? [] : "")]));
+function QuoteDialog({ quote, companyId, clients, services, tpls, onClose, onSaved }: any) {
+  const { user: me } = useAuthReady(); const { canWrite } = useContext(CrmCtx);
+  const [open, setOpen] = useState<any>({ lines: [], ...quote }); const [diff, setDiff] = useState<any[] | null>(null); const [stale, setStale] = useState<any>(null); const saving = useRef(false);
+  const initial = useMemo(() => JSON.stringify(pickQuote(quote)), [quote.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const store = useDraft({
+    id: me && canWrite ? { module: "crm", form: "soumission", owner: me.id, company: companyId, recordId: quote.id ?? null } : null,
+    data: { v: pickQuote(open), base: quote.updated_at ?? null },
+    label: (d) => `CRM — ${quote.id ? "Soumission" : "Nouvelle soumission"}${d.v.number ? ` « ${d.v.number} »` : ""}`,
+    route: `/entrepreneur/crm?company=${companyId}&tab=quotes&quote=${quote.id ?? "nouveau"}`,
+    isEmpty: (d) => JSON.stringify(d.v) === initial,
+    onRestore: (d) => { if (quote.id && d.base && quote.updated_at && d.base !== quote.updated_at) setStale(d.v); else setOpen((x: any) => ({ ...x, ...d.v })); },
+  });
+  const edit = (v: any) => { crmDirty = companyId; setOpen(v); };
+  useEffect(() => () => { crmDirty = null; }, []);
+  const save = async () => { if (saving.current) return; saving.current = true; try { const lines: QLine[] = open.lines ?? []; const row = { company_id: companyId, client_id: open.client_id || null, lead_id: open.lead_id || null, number: open.number || null, lines, inclusions: open.inclusions || null, exclusions: open.exclusions || null, conditions: open.conditions || null, valid_until: open.valid_until || null, subtotal: subtotal(lines), updated_at: new Date().toISOString() };
+    const { error } = open.id ? await db.from("ent_crm_quotes").update(row).eq("id", open.id) : await db.from("ent_crm_quotes").insert(row);
+    if (error) toast({ title: "Refusé — votre saisie est conservée", description: error.message, variant: "destructive" }); else { crmDirty = null; store.finalize(); onSaved(); } } finally { saving.current = false; } };
+  const applyTpl = (id: string) => { const t = tpls.find((x) => x.id === id); if (!t) return; if ((open.lines ?? []).some((l: QLine) => l.desc) && !confirm("Remplacer les lignes actuelles par celles du modèle ?")) return;
+    edit({ ...open, lines: (t.lines as QLine[]).map((l) => ({ ...l, qty: null, price: null })), inclusions: t.inclusions, exclusions: t.exclusions, conditions: t.conditions }); };
+  const addService = (id: string) => { const s = services.find((x) => x.id === id); if (!s) return;
+    edit({ ...open, lines: [...(open.lines ?? []).filter((l: QLine) => l.desc || l.price != null), { desc: s.label, qty: null, unit: s.unit, price: s.price == null ? null : Number(s.price), service_id: s.id, price_at: new Date().toISOString() }] }); };
+  // Actualisation explicite des tarifs sur un brouillon : différences présentées avant application.
+  const refreshPrices = () => { const d = (open.lines as QLine[]).map((l, i) => { const s = l.service_id && services.find((x) => x.id === l.service_id); if (!s) return null; const np = s.price == null ? null : Number(s.price); return np !== l.price ? { i, desc: l.desc, old: l.price, next: np } : null; }).filter(Boolean);
+    if (!d.length) return toast({ title: "Tarifs à jour", description: "Aucune différence avec le catalogue privé." }); setDiff(d); };
+  const applyDiff = () => { const lines = [...open.lines]; diff!.forEach((d: any) => { lines[d.i] = { ...lines[d.i], price: d.next, price_at: new Date().toISOString() }; }); edit({ ...open, lines }); setDiff(null); };
+  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Soumission</DialogTitle></DialogHeader>
+      {canWrite && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setOpen({ lines: [], ...quote }); setStale(null); }} discardConfirm="Abandonner la préparation de cette soumission ? Les saisies non enregistrées seront effacées; la soumission enregistrée n'est pas modifiée." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+      {stale && <div role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Cette soumission a été modifiée ailleurs depuis votre préparation. L'état actuel est affiché; votre saisie est conservée à part.
+        <div className="mt-1 flex gap-2"><Button size="sm" variant="outline" onClick={() => { setOpen((x: any) => ({ ...x, ...stale })); setStale(null); }}>Appliquer ma saisie préparée</Button><Button size="sm" variant="ghost" onClick={() => setStale(null)}>Garder l'état actuel</Button></div></div>}
       <select className={sel} value={open.client_id ?? ""} onChange={(e) => edit({ ...open, client_id: e.target.value })}><option value="">Client…</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
       <Input placeholder="Numéro" value={open.number ?? ""} onChange={(e) => edit({ ...open, number: e.target.value })} />
       <div className="grid gap-2 sm:grid-cols-2">
@@ -593,8 +635,42 @@ function Quotes({ companyId, companyName, canWrite }: any) {
       <Textarea placeholder="Exclusions" value={open.exclusions ?? ""} onChange={(e) => edit({ ...open, exclusions: e.target.value })} />
       <Textarea placeholder="Conditions / échéancier" value={open.conditions ?? ""} onChange={(e) => edit({ ...open, conditions: e.target.value })} />
       <Input type="date" value={open.valid_until ?? ""} onChange={(e) => edit({ ...open, valid_until: e.target.value })} />
-      <Button onClick={save}>Enregistrer</Button></DialogContent></Dialog>}
-  </div>;
+      <Button onClick={save}>Enregistrer</Button></DialogContent></Dialog>;
+}
+
+/** Petite fenêtre contrôlée (remplace les questions natives) : brouillon par compte + entreprise + fiche + opération.
+ *  La sauvegarde du brouillon n'exécute rien; seule « onSubmit » (bouton explicite) écrit au serveur. */
+type FField = { k: string; l: string; type?: "text" | "number" | "date" | "textarea"; required?: boolean };
+function FieldsDialog({ form, recordId, companyId, title, route, fields, initial, submitLabel, onSubmit, onClose }: {
+  form: string; recordId: string | null; companyId: string; title: string; route: string; fields: FField[]; initial?: Record<string, string>;
+  submitLabel: string; onSubmit: (v: Record<string, string>) => Promise<string | null>; onClose: () => void;
+}) {
+  const { user: me } = useAuthReady(); const { canWrite } = useContext(CrmCtx);
+  const base = useMemo(() => Object.fromEntries(fields.map((f) => [f.k, initial?.[f.k] ?? ""])), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [v, setV] = useState<Record<string, string>>(base); const [err, setErr] = useState<string | null>(null); const busy = useRef(false); const [pending, setPending] = useState(false);
+  const store = useDraft({
+    id: me && canWrite ? { module: "crm", form, owner: me.id, company: companyId, recordId } : null,
+    data: v, label: () => `CRM — ${title}`, route,
+    isEmpty: (d) => JSON.stringify(d) === JSON.stringify(base), onRestore: (d) => setV({ ...base, ...d }),
+  });
+  const submit = async () => {
+    if (busy.current) return; // double clic / Entrée répétée : un seul envoi
+    const miss = fields.find((f) => f.required && !v[f.k]?.trim()); if (miss) return setErr(`« ${miss.l} » est requis.`);
+    busy.current = true; setPending(true); setErr(null);
+    try { const e = await onSubmit(Object.fromEntries(Object.entries(v).map(([k, x]) => [k, x.trim()]))); if (e) setErr(`Refusé — votre saisie est conservée : ${e}`); else store.finalize(); }
+    catch (e) { setErr(`Échec — votre saisie est conservée : ${(e as Error).message}`); }
+    finally { busy.current = false; setPending(false); }
+  };
+  return <Dialog open onOpenChange={onClose}><DialogContent><DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
+    {canWrite && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setV(base); }} discardConfirm="Abandonner cette préparation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+    <form className="grid gap-2" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
+      {fields.map((f) => <label key={f.k} className="block text-xs">{f.l}{f.required ? " *" : ""}
+        {f.type === "textarea" ? <Textarea aria-label={f.l} value={v[f.k]} onChange={(e) => setV({ ...v, [f.k]: e.target.value })} />
+          : <Input aria-label={f.l} type={f.type ?? "text"} step={f.type === "number" ? "0.01" : undefined} value={v[f.k]} onChange={(e) => setV({ ...v, [f.k]: e.target.value })} />}</label>)}
+      {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
+      <Button type="submit" disabled={pending}>{submitLabel}</Button>
+    </form>
+  </DialogContent></Dialog>;
 }
 
 function Projects({ companyId, canWrite }: any) {
@@ -612,17 +688,33 @@ function Projects({ companyId, canWrite }: any) {
   </div>)}</div>;
 }
 
-function Tasks({ companyId, canWrite }: any) {
-  const [rows, setRows] = useState<any[]>([]); const [done, setDone] = useState(false);
+function Tasks({ companyId, canWrite, params, setParams }: any) {
+  const [rows, setRows] = useState<any[]>([]);
+  // Filtre et fenêtre dans l'adresse : conservés après Retour et actualisation.
+  const done = params.get("td") === "1"; const fd = params.get("fd");
+  const setParam = (k: string, val: string | null, replace = false) => { const n = new URLSearchParams(params); val ? n.set(k, val) : n.delete(k); setParams(n, replace ? { replace: true } : undefined); };
+  const setDone = (b: boolean) => setParam("td", b ? "1" : null, true);
   const load = useCallback(async () => { let r = db.from("ent_crm_tasks").select("*, ent_crm_leads(title), ent_crm_projects(name), ent_crm_clients(name)").eq("company_id", companyId); r = done ? r.not("done_at", "is", null) : r.is("done_at", null); setRows((await r.order("due_at", { nullsFirst: false })).data ?? []); }, [companyId, done]);
   useEffect(() => { void load(); }, [load]);
-  const finish = async (t: any) => { const result = prompt("Résultat ?"); if (result == null) return; const { error } = await db.from("ent_crm_tasks").update({ done_at: new Date().toISOString(), result }).eq("id", t.id); if (error) toast({ title: "Refusé", description: error.message }); load(); };
-  const add = async () => { const title = prompt("Tâche ?"); if (!title) return; const due = prompt("Échéance (AAAA-MM-JJ) ?"); const { data: u } = await supabase.auth.getUser();
-    const { error } = await db.from("ent_crm_tasks").insert({ company_id: companyId, title, due_at: due || null, assignee_user_id: u.user?.id }); if (error) toast({ title: "Refusé", description: error.message }); load(); };
+  const finish = (t: any) => setParam("fd", `terminer:${t.id}`);
+  const add = () => setParam("fd", "tache:nouveau");
+  const [fk, fid] = (fd ?? "").split(":"); const ft = rows.find((r) => r.id === fid);
   return <div><div className="mb-3 flex gap-2">{canWrite && <Button onClick={add}><Plus className="mr-1 h-4 w-4" />Nouvelle tâche</Button>}<Button variant="outline" onClick={() => setDone(!done)}>{done ? "Voir à faire" : "Voir terminées"}</Button></div>
     <div className="grid gap-2">{rows.map((t) => { const late = !t.done_at && t.due_at && new Date(t.due_at) < new Date(); return <div key={t.id} className={`rounded-lg border bg-card p-3 text-sm ${late ? "border-destructive" : "border-border"}`}>
       <p className="font-display font-bold">{t.title}</p><p className="text-xs text-muted-foreground">Échéance : {t.due_at ? new Date(t.due_at).toLocaleDateString("fr-CA") : "—"}{late ? " · EN RETARD" : ""} · Dossier : {t.ent_crm_leads?.title ?? t.ent_crm_projects?.name ?? t.ent_crm_clients?.name ?? "—"}</p>
-      {t.result && <p className="text-xs">Résultat : {t.result}</p>}{!t.done_at && <Button size="sm" className="mt-2" onClick={() => finish(t)}>Terminer</Button>}</div>; })}</div></div>;
+      {t.result && <p className="text-xs">Résultat : {t.result}</p>}{!t.done_at && canWrite && <Button size="sm" className="mt-2" onClick={() => finish(t)}>Terminer</Button>}</div>; })}</div>
+    {fk === "tache" && <TaskDialog key={fd} companyId={companyId} route={`/entrepreneur/crm?company=${companyId}&tab=tasks&fd=tache:nouveau`} onClose={() => setParam("fd", null)} onDone={() => { setParam("fd", null); load(); }} />}
+    {fk === "terminer" && ft && <FieldsDialog key={fd} form="tache-terminer" recordId={ft.id} companyId={companyId} title={`Terminer « ${ft.title} »`} route={`/entrepreneur/crm?company=${companyId}&tab=tasks&fd=${fd}`}
+      fields={[{ k: "result", l: "Résultat", type: "textarea" }]} submitLabel="Marquer terminée" onClose={() => setParam("fd", null)}
+      onSubmit={async (v) => { const { data, error } = await db.from("ent_crm_tasks").update({ done_at: new Date().toISOString(), result: v.result || null }).eq("id", ft.id).is("done_at", null).select("id"); if (error) return error.message; if (!data?.length) toast({ title: "Tâche déjà terminée", description: "Aucune modification : elle avait déjà été clôturée." }); setParam("fd", null); load(); return null; }} />}
+  </div>;
+}
+
+/** Nouvelle tâche (liste des tâches ou relance d'un lead) : un seul envoi, brouillon conservé. */
+function TaskDialog({ companyId, leadId, route, onClose, onDone }: any) {
+  return <FieldsDialog form="tache" recordId={leadId ?? null} companyId={companyId} title={leadId ? "Nouvelle relance" : "Nouvelle tâche"} route={route}
+    fields={[{ k: "title", l: "Tâche", required: true }, { k: "due", l: "Échéance", type: "date" }]} submitLabel="Ajouter la tâche" onClose={onClose}
+    onSubmit={async (v) => { const { data: u } = await supabase.auth.getUser(); const { error } = await db.from("ent_crm_tasks").insert({ company_id: companyId, title: v.title, due_at: v.due || null, lead_id: leadId ?? null, assignee_user_id: u.user?.id }); if (error) return error.message; toast({ title: "Tâche ajoutée" }); onDone(); return null; }} />;
 }
 
 function Reports({ companyId }: any) {

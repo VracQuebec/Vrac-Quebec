@@ -17,9 +17,19 @@ export default function CrmFiles({ companyId, ownerType, ownerId, canWrite, canA
 }) {
   const [links, setLinks] = useState<any[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
-  const [q, setQ] = useState(""); const [cat, setCat] = useState(""); const [newCat, setNewCat] = useState("autre");
-  const [showArchived, setShowArchived] = useState(false);
+  // Recherche, filtres et fichiers non envoyés : gardés par dossier sur cet appareil (Retour, actualisation).
+  // Un fichier local ne survit jamais à une actualisation : seul son nom est gardé, marqué « à joindre de nouveau ».
+  const sk = `vq.crmFiles.${companyId}.${ownerType}.${ownerId}`;
+  const saved = (() => { try { return JSON.parse(sessionStorage.getItem(sk) || "{}"); } catch { return {}; } })();
+  const [q, setQ] = useState<string>(saved.q ?? ""); const [cat, setCat] = useState<string>(saved.cat ?? ""); const [newCat, setNewCat] = useState<string>(saved.newCat ?? "autre");
+  const [showArchived, setShowArchived] = useState<boolean>(!!saved.arch);
   const [ups, setUps] = useState<Up[]>([]);
+  const lk = `vq.crmFilesPending.${companyId}.${ownerType}.${ownerId}`;
+  const [lost, setLost] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem(lk) || "[]"); } catch { return []; } });
+  useEffect(() => { try { sessionStorage.setItem(sk, JSON.stringify({ q, cat, newCat, arch: showArchived })); } catch { /* stockage indisponible */ } }, [sk, q, cat, newCat, showArchived]);
+  useEffect(() => { const names = ups.map((u) => u.file.name); try { const all = [...new Set([...lost, ...names])]; all.length ? localStorage.setItem(lk, JSON.stringify(all)) : localStorage.removeItem(lk); } catch { /* ignore */ } }, [ups]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!ups.some((u) => u.status !== "done")) return; const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; }; window.addEventListener("beforeunload", h); return () => window.removeEventListener("beforeunload", h); }, [ups]);
+  const forgetLost = (n?: string) => { const next = n ? lost.filter((x) => x !== n) : []; setLost(next); try { next.length ? localStorage.setItem(lk, JSON.stringify(next)) : localStorage.removeItem(lk); } catch { /* ignore */ } };
   const cam = useRef<HTMLInputElement>(null); const pick = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -58,6 +68,7 @@ export default function CrmFiles({ companyId, ownerType, ownerId, canWrite, canA
     const l = await db.from("ent_crm_file_links").insert({ company_id: companyId, file_id: f.id, owner_type: ownerType, owner_id: ownerId });
     if (l.error) return fail(`Rattachement refusé : ${l.error.message}`);
     setUps((l2) => l2.filter((x) => x.key !== u.key));
+    setLost((l) => { const n = l.filter((x) => x !== u.file.name); try { n.length ? localStorage.setItem(lk, JSON.stringify(n)) : localStorage.removeItem(lk); } catch { /* ignore */ } return n; });
   };
 
   const add = async (list?: FileList | null) => {
@@ -99,6 +110,10 @@ export default function CrmFiles({ companyId, ownerType, ownerId, canWrite, canA
       </>}
     </div>
     <p className="text-xs text-muted-foreground">JPG, PNG, WEBP, HEIC ou PDF · 20 Mo au maximum par fichier · accès privé par lien temporaire.</p>
+    {lost.filter((n) => !ups.some((u) => u.file.name === n)).length > 0 && <div role="status" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">
+      <p className="font-semibold">Non envoyé — à joindre de nouveau :</p>
+      {lost.filter((n) => !ups.some((u) => u.file.name === n)).map((n) => <p key={n} className="flex items-center gap-2"><span className="flex-1 truncate">{n}</span><Button size="sm" variant="ghost" onClick={() => forgetLost(n)}>Ignorer</Button></p>)}
+      <p className="text-muted-foreground">Ces fichiers n'ont pas été enregistrés. Utilisez « Joindre » pour les sélectionner de nouveau.</p></div>}
     {ups.map((u) => <div key={u.key} className="flex items-center gap-2 text-xs">
       <span className="flex-1 truncate">{u.file.name}</span>
       {u.status === "uploading" || u.status === "pending" ? <span className="text-muted-foreground">Envoi en cours…</span>
