@@ -48,7 +48,8 @@ export function forecast(input: {
 
   const kept: Movement[] = []; const unknown: Movement[] = [];
   let toReplan = 0;
-  for (const m of input.moves) {
+  for (const m0 of input.moves) {
+    const m = { ...m0 };
     if ((m.currency ?? "CAD") !== cur) continue;
     // Compte hors trésorerie (carte, crédit, compte exclu) : n'affecte pas l'encaisse.
     if (m.account_id && !cashIds.has(m.account_id) && m.kind !== "transfer") continue;
