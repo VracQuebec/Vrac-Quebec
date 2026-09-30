@@ -27,11 +27,12 @@ export function useQuoteSubmit() {
   const [honeypot, setHoneypot] = useState("");
   // Verrou synchrone : double clic, touche Entrée répétée ou envois parallèles → une seule requête.
   const inFlight = useRef(false);
+  const done = useRef(false); // demande confirmée : Retour/nouveau clic ne la répète pas
 
   const send = useCallback(async (draft: VracDraft, action: SubmitAction, ctx: QuoteContext = {}) => {
     const request = buildQuoteRequest(draft, ctx);
     if ("unsupported" in request) { setError(request.unsupported); return; }
-    if (inFlight.current) return;
+    if (inFlight.current || done.current) return;
     inFlight.current = true;
     setPending(action);
     setError(null);
@@ -62,6 +63,7 @@ export function useQuoteSubmit() {
         try { const parsed = JSON.parse(details); if (parsed?.error) message = parsed.error; } catch { /* non JSON */ }
         throw new Error(message || "Envoi impossible pour le moment.");
       }
+      done.current = true;
       setResult({
         quote_number: data?.quote_number ?? null,
         request_number: data?.request_number ?? null,
@@ -79,7 +81,7 @@ export function useQuoteSubmit() {
 
   /** Demande « Sur demande » : envoyée sans calcul client, traitée côté serveur. */
   const sendManual = useCallback(async (draft: VracDraft) => {
-    if (inFlight.current) return;
+    if (inFlight.current || done.current) return;
     inFlight.current = true;
     setPending("submit"); setError(null);
     try {
@@ -107,6 +109,7 @@ export function useQuoteSubmit() {
         },
       });
       if (fnError || data?.ok === false) throw new Error(data?.error || "Envoi impossible pour le moment.");
+      done.current = true;
       setResult({ quote_number: null, request_number: data?.request_number ?? null, valid_until: null, emailed_to: data?.emailed_to ?? null, action: "submit" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Envoi impossible pour le moment.");
