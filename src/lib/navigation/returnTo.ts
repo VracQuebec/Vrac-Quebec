@@ -50,13 +50,15 @@ export function ReturnToTracker() {
   const uid = useRef<string | null>(null);
   const last = useRef<string | null>(null);
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => { uid.current = data.session?.user.id ?? null; });
+    try { uid.current = localStorage.getItem("vq.lastUid"); } catch { /* ignore */ }
+    const remember = (id: string) => { uid.current = id; try { localStorage.setItem("vq.lastUid", id); } catch { /* ignore */ } };
+    supabase.auth.getSession().then(({ data }) => { if (data.session?.user) remember(data.session.user.id); });
     const { data: sub } = supabase.auth.onAuthStateChange((ev, s) => {
       if (ev === "SIGNED_OUT") {
         // Déconnexion volontaire : on n'emmène pas la page privée vers une autre session.
         if (sessionStorage.getItem("vq.voluntarySignOut") === "1") { clearReturnTo(); sessionStorage.removeItem("vq.voluntarySignOut"); }
       }
-      if (s?.user) uid.current = s.user.id;
+      if (s?.user) remember(s.user.id);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -73,5 +75,5 @@ export function ReturnToTracker() {
 
 /** À appeler avant une déconnexion demandée par l'utilisateur. */
 export function markVoluntarySignOut() {
-  try { sessionStorage.setItem("vq.voluntarySignOut", "1"); clearReturnTo(); } catch { /* ignore */ }
+  try { sessionStorage.setItem("vq.voluntarySignOut", "1"); localStorage.removeItem("vq.lastUid"); clearReturnTo(); } catch { /* ignore */ }
 }
