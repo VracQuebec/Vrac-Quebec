@@ -27,7 +27,7 @@ export default function CrmFiles({ companyId, ownerType, ownerId, canWrite, canA
   const lk = `vq.crmFilesPending.${companyId}.${ownerType}.${ownerId}`;
   const [lost, setLost] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem(lk) || "[]"); } catch { return []; } });
   useEffect(() => { try { sessionStorage.setItem(sk, JSON.stringify({ q, cat, newCat, arch: showArchived })); } catch { /* stockage indisponible */ } }, [sk, q, cat, newCat, showArchived]);
-  useEffect(() => { const names = ups.map((u) => u.file.name); try { names.length ? localStorage.setItem(lk, JSON.stringify(names)) : lost.length || localStorage.removeItem(lk); } catch { /* ignore */ } }, [ups]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const names = ups.map((u) => u.file.name); try { const all = [...new Set([...lost, ...names])]; all.length ? localStorage.setItem(lk, JSON.stringify(all)) : localStorage.removeItem(lk); } catch { /* ignore */ } }, [ups]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!ups.some((u) => u.status !== "done")) return; const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; }; window.addEventListener("beforeunload", h); return () => window.removeEventListener("beforeunload", h); }, [ups]);
   const forgetLost = (n?: string) => { const next = n ? lost.filter((x) => x !== n) : []; setLost(next); try { next.length ? localStorage.setItem(lk, JSON.stringify(next)) : localStorage.removeItem(lk); } catch { /* ignore */ } };
   const cam = useRef<HTMLInputElement>(null); const pick = useRef<HTMLInputElement>(null);
@@ -68,7 +68,7 @@ export default function CrmFiles({ companyId, ownerType, ownerId, canWrite, canA
     const l = await db.from("ent_crm_file_links").insert({ company_id: companyId, file_id: f.id, owner_type: ownerType, owner_id: ownerId });
     if (l.error) return fail(`Rattachement refusé : ${l.error.message}`);
     setUps((l2) => l2.filter((x) => x.key !== u.key));
-    if (lost.includes(u.file.name)) forgetLost(u.file.name);
+    setLost((l) => { const n = l.filter((x) => x !== u.file.name); try { n.length ? localStorage.setItem(lk, JSON.stringify(n)) : localStorage.removeItem(lk); } catch { /* ignore */ } return n; });
   };
 
   const add = async (list?: FileList | null) => {
