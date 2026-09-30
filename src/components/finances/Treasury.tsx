@@ -169,7 +169,7 @@ function Inflows({ companyId, data, canWrite, refresh }: { companyId: string; da
   const save = async (fn: () => Promise<unknown>) => { try { await fn(); toast({ title: "Enregistré" }); refresh(); } catch (e: any) { toast({ title: "Refusé", description: e.message, variant: "destructive" }); } };
   return <div className="space-y-3">
     {canWrite && <div className="space-y-2 rounded-lg border border-dashed border-border p-3">
-      <DraftStatusBar draft={draft} />
+      <DraftStatusBar status={draft.status} savedAt={draft.savedAt} restored={!!draft.restoredMeta} onDiscard={() => { draft.finalize(); setF(empty); }} sync={draft.sync} synced={draft.synced} conflict={draft.conflict} onUseServer={draft.useServerVersion} onKeepLocal={draft.keepLocalVersion} onRestartAsNew={draft.restartAsNew} restartError={draft.restartError} onRetry={draft.retrySave} />
       <div className="flex flex-wrap items-end gap-2">
         <Input aria-label="Contrepartie" placeholder="Contrepartie (client…)" className="w-48" value={f.counterparty} onChange={(e) => setF({ ...f, counterparty: e.target.value })} />
         <Input aria-label="Montant attendu" type="number" step="0.01" placeholder="Montant" className="w-28" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
