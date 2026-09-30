@@ -1,0 +1,1 @@
+ALTER TABLE public.fin_allocations ALTER COLUMN allocated_on SET DEFAULT ((now() AT TIME ZONE 'America/Toronto')::date);
