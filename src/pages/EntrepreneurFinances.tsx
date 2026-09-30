@@ -122,6 +122,9 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
         .catch(() => toast({ title: "Échéance inaccessible", description: "Accès refusé ou service indisponible. La préparation reste conservée.", variant: "destructive" }));
       q.delete("brouillon"); q.delete("echeance");
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
+    } else if (q.get("brouillon") === "reglement-correction" && q.get("reglement")) {
+      setPayOpen(q.get("reglement")); q.delete("brouillon"); q.delete("reglement"); // la fiche est relue au serveur (droits vérifiés)
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
     } else if (canWrite && q.get("brouillon") === "obligation-regle" && q.get("obligation")) {
       setForm({ id: q.get("obligation"), ruleChange: { effective: q.get("effet") || todayIn(TZ) } }); q.delete("brouillon"); q.delete("obligation"); q.delete("effet");
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
