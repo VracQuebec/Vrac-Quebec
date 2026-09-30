@@ -137,7 +137,10 @@ export function useDraft<T>(opts: {
 
     if (!synced) { if (local) apply(local); const t = activate(); return () => { cancelled = true; clearTimeout(t); }; }
 
+    // Clôture (finalisation/abandon) encore en transmission : jamais de restauration de la copie du compte.
+    const closing = isCloseQueued(id.owner, id);
     void flushCloseQueue(id.owner);
+    if (closing && !local) { const t = activate(); return () => { cancelled = true; clearTimeout(t); }; }
     // Copie de récupération (brouillon clos ailleurs) : restaurée telle quelle, jamais resynchronisée automatiquement.
     if (local?.meta.recovery) { apply(local); setSync("closed"); const t = activate(); return () => { cancelled = true; clearTimeout(t); }; }
     const timeout = new Promise<"timeout">((r) => setTimeout(() => r("timeout"), SERVER_WAIT_MS));
