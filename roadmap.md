@@ -89,3 +89,12 @@
 - [ ] Inventaire préliminaire (17 fichiers sans brouillon) : CRM (EntrepreneurCrm, CrmServices), flotte (FleetDialogs, FleetDialogsV2, CompleteDialog, FleetManager), articles (à préciser), admin (ControlCenter, Marketplace ×4, Matching ×2, MaterialOffers, MaterialAssistant, MaterialLanguageLab)
 - [x] Correction d'un règlement : brouillon par compte+entreprise+règlement, champs séparés par correction (annulation/remboursement/affectation, clé de réessai conservée), alerte si fiche changée, reprise ?brouillon=reglement-correction — essayé (actualisation, autre section+Retour, menu)
 - Référence essais : échéance TEST FIN-03 C9 hebdo planifiée au 6 oct.; brouillon de correction du règlement TEST Fournisseur R laissé ouvert
+
+## NAV-01B — état au 30 sept. 2026
+- [x] CRM : fiche lead (création/modification) raccordée, ?lead= dans l'adresse, recherche clients ?cq= — essayé (Retour, actualisation, menu, double clic = 1 seul lead, 0 notification/courriel)
+- [ ] CRM : fiche client (modification), soumissions, chantiers, tâches, Tarifs et modèles (CrmServices), pièces (CrmFiles); position de défilement
+- [ ] Finances : essais montant, archivage, suspension/levée, changement de règle, tous champs obligation, changement de jour, pièce jointe, Entrée répétée, réessai incertain; règlement fictif avec reliquat (données d'essai à créer)
+- [ ] Flotte : VehicleDialog, FleetDialogs(V2), CompleteDialog, FleetDocuments, FleetManager
+- [ ] Articles : éditeur /admin/blogue/editer/:id (AdminBlogEditor), génération /admin/blogue/generer
+- [ ] Administration : centre de contrôle, marché (transactions, commissions, lots, catégories, jumelage), SEO, territoires, CRM admin, plateforme, offres matériaux
+- [ ] Session/droits, téléphone réel
