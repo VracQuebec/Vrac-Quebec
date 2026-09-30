@@ -107,7 +107,9 @@
 - [x] Éditeur d'articles : nouvel article non enregistré → brouillon (actualisation, section+Retour, menu vérifiés; aucune création serveur). Articles existants : déjà enregistrés automatiquement au serveur.
 - [x] Flotte : entretien, réparation, inspection, dépense, travaux vérifiés (champs texte/nombre; fermeture, actualisation, section+Retour, menu); fenêtre gardée dans l'adresse; brouillons rattachés à l'entreprise et au véhicule.
 - [ ] Flotte : clôture — aucun entretien/réparation fictif existant (données d'essai manquantes); cases/signature de l'inspection non comparées; essais d'erreur non faits (tout enregistrement de flotte crée des alertes internes).
-- [ ] Articles : contenu long, options, SEO, modification d'un article existant.
+- [x] Articles (nouvel article) : contenu long, mot-clé IA, description d'image, SEO, options vérifiés.
+- [ ] Articles existants : enregistrés automatiquement au serveur (3 s); non essayé (aucun article fictif au serveur).
+- [x] Inspection : 8 choix + signature (nom tapé) vérifiés.
 - [ ] CRM : projets (enregistrement au blur), vues enregistrées, motif de perte, équipe/statuts (questions natives restantes).
 - [ ] Administration (hors articles) et autres écrans de l'inventaire : non raccordés.
 - [ ] Listes/cartes : conservation recherche/filtres/tri/position non généralisée.
