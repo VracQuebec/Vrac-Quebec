@@ -630,8 +630,11 @@ function Settings({ companyId, cats, canWrite, onChange }: { companyId: string; 
   // catégorie renommée ailleurs depuis (le nom actuel reste affiché, la saisie est signalée).
   const { user: me } = useAuthReady();
   const catsRef = useRef(cats); catsRef.current = cats;
+  // Attendre la liste des catégories (ou 2 s si l'entreprise n'en a aucune) avant de reprendre un renommage.
+  const [catsReady, setCatsReady] = useState(cats.length > 0);
+  useEffect(() => { if (cats.length) { setCatsReady(true); return; } const t = setTimeout(() => setCatsReady(true), 2000); return () => clearTimeout(t); }, [cats.length]);
   const store = useDraft({
-    id: me && canWrite && cats.length >= 0 ? { module: "finances", form: "parametres", owner: me.id, company: companyId } : null,
+    id: me && canWrite && catsReady ? { module: "finances", form: "parametres", owner: me.id, company: companyId } : null,
     data: { name, edit },
     label: () => "Paramètres Finances (catégories)",
     route: `/entrepreneur/finances?company=${companyId}&tab=parametres`,
