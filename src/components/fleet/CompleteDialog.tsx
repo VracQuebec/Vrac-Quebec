@@ -37,7 +37,7 @@ export default function CompleteDialog({ target, onOpenChange, onSaved }: {
   const { toast } = useToast();
   const today = new Date().toISOString().slice(0, 10);
   const [f, setF] = useState<Record<string, string>>({});
-  const dd = useDialogDraft({ open: !!target, module: "flotte", form: "fin-entretien", company: getActiveCompanyId(), recordId: target ? `${target.kind}:${(target.record as { id: string }).id}` : null,
+  const dd = useDialogDraft({ open: !!target, module: "flotte", form: "fin-entretien", company: (target?.record as { company_id?: string | null } | undefined)?.company_id ?? getActiveCompanyId(), recordId: target ? `${target.kind}:${(target.record as { id: string }).id}` : null,
     data: f, setData: setF, label: (d: Record<string, string>) => `Flotte — Fin d'entretien${d.notes ? ` « ${String(d.notes).slice(0, 40)} »` : ""}`,
     route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined, fileNames: [] });
   const [busy, setBusy] = useState(false);
