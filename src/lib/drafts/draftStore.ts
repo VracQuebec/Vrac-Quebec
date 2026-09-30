@@ -24,6 +24,8 @@ export type DraftMeta = DraftIdentity & {
   /** Modifications locales pas encore transmises au compte. */
   unsynced?: boolean;
   step?: number | null; route?: string | null;
+  /** Copie de récupération : le brouillon au compte a été clos ailleurs; conservée sur cet appareil seulement, jamais transmise automatiquement. */
+  recovery?: boolean;
 };
 
 export type DraftRecord<T> = { meta: DraftMeta; data: T };
@@ -66,7 +68,7 @@ export function readDraft<T>(key: string): DraftRecord<T> | null {
 export function writeDraft<T>(id: DraftIdentity, data: T, prev: DraftMeta | null, label?: string, extra?: Partial<DraftMeta>): DraftMeta | null {
   const s = storage(); if (!s) return null;
   const key = draftKey(id); const now = new Date().toISOString();
-  const meta: DraftMeta = { ...id, key, env: env(), version: DRAFT_SCHEMA_VERSION, rev: (prev?.rev ?? 0) + 1, createdAt: prev?.createdAt ?? now, updatedAt: now, label, serverRev: prev?.serverRev ?? null, unsynced: prev?.unsynced, step: prev?.step, route: prev?.route, ...extra };
+  const meta: DraftMeta = { ...id, key, env: env(), version: DRAFT_SCHEMA_VERSION, rev: (prev?.rev ?? 0) + 1, createdAt: prev?.createdAt ?? now, updatedAt: now, label, serverRev: prev?.serverRev ?? null, unsynced: prev?.unsynced, step: prev?.step, route: prev?.route, recovery: prev?.recovery, ...extra };
   try { s.setItem(key, JSON.stringify({ meta, data })); return meta; } catch { return null; }
 }
 
