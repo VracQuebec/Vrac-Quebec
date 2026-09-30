@@ -133,7 +133,17 @@ export default function AdminBlogEditor() {
       setRelMaterialSlugs(Array.isArray(dataAny.related_material_slugs) ? dataAny.related_material_slugs as string[] : []);
       setRelServiceSlugs(Array.isArray(dataAny.related_service_slugs) ? dataAny.related_service_slugs as string[] : []);
       const { data: tagRows } = await supabase.from("blog_post_tags").select("tag_id").eq("post_id", data.id);
-      setTags((tagRows ?? []).map((t) => t.tag_id));
+      const tagIds = (tagRows ?? []).map((t) => t.tag_id);
+      setTags(tagIds);
+      // Référence « confirmée par le serveur » (même forme et même ordre que `editable`).
+      baseline.current = JSON.stringify({ title: data.title, slug: data.slug, slugTouched: true, excerpt: data.excerpt ?? "", content: data.content ?? "",
+        coverUrl: data.cover_image_url ?? "", coverAlt: data.cover_image_alt ?? "", categoryId: data.category_id, authorId: data.author_id,
+        scheduledAt: data.scheduled_at ? data.scheduled_at.slice(0, 16) : "", metaTitle: data.meta_title ?? "", metaDescription: data.meta_description ?? "",
+        ogImage: data.og_image_url ?? "", canonical: data.canonical_url ?? "", isFeatured: data.is_featured, isPopular: data.is_popular, noindex: data.noindex, tags: tagIds,
+        relCitySlugs: Array.isArray(dataAny.related_city_slugs) ? dataAny.related_city_slugs : [], relMaterialSlugs: Array.isArray(dataAny.related_material_slugs) ? dataAny.related_material_slugs : [],
+        relServiceSlugs: Array.isArray(dataAny.related_service_slugs) ? dataAny.related_service_slugs : [] });
+      setServerStamp((data as { updated_at?: string }).updated_at ?? "");
+      setEditConflict(false);
       setLoading(false);
     })();
   }, [id, isNew, isAdmin]);
