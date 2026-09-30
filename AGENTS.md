@@ -8,3 +8,5 @@
 - Finances : écritures via RPC fin_* SECURITY DEFINER ; un seul moteur fin_gen_dates (aperçu/calendrier/totaux), unicité (obligation, occ_key, suffixe @gN après changement de règle) ; conflit rev = ERRCODE P0409 (jamais 40001) — sans doublon ni boucle API.
 - FIN-04 : recherche Finances = contrat unique (lib/finances/query.ts → fin_select / fin_pay_select) pour écran, totaux et CSV; vues dans fin_saved_views (RLS fin_can_*) — aucune divergence entre écran et export.
 - Brouillons de formulaires : toujours via src/lib/drafts (useDraft + DraftStatusBar), étape d'assistant dans ?etape= — une seule mécanique, reprise après Retour/rechargement.
+
+- Brouillons des comptes connectés : synchronisés dans public.user_drafts via RPC draft_* (version contrôlée, refus après clôture) — reprise entre appareils sans écrasement silencieux.

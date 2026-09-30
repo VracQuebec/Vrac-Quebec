@@ -63,15 +63,14 @@
 - [ ] Bloqué : publication — autorisation explicite requise.
 
 ## NAV-01 / NAV-01B — navigation fiable et brouillons
-- [x] Brouillons locaux communs (draftStore / useDraft / DraftStatusBar, abandon avec confirmation)
-- [x] 3 assistants publics : étape + saisies reprises à la réouverture (P01/P02), étape invalide → première étape à corriger
-- [x] Achat en vrac : brouillon commun, « Abandonner le brouillon », finalisé à l'envoi (P03)
-- [x] Retour au travail après reconnexion (même compte seulement); déconnexion volontaire efface la destination (D, E)
-- [x] Finances : « Ajouter une obligation » (P04/P05)
-- [ ] Finances : modification d'obligation (contrôle de version serveur), règlements, paramètres
-- [ ] CRM entrepreneur (clients, contacts, pistes, soumissions, tâches), flotte, éditeur d'articles, admin
-- [ ] « Reprendre mon travail » (liste des brouillons) dans la navigation
-- [ ] Listes/cartes : recherche, filtres, défilement restaurés après fiche (P06)
-- [ ] Sauvegarde serveur des brouillons et reprise sur un autre appareil (P11) — actuellement local seulement
-- [ ] Essais A, B, C, F, P08 (notification admin), P09, P10, P12
-- [ ] Appareil réel (geste Retour Android, balayage Safari) — impossible dans l'environnement d'essai
+- [x] J1 Sauvegarde au compte : table user_drafts + RPC draft_save/close/reopen (version, conflit P0409, refus tardif P0410), sync dans useDraft
+- [x] J1 Effacement : achat en vrac et obligation effacés seulement après réponse confirmée (vérifié dans le code)
+- [x] J2 « Reprendre mon travail » (/entrepreneur/brouillons) + reprise dans un contexte indépendant, abandon ailleurs bloque l'écriture tardive
+- [x] Assistants publics (P01-P03), retour après reconnexion (D partiel), déconnexion (E)
+- [ ] J1 Verrou double clic achat en vrac (le serveur dédoublonne déjà les demandes identiques)
+- [ ] J3 Finances : modifier une obligation, règlements, paramètres; tous les champs de « Ajouter une obligation » vérifiés
+- [ ] J3 CRM entrepreneur, flotte, éditeur d'articles, admin, autres routes
+- [ ] J3 Listes/cartes : recherche, filtres, défilement après fiche
+- [ ] J4 Isolation avec un 2e compte ordinaire (nécessite l'accord pour ouvrir une session d'essai de ce compte), 2 entreprises, droit retiré, 2 onglets
+- [ ] J4 A, B, C, F, notification admin, connexion par l'interface
+- [ ] Fiche d'essai sur téléphone réel
