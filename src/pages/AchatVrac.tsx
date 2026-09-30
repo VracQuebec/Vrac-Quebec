@@ -4,7 +4,10 @@
 // Aucun prix, aucune carrière, aucun camion, aucun tarif ici :
 // tout provient des paramètres administrateur via quote-engine.
 // ============================================================
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useDraft } from "@/lib/drafts/useDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
+import { toast } from "@/hooks/use-toast";
 import { Helmet } from "react-helmet-async";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Calculator, Check, Loader2, ShieldCheck, Sparkles } from "lucide-react";
@@ -14,8 +17,8 @@ import {
   DeliveryDateNotice, Notice, StepContact, StepDelivery, StepMaterial, StepQuantity,
 } from "@/components/vrac/VracSteps";
 import {
-  EMPTY_VRAC_DRAFT, findVracMaterial, getActiveVracMaterials, loadVracDraft,
-  saveVracDraft, type VracDraft,
+  EMPTY_VRAC_DRAFT, clearVracDraft, findVracMaterial, getActiveVracMaterials, loadVracDraft,
+  type VracDraft,
 } from "@/lib/vrac/catalog";
 import QuoteCard from "@/components/vrac/QuoteCard";
 import CatalogPicker from "@/components/vrac/CatalogPicker";
@@ -30,7 +33,7 @@ const STEPS = ["Matériau", "Quantité", "Livraison", "Coordonnées", "Résumé 
 
 export default function AchatVrac() {
   const materials = useMemo(() => getActiveVracMaterials(), []);
-  const [draft, setDraft] = useState<VracDraft>(EMPTY_VRAC_DRAFT);
+  const [draft, setDraft] = useState<VracDraft>(() => loadVracDraft());
   const [searchParams, setParams] = useSearchParams();
   // NAV-01 : l'étape vit dans l'historique (?etape=) — Retour/Avance du navigateur et
   // rechargement gardent la place; les saisies restent dans le brouillon local.
@@ -40,21 +43,43 @@ export default function AchatVrac() {
     if (n === step) return;
     setParams((p) => { const q = new URLSearchParams(p); if (n === 0) q.delete("etape"); else q.set("etape", String(n + 1)); return q; });
   };
+  // Nouvelle ouverture sans ?etape= : on reprend l'étape du brouillon (validée plus bas).
+  const resumeStep = (saved: number | undefined) => {
+    if (!saved || saved <= 0) return;
+    setParams((p) => { if (p.get("etape")) return p; const q = new URLSearchParams(p); q.set("etape", String(Math.min(saved, STEPS.length - 1) + 1)); return q; }, { replace: true });
+  };
   const estimate = useVracEstimate();
   const submission = useQuoteSubmit();
 
-  // Sauvegarde automatique + pré-remplissage depuis le calculateur
-  // (?material=<slug>&qty=<nombre>&unit=tonne|m3|verge).
+  // NAV-01 : brouillon commun (données + étape, versionné). L'ancienne clé locale sert de
+  // point de départ une seule fois puis est retirée : aucune double sauvegarde.
+  const store = useDraft({
+    id: { module: "achat-vrac", form: "assistant", owner: "anon" },
+    data: { ...draft, step },
+    isEmpty: (d) => !d.materialId && !d.catalog && !(d.customMaterial ?? "").trim() && !d.tonnes && !d.trips
+      && !d.dims.length && !d.address && !d.contact.name && !d.contact.phone && !d.contact.email,
+    onRestore: (d) => {
+      const { step: savedStep, ...rest } = d;
+      setDraft({ ...EMPTY_VRAC_DRAFT, ...rest, dims: { ...EMPTY_VRAC_DRAFT.dims, ...rest.dims }, contact: { ...EMPTY_VRAC_DRAFT.contact, ...rest.contact } });
+      resumeStep(savedStep);
+    },
+  });
+  useEffect(() => { clearVracDraft(); }, []);
+
+  // Pré-remplissage depuis le calculateur (?material=<slug>&qty=<nombre>&unit=tonne|m3|verge),
+  // appliqué après la reprise du brouillon.
+  const presetDone = useRef(false);
   useEffect(() => {
-    const saved = loadVracDraft();
+    if (!store.ready || presetDone.current) return;
+    presetDone.current = true;
     const slug = searchParams.get("material");
     const qty = Number(searchParams.get("qty"));
     const unit = searchParams.get("unit");
     const truck = searchParams.get("truck");
     const preset = slug ? getActiveVracMaterials().find((m) => m.slug === slug) : null;
-    if (!preset) { setDraft(saved); return; }
+    if (!preset) return;
     const validUnit = unit === "m3" || unit === "verge" ? unit : "tonne";
-    setDraft({
+    setDraft((saved) => ({
       ...saved,
       materialId: preset.id,
       quantityMode: qty > 0 ? "tonnes" : saved.quantityMode,
@@ -62,11 +87,16 @@ export default function AchatVrac() {
       tonnes: qty > 0 ? String(qty) : saved.tonnes,
       // Camion choisi dans le calculateur : évite une seconde saisie.
       truckId: truck || saved.truckId,
-    });
+    }));
     if (!searchParams.get("etape")) setStep(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  useEffect(() => { saveVracDraft(draft); }, [draft]);
+  }, [store.ready]);
+  // Demande transmise : le brouillon est finalisé et ne peut plus revenir.
+  useEffect(() => { if (submission.result) store.finalize(); }, [submission.result]); // eslint-disable-line react-hooks/exhaustive-deps
+  const startOver = () => {
+    store.discard(); setDraft(EMPTY_VRAC_DRAFT); estimate.reset();
+    setParams((p) => { const q = new URLSearchParams(p); q.delete("etape"); return q; });
+  };
 
   const set = (patch: Partial<VracDraft>) => setDraft((d) => ({ ...d, ...patch }));
   const material = findVracMaterial(draft.materialId);
@@ -116,7 +146,7 @@ export default function AchatVrac() {
     ? draft.catalog.priceStatus !== "prix_disponible"
     : !material && (draft.customMaterial ?? "").trim().length > 3;
   const quoteFresh = !!estimate.quote && estimate.isFresh(draft, quoteContext);
-  const canContinue = [
+  const valid = [
     !!material || !!draft.catalog || onDemand,
     draft.quantityMode === "inconnu"
       || (draft.quantityMode === "tonnes" && Number(draft.tonnes) > 0)
@@ -128,15 +158,26 @@ export default function AchatVrac() {
       && draft.contact.phone.replace(/\D/g, "").length >= 10
       && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(draft.contact.email.trim()),
     true,
-  ][step];
+  ];
+  const canContinue = valid[step];
 
-  const blockingMessage = [
+  const blockingMessages = [
     "Choisissez un matériau pour continuer.",
     "Indiquez la quantité approximative pour continuer.",
     "Choisissez une adresse proposée par Google pour continuer.",
     "Complétez votre nom, votre téléphone (10 chiffres) et votre courriel pour continuer.",
     "",
-  ][step];
+  ];
+  const blockingMessage = blockingMessages[step];
+  // Reprise sur une étape dont une condition précédente n'est plus remplie : on ramène à la
+  // première étape à corriger (jamais systématiquement à l'étape 1), les autres saisies restent.
+  useEffect(() => {
+    if (!store.ready || submission.result) return;
+    const bad = valid.findIndex((v, i) => i < step && !v);
+    if (bad < 0) return;
+    setParams((p) => { const q = new URLSearchParams(p); if (bad === 0) q.delete("etape"); else q.set("etape", String(bad + 1)); return q; }, { replace: true });
+    toast({ title: `Étape « ${STEPS[bad]} » à compléter`, description: blockingMessages[bad] });
+  }, [store.ready, step, valid.join()]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Certaines quantités (voyages, quantité inconnue) sont confirmées par notre équipe.
   const estimateBlocked = step === 4 ? buildQuoteRequest(draft, quoteContext) : null;
