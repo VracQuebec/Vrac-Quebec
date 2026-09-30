@@ -7,6 +7,7 @@ import { useEffect, lazy, Suspense } from "react";
 import { Helmet } from "react-helmet-async";
 import Index from "./pages/Index";
 import SessionKeeper from "./components/SessionKeeper";
+import { ReturnToTracker } from "./lib/navigation/returnTo";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 import UniversalNav from "./components/UniversalNav";
 import { trackPageView } from "./lib/analytics/ga4";
@@ -190,6 +191,7 @@ const App = () => (
           <PrivateNoIndex />
           <Ga4RouteTracker />
           <SessionKeeper />
+          <ReturnToTracker />
           <AdminNotificationsMount />
           <UniversalNav />
           <Suspense fallback={null}>

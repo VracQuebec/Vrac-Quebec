@@ -5,6 +5,7 @@
 // Aucun champ inventé, aucune règle métier modifiée.
 // ============================================================
 import { useCallback, useEffect, useState } from "react";
+import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
@@ -83,7 +84,7 @@ const EntrepreneurCompte = () => {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    markVoluntarySignOut(); await supabase.auth.signOut();
     navigate("/login");
   };
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRole";
@@ -55,7 +56,7 @@ export default function AdminCalendar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    markVoluntarySignOut(); await supabase.auth.signOut();
     navigate("/login");
   };
 

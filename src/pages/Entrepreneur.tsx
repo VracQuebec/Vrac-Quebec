@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { supabase } from "@/integrations/supabase/client";
 import { getEligibleEntrepreneurDumpSites, crmDompeNumber } from "@/lib/entrepreneur/dompes";
 import { isDompeClosed } from "@/lib/entrepreneur/site-match";
@@ -296,7 +297,7 @@ const Entrepreneur = () => {
     }
   };
 
-  const handleLogout = async () => { await supabase.auth.signOut(); navigate("/login"); };
+  const handleLogout = async () => { markVoluntarySignOut(); await supabase.auth.signOut(); navigate("/login"); };
 
   if (!authReady || !user || roleLoading) {
     return <FullPageState title="Connexion en cours" message="Votre espace entrepreneur se charge automatiquement." />;

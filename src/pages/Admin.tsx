@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { neutralizeSpreadsheetCell } from "@/lib/security/filters";
 import { supabase } from "@/integrations/supabase/client";
 import { LeadPhotos } from "@/components/admin/LeadPhotos";
@@ -557,7 +558,7 @@ const Admin = () => {
     });
   };
 
-  const handleLogout = async () => { await supabase.auth.signOut(); navigate("/login"); };
+  const handleLogout = async () => { markVoluntarySignOut(); await supabase.auth.signOut(); navigate("/login"); };
 
   const downloadCSV = (filename: string, cols: string[], rowsData: any[]) => {
     const escape = (v: any) => {

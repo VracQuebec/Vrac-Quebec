@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { Truck, Loader2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
+import { consumeReturnTo } from "@/lib/navigation/returnTo";
 import TransportBanner from "@/components/TransportBanner";
 
 const Login = () => {
@@ -20,11 +21,19 @@ const Login = () => {
   const { user, isReady: authReady } = useAuthReady();
   const { isAdmin, isEntrepreneur, loading: roleLoading } = useUserRoles(user, authReady);
 
+  // NAV-01 : après connexion, retour à la page de travail du MÊME compte (droits revérifiés
+  // ensuite par la page elle-même); autre compte → accueil de son espace, sans reprise.
+  const goAfterLogin = (uid: string, fallback: string) => {
+    const { path, otherAccount } = consumeReturnTo(uid);
+    if (otherAccount) toast({ title: "Nouvelle session", description: "Le travail en cours d'un autre compte n'est pas repris sur ce compte." });
+    navigate(path ?? fallback, { replace: true });
+  };
+
   useEffect(() => {
     if (!authReady || !user || roleLoading) return;
-    if (isAdmin) navigate("/admin", { replace: true });
-    else if (isEntrepreneur) navigate("/entrepreneur", { replace: true });
-  }, [authReady, user, roleLoading, isAdmin, isEntrepreneur, navigate]);
+    if (isAdmin) goAfterLogin(user.id, "/admin");
+    else if (isEntrepreneur) goAfterLogin(user.id, "/entrepreneur");
+  }, [authReady, user, roleLoading, isAdmin, isEntrepreneur, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,9 +56,7 @@ const Login = () => {
           if (roleList.length > 0) break;
           await new Promise((r) => setTimeout(r, 200));
         }
-        if (roleList.includes("admin")) navigate("/admin", { replace: true });
-        else if (roleList.includes("entrepreneur")) navigate("/entrepreneur", { replace: true });
-        else navigate("/entrepreneur", { replace: true });
+        goAfterLogin(data.user.id, roleList.includes("admin") ? "/admin" : "/entrepreneur");
       }
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Connexion échouée", variant: "destructive" });
