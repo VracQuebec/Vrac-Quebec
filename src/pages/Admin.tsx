@@ -327,16 +327,18 @@ const Admin = () => {
     })();
   }, [isAdmin]);
 
-  // Empêcher le bouton "précédent" du navigateur/téléphone de quitter le site
-  // depuis la page admin. On pousse un état factice puis on le re-pousse à
-  // chaque popstate tant que l'utilisateur reste sur /admin.
+  // Empêcher le bouton "précédent" de quitter le site — SEULEMENT quand /admin est la première page ouverte
+  // (aucune page précédente dans l'application). NAV-01B : sinon Retour doit ramener à la page précédente
+  // (ex. centre de contrôle) au lieu d'être bloqué sur /admin.
   useEffect(() => {
     const tag = "vq_admin_guard";
+    const idx = (window.history.state as { idx?: number } | null)?.idx;
+    if (typeof idx === "number" && idx > 0) return; // page précédente interne : Retour normal
     if (!window.history.state || window.history.state.tag !== tag) {
       window.history.pushState({ tag }, "");
     }
     const onPop = () => {
-      if (window.location.pathname.startsWith("/admin")) {
+      if (window.location.pathname === "/admin") {
         window.history.pushState({ tag }, "");
       }
     };

@@ -121,3 +121,7 @@
 - [ ] Essayer les autres fenêtres CRM ci-dessus + reprise depuis le menu
 - [ ] Administration, listes/cartes, article existant (autosave), session/droits, fiche appareils réels
 - Bloqués : clôture flotte, reliquat/remboursement, levée de suspension (isolation des alertes non établie)
+- [x] CRM : vue, motif de perte, membre, nouvelle étape, chantier, taxes — essayés (fermeture+Retour, actualisation, section+Retour, menu); serveur inchangé
+- [ ] CRM : renommer/retirer une étape — données d'essai manquantes (aucune étape personnalisée dans TEST B)
+- [x] Centre de contrôle : suivi (action, raison, note, résolution, responsable, date) et délais en brouillon; filtre dans l'adresse (remplacement), recherche+position en mémoire de session; fiche dans ?demande= — essayés; serveur inchangé
+- [x] /admin : Retour n'est plus bloqué quand une page précédente interne existe
