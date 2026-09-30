@@ -131,3 +131,4 @@
 - [ ] Marché : lots et note interne non essayés (aucune demande TEST); tarif et modifications de lignes de catégories non essayés
 - [ ] Jumelage (réglages enregistrés immédiatement — inchangés; recherche non conservée), référencement, territoires, CRM admin, plateforme, offres de matériaux
 - [ ] Listes Finances et flotte : contexte (recherche, filtres, tri, pagination, position), cartes
+- [x] NAV-01B listes Finances/flotte : contexte commun (lib/navigation/listContext)
