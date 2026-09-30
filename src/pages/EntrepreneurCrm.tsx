@@ -689,6 +689,7 @@ function Projects({ companyId, canWrite, params, setParams }: any) {
   const load = useCallback(async () => setRows((await db.from("ent_crm_projects").select("*, ent_crm_clients(name)").eq("company_id", companyId).is("archived_at", null).order("created_at", { ascending: false })).data ?? []), [companyId]);
   useEffect(() => { void load(); }, [load]);
   const upd = async (p: any, k: string, v: string) => { const { error } = await db.from("ent_crm_projects").update({ [k]: v || null, updated_at: new Date().toISOString() }).eq("id", p.id); if (error) toast({ title: "Refusé", description: error.message }); load(); };
+  const fdP = fd?.startsWith("chantier:") ? rows.find((r) => r.id === fd.slice(9)) : undefined;
   return <div className="grid gap-2 md:grid-cols-2">{rows.length === 0 && <p className="text-muted-foreground">Aucun chantier. Créez-en un depuis une soumission acceptée.</p>}{rows.map((p) => <div key={p.id} className="rounded-lg border border-border bg-card p-3 text-sm">
     <p className="font-display font-bold">{p.name}</p><p className="text-xs text-muted-foreground">{p.ent_crm_clients?.name}</p>
     <FilesBtn t="project" id={p.id} />
@@ -826,14 +827,24 @@ function JscAttachPreview() {
 function TaxSettings({ companyId, canAdmin }: { companyId: string; canAdmin: boolean }) {
   const [s, setS] = useState<any>(null);
   useEffect(() => { db.from("ent_crm_settings").select("taxes_enabled,gst_rate,qst_rate,gst_number,qst_number").eq("company_id", companyId).maybeSingle().then(({ data }: any) => setS(data ?? { taxes_enabled: false })); }, [companyId]);
+  // NAV-01B : préparation des taxes en brouillon (compte + entreprise); rien n'est appliqué avant « Enregistrer ».
+  const { user: me } = useAuthReady(); const [base, setBase] = useState<string>("");
+  useEffect(() => { if (s && !base) setBase(JSON.stringify(s)); }, [s, base]);
+  const store = useDraft({
+    id: me && canAdmin && base ? { module: "crm", form: "reglages-taxes", owner: me.id, company: companyId, recordId: companyId } : null,
+    data: s ?? {}, label: () => "CRM — Taxes des soumissions", route: `/entrepreneur/crm?company=${companyId}&tab=team`,
+    isEmpty: (d) => JSON.stringify(d) === base, onRestore: (d) => setS((cur: any) => ({ ...cur, ...d })),
+  });
   if (!s) return null;
   const save = async () => {
     const g = s.gst_rate === "" || s.gst_rate == null ? null : Number(s.gst_rate), q = s.qst_rate === "" || s.qst_rate == null ? null : Number(s.qst_rate);
     if (s.taxes_enabled && (g == null || q == null || g < 0 || q < 0 || g > 30 || q > 30)) return toast({ title: "Taux invalides", description: "Saisissez les deux taux (en %) avant d'activer les taxes.", variant: "destructive" });
     const { error } = await db.from("ent_crm_settings").upsert({ company_id: companyId, taxes_enabled: !!s.taxes_enabled, gst_rate: g, qst_rate: q, gst_number: s.gst_number || null, qst_number: s.qst_number || null, updated_at: new Date().toISOString() });
+    if (!error) { store.finalize(); setBase(JSON.stringify(s)); }
     toast({ title: error ? "Refusé" : "Taxes enregistrées", description: error?.message ?? "Appliquées aux prochaines soumissions remises; les soumissions déjà remises ne changent pas." });
   };
   return <section className="rounded-lg border border-border bg-card p-4"><h2 className="mb-2 font-display font-bold">Taxes des soumissions</h2>
+    {canAdmin && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setS(JSON.parse(base)); }} discardConfirm="Abandonner cette préparation ? Les réglages enregistrés ne changent pas." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
     <label className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={!canAdmin} checked={!!s.taxes_enabled} onChange={(e) => setS({ ...s, taxes_enabled: e.target.checked })} />Calculer TPS et TVQ sur mes soumissions</label>
     <div className="mt-2 grid grid-cols-2 gap-2">
       <Input aria-label="Taux TPS (%)" disabled={!canAdmin} type="number" step="0.001" placeholder="Taux TPS (%)" value={s.gst_rate ?? ""} onChange={(e) => setS({ ...s, gst_rate: e.target.value })} />
