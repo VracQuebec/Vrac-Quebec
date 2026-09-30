@@ -18,6 +18,8 @@ import PageHeader from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useDraft } from "@/lib/drafts/useDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   actionRank, computeSystemState, elapsed, enrich, fromSubmission, fromTransport, matches,
@@ -63,10 +65,17 @@ export default function AdminControlCenter() {
   const [pushFailed, setPushFailed] = useState(0);
   const [delays, setDelays] = useState<Delays>(DEFAULT_DELAYS);
   const [rawDelays, setRawDelays] = useState<Record<string, number>>({});
-  const [showSettings, setShowSettings] = useState(false);
-  const [filter, setFilter] = useState<Filter>("all");
-  const [q, setQ] = useState("");
-  const [selectedKey, setSelectedKey] = useState<string | null>(params.get("demande"));
+  const showSettings = params.get("reglages") === "1";
+  const setShowSettings = (b: boolean | ((x: boolean) => boolean)) => setParams((p) => { const n = new URLSearchParams(p); const v = typeof b === "function" ? b(p.get("reglages") === "1") : b; v ? n.set("reglages", "1") : n.delete("reglages"); return n; }, { replace: true });
+  // NAV-01B : filtre dans l'adresse (remplacement, sans entrée d'historique); recherche et position en mémoire de session
+  // (la recherche peut contenir un nom : jamais dans l'adresse). La fiche ouverte vit dans ?demande= → Retour la referme.
+  const filter = ((params.get("f") as Filter) || "all") as Filter;
+  const setFilter = (f: Filter) => { const n = new URLSearchParams(params); f === "all" ? n.delete("f") : n.set("f", f); setParams(n, { replace: true }); };
+  const ssKey = `vq.cc.ctx.${user?.id ?? "anon"}`;
+  const [q, setQState] = useState<string>(() => { try { return JSON.parse(sessionStorage.getItem(ssKey) || "{}").q ?? ""; } catch { return ""; } });
+  const setQ = (v: string) => { setQState(v); try { const o = JSON.parse(sessionStorage.getItem(ssKey) || "{}"); sessionStorage.setItem(ssKey, JSON.stringify({ ...o, q: v })); } catch { /* ignore */ } };
+  const selectedKey = params.get("demande");
+  const scrollDone = useRef(false);
   const [takeMode, setTakeMode] = useState(false);
   const [, tick] = useState(0);
   const debounce = useRef<number | null>(null);
@@ -115,7 +124,7 @@ export default function AdminControlCenter() {
         for (const k of keys) if (!knownFollowups.current.has(k)) {
           const r = enriched.find((x) => x.key === k);
           if (r) toast.error(`Nouvelle demande ${r.number} — ${r.requester}`, {
-            duration: 20000, action: { label: "Ouvrir", onClick: () => setSelectedKey(k) },
+            duration: 20000, action: { label: "Ouvrir", onClick: () => setParams((p) => { const n = new URLSearchParams(p); n.set("demande", k); return n; }) },
           });
         }
       }
@@ -193,22 +202,28 @@ export default function AdminControlCenter() {
   }, [rows, filter, q]);
 
   const selected = rows.find((r) => r.key === selectedKey) ?? null;
-  const open = (key: string, take = false) => { setSelectedKey(key); setTakeMode(take); };
+  const saveScroll = () => { try { const o = JSON.parse(sessionStorage.getItem(ssKey) || "{}"); sessionStorage.setItem(ssKey, JSON.stringify({ ...o, y: window.scrollY })); } catch { /* ignore */ } };
+  useEffect(() => { const h = () => saveScroll(); window.addEventListener("scroll", h, { passive: true }); return () => window.removeEventListener("scroll", h); }); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (scrollDone.current || !lastSync || !rows.length) return; scrollDone.current = true;
+    try { const y = JSON.parse(sessionStorage.getItem(ssKey) || "{}").y; if (y > 0) requestAnimationFrame(() => window.scrollTo(0, y)); } catch { /* ignore */ }
+  }, [lastSync, rows.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const open = (key: string, take = false) => { saveScroll(); setTakeMode(take); const n = new URLSearchParams(params); n.set("demande", key); setParams(n); };
   const close = () => {
-    setSelectedKey(null); setTakeMode(false);
-    if (params.get("demande")) { params.delete("demande"); setParams(params, { replace: true }); }
+    setTakeMode(false);
+    if (params.get("demande")) { const n = new URLSearchParams(params); n.delete("demande"); setParams(n, { replace: true }); }
   };
 
   const saveDelays = async (next: { first: number; second: number; crit: number }) => {
     if (!(next.first > 0 && next.second > next.first && next.crit * 60 > next.second)) {
       toast.error("Les délais doivent être croissants (1er rappel < 2e rappel < alerte critique).");
-      return;
+      return false;
     }
     const { error } = await supabase.from("crm_notification_settings").update({
       delays: { ...rawDelays, cc_first_reminder_min: next.first, cc_second_reminder_min: next.second, cc_critical_hours: next.crit },
     } as never).eq("scope", "global");
-    if (error) return toast.error(error.message);
-    toast.success("Délais enregistrés."); setShowSettings(false); void load();
+    if (error) { toast.error(error.message); return false; }
+    toast.success("Délais enregistrés."); setShowSettings(false); void load(); return true;
   };
 
   if (!isReady || rolesLoading) {
@@ -342,20 +357,27 @@ export default function AdminControlCenter() {
   );
 }
 
-function DelaySettings({ delays, onSave }: { delays: Delays; onSave: (d: { first: number; second: number; crit: number }) => void }) {
+function DelaySettings({ delays, onSave }: { delays: Delays; onSave: (d: { first: number; second: number; crit: number }) => Promise<boolean> }) {
   const [first, setFirst] = useState(delays.firstMin);
   const [second, setSecond] = useState(delays.secondMin);
   const [crit, setCrit] = useState(delays.criticalHours);
+  const { user: me } = useAuthReady(); const base = useMemo(() => JSON.stringify({ first: delays.firstMin, second: delays.secondMin, crit: delays.criticalHours }), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const store = useDraft({
+    id: me ? { module: "admin", form: "cc-delais", owner: me.id, company: null, recordId: "global" } : null,
+    data: { first, second, crit }, label: () => "Centre de contrôle — délais des rappels", route: "/admin/centre-controle?reglages=1",
+    isEmpty: (d) => JSON.stringify(d) === base, onRestore: (d) => { setFirst(d.first); setSecond(d.second); setCrit(d.crit); },
+  });
   return (
     <section className="rounded-xl border border-border bg-card p-4">
       <h2 className="mb-2 font-display text-sm font-bold">Délais des rappels automatiques</h2>
+      <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); const b = JSON.parse(base); setFirst(b.first); setSecond(b.second); setCrit(b.crit); }} discardConfirm="Abandonner cette préparation ? Les délais enregistrés ne changent pas." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="text-sm">1er rappel (minutes)<Input type="number" min={1} value={first} onChange={(e) => setFirst(Number(e.target.value))} className="mt-1 h-11" /></label>
         <label className="text-sm">2e rappel (minutes)<Input type="number" min={2} value={second} onChange={(e) => setSecond(Number(e.target.value))} className="mt-1 h-11" /></label>
         <label className="text-sm">Alerte critique (heures)<Input type="number" min={1} value={crit} onChange={(e) => setCrit(Number(e.target.value))} className="mt-1 h-11" /></label>
       </div>
       <p className="mt-2 text-xs text-muted-foreground">La vérification automatique a lieu toutes les 10 minutes : un rappel peut arriver jusqu'à 10 minutes après son délai.</p>
-      <Button className="mt-3 min-h-11" onClick={() => onSave({ first, second, crit })}>Enregistrer les délais</Button>
+      <Button className="mt-3 min-h-11" onClick={async () => { if (await onSave({ first, second, crit })) store.finalize(); }}>Enregistrer les délais</Button>
     </section>
   );
 }
@@ -409,6 +431,16 @@ function Detail({ r, takeMode, myEmail, onChanged }: { r: ControlRequest; takeMo
   const [reason, setReason] = useState(t?.reminder_reason ?? "");
   const [resolution, setResolution] = useState("");
   const [busy, setBusy] = useState(false);
+  // NAV-01B : préparation du suivi en brouillon (compte + demande); rien n'est enregistré ni exécuté avant un bouton explicite.
+  const baseV = useMemo(() => JSON.stringify({ note: "", assignee: t?.assignee_email ?? myEmail, nextAction: t?.next_action ?? "", when: t?.next_reminder_at ? toLocalInput(new Date(t.next_reminder_at)) : "", reason: t?.reminder_reason ?? "", resolution: "" }), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const { user: me } = useAuthReady();
+  const vals = { note, assignee, nextAction, when, reason, resolution };
+  const store = useDraft({
+    id: me ? { module: "admin", form: "cc-suivi", owner: me.id, company: null, recordId: r.key } : null,
+    data: vals, label: () => `Centre de contrôle — suivi ${r.number}`, route: `/admin/centre-controle?demande=${encodeURIComponent(r.key)}`,
+    isEmpty: (d) => JSON.stringify(d) === baseV,
+    onRestore: (d) => { setNote(d.note ?? ""); setAssignee(d.assignee ?? ""); setNextAction(d.nextAction ?? ""); setWhen(d.when ?? ""); setReason(d.reason ?? ""); setResolution(d.resolution ?? ""); },
+  });
   const entityType = r.kind === "dompe" ? "submission" : "transport_request";
 
   const loadEvents = useCallback(async () => {
@@ -427,7 +459,7 @@ function Detail({ r, takeMode, myEmail, onChanged }: { r: ControlRequest; takeMo
   };
   const run = async (fn: () => Promise<void>, ok: string) => {
     setBusy(true);
-    try { await fn(); toast.success(ok); onChanged(); await loadEvents(); }
+    try { await fn(); toast.success(ok); store.finalize(); onChanged(); await loadEvents(); }
     catch (e) { toast.error(e instanceof Error ? e.message : (e as { message?: string })?.message ?? "Échec"); }
     finally { setBusy(false); }
   };
@@ -525,6 +557,7 @@ function Detail({ r, takeMode, myEmail, onChanged }: { r: ControlRequest; takeMo
         {field("Résolution", t?.resolution_note ? `${t.resolution_note} · ${fmt(t.resolved_at)}` : null)}
       </section>
 
+      <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); const b = JSON.parse(baseV); setNote(b.note); setAssignee(b.assignee); setNextAction(b.nextAction); setWhen(b.when); setReason(b.reason); setResolution(""); }} discardConfirm="Abandonner cette préparation ? Le suivi déjà enregistré ne change pas." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />
       {!resolved && <section className="space-y-2 rounded-lg border border-border p-3">
         <h3 className="text-xs font-bold uppercase text-muted-foreground">{r.taken ? "Suivi et rappel" : "Prendre en charge"}</h3>
         {!t?.seen_at && <Button variant="outline" className="min-h-11 w-full" disabled={busy} onClick={() => void markSeen()}>
@@ -532,10 +565,10 @@ function Detail({ r, takeMode, myEmail, onChanged }: { r: ControlRequest; takeMo
         {!t?.taken_at && <label className="block text-sm">Responsable
           <Input value={assignee} onChange={(e) => setAssignee(e.target.value)} className="mt-1 h-11" autoFocus={takeMode} /></label>}
         <label className="block text-sm">Prochaine action
-          <Input value={nextAction} onChange={(e) => setNextAction(e.target.value)} placeholder="Ex. rappeler le client" className="mt-1 h-11" /></label>
+          <Input aria-label="Prochaine action" value={nextAction} onChange={(e) => setNextAction(e.target.value)} placeholder="Ex. rappeler le client" className="mt-1 h-11" /></label>
         <div className="grid grid-cols-2 gap-2">
           <label className="text-sm">Rappel le<Input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="mt-1 h-11" /></label>
-          <label className="text-sm">Raison<Input value={reason} onChange={(e) => setReason(e.target.value)} className="mt-1 h-11" /></label>
+          <label className="text-sm">Raison<Input aria-label="Raison du rappel" value={reason} onChange={(e) => setReason(e.target.value)} className="mt-1 h-11" /></label>
         </div>
         {!t?.taken_at && <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note interne (facultative)" />}
         {!t?.taken_at
@@ -544,10 +577,10 @@ function Detail({ r, takeMode, myEmail, onChanged }: { r: ControlRequest; takeMo
       </section>}
 
       <section className="space-y-2">
-        <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note interne (visible admin seulement)" />
+        <Textarea aria-label="Note interne" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note interne (visible admin seulement)" />
         <Button className="min-h-11 w-full" variant="outline" disabled={busy || !note.trim()} onClick={() => void addNote()}>Ajouter la note</Button>
         {!resolved && <>
-          <Input value={resolution} onChange={(e) => setResolution(e.target.value)} placeholder="Résolution documentée (obligatoire pour clore le suivi)" className="h-11" />
+          <Input aria-label="Résolution" value={resolution} onChange={(e) => setResolution(e.target.value)} placeholder="Résolution documentée (obligatoire pour clore le suivi)" className="h-11" />
           <Button className="min-h-11 w-full" variant="secondary" disabled={busy || resolution.trim().length < 3} onClick={() => void resolve()}>
             <CheckCircle2 className="mr-1 h-4 w-4" /> Résoudre le suivi</Button>
         </>}

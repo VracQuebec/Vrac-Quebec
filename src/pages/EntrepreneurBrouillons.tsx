@@ -9,7 +9,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { discardDraft, listDrafts, type DraftMeta } from "@/lib/drafts/draftStore";
 import { closeServerDraft, listServerDrafts, serverKey, type ServerDraft } from "@/lib/drafts/serverSync";
 
-const MODULES: Record<string, string> = { finances: "Finances", "entcrm": "CRM", flotte: "Flotte", blog: "Articles", "achat-vrac": "Achat en vrac" };
+const MODULES: Record<string, string> = { finances: "Finances", "entcrm": "CRM", crm: "CRM", admin: "Administration", flotte: "Flotte", blog: "Articles", "achat-vrac": "Achat en vrac" };
 const fmt = (iso: string) => new Date(iso).toLocaleString("fr-CA", { dateStyle: "medium", timeStyle: "short" });
 
 type Row = { key: string; module: string; form: string; label: string; company: string | null; route: string | null; step: number | null;
