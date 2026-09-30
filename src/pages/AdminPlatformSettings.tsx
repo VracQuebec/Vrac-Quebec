@@ -91,6 +91,19 @@ export default function AdminPlatformSettings() {
   // Forfait en cours d'édition
   const [draft, setDraft] = useState<PlatformPlan | null>(null);
   const [priceInput, setPriceInput] = useState("");
+  // NAV-01B — Forfait en préparation (champs + prix saisi) gardé via le mécanisme commun; rien n'est enregistré sans bouton.
+  type PlanEdit = PlatformPlan & { _price: string };
+  const planEditValue = useMemo<PlanEdit | null>(() => (draft ? { ...draft, _price: priceInput } : null), [draft, priceInput]);
+  const setPlanEdit = useCallback((v: PlanEdit | null) => {
+    if (!v) return; // « fermer » n'existe pas ici : un forfait reste toujours affiché
+    const { _price, ...plan } = v; setDraft(plan as PlatformPlan); setPriceInput(_price ?? "");
+  }, []);
+  const planEd = useEditorDraft<PlanEdit>({
+    form: "plateforme-forfait", value: planEditValue, setValue: setPlanEdit,
+    label: (v) => `Forfait — ${v.name || v.slug}`, route: "/admin/plateforme", enabled: isAdmin,
+  });
+  const planEdRef = useRef(planEd); planEdRef.current = planEd;
+  const priceOf = (p: PlatformPlan | null) => (p?.price_cents != null ? String(p.price_cents / 100) : "");
 
   useEffect(() => {
     if (isReady && !user) navigate("/login", { replace: true });
@@ -108,8 +121,8 @@ export default function AdminPlatformSettings() {
       setCompanyId((prev) => prev ?? cs.find((c) => c.is_default)?.id ?? cs[0]?.id ?? null);
       setSectors(sec); setPlans(pl); setSubs(sb); setLog(lg); setEvents(ev);
       const first = pl.find((p) => p.slug === "entrepreneur-pro") ?? pl[0] ?? null;
-      setDraft(first);
-      setPriceInput(first?.price_cents != null ? String(first.price_cents / 100) : "");
+      // Une préparation retrouvée n'est jamais remplacée par le chargement.
+      if (first && !planEdRef.current.held) planEdRef.current.open({ ...first, _price: priceOf(first) });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur de chargement");
     } finally {
@@ -162,8 +175,8 @@ export default function AdminPlatformSettings() {
     setSaving(true);
     try {
       const saved = await savePlan(next);
-      setDraft(saved);
-      setPriceInput(saved.price_cents != null ? String(saved.price_cents / 100) : "");
+      planEd.finalize();
+      planEd.open({ ...saved, _price: priceOf(saved) });
       setPlans((prev) => prev.map((p) => (p.slug === saved.slug ? saved : p)));
       setLog(await fetchChangeLog());
       toast.success("Forfait enregistré.");
@@ -457,8 +470,7 @@ export default function AdminPlatformSettings() {
                     <button
                       key={p.id}
                       onClick={() => {
-                        setDraft(p);
-                        setPriceInput(p.price_cents != null ? String(p.price_cents / 100) : "");
+                        planEd.open({ ...p, _price: priceOf(p) });
                       }}
                       className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${
                         draft.id === p.id ? "bg-primary text-primary-foreground" : "border border-border bg-secondary"
