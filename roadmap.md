@@ -87,3 +87,5 @@
 - [ ] Session/droits (lente, renouvellement, coupure, changement de compte, 2 utilisateurs, 2 entreprises, accès retiré); fiche téléphone
 - [x] Échéance : seule l'action confirmée est close; autres préparations conservées et signalées; abandon global nommé explicitement (refus/acceptation vérifiés); double clic → 1 seul déplacement au serveur
 - [ ] Inventaire préliminaire (17 fichiers sans brouillon) : CRM (EntrepreneurCrm, CrmServices), flotte (FleetDialogs, FleetDialogsV2, CompleteDialog, FleetManager), articles (à préciser), admin (ControlCenter, Marketplace ×4, Matching ×2, MaterialOffers, MaterialAssistant, MaterialLanguageLab)
+- [x] Correction d'un règlement : brouillon par compte+entreprise+règlement, champs séparés par correction (annulation/remboursement/affectation, clé de réessai conservée), alerte si fiche changée, reprise ?brouillon=reglement-correction — essayé (actualisation, autre section+Retour, menu)
+- Référence essais : échéance TEST FIN-03 C9 hebdo planifiée au 6 oct.; brouillon de correction du règlement TEST Fournisseur R laissé ouvert
