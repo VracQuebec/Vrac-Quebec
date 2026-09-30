@@ -14,6 +14,8 @@ export function useEditorDraft<T extends object>(opts: {
   const [held, setHeld] = useState<T | null>(null);
   const baseRef = useRef<string | null>(null);
   useEffect(() => { if (opts.value) setHeld(opts.value); }, [opts.value]);
+  // Autre fiche parente (ex. autre demande) : la préparation précédente reste rangée sous son propre identifiant.
+  useEffect(() => { setHeld(null); baseRef.current = null; }, [opts.form]);
   const store = useDraft<T | Record<string, never>>({
     id: user && opts.enabled !== false ? { module: opts.module ?? "admin", form: opts.form, owner: user.id, company: opts.company ?? null, recordId: "editeur" } : null,
     data: held ?? {},
