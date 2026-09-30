@@ -156,7 +156,7 @@ export default function AdminFleetVehicle() {
         else if (k === "depense" && exists(x)) setExpenseDialog({ open: true, record: pick(x) });
         else if (k === "travaux" && exists(w)) setWorkDialog({ open: true, record: pick(w) });
         else if (k === "cloture-entretien" && pick(m)) setComplete({ kind: "entretien", record: pick(m)! });
-        else if (k === "cloture-reparation" && pick(r)) setComplete({ kind: "reparation", record: pick(r)! });
+        else if (k === "cloture-reparation" && pick(r) && pick(r)!.status !== "terminee") setComplete({ kind: "reparation", record: pick(r)! });
         else if (k === "vehicule" && veh) setVehicleDialog(true);
       }
     } catch (err) {
