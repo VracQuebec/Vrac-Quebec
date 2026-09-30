@@ -4036,6 +4036,53 @@ export type Database = {
           },
         ]
       }
+      fin_saved_views: {
+        Row: {
+          company_id: string
+          context: string
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          params: Json
+          shared: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          context: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          params?: Json
+          shared?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          company_id?: string
+          context?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          params?: Json
+          shared?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_saved_views_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_settings: {
         Row: {
           company_id: string
@@ -21387,6 +21434,17 @@ export type Database = {
         Args: { _alloc: string; _reason: string }
         Returns: undefined
       }
+      fin_allocations_export: {
+        Args: {
+          _company: string
+          _f?: Json
+          _from: string
+          _limit?: number
+          _offset?: number
+          _to: string
+        }
+        Returns: Json
+      }
       fin_archive_obligation: {
         Args: { _effective: string; _id: string }
         Returns: number
@@ -21438,6 +21496,7 @@ export type Database = {
         Returns: number
       }
       fin_exploitant_candidates: { Args: never; Returns: Json }
+      fin_fold: { Args: { t: string }; Returns: string }
       fin_gen_dates: {
         Args: { _from: string; _r: Json; _to: string }
         Returns: {
@@ -21506,6 +21565,28 @@ export type Database = {
         Args: { _company: string; _payee: string }
         Returns: Json
       }
+      fin_pay_select: {
+        Args: { _company: string; _f: Json; _from: string; _to: string }
+        Returns: {
+          allocated: number
+          amount: number
+          available: number
+          created_at: string
+          entered_on: string
+          files: number
+          id: string
+          method: string
+          paid_on: string
+          payee_key: string
+          payee_name: string
+          reference: string
+          refunded: number
+          scoped: boolean
+          selected: number
+          source_label: string
+          status: string
+        }[]
+      }
       fin_payee_key: {
         Args: { _o: Database["public"]["Tables"]["fin_obligations"]["Row"] }
         Returns: string
@@ -21530,6 +21611,18 @@ export type Database = {
       }
       fin_payments_list: {
         Args: { _company: string; _f?: Json; _from: string; _to: string }
+        Returns: Json
+      }
+      fin_payments_search: {
+        Args: {
+          _company: string
+          _f?: Json
+          _from: string
+          _limit?: number
+          _offset?: number
+          _sort?: string
+          _to: string
+        }
         Returns: Json
       }
       fin_period_totals: {
