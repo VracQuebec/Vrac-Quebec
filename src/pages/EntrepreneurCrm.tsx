@@ -1,8 +1,10 @@
 // CRM privé de l'entreprise (CRM-ENT-01). Données dans ent_crm_*,
 // cloisonnées par company_id côté base (RLS). Le super admin y entre
 // en mode « Assistance Vrac Québec » (journalisé côté serveur).
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useDraft } from "@/lib/drafts/useDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { Building2, Download, LifeBuoy, Plus, Upload } from "lucide-react";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import { Button } from "@/components/ui/button";
@@ -312,10 +314,32 @@ function LeadCard({ r, stages, canWrite, move, convert, edit }: any) {
   </div>;
 }
 
+// NAV-01B : champs saisissables d'un lead (jamais les identifiants ni l'entreprise, qui viennent du contexte).
+const LEAD_FIELDS = ["title", "contact_name", "contact_value", "need", "source", "client_id", "priority", "estimated_amount", "next_action", "next_action_at", "trade", "trade_fields"] as const;
+const pickLead = (x: any) => Object.fromEntries(LEAD_FIELDS.map((k) => [k, x?.[k] ?? (k === "trade_fields" ? {} : "")]));
+
 function LeadDialog({ lead, companyId, clients, onClose, onSaved }: any) {
   const [f, setF] = useState<any>({ source: "appel", trade: "", trade_fields: {}, ...lead });
   const [dups, setDups] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [stale, setStale] = useState<any>(null);
+  const saving = useRef(false);
+  const { user: me } = useAuthReady();
+  const { canWrite } = useContext(CrmCtx);
+  const initial = useMemo(() => JSON.stringify(pickLead({ source: "appel", priority: "normale", ...lead })), [lead]);
+  // Brouillon séparé par compte + entreprise + fiche (nouveau lead = « new »). Aucune écriture métier à la sauvegarde.
+  const store = useDraft({
+    id: me && canWrite ? { module: "crm", form: "lead", owner: me.id, company: companyId, recordId: lead.id ?? null } : null,
+    data: { v: pickLead(f), base: lead.updated_at ?? null },
+    label: (d) => `CRM — ${lead.id ? "Lead" : "Nouveau lead"}${d.v.title ? ` « ${d.v.title} »` : ""}`,
+    route: `/entrepreneur/crm?company=${companyId}&tab=leads&lead=${lead.id ?? "nouveau"}`,
+    isEmpty: (d) => JSON.stringify(d.v) === initial,
+    onRestore: (d) => {
+      // Fiche modifiée ailleurs depuis la préparation : l'état actuel reste affiché, rien n'est remplacé en silence.
+      if (lead.id && d.base && lead.updated_at && d.base !== lead.updated_at) setStale(d.v);
+      else setF((x: any) => ({ ...x, ...d.v }));
+    },
+  });
   const loadTasks = useCallback(async () => { if (lead.id) setTasks((await db.from("ent_crm_tasks").select("*").eq("lead_id", lead.id).order("created_at")).data ?? []); }, [lead.id]);
   useEffect(() => { void loadTasks(); }, [loadTasks]);
   const set = (k: string, v: any) => { crmDirty = companyId; setF((x: any) => ({ ...x, [k]: v })); };
@@ -323,15 +347,23 @@ function LeadDialog({ lead, companyId, clients, onClose, onSaved }: any) {
   useEffect(() => { const n = normalize(f.contact_value); if (!n || n.length < 5 || lead.id) return setDups([]);
     db.from("ent_crm_leads").select("id,title,contact_value").eq("company_id", companyId).then(({ data }: any) => setDups((data ?? []).filter((d: any) => normalize(d.contact_value) === n))); }, [f.contact_value, companyId, lead.id]);
   const save = async () => {
+    if (saving.current) return; // double clic / Entrée répétée : un seul envoi
     if (!f.title?.trim()) return toast({ title: "Nom requis", variant: "destructive" });
-    const row = { company_id: companyId, title: f.title, contact_name: f.contact_name || null, contact_value: f.contact_value || null, need: f.need || null, source: f.source, trade: f.trade || null, trade_fields: f.trade_fields, priority: f.priority || "normale", estimated_amount: f.estimated_amount === "" || f.estimated_amount == null ? null : Number(f.estimated_amount), next_action: f.next_action || null, next_action_at: f.next_action_at || null, client_id: f.client_id || null, updated_at: new Date().toISOString() };
-    const { error } = lead.id ? await db.from("ent_crm_leads").update(row).eq("id", lead.id) : await db.from("ent_crm_leads").insert(row);
-    if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else onSaved();
+    saving.current = true;
+    try {
+      const row = { company_id: companyId, title: f.title, contact_name: f.contact_name || null, contact_value: f.contact_value || null, need: f.need || null, source: f.source, trade: f.trade || null, trade_fields: f.trade_fields, priority: f.priority || "normale", estimated_amount: f.estimated_amount === "" || f.estimated_amount == null ? null : Number(f.estimated_amount), next_action: f.next_action || null, next_action_at: f.next_action_at || null, client_id: f.client_id || null, updated_at: new Date().toISOString() };
+      const { error } = lead.id ? await db.from("ent_crm_leads").update(row).eq("id", lead.id) : await db.from("ent_crm_leads").insert(row);
+      // Erreur : la préparation reste; succès confirmé : seul ce brouillon est clos.
+      if (error) toast({ title: "Refusé — votre saisie est conservée", description: error.message, variant: "destructive" }); else { store.finalize(); onSaved(); }
+    } finally { saving.current = false; }
   };
   const addTask = async () => { const title = prompt("Tâche / relance ?"); const due = prompt("Échéance (AAAA-MM-JJ) ?"); if (!title) return;
     const { data: u } = await supabase.auth.getUser();
     const { error } = await db.from("ent_crm_tasks").insert({ company_id: companyId, title, due_at: due || null, lead_id: lead.id, assignee_user_id: u.user?.id }); toast({ title: error ? "Refusé" : "Tâche ajoutée", description: error?.message }); loadTasks(); };
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>{lead.id ? "Lead" : "Nouveau lead"}</DialogTitle></DialogHeader>
+    {canWrite && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setF({ source: "appel", trade: "", trade_fields: {}, ...lead }); setStale(null); }} discardConfirm="Abandonner la préparation de ce lead ? Les saisies non enregistrées seront effacées; la fiche enregistrée n'est pas modifiée." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+    {stale && <div role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Cette fiche a été modifiée ailleurs depuis votre préparation. L'état actuel est affiché; votre saisie est conservée à part.
+      <div className="mt-1 flex gap-2"><Button size="sm" variant="outline" onClick={() => { setF((x: any) => ({ ...x, ...stale })); setStale(null); }}>Appliquer ma saisie préparée</Button><Button size="sm" variant="ghost" onClick={() => setStale(null)}>Garder l'état actuel</Button></div></div>}
     <div className="grid gap-2">
       <Input placeholder="Nom / titre *" value={f.title ?? ""} onChange={(e) => set("title", e.target.value)} />
       <Input placeholder="Personne contact" value={f.contact_name ?? ""} onChange={(e) => set("contact_name", e.target.value)} />
