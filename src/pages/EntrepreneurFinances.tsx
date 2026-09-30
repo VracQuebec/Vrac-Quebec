@@ -562,9 +562,10 @@ function OccurrenceDialog({ companyId, occ, canWrite, onClose, onChanged, onEdit
     data: { mode, scope, amt, ql, planned, reason, eff, pz, lift, preparedOn: todayIn(TZ) },
     label: () => `Échéance « ${occ.label} » du ${fmtDate(occ.due_date)} — ${mode ? MODE_LABEL[mode] : lift ? "levée de suspension" : "action"}`,
     route: `/entrepreneur/finances?company=${companyId}&brouillon=echeance&echeance=${occ.id}`,
-    isEmpty: (d) => !d.mode && !d.lift,
+    // Chaque action garde ses propres champs : passer d'une action à l'autre n'efface rien.
+    isEmpty: (d) => d.amt === (occ.amount?.toString() ?? "") && d.ql === occ.amount_quality && d.scope === "this" && d.planned === occ.planned_date && !d.reason && d.eff === todayIn(TZ) && !d.pz.start && !d.pz.end && !d.pz.reason && !d.lift,
     onRestore: (d) => {
-      setMode(d.mode); setScope(d.scope); setAmt(d.amt); setQl(d.ql); setPlanned(d.planned); setReason(d.reason ?? ""); setEff(d.eff); setPz(d.pz); setLift(d.lift);
+      setMode(d.mode); setScope(d.scope); setAmt(d.amt); setQl(d.ql); setPlanned(d.planned); setReason(d.reason ?? ""); setEff(d.eff); setPz(d.pz); setLift(d.lift); setLiftOpen(!!d.lift && !d.mode);
       // Aucune date n'est remplacée silencieusement : si une date préparée est désormais passée, on l'explique.
       const today = todayIn(TZ); const past: string[] = [];
       if (d.mode === "archive" && d.eff && d.eff < today) past.push(`date d'archivage ${fmtDate(d.eff)}`);
@@ -574,7 +575,11 @@ function OccurrenceDialog({ companyId, occ, canWrite, onClose, onChanged, onEdit
       if (past.length) setDateNote(`Préparation du ${fmtDate(d.preparedOn ?? today)} reprise : ${past.join(", ")} est maintenant passée. La date saisie est conservée telle quelle ; vérifiez-la avant de confirmer.`);
     },
   });
-  const back = () => { setMode(null); setLift(null); setDateNote(null); store.discard(); };
+  // « Retour » ne fait que replier le formulaire : la préparation reste conservée.
+  const [liftOpen, setLiftOpen] = useState(false);
+  const back = () => { setMode(null); setLiftOpen(false); setDateNote(null); };
+  const abandonAll = () => { if (!window.confirm("Abandonner toutes les préparations de cette échéance ? Les saisies non confirmées seront supprimées.")) return;
+    store.discard(); setMode(null); setLift(null); setLiftOpen(false); setDateNote(null); setScope("this"); setAmt(occ.amount?.toString() ?? ""); setQl(occ.amount_quality); setPlanned(occ.planned_date); setReason(""); setEff(todayIn(TZ)); setPz({ start: "", end: "", reason: "" }); };
   const load = () => {
     api.history(o.obligation_id).then(setHist); api.versions(o.obligation_id).then(setVers); api.pauses(o.obligation_id).then(setPzs);
     st.occDetail(o.id).then((d) => { setDetail(d); if (d?.occ) setO((x) => ({ ...x, ...d.occ })); }).catch(() => setDetail(null));
@@ -627,8 +632,8 @@ function OccurrenceDialog({ companyId, occ, canWrite, onClose, onChanged, onEdit
         <Button size="sm" variant="ghost" onClick={() => setMode("pause")}>Suspendre une période future</Button>
         <Button size="sm" variant="ghost" onClick={() => setMode("archive")}>Archiver la série</Button></>}
     </div>}
-    {canWrite && (mode || lift) && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={back} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
-    {dateNote && (mode || lift) && <p role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-sm">{dateNote} <Button size="sm" variant="ghost" onClick={() => setDateNote(null)}>Compris</Button></p>}
+    {canWrite && (mode || liftOpen || store.restoredMeta || store.savedAt) && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={abandonAll} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+    {dateNote && (mode || liftOpen) && <p role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-sm">{dateNote} <Button size="sm" variant="ghost" onClick={() => setDateNote(null)}>Compris</Button></p>}
     <fieldset disabled={store.blocked} className="contents">
     {mode === "amount" && <div className="space-y-2 rounded-md border border-border p-3">
       <div className="flex gap-3 text-sm"><label><input type="radio" checked={scope === "this"} onChange={() => setScope("this")} /> Cette échéance seulement</label>{o.frequency !== "once" && <label><input type="radio" checked={scope === "following"} onChange={() => setScope("following")} /> Celle-ci et les suivantes</label>}</div>
@@ -647,8 +652,8 @@ function OccurrenceDialog({ companyId, occ, canWrite, onClose, onChanged, onEdit
       <div className="flex gap-2"><Button size="sm" disabled={busy || !pzImpact} onClick={() => run(() => api.addPause(o.obligation_id, pz.start, pz.end, pz.reason, false), "Suspension enregistrée")}>Confirmer la suspension</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div>
     </div>}
     {pzs.length > 0 && <div><p className="font-display text-sm font-bold">Suspensions</p><ul className="space-y-1 text-xs">{pzs.map((z) => <li key={z.id}>Du {fmtDate(z.start_date)} au {fmtDate(z.end_date)} : {z.reason}{z.lifted_from ? ` — levée à partir du ${fmtDate(z.lifted_from)}${z.lift_reason ? ` (${z.lift_reason})` : ""}` : ""}
-      {canWrite && !z.lifted_from && z.end_date >= todayIn(TZ) && <Button size="sm" variant="ghost" onClick={() => { setLift({ id: z.id, eff: todayIn(TZ) > z.start_date ? todayIn(TZ) : z.start_date, reason: "" }); setLiftPv(null); }}>Lever la suspension</Button>}</li>)}</ul></div>}
-    {lift && <div className="space-y-2 rounded-md border border-border p-3 text-sm">
+      {canWrite && !z.lifted_from && z.end_date >= todayIn(TZ) && <Button size="sm" variant="ghost" onClick={() => { setLift({ id: z.id, eff: todayIn(TZ) > z.start_date ? todayIn(TZ) : z.start_date, reason: "" }); setLiftOpen(true); setLiftPv(null); }}>Lever la suspension</Button>}</li>)}</ul></div>}
+    {lift && liftOpen && <div className="space-y-2 rounded-md border border-border p-3 text-sm">
       <p className="text-xs">Seules les échéances supprimées par cette suspension, encore prévues par la règle applicable, sont restaurées. Annulations manuelles, changements de règle et autres suspensions restent en place. Aucun rattrapage des dates passées.</p>
       <Input type="date" aria-label="Reprise à partir du" value={lift.eff} onChange={(e) => setLift({ ...lift, eff: e.target.value })} />
       <Textarea placeholder="Motif (obligatoire)" value={lift.reason} onChange={(e) => setLift({ ...lift, reason: e.target.value })} />
