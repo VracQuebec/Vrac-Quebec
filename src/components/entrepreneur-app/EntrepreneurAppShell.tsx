@@ -22,6 +22,7 @@ import {
   Truck,
   LifeBuoy,
   Wallet,
+  FileClock,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -57,6 +58,7 @@ const MORE_ITEMS = [
   { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ClipboardList },
   { to: "/entrepreneur/flotte", label: "Ma flotte", hint: "Vos véhicules", icon: Truck },
   { to: "/entrepreneur/finances", label: "Finances", hint: "Obligations et calendrier", icon: Wallet },
+  { to: "/entrepreneur/brouillons", label: "Reprendre mon travail", hint: "Vos brouillons", icon: FileClock },
   { to: "/entrepreneur/compte", label: "Mon entreprise", hint: "Profil, camions, visibilité", icon: User },
   { to: "/entrepreneur/notifications", label: "Notifications", hint: "Ce qui demande votre attention", icon: Bell },
   { to: "/entrepreneur/demandes", label: "Toutes les demandes", hint: "Demandes de tous vos chantiers", icon: ClipboardList },
@@ -67,6 +69,7 @@ const SIDEBAR_ITEMS = [
   { to: "/entrepreneur/crm", label: "Mon CRM", icon: ClipboardList },
   { to: "/entrepreneur/flotte", label: "Ma flotte", icon: Truck },
   { to: "/entrepreneur/finances", label: "Finances", icon: Wallet },
+  { to: "/entrepreneur/brouillons", label: "Reprendre mon travail", icon: FileClock },
   { to: "/entrepreneur/compte", label: "Mon entreprise", icon: User },
   { to: "/entrepreneur/notifications", label: "Notifications", icon: Bell },
 ] as const;

@@ -20315,6 +20315,66 @@ export type Database = {
           },
         ]
       }
+      user_drafts: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          data: Json
+          draft_key: string
+          form: string
+          id: string
+          instance: string
+          label: string | null
+          module: string
+          record_id: string | null
+          rev: number
+          route: string | null
+          schema_version: number
+          status: string
+          step: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          data?: Json
+          draft_key: string
+          form: string
+          id?: string
+          instance?: string
+          label?: string | null
+          module: string
+          record_id?: string | null
+          rev?: number
+          route?: string | null
+          schema_version?: number
+          status?: string
+          step?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          data?: Json
+          draft_key?: string
+          form?: string
+          id?: string
+          instance?: string
+          label?: string | null
+          module?: string
+          record_id?: string | null
+          rev?: number
+          route?: string | null
+          schema_version?: number
+          status?: string
+          step?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           approved: boolean
@@ -21305,6 +21365,28 @@ export type Database = {
           submission_number: number
           tonnage: string
         }[]
+      }
+      draft_close: {
+        Args: { _key: string; _status: string }
+        Returns: undefined
+      }
+      draft_reopen: { Args: { _key: string }; Returns: undefined }
+      draft_save: {
+        Args: {
+          _base_rev: number
+          _company: string
+          _data: Json
+          _form: string
+          _instance: string
+          _key: string
+          _label: string
+          _module: string
+          _record: string
+          _route: string
+          _schema?: number
+          _step: number
+        }
+        Returns: Json
       }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
