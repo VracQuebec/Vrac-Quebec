@@ -199,8 +199,10 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
   const [views, setViews] = useState<any[]>([]);
   const loadViews = useCallback(async () => setViews((await db.from("ent_crm_saved_views").select("*").eq("company_id", companyId).order("created_at")).data ?? []), [companyId]);
   useEffect(() => { void loadViews(); }, [loadViews]);
-  const saveView = async () => { const name = prompt("Nom de la vue ?"); if (!name) return; const p = new URLSearchParams(params); p.delete("page"); p.delete("support_user");
-    const { error } = await db.from("ent_crm_saved_views").insert({ company_id: companyId, name, params: p.toString() }); if (error) toast({ title: "Refusé", description: error.message }); loadViews(); };
+  // NAV-01B : fenêtres contrôlées dans l'adresse (?fd=) au lieu des questions natives — saisie conservée en brouillon.
+  const fdL = params.get("fd");
+  const setFd = (val: string | null) => { const n = new URLSearchParams(params); val ? n.set("fd", val) : n.delete("fd"); setParams(n); };
+  const saveView = () => setFd("vue:nouveau");
   const [importing, setImporting] = useState<{ rows: Record<string, string>[]; heads: string[]; map: Record<string, string>; existing: any[]; dupMode: string; ignored: string[] } | null>(null);
   const [rows, setRows] = useState<any[]>([]); const [count, setCount] = useState(0);
   const [clients, setClients] = useState<any[]>([]);
@@ -232,7 +234,7 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
     });
   }, [leadParam, companyId]); // eslint-disable-line react-hooks/exhaustive-deps
   const move = async (l: any, st: string) => {
-    let lost_reason = l.lost_reason; if (stages.find((x) => x.v === st)?.kind === "perdue") { lost_reason = prompt("Motif de perte ?") ?? ""; if (!lost_reason) return; }
+    const lost_reason = l.lost_reason; if (stages.find((x) => x.v === st)?.kind === "perdue") { setFd(`perte:${l.id}:${st}`); return; }
     const { error } = await db.from("ent_crm_leads").update({ stage: st, lost_reason, updated_at: new Date().toISOString() }).eq("id", l.id);
     if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else load();
   };
@@ -310,6 +312,12 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
     ) : <div className="grid gap-2">{rows.map((r) => <LeadCard key={r.id} r={r} stages={stages} canWrite={canWrite} move={move} convert={convert} edit={() => openLead(r.id)} />)}</div>}
     <div className="mt-3 flex items-center gap-2 text-sm"><Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setF("page", String(page - 1))}>Précédent</Button>Page {page}/{pages}<Button variant="outline" size="sm" disabled={page >= pages} onClick={() => setF("page", String(page + 1))}>Suivant</Button></div>
     {open && <LeadDialog lead={open} companyId={companyId} clients={clients} onClose={closeLead} onSaved={() => { closeLead(); load(); }} />}
+    {fdL === "vue:nouveau" && <FieldsDialog key={fdL} form="vue-enregistree" recordId="nouveau" companyId={companyId} title="Enregistrer la vue" route={`/entrepreneur/crm?company=${companyId}&tab=leads&fd=${fdL}`}
+      fields={[{ k: "name", l: "Nom de la vue", required: true }]} submitLabel="Enregistrer la vue" onClose={() => setFd(null)}
+      onSubmit={async (v) => { const pp = new URLSearchParams(params); ["page", "support_user", "fd", "lead"].forEach((k) => pp.delete(k)); const { error } = await db.from("ent_crm_saved_views").insert({ company_id: companyId, name: v.name, params: pp.toString() }); if (error) return error.message; setFd(null); loadViews(); return null; }} />}
+    {fdL?.startsWith("perte:") && (() => { const [, lid, st] = fdL.split(":"); return <FieldsDialog key={fdL} form={`perte-${st}`} recordId={lid} companyId={companyId} title="Motif de perte" route={`/entrepreneur/crm?company=${companyId}&tab=leads&fd=${fdL}`}
+      fields={[{ k: "reason", l: "Motif de perte", type: "textarea", required: true }]} submitLabel="Marquer comme perdu" onClose={() => setFd(null)}
+      onSubmit={async (v) => { const { error } = await db.from("ent_crm_leads").update({ stage: st, lost_reason: v.reason, updated_at: new Date().toISOString() }).eq("id", lid).eq("company_id", companyId); if (error) return error.message; setFd(null); load(); return null; }} />; })()}
   </div>;
 }
 
@@ -673,19 +681,28 @@ function FieldsDialog({ form, recordId, companyId, title, route, fields, initial
   </DialogContent></Dialog>;
 }
 
-function Projects({ companyId, canWrite }: any) {
+function Projects({ companyId, canWrite, params, setParams }: any) {
+  // NAV-01B : adresse et dates modifiées dans une fenêtre avec brouillon (?fd=chantier:id) — plus d'enregistrement implicite à la sortie du champ.
+  const fd = params?.get("fd") ?? null;
+  const setFd = (val: string | null) => { const n = new URLSearchParams(params); val ? n.set("fd", val) : n.delete("fd"); setParams(n); };
   const [rows, setRows] = useState<any[]>([]);
   const load = useCallback(async () => setRows((await db.from("ent_crm_projects").select("*, ent_crm_clients(name)").eq("company_id", companyId).is("archived_at", null).order("created_at", { ascending: false })).data ?? []), [companyId]);
   useEffect(() => { void load(); }, [load]);
   const upd = async (p: any, k: string, v: string) => { const { error } = await db.from("ent_crm_projects").update({ [k]: v || null, updated_at: new Date().toISOString() }).eq("id", p.id); if (error) toast({ title: "Refusé", description: error.message }); load(); };
+  const fdP = fd?.startsWith("chantier:") ? rows.find((r) => r.id === fd.slice(9)) : undefined;
   return <div className="grid gap-2 md:grid-cols-2">{rows.length === 0 && <p className="text-muted-foreground">Aucun chantier. Créez-en un depuis une soumission acceptée.</p>}{rows.map((p) => <div key={p.id} className="rounded-lg border border-border bg-card p-3 text-sm">
     <p className="font-display font-bold">{p.name}</p><p className="text-xs text-muted-foreground">{p.ent_crm_clients?.name}</p>
     <FilesBtn t="project" id={p.id} />
-    {canWrite ? <div className="mt-2 grid gap-1"><Input placeholder="Adresse" defaultValue={p.address ?? ""} onBlur={(e) => e.target.value !== (p.address ?? "") && upd(p, "address", e.target.value)} />
-      <div className="flex gap-1"><Input type="date" defaultValue={p.start_date ?? ""} onBlur={(e) => upd(p, "start_date", e.target.value)} /><Input type="date" defaultValue={p.end_date ?? ""} onBlur={(e) => upd(p, "end_date", e.target.value)} /></div>
-      <select className={sel} value={p.status} onChange={(e) => upd(p, "status", e.target.value)}>{([["a_planifier", "À planifier"], ["planifie", "Planifié"], ["en_cours", "En cours"], ["termine", "Terminé (clôturé)"], ["annule", "Annulé"]] as const).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
-      : <p className="text-xs">{p.address} · {p.status}</p>}
-  </div>)}</div>;
+    <p className="mt-1 text-xs">{p.address || "Adresse non précisée"} · {p.start_date || "—"} → {p.end_date || "—"}</p>
+    {canWrite ? <div className="mt-2 grid gap-1"><Button size="sm" variant="outline" onClick={() => setFd(`chantier:${p.id}`)}>Modifier l'adresse et les dates</Button>
+      <select className={sel} aria-label={`Statut de ${p.name}`} value={p.status} onChange={(e) => upd(p, "status", e.target.value)}>{([["a_planifier", "À planifier"], ["planifie", "Planifié"], ["en_cours", "En cours"], ["termine", "Terminé (clôturé)"], ["annule", "Annulé"]] as const).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+      : <p className="text-xs">{p.status}</p>}
+  </div>)}
+    {canWrite && fdP && <FieldsDialog key={fd} form="chantier-modifier" recordId={fdP.id} companyId={companyId} title={`Chantier « ${fdP.name} »`} route={`/entrepreneur/crm?company=${companyId}&tab=projects&fd=${fd}`}
+      fields={[{ k: "address", l: "Adresse" }, { k: "start_date", l: "Début", type: "date" }, { k: "end_date", l: "Fin", type: "date" }]}
+      initial={{ address: fdP.address ?? "", start_date: fdP.start_date ?? "", end_date: fdP.end_date ?? "" }} submitLabel="Enregistrer le chantier" onClose={() => setFd(null)}
+      onSubmit={async (v) => { if (v.start_date && v.end_date && v.end_date < v.start_date) return "La fin précède le début."; const { error } = await db.from("ent_crm_projects").update({ address: v.address || null, start_date: v.start_date || null, end_date: v.end_date || null, updated_at: new Date().toISOString() }).eq("id", fdP.id).eq("company_id", companyId); if (error) return error.message; setFd(null); load(); return null; }} />}
+  </div>;
 }
 
 function Tasks({ companyId, canWrite, params, setParams }: any) {
@@ -740,7 +757,7 @@ function History({ companyId }: any) {
 
 const ROLES = [["proprietaire", "Propriétaire"], ["gestionnaire", "Gestionnaire / commercial"], ["comptabilite", "Comptabilité"], ["chauffeur", "Employé terrain / chauffeur"], ["operateur", "Opérateur"], ["mecanicien", "Mécanicien"], ["lecture", "Lecture seule"]] as const;
 
-function Team({ companyId, canAdmin }: any) {
+function Team({ companyId, canAdmin, params, setParams }: any) {
   const [members, setMembers] = useState<any[]>([]); const [err, setErr] = useState("");
   const { stages, reload } = useStages(companyId);
   const [trades, setTrades] = useState<string[]>([]);
@@ -749,12 +766,14 @@ function Team({ companyId, canAdmin }: any) {
   useEffect(() => { void load(); }, [load]);
   const setMember = async (email: string, role: string, active: boolean) => { const { error } = await db.rpc("entcrm_set_member", { _company_id: companyId, _email: email, _role: role, _active: active });
     toast({ title: error ? "Refusé" : "Accès mis à jour", description: error?.message }); load(); };
-  const add = async () => { const email = prompt("Courriel d'un compte existant ?"); if (!email) return; const role = prompt(`Rôle (${ROLES.map((r) => r[0]).join(", ")}) ?`, "lecture"); if (role) setMember(email, role, true); };
+  // NAV-01B : fenêtres contrôlées (?fd=) au lieu des questions natives; brouillon par compte + entreprise + étape + opération.
+  const fdT = params?.get("fd") ?? null;
+  const setFd = (val: string | null) => { const n = new URLSearchParams(params); val ? n.set("fd", val) : n.delete("fd"); setParams(n); };
+  const fdStage = fdT?.includes(":") ? stages.find((s) => s.id && s.id === fdT.split(":")[1]) : undefined;
+  const add = () => setFd("membre:nouveau");
   const initStages = async () => { const { error } = await db.from("ent_crm_stages").insert(STAGES.map((s, i) => ({ company_id: companyId, key: s.v, label: s.l, position: i, kind: s.v === "gagne" ? "gagnee" : s.v === "perdu" ? "perdue" : "ouverte" }))); if (error) toast({ title: "Refusé", description: error.message }); reload(); };
-  const addStage = async () => { const labelTxt = prompt("Nom de l'étape ?"); if (!labelTxt) return; const key = normalize(labelTxt).slice(0, 30) || "etape";
-    const { error } = await db.from("ent_crm_stages").insert({ company_id: companyId, key, label: labelTxt, position: stages.length, kind: "ouverte" }); if (error) toast({ title: "Refusé", description: error.message }); reload(); };
-  const delStage = async (s: any) => { const rep = prompt(`Étape de remplacement pour les dossiers (${stages.filter((x) => x.v !== s.v).map((x) => x.v).join(", ")}) ?`); if (!rep) return;
-    const { error } = await db.rpc("entcrm_delete_stage", { _stage_id: s.id, _replacement: rep }); if (error) toast({ title: "Refusé", description: error.message }); reload(); };
+  const addStage = () => setFd("etape:nouveau");
+  const delStage = (s: any) => setFd(`etape-retirer:${s.id}`);
   const saveTrades = async (t: string[]) => { setTrades(t); const { error } = await db.from("ent_crm_settings").upsert({ company_id: companyId, trades: t, updated_at: new Date().toISOString() }); if (error) toast({ title: "Refusé", description: error.message }); };
   const custom = stages.some((s) => s.id);
   const preview = <JscAttachPreview />;
@@ -768,11 +787,23 @@ function Team({ companyId, canAdmin }: any) {
       <p className="mt-2 text-xs text-muted-foreground">Seuls des comptes existants peuvent être ajoutés; aucune invitation n'est envoyée. Aucun rôle d'entreprise ne donne accès aux autres entreprises.</p></section>
     <section className="rounded-lg border border-border bg-card p-4"><div className="mb-2 flex items-center justify-between"><h2 className="font-display font-bold">Étapes commerciales</h2>{canAdmin && (custom ? <Button size="sm" onClick={addStage}><Plus className="mr-1 h-4 w-4" />Étape</Button> : <Button size="sm" onClick={initStages}>Personnaliser</Button>)}</div>
       {stages.map((s) => <div key={s.v} className="flex items-center gap-2 border-t border-border py-2 text-sm"><span className="flex-1">{s.l}</span><span className="text-xs text-muted-foreground">{s.kind}</span>
-        {canAdmin && s.id && <><Button size="sm" variant="ghost" onClick={async () => { const l = prompt("Nouveau nom ?", s.l); if (!l) return; await db.from("ent_crm_stages").update({ label: l }).eq("id", s.id); reload(); }}>Renommer</Button><Button size="sm" variant="ghost" onClick={() => delStage(s)}>Retirer</Button></>}</div>)}</section>
+        {canAdmin && s.id && <><Button size="sm" variant="ghost" onClick={() => setFd(`etape-renommer:${s.id}`)}>Renommer</Button><Button size="sm" variant="ghost" onClick={() => delStage(s)}>Retirer</Button></>}</div>)}</section>
     <section className="rounded-lg border border-border bg-card p-4"><h2 className="mb-2 font-display font-bold">Activités de l'entreprise</h2>
       {Object.entries(TRADES).map(([k, t]) => <label key={k} className="flex items-center gap-2 py-1 text-sm"><input type="checkbox" disabled={!canAdmin} checked={trades.includes(k)} onChange={(e) => saveTrades(e.target.checked ? [...trades, k] : trades.filter((x) => x !== k))} />{t.l}</label>)}</section>
     <TaxSettings companyId={companyId} canAdmin={canAdmin} />
     {preview}
+    {canAdmin && fdT === "membre:nouveau" && <FieldsDialog key={fdT} form="equipe-membre" recordId="nouveau" companyId={companyId} title="Ajouter un membre" route={`/entrepreneur/crm?company=${companyId}&tab=team&fd=${fdT}`}
+      fields={[{ k: "email", l: "Courriel d'un compte existant", required: true }, { k: "role", l: `Rôle (${ROLES.map((r) => r[0]).join(", ")})`, required: true }]} initial={{ role: "lecture" }} submitLabel="Donner l'accès" onClose={() => setFd(null)}
+      onSubmit={async (v) => { if (!ROLES.some((r) => r[0] === v.role)) return "Rôle inconnu."; const { error } = await db.rpc("entcrm_set_member", { _company_id: companyId, _email: v.email, _role: v.role, _active: true }); if (error) return error.message; toast({ title: "Accès mis à jour" }); setFd(null); load(); return null; }} />}
+    {canAdmin && fdT === "etape:nouveau" && <FieldsDialog key={fdT} form="etape-ajout" recordId="nouveau" companyId={companyId} title="Nouvelle étape" route={`/entrepreneur/crm?company=${companyId}&tab=team&fd=${fdT}`}
+      fields={[{ k: "label", l: "Nom de l'étape", required: true }]} submitLabel="Ajouter l'étape" onClose={() => setFd(null)}
+      onSubmit={async (v) => { const key = normalize(v.label).slice(0, 30) || "etape"; const { error } = await db.from("ent_crm_stages").insert({ company_id: companyId, key, label: v.label, position: stages.length, kind: "ouverte" }); if (error) return error.message; setFd(null); reload(); return null; }} />}
+    {canAdmin && fdStage && fdT?.startsWith("etape-renommer:") && <FieldsDialog key={fdT} form="etape-renommer" recordId={fdStage.id} companyId={companyId} title={`Renommer « ${fdStage.l} »`} route={`/entrepreneur/crm?company=${companyId}&tab=team&fd=${fdT}`}
+      fields={[{ k: "label", l: "Nouveau nom", required: true }]} initial={{ label: fdStage.l }} submitLabel="Renommer" onClose={() => setFd(null)}
+      onSubmit={async (v) => { const { error } = await db.from("ent_crm_stages").update({ label: v.label }).eq("id", fdStage.id).eq("company_id", companyId); if (error) return error.message; setFd(null); reload(); return null; }} />}
+    {canAdmin && fdStage && fdT?.startsWith("etape-retirer:") && <FieldsDialog key={fdT} form="etape-retirer" recordId={fdStage.id} companyId={companyId} title={`Retirer « ${fdStage.l} »`} route={`/entrepreneur/crm?company=${companyId}&tab=team&fd=${fdT}`}
+      fields={[{ k: "rep", l: `Étape de remplacement (${stages.filter((x) => x.v !== fdStage.v).map((x) => x.v).join(", ")})`, required: true }]} submitLabel="Retirer l'étape" onClose={() => setFd(null)}
+      onSubmit={async (v) => { const { error } = await db.rpc("entcrm_delete_stage", { _stage_id: fdStage.id, _replacement: v.rep }); if (error) return error.message; setFd(null); reload(); return null; }} />}
   </div>;
 }
 
@@ -796,14 +827,24 @@ function JscAttachPreview() {
 function TaxSettings({ companyId, canAdmin }: { companyId: string; canAdmin: boolean }) {
   const [s, setS] = useState<any>(null);
   useEffect(() => { db.from("ent_crm_settings").select("taxes_enabled,gst_rate,qst_rate,gst_number,qst_number").eq("company_id", companyId).maybeSingle().then(({ data }: any) => setS(data ?? { taxes_enabled: false })); }, [companyId]);
+  // NAV-01B : préparation des taxes en brouillon (compte + entreprise); rien n'est appliqué avant « Enregistrer ».
+  const { user: me } = useAuthReady(); const [base, setBase] = useState<string>("");
+  useEffect(() => { if (s && !base) setBase(JSON.stringify(s)); }, [s, base]);
+  const store = useDraft({
+    id: me && canAdmin && base ? { module: "crm", form: "reglages-taxes", owner: me.id, company: companyId, recordId: companyId } : null,
+    data: s ?? {}, label: () => "CRM — Taxes des soumissions", route: `/entrepreneur/crm?company=${companyId}&tab=team`,
+    isEmpty: (d) => JSON.stringify(d) === base, onRestore: (d) => setS((cur: any) => ({ ...cur, ...d })),
+  });
   if (!s) return null;
   const save = async () => {
     const g = s.gst_rate === "" || s.gst_rate == null ? null : Number(s.gst_rate), q = s.qst_rate === "" || s.qst_rate == null ? null : Number(s.qst_rate);
     if (s.taxes_enabled && (g == null || q == null || g < 0 || q < 0 || g > 30 || q > 30)) return toast({ title: "Taux invalides", description: "Saisissez les deux taux (en %) avant d'activer les taxes.", variant: "destructive" });
     const { error } = await db.from("ent_crm_settings").upsert({ company_id: companyId, taxes_enabled: !!s.taxes_enabled, gst_rate: g, qst_rate: q, gst_number: s.gst_number || null, qst_number: s.qst_number || null, updated_at: new Date().toISOString() });
+    if (!error) { store.finalize(); setBase(JSON.stringify(s)); }
     toast({ title: error ? "Refusé" : "Taxes enregistrées", description: error?.message ?? "Appliquées aux prochaines soumissions remises; les soumissions déjà remises ne changent pas." });
   };
   return <section className="rounded-lg border border-border bg-card p-4"><h2 className="mb-2 font-display font-bold">Taxes des soumissions</h2>
+    {canAdmin && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setS(JSON.parse(base)); }} discardConfirm="Abandonner cette préparation ? Les réglages enregistrés ne changent pas." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
     <label className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={!canAdmin} checked={!!s.taxes_enabled} onChange={(e) => setS({ ...s, taxes_enabled: e.target.checked })} />Calculer TPS et TVQ sur mes soumissions</label>
     <div className="mt-2 grid grid-cols-2 gap-2">
       <Input aria-label="Taux TPS (%)" disabled={!canAdmin} type="number" step="0.001" placeholder="Taux TPS (%)" value={s.gst_rate ?? ""} onChange={(e) => setS({ ...s, gst_rate: e.target.value })} />
