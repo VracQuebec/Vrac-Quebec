@@ -75,6 +75,7 @@ export default function AdminMarketplaceCategories() {
     if (isReady && !roleLoading && isAdmin) void load();
   }, [isReady, roleLoading, isAdmin, load]);
 
+  const view = useMemo(() => rows.map((r) => (edits[r.id] ? { ...r, ...edits[r.id] } : r)), [rows, edits]);
   const nodes = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return tree(view);
@@ -94,7 +95,6 @@ export default function AdminMarketplaceCategories() {
   }, [view, search]);
 
   // Les modifications en cours (restaurées ou saisies) s'appliquent par-dessus la version serveur, sans l'écraser.
-  const view = useMemo(() => rows.map((r) => (edits[r.id] ? { ...r, ...edits[r.id] } : r)), [rows, edits]);
   const patch = (id: string, updates: Partial<ServiceCategory>) =>
     setEdits((prev) => ({ ...prev, [id]: { ...prev[id], ...updates } }));
 
@@ -222,7 +222,7 @@ export default function AdminMarketplaceCategories() {
             <label className="text-sm">{parent ? `Nouveau sous « ${parent.name} »` : "Nouvelle catégorie"}
               <Input aria-label="Nom du nouvel élément" autoFocus value={adding.name} onChange={(e) => setAdding({ ...adding, name: e.target.value })} className="mt-1 h-9 w-64" /></label>
             <Button size="sm" type="submit" disabled={!adding.name.trim()}>Ajouter</Button>
-            <Button size="sm" type="button" variant="ghost" onClick={() => setAdding(null)}>Fermer</Button>
+            <Button size="sm" type="button" variant="ghost" onClick={() => { if (!adding.name.trim() || window.confirm("Abandonner cet ajout ?")) setAdding(null); }}>Abandonner l'ajout</Button>
           </form>; })()}
         {loading ? (
           <p className="font-body text-muted-foreground">Chargement…</p>
