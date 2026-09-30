@@ -106,6 +106,14 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
   const [cats, setCats] = useState<Awaited<ReturnType<typeof api.categories>>>([]);
   const refresh = useCallback(() => setRev((r) => r + 1), []);
   useEffect(() => { api.categories(companyId).then(setCats); }, [companyId, rev]);
+  // « Reprendre mon travail » : ?brouillon=obligation rouvre la fenêtre de création (brouillon repris).
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (canWrite && q.get("brouillon") === "obligation") {
+      setForm({ id: null }); q.delete("brouillon");
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
+    }
+  }, [canWrite]);
   const add = canWrite ? <Button onClick={() => setForm({ id: null })}><Plus className="mr-1 h-4 w-4" />Ajouter une obligation</Button> : null;
   const onPayMany = canWrite ? (list: Occ[]) => setPay(list.map((o) => ({ id: o.id, label: o.label, due_date: o.due_date, balance: o.balance, amount_quality: o.amount_quality, payee: o.payee, payee_key: o.payee_key }))) : undefined;
   return <>
@@ -312,6 +320,8 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, on
   const store = useDraft({
     id: draftable && me ? { module: "finances", form: "obligation", owner: me.id, company: companyId } : null,
     data: { p, preset, unit, adv },
+    label: (d) => d.p.label ? `Obligation « ${d.p.label} »` : "Nouvelle obligation",
+    route: `/entrepreneur/finances?company=${companyId}&brouillon=obligation`,
     isEmpty: (d) => !d.p.label && (d.p.amount == null || d.p.amount === "") && !d.p.anchor_date && !d.p.payee_label && !d.p.notes,
     onRestore: (d) => { setP(d.p); setPreset(d.preset); setUnit(d.unit); setAdv(d.adv); },
   });
