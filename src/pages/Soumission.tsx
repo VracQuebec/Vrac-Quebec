@@ -178,7 +178,7 @@ export default function Soumission() {
   };
 
   const next = async () => {
-    if (step === 5) { setStep(6); await runEstimate(); return; }
+    if (step === 5) { setQuote(null); setQuoteError(null); setStep(6); return; } // estimation lancée par l'effet de l'étape 6
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
 
