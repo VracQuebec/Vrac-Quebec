@@ -7,6 +7,7 @@
 // `material_offers_v1` (FAUX en production).
 // ============================================================
 import { useScreenContext } from "@/lib/navigation/listContext";
+import { useDraft } from "@/lib/drafts/useDraft";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Loader2, PackageSearch } from "lucide-react";
@@ -54,6 +55,15 @@ function CreateOffer({ onCreated }: { onCreated: (o: MaterialOffer) => void }) {
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
   const [saving, setSaving] = useState(false);
+  // NAV-01B — Description et lieu en préparation gardés en brouillon; l'analyse et la création restent manuelles.
+  const { user } = useAuthReady();
+  const offerDraft = useDraft({
+    id: user ? { module: "admin", form: "offre-materiau", owner: user.id, company: null, recordId: null } : null,
+    data: { text, city, lat, lng },
+    label: (d) => `Offre de matériau — ${d.text.slice(0, 40) || "nouvelle"}`, route: "/admin/offres-materiaux",
+    isEmpty: (d) => !d.text && !d.city && !d.lat && !d.lng,
+    onRestore: (d) => { setText(d.text ?? ""); setCity(d.city ?? ""); setLat(d.lat ?? ""); setLng(d.lng ?? ""); },
+  });
 
   const create = async () => {
     if (!parsed) return;
@@ -67,6 +77,7 @@ function CreateOffer({ onCreated }: { onCreated: (o: MaterialOffer) => void }) {
       });
       const offer = await createMaterialOffer(draft);
       toast.success("Offre créée (interne).");
+      offerDraft.finalize();
       onCreated(offer);
       setText(""); setParsed(null); setCity(""); setLat(""); setLng("");
     } catch (e) {

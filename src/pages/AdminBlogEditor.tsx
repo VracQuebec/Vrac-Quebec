@@ -133,7 +133,17 @@ export default function AdminBlogEditor() {
       setRelMaterialSlugs(Array.isArray(dataAny.related_material_slugs) ? dataAny.related_material_slugs as string[] : []);
       setRelServiceSlugs(Array.isArray(dataAny.related_service_slugs) ? dataAny.related_service_slugs as string[] : []);
       const { data: tagRows } = await supabase.from("blog_post_tags").select("tag_id").eq("post_id", data.id);
-      setTags((tagRows ?? []).map((t) => t.tag_id));
+      const tagIds = (tagRows ?? []).map((t) => t.tag_id);
+      setTags(tagIds);
+      // Référence « confirmée par le serveur » (même forme et même ordre que `editable`).
+      baseline.current = JSON.stringify({ title: data.title, slug: data.slug, slugTouched: true, excerpt: data.excerpt ?? "", content: data.content ?? "",
+        coverUrl: data.cover_image_url ?? "", coverAlt: data.cover_image_alt ?? "", categoryId: data.category_id, authorId: data.author_id,
+        scheduledAt: data.scheduled_at ? data.scheduled_at.slice(0, 16) : "", metaTitle: data.meta_title ?? "", metaDescription: data.meta_description ?? "",
+        ogImage: data.og_image_url ?? "", canonical: data.canonical_url ?? "", isFeatured: data.is_featured, isPopular: data.is_popular, noindex: data.noindex, tags: tagIds,
+        relCitySlugs: Array.isArray(dataAny.related_city_slugs) ? dataAny.related_city_slugs : [], relMaterialSlugs: Array.isArray(dataAny.related_material_slugs) ? dataAny.related_material_slugs : [],
+        relServiceSlugs: Array.isArray(dataAny.related_service_slugs) ? dataAny.related_service_slugs : [] });
+      setServerStamp((data as { updated_at?: string }).updated_at ?? "");
+      setEditConflict(false);
       setLoading(false);
     })();
   }, [id, isNew, isAdmin]);
@@ -144,7 +154,6 @@ export default function AdminBlogEditor() {
   }, [title, slugTouched]);
 
   // NAV-01B — Nouvel article (pas encore créé au serveur) : saisie gardée en brouillon (Retour, actualisation, reprise).
-  // Un article existant est déjà enregistré automatiquement au serveur (3 s); il n'utilise pas ce brouillon.
   const art = { title, slug, slugTouched, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs, aiKeyword, coverPrompt };
   const draft = useDraft({
     id: user && isAdmin && isNew && !postId ? { module: "blog", form: "article", owner: user.id, company: null, recordId: null } : null,
@@ -158,6 +167,30 @@ export default function AdminBlogEditor() {
       setRelCitySlugs(d.relCitySlugs ?? []); setRelMaterialSlugs(d.relMaterialSlugs ?? []); setRelServiceSlugs(d.relServiceSlugs ?? []); setAiKeyword(d.aiKeyword ?? ""); setCoverPrompt(d.coverPrompt ?? ""); },
   });
   const creating = useRef(false);
+
+  // NAV-01B — Article EXISTANT : l'enregistrement automatique (3 s) reste inchangé. En plus, les modifications
+  // pas encore confirmées par le serveur sont gardées en brouillon (départ immédiat, panne réseau, erreur, conflit).
+  // Le statut de publication n'est jamais repris depuis le brouillon : il reste celui du serveur.
+  const [serverStamp, setServerStamp] = useState<string | null>(null); // updated_at chargé → détection de conflit
+  const [editConflict, setEditConflict] = useState(false);
+  const [autoSaveError, setAutoSaveError] = useState<string | null>(null);
+  const baseline = useRef<string>("");
+  const editable = { title, slug, slugTouched, excerpt, content, coverUrl, coverAlt, categoryId, authorId, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs };
+  const editDraft = useDraft({
+    id: user && isAdmin && postId && serverStamp && !loading ? { module: "blog", form: "article-modif", owner: user.id, company: null, recordId: postId } : null,
+    data: editable,
+    label: (d) => `Article (modifications non confirmées) — ${d.title || "sans titre"}`,
+    route: postId ? `/admin/blogue/editer/${postId}` : undefined,
+    isEmpty: (d) => JSON.stringify(d) === baseline.current,
+    onRestore: (d) => { if (JSON.stringify(d) === baseline.current) return;
+      setTitle(d.title); setSlug(d.slug); setSlugTouched(d.slugTouched); setExcerpt(d.excerpt); setContent(d.content); setCoverUrl(d.coverUrl); setCoverAlt(d.coverAlt);
+      setCategoryId(d.categoryId); setAuthorId(d.authorId); setMetaTitle(d.metaTitle); setMetaDescription(d.metaDescription);
+      setOgImage(d.ogImage); setCanonical(d.canonical); setIsFeatured(d.isFeatured); setIsPopular(d.isPopular); setNoindex(d.noindex); setTags(d.tags ?? []);
+      setRelCitySlugs(d.relCitySlugs ?? []); setRelMaterialSlugs(d.relMaterialSlugs ?? []); setRelServiceSlugs(d.relServiceSlugs ?? []);
+      toast.info("Modifications non confirmées retrouvées — elles seront enregistrées automatiquement."); },
+  });
+  const editableRef = useRef(editable); editableRef.current = editable;
+
 
   const readingMinutes = useMemo(() => estimateReadingTime(content), [content]);
 
@@ -302,33 +335,54 @@ export default function AdminBlogEditor() {
         if (!opts.silent) toast.success("Article créé");
         navigate(`/admin/blogue/editer/${data.id}`, { replace: true });
       } else {
-        const { error } = await supabase.from("blog_posts").update(payload as never).eq("id", postId);
+        // Contrôle de conflit : l'écriture ne s'applique que si l'article n'a pas changé ailleurs depuis le chargement.
+        const snap = JSON.stringify(editableRef.current);
+        let q = supabase.from("blog_posts").update(payload as never).eq("id", postId);
+        if (serverStamp) q = q.eq("updated_at", serverStamp);
+        const { data: upd, error } = await q.select("updated_at");
         if (error) throw error;
+        if (!upd || upd.length === 0) {
+          setEditConflict(true);
+          editDraft.flush();
+          throw new Error("Cet article a été modifié ailleurs. Vos modifications sont gardées en brouillon; rien n'a été écrasé.");
+        }
         await persistTags(postId);
+        setServerStamp((upd[0] as { updated_at: string }).updated_at);
+        baseline.current = snap;
+        // Confirmé par le serveur et aucune frappe depuis : la copie de secours n'a plus lieu d'être.
+        if (JSON.stringify(editableRef.current) === snap) editDraft.discard();
+        setAutoSaveError(null);
         setSavedAt(new Date());
         if (!opts.silent) toast.success("Enregistré");
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      if (postId) { setAutoSaveError(msg); editDraft.flush(); }
       if (!opts.silent) toast.error(msg);
     } finally {
       setSaving(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, slug, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, postId, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs]);
+  }, [title, slug, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, postId, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs, serverStamp]);
 
   // Auto-save (debounced) — only for existing posts to avoid firing on empty new post
   const timerRef = useRef<number | null>(null);
   useEffect(() => {
     if (!postId) return;
-    if (loading) return;
+    if (loading || editConflict) return; // conflit : plus d'écriture automatique tant que la personne n'a pas choisi
     if (timerRef.current) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
+      if (JSON.stringify(editableRef.current) === baseline.current && !statusDirty.current) return; // rien à enregistrer
+      statusDirty.current = false;
       save({ silent: true });
     }, 3000);
     return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, slug, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs]);
+  }, [title, slug, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs, editConflict]);
+  // Un changement de statut (hors brouillon) déclenche toujours l'enregistrement automatique, comme avant.
+  const statusDirty = useRef(false);
+  const loadedStatus = useRef<string | null>(null);
+  useEffect(() => { if (loading) { loadedStatus.current = null; return; } if (loadedStatus.current === null) { loadedStatus.current = status; return; } if (status !== loadedStatus.current) { statusDirty.current = true; loadedStatus.current = status; } }, [status, loading]);
 
   const uploadCover = async (file: File) => {
     setUploading(true);
@@ -382,6 +436,15 @@ export default function AdminBlogEditor() {
               {isNew ? "Nouvel article" : title || "Sans titre"}
             </h1>
             {isNew && !postId && user && <div className="min-w-0"><DraftStatusBar status={draft.status} savedAt={draft.savedAt} restored={!!draft.restoredMeta} onDiscard={() => { draft.discard(); window.location.reload(); }} discardConfirm="Abandonner ce nouvel article non enregistré ? Les saisies seront effacées." sync={draft.sync} synced={draft.synced} conflict={draft.conflict} onUseServer={draft.useServerVersion} onKeepLocal={draft.keepLocalVersion} onRestartAsNew={draft.restartAsNew} restartError={draft.restartError} onRetry={draft.retrySave} /></div>}
+            {postId && !isNew && user && (editConflict || autoSaveError) && (
+              <div role="alert" className="min-w-0 rounded border border-destructive/40 bg-destructive/10 px-2 py-1 text-[11px] text-destructive flex flex-wrap items-center gap-2">
+                <span>{editConflict ? "Article modifié ailleurs : enregistrement automatique suspendu. Vos modifications restent en brouillon." : `Non enregistré (${autoSaveError}). Vos modifications restent en brouillon.`}</span>
+                {editConflict ? (<>
+                  <button type="button" className="underline" onClick={() => { if (window.confirm("Remplacer la version enregistrée ailleurs par votre version ?")) { setServerStamp(null); setEditConflict(false); setTimeout(() => save({}), 0); } }}>Garder ma version</button>
+                  <button type="button" className="underline" onClick={() => { if (window.confirm("Reprendre la version enregistrée ? Vos modifications non confirmées seront effacées.")) { editDraft.discard(); window.location.reload(); } }}>Reprendre la version enregistrée</button>
+                </>) : <button type="button" className="underline" onClick={() => save({})}>Réessayer</button>}
+              </div>
+            )}
             {savedAt && <span className="hidden sm:inline text-[11px] text-muted-foreground">Enregistré {savedAt.toLocaleTimeString("fr-CA")}</span>}
           </div>
           <div className="flex items-center gap-2">

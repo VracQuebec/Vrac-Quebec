@@ -8,6 +8,7 @@
 // modifiée depuis cette page.
 // ============================================================
 import { useScreenContext } from "@/lib/navigation/listContext";
+import { useDraft } from "@/lib/drafts/useDraft";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -71,6 +72,14 @@ export default function AdminTerritories() {
   const [busy, setBusy] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newRegion, setNewRegion] = useState("");
+  // NAV-01B — Nouveau territoire en préparation : gardé en brouillon, créé seulement par le bouton.
+  const terrDraft = useDraft({
+    id: user && isAdmin ? { module: "admin", form: "territoire-nouveau", owner: user.id, company: null, recordId: null } : null,
+    data: { newName, newRegion },
+    label: (d) => `Territoire — ${d.newName || "nouveau"}`, route: "/admin/territoires",
+    isEmpty: (d) => !d.newName && !d.newRegion,
+    onRestore: (d) => { setNewName(d.newName ?? ""); setNewRegion(d.newRegion ?? ""); },
+  });
 
   useEffect(() => {
     if (!isReady || roleLoading) return;
@@ -125,6 +134,7 @@ export default function AdminTerritories() {
       await createTerritory(newName, newRegion.trim() || null);
       setTerritories(await fetchTerritories());
       setHistory(await fetchHistory());
+      terrDraft.finalize();
       setNewName(""); setNewRegion("");
       toast({ title: "Territoire créé", description: "Aucune page publique n'a été générée." });
     } catch (e) {
