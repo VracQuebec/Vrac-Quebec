@@ -1,4 +1,5 @@
 import { useScreenContext } from "@/lib/navigation/listContext";
+import { useEditorDraft } from "@/lib/drafts/useEditorDraft";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -319,6 +320,8 @@ function CitiesTab() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [editing, setEditing] = useState<City | null>(null);
+  // NAV-01B — fiche en préparation gardée via le mécanisme commun; enregistrée seulement par le bouton.
+  const ed = useEditorDraft<City>({ form: "seo-ville", value: editing, setValue: setEditing, label: (v) => `Référencement — ${(v as { name?: string; label?: string }).name || (v as { label?: string }).label || "nouvelle fiche"}`, route: "/admin/seo" });
   // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
   const __lc = useScreenContext("seo-pages", { q: (""), filter: ("all") as "all" | "none" | "published" | "registry" | "legacy" });
   const q = __lc.v.q; const setQ = __lc.field("q");
@@ -374,7 +377,7 @@ function CitiesTab() {
       : await supabase.from("seo_cities").insert(payload);
     if (error) return toast.error(error.message);
     toast.success(form.id ? "Ville mise à jour" : "Ville créée");
-    setEditing(null); load();
+    ed.finalize(); setEditing(null); load();
   };
 
   const FILTERS: Array<{ k: typeof filter; label: string }> = [
@@ -402,7 +405,7 @@ function CitiesTab() {
         </button>
         <button onClick={load} className="px-3 py-2 rounded-md border border-border text-sm">Actualiser</button>
         <button
-          onClick={() => setEditing({ id: "", slug: "", name: "", region: "", latitude: null, longitude: null, population: null, intro: "", neighbors: [], active: true, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 })}
+          onClick={() => ed.open({ id: "", slug: "", name: "", region: "", latitude: null, longitude: null, population: null, intro: "", neighbors: [], active: true, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 })}
           className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold">
           <Plus className="w-4 h-4" /> Ajouter
         </button>
@@ -445,7 +448,7 @@ function CitiesTab() {
                     className={`px-2 py-0.5 rounded text-xs font-semibold ${r.active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
                     {r.active ? "Active" : "Inactive"}
                   </button>
-                  <button onClick={() => setEditing(r)} className="text-xs text-primary hover:underline">Modifier</button>
+                  <button onClick={() => ed.open(r)} className="text-xs text-primary hover:underline">Modifier</button>
                   <button onClick={async () => { if (confirm(`Supprimer ${r.name} ?`)) { await supabase.from("seo_cities").delete().eq("id", r.id); load(); } }}
                     className="text-destructive hover:opacity-80"><Trash2 className="w-4 h-4" /></button>
                 </div>
@@ -455,15 +458,15 @@ function CitiesTab() {
           {filtered.length === 0 && <li className="p-6 text-center text-muted-foreground text-sm">Aucune ville.</li>}
         </ul>
       )}
-      {editing && <CityEditor initial={editing} allCities={rows} onClose={() => setEditing(null)} onSave={save} />}
+      {editing && <CityEditor initial={editing} onChange={setEditing} allCities={rows} onClose={() => setEditing(null)} onSave={save} />}
     </div>
   );
 }
 
-function CityEditor({ initial, allCities, onClose, onSave }: {
-  initial: City; allCities: City[]; onClose: () => void; onSave: (c: City) => void;
+function CityEditor({ initial, allCities, onClose, onSave, onChange }: {
+  initial: City; allCities: City[]; onClose: () => void; onSave: (c: City) => void; onChange: (c: City) => void;
 }) {
-  const [form, setForm] = useState<City>(initial);
+  const form = initial; const setForm = onChange; // contrôlé par l'onglet (brouillon commun)
   return (
     <Modal title={initial.id ? `Modifier ${initial.name}` : "Nouvelle ville"} onClose={onClose}>
       <div className="space-y-3 text-sm">
@@ -510,6 +513,8 @@ function MaterialsTab() {
   const [rows, setRows] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Material | null>(null);
+  // NAV-01B — fiche en préparation gardée via le mécanisme commun; enregistrée seulement par le bouton.
+  const ed = useEditorDraft<Material>({ form: "seo-materiau", value: editing, setValue: setEditing, label: (v) => `Référencement — ${(v as { name?: string; label?: string }).name || (v as { label?: string }).label || "nouvelle fiche"}`, route: "/admin/seo" });
   const load = async () => {
     setLoading(true);
     const { data } = await supabase.from("seo_materials").select("*").order("sort_order");
@@ -528,14 +533,14 @@ function MaterialsTab() {
       : await supabase.from("seo_materials").insert(payload);
     if (error) return toast.error(error.message);
     toast.success(form.id ? "Matériau mis à jour" : "Matériau créé");
-    setEditing(null); load();
+    ed.finalize(); setEditing(null); load();
   };
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-display font-bold text-lg">Matériaux</h2>
         <button
-          onClick={() => setEditing({ id: "", slug: "", name: "", short_name: "", keywords: [], use_cases: [], delivery_unit: "tonne", related_materials: [], description: "", active: true, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 })}
+          onClick={() => ed.open({ id: "", slug: "", name: "", short_name: "", keywords: [], use_cases: [], delivery_unit: "tonne", related_materials: [], description: "", active: true, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 })}
           className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold">
           <Plus className="w-4 h-4" /> Ajouter
         </button>
@@ -553,7 +558,7 @@ function MaterialsTab() {
                   className={`px-2 py-0.5 rounded text-xs font-semibold ${r.active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
                   {r.active ? "Actif" : "Inactif"}
                 </button>
-                <button onClick={() => setEditing(r)} className="text-xs text-primary hover:underline">Modifier</button>
+                <button onClick={() => ed.open(r)} className="text-xs text-primary hover:underline">Modifier</button>
                 <button onClick={async () => { if (confirm(`Supprimer ${r.name} ?`)) { await supabase.from("seo_materials").delete().eq("id", r.id); load(); } }}
                   className="text-destructive hover:opacity-80"><Trash2 className="w-4 h-4" /></button>
               </div>
@@ -561,7 +566,7 @@ function MaterialsTab() {
           ))}
         </ul>
       )}
-      {editing && <MaterialEditor initial={editing} allMaterials={rows} onClose={() => setEditing(null)} onSave={save} />}
+      {editing && <MaterialEditor initial={editing} onChange={setEditing} allMaterials={rows} onClose={() => setEditing(null)} onSave={save} />}
     </div>
   );
 }
@@ -627,6 +632,8 @@ function UsesTab() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Use | null>(null);
+  // NAV-01B — fiche en préparation gardée via le mécanisme commun; enregistrée seulement par le bouton.
+  const ed = useEditorDraft<Use>({ form: "seo-usage", value: editing, setValue: setEditing, label: (v) => `Référencement — ${(v as { name?: string; label?: string }).name || (v as { label?: string }).label || "nouvelle fiche"}`, route: "/admin/seo" });
   const load = async () => {
     setLoading(true);
     const [u, m] = await Promise.all([
@@ -650,7 +657,7 @@ function UsesTab() {
       : await supabase.from("seo_material_uses").insert(payload);
     if (error) return toast.error(error.message);
     toast.success("Enregistré");
-    setEditing(null); load();
+    ed.finalize(); setEditing(null); load();
   };
   return (
     <div className="space-y-4">
@@ -660,7 +667,7 @@ function UsesTab() {
           <p className="text-xs text-muted-foreground font-body">Pages ciblées comme <code>terre-pour-gazon</code>, <code>gravier-pour-entree</code>, etc.</p>
         </div>
         <button
-          onClick={() => setEditing({ id: "", slug: "", material_slug: materials[0]?.slug ?? "", name: "", description: "", active: true, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 })}
+          onClick={() => ed.open({ id: "", slug: "", material_slug: materials[0]?.slug ?? "", name: "", description: "", active: true, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 })}
           className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold">
           <Plus className="w-4 h-4" /> Ajouter
         </button>
@@ -678,7 +685,7 @@ function UsesTab() {
                   className={`px-2 py-0.5 rounded text-xs font-semibold ${r.active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
                   {r.active ? "Actif" : "Inactif"}
                 </button>
-                <button onClick={() => setEditing(r)} className="text-xs text-primary hover:underline">Modifier</button>
+                <button onClick={() => ed.open(r)} className="text-xs text-primary hover:underline">Modifier</button>
                 <button onClick={async () => { if (confirm("Supprimer ?")) { await supabase.from("seo_material_uses").delete().eq("id", r.id); load(); } }}
                   className="text-destructive hover:opacity-80"><Trash2 className="w-4 h-4" /></button>
               </div>
@@ -724,6 +731,8 @@ function ServicesTab() {
   const [rows, setRows] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Service | null>(null);
+  // NAV-01B — fiche en préparation gardée via le mécanisme commun; enregistrée seulement par le bouton.
+  const ed = useEditorDraft<Service>({ form: "seo-service", value: editing, setValue: setEditing, label: (v) => `Référencement — ${(v as { name?: string; label?: string }).name || (v as { label?: string }).label || "nouvelle fiche"}`, route: "/admin/seo" });
   const load = async () => {
     setLoading(true);
     const { data } = await supabase.from("seo_services").select("*").order("sort_order");
@@ -748,7 +757,7 @@ function ServicesTab() {
       : await supabase.from("seo_services").insert(payload);
     if (error) return toast.error(error.message);
     toast.success("Enregistré");
-    setEditing(null);
+    ed.finalize(); setEditing(null);
     load();
   };
 
@@ -756,7 +765,7 @@ function ServicesTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-display font-bold text-lg">Services</h2>
-        <button onClick={() => setEditing({ id: "", slug: "", name: "", short_name: "", description: "", keywords: [], active: true, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 })}
+        <button onClick={() => ed.open({ id: "", slug: "", name: "", short_name: "", description: "", keywords: [], active: true, sort_order: (rows.at(-1)?.sort_order ?? 0) + 10 })}
           className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-display font-semibold">
           <Plus className="w-4 h-4" /> Ajouter
         </button>
@@ -774,7 +783,7 @@ function ServicesTab() {
                   className={`px-2 py-0.5 rounded text-xs font-semibold ${r.active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
                   {r.active ? "Actif" : "Inactif"}
                 </button>
-                <button onClick={() => setEditing(r)} className="text-xs text-primary hover:underline">Modifier</button>
+                <button onClick={() => ed.open(r)} className="text-xs text-primary hover:underline">Modifier</button>
                 <button onClick={async () => { if (confirm(`Supprimer ${r.name} ?`)) { await supabase.from("seo_services").delete().eq("id", r.id); load(); } }}
                   className="text-destructive hover:opacity-80"><Trash2 className="w-4 h-4" /></button>
               </div>
@@ -2146,6 +2155,8 @@ function GoalsTab() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [editing, setEditing] = useState<Partial<Goal> | null>(null);
+  // NAV-01B — fiche en préparation gardée via le mécanisme commun; enregistrée seulement par le bouton.
+  const ed = useEditorDraft<Partial<Goal>>({ form: "seo-objectif", value: editing, setValue: setEditing, label: (v) => `Référencement — ${(v as { name?: string; label?: string }).name || (v as { label?: string }).label || "nouvelle fiche"}`, route: "/admin/seo" });
 
   async function load() {
     setLoading(true);
@@ -2175,7 +2186,7 @@ function GoalsTab() {
     };
     if (editing.id) await supabase.from("seo_goals").update(payload).eq("id", editing.id);
     else await supabase.from("seo_goals").insert(payload);
-    setEditing(null);
+    ed.finalize(); setEditing(null);
     await load();
   }
 
@@ -2198,7 +2209,7 @@ function GoalsTab() {
             {refreshing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             Recalculer
           </button>
-          <button type="button" onClick={() => setEditing({ label: "", metric_type: "indexed_pages", target_value: 100, active: true })}
+          <button type="button" onClick={() => ed.open({ label: "", metric_type: "indexed_pages", target_value: 100, active: true })}
             className="bg-primary text-primary-foreground px-3 py-2 rounded text-sm font-display font-semibold flex items-center gap-2">
             <Plus className="w-4 h-4" /> Nouvel objectif
           </button>
@@ -2209,7 +2220,7 @@ function GoalsTab() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {goals.map((g) => (
             <GoalCard key={g.id} goal={g}
-              onEdit={() => setEditing(g)}
+              onEdit={() => ed.open(g)}
               onDelete={() => void del(g.id)} />
           ))}
         </div>
