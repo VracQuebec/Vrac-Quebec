@@ -62,10 +62,16 @@
 - [ ] Bloqué : compte de paiement réel non connecté (Stripe à réclamer et activer).
 - [ ] Bloqué : publication — autorisation explicite requise.
 
-## NAV-01 — navigation fiable et brouillons
-- [x] Connexion : renouvellement silencieux sans démontage; rôles conservés en cas d'erreur réseau
-- [x] Brouillons locaux communs (draftStore / useDraft / DraftStatusBar)
-- [x] /soumission, /obtenir-des-soumissions, /acheter-materiaux : étape dans l'historique + reprise vérifiées au navigateur
-- [x] Lien de notification admin sans rechargement complet
-- [ ] Raccorder les formulaires connectés (CRM entrepreneur, flotte, finances, éditeur blog) — essais avec session fictive
-- [ ] Retour après reconnexion vers la page de travail
+## NAV-01 / NAV-01B — navigation fiable et brouillons
+- [x] Brouillons locaux communs (draftStore / useDraft / DraftStatusBar, abandon avec confirmation)
+- [x] 3 assistants publics : étape + saisies reprises à la réouverture (P01/P02), étape invalide → première étape à corriger
+- [x] Achat en vrac : brouillon commun, « Abandonner le brouillon », finalisé à l'envoi (P03)
+- [x] Retour au travail après reconnexion (même compte seulement); déconnexion volontaire efface la destination (D, E)
+- [x] Finances : « Ajouter une obligation » (P04/P05)
+- [ ] Finances : modification d'obligation (contrôle de version serveur), règlements, paramètres
+- [ ] CRM entrepreneur (clients, contacts, pistes, soumissions, tâches), flotte, éditeur d'articles, admin
+- [ ] « Reprendre mon travail » (liste des brouillons) dans la navigation
+- [ ] Listes/cartes : recherche, filtres, défilement restaurés après fiche (P06)
+- [ ] Sauvegarde serveur des brouillons et reprise sur un autre appareil (P11) — actuellement local seulement
+- [ ] Essais A, B, C, F, P08 (notification admin), P09, P10, P12
+- [ ] Appareil réel (geste Retour Android, balayage Safari) — impossible dans l'environnement d'essai
