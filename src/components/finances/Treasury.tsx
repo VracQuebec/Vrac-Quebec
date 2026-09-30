@@ -1,5 +1,5 @@
 // FIN-05 — Trésorerie, budgets, réserves et scénarios (lecture des données réelles; simulations sans écriture).
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { useDraft } from "@/lib/drafts/useDraft";
 import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { addDays, addMonths, fmtDate, parse, todayIn, ymd } from "@/lib/finances/period";
-import { download, toCsv } from "@/lib/finances/query";
+import { daysInclusive, download, toCsv } from "@/lib/finances/query";
 import * as T from "@/lib/finances/treasury";
 import * as ta from "@/lib/finances/treasuryApi";
 
@@ -95,7 +95,7 @@ function Kpis({ f }: { f: T.Forecast }) {
 function Prevision({ data, from, to, threshold, companyName }: { data: Data; from: string; to: string; threshold: number; companyName: string }) {
   const f = useMemo(() => run(data, from, to, threshold), [data, from, to, threshold]);
   const [open, setOpen] = useState<{ title: string; moves: T.Movement[] } | null>(null);
-  const by = T.daysInclusiveSafe(from, to) > 120 ? "month" : "week";
+  const by = daysInclusive(from, to) > 120 ? "month" : "week";
   const rows = T.buckets(f, by);
   const chart = f.days.map((d) => ({ date: d.date.slice(5), solde: d.closeC == null ? null : d.closeC / 100, disponible: d.availC == null ? null : d.availC / 100 }));
   const exportCsv = () => download(`tresorerie-${companyName.replace(/\W+/g, "-")}-${from}-${to}.csv`, toCsv(
@@ -281,6 +281,6 @@ function Scenarios({ companyId, data, canWrite, from, to, threshold }: { company
     </div>
     <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-xs text-muted-foreground"><th className="p-2">Scénario</th><th className="p-2 text-right">Solde fin</th><th className="p-2 text-right">Point bas</th><th className="p-2 text-right">Premier manque</th><th className="p-2 text-right">Nécessaire</th></tr></thead>
       <tbody>{row("Réel (sans hypothèse)", base)}{cur.hyps.length > 0 && row(cur.name || "Scénario en cours", sim)}
-        {list.filter((s) => cmp.includes(s.id) && s.id !== cur.id).map((s) => <tbody key={s.id}>{row(s.name, run(data, from, to, threshold, T.applyScenario(data.moves, s.hypotheses as T.Hypothesis[])))}</tbody>)}</tbody></table></div>
+        {list.filter((s) => cmp.includes(s.id) && s.id !== cur.id).map((s) => <Fragment key={s.id}>{row(s.name, run(data, from, to, threshold, T.applyScenario(data.moves, s.hypotheses as T.Hypothesis[])))}</Fragment>)}</tbody></table></div>
   </div>;
 }
