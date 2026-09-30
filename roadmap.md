@@ -114,3 +114,10 @@
 - [ ] Administration (hors articles) et autres écrans de l'inventaire : non raccordés.
 - [ ] Listes/cartes : conservation recherche/filtres/tri/position non généralisée.
 - Bloqués : levée de suspension (aucune suspension fictive active); remboursement/reliquat (accord requis pour un règlement fictif supplémentaire); conflit « fiche client modifiée ailleurs » non essayé.
+
+## NAV-01B — reprise « écrans sans protection »
+- [x] CRM : questions natives remplacées par des fenêtres avec brouillon — vue enregistrée, motif de perte, ajout de membre, nouvelle étape, renommer/retirer une étape; chantier (adresse, dates) en fenêtre; taxes des soumissions en brouillon
+- [x] Essayé : nouvelle étape (actualisation, fermeture puis Retour, autre section puis Retour)
+- [ ] Essayer les autres fenêtres CRM ci-dessus + reprise depuis le menu
+- [ ] Administration, listes/cartes, article existant (autosave), session/droits, fiche appareils réels
+- Bloqués : clôture flotte, reliquat/remboursement, levée de suspension (isolation des alertes non établie)
