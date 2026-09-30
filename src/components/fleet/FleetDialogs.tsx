@@ -1,6 +1,9 @@
 // Formulaires rapides du module Gestion de la flotte (back-office).
 // Volontairement courts : 4 actions rapides, optimisées iPad / téléphone.
 import { useEffect, useState } from "react";
+import { useDialogDraft } from "@/lib/drafts/useDialogDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
+import { getActiveCompanyId } from "@/lib/fleet/tenant";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,6 +69,9 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
 }) {
   const { toast } = useToast();
   const [f, setF] = useState<Record<string, string>>({});
+  const dd = useDialogDraft({ open: open, module: "flotte", form: "vehicule", company: getActiveCompanyId(), recordId: vehicle?.id ?? null,
+    data: f, setData: setF, label: (d) => `Flotte — Véhicule${d.name ? ` « ${String(d.name).slice(0, 40)} »` : ""}`,
+    route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined, fileNames: [] });
   const [section, setSection] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -81,7 +87,7 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
       const value = (vehicle as Record<string, unknown> | null | undefined)?.[k];
       extra[k] = value == null ? "" : String(value);
     }
-    setF({
+    setF(dd.base({
       ...extra,
       name: vehicle?.name ?? "",
       unit_number: vehicle?.unit_number ?? "",
@@ -97,7 +103,7 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
       admin_status: vehicle?.admin_status ?? "actif",
       ops_status: vehicle?.ops_status ?? "disponible",
       notes: vehicle?.notes ?? "",
-    });
+    }));
   }, [open, vehicle]);
 
   const save = async () => {
@@ -141,7 +147,7 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
         notes: f.notes || null,
       } as never);
       toast({ title: vehicle ? "Véhicule mis à jour" : "Véhicule ajouté" });
-      onOpenChange(false); onSaved();
+      dd.finalize(); onOpenChange(false); onSaved();
     } catch (e) {
       toast({ title: "Enregistrement impossible", description: (e as Error).message, variant: "destructive" });
     } finally { setBusy(false); }
@@ -151,6 +157,8 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{vehicle ? "Modifier le véhicule" : "Ajouter un véhicule"}</DialogTitle></DialogHeader>
+        {dd.active && <DraftStatusBar {...dd.barProps} onDiscard={() => { dd.discard(); onOpenChange(false); }} discardConfirm="Abandonner cette préparation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." />}
+        {dd.lostFiles.length > 0 && <p role="status" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Photos non enregistrées — à joindre de nouveau : {dd.lostFiles.join(", ")}</p>}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Nom / identifiant *"><Input value={f.name ?? ""} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
           <Field label="Numéro d'unité"><Input value={f.unit_number ?? ""} onChange={(e) => setF({ ...f, unit_number: e.target.value })} /></Field>
@@ -279,13 +287,16 @@ export function MaintenanceDialog({ open, onOpenChange, vehicles, vehicleId, rec
   const { toast } = useToast();
   const [f, setF] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<File[]>([]);
+  const dd = useDialogDraft({ open: open, module: "flotte", form: "entretien", company: getActiveCompanyId(), recordId: record?.id ?? null,
+    data: f, setData: setF, label: (d) => `Flotte — Entretien${d.maintenance_type ? ` « ${String(d.maintenance_type).slice(0, 40)} »` : ""}`,
+    route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined, fileNames: photos.map((p) => p.name) });
   const [busy, setBusy] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
     if (!open) return;
     setPhotos([]);
-    setF({
+    setF(dd.base({
       vehicle_id: record?.vehicle_id ?? vehicleId ?? vehicles[0]?.id ?? "",
       performed_on: record?.performed_on ?? today,
       odometer_km: record?.odometer_km != null ? String(record.odometer_km) : "",
@@ -304,7 +315,7 @@ export function MaintenanceDialog({ open, onOpenChange, vehicles, vehicleId, rec
       alert_hours_margin: String(record?.alert_hours_margin ?? 100),
       notes: record?.notes ?? "",
       document_url: record?.document_url ?? "",
-    });
+    }));
   }, [open, record, vehicleId, vehicles, today]);
 
   const save = async () => {
@@ -339,7 +350,7 @@ export function MaintenanceDialog({ open, onOpenChange, vehicles, vehicleId, rec
         }
       });
       toast({ title: "Entretien enregistré", description: f.next_due_date ? "Ajouté au calendrier." : undefined });
-      onOpenChange(false); onSaved();
+      dd.finalize(); onOpenChange(false); onSaved();
     } catch (e) {
       toast({ title: "Enregistrement impossible", description: (e as Error).message, variant: "destructive" });
     } finally { setBusy(false); }
@@ -349,6 +360,8 @@ export function MaintenanceDialog({ open, onOpenChange, vehicles, vehicleId, rec
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{record ? "Modifier l'entretien" : "Ajouter un entretien"}</DialogTitle></DialogHeader>
+        {dd.active && <DraftStatusBar {...dd.barProps} onDiscard={() => { dd.discard(); onOpenChange(false); }} discardConfirm="Abandonner cette préparation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." />}
+        {dd.lostFiles.length > 0 && <p role="status" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Photos non enregistrées — à joindre de nouveau : {dd.lostFiles.join(", ")}</p>}
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
             <Field label="Véhicule *">
@@ -410,13 +423,16 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
   const { toast } = useToast();
   const [f, setF] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<File[]>([]);
+  const dd = useDialogDraft({ open: open, module: "flotte", form: "reparation", company: getActiveCompanyId(), recordId: record?.id ?? null,
+    data: f, setData: setF, label: (d) => `Flotte — Réparation${d.title ? ` « ${String(d.title).slice(0, 40)} »` : ""}`,
+    route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined, fileNames: photos.map((p) => p.name) });
   const [busy, setBusy] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
     if (!open) return;
     setPhotos([]);
-    setF({
+    setF(dd.base({
       vehicle_id: record?.vehicle_id ?? vehicleId ?? vehicles[0]?.id ?? "",
       problem: record?.problem ?? "",
       reported_on: record?.reported_on ?? today,
@@ -431,7 +447,7 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
       parts_summary: record?.parts_summary ?? "",
       supplier: record?.supplier ?? "",
       notes: record?.notes ?? "",
-    });
+    }));
   }, [open, record, vehicleId, vehicles, today]);
 
   const save = async () => {
@@ -464,7 +480,7 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
         }
       });
       toast({ title: "Réparation enregistrée", description: f.scheduled_date ? "Ajoutée au calendrier." : undefined });
-      onOpenChange(false); onSaved();
+      dd.finalize(); onOpenChange(false); onSaved();
     } catch (e) {
       toast({ title: "Enregistrement impossible", description: (e as Error).message, variant: "destructive" });
     } finally { setBusy(false); }
@@ -474,6 +490,8 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{record ? "Modifier la réparation" : "Ajouter une réparation"}</DialogTitle></DialogHeader>
+        {dd.active && <DraftStatusBar {...dd.barProps} onDiscard={() => { dd.discard(); onOpenChange(false); }} discardConfirm="Abandonner cette préparation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." />}
+        {dd.lostFiles.length > 0 && <p role="status" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Photos non enregistrées — à joindre de nouveau : {dd.lostFiles.join(", ")}</p>}
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
             <Field label="Véhicule *">

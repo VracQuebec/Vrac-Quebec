@@ -1,6 +1,9 @@
 // Formulaires V2 : dépense, travail à faire, relevé de compteur.
 // Mobile d'abord : peu de champs visibles, clavier numérique, date préremplie.
 import { useEffect, useState } from "react";
+import { useDialogDraft } from "@/lib/drafts/useDialogDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
+import { getActiveCompanyId } from "@/lib/fleet/tenant";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +60,9 @@ export function ExpenseDialog({ open, onOpenChange, vehicles, vehicleId, record,
   const { toast } = useToast();
   const today = new Date().toISOString().slice(0, 10);
   const [f, setF] = useState<Record<string, string>>({});
+  const dd = useDialogDraft({ open: open, module: "flotte", form: "depense", company: getActiveCompanyId(), recordId: record?.id ?? null,
+    data: f, setData: setF, label: (d) => `Flotte — Dépense${d.description ? ` « ${String(d.description).slice(0, 40)} »` : ""}`,
+    route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined, fileNames: [] });
   const [photos, setPhotos] = useState<File[]>([]);
   const [more, setMore] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -65,7 +71,7 @@ export function ExpenseDialog({ open, onOpenChange, vehicles, vehicleId, record,
     if (!open) return;
     setMore(false);
     setPhotos([]);
-    setF({
+    setF(dd.base({
       vehicle_id: record?.vehicle_id ?? vehicleId ?? vehicles[0]?.id ?? "",
       spent_on: record?.spent_on ?? today,
       category: record?.category ?? "autres",
@@ -77,7 +83,7 @@ export function ExpenseDialog({ open, onOpenChange, vehicles, vehicleId, record,
       odometer_km: record?.odometer_km != null ? String(record.odometer_km) : "",
       engine_hours: record?.engine_hours != null ? String(record.engine_hours) : "",
       notes: record?.notes ?? "",
-    });
+    }));
   }, [open, record, vehicleId, vehicles, today]);
 
   const save = async () => {
@@ -113,7 +119,7 @@ export function ExpenseDialog({ open, onOpenChange, vehicles, vehicleId, record,
         }).catch(() => undefined);
       }
       toast({ title: record ? "Dépense mise à jour" : "Dépense enregistrée" });
-      onOpenChange(false); onSaved();
+      dd.finalize(); onOpenChange(false); onSaved();
     } catch (e) {
       toast({ title: "Enregistrement impossible", description: (e as Error).message, variant: "destructive" });
     } finally { setBusy(false); }
@@ -123,6 +129,8 @@ export function ExpenseDialog({ open, onOpenChange, vehicles, vehicleId, record,
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{record ? "Modifier la dépense" : "Ajouter une dépense"}</DialogTitle></DialogHeader>
+        {dd.active && <DraftStatusBar {...dd.barProps} onDiscard={() => { dd.discard(); onOpenChange(false); }} discardConfirm="Abandonner cette préparation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." />}
+        {dd.lostFiles.length > 0 && <p role="status" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Photos non enregistrées — à joindre de nouveau : {dd.lostFiles.join(", ")}</p>}
         <div className="grid grid-cols-2 gap-3">
           <VehiclePicker vehicles={vehicles} value={f.vehicle_id ?? ""} locked={!!vehicleId && !record}
             onChange={(v) => setF({ ...f, vehicle_id: v })} />
@@ -188,18 +196,21 @@ export function WorkItemDialog({ open, onOpenChange, vehicles, vehicleId, record
 }) {
   const { toast } = useToast();
   const [f, setF] = useState<Record<string, string>>({});
+  const dd = useDialogDraft({ open: open, module: "flotte", form: "travail", company: getActiveCompanyId(), recordId: record?.id ?? null,
+    data: f, setData: setF, label: (d) => `Flotte — Travail${d.title ? ` « ${String(d.title).slice(0, 40)} »` : ""}`,
+    route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined, fileNames: [] });
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setF({
+    setF(dd.base({
       vehicle_id: record?.vehicle_id ?? vehicleId ?? vehicles[0]?.id ?? "",
       title: record?.title ?? "",
       description: record?.description ?? "",
       priority: record?.priority ?? "normale",
       status: record?.status ?? "ouvert",
       scheduled_date: record?.scheduled_date ?? "",
-    });
+    }));
   }, [open, record, vehicleId, vehicles]);
 
   const save = async () => {
@@ -217,7 +228,7 @@ export function WorkItemDialog({ open, onOpenChange, vehicles, vehicleId, record
         source: record?.source ?? "manuel",
       } as never);
       toast({ title: record ? "Travail mis à jour" : "Travail ajouté" });
-      onOpenChange(false); onSaved();
+      dd.finalize(); onOpenChange(false); onSaved();
     } catch (e) {
       toast({ title: "Enregistrement impossible", description: (e as Error).message, variant: "destructive" });
     } finally { setBusy(false); }
@@ -227,6 +238,8 @@ export function WorkItemDialog({ open, onOpenChange, vehicles, vehicleId, record
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>{record ? "Modifier le travail" : "Ajouter un travail à faire"}</DialogTitle></DialogHeader>
+        {dd.active && <DraftStatusBar {...dd.barProps} onDiscard={() => { dd.discard(); onOpenChange(false); }} discardConfirm="Abandonner cette préparation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." />}
+        {dd.lostFiles.length > 0 && <p role="status" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Photos non enregistrées — à joindre de nouveau : {dd.lostFiles.join(", ")}</p>}
         <div className="grid grid-cols-2 gap-3">
           <VehiclePicker vehicles={vehicles} value={f.vehicle_id ?? ""} locked={!!vehicleId && !record}
             onChange={(v) => setF({ ...f, vehicle_id: v })} />

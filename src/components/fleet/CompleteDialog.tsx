@@ -2,6 +2,9 @@
 // Met à jour le statut, l'historique, les coûts, les relevés du véhicule,
 // ferme l'alerte du centre de notifications existant et recrée l'échéance suivante.
 import { useEffect, useState } from "react";
+import { useDialogDraft } from "@/lib/drafts/useDialogDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
+import { getActiveCompanyId } from "@/lib/fleet/tenant";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,12 +37,15 @@ export default function CompleteDialog({ target, onOpenChange, onSaved }: {
   const { toast } = useToast();
   const today = new Date().toISOString().slice(0, 10);
   const [f, setF] = useState<Record<string, string>>({});
+  const dd = useDialogDraft({ open: !!target, module: "flotte", form: "fin-entretien", company: getActiveCompanyId(), recordId: target?.id ?? null,
+    data: f, setData: setF, label: (d) => `Flotte — Fin d'entretien${d.notes ? ` « ${String(d.notes).slice(0, 40)} »` : ""}`,
+    route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined, fileNames: [] });
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!target) return;
     const r = target.record as Maintenance & Repair;
-    setF({
+    setF(dd.base({
       date: today,
       km: r.odometer_km != null ? String(r.odometer_km) : "",
       hours: "",
@@ -51,7 +57,7 @@ export default function CompleteDialog({ target, onOpenChange, onSaved }: {
       nextDate: "",
       nextKm: "",
       nextHours: "",
-    });
+    }));
   }, [target, today]);
 
   if (!target) return null;
@@ -98,6 +104,8 @@ export default function CompleteDialog({ target, onOpenChange, onSaved }: {
             {target.kind === "entretien" ? "Entretien terminé" : "Réparation terminée"}
           </DialogTitle>
         </DialogHeader>
+        {dd.active && <DraftStatusBar {...dd.barProps} onDiscard={() => { dd.discard(); onOpenChange(false); }} discardConfirm="Abandonner cette préparation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." />}
+        {dd.lostFiles.length > 0 && <p role="status" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Photos non enregistrées — à joindre de nouveau : {dd.lostFiles.join(", ")}</p>}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Date effectuée">
             <Input type="date" value={f.date ?? ""} onChange={(e) => setF({ ...f, date: e.target.value })} />
@@ -145,4 +153,4 @@ export default function CompleteDialog({ target, onOpenChange, onSaved }: {
       </DialogContent>
     </Dialog>
   );
-}
+}dd.finalize(); 
