@@ -1,5 +1,5 @@
 // Fiche individuelle d'un véhicule (back-office Vrac Québec).
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRef, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -95,6 +95,24 @@ export default function AdminFleetVehicle() {
   const [repairDialog, setRepairDialog] = useState<{ open: boolean; record?: Repair | null }>({ open: false });
   const [inspDialog, setInspDialog] = useState<{ open: boolean; record?: Inspection | null }>({ open: false });
 
+  // NAV-01B — la fenêtre ouverte est gardée dans l'adresse (?fenetre=type:id|nouveau) :
+  // actualisation, Retour et « Reprendre mon travail » rouvrent la même fenêtre sur la même fiche.
+  // Rouvrir une fenêtre n'exécute rien (la clôture reste à confirmer par l'utilisateur).
+  const winRestored = useRef(false);
+  const winValue = maintDialog.open ? `entretien:${maintDialog.record?.id ?? "nouveau"}`
+    : repairDialog.open ? `reparation:${repairDialog.record?.id ?? "nouveau"}`
+    : inspDialog.open ? `inspection:${inspDialog.record?.id ?? "nouveau"}`
+    : expenseDialog.open ? `depense:${expenseDialog.record?.id ?? "nouveau"}`
+    : workDialog.open ? `travaux:${workDialog.record?.id ?? "nouveau"}`
+    : complete ? `cloture-${complete.kind}:${complete.record.id}`
+    : vehicleDialog ? "vehicule:fiche" : null;
+  useEffect(() => {
+    if (!winRestored.current) return;
+    if ((params.get("fenetre") ?? null) === winValue) return;
+    const next = new URLSearchParams(params);
+    if (winValue) next.set("fenetre", winValue); else next.delete("fenetre");
+    setParams(next, { replace: true });
+  }, [winValue, params, setParams]);
   useEffect(() => {
     if (!isReady || roleLoading) return;
     if (!user || !isAdmin) navigate("/login", { replace: true });
@@ -127,6 +145,20 @@ export default function AdminFleetVehicle() {
       setAlerts(((notif ?? []) as unknown as CrmNotification[])
         .filter((n) => [...refIds].some((rid) => n.dedupe_key.includes(rid))));
       setJournal(await fetchChangeLog([...refIds]));
+      if (!winRestored.current) {
+        winRestored.current = true;
+        const [k, rid] = (new URLSearchParams(window.location.search).get("fenetre") ?? "").split(":");
+        const pick = <T extends { id: string }>(list: T[]) => (rid && rid !== "nouveau" ? list.find((x) => x.id === rid) ?? null : null);
+        const exists = (list: { id: string }[]) => rid === "nouveau" || !!pick(list);
+        if (k === "entretien" && exists(m)) setMaintDialog({ open: true, record: pick(m) });
+        else if (k === "reparation" && exists(r)) setRepairDialog({ open: true, record: pick(r) });
+        else if (k === "inspection" && exists(i)) setInspDialog({ open: true, record: pick(i) });
+        else if (k === "depense" && exists(x)) setExpenseDialog({ open: true, record: pick(x) });
+        else if (k === "travaux" && exists(w)) setWorkDialog({ open: true, record: pick(w) });
+        else if (k === "cloture-entretien" && pick(m)) setComplete({ kind: "entretien", record: pick(m)! });
+        else if (k === "cloture-reparation" && pick(r) && pick(r)!.status !== "terminee") setComplete({ kind: "reparation", record: pick(r)! });
+        else if (k === "vehicule" && veh) setVehicleDialog(true);
+      }
     } catch (err) {
       toast({ title: "Chargement impossible", description: (err as Error).message, variant: "destructive" });
     } finally { setLoading(false); }
