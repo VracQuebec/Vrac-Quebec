@@ -199,8 +199,10 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
   const [views, setViews] = useState<any[]>([]);
   const loadViews = useCallback(async () => setViews((await db.from("ent_crm_saved_views").select("*").eq("company_id", companyId).order("created_at")).data ?? []), [companyId]);
   useEffect(() => { void loadViews(); }, [loadViews]);
-  const saveView = async () => { const name = prompt("Nom de la vue ?"); if (!name) return; const p = new URLSearchParams(params); p.delete("page"); p.delete("support_user");
-    const { error } = await db.from("ent_crm_saved_views").insert({ company_id: companyId, name, params: p.toString() }); if (error) toast({ title: "Refusé", description: error.message }); loadViews(); };
+  // NAV-01B : fenêtres contrôlées dans l'adresse (?fd=) au lieu des questions natives — saisie conservée en brouillon.
+  const fdL = params.get("fd");
+  const setFd = (val: string | null) => { const n = new URLSearchParams(params); val ? n.set("fd", val) : n.delete("fd"); setParams(n); };
+  const saveView = () => setFd("vue:nouveau");
   const [importing, setImporting] = useState<{ rows: Record<string, string>[]; heads: string[]; map: Record<string, string>; existing: any[]; dupMode: string; ignored: string[] } | null>(null);
   const [rows, setRows] = useState<any[]>([]); const [count, setCount] = useState(0);
   const [clients, setClients] = useState<any[]>([]);
@@ -232,7 +234,7 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
     });
   }, [leadParam, companyId]); // eslint-disable-line react-hooks/exhaustive-deps
   const move = async (l: any, st: string) => {
-    let lost_reason = l.lost_reason; if (stages.find((x) => x.v === st)?.kind === "perdue") { lost_reason = prompt("Motif de perte ?") ?? ""; if (!lost_reason) return; }
+    const lost_reason = l.lost_reason; if (stages.find((x) => x.v === st)?.kind === "perdue") { setFd(`perte:${l.id}:${st}`); return; }
     const { error } = await db.from("ent_crm_leads").update({ stage: st, lost_reason, updated_at: new Date().toISOString() }).eq("id", l.id);
     if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else load();
   };
@@ -310,6 +312,12 @@ function Leads({ companyId, canWrite, params, setParams }: any) {
     ) : <div className="grid gap-2">{rows.map((r) => <LeadCard key={r.id} r={r} stages={stages} canWrite={canWrite} move={move} convert={convert} edit={() => openLead(r.id)} />)}</div>}
     <div className="mt-3 flex items-center gap-2 text-sm"><Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setF("page", String(page - 1))}>Précédent</Button>Page {page}/{pages}<Button variant="outline" size="sm" disabled={page >= pages} onClick={() => setF("page", String(page + 1))}>Suivant</Button></div>
     {open && <LeadDialog lead={open} companyId={companyId} clients={clients} onClose={closeLead} onSaved={() => { closeLead(); load(); }} />}
+    {fdL === "vue:nouveau" && <FieldsDialog key={fdL} form="vue-enregistree" recordId="nouveau" companyId={companyId} title="Enregistrer la vue" route={`/entrepreneur/crm?company=${companyId}&tab=leads&fd=${fdL}`}
+      fields={[{ k: "name", l: "Nom de la vue", required: true }]} submitLabel="Enregistrer la vue" onClose={() => setFd(null)}
+      onSubmit={async (v) => { const pp = new URLSearchParams(params); ["page", "support_user", "fd", "lead"].forEach((k) => pp.delete(k)); const { error } = await db.from("ent_crm_saved_views").insert({ company_id: companyId, name: v.name, params: pp.toString() }); if (error) return error.message; setFd(null); loadViews(); return null; }} />}
+    {fdL?.startsWith("perte:") && (() => { const [, lid, st] = fdL.split(":"); return <FieldsDialog key={fdL} form={`perte-${st}`} recordId={lid} companyId={companyId} title="Motif de perte" route={`/entrepreneur/crm?company=${companyId}&tab=leads&fd=${fdL}`}
+      fields={[{ k: "reason", l: "Motif de perte", type: "textarea", required: true }]} submitLabel="Marquer comme perdu" onClose={() => setFd(null)}
+      onSubmit={async (v) => { const { error } = await db.from("ent_crm_leads").update({ stage: st, lost_reason: v.reason, updated_at: new Date().toISOString() }).eq("id", lid).eq("company_id", companyId); if (error) return error.message; setFd(null); load(); return null; }} />; })()}
   </div>;
 }
 
