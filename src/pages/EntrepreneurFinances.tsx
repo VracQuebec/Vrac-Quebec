@@ -624,22 +624,45 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
 
 function Settings({ companyId, cats, canWrite, onChange }: { companyId: string; cats: Awaited<ReturnType<typeof api.categories>>; canWrite: boolean; onChange: () => void }) {
   const [name, setName] = useState("");
-  const [edit, setEdit] = useState<{ id: string; name: string } | null>(null);
+  const [edit, setEdit] = useState<{ id: string; name: string; base?: string } | null>(null);
+  const [staleNote, setStaleNote] = useState<string | null>(null);
+  // NAV-01B : nom de nouvelle catégorie et renommage en cours = brouillon. Un renommage repris n'écrase pas une
+  // catégorie renommée ailleurs depuis (le nom actuel reste affiché, la saisie est signalée).
+  const { user: me } = useAuthReady();
+  const catsRef = useRef(cats); catsRef.current = cats;
+  const store = useDraft({
+    id: me && canWrite && cats.length >= 0 ? { module: "finances", form: "parametres", owner: me.id, company: companyId } : null,
+    data: { name, edit },
+    label: () => "Paramètres Finances (catégories)",
+    route: `/entrepreneur/finances?company=${companyId}&tab=parametres`,
+    isEmpty: (d) => !d.name && !d.edit,
+    onRestore: (d) => {
+      setName(d.name ?? "");
+      if (d.edit) {
+        const cur = catsRef.current.find((c) => c.id === d.edit!.id);
+        if (!cur) setStaleNote(`Renommage non repris : la catégorie n'existe plus ou n'est plus accessible (saisie : « ${d.edit.name} »).`);
+        else if (d.edit.base != null && cur.name !== d.edit.base) setStaleNote(`La catégorie « ${d.edit.base} » a été renommée ailleurs en « ${cur.name} ». Votre saisie « ${d.edit.name} » n'a pas été appliquée.`);
+        else setEdit(d.edit);
+      }
+    },
+  });
   const call = async (fn: () => Promise<any>, msg: string) => { try { const r = await fn(); if (r?.error) throw r.error; toast({ title: msg }); onChange(); } catch (e: any) { toast({ title: "Non enregistré", description: e.message?.includes("duplicate") ? "Cette catégorie existe déjà." : e.message, variant: "destructive" }); } };
   const supabase = sb;
   return <div className="space-y-4">
     <section className="rounded-md border border-border p-3 text-sm"><p className="font-display font-bold">Paramètres de l'entreprise</p><p>Devise : CAD · Fuseau : {TZ}</p><p className="text-xs text-muted-foreground">Seule la devise canadienne est prise en charge dans ce premier lot.</p></section>
     <section className="space-y-2"><p className="font-display font-bold">Catégories</p>
+      {canWrite && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setName(""); setEdit(null); }} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+      {staleNote && <p role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-sm">{staleNote} <Button size="sm" variant="ghost" onClick={() => setStaleNote(null)}>Compris</Button></p>}
       {canWrite && <div className="flex flex-wrap gap-2">
-        <Input className="max-w-xs" placeholder="Nouvelle catégorie" value={name} onChange={(e) => setName(e.target.value)} />
-        <Button disabled={!name.trim()} onClick={() => call(() => supabase.from("fin_categories").insert({ company_id: companyId, name: name.trim() }), "Catégorie ajoutée").then(() => setName(""))}>Ajouter</Button>
+        <Input className="max-w-xs" aria-label="Nouvelle catégorie" disabled={store.blocked} placeholder="Nouvelle catégorie" value={name} onChange={(e) => setName(e.target.value)} />
+        <Button disabled={!name.trim()} onClick={() => call(() => supabase.from("fin_categories").insert({ company_id: companyId, name: name.trim() }), "Catégorie ajoutée").then(() => { setName(""); if (!edit) store.finalize(); })}>Ajouter</Button>
         <Button variant="outline" onClick={() => call(() => api.seedCategories(companyId).then((n) => ({ n })), "Catégories suggérées ajoutées (sans doublon)")}>Ajouter les catégories suggérées</Button>
       </div>}
       {cats.length === 0 ? <p className="text-sm text-muted-foreground">Aucune catégorie. Ajoutez les vôtres ou les catégories suggérées (sans montant ni taux de taxe).</p> :
         <ul className="divide-y divide-border rounded-md border border-border">{cats.map((c) => <li key={c.id} className="flex items-center justify-between gap-2 p-2 text-sm">
-          {edit?.id === c.id ? <Input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /> : <span className={c.archived_at ? "text-muted-foreground line-through" : ""}>{c.name}{c.is_suggested ? " · suggérée" : ""}</span>}
+          {edit?.id === c.id ? <Input aria-label="Nouveau nom de la catégorie" disabled={store.blocked} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /> : <span className={c.archived_at ? "text-muted-foreground line-through" : ""}>{c.name}{c.is_suggested ? " · suggérée" : ""}</span>}
           {canWrite && <div className="flex gap-1">
-            {edit?.id === c.id ? <Button size="sm" onClick={() => call(() => supabase.from("fin_categories").update({ name: edit.name.trim(), updated_at: new Date().toISOString() }).eq("id", c.id), "Catégorie renommée").then(() => setEdit(null))}>OK</Button> : <Button size="sm" variant="ghost" onClick={() => setEdit({ id: c.id, name: c.name })}>Renommer</Button>}
+            {edit?.id === c.id ? <Button size="sm" onClick={() => call(() => supabase.from("fin_categories").update({ name: edit.name.trim(), updated_at: new Date().toISOString() }).eq("id", c.id), "Catégorie renommée").then(() => { setEdit(null); if (!name) store.finalize(); })}>OK</Button> : <Button size="sm" variant="ghost" onClick={() => setEdit({ id: c.id, name: c.name, base: c.name })}>Renommer</Button>}
             <Button size="sm" variant="ghost" onClick={() => call(() => supabase.from("fin_categories").update({ archived_at: c.archived_at ? null : new Date().toISOString() }).eq("id", c.id), c.archived_at ? "Catégorie réactivée" : "Catégorie archivée")}>{c.archived_at ? "Réactiver" : "Archiver"}</Button>
           </div>}
         </li>)}</ul>}
