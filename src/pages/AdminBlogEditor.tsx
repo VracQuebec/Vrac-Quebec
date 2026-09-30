@@ -144,7 +144,6 @@ export default function AdminBlogEditor() {
   }, [title, slugTouched]);
 
   // NAV-01B — Nouvel article (pas encore créé au serveur) : saisie gardée en brouillon (Retour, actualisation, reprise).
-  // Un article existant est déjà enregistré automatiquement au serveur (3 s); il n'utilise pas ce brouillon.
   const art = { title, slug, slugTouched, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs, aiKeyword, coverPrompt };
   const draft = useDraft({
     id: user && isAdmin && isNew && !postId ? { module: "blog", form: "article", owner: user.id, company: null, recordId: null } : null,
@@ -158,6 +157,30 @@ export default function AdminBlogEditor() {
       setRelCitySlugs(d.relCitySlugs ?? []); setRelMaterialSlugs(d.relMaterialSlugs ?? []); setRelServiceSlugs(d.relServiceSlugs ?? []); setAiKeyword(d.aiKeyword ?? ""); setCoverPrompt(d.coverPrompt ?? ""); },
   });
   const creating = useRef(false);
+
+  // NAV-01B — Article EXISTANT : l'enregistrement automatique (3 s) reste inchangé. En plus, les modifications
+  // pas encore confirmées par le serveur sont gardées en brouillon (départ immédiat, panne réseau, erreur, conflit).
+  // Le statut de publication n'est jamais repris depuis le brouillon : il reste celui du serveur.
+  const [serverStamp, setServerStamp] = useState<string | null>(null); // updated_at chargé → détection de conflit
+  const [editConflict, setEditConflict] = useState(false);
+  const [autoSaveError, setAutoSaveError] = useState<string | null>(null);
+  const baseline = useRef<string>("");
+  const editable = { title, slug, slugTouched, excerpt, content, coverUrl, coverAlt, categoryId, authorId, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs };
+  const editDraft = useDraft({
+    id: user && isAdmin && postId && serverStamp && !loading ? { module: "blog", form: "article-modif", owner: user.id, company: null, recordId: postId } : null,
+    data: editable,
+    label: (d) => `Article (modifications non confirmées) — ${d.title || "sans titre"}`,
+    route: postId ? `/admin/blogue/editer/${postId}` : undefined,
+    isEmpty: (d) => JSON.stringify(d) === baseline.current,
+    onRestore: (d) => { if (JSON.stringify(d) === baseline.current) return;
+      setTitle(d.title); setSlug(d.slug); setSlugTouched(d.slugTouched); setExcerpt(d.excerpt); setContent(d.content); setCoverUrl(d.coverUrl); setCoverAlt(d.coverAlt);
+      setCategoryId(d.categoryId); setAuthorId(d.authorId); setMetaTitle(d.metaTitle); setMetaDescription(d.metaDescription);
+      setOgImage(d.ogImage); setCanonical(d.canonical); setIsFeatured(d.isFeatured); setIsPopular(d.isPopular); setNoindex(d.noindex); setTags(d.tags ?? []);
+      setRelCitySlugs(d.relCitySlugs ?? []); setRelMaterialSlugs(d.relMaterialSlugs ?? []); setRelServiceSlugs(d.relServiceSlugs ?? []);
+      toast.info("Modifications non confirmées retrouvées — elles seront enregistrées automatiquement."); },
+  });
+  const editableRef = useRef(editable); editableRef.current = editable;
+
 
   const readingMinutes = useMemo(() => estimateReadingTime(content), [content]);
 
