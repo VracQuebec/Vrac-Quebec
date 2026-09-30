@@ -370,9 +370,7 @@ function LeadDialog({ lead, companyId, clients, onClose, onSaved }: any) {
       if (error) toast({ title: "Refusé — votre saisie est conservée", description: error.message, variant: "destructive" }); else { store.finalize(); onSaved(); }
     } finally { saving.current = false; }
   };
-  const addTask = async () => { const title = prompt("Tâche / relance ?"); const due = prompt("Échéance (AAAA-MM-JJ) ?"); if (!title) return;
-    const { data: u } = await supabase.auth.getUser();
-    const { error } = await db.from("ent_crm_tasks").insert({ company_id: companyId, title, due_at: due || null, lead_id: lead.id, assignee_user_id: u.user?.id }); toast({ title: error ? "Refusé" : "Tâche ajoutée", description: error?.message }); loadTasks(); };
+  const [taskOpen, setTaskOpen] = useState(false); const addTask = () => setTaskOpen(true);
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>{lead.id ? "Lead" : "Nouveau lead"}</DialogTitle></DialogHeader>
     {canWrite && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setF({ source: "appel", trade: "", trade_fields: {}, ...lead }); setStale(null); }} discardConfirm="Abandonner la préparation de ce lead ? Les saisies non enregistrées seront effacées; la fiche enregistrée n'est pas modifiée." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
     {stale && <div role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Cette fiche a été modifiée ailleurs depuis votre préparation. L'état actuel est affiché; votre saisie est conservée à part.
@@ -407,6 +405,7 @@ function Clients({ companyId, canWrite, params, setParams }: any) {
   const setOpenId = (v: string | null, key = "client") => { const n = new URLSearchParams(params); v ? n.set(key, v) : n.delete(key); setParams(n); };
   const open = openId === "nouveau" ? { kind: "particulier" } : rows.find((r) => r.id === openId) ?? null;
   const contactClient = rows.find((r) => r.id === contactFor) ?? null;
+  const oppClient = rows.find((r) => r.id === params.get("opp")) ?? null;
   const add = () => setOpenId("nouveau");
   const addContact = (c: any) => setOpenId(c.id, "contact");
   const setOpen = (c: any) => setOpenId(c ? c.id : null);
@@ -428,10 +427,13 @@ function Clients({ companyId, canWrite, params, setParams }: any) {
       <p className="mt-1 text-xs"><strong>Contacts :</strong> {c.ent_crm_contacts.map((x: any) => `${x.name}${x.phone ? " " + x.phone : ""}`).join(" · ") || "—"}</p>
       <p className="text-xs"><strong>Opportunités :</strong> {c.ent_crm_leads.map((x: any) => x.title).join(" · ") || "—"}</p>
       <p className="text-xs"><strong>Chantiers :</strong> {c.ent_crm_projects.map((x: any) => x.name).join(" · ") || "—"}</p>
-      {canWrite && <div className="mt-2 flex flex-wrap gap-1"><Button size="sm" variant="outline" onClick={() => addContact(c)}>+ Contact</Button><Button size="sm" variant="outline" onClick={async () => { const title = prompt("Nouvelle opportunité ?"); if (!title) return; const { error } = await db.from("ent_crm_leads").insert({ company_id: companyId, client_id: c.id, title, contact_name: c.name, contact_value: c.phone || c.email, source: "autre" }); if (error) toast({ title: "Refusé", description: error.message }); load(); }}>+ Opportunité</Button><Button size="sm" variant="outline" onClick={() => setOpen(c)}>Modifier</Button><Button size="sm" variant="ghost" onClick={() => archive(c)}>Archiver</Button></div>}
+      {canWrite && <div className="mt-2 flex flex-wrap gap-1"><Button size="sm" variant="outline" onClick={() => addContact(c)}>+ Contact</Button><Button size="sm" variant="outline" onClick={() => setOpenId(c.id, "opp")}>+ Opportunité</Button><Button size="sm" variant="outline" onClick={() => setOpen(c)}>Modifier</Button><Button size="sm" variant="ghost" onClick={() => archive(c)}>Archiver</Button></div>}
       <FilesBtn t="client" id={c.id} />
     </div>)}</div>
     {open && <ClientDialog key={openId} client={open} companyId={companyId} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); load(); }} />}
+    {oppClient && <FieldsDialog key={`opp-${oppClient.id}`} form="opportunite" recordId={oppClient.id} companyId={companyId} title={`Nouvelle opportunité — ${oppClient.name}`} route={`/entrepreneur/crm?company=${companyId}&tab=clients&opp=${oppClient.id}`}
+      fields={[{ k: "title", l: "Nom de l'opportunité", required: true }]} submitLabel="Créer l'opportunité" onClose={() => setOpenId(null, "opp")}
+      onSubmit={async (v) => { const { error } = await db.from("ent_crm_leads").insert({ company_id: companyId, client_id: oppClient.id, title: v.title, contact_name: oppClient.name, contact_value: oppClient.phone || oppClient.email, source: "autre" }); if (error) return error.message; setOpenId(null, "opp"); load(); return null; }} />}
     {contactClient && <ContactDialog key={contactFor} client={contactClient} companyId={companyId} onClose={() => setOpenId(null, "contact")} onSaved={() => { setOpenId(null, "contact"); load(); }} />}
   </div>;
 }
@@ -502,8 +504,8 @@ function ContactDialog({ client, companyId, onClose, onSaved }: any) {
 }
 
 function Quotes({ companyId, companyName, canWrite }: any) {
-  const [rows, setRows] = useState<any[]>([]); const [clients, setClients] = useState<any[]>([]); const [open, setOpen] = useState<any>(null); const [print, setPrint] = useState<any>(null);
-  const [services, setServices] = useState<any[]>([]); const [tpls, setTpls] = useState<any[]>([]); const [diff, setDiff] = useState<any[] | null>(null); const [printDocs, setPrintDocs] = useState<string[]>([]);
+  const [rows, setRows] = useState<any[]>([]); const [clients, setClients] = useState<any[]>([]); const [print, setPrint] = useState<any>(null);
+  const [services, setServices] = useState<any[]>([]); const [tpls, setTpls] = useState<any[]>([]); const [printDocs, setPrintDocs] = useState<string[]>([]);
   const load = useCallback(async () => { setRows((await db.from("ent_crm_quotes").select("*, ent_crm_clients(name), ent_crm_projects(id)").eq("company_id", companyId).order("created_at", { ascending: false })).data ?? []);
     setClients((await db.from("ent_crm_clients").select("id,name").eq("company_id", companyId).is("archived_at", null)).data ?? []);
     setServices((await db.from("ent_crm_services").select("id,label,unit,price,inclusions,exclusions").eq("company_id", companyId).is("archived_at", null).order("label")).data ?? []);
@@ -633,6 +635,41 @@ function QuoteDialog({ quote, companyId, clients, services, tpls, onClose, onSav
       <Button onClick={save}>Enregistrer</Button></DialogContent></Dialog>;
 }
 
+/** Petite fenêtre contrôlée (remplace les questions natives) : brouillon par compte + entreprise + fiche + opération.
+ *  La sauvegarde du brouillon n'exécute rien; seule « onSubmit » (bouton explicite) écrit au serveur. */
+type FField = { k: string; l: string; type?: "text" | "number" | "date" | "textarea"; required?: boolean };
+function FieldsDialog({ form, recordId, companyId, title, route, fields, initial, submitLabel, onSubmit, onClose }: {
+  form: string; recordId: string | null; companyId: string; title: string; route: string; fields: FField[]; initial?: Record<string, string>;
+  submitLabel: string; onSubmit: (v: Record<string, string>) => Promise<string | null>; onClose: () => void;
+}) {
+  const { user: me } = useAuthReady(); const { canWrite } = useContext(CrmCtx);
+  const base = useMemo(() => Object.fromEntries(fields.map((f) => [f.k, initial?.[f.k] ?? ""])), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [v, setV] = useState<Record<string, string>>(base); const [err, setErr] = useState<string | null>(null); const busy = useRef(false); const [pending, setPending] = useState(false);
+  const store = useDraft({
+    id: me && canWrite ? { module: "crm", form, owner: me.id, company: companyId, recordId } : null,
+    data: v, label: () => `CRM — ${title}`, route,
+    isEmpty: (d) => JSON.stringify(d) === JSON.stringify(base), onRestore: (d) => setV({ ...base, ...d }),
+  });
+  const submit = async () => {
+    if (busy.current) return; // double clic / Entrée répétée : un seul envoi
+    const miss = fields.find((f) => f.required && !v[f.k]?.trim()); if (miss) return setErr(`« ${miss.l} » est requis.`);
+    busy.current = true; setPending(true); setErr(null);
+    try { const e = await onSubmit(Object.fromEntries(Object.entries(v).map(([k, x]) => [k, x.trim()]))); if (e) setErr(`Refusé — votre saisie est conservée : ${e}`); else store.finalize(); }
+    catch (e) { setErr(`Échec — votre saisie est conservée : ${(e as Error).message}`); }
+    finally { busy.current = false; setPending(false); }
+  };
+  return <Dialog open onOpenChange={onClose}><DialogContent><DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
+    {canWrite && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setV(base); }} discardConfirm="Abandonner cette préparation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+    <form className="grid gap-2" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
+      {fields.map((f) => <label key={f.k} className="block text-xs">{f.l}{f.required ? " *" : ""}
+        {f.type === "textarea" ? <Textarea aria-label={f.l} value={v[f.k]} onChange={(e) => setV({ ...v, [f.k]: e.target.value })} />
+          : <Input aria-label={f.l} type={f.type ?? "text"} step={f.type === "number" ? "0.01" : undefined} value={v[f.k]} onChange={(e) => setV({ ...v, [f.k]: e.target.value })} />}</label>)}
+      {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
+      <Button type="submit" disabled={pending}>{submitLabel}</Button>
+    </form>
+  </DialogContent></Dialog>;
+}
+
 function Projects({ companyId, canWrite }: any) {
   const [rows, setRows] = useState<any[]>([]);
   const load = useCallback(async () => setRows((await db.from("ent_crm_projects").select("*, ent_crm_clients(name)").eq("company_id", companyId).is("archived_at", null).order("created_at", { ascending: false })).data ?? []), [companyId]);
@@ -648,17 +685,33 @@ function Projects({ companyId, canWrite }: any) {
   </div>)}</div>;
 }
 
-function Tasks({ companyId, canWrite }: any) {
-  const [rows, setRows] = useState<any[]>([]); const [done, setDone] = useState(false);
+function Tasks({ companyId, canWrite, params, setParams }: any) {
+  const [rows, setRows] = useState<any[]>([]);
+  // Filtre et fenêtre dans l'adresse : conservés après Retour et actualisation.
+  const done = params.get("td") === "1"; const fd = params.get("fd");
+  const setParam = (k: string, val: string | null, replace = false) => { const n = new URLSearchParams(params); val ? n.set(k, val) : n.delete(k); setParams(n, replace ? { replace: true } : undefined); };
+  const setDone = (b: boolean) => setParam("td", b ? "1" : null, true);
   const load = useCallback(async () => { let r = db.from("ent_crm_tasks").select("*, ent_crm_leads(title), ent_crm_projects(name), ent_crm_clients(name)").eq("company_id", companyId); r = done ? r.not("done_at", "is", null) : r.is("done_at", null); setRows((await r.order("due_at", { nullsFirst: false })).data ?? []); }, [companyId, done]);
   useEffect(() => { void load(); }, [load]);
-  const finish = async (t: any) => { const result = prompt("Résultat ?"); if (result == null) return; const { error } = await db.from("ent_crm_tasks").update({ done_at: new Date().toISOString(), result }).eq("id", t.id); if (error) toast({ title: "Refusé", description: error.message }); load(); };
-  const add = async () => { const title = prompt("Tâche ?"); if (!title) return; const due = prompt("Échéance (AAAA-MM-JJ) ?"); const { data: u } = await supabase.auth.getUser();
-    const { error } = await db.from("ent_crm_tasks").insert({ company_id: companyId, title, due_at: due || null, assignee_user_id: u.user?.id }); if (error) toast({ title: "Refusé", description: error.message }); load(); };
+  const finish = (t: any) => setParam("fd", `terminer:${t.id}`);
+  const add = () => setParam("fd", "tache:nouveau");
+  const [fk, fid] = (fd ?? "").split(":"); const ft = rows.find((r) => r.id === fid);
   return <div><div className="mb-3 flex gap-2">{canWrite && <Button onClick={add}><Plus className="mr-1 h-4 w-4" />Nouvelle tâche</Button>}<Button variant="outline" onClick={() => setDone(!done)}>{done ? "Voir à faire" : "Voir terminées"}</Button></div>
     <div className="grid gap-2">{rows.map((t) => { const late = !t.done_at && t.due_at && new Date(t.due_at) < new Date(); return <div key={t.id} className={`rounded-lg border bg-card p-3 text-sm ${late ? "border-destructive" : "border-border"}`}>
       <p className="font-display font-bold">{t.title}</p><p className="text-xs text-muted-foreground">Échéance : {t.due_at ? new Date(t.due_at).toLocaleDateString("fr-CA") : "—"}{late ? " · EN RETARD" : ""} · Dossier : {t.ent_crm_leads?.title ?? t.ent_crm_projects?.name ?? t.ent_crm_clients?.name ?? "—"}</p>
-      {t.result && <p className="text-xs">Résultat : {t.result}</p>}{!t.done_at && <Button size="sm" className="mt-2" onClick={() => finish(t)}>Terminer</Button>}</div>; })}</div></div>;
+      {t.result && <p className="text-xs">Résultat : {t.result}</p>}{!t.done_at && canWrite && <Button size="sm" className="mt-2" onClick={() => finish(t)}>Terminer</Button>}</div>; })}</div>
+    {fk === "tache" && <TaskDialog key={fd} companyId={companyId} route={`/entrepreneur/crm?company=${companyId}&tab=tasks&fd=tache:nouveau`} onClose={() => setParam("fd", null)} onDone={() => { setParam("fd", null); load(); }} />}
+    {fk === "terminer" && ft && <FieldsDialog key={fd} form="tache-terminer" recordId={ft.id} companyId={companyId} title={`Terminer « ${ft.title} »`} route={`/entrepreneur/crm?company=${companyId}&tab=tasks&fd=${fd}`}
+      fields={[{ k: "result", l: "Résultat", type: "textarea" }]} submitLabel="Marquer terminée" onClose={() => setParam("fd", null)}
+      onSubmit={async (v) => { const { data, error } = await db.from("ent_crm_tasks").update({ done_at: new Date().toISOString(), result: v.result || null }).eq("id", ft.id).is("done_at", null).select("id"); if (error) return error.message; if (!data?.length) toast({ title: "Tâche déjà terminée", description: "Aucune modification : elle avait déjà été clôturée." }); setParam("fd", null); load(); return null; }} />}
+  </div>;
+}
+
+/** Nouvelle tâche (liste des tâches ou relance d'un lead) : un seul envoi, brouillon conservé. */
+function TaskDialog({ companyId, leadId, route, onClose, onDone }: any) {
+  return <FieldsDialog form="tache" recordId={leadId ?? null} companyId={companyId} title={leadId ? "Nouvelle relance" : "Nouvelle tâche"} route={route}
+    fields={[{ k: "title", l: "Tâche", required: true }, { k: "due", l: "Échéance", type: "date" }]} submitLabel="Ajouter la tâche" onClose={onClose}
+    onSubmit={async (v) => { const { data: u } = await supabase.auth.getUser(); const { error } = await db.from("ent_crm_tasks").insert({ company_id: companyId, title: v.title, due_at: v.due || null, lead_id: leadId ?? null, assignee_user_id: u.user?.id }); if (error) return error.message; toast({ title: "Tâche ajoutée" }); onDone(); return null; }} />;
 }
 
 function Reports({ companyId }: any) {
