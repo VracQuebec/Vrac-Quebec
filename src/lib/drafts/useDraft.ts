@@ -21,6 +21,7 @@ export function useDraft<T>(opts: {
   const [status, setStatus] = useState<DraftStatus>("idle");
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [restoredMeta, setRestoredMeta] = useState<DraftMeta | null>(null);
+  const [ready, setReady] = useState(false); // lecture/restauration terminée
   const armed = useRef(false);      // sauvegarde active seulement après la restauration
   const finalized = useRef(false);  // après finalisation/abandon, aucune écriture tardive
   const meta = useRef<DraftMeta | null>(null);
@@ -54,8 +55,8 @@ export function useDraft<T>(opts: {
       setRestoredMeta(rec.meta); setSavedAt(rec.meta.updatedAt); setStatus("restored");
     }
     // Activation au tour suivant : la restauration a eu le temps d'appliquer ses valeurs.
-    const t = setTimeout(() => { armed.current = true; }, 0);
-    return () => clearTimeout(t);
+    const t = setTimeout(() => { armed.current = true; setReady(true); }, 0);
+    return () => { clearTimeout(t); setReady(false); };
   }, [key]);
 
   const serialized = JSON.stringify(data);
