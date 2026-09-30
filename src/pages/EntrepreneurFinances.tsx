@@ -135,16 +135,17 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
   }, [canWrite]);
   // NAV-01B : la fenêtre ouverte (échéance, correction de règlement, modification/changement de règle, création)
   // est reflétée dans l'adresse : une actualisation la rouvre (fiche relue au serveur) au lieu de la replier.
-  const openKey = occ ? `echeance|${occ.id}` : payOpen ? `reglement-correction|${payOpen}` : form?.id && form.ruleChange ? `obligation-regle|${form.id}|${form.ruleChange.effective}` : form?.id ? `obligation-modif|${form.id}` : form && !form.init ? `obligation|${form.instance ?? ""}` : "";
+  const openKey = pay?.length ? `reglement|${btoa(unescape(encodeURIComponent(JSON.stringify(pay))))}` : occ ? `echeance|${occ.id}` : payOpen ? `reglement-correction|${payOpen}` : form?.id && form.ruleChange ? `obligation-regle|${form.id}|${form.ruleChange.effective}` : form?.id ? `obligation-modif|${form.id}` : form && !form.init ? `obligation|${form.instance ?? ""}` : "";
   const prevOpen = useRef("");
   useEffect(() => {
     if (openKey === prevOpen.current) return;
     const was = prevOpen.current; prevOpen.current = openKey;
     if (!openKey && !was) return;
     const q = new URLSearchParams(window.location.search);
-    ["brouillon", "echeance", "reglement", "obligation", "effet", "instance"].forEach((k) => q.delete(k));
+    ["brouillon", "echeance", "reglement", "obligation", "effet", "instance", "cibles"].forEach((k) => q.delete(k));
     const [kind, a, b] = openKey.split("|");
     if (kind) q.set("brouillon", kind);
+    if (kind === "reglement") q.set("cibles", a);
     if (kind === "echeance") q.set("echeance", a);
     if (kind === "reglement-correction") q.set("reglement", a);
     if (kind === "obligation-regle" || kind === "obligation-modif") q.set("obligation", a);

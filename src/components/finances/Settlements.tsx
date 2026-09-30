@@ -46,7 +46,7 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
     data: { pick, amount, date, method, more, src, ref, note, idem, fileNames: files.length ? files.map((f) => f.name) : fileNames },
     label: () => `Règlement à ${targets[0]?.payee ?? "bénéficiaire non précisé"} (${targets.length} échéance${targets.length > 1 ? "s" : ""})`,
     route: `/entrepreneur/finances?company=${companyId}&tab=apayer&brouillon=reglement&cibles=${encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(targets)))))}`,
-    isEmpty: (d) => !d.method && !d.src && !d.ref && !d.note && d.date === todayIn(TZ) && d.amount === String(r2(targets.reduce((s, t) => s + Number(t.balance ?? 0), 0))) && JSON.stringify(d.pick) === JSON.stringify(Object.fromEntries(targets.map((t) => [t.id, String(t.balance ?? "")]))),
+    isEmpty: (d) => !d.fileNames?.length && !d.method && !d.src && !d.ref && !d.note && d.date === todayIn(TZ) && d.amount === String(r2(targets.reduce((s, t) => s + Number(t.balance ?? 0), 0))) && JSON.stringify(d.pick) === JSON.stringify(Object.fromEntries(targets.map((t) => [t.id, String(t.balance ?? "")]))),
     onRestore: (d) => { setPick(d.pick); setAmount(d.amount); setDate(d.date); setMethod(d.method); setMore(d.more); setSrc(d.src); setRef(d.ref); setNote(d.note); if (d.idem) setIdem(d.idem); setFileNames(d.fileNames ?? []); void loadOpen(); },
   });
   const loadOpen = () => st.openForPayee(companyId, payeeKey).then((l) => {
