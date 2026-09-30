@@ -68,11 +68,12 @@
 - [x] J2 « Reprendre mon travail » (/entrepreneur/brouillons) + reprise dans un contexte indépendant, abandon ailleurs bloque l'écriture tardive
 - [x] Assistants publics (P01-P03), retour après reconnexion (D partiel), déconnexion (E)
 - [x] J1 Verrou double clic / répétition après confirmation (achat en vrac)
-- [ ] J3 Finances : modifier une obligation, règlements, paramètres; tous les champs de « Ajouter une obligation » vérifiés
+- [x] J3 Finances : Ajouter une obligation (tous champs), Modifier une obligation (protection « modifiée ailleurs »), préparation de règlement, paramètres (catégories) — vérifiés à l'écran
+- [ ] J3 Finances restant : fenêtre d'échéance (montant/déplacer/annuler/suspendre/archiver), fiche de règlement (corrections), changement de règle
 - [ ] J3 CRM entrepreneur, flotte, éditeur d'articles, admin, autres routes
 - [ ] J3 Listes/cartes : recherche, filtres, défilement après fiche
 - [x] J4 Isolation serveur entre 2 comptes fictifs d'entreprises différentes; vrai conflit A/B résolu et persistant; saisie gardée après abandon ailleurs
-- [~] Copie de récupération après abandon ailleurs (code fait, survit à l'actualisation) — essai navigateur B→A→actualisation→reprise→3e contexte à faire; reprise réutilise la même clé serveur (réouverture explicite), pas encore un nouvel identifiant
+- [x] Copie de récupération après abandon ailleurs + reprise sous un NOUVEL identifiant (essai 3 navigateurs, écriture tardive refusée P0410, blocage si stockage indisponible)
 - [ ] J4 Même entreprise (2 utilisateurs), utilisateur à 2 entreprises, droit retiré
 - [ ] J4 A, B, C, F, notification admin, connexion par l'interface
 - [ ] Fiche d'essai sur téléphone réel
