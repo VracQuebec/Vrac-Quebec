@@ -116,6 +116,15 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
       try { const t = JSON.parse(decodeURIComponent(escape(atob(q.get("cibles")!)))); if (Array.isArray(t) && t.length) setPay(t); } catch { /* adresse invalide : rien n'est ouvert */ }
       q.delete("brouillon"); q.delete("cibles");
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
+    } else if (canWrite && q.get("brouillon") === "echeance" && q.get("echeance")) {
+      // Reprise d'une préparation : l'échéance est relue au serveur (droits + état actuel) avant ouverture.
+      st.occDetail(q.get("echeance")!).then((d) => { if (d?.occ?.obligation_id) setOcc(d.occ); else toast({ title: "Échéance introuvable ou inaccessible", description: "La préparation reste dans « Reprendre mon travail ».", variant: "destructive" }); })
+        .catch(() => toast({ title: "Échéance inaccessible", description: "Accès refusé ou service indisponible. La préparation reste conservée.", variant: "destructive" }));
+      q.delete("brouillon"); q.delete("echeance");
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
+    } else if (canWrite && q.get("brouillon") === "obligation-regle" && q.get("obligation")) {
+      setForm({ id: q.get("obligation"), ruleChange: { effective: q.get("effet") || todayIn(TZ) } }); q.delete("brouillon"); q.delete("obligation"); q.delete("effet");
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
     } else if (canWrite && q.get("brouillon") === "obligation-modif" && q.get("obligation")) {
       setForm({ id: q.get("obligation") }); q.delete("brouillon"); q.delete("obligation");
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
@@ -131,7 +140,7 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
     {tab === "moyennes" && <Averages companyId={companyId} cats={cats.filter((c) => !c.archived_at)} />}
     {tab === "parametres" && <Settings companyId={companyId} cats={cats} canWrite={canWrite} onChange={refresh} />}
     {form && <ObligationForm companyId={companyId} companyName={companyName} id={form.id} init={form.init} ruleChange={form.ruleChange} draftInstance={form.instance} cats={cats.filter((c) => !c.archived_at)} onClose={() => setForm(null)} onSaved={() => { setForm(null); refresh(); }} />}
-    {occ && <OccurrenceDialog occ={occ} canWrite={canWrite} onClose={() => setOcc(null)} onChanged={refresh}
+    {occ && <OccurrenceDialog companyId={companyId} occ={occ} canWrite={canWrite} onClose={() => setOcc(null)} onChanged={refresh}
       onPay={(o) => { setOcc(null); onPayMany?.([o]); }} onOpenPayment={(id) => { setOcc(null); setPayOpen(id); }}
       onEdit={(id) => { setOcc(null); setForm({ id }); }} onRuleChange={(id, effective) => { setOcc(null); setForm({ id, ruleChange: { effective } }); }} onDuplicate={(init) => { setOcc(null); setForm({ id: null, init }); }} />}
     {pay && <PaymentDialog companyId={companyId} companyName={companyName} targets={pay} onClose={() => setPay(null)} onDone={() => { setPay(null); refresh(); }} />}
@@ -332,13 +341,13 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
   const dropOnRestore = useRef(false);
   const mark = (o: any) => (o ? `${o.rev ?? ""}|${o.updated_at ?? ""}` : "");
   const draftable = !id && !ruleChange && !init;
-  const editDraft = !!id && !ruleChange && !!loaded && !stale;
+  const editDraft = !!id && !!loaded && !stale;
   const store = useDraft({
     id: me && draftable ? { module: "finances", form: "obligation", owner: me.id, company: companyId, instance: draftInstance }
-      : me && editDraft ? { module: "finances", form: "obligation-modif", owner: me.id, company: companyId, recordId: id } : null,
-    data: { p, preset, unit, adv, base: mark(loaded) },
-    label: (d) => id ? `Modification de l'obligation « ${loaded?.label ?? d.p.label ?? ""} »` : d.p.label ? `Obligation « ${d.p.label} »` : "Nouvelle obligation",
-    route: id ? `/entrepreneur/finances?company=${companyId}&brouillon=obligation-modif&obligation=${id}` : `/entrepreneur/finances?company=${companyId}&brouillon=obligation`,
+      : me && editDraft ? { module: "finances", form: ruleChange ? "obligation-regle" : "obligation-modif", owner: me.id, company: companyId, recordId: id } : null,
+    data: { p, preset, unit, adv, base: mark(loaded), eff: ruleChange ? eff : null },
+    label: (d) => ruleChange ? `Changement de règle de « ${loaded?.label ?? d.p.label ?? ""} » au ${fmtDate(eff)}` : id ? `Modification de l'obligation « ${loaded?.label ?? d.p.label ?? ""} »` : d.p.label ? `Obligation « ${d.p.label} »` : "Nouvelle obligation",
+    route: ruleChange && id ? `/entrepreneur/finances?company=${companyId}&brouillon=obligation-regle&obligation=${id}&effet=${eff}` : id ? `/entrepreneur/finances?company=${companyId}&brouillon=obligation-modif&obligation=${id}` : `/entrepreneur/finances?company=${companyId}&brouillon=obligation`,
     // Tout champ modifié (sélection, case, ligne, saison…) compte : seul l'état initial est « vierge ».
     isEmpty: (d) => id ? JSON.stringify(d.p) === JSON.stringify(loadedP.current) : JSON.stringify(d.p) === JSON.stringify(DEFAULT_OBLIGATION) && d.preset === toPreset("once", 1) && d.unit === "days",
     onRestore: (d) => {
@@ -346,7 +355,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
         if (dropOnRestore.current) { dropOnRestore.current = false; setTimeout(() => store.discard(), 0); return; }
         const cur = mark(loaded);
         if ((d as any).base !== cur && (d as any).base !== forceBase.current) { setStale(d); return; }
-        setP({ ...d.p, rev: loaded?.rev, updated_at: loaded?.updated_at });
+        setP({ ...d.p, rev: loaded?.rev, updated_at: loaded?.updated_at }); if (ruleChange && (d as any).eff) setEff((d as any).eff);
       } else setP(d.p);
       setPreset(d.preset); setUnit(d.unit); setAdv(d.adv);
     },
@@ -359,7 +368,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
       const v = await api.versions(id); const last: any = v[v.length - 1]; setStatus(o.status);
       const x = { ...o, amount: last?.amount ?? "", amount_quality: last?.amount_quality ?? "unknown", seasons: o.seasons ?? [] };
       if (ruleChange) { x.amount_quality = "keep"; x.anchor_date = eff; }
-      setP(x); loadedP.current = x; if (!ruleChange) setLoaded(o); setPreset(toPreset(o.frequency, o.interval_n)); if (o.frequency === "weekly" && ![1, 2, 4].includes(o.interval_n)) setUnit("weeks"); if (o.frequency === "monthly" && ![1, 2, 3, 4, 6].includes(o.interval_n)) setUnit("months");
+      setP(x); loadedP.current = x; setLoaded(o); setPreset(toPreset(o.frequency, o.interval_n)); if (o.frequency === "weekly" && ![1, 2, 4].includes(o.interval_n)) setUnit("weeks"); if (o.frequency === "monthly" && ![1, 2, 3, 4, 6].includes(o.interval_n)) setUnit("months");
     });
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { api.lookups(companyId).then(setLk); load(); }, [companyId, load]);
@@ -399,6 +408,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
     try {
       if (ruleChange && id) {
         await api.changeRule(id, p.rev ?? null, rulePayload, eff, false);
+        if (editDraft) store.finalize();
         toast({ title: "Nouvelle règle appliquée", description: `À partir du ${fmtDate(eff)} ; les échéances antérieures sont conservées.` }); onSaved(); return;
       }
       const body = { ...p, amount: p.amount_quality === "unknown" ? null : Number(p.amount), status: status === "draft" && !init ? "active" : status === "draft" ? "draft" : "active" };
@@ -522,7 +532,8 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
   </DialogContent></Dialog>;
 }
 
-function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleChange, onDuplicate, onPay, onOpenPayment }: { occ: Occ; canWrite: boolean; onClose: () => void; onChanged: () => void; onEdit: (id: string) => void; onRuleChange: (id: string, effective: string) => void; onDuplicate: (init: any) => void; onPay: (o: Occ) => void; onOpenPayment: (id: string) => void }) {
+const MODE_LABEL: Record<string, string> = { amount: "modification du montant", planned: "déplacement de la date planifiée", cancel: "annulation", archive: "archivage de la série", pause: "suspension" };
+function OccurrenceDialog({ companyId, occ, canWrite, onClose, onChanged, onEdit, onRuleChange, onDuplicate, onPay, onOpenPayment }: { companyId: string; occ: Occ; canWrite: boolean; onClose: () => void; onChanged: () => void; onEdit: (id: string) => void; onRuleChange: (id: string, effective: string) => void; onDuplicate: (init: any) => void; onPay: (o: Occ) => void; onOpenPayment: (id: string) => void }) {
   const [o, setO] = useState(occ);
   const [hist, setHist] = useState<any[]>([]);
   const [vers, setVers] = useState<any[]>([]);
@@ -541,6 +552,29 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
   const [detail, setDetail] = useState<any>(null);
   const [lift, setLift] = useState<{ id: string; eff: string; reason: string } | null>(null);
   const [liftPv, setLiftPv] = useState<Awaited<ReturnType<typeof st.liftPause>> | null>(null);
+  // NAV-01B : la préparation d'une action sur l'échéance (montant, date planifiée, annulation, archivage,
+  // suspension, levée) est un brouillon séparé par compte + entreprise + échéance. Sauvegarder n'exécute
+  // JAMAIS l'action : la confirmation reste obligatoire et le brouillon n'est clos qu'après succès serveur.
+  const { user: me } = useAuthReady();
+  const [dateNote, setDateNote] = useState<string | null>(null);
+  const store = useDraft({
+    id: me && canWrite && companyId ? { module: "finances", form: "echeance", owner: me.id, company: companyId, recordId: occ.id } : null,
+    data: { mode, scope, amt, ql, planned, reason, eff, pz, lift, preparedOn: todayIn(TZ) },
+    label: () => `Échéance « ${occ.label} » du ${fmtDate(occ.due_date)} — ${mode ? MODE_LABEL[mode] : lift ? "levée de suspension" : "action"}`,
+    route: `/entrepreneur/finances?company=${companyId}&brouillon=echeance&echeance=${occ.id}`,
+    isEmpty: (d) => !d.mode && !d.lift,
+    onRestore: (d) => {
+      setMode(d.mode); setScope(d.scope); setAmt(d.amt); setQl(d.ql); setPlanned(d.planned); setReason(d.reason ?? ""); setEff(d.eff); setPz(d.pz); setLift(d.lift);
+      // Aucune date n'est remplacée silencieusement : si une date préparée est désormais passée, on l'explique.
+      const today = todayIn(TZ); const past: string[] = [];
+      if (d.mode === "archive" && d.eff && d.eff < today) past.push(`date d'archivage ${fmtDate(d.eff)}`);
+      if (d.mode === "planned" && d.planned && d.planned < today) past.push(`date planifiée ${fmtDate(d.planned)}`);
+      if (d.mode === "pause" && d.pz?.start && d.pz.start < today) past.push(`début de suspension ${fmtDate(d.pz.start)}`);
+      if (d.lift?.eff && d.lift.eff < today) past.push(`reprise au ${fmtDate(d.lift.eff)}`);
+      if (past.length) setDateNote(`Préparation du ${fmtDate(d.preparedOn ?? today)} reprise : ${past.join(", ")} est maintenant passée. La date saisie est conservée telle quelle ; vérifiez-la avant de confirmer.`);
+    },
+  });
+  const back = () => { setMode(null); setLift(null); setDateNote(null); store.discard(); };
   const load = () => {
     api.history(o.obligation_id).then(setHist); api.versions(o.obligation_id).then(setVers); api.pauses(o.obligation_id).then(setPzs);
     st.occDetail(o.id).then((d) => { setDetail(d); if (d?.occ) setO((x) => ({ ...x, ...d.occ })); }).catch(() => setDetail(null));
@@ -548,9 +582,11 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
   useEffect(() => { setPzImpact(null); if (mode === "pause" && pz.start && pz.end && pz.reason.trim()) api.addPause(o.obligation_id, pz.start, pz.end, pz.reason, true).then((r) => setPzImpact(r.affected)).catch((e) => toast({ title: "Suspension impossible", description: e.message, variant: "destructive" })); }, [mode, pz.start, pz.end, pz.reason, o.obligation_id]);
   useEffect(load, [o.obligation_id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (mode === "amount" && canWrite) api.editAmount(o.id, scope, ql === "unknown" ? null : Number(amt || 0), ql, true).then(setImpact).catch(() => setImpact(null)); }, [mode, scope, amt, ql, o.id, canWrite]);
+  const inFlight = useRef(false);
   const run = async (fn: () => Promise<unknown>, msg: string) => {
-    setBusy(true);
-    try { await fn(); toast({ title: msg }); setMode(null); onChanged(); onClose(); } catch (e: any) { toast({ title: "Non enregistré", description: e.message, variant: "destructive" }); } finally { setBusy(false); }
+    if (inFlight.current) return; // double clic / Entrée répétée : une seule opération
+    inFlight.current = true; setBusy(true);
+    try { await fn(); store.finalize(); toast({ title: msg }); setMode(null); setLift(null); onChanged(); onClose(); } catch (e: any) { toast({ title: "Non enregistré", description: `${e.message} — votre préparation est conservée.`, variant: "destructive" }); } finally { inFlight.current = false; setBusy(false); }
   };
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto overflow-x-hidden sm:max-w-lg [&>*]:min-w-0">
     <DialogHeader><DialogTitle>{o.label}</DialogTitle></DialogHeader>
@@ -591,21 +627,24 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
         <Button size="sm" variant="ghost" onClick={() => setMode("pause")}>Suspendre une période future</Button>
         <Button size="sm" variant="ghost" onClick={() => setMode("archive")}>Archiver la série</Button></>}
     </div>}
+    {canWrite && (mode || lift) && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={back} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+    {dateNote && (mode || lift) && <p role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-sm">{dateNote} <Button size="sm" variant="ghost" onClick={() => setDateNote(null)}>Compris</Button></p>}
+    <fieldset disabled={store.blocked} className="contents">
     {mode === "amount" && <div className="space-y-2 rounded-md border border-border p-3">
       <div className="flex gap-3 text-sm"><label><input type="radio" checked={scope === "this"} onChange={() => setScope("this")} /> Cette échéance seulement</label>{o.frequency !== "once" && <label><input type="radio" checked={scope === "following"} onChange={() => setScope("following")} /> Celle-ci et les suivantes</label>}</div>
       <div className="flex gap-2"><select className={sel} value={ql} onChange={(e) => setQl(e.target.value)}><option value="confirmed">Confirmé</option><option value="estimated">Estimé</option><option value="unknown">À compléter</option></select>{ql !== "unknown" && <Input type="number" min="0" step="0.01" value={amt} onChange={(e) => setAmt(e.target.value)} />}</div>
       {impact && <p className="text-xs">Impact : {impact.count} échéance(s){impact.dates?.length ? ` — ${impact.dates.slice(0, 6).map(fmtDate).join(", ")}${impact.dates.length > 6 ? "…" : ""}` : ""}. Les échéances passées déjà ajustées individuellement ne changent pas ; l'ancienne version est conservée.</p>}
-      <div className="flex gap-2"><Button size="sm" disabled={busy} onClick={() => { if (ql !== "unknown" && (amt === "" || Number(amt) < 0)) return toast({ title: "Montant invalide", variant: "destructive" }); run(() => api.editAmount(o.id, scope, ql === "unknown" ? null : Number(amt), ql), "Montant mis à jour"); }}>Confirmer</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div>
+      <div className="flex gap-2"><Button size="sm" disabled={busy} onClick={() => { if (ql !== "unknown" && (amt === "" || Number(amt) < 0)) return toast({ title: "Montant invalide", variant: "destructive" }); run(() => api.editAmount(o.id, scope, ql === "unknown" ? null : Number(amt), ql), "Montant mis à jour"); }}>Confirmer</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div>
     </div>}
-    {mode === "planned" && <div className="space-y-2 rounded-md border border-border p-3"><p className="text-xs">L'échéance contractuelle ({fmtDate(o.due_date)}) reste inchangée.</p><Input type="date" value={planned} onChange={(e) => setPlanned(e.target.value)} /><div className="flex gap-2"><Button size="sm" disabled={busy || !planned} onClick={() => run(() => api.reschedule(o.id, planned), "Date planifiée déplacée")}>Confirmer</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div></div>}
-    {mode === "cancel" && <div className="space-y-2 rounded-md border border-border p-3"><Textarea placeholder="Motif de l'annulation (obligatoire)" value={reason} onChange={(e) => setReason(e.target.value)} /><div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !reason.trim()} onClick={() => run(() => api.cancelOcc(o.id, reason), "Échéance annulée (conservée dans l'historique)")}>Annuler l'échéance</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div></div>}
-    {mode === "archive" && <div className="space-y-2 rounded-md border border-border p-3"><p className="text-xs">Arrête les échéances à partir de cette date. Les échéances antérieures sont conservées.</p><Input type="date" value={eff} onChange={(e) => setEff(e.target.value)} /><div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !eff} onClick={() => run(() => api.archiveObligation(o.obligation_id, eff), "Série archivée")}>Archiver</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div></div>}
+    {mode === "planned" && <div className="space-y-2 rounded-md border border-border p-3"><p className="text-xs">L'échéance contractuelle ({fmtDate(o.due_date)}) reste inchangée.</p><Input type="date" value={planned} onChange={(e) => setPlanned(e.target.value)} /><div className="flex gap-2"><Button size="sm" disabled={busy || !planned} onClick={() => run(() => api.reschedule(o.id, planned), "Date planifiée déplacée")}>Confirmer</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div></div>}
+    {mode === "cancel" && <div className="space-y-2 rounded-md border border-border p-3"><Textarea placeholder="Motif de l'annulation (obligatoire)" value={reason} onChange={(e) => setReason(e.target.value)} /><div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !reason.trim()} onClick={() => run(() => api.cancelOcc(o.id, reason), "Échéance annulée (conservée dans l'historique)")}>Annuler l'échéance</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div></div>}
+    {mode === "archive" && <div className="space-y-2 rounded-md border border-border p-3"><p className="text-xs">Arrête les échéances à partir de cette date. Les échéances antérieures sont conservées.</p><Input type="date" value={eff} onChange={(e) => setEff(e.target.value)} /><div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !eff} onClick={() => run(() => api.archiveObligation(o.obligation_id, eff), "Série archivée")}>Archiver</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div></div>}
     {mode === "pause" && <div className="space-y-2 rounded-md border border-border p-3 text-sm">
       <p className="text-xs">Les échéances passées restent dues ; celles qui ont un règlement déclaré sont conservées. Pendant la suspension, aucune échéance n'est générée ; à la reprise, l'ancrage d'origine est conservé et rien n'est rattrapé automatiquement.</p>
       <div className="grid grid-cols-2 gap-2"><Input type="date" aria-label="Début de suspension" value={pz.start} onChange={(e) => setPz({ ...pz, start: e.target.value })} /><Input type="date" aria-label="Fin de suspension" value={pz.end} onChange={(e) => setPz({ ...pz, end: e.target.value })} /></div>
       <Textarea placeholder="Motif (obligatoire)" value={pz.reason} onChange={(e) => setPz({ ...pz, reason: e.target.value })} />
       {pzImpact && <p className="text-xs" data-testid="pause-impact">Échéances touchées (conservées, annulées avec motif) : {pzImpact.length ? pzImpact.map((a) => `${fmtDate(a.due)} (${fmtMoney(a.amount)})`).join(", ") : "aucune"}</p>}
-      <div className="flex gap-2"><Button size="sm" disabled={busy || !pzImpact} onClick={() => run(() => api.addPause(o.obligation_id, pz.start, pz.end, pz.reason, false), "Suspension enregistrée")}>Confirmer la suspension</Button><Button size="sm" variant="outline" onClick={() => setMode(null)}>Retour</Button></div>
+      <div className="flex gap-2"><Button size="sm" disabled={busy || !pzImpact} onClick={() => run(() => api.addPause(o.obligation_id, pz.start, pz.end, pz.reason, false), "Suspension enregistrée")}>Confirmer la suspension</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div>
     </div>}
     {pzs.length > 0 && <div><p className="font-display text-sm font-bold">Suspensions</p><ul className="space-y-1 text-xs">{pzs.map((z) => <li key={z.id}>Du {fmtDate(z.start_date)} au {fmtDate(z.end_date)} : {z.reason}{z.lifted_from ? ` — levée à partir du ${fmtDate(z.lifted_from)}${z.lift_reason ? ` (${z.lift_reason})` : ""}` : ""}
       {canWrite && !z.lifted_from && z.end_date >= todayIn(TZ) && <Button size="sm" variant="ghost" onClick={() => { setLift({ id: z.id, eff: todayIn(TZ) > z.start_date ? todayIn(TZ) : z.start_date, reason: "" }); setLiftPv(null); }}>Lever la suspension</Button>}</li>)}</ul></div>}
@@ -615,8 +654,9 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
       <Textarea placeholder="Motif (obligatoire)" value={lift.reason} onChange={(e) => setLift({ ...lift, reason: e.target.value })} />
       {liftPv && <p className="text-xs" data-testid="levee-apercu">Restaurées : {liftPv.restore.length ? liftPv.restore.map((r) => fmtDate(r.due)).join(", ") : "aucune"} · autres annulations conservées : {liftPv.kept_other}{liftPv.not_applicable.length ? ` · non restaurées (règle remplacée) : ${liftPv.not_applicable.map((r) => fmtDate(r.due)).join(", ")}` : ""}</p>}
       <div className="flex gap-2"><Button size="sm" variant="outline" disabled={!lift.reason.trim()} onClick={() => st.liftPause(lift.id, lift.eff, lift.reason, true).then(setLiftPv).catch((e) => toast({ title: "Impossible", description: e.message, variant: "destructive" }))}>Aperçu</Button>
-        <Button size="sm" disabled={busy || !liftPv} onClick={() => run(() => st.liftPause(lift.id, lift.eff, lift.reason, false), "Suspension levée")}>Confirmer la reprise</Button><Button size="sm" variant="ghost" onClick={() => setLift(null)}>Retour</Button></div>
+        <Button size="sm" disabled={busy || !liftPv} onClick={() => run(() => st.liftPause(lift.id, lift.eff, lift.reason, false), "Suspension levée")}>Confirmer la reprise</Button><Button size="sm" variant="ghost" onClick={back}>Retour</Button></div>
     </div>}
+    </fieldset>
     {vers.length > 1 && <div><p className="font-display text-sm font-bold">Versions du montant</p><ul className="text-xs">{vers.map((v, i) => <li key={i}>À partir du {fmtDate(v.effective_from)} : {fmtMoney(v.amount == null ? null : Number(v.amount))} ({QUALITY_LABEL[v.amount_quality as "confirmed"]})</li>)}</ul></div>}
     <div><p className="font-display text-sm font-bold">Historique</p><ul className="space-y-1 text-xs">{hist.map((h, i) => <li key={i}>{new Date(h.created_at).toLocaleString("fr-CA", { timeZone: TZ })} — {ACTIONS[h.action] ?? st.EVENT_LABEL[h.action] ?? h.action}{h.reason ? ` : ${h.reason}` : ""}{h.is_support ? " (assistance Vrac Québec)" : ""}</li>)}</ul></div>
   </DialogContent></Dialog>;
