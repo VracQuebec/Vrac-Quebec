@@ -3,6 +3,7 @@
 // Distinct du back office de l'entreprise sélectionnée (/admin/jsc).
 // Aucun paiement réel, aucun abonnement réel, aucune communication.
 // ============================================================
+import { useScreenContext } from "@/lib/navigation/listContext";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -59,6 +60,8 @@ function Counter({
 }
 
 export default function AdminPlatformSettings() {
+  // NAV-01B : onglet déjà dans l'adresse; défilement gardé par le mécanisme commun.
+  useScreenContext("plateforme", {});
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
   const { isAdmin, loading: rolesLoading } = useUserRoles(user, isReady);
