@@ -3,8 +3,8 @@
 // Écriture locale pendant la saisie (≈400 ms après une pause, 2 s au plus), puis transmission
 // au compte pour un utilisateur connecté (≈1,5 s). Version serveur contrôlée : un conflit garde
 // les deux copies; une écriture tardive après finalisation/abandon est refusée par le serveur.
-import { useCallback, useEffect, useRef, useState } from "react";
-import { discardDraft, draftKey, keepConflictCopy, patchMeta, readDraft, writeDraft, type DraftIdentity, type DraftMeta } from "./draftStore";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { discardDraft, draftKey, keepConflictCopy, patchMeta, readAlias, readDraft, routeWithInstance, writeAlias, writeDraft, type DraftIdentity, type DraftMeta } from "./draftStore";
 import {
   closeServerDraft, fetchServerDraft, flushCloseQueue, isCloseQueued, isSynced, queueClose, reopenServerDraft,
   saveServerDraft, type DraftSyncError, type ServerDraft,
@@ -28,7 +28,14 @@ export function useDraft<T>(opts: {
   step?: (d: T) => number | null;  // étape pertinente (affichée dans « Reprendre mon travail »)
   route?: string;                  // adresse interne pour reprendre ce formulaire
 }) {
-  const { id, data, isEmpty, onRestore, label } = opts;
+  const { id: baseId, data, isEmpty, onRestore, label } = opts;
+  // Après clôture de l'identifiant d'origine, la saisie continue sous un NOUVEL identifiant (alias local).
+  const baseKey = baseId ? draftKey(baseId) : null;
+  const [aliasVer, setAliasVer] = useState(0);
+  const override = useMemo(() => (baseKey ? readAlias(baseKey) : null), [baseKey, aliasVer]); // eslint-disable-line react-hooks/exhaustive-deps
+  const id = useMemo(() => (baseId && override ? { ...baseId, instance: override } : baseId), [baseKey, override]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [restartError, setRestartError] = useState<string | null>(null);
+  const restarting = useRef(false);
   const key = id ? draftKey(id) : null;
   const synced = isSynced(id);
   const [status, setStatus] = useState<DraftStatus>("idle");
@@ -49,6 +56,7 @@ export function useDraft<T>(opts: {
   const idRef = useRef(id); idRef.current = id;
   const cb = useRef({ isEmpty, onRestore, label, step: opts.step, route: opts.route });
   cb.current = { isEmpty, onRestore, label, step: opts.step, route: opts.route };
+  const routeFor = (cid: DraftIdentity | null, fallback?: string | null) => routeWithInstance(cb.current.route ?? fallback ?? null, cid?.instance) ?? undefined;
 
   // ---------- Transmission au compte ----------
   const push = useCallback(async () => {
@@ -58,13 +66,14 @@ export function useDraft<T>(opts: {
     if (!rec || !rec.meta.unsynced || rec.meta.recovery) return; // copie de récupération : jamais transmise sans action explicite
     if (isCloseQueued(cid.owner, cid)) return;
     pushing.current = true; setSync("pending");
-    const extra = { label: rec.meta.label, route: cb.current.route ?? rec.meta.route ?? undefined, step: rec.meta.step ?? null };
+    const extra = { label: rec.meta.label, route: routeFor(cid, rec.meta.route), step: rec.meta.step ?? null };
     try {
       let res;
       try { res = await saveServerDraft(cid, rec.meta.serverRev ?? null, rec.data, extra); }
       catch (e) {
-        // Clé close par une création précédente terminée : une NOUVELLE saisie (jamais synchronisée) repart proprement.
-        if ((e as DraftSyncError).kind === "closed" && rec.meta.serverRev == null) { await reopenServerDraft(cid); res = await saveServerDraft(cid, null, rec.data, extra); }
+        // Clé close par une création précédente terminée : une NOUVELLE saisie (jamais synchronisée) part sous un
+        // NOUVEL identifiant; l'ancien reste clos (jamais réactivé).
+        if ((e as DraftSyncError).kind === "closed" && rec.meta.serverRev == null) { pushing.current = false; void moveToNewRef.current(); return; }
         else throw e;
       }
       if (finalized.current) return;
@@ -106,7 +115,7 @@ export function useDraft<T>(opts: {
     const d = latest.current; const s = JSON.stringify(d);
     if (s === lastWritten.current) return;
     if (!meta.current && cb.current.isEmpty(d)) return;
-    const m = writeDraft(cid, d, meta.current, cb.current.label?.(d), { unsynced: synced ? true : undefined, step: cb.current.step?.(d) ?? null, route: cb.current.route ?? null });
+    const m = writeDraft(cid, d, meta.current, cb.current.label?.(d), { unsynced: synced ? true : undefined, step: cb.current.step?.(d) ?? null, route: routeFor(cid) ?? null });
     if (!m) { setStatus("error"); return; }
     meta.current = m; lastWritten.current = s; setSavedAt(m.updatedAt); setStatus("saved_local");
     if (synced && !m.recovery) { setSync((x) => (x === "conflict" || x === "denied" ? x : "pending")); schedulePush(); }
@@ -194,12 +203,13 @@ export function useDraft<T>(opts: {
     if (pushTimer.current) clearTimeout(pushTimer.current);
     const cid = idRef.current;
     if (key) discardDraft(key);
+    if (baseKey) writeAlias(baseKey, null); // la prochaine création repart d'un état neuf
     if (cid && synced) {
       // Transmise tout de suite; mise en file si hors ligne (bloque toute réécriture tardive).
       queueClose({ owner: cid.owner, id: cid, status: st });
       void flushCloseQueue(cid.owner);
     }
-  }, [key, synced]);
+  }, [key, synced, baseKey]);
 
   /** Opération métier CONFIRMÉE : le brouillon disparaît et ne peut plus être recréé. */
   const finalize = useCallback(() => {
@@ -229,15 +239,55 @@ export function useDraft<T>(opts: {
     setConflict(null); setSync("pending"); void push();
   }, [conflict, key, push]);
 
-  /** Après clôture ailleurs : reprendre la saisie affichée comme NOUVEAU brouillon (action explicite). */
-  const restartAsNew = useCallback(async () => {
-    const cid = idRef.current; if (!cid || !key) return;
-    try { await reopenServerDraft(cid); } catch { /* hors ligne : la transmission suivante réessaiera */ }
-    finalized.current = false;
-    const m = writeDraft(cid, latest.current, null, cb.current.label?.(latest.current), { serverRev: null, unsynced: true, recovery: false, step: cb.current.step?.(latest.current) ?? null, route: cb.current.route ?? null });
-    if (m) { meta.current = m; lastWritten.current = JSON.stringify(latest.current); setSavedAt(m.updatedAt); setStatus("saved_local"); }
-    setSync("pending"); void push();
-  }, [key, push]);
+  /** Reprise explicite (ou nouvelle saisie sur une clé close) : crée un brouillon au compte sous un identifiant
+   *  RÉELLEMENT différent. L'identifiant réservé est gardé dans la copie locale : un double clic ou un réessai
+   *  après réponse perdue retrouve le même nouveau brouillon. La copie de récupération n'est effacée
+   *  qu'après confirmation du serveur ET écriture locale de la nouvelle copie. */
+  const moveToNew = useCallback(async (): Promise<boolean> => {
+    const cid = idRef.current;
+    if (!cid || !key || !baseKey || restarting.current) return false;
+    restarting.current = true; setRestartError(null);
+    try {
+      const d = latest.current;
+      const rec = readDraft<T>(key);
+      let inst = rec?.meta.nextInstance ?? null;
+      if (!inst) {
+        inst = `r-${(crypto.randomUUID?.() ?? `${Date.now()}${Math.random()}`).replace(/[^a-z0-9]/gi, "").slice(0, 12)}`;
+        const m = rec ? patchMeta(key, { nextInstance: inst }) : writeDraft(cid, d, meta.current, cb.current.label?.(d), { nextInstance: inst, unsynced: true });
+        if (!m) throw new Error("storage");
+        meta.current = m;
+      }
+      const nid: DraftIdentity = { ...cid, instance: inst };
+      const route = routeFor(nid, rec?.meta.route);
+      const extra = { label: cb.current.label?.(d), route, step: cb.current.step?.(d) ?? null };
+      let res: { rev: number };
+      try { res = await saveServerDraft(nid, null, d, extra); }
+      catch (e) {
+        if ((e as DraftSyncError).kind !== "conflict") throw e;
+        // Réessai après une réponse perdue : le nouveau brouillon existe déjà → on le complète, sans en créer un autre.
+        const srv = await fetchServerDraft(nid);
+        if (!srv || srv.status !== "active") throw e;
+        res = JSON.stringify(srv.data) === JSON.stringify(d) ? { rev: srv.rev } : await saveServerDraft(nid, srv.rev, d, extra);
+      }
+      const m2 = writeDraft(nid, d, null, extra.label, { serverRev: res.rev, unsynced: false, recovery: false, nextInstance: null, step: extra.step, route: route ?? null });
+      if (!m2 || !writeAlias(baseKey, inst)) throw new Error("storage");
+      if (key !== m2.key) discardDraft(key);
+      finalized.current = false;
+      setAliasVer((v) => v + 1);
+      return true;
+    } catch (e) {
+      const k = (e as DraftSyncError).kind;
+      setRestartError(e instanceof Error && e.message === "storage"
+        ? "Impossible d'enregistrer sur cet appareil. Votre texte reste affiché; réessayez."
+        : k === "offline" ? "Pas de connexion : le nouveau brouillon n'est pas encore créé. Votre texte reste gardé sur cet appareil; réessayez."
+        : "Le nouveau brouillon n'a pas pu être créé. Votre texte reste gardé sur cet appareil; réessayez.");
+      return false;
+    } finally { restarting.current = false; }
+  }, [key, baseKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const moveToNewRef = useRef(moveToNew); moveToNewRef.current = moveToNew;
+  const restartAsNew = useCallback(() => { void moveToNew(); }, [moveToNew]);
 
-  return { restartAsNew, status, sync, synced, savedAt, restoredMeta, ready, conflict, flush, finalize, discard, useServerVersion, keepLocalVersion };
+  /** Stockage de l'appareil indisponible : la saisie doit être bloquée (aucun faux sentiment de conservation). */
+  const blocked = status === "error";
+  return { restartAsNew, restartError, blocked, retrySave: flush, draftId: id, status, sync, synced, savedAt, restoredMeta, ready, conflict, flush, finalize, discard, useServerVersion, keepLocalVersion };
 }

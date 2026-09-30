@@ -26,6 +26,8 @@ export type DraftMeta = DraftIdentity & {
   step?: number | null; route?: string | null;
   /** Copie de récupération : le brouillon au compte a été clos ailleurs; conservée sur cet appareil seulement, jamais transmise automatiquement. */
   recovery?: boolean;
+  /** Identifiant réservé pour « Reprendre dans un nouveau brouillon » (réessai sans créer plusieurs brouillons). */
+  nextInstance?: string | null;
 };
 
 export type DraftRecord<T> = { meta: DraftMeta; data: T };
@@ -70,6 +72,21 @@ export function writeDraft<T>(id: DraftIdentity, data: T, prev: DraftMeta | null
   const key = draftKey(id); const now = new Date().toISOString();
   const meta: DraftMeta = { ...id, key, env: env(), version: DRAFT_SCHEMA_VERSION, rev: (prev?.rev ?? 0) + 1, createdAt: prev?.createdAt ?? now, updatedAt: now, label, serverRev: prev?.serverRev ?? null, unsynced: prev?.unsynced, step: prev?.step, route: prev?.route, recovery: prev?.recovery, ...extra };
   try { s.setItem(key, JSON.stringify({ meta, data })); return meta; } catch { return null; }
+}
+
+/** Alias : la création « principale » continue dans un NOUVEL identifiant après clôture de l'ancien (jamais réactivé). */
+const aliasKey = (baseKey: string) => `vq.draftAlias|${baseKey}`;
+export function readAlias(baseKey: string): string | null { try { return storage()?.getItem(aliasKey(baseKey)) ?? null; } catch { return null; } }
+export function writeAlias(baseKey: string, instance: string | null): boolean {
+  const s = storage(); if (!s) return false;
+  try { if (instance) s.setItem(aliasKey(baseKey), instance); else s.removeItem(aliasKey(baseKey)); return true; } catch { return false; }
+}
+/** Ajoute l'identifiant d'instance à l'adresse de reprise (reprise sur un autre appareil). */
+export function routeWithInstance(route: string | null | undefined, instance: string | null | undefined): string | null {
+  if (!route) return null;
+  const [p, q = ""] = route.split("?"); const sp = new URLSearchParams(q);
+  if (instance && instance !== "main") sp.set("instance", instance); else sp.delete("instance");
+  const qs = sp.toString(); return qs ? `${p}?${qs}` : p;
 }
 
 export function discardDraft(key: string) { try { storage()?.removeItem(key); } catch { /* rien */ } }
