@@ -327,24 +327,8 @@ const Admin = () => {
     })();
   }, [isAdmin]);
 
-  // Empêcher le bouton "précédent" de quitter le site — SEULEMENT quand /admin est la première page ouverte
-  // (aucune page précédente dans l'application). NAV-01B : sinon Retour doit ramener à la page précédente
-  // (ex. centre de contrôle) au lieu d'être bloqué sur /admin.
-  useEffect(() => {
-    const tag = "vq_admin_guard";
-    const idx = (window.history.state as { idx?: number } | null)?.idx;
-    if (typeof idx === "number" && idx > 0) return; // page précédente interne : Retour normal
-    if (!window.history.state || window.history.state.tag !== tag) {
-      window.history.pushState({ tag }, "");
-    }
-    const onPop = () => {
-      if (window.location.pathname === "/admin") {
-        window.history.pushState({ tag }, "");
-      }
-    };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
+  // NAV-01B : aucune interception du Retour natif (plus d'entrée d'historique factice). Le bouton « Retour » interne
+  // de la barre de navigation prévoit déjà un repli vers la page parente en accès direct.
 
   const fetchSubmissions = async () => {
     setLoading(true);
