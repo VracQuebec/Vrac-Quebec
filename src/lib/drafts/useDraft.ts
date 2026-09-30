@@ -55,7 +55,7 @@ export function useDraft<T>(opts: {
     const cid = idRef.current;
     if (!cid || !synced || !key || finalized.current || pushing.current) return;
     const rec = readDraft<T>(key);
-    if (!rec || !rec.meta.unsynced) return;
+    if (!rec || !rec.meta.unsynced || rec.meta.recovery) return; // copie de récupération : jamais transmise sans action explicite
     if (isCloseQueued(cid.owner, cid)) return;
     pushing.current = true; setSync("pending");
     const extra = { label: rec.meta.label, route: cb.current.route ?? rec.meta.route ?? undefined, step: rec.meta.step ?? null };
@@ -82,7 +82,8 @@ export function useDraft<T>(opts: {
       else if (k === "closed") {
         // Clos ailleurs : la saisie de cet onglet reste affichée et gardée sur l'appareil (non synchronisée);
         // elle ne sera reprise au compte QUE sur action explicite (« Reprendre dans un nouveau brouillon »).
-        finalized.current = true; patchMeta(key, { serverRev: null, unsynced: true }); setSync("closed");
+        // La saisie continue d'être enregistrée localement (copie de récupération distincte), jamais réactivée automatiquement.
+        const m = patchMeta(key, { serverRev: null, unsynced: true, recovery: true }); if (m) meta.current = m; setSync("closed");
       }
       else if (k === "conflict") {
         try { const srv = await fetchServerDraft(cid); if (srv) { keepConflictCopy(key, srv.data, "serveur"); setConflict(srv); } } catch { /* reste en attente */ }
@@ -108,7 +109,7 @@ export function useDraft<T>(opts: {
     const m = writeDraft(cid, d, meta.current, cb.current.label?.(d), { unsynced: synced ? true : undefined, step: cb.current.step?.(d) ?? null, route: cb.current.route ?? null });
     if (!m) { setStatus("error"); return; }
     meta.current = m; lastWritten.current = s; setSavedAt(m.updatedAt); setStatus("saved_local");
-    if (synced) { setSync((x) => (x === "conflict" || x === "denied" ? x : "pending")); schedulePush(); }
+    if (synced && !m.recovery) { setSync((x) => (x === "conflict" || x === "denied" ? x : "pending")); schedulePush(); }
   }, [synced, schedulePush]);
 
   // ---------- Lecture et restauration ----------
@@ -128,6 +129,8 @@ export function useDraft<T>(opts: {
     if (!synced) { if (local) apply(local); const t = activate(); return () => { cancelled = true; clearTimeout(t); }; }
 
     void flushCloseQueue(id.owner);
+    // Copie de récupération (brouillon clos ailleurs) : restaurée telle quelle, jamais resynchronisée automatiquement.
+    if (local?.meta.recovery) { apply(local); setSync("closed"); const t = activate(); return () => { cancelled = true; clearTimeout(t); }; }
     const timeout = new Promise<"timeout">((r) => setTimeout(() => r("timeout"), SERVER_WAIT_MS));
     Promise.race([fetchServerDraft(id), timeout]).then((srv) => {
       if (cancelled) return;
@@ -231,7 +234,7 @@ export function useDraft<T>(opts: {
     const cid = idRef.current; if (!cid || !key) return;
     try { await reopenServerDraft(cid); } catch { /* hors ligne : la transmission suivante réessaiera */ }
     finalized.current = false;
-    const m = writeDraft(cid, latest.current, null, cb.current.label?.(latest.current), { serverRev: null, unsynced: true, step: cb.current.step?.(latest.current) ?? null, route: cb.current.route ?? null });
+    const m = writeDraft(cid, latest.current, null, cb.current.label?.(latest.current), { serverRev: null, unsynced: true, recovery: false, step: cb.current.step?.(latest.current) ?? null, route: cb.current.route ?? null });
     if (m) { meta.current = m; lastWritten.current = JSON.stringify(latest.current); setSavedAt(m.updatedAt); setStatus("saved_local"); }
     setSync("pending"); void push();
   }, [key, push]);
