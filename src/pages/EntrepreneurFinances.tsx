@@ -112,6 +112,9 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
     if (canWrite && q.get("brouillon") === "obligation") {
       setForm({ id: null, instance: q.get("instance") || undefined }); q.delete("brouillon"); q.delete("instance");
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
+    } else if (canWrite && q.get("brouillon") === "obligation-modif" && q.get("obligation")) {
+      setForm({ id: q.get("obligation") }); q.delete("brouillon"); q.delete("obligation");
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
     }
   }, [canWrite]);
   const add = canWrite ? <Button onClick={() => setForm({ id: null })}><Plus className="mr-1 h-4 w-4" />Ajouter une obligation</Button> : null;
@@ -315,17 +318,36 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
   const [impact, setImpact] = useState<Awaited<ReturnType<typeof api.changeRule>> | null>(null);
   // NAV-01 : brouillon d'une NOUVELLE obligation (compte + entreprise). Fermer la fenêtre le garde;
   // seul « Abandonner le brouillon » l'efface. Un brouillon ne crée aucune échéance ni paiement.
+  // Modification : brouillon distinct (dossier = obligation), activé seulement APRÈS le chargement serveur
+  // (un chargement tardif n'écrase jamais une saisie reprise). Une fiche modifiée ailleurs depuis le
+  // brouillon n'est pas écrasée : la personne choisit explicitement.
   const { user: me } = useAuthReady();
+  const [loaded, setLoaded] = useState<any>(null);
+  const [stale, setStale] = useState<any>(null);
+  const forceBase = useRef<string | null>(null);
+  const dropOnRestore = useRef(false);
+  const mark = (o: any) => (o ? `${o.rev ?? ""}|${o.updated_at ?? ""}` : "");
   const draftable = !id && !ruleChange && !init;
+  const editDraft = !!id && !ruleChange && !!loaded && !stale;
   const store = useDraft({
-    id: draftable && me ? { module: "finances", form: "obligation", owner: me.id, company: companyId, instance: draftInstance } : null,
-    data: { p, preset, unit, adv },
-    label: (d) => d.p.label ? `Obligation « ${d.p.label} »` : "Nouvelle obligation",
-    route: `/entrepreneur/finances?company=${companyId}&brouillon=obligation`,
+    id: me && draftable ? { module: "finances", form: "obligation", owner: me.id, company: companyId, instance: draftInstance }
+      : me && editDraft ? { module: "finances", form: "obligation-modif", owner: me.id, company: companyId, recordId: id } : null,
+    data: { p, preset, unit, adv, base: mark(loaded) },
+    label: (d) => id ? `Modification de l'obligation « ${loaded?.label ?? d.p.label ?? ""} »` : d.p.label ? `Obligation « ${d.p.label} »` : "Nouvelle obligation",
+    route: id ? `/entrepreneur/finances?company=${companyId}&brouillon=obligation-modif&obligation=${id}` : `/entrepreneur/finances?company=${companyId}&brouillon=obligation`,
     // Tout champ modifié (sélection, case, ligne, saison…) compte : seul l'état initial est « vierge ».
-    isEmpty: (d) => JSON.stringify(d.p) === JSON.stringify(DEFAULT_OBLIGATION) && d.preset === toPreset("once", 1) && d.unit === "days",
-    onRestore: (d) => { setP(d.p); setPreset(d.preset); setUnit(d.unit); setAdv(d.adv); },
+    isEmpty: (d) => id ? JSON.stringify(d.p) === JSON.stringify(loadedP.current) : JSON.stringify(d.p) === JSON.stringify(DEFAULT_OBLIGATION) && d.preset === toPreset("once", 1) && d.unit === "days",
+    onRestore: (d) => {
+      if (id) {
+        if (dropOnRestore.current) { dropOnRestore.current = false; setTimeout(() => store.discard(), 0); return; }
+        const cur = mark(loaded);
+        if ((d as any).base !== cur && (d as any).base !== forceBase.current) { setStale(d); return; }
+        setP({ ...d.p, rev: loaded?.rev, updated_at: loaded?.updated_at });
+      } else setP(d.p);
+      setPreset(d.preset); setUnit(d.unit); setAdv(d.adv);
+    },
   });
+  const loadedP = useRef<any>(null);
   const abandon = () => { store.discard(); setP(DEFAULT_OBLIGATION); setPreset(toPreset("once", 1)); setUnit("days"); setAdv(false); };
   const load = useCallback(() => {
     if (!id) return;
@@ -333,7 +355,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
       const v = await api.versions(id); const last: any = v[v.length - 1]; setStatus(o.status);
       const x = { ...o, amount: last?.amount ?? "", amount_quality: last?.amount_quality ?? "unknown", seasons: o.seasons ?? [] };
       if (ruleChange) { x.amount_quality = "keep"; x.anchor_date = eff; }
-      setP(x); setPreset(toPreset(o.frequency, o.interval_n)); if (o.frequency === "weekly" && ![1, 2, 4].includes(o.interval_n)) setUnit("weeks"); if (o.frequency === "monthly" && ![1, 2, 3, 4, 6].includes(o.interval_n)) setUnit("months");
+      setP(x); loadedP.current = x; if (!ruleChange) setLoaded(o); setPreset(toPreset(o.frequency, o.interval_n)); if (o.frequency === "weekly" && ![1, 2, 4].includes(o.interval_n)) setUnit("weeks"); if (o.frequency === "monthly" && ![1, 2, 3, 4, 6].includes(o.interval_n)) setUnit("months");
     });
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { api.lookups(companyId).then(setLk); load(); }, [companyId, load]);
@@ -378,7 +400,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
       const body = { ...p, amount: p.amount_quality === "unknown" ? null : Number(p.amount), status: status === "draft" && !init ? "active" : status === "draft" ? "draft" : "active" };
       if (id && status === "draft") body.status = "active";
       await api.saveObligation(companyId, id, body);
-      if (draftable) store.finalize();
+      if (draftable || editDraft) store.finalize();
       toast({ title: id ? "Obligation modifiée" : "Obligation enregistrée" }); onSaved();
     } catch (e: any) { fail(e); } finally { setBusy(false); }
   };
@@ -391,10 +413,16 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
     <DialogHeader><DialogTitle>{ruleChange ? "Changer la règle à partir d'une date" : id ? "Modifier l'obligation" : init ? "Dupliquer (nouvelle date requise)" : "Ajouter une obligation"}</DialogTitle></DialogHeader>
     <p className="text-sm">Entreprise : <strong>{companyName}</strong></p>
-    {draftable && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={abandon} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+    {stale && <div role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-sm" data-testid="draft-stale">
+      Cette obligation a été modifiée ailleurs depuis votre brouillon. Vos modifications n'ont pas été appliquées : la version actuelle est affichée.
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={() => { forceBase.current = stale.base; setStale(null); }}>Appliquer mon brouillon sur la version actuelle</Button>
+        <Button size="sm" variant="outline" onClick={() => { if (window.confirm("Abandonner ce brouillon de modification ? La version actuelle est conservée.")) { dropOnRestore.current = true; setStale(null); } }}>Garder la version actuelle</Button>
+      </div></div>}
+    {(draftable || editDraft) && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={abandon} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
     {conflict && <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-sm">{conflict}<div className="mt-2"><Button size="sm" variant="outline" onClick={() => { setConflict(null); load(); }}>Recharger l'état actuel</Button></div></div>}
     {ruleChange && <L l="La nouvelle règle s'applique à partir du (inclus)"><Input type="date" value={eff} onChange={(e) => { setEff(e.target.value); up("anchor_date", e.target.value); }} /></L>}
-    <fieldset disabled={draftable && store.blocked} aria-describedby="draft-status" className="contents disabled:opacity-60">
+    <fieldset disabled={(draftable || editDraft) && store.blocked} aria-describedby="draft-status" className="contents disabled:opacity-60">
     <div className="grid gap-3 sm:grid-cols-2">
       {!ruleChange && <>
         <L l="Libellé *"><Input value={p.label ?? ""} onChange={(e) => up("label", e.target.value)} /></L>
