@@ -7,7 +7,7 @@
 // ============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Clock, Loader2, ShieldCheck, Truck,
 } from "lucide-react";
@@ -47,7 +47,13 @@ export default function Soumission() {
   const setStep = (v: number | ((s: number) => number)) => {
     const n = typeof v === "function" ? v(step) : v;
     if (n === step) return;
-    setParams((p) => { const q = new URLSearchParams(p); if (n === 0) q.delete("etape"); else q.set("etape", String(n + 1)); return q; });
+    setParams((p) => { const q = new URLSearchParams(p); if (n === 0) q.delete("etape"); else q.set("etape", String(n + 1)); return q; }, { state: { vqStep: true } });
+  };
+  const location = useLocation(); const navigate = useNavigate();
+  // Précédent = même effet que le Retour natif quand l'étape précédente est dans l'historique (aucune boucle).
+  const goPrev = () => {
+    if ((location.state as { vqStep?: boolean } | null)?.vqStep) navigate(-1);
+    else setParams((p) => { const q = new URLSearchParams(p); if (step <= 1) q.delete("etape"); else q.set("etape", String(step)); return q; }, { replace: true });
   };
   const [categories, setCategories] = useState<AssistantCategory[]>([]);
   const [materials, setMaterials] = useState<AssistantMaterial[]>([]);
@@ -105,6 +111,11 @@ export default function Soumission() {
     if (loadingCatalog || confirmation) return;
     if (step >= 2 && !material) setParams((p) => { const q = new URLSearchParams(p); q.set("etape", categoryId ? "2" : "1"); if (!categoryId) q.delete("etape"); return q; }, { replace: true });
   }, [step, material, loadingCatalog]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Retour sur l'étape Estimation (rechargement, Avance natif) : estimation recalculée, jamais inventée.
+  useEffect(() => {
+    if (step === 6 && material && quantityPayload && !quote && !quoting && !quoteError && !confirmation) void runEstimate();
+  }, [step, material]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Bandeau de navigation universel : prévient avant de quitter une saisie en cours.
   useUnsavedChangesGuard(
@@ -326,7 +337,7 @@ export default function Soumission() {
               )}
 
               <div className="mt-6 flex items-center justify-between gap-3">
-                <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0 || submitting}>
+                <Button variant="ghost" onClick={goPrev} disabled={step === 0 || submitting}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Retour
                 </Button>
                 {step < 6 && (
