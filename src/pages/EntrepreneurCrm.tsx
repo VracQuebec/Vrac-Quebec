@@ -396,8 +396,10 @@ function LeadDialog({ lead, companyId, clients, onClose, onSaved }: any) {
     </div></DialogContent></Dialog>;
 }
 
-function Clients({ companyId, canWrite }: any) {
-  const [rows, setRows] = useState<any[]>([]); const [q, setQ] = useState(""); const [open, setOpen] = useState<any>(null);
+function Clients({ companyId, canWrite, params, setParams }: any) {
+  // Recherche gardée dans l'adresse (?cq=) : conservée après Retour et actualisation.
+  const q = params.get("cq") ?? ""; const setQ = (v: string) => { const n = new URLSearchParams(params); v ? n.set("cq", v) : n.delete("cq"); setParams(n, { replace: true }); };
+  const [rows, setRows] = useState<any[]>([]); const [open, setOpen] = useState<any>(null);
   const load = useCallback(async () => setRows((await db.from("ent_crm_clients").select("*, ent_crm_contacts(*), ent_crm_projects(id,name), ent_crm_leads(id,title,stage)").eq("company_id", companyId).is("archived_at", null).order("name")).data ?? []), [companyId]);
   useEffect(() => { void load(); }, [load]);
   const add = async () => { const name = prompt("Nom du client ?"); if (!name) return; const kind = prompt("Type : particulier, entreprise ou organisme", "particulier") || "particulier";
