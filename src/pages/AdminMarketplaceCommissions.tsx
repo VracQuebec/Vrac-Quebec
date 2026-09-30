@@ -202,7 +202,7 @@ export default function AdminMarketplaceCommissions() {
                 <CardContent className="grid gap-4 md:grid-cols-2">
                   <div className="md:col-span-2">
                     <Label>Nom de la règle</Label>
-                    <Input value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })}
+                    <Input aria-label="Nom de la règle" value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })}
                       placeholder="Ex. : Excavation — 5 % de commission" />
                   </div>
                   <div>
