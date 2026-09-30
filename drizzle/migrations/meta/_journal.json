@@ -512,6 +512,13 @@
       "when": 1790728117021,
       "tag": "0072_fin04_recherche_vues",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1790731616244,
+      "tag": "0073_fin_allocated_on_local_date",
+      "breakpoints": true
     }
   ]
 }

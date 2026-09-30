@@ -81,7 +81,7 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
         <ul className="max-h-56 space-y-1 overflow-y-auto">{open.map((o) => <li key={o.id} className="flex items-center gap-2 text-sm">
           <input type="checkbox" aria-label={`Couvrir ${o.label} du ${fmtDate(o.due_date)}`} checked={o.id in pick} onChange={(e) => setPick((p) => { const n = { ...p }; if (e.target.checked) n[o.id] = String(o.balance); else delete n[o.id]; return n; })} />
           <span className="min-w-0 flex-1 break-words">{fmtDate(o.due_date)} · {o.label} · reste {fmtMoney(o.balance)}{o.amount_quality === "estimated" ? " (estimé)" : ""}</span>
-          {o.id in pick && <Input aria-label={`Affecté à ${fmtDate(o.due_date)}`} className="h-8 w-28" type="number" min="0" step="0.01" value={pick[o.id]} onChange={(e) => setPick({ ...pick, [o.id]: e.target.value })} />}
+          {o.id in pick && <Input aria-label={`Affecté à ${o.label} du ${fmtDate(o.due_date)}`} className="h-8 w-28" type="number" min="0" step="0.01" value={pick[o.id]} onChange={(e) => setPick({ ...pick, [o.id]: e.target.value })} />}
         </li>)}</ul>}
     </section>
     <button type="button" className="text-left text-sm font-semibold text-primary" onClick={() => setMore(!more)}>{more ? "Masquer" : "Ajouter"} référence, compte source, note</button>
