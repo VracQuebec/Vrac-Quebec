@@ -10,3 +10,4 @@
 - Brouillons de formulaires : toujours via src/lib/drafts (useDraft + DraftStatusBar), étape d'assistant dans ?etape= — une seule mécanique, reprise après Retour/rechargement.
 
 - Brouillons des comptes connectés : synchronisés dans public.user_drafts via RPC draft_* (version contrôlée, refus après clôture) — reprise entre appareils sans écrasement silencieux.
+- Brouillon clos ailleurs : la saisie continue en copie de récupération locale, et la reprise crée un NOUVEL identifiant (instance r-…, alias local + ?instance= dans l'adresse) — un identifiant clos n'est jamais rouvert.

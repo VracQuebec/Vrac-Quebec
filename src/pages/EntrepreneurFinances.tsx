@@ -1,6 +1,6 @@
 // FIN-01 — Finances : obligations à payer et calendrier.
 // Une obligation prévoit un montant ; ce n'est pas un paiement bancaire.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDraft } from "@/lib/drafts/useDraft";
 import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { useSearchParams } from "react-router-dom";
@@ -111,6 +111,13 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
     const q = new URLSearchParams(window.location.search);
     if (canWrite && q.get("brouillon") === "obligation") {
       setForm({ id: null, instance: q.get("instance") || undefined }); q.delete("brouillon"); q.delete("instance");
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
+    } else if (canWrite && q.get("brouillon") === "reglement" && q.get("cibles")) {
+      try { const t = JSON.parse(decodeURIComponent(escape(atob(q.get("cibles")!)))); if (Array.isArray(t) && t.length) setPay(t); } catch { /* adresse invalide : rien n'est ouvert */ }
+      q.delete("brouillon"); q.delete("cibles");
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
+    } else if (canWrite && q.get("brouillon") === "obligation-modif" && q.get("obligation")) {
+      setForm({ id: q.get("obligation") }); q.delete("brouillon"); q.delete("obligation");
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
     }
   }, [canWrite]);
@@ -315,17 +322,36 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
   const [impact, setImpact] = useState<Awaited<ReturnType<typeof api.changeRule>> | null>(null);
   // NAV-01 : brouillon d'une NOUVELLE obligation (compte + entreprise). Fermer la fenêtre le garde;
   // seul « Abandonner le brouillon » l'efface. Un brouillon ne crée aucune échéance ni paiement.
+  // Modification : brouillon distinct (dossier = obligation), activé seulement APRÈS le chargement serveur
+  // (un chargement tardif n'écrase jamais une saisie reprise). Une fiche modifiée ailleurs depuis le
+  // brouillon n'est pas écrasée : la personne choisit explicitement.
   const { user: me } = useAuthReady();
+  const [loaded, setLoaded] = useState<any>(null);
+  const [stale, setStale] = useState<any>(null);
+  const forceBase = useRef<string | null>(null);
+  const dropOnRestore = useRef(false);
+  const mark = (o: any) => (o ? `${o.rev ?? ""}|${o.updated_at ?? ""}` : "");
   const draftable = !id && !ruleChange && !init;
+  const editDraft = !!id && !ruleChange && !!loaded && !stale;
   const store = useDraft({
-    id: draftable && me ? { module: "finances", form: "obligation", owner: me.id, company: companyId, instance: draftInstance } : null,
-    data: { p, preset, unit, adv },
-    label: (d) => d.p.label ? `Obligation « ${d.p.label} »` : "Nouvelle obligation",
-    route: `/entrepreneur/finances?company=${companyId}&brouillon=obligation`,
+    id: me && draftable ? { module: "finances", form: "obligation", owner: me.id, company: companyId, instance: draftInstance }
+      : me && editDraft ? { module: "finances", form: "obligation-modif", owner: me.id, company: companyId, recordId: id } : null,
+    data: { p, preset, unit, adv, base: mark(loaded) },
+    label: (d) => id ? `Modification de l'obligation « ${loaded?.label ?? d.p.label ?? ""} »` : d.p.label ? `Obligation « ${d.p.label} »` : "Nouvelle obligation",
+    route: id ? `/entrepreneur/finances?company=${companyId}&brouillon=obligation-modif&obligation=${id}` : `/entrepreneur/finances?company=${companyId}&brouillon=obligation`,
     // Tout champ modifié (sélection, case, ligne, saison…) compte : seul l'état initial est « vierge ».
-    isEmpty: (d) => JSON.stringify(d.p) === JSON.stringify(DEFAULT_OBLIGATION) && d.preset === toPreset("once", 1) && d.unit === "days",
-    onRestore: (d) => { setP(d.p); setPreset(d.preset); setUnit(d.unit); setAdv(d.adv); },
+    isEmpty: (d) => id ? JSON.stringify(d.p) === JSON.stringify(loadedP.current) : JSON.stringify(d.p) === JSON.stringify(DEFAULT_OBLIGATION) && d.preset === toPreset("once", 1) && d.unit === "days",
+    onRestore: (d) => {
+      if (id) {
+        if (dropOnRestore.current) { dropOnRestore.current = false; setTimeout(() => store.discard(), 0); return; }
+        const cur = mark(loaded);
+        if ((d as any).base !== cur && (d as any).base !== forceBase.current) { setStale(d); return; }
+        setP({ ...d.p, rev: loaded?.rev, updated_at: loaded?.updated_at });
+      } else setP(d.p);
+      setPreset(d.preset); setUnit(d.unit); setAdv(d.adv);
+    },
   });
+  const loadedP = useRef<any>(null);
   const abandon = () => { store.discard(); setP(DEFAULT_OBLIGATION); setPreset(toPreset("once", 1)); setUnit("days"); setAdv(false); };
   const load = useCallback(() => {
     if (!id) return;
@@ -333,7 +359,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
       const v = await api.versions(id); const last: any = v[v.length - 1]; setStatus(o.status);
       const x = { ...o, amount: last?.amount ?? "", amount_quality: last?.amount_quality ?? "unknown", seasons: o.seasons ?? [] };
       if (ruleChange) { x.amount_quality = "keep"; x.anchor_date = eff; }
-      setP(x); setPreset(toPreset(o.frequency, o.interval_n)); if (o.frequency === "weekly" && ![1, 2, 4].includes(o.interval_n)) setUnit("weeks"); if (o.frequency === "monthly" && ![1, 2, 3, 4, 6].includes(o.interval_n)) setUnit("months");
+      setP(x); loadedP.current = x; if (!ruleChange) setLoaded(o); setPreset(toPreset(o.frequency, o.interval_n)); if (o.frequency === "weekly" && ![1, 2, 4].includes(o.interval_n)) setUnit("weeks"); if (o.frequency === "monthly" && ![1, 2, 3, 4, 6].includes(o.interval_n)) setUnit("months");
     });
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { api.lookups(companyId).then(setLk); load(); }, [companyId, load]);
@@ -378,7 +404,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
       const body = { ...p, amount: p.amount_quality === "unknown" ? null : Number(p.amount), status: status === "draft" && !init ? "active" : status === "draft" ? "draft" : "active" };
       if (id && status === "draft") body.status = "active";
       await api.saveObligation(companyId, id, body);
-      if (draftable) store.finalize();
+      if (draftable || editDraft) store.finalize();
       toast({ title: id ? "Obligation modifiée" : "Obligation enregistrée" }); onSaved();
     } catch (e: any) { fail(e); } finally { setBusy(false); }
   };
@@ -391,10 +417,16 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
     <DialogHeader><DialogTitle>{ruleChange ? "Changer la règle à partir d'une date" : id ? "Modifier l'obligation" : init ? "Dupliquer (nouvelle date requise)" : "Ajouter une obligation"}</DialogTitle></DialogHeader>
     <p className="text-sm">Entreprise : <strong>{companyName}</strong></p>
-    {draftable && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={abandon} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+    {stale && <div role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-sm" data-testid="draft-stale">
+      Cette obligation a été modifiée ailleurs depuis votre brouillon. Vos modifications n'ont pas été appliquées : la version actuelle est affichée.
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={() => { forceBase.current = stale.base; setStale(null); }}>Appliquer mon brouillon sur la version actuelle</Button>
+        <Button size="sm" variant="outline" onClick={() => { if (window.confirm("Abandonner ce brouillon de modification ? La version actuelle est conservée.")) { dropOnRestore.current = true; setStale(null); } }}>Garder la version actuelle</Button>
+      </div></div>}
+    {(draftable || editDraft) && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={abandon} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
     {conflict && <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-sm">{conflict}<div className="mt-2"><Button size="sm" variant="outline" onClick={() => { setConflict(null); load(); }}>Recharger l'état actuel</Button></div></div>}
     {ruleChange && <L l="La nouvelle règle s'applique à partir du (inclus)"><Input type="date" value={eff} onChange={(e) => { setEff(e.target.value); up("anchor_date", e.target.value); }} /></L>}
-    <fieldset disabled={draftable && store.blocked} aria-describedby="draft-status" className="contents disabled:opacity-60">
+    <fieldset disabled={(draftable || editDraft) && store.blocked} aria-describedby="draft-status" className="contents disabled:opacity-60">
     <div className="grid gap-3 sm:grid-cols-2">
       {!ruleChange && <>
         <L l="Libellé *"><Input value={p.label ?? ""} onChange={(e) => up("label", e.target.value)} /></L>
@@ -592,22 +624,48 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
 
 function Settings({ companyId, cats, canWrite, onChange }: { companyId: string; cats: Awaited<ReturnType<typeof api.categories>>; canWrite: boolean; onChange: () => void }) {
   const [name, setName] = useState("");
-  const [edit, setEdit] = useState<{ id: string; name: string } | null>(null);
+  const [edit, setEdit] = useState<{ id: string; name: string; base?: string } | null>(null);
+  const [staleNote, setStaleNote] = useState<string | null>(null);
+  // NAV-01B : nom de nouvelle catégorie et renommage en cours = brouillon. Un renommage repris n'écrase pas une
+  // catégorie renommée ailleurs depuis (le nom actuel reste affiché, la saisie est signalée).
+  const { user: me } = useAuthReady();
+  const catsRef = useRef(cats); catsRef.current = cats;
+  // Attendre la liste des catégories (ou 2 s si l'entreprise n'en a aucune) avant de reprendre un renommage.
+  const [catsReady, setCatsReady] = useState(cats.length > 0);
+  useEffect(() => { if (cats.length) { setCatsReady(true); return; } const t = setTimeout(() => setCatsReady(true), 2000); return () => clearTimeout(t); }, [cats.length]);
+  const store = useDraft({
+    id: me && canWrite && catsReady ? { module: "finances", form: "parametres", owner: me.id, company: companyId } : null,
+    data: { name, edit },
+    label: () => "Paramètres Finances (catégories)",
+    route: `/entrepreneur/finances?company=${companyId}&tab=parametres`,
+    isEmpty: (d) => !d.name && !d.edit,
+    onRestore: (d) => {
+      setName(d.name ?? "");
+      if (d.edit) {
+        const cur = catsRef.current.find((c) => c.id === d.edit!.id);
+        if (!cur) setStaleNote(`Renommage non repris : la catégorie n'existe plus ou n'est plus accessible (saisie : « ${d.edit.name} »).`);
+        else if (d.edit.base != null && cur.name !== d.edit.base) setStaleNote(`La catégorie « ${d.edit.base} » a été renommée ailleurs en « ${cur.name} ». Votre saisie « ${d.edit.name} » n'a pas été appliquée.`);
+        else setEdit(d.edit);
+      }
+    },
+  });
   const call = async (fn: () => Promise<any>, msg: string) => { try { const r = await fn(); if (r?.error) throw r.error; toast({ title: msg }); onChange(); } catch (e: any) { toast({ title: "Non enregistré", description: e.message?.includes("duplicate") ? "Cette catégorie existe déjà." : e.message, variant: "destructive" }); } };
   const supabase = sb;
   return <div className="space-y-4">
     <section className="rounded-md border border-border p-3 text-sm"><p className="font-display font-bold">Paramètres de l'entreprise</p><p>Devise : CAD · Fuseau : {TZ}</p><p className="text-xs text-muted-foreground">Seule la devise canadienne est prise en charge dans ce premier lot.</p></section>
     <section className="space-y-2"><p className="font-display font-bold">Catégories</p>
+      {canWrite && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setName(""); setEdit(null); }} sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+      {staleNote && <p role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-sm">{staleNote} <Button size="sm" variant="ghost" onClick={() => setStaleNote(null)}>Compris</Button></p>}
       {canWrite && <div className="flex flex-wrap gap-2">
-        <Input className="max-w-xs" placeholder="Nouvelle catégorie" value={name} onChange={(e) => setName(e.target.value)} />
-        <Button disabled={!name.trim()} onClick={() => call(() => supabase.from("fin_categories").insert({ company_id: companyId, name: name.trim() }), "Catégorie ajoutée").then(() => setName(""))}>Ajouter</Button>
+        <Input className="max-w-xs" aria-label="Nouvelle catégorie" disabled={store.blocked} placeholder="Nouvelle catégorie" value={name} onChange={(e) => setName(e.target.value)} />
+        <Button disabled={!name.trim()} onClick={() => call(() => supabase.from("fin_categories").insert({ company_id: companyId, name: name.trim() }), "Catégorie ajoutée").then(() => { setName(""); if (!edit) store.finalize(); })}>Ajouter</Button>
         <Button variant="outline" onClick={() => call(() => api.seedCategories(companyId).then((n) => ({ n })), "Catégories suggérées ajoutées (sans doublon)")}>Ajouter les catégories suggérées</Button>
       </div>}
       {cats.length === 0 ? <p className="text-sm text-muted-foreground">Aucune catégorie. Ajoutez les vôtres ou les catégories suggérées (sans montant ni taux de taxe).</p> :
         <ul className="divide-y divide-border rounded-md border border-border">{cats.map((c) => <li key={c.id} className="flex items-center justify-between gap-2 p-2 text-sm">
-          {edit?.id === c.id ? <Input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /> : <span className={c.archived_at ? "text-muted-foreground line-through" : ""}>{c.name}{c.is_suggested ? " · suggérée" : ""}</span>}
+          {edit?.id === c.id ? <Input aria-label="Nouveau nom de la catégorie" disabled={store.blocked} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /> : <span className={c.archived_at ? "text-muted-foreground line-through" : ""}>{c.name}{c.is_suggested ? " · suggérée" : ""}</span>}
           {canWrite && <div className="flex gap-1">
-            {edit?.id === c.id ? <Button size="sm" onClick={() => call(() => supabase.from("fin_categories").update({ name: edit.name.trim(), updated_at: new Date().toISOString() }).eq("id", c.id), "Catégorie renommée").then(() => setEdit(null))}>OK</Button> : <Button size="sm" variant="ghost" onClick={() => setEdit({ id: c.id, name: c.name })}>Renommer</Button>}
+            {edit?.id === c.id ? <Button size="sm" onClick={() => call(() => supabase.from("fin_categories").update({ name: edit.name.trim(), updated_at: new Date().toISOString() }).eq("id", c.id), "Catégorie renommée").then(() => { setEdit(null); if (!name) store.finalize(); })}>OK</Button> : <Button size="sm" variant="ghost" onClick={() => setEdit({ id: c.id, name: c.name, base: c.name })}>Renommer</Button>}
             <Button size="sm" variant="ghost" onClick={() => call(() => supabase.from("fin_categories").update({ archived_at: c.archived_at ? null : new Date().toISOString() }).eq("id", c.id), c.archived_at ? "Catégorie réactivée" : "Catégorie archivée")}>{c.archived_at ? "Réactiver" : "Archiver"}</Button>
           </div>}
         </li>)}</ul>}
