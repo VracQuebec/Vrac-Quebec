@@ -30,9 +30,16 @@ const STEPS = ["Matériau", "Quantité", "Livraison", "Coordonnées", "Résumé 
 
 export default function AchatVrac() {
   const materials = useMemo(() => getActiveVracMaterials(), []);
-  const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<VracDraft>(EMPTY_VRAC_DRAFT);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setParams] = useSearchParams();
+  // NAV-01 : l'étape vit dans l'historique (?etape=) — Retour/Avance du navigateur et
+  // rechargement gardent la place; les saisies restent dans le brouillon local.
+  const step = Math.min(Math.max(Number(searchParams.get("etape") || 1) - 1, 0), STEPS.length - 1);
+  const setStep = (v: number | ((s: number) => number)) => {
+    const n = Math.min(Math.max(typeof v === "function" ? v(step) : v, 0), STEPS.length - 1);
+    if (n === step) return;
+    setParams((p) => { const q = new URLSearchParams(p); if (n === 0) q.delete("etape"); else q.set("etape", String(n + 1)); return q; });
+  };
   const estimate = useVracEstimate();
   const submission = useQuoteSubmit();
 
