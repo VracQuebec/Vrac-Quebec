@@ -547,6 +547,20 @@
       "when": 1790804466115,
       "tag": "0077_fin05b_compte_prevu",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1790809492514,
+      "tag": "0078_fin06_rappels",
+      "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1790809568332,
+      "tag": "0079_fin06_rappels_fix_raisons",
+      "breakpoints": true
     }
   ]
 }
