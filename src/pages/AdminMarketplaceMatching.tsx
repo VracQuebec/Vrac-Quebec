@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
+import { useScreenContext } from "@/lib/navigation/listContext";
   fetchAdminRequests, fetchLots, fetchMarketplaceSettings, invitePartners,
   matchPartners, saveMarketplaceSettings, CONTACT_RULES, revealContact, setRequestContactRule,
 } from "@/lib/marketplace/api";
@@ -64,7 +65,9 @@ export default function AdminMarketplaceMatching() {
   const [excluded, setExcluded] = useState<Record<string, boolean>>({});
   const [sending, setSending] = useState(false);
   const [settings, setSettings] = useState<MarketplaceSettings | null>(null);
-  const [search, setSearch] = useState("");
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+  const __lc = useScreenContext("marche-jumelage", { search: ("") });
+  const search = __lc.v.search; const setSearch = __lc.field("search");
 
   const load = useCallback(async () => {
     setLoading(true);

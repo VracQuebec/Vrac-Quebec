@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+import { useScreenContext } from "@/lib/navigation/listContext";
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
@@ -50,10 +51,14 @@ export default function AdminTerritories() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [region, setRegion] = useState("all");
-  const [service, setService] = useState("all");
-  const [status, setStatus] = useState("all");
+
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+
+  const __lc = useScreenContext("territoires", { search: (""), region: ("all"), service: ("all"), status: ("all") });
+  const search = __lc.v.search; const setSearch = __lc.field("search");
+  const region = __lc.v.region; const setRegion = __lc.field("region");
+  const service = __lc.v.service; const setService = __lc.field("service");
+  const status = __lc.v.status; const setStatus = __lc.field("status");
 
   const [selected, setSelected] = useState<Territory | null>(null);
   const [detail, setDetail] = useState<TerritoryDetail | null>(null);

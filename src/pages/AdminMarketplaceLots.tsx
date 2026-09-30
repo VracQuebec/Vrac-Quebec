@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useEditorDraft } from "@/lib/drafts/useEditorDraft";
 import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import {
+import { useScreenContext } from "@/lib/navigation/listContext";
   buildLotStrategies, deleteLot, fetchAdminRequests, fetchLots, fetchRequestBids, saveLot,
 } from "@/lib/marketplace/api";
 import type { LotBid, LotStrategy } from "@/lib/marketplace/api";
@@ -61,7 +62,9 @@ export default function AdminMarketplaceLots() {
 
   const [requests, setRequests] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+  const __lc = useScreenContext("marche-lots", { search: ("") });
+  const search = __lc.v.search; const setSearch = __lc.field("search");
   const [selected, setSelected] = useState<QuoteRequest | null>(null);
   const [lots, setLots] = useState<RequestLot[]>([]);
   const [bids, setBids] = useState<LotBid[]>([]);

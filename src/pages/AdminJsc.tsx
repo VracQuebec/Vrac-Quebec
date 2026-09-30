@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+import { useScreenContext } from "@/lib/navigation/listContext";
   ArrowLeft, Layers, Building2, Building, MapPin, DollarSign, Truck, Route, Globe2, Percent,
   Settings2, ShieldCheck, History, DatabaseBackup, Loader2, FolderTree, UserCog, Users,
   Inbox, FileText, ClipboardList, Receipt, LayoutDashboard, Table2, Columns3, Calculator,
@@ -53,7 +54,9 @@ export default function AdminJsc() {
   const [reloadKey, setReloadKey] = useState(0);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
-  const [view, setView] = useState<"kanban" | "table">("kanban");
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+  const __lc = useScreenContext("crm-admin", { view: ("kanban") as "kanban" | "table" }, { company: companyId });
+  const view = __lc.v.view; const setView = __lc.field("view");
   const [mode, setMode] = useState<"test" | "production">("test");
 
   useEffect(() => {

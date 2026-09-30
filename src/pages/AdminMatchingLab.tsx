@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
+import { useScreenContext } from "@/lib/navigation/listContext";
   rankCandidates,
   planAllocation,
   computeQuantity,
@@ -49,7 +50,9 @@ export default function AdminMatchingLab() {
   const [results, setResults] = useState<MatchResult[]>([]);
   const [vehicles, setVehicles] = useState<Record<string, VehicleProfileLite>>({});
   const [publicFlag, setPublicFlag] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"recherche" | "assistant" | "interpreteur">("recherche");
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+  const __lc = useScreenContext("jumelage-labo", { tab: ("recherche") as "recherche" | "assistant" | "interpreteur" });
+  const tab = __lc.v.tab; const setTab = __lc.field("tab");
 
   useEffect(() => {
     if (!ready || !isAdmin) return;

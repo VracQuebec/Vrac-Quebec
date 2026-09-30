@@ -22,6 +22,7 @@ import { VEHICLE_CONFIG_CODES, kgToTonnes } from "@/lib/transport/capacity";
 import type { VehicleProfileLite } from "@/lib/matching/engine";
 import { interpretDescription, DEFAULT_SYNONYMS, type SynonymEntry } from "@/lib/matching/interpreter";
 import {
+import { useScreenContext } from "@/lib/navigation/listContext";
   MATCHING_V2_VERSION,
   DEFAULT_V2_WEIGHTS,
   buildMatchingMatrix,
@@ -59,7 +60,11 @@ export default function AdminMatchingEngine() {
   const { isReady: ready } = useAuthReady();
   const { isAdmin, loading: rolesLoading } = useUserRoles();
 
-  const [tab, setTab] = useState<Tab>("offre");
+
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+
+  const __lc = useScreenContext("jumelage-moteur", { tab: ("offre") as Tab });
+  const tab = __lc.v.tab; const setTab = __lc.field("tab");
   const [text, setText] = useState(EXAMPLE_OFFER);
   const [lat, setLat] = useState("46.81");
   const [lng, setLng] = useState("-71.21");

@@ -6,6 +6,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { toast } from "sonner";
 import {
+import { useScreenContext } from "@/lib/navigation/listContext";
   ArrowLeft, LayoutDashboard, MapPin, Package, Wrench, Sparkles, Lightbulb,
   Loader2, Plus, Trash2, Play, Pause, RotateCcw, Save, ExternalLink, Gauge, RefreshCw,
   FileText, Zap, ListChecks, Search as SearchIcon, TrendingUp, Download, Building2,
@@ -318,8 +319,10 @@ function CitiesTab() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [editing, setEditing] = useState<City | null>(null);
-  const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<"all" | "none" | "published" | "registry" | "legacy">("all");
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+  const __lc = useScreenContext("seo-pages", { q: (""), filter: ("all") as "all" | "none" | "published" | "registry" | "legacy" });
+  const q = __lc.v.q; const setQ = __lc.field("q");
+  const filter = __lc.v.filter; const setFilter = __lc.field("filter");
 
   const load = async () => {
     setLoading(true);

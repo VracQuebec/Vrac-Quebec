@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ChevronDown, ChevronRight, Plus, Save, Search } from "lucide-react";
 import { fetchCategories, saveCategory } from "@/lib/marketplace/api";
 import type { ServiceCategory } from "@/lib/marketplace/types";
+import { useScreenContext } from "@/lib/navigation/listContext";
 
 type Node = ServiceCategory & { children: Node[] };
 
@@ -45,7 +46,9 @@ export default function AdminMarketplaceCategories() {
   const [rows, setRows] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<Record<string, boolean>>({});
-  const [search, setSearch] = useState("");
+  // NAV-01B : contexte d'écran (compte + entreprise + écran), mécanisme commun, jamais dans l'adresse.
+  const __lc = useScreenContext("marche-categories", { search: ("") });
+  const search = __lc.v.search; const setSearch = __lc.field("search");
   const [saving, setSaving] = useState(false);
   // NAV-01B : modifications non enregistrées par catégorie + ajout en préparation (remplace la question native).
   // Rien n'est écrit au serveur avant le bouton d'enregistrement de la ligne ou « Ajouter ».
