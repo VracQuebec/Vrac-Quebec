@@ -7,7 +7,7 @@
 // ============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Clock, Loader2, ShieldCheck, Truck,
 } from "lucide-react";
@@ -25,6 +25,8 @@ import {
 } from "@/lib/jsc/assistant";
 import type { PublicQuote } from "@/lib/jsc/engine";
 import { useUnsavedChangesGuard } from "@/lib/navigation/unsavedChanges";
+import { useDraft } from "@/lib/drafts/useDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { getAttribution } from "@/lib/analytics/attribution";
 import { trackEvent } from "@/lib/analytics/ga4";
 
@@ -38,7 +40,21 @@ const delay = (minutes: number) => {
 };
 
 export default function Soumission() {
-  const [step, setStep] = useState(0);
+  // NAV-01 : l'étape vit dans l'historique (?etape=) — Précédent/Retour natif reviennent
+  // à l'étape précédente sans rien effacer; les frappes n'ajoutent aucune entrée.
+  const [params, setParams] = useSearchParams();
+  const step = Math.min(Math.max(Number(params.get("etape") || 1) - 1, 0), STEPS.length - 1);
+  const setStep = (v: number | ((s: number) => number)) => {
+    const n = typeof v === "function" ? v(step) : v;
+    if (n === step) return;
+    setParams((p) => { const q = new URLSearchParams(p); if (n === 0) q.delete("etape"); else q.set("etape", String(n + 1)); return q; }, { state: { vqStep: true } });
+  };
+  const location = useLocation(); const navigate = useNavigate();
+  // Précédent = même effet que le Retour natif quand l'étape précédente est dans l'historique (aucune boucle).
+  const goPrev = () => {
+    if ((location.state as { vqStep?: boolean } | null)?.vqStep) navigate(-1);
+    else setParams((p) => { const q = new URLSearchParams(p); if (step <= 1) q.delete("etape"); else q.set("etape", String(step)); return q; }, { replace: true });
+  };
   const [categories, setCategories] = useState<AssistantCategory[]>([]);
   const [materials, setMaterials] = useState<AssistantMaterial[]>([]);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
@@ -69,6 +85,37 @@ export default function Soumission() {
   const sending = useRef(false);
   const [honeypot, setHoneypot] = useState("");
   const startedAt = useRef<number>(Date.now());
+
+  // NAV-01 : brouillon local (même navigateur) — champs déclarés, aucun secret.
+  const [pendingMaterialId, setPendingMaterialId] = useState<string | null>(null);
+  const draftData = { categoryId, materialId: material?.id ?? pendingMaterialId, mode, tonnes, dims, dimUnits, trips, truckId, address, date, contact };
+  const draft = useDraft({
+    id: loadingCatalog ? null : { module: "soumission-publique", form: "assistant", owner: "anon" },
+    data: draftData,
+    isEmpty: (d) => !d.categoryId && !d.materialId && !d.tonnes && !d.trips && !d.address && !d.contact.name && !d.contact.phone && !d.contact.email,
+    onRestore: (d) => {
+      setCategoryId(d.categoryId); setMode(d.mode); setTonnes(d.tonnes); setDims(d.dims); setDimUnits(d.dimUnits);
+      setTrips(d.trips); setTruckId(d.truckId); setAddress(d.address); setDate(d.date); setContact(d.contact);
+      const m = materials.find((x) => x.id === d.materialId) ?? null;
+      setMaterial(m); setPendingMaterialId(m ? null : d.materialId);
+    },
+  });
+  const startOver = () => {
+    draft.discard();
+    setCategoryId(null); setMaterial(null); setPendingMaterialId(null); setMode("tonnes"); setTonnes(""); setDims({ length: "", width: "", depth: "" });
+    setTrips(""); setTruckId(null); setAddress(""); setDate(""); setContact({ name: "", phone: "", email: "", company: "", comments: "" });
+    setQuote(null); setStep(0);
+  };
+  // Arrivée directe sur une étape impossible : on rejoint une étape valable, brouillon conservé.
+  useEffect(() => {
+    if (loadingCatalog || confirmation) return;
+    if (step >= 2 && !material) setParams((p) => { const q = new URLSearchParams(p); q.set("etape", categoryId ? "2" : "1"); if (!categoryId) q.delete("etape"); return q; }, { replace: true });
+  }, [step, material, loadingCatalog]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Retour sur l'étape Estimation (rechargement, Avance natif) : estimation recalculée, jamais inventée.
+  useEffect(() => {
+    if (step === 6 && material && quantityPayload && !quote && !quoting && !quoteError && !confirmation) void runEstimate();
+  }, [step, material]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Bandeau de navigation universel : prévient avant de quitter une saisie en cours.
   useUnsavedChangesGuard(
@@ -131,7 +178,7 @@ export default function Soumission() {
   };
 
   const next = async () => {
-    if (step === 5) { setStep(6); await runEstimate(); return; }
+    if (step === 5) { setQuote(null); setQuoteError(null); setStep(6); return; } // estimation lancée par l'effet de l'étape 6
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
 
@@ -154,6 +201,7 @@ export default function Soumission() {
         form_started_at: startedAt.current,
       });
       setConfirmation({ number: res.request_number, quote: res.quote.public });
+      draft.finalize(); // demande confirmée : le brouillon ne peut plus revenir
       trackEvent("lead_created", { form: "soumission" });
     } catch (e) {
       sending.current = false;
@@ -199,6 +247,7 @@ export default function Soumission() {
             </header>
 
             <Progress step={step} />
+            <div className="mt-3"><DraftStatusBar status={draft.status} savedAt={draft.savedAt} restored={!!draft.restoredMeta} onDiscard={startOver} scope="ce navigateur" /></div>
 
             <section className="mt-6 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-7">
               <h2 className="mb-4 text-lg font-semibold text-foreground">
@@ -288,7 +337,7 @@ export default function Soumission() {
               )}
 
               <div className="mt-6 flex items-center justify-between gap-3">
-                <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0 || submitting}>
+                <Button variant="ghost" onClick={goPrev} disabled={step === 0 || submitting}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Retour
                 </Button>
                 {step < 6 && (
