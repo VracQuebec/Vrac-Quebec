@@ -541,6 +541,29 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
   const [detail, setDetail] = useState<any>(null);
   const [lift, setLift] = useState<{ id: string; eff: string; reason: string } | null>(null);
   const [liftPv, setLiftPv] = useState<Awaited<ReturnType<typeof st.liftPause>> | null>(null);
+  // NAV-01B : la préparation d'une action sur l'échéance (montant, date planifiée, annulation, archivage,
+  // suspension, levée) est un brouillon séparé par compte + entreprise + échéance. Sauvegarder n'exécute
+  // JAMAIS l'action : la confirmation reste obligatoire et le brouillon n'est clos qu'après succès serveur.
+  const { user: me } = useAuthReady();
+  const [dateNote, setDateNote] = useState<string | null>(null);
+  const store = useDraft({
+    id: me && canWrite && companyId ? { module: "finances", form: "echeance", owner: me.id, company: companyId, recordId: occ.id } : null,
+    data: { mode, scope, amt, ql, planned, reason, eff, pz, lift, preparedOn: todayIn(TZ) },
+    label: () => `Échéance « ${occ.label} » du ${fmtDate(occ.due_date)} — ${mode ? MODE_LABEL[mode] : lift ? "levée de suspension" : "action"}`,
+    route: `/entrepreneur/finances?company=${companyId}&brouillon=echeance&echeance=${occ.id}`,
+    isEmpty: (d) => !d.mode && !d.lift,
+    onRestore: (d) => {
+      setMode(d.mode); setScope(d.scope); setAmt(d.amt); setQl(d.ql); setPlanned(d.planned); setReason(d.reason ?? ""); setEff(d.eff); setPz(d.pz); setLift(d.lift);
+      // Aucune date n'est remplacée silencieusement : si une date préparée est désormais passée, on l'explique.
+      const today = todayIn(TZ); const past: string[] = [];
+      if (d.mode === "archive" && d.eff && d.eff < today) past.push(`date d'archivage ${fmtDate(d.eff)}`);
+      if (d.mode === "planned" && d.planned && d.planned < today) past.push(`date planifiée ${fmtDate(d.planned)}`);
+      if (d.mode === "pause" && d.pz?.start && d.pz.start < today) past.push(`début de suspension ${fmtDate(d.pz.start)}`);
+      if (d.lift?.eff && d.lift.eff < today) past.push(`reprise au ${fmtDate(d.lift.eff)}`);
+      if (past.length) setDateNote(`Préparation du ${fmtDate(d.preparedOn ?? today)} reprise : ${past.join(", ")} est maintenant passée. La date saisie est conservée telle quelle ; vérifiez-la avant de confirmer.`);
+    },
+  });
+  const back = () => { setMode(null); setLift(null); setDateNote(null); store.discard(); };
   const load = () => {
     api.history(o.obligation_id).then(setHist); api.versions(o.obligation_id).then(setVers); api.pauses(o.obligation_id).then(setPzs);
     st.occDetail(o.id).then((d) => { setDetail(d); if (d?.occ) setO((x) => ({ ...x, ...d.occ })); }).catch(() => setDetail(null));
@@ -548,9 +571,11 @@ function OccurrenceDialog({ occ, canWrite, onClose, onChanged, onEdit, onRuleCha
   useEffect(() => { setPzImpact(null); if (mode === "pause" && pz.start && pz.end && pz.reason.trim()) api.addPause(o.obligation_id, pz.start, pz.end, pz.reason, true).then((r) => setPzImpact(r.affected)).catch((e) => toast({ title: "Suspension impossible", description: e.message, variant: "destructive" })); }, [mode, pz.start, pz.end, pz.reason, o.obligation_id]);
   useEffect(load, [o.obligation_id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (mode === "amount" && canWrite) api.editAmount(o.id, scope, ql === "unknown" ? null : Number(amt || 0), ql, true).then(setImpact).catch(() => setImpact(null)); }, [mode, scope, amt, ql, o.id, canWrite]);
+  const inFlight = useRef(false);
   const run = async (fn: () => Promise<unknown>, msg: string) => {
-    setBusy(true);
-    try { await fn(); toast({ title: msg }); setMode(null); onChanged(); onClose(); } catch (e: any) { toast({ title: "Non enregistré", description: e.message, variant: "destructive" }); } finally { setBusy(false); }
+    if (inFlight.current) return; // double clic / Entrée répétée : une seule opération
+    inFlight.current = true; setBusy(true);
+    try { await fn(); store.finalize(); toast({ title: msg }); setMode(null); setLift(null); onChanged(); onClose(); } catch (e: any) { toast({ title: "Non enregistré", description: `${e.message} — votre préparation est conservée.`, variant: "destructive" }); } finally { inFlight.current = false; setBusy(false); }
   };
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto overflow-x-hidden sm:max-w-lg [&>*]:min-w-0">
     <DialogHeader><DialogTitle>{o.label}</DialogTitle></DialogHeader>
