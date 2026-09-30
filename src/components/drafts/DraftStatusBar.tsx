@@ -10,8 +10,12 @@ export default function DraftStatusBar({ status, savedAt, restored, onDiscard, s
 }) {
   if (sync === "denied") return <p role="status" className="rounded-md bg-secondary px-3 py-1.5 text-xs text-muted-foreground" data-testid="draft-status">Brouillon non repris : l'accès à cette entreprise n'est plus autorisé pour ce compte.</p>;
   if (sync === "closed") return (
-    <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-secondary px-3 py-1.5 text-xs text-muted-foreground" data-testid="draft-status">
-      <span>Ce brouillon a été terminé ou abandonné depuis un autre onglet ou appareil. Votre saisie affichée est gardée sur cet appareil seulement.</span>
+    <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-secondary px-3 py-1.5 text-xs text-muted-foreground" data-testid="draft-status" data-sync="closed">
+      <span className={status === "error" ? "text-destructive" : undefined}>
+        {status === "error"
+          ? "Échec de l'enregistrement sur cet appareil : cessez la saisie et reprenez-la dans un nouveau brouillon."
+          : `Ce brouillon a été terminé ou abandonné depuis un autre onglet ou appareil. Copie de récupération conservée sur cet appareil seulement (non synchronisée)${savedAt ? ` · ${time(savedAt)}` : ""}.`}
+      </span>
       {onRestartAsNew && <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={onRestartAsNew}>Reprendre dans un nouveau brouillon</Button>}
     </div>
   );
