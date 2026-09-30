@@ -408,6 +408,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
     try {
       if (ruleChange && id) {
         await api.changeRule(id, p.rev ?? null, rulePayload, eff, false);
+        if (editDraft) store.finalize();
         toast({ title: "Nouvelle règle appliquée", description: `À partir du ${fmtDate(eff)} ; les échéances antérieures sont conservées.` }); onSaved(); return;
       }
       const body = { ...p, amount: p.amount_quality === "unknown" ? null : Number(p.amount), status: status === "draft" && !init ? "active" : status === "draft" ? "draft" : "active" };
