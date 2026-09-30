@@ -10,19 +10,31 @@ export const useUserRoles = (authUser?: User | null, authReady?: boolean) => {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // NAV-01 : une erreur réseau ou serveur sur la lecture des rôles n'est PAS
+  // une absence de rôle. On réessaie, puis on reprend les derniers rôles connus
+  // pour ce même utilisateur (mémoire d'onglet) au lieu de renvoyer à la connexion.
   const load = useCallback(async (user: User | null) => {
     if (!user) {
       setRoles([]);
       setLoading(false);
       return;
     }
+    const cacheKey = `vq.roles.${user.id}`;
     setLoading(true);
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
-    const rows = data || [];
-    setRoles(rows.map((r) => r.role as AppRole));
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+      if (!error) {
+        const next = (data || []).map((r) => r.role as AppRole);
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(next)); } catch { /* stockage indisponible */ }
+        setRoles(next);
+        setLoading(false);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+    }
+    let cached: AppRole[] = [];
+    try { cached = JSON.parse(sessionStorage.getItem(cacheKey) ?? "[]"); } catch { cached = []; }
+    setRoles(cached);
     setLoading(false);
   }, []);
 
