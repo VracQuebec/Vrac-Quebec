@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDraft } from "@/lib/drafts/useDraft";
+import DraftStatusBar from "@/components/drafts/DraftStatusBar";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRoles } from "@/hooks/useUserRole";
@@ -141,6 +143,22 @@ export default function AdminBlogEditor() {
     if (!slugTouched && title) setSlug(slugify(title));
   }, [title, slugTouched]);
 
+  // NAV-01B — Nouvel article (pas encore créé au serveur) : saisie gardée en brouillon (Retour, actualisation, reprise).
+  // Un article existant est déjà enregistré automatiquement au serveur (3 s); il n'utilise pas ce brouillon.
+  const art = { title, slug, slugTouched, excerpt, content, coverUrl, coverAlt, categoryId, authorId, status, scheduledAt, metaTitle, metaDescription, ogImage, canonical, isFeatured, isPopular, noindex, tags, relCitySlugs, relMaterialSlugs, relServiceSlugs };
+  const draft = useDraft({
+    id: user && isAdmin && isNew && !postId ? { module: "blog", form: "article", owner: user.id, company: null, recordId: null } : null,
+    data: art,
+    label: (d) => `Article — ${d.title || "Nouvel article sans titre"}`,
+    route: "/admin/blogue/editer/nouveau",
+    isEmpty: (d) => !d.title && !d.excerpt && !d.content && !d.metaTitle && !d.metaDescription && !d.coverUrl && !d.tags.length,
+    onRestore: (d) => { setTitle(d.title); setSlug(d.slug); setSlugTouched(d.slugTouched); setExcerpt(d.excerpt); setContent(d.content); setCoverUrl(d.coverUrl); setCoverAlt(d.coverAlt);
+      setCategoryId(d.categoryId); setAuthorId(d.authorId); setStatus(d.status); setScheduledAt(d.scheduledAt); setMetaTitle(d.metaTitle); setMetaDescription(d.metaDescription);
+      setOgImage(d.ogImage); setCanonical(d.canonical); setIsFeatured(d.isFeatured); setIsPopular(d.isPopular); setNoindex(d.noindex); setTags(d.tags ?? []);
+      setRelCitySlugs(d.relCitySlugs ?? []); setRelMaterialSlugs(d.relMaterialSlugs ?? []); setRelServiceSlugs(d.relServiceSlugs ?? []); },
+  });
+  const creating = useRef(false);
+
   const readingMinutes = useMemo(() => estimateReadingTime(content), [content]);
 
   const generateWithAI = async () => {
@@ -273,8 +291,11 @@ export default function AdminBlogEditor() {
     try {
       const payload = buildPayload() as unknown as Record<string, unknown>;
       if (!postId) {
+        if (creating.current) return; // double clic / Entrée répétée : une seule création
+        creating.current = true;
         const { data, error } = await supabase.from("blog_posts").insert(payload as never).select("id, slug").single();
-        if (error) throw error;
+        if (error) { creating.current = false; throw error; }
+        draft.finalize();
         setPostId(data.id);
         await persistTags(data.id);
         setSavedAt(new Date());
@@ -360,6 +381,7 @@ export default function AdminBlogEditor() {
             <h1 className="font-display font-extrabold text-base sm:text-lg text-foreground truncate">
               {isNew ? "Nouvel article" : title || "Sans titre"}
             </h1>
+            {isNew && !postId && user && <div className="hidden md:block"><DraftStatusBar status={draft.status} savedAt={draft.savedAt} restored={!!draft.restoredMeta} onDiscard={() => { draft.discard(); window.location.reload(); }} discardConfirm="Abandonner ce nouvel article non enregistré ? Les saisies seront effacées." sync={draft.sync} synced={draft.synced} conflict={draft.conflict} onUseServer={draft.useServerVersion} onKeepLocal={draft.keepLocalVersion} onRestartAsNew={draft.restartAsNew} restartError={draft.restartError} onRetry={draft.retrySave} /></div>}
             {savedAt && <span className="hidden sm:inline text-[11px] text-muted-foreground">Enregistré {savedAt.toLocaleTimeString("fr-CA")}</span>}
           </div>
           <div className="flex items-center gap-2">
