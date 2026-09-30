@@ -510,31 +510,25 @@ function Quotes({ companyId, companyName, canWrite }: any) {
     if (canWrite) await ensureTemplates(companyId);
     setTpls((await db.from("ent_crm_templates").select("*").eq("company_id", companyId).is("archived_at", null).order("name")).data ?? []); }, [companyId, canWrite]);
   useEffect(() => { void load(); }, [load]);
-  const save = async () => { const lines: QLine[] = open.lines ?? []; const row = { company_id: companyId, client_id: open.client_id || null, lead_id: open.lead_id || null, number: open.number || null, lines, inclusions: open.inclusions || null, exclusions: open.exclusions || null, conditions: open.conditions || null, valid_until: open.valid_until || null, subtotal: subtotal(lines), updated_at: new Date().toISOString() };
-    const { error } = open.id ? await db.from("ent_crm_quotes").update(row).eq("id", open.id) : await db.from("ent_crm_quotes").insert(row);
-    if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else { crmDirty = null; setOpen(null); load(); } };
-  const edit = (v: any) => { crmDirty = "quote"; setOpen(v); };
-  const applyTpl = (id: string) => { const t = tpls.find((x) => x.id === id); if (!t) return; if ((open.lines ?? []).some((l: QLine) => l.desc) && !confirm("Remplacer les lignes actuelles par celles du modèle ?")) return;
-    edit({ ...open, lines: (t.lines as QLine[]).map((l) => ({ ...l, qty: null, price: null })), inclusions: t.inclusions, exclusions: t.exclusions, conditions: t.conditions }); };
-  const addService = (id: string) => { const s = services.find((x) => x.id === id); if (!s) return;
-    edit({ ...open, lines: [...(open.lines ?? []).filter((l: QLine) => l.desc || l.price != null), { desc: s.label, qty: null, unit: s.unit, price: s.price == null ? null : Number(s.price), service_id: s.id, price_at: new Date().toISOString() }] }); };
-  // Actualisation explicite des tarifs sur un brouillon : différences présentées avant application.
-  const refreshPrices = () => { const d = (open.lines as QLine[]).map((l, i) => { const s = l.service_id && services.find((x) => x.id === l.service_id); if (!s) return null; const np = s.price == null ? null : Number(s.price); return np !== l.price ? { i, desc: l.desc, old: l.price, next: np } : null; }).filter(Boolean);
-    if (!d.length) return toast({ title: "Tarifs à jour", description: "Aucune différence avec le catalogue privé." }); setDiff(d); };
-  const applyDiff = () => { const lines = [...open.lines]; diff!.forEach((d: any) => { lines[d.i] = { ...lines[d.i], price: d.next, price_at: new Date().toISOString() }; }); edit({ ...open, lines }); setDiff(null); };
+  // Fenêtre de soumission : ?quote=<id|nouveau> dans l'adresse, brouillon par compte + entreprise + soumission.
+  const [qp, setQp] = useSearchParams(); const qid = qp.get("quote"); const fd = qp.get("fd");
+  const setParam = (k: string, v: string | null) => { const n = new URLSearchParams(qp); v ? n.set(k, v) : n.delete(k); setQp(n); };
+  const open = qid === "nouveau" ? { lines: [] } : rows.find((r) => r.id === qid && r.status === "brouillon") ?? null;
+  const edit = (q: any) => setParam("quote", q.id ?? "nouveau");
   const setStatus = async (q: any, status: string) => {
     if (status === "remise" && incomplete(q.lines ?? [])) return toast({ title: "Soumission incomplète", description: `${incomplete(q.lines)} ligne(s) sans quantité ou prix.` });
-    if (status === "acceptee") { const src = prompt("Source de l'acceptation (signature, courriel, appel…) ?"); const by = prompt("Accepté par (nom du client) ?"); if (!src || !by) return;
-      const { error } = await db.rpc("entcrm_accept_quote", { _quote_id: q.id, _source: src, _by: by }); if (error) return toast({ title: "Refusé", description: error.message });
-    } else await db.from("ent_crm_quotes").update({ status }).eq("id", q.id);
+    if (status === "acceptee") return setParam("fd", `accept:${q.id}`);
+    await db.from("ent_crm_quotes").update({ status }).eq("id", q.id);
     load(); };
-  const toProject = async (q: any) => { const name = prompt("Nom du chantier ?", q.ent_crm_clients?.name ?? "Chantier"); if (!name) return;
+  const toProject = (q: any) => setParam("fd", `chantier:${q.id}`);
+  const createProject = async (q: any, name: string) => {
     const { data, error } = await db.from("ent_crm_projects").insert({ company_id: companyId, client_id: q.client_id, quote_id: q.id, name }).select("id").single();
     if (!error && data) await copyLinks(companyId, [{ t: "quote", id: q.id }, ...(q.lead_id ? [{ t: "lead", id: q.lead_id }] : [])], { t: "project", id: data.id });
-    toast({ title: error ? "Refusé" : "Chantier créé avec les pièces de la soumission", description: error?.message.includes("duplicate") ? "Un chantier existe déjà pour cette soumission." : error?.message }); load(); };
+    toast({ title: error ? "Refusé" : "Chantier créé avec les pièces de la soumission", description: error?.message.includes("duplicate") ? "Un chantier existe déjà pour cette soumission." : error?.message }); load(); return error ? error.message : null; };
   const revise = async (q: any) => { const { id, created_at, updated_at, ent_crm_clients, ent_crm_projects, accepted_source, accepted_by_name, accepted_at, accepted_recorded_by, invoiced_amount, paid_amount, share_token, shared_at, client_viewed_at, client_response, client_response_name, client_response_note, client_responded_at, taxes_applied, gst_rate, qst_rate, tax_gst, tax_qst, total, ...rest } = q;
     const { error } = await db.from("ent_crm_quotes").insert({ ...rest, status: "brouillon", version: q.version + 1, parent_quote_id: q.id }); toast({ title: error ? "Refusé" : "Révision créée (la version acceptée reste inchangée)", description: error?.message }); load(); };
-  const fin = async (q: any, k: string) => { const v = prompt(k === "invoiced_amount" ? "Montant facturé ?" : "Montant encaissé ?"); if (v == null) return; await db.from("ent_crm_quotes").update({ [k]: v === "" ? null : Number(v) }).eq("id", q.id); load(); };
+  const fin = (q: any, k: string) => setParam("fd", `${k === "invoiced_amount" ? "facture" : "encaisse"}:${q.id}`);
+  const [fdKind, fdId] = (fd ?? "").split(":"); const fdQuote = rows.find((r) => r.id === fdId);
   const share = async (q: any) => { const { data, error } = await db.rpc("entcrm_share_quote", { _quote_id: q.id }); if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" });
     const url = `${window.location.origin}/s/${data}`; try { await navigator.clipboard.writeText(url); } catch { /* presse-papiers indisponible */ }
     toast({ title: "Lien client prêt", description: `${url} — copié. Transmettez-le vous-même; aucun courriel n'est envoyé.` }); load(); };
@@ -571,7 +565,50 @@ function Quotes({ companyId, companyName, canWrite }: any) {
         {canWrite && q.status === "acceptee" && <><Button size="sm" variant="ghost" onClick={() => fin(q, "invoiced_amount")}>Facturé</Button><Button size="sm" variant="ghost" onClick={() => fin(q, "paid_amount")}>Encaissé</Button></>}
       </div>
       <FilesBtn t="quote" id={q.id} clientToggle /></div>)}</div>
-    {open && <Dialog open onOpenChange={() => { if (!confirm("Fermer sans enregistrer ?")) return; crmDirty = null; setOpen(null); }}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Soumission</DialogTitle></DialogHeader>
+    {open && <QuoteDialog key={qid} quote={open} companyId={companyId} clients={clients} services={services} tpls={tpls} onClose={() => setParam("quote", null)} onSaved={() => { setParam("quote", null); load(); }} />}
+    {fdQuote && fdKind === "accept" && <FieldsDialog key={fd} form="soumission-acceptation" recordId={fdQuote.id} companyId={companyId} title="Documenter l'acceptation" route={`/entrepreneur/crm?company=${companyId}&tab=quotes&fd=${fd}`}
+      fields={[{ k: "src", l: "Source de l'acceptation (signature, courriel, appel…)", required: true }, { k: "by", l: "Accepté par (nom du client)", required: true }]} submitLabel="Confirmer l'acceptation"
+      onClose={() => setParam("fd", null)} onSubmit={async (v) => { const { error } = await db.rpc("entcrm_accept_quote", { _quote_id: fdQuote.id, _source: v.src, _by: v.by }); if (error) return error.message; setParam("fd", null); load(); return null; }} />}
+    {fdQuote && fdKind === "chantier" && <FieldsDialog key={fd} form="soumission-chantier" recordId={fdQuote.id} companyId={companyId} title="Créer le chantier" route={`/entrepreneur/crm?company=${companyId}&tab=quotes&fd=${fd}`}
+      fields={[{ k: "name", l: "Nom du chantier", required: true }]} initial={{ name: fdQuote.ent_crm_clients?.name ?? "Chantier" }} submitLabel="Créer le chantier"
+      onClose={() => setParam("fd", null)} onSubmit={async (v) => { const err = await createProject(fdQuote, v.name); if (!err) setParam("fd", null); return err; }} />}
+    {fdQuote && (fdKind === "facture" || fdKind === "encaisse") && <FieldsDialog key={fd} form={`soumission-${fdKind}`} recordId={fdQuote.id} companyId={companyId} title={fdKind === "facture" ? "Montant facturé" : "Montant encaissé"} route={`/entrepreneur/crm?company=${companyId}&tab=quotes&fd=${fd}`}
+      fields={[{ k: "amount", l: "Montant ($, vide pour effacer)", type: "number" }]} initial={{ amount: String((fdKind === "facture" ? fdQuote.invoiced_amount : fdQuote.paid_amount) ?? "") }} submitLabel="Enregistrer le montant"
+      onClose={() => setParam("fd", null)} onSubmit={async (v) => { const n = v.amount === "" ? null : Number(v.amount); if (n != null && (!Number.isFinite(n) || n < 0)) return "Montant invalide."; const { error } = await db.from("ent_crm_quotes").update({ [fdKind === "facture" ? "invoiced_amount" : "paid_amount"]: n }).eq("id", fdQuote.id); if (error) return error.message; setParam("fd", null); load(); return null; }} />}
+  </div>;
+}
+
+const QUOTE_KEYS = ["client_id", "number", "lines", "inclusions", "exclusions", "conditions", "valid_until"] as const;
+const pickQuote = (q: any) => Object.fromEntries(QUOTE_KEYS.map((k) => [k, q[k] ?? (k === "lines" ? [] : "")]));
+function QuoteDialog({ quote, companyId, clients, services, tpls, onClose, onSaved }: any) {
+  const { user: me } = useAuthReady(); const { canWrite } = useContext(CrmCtx);
+  const [open, setOpen] = useState<any>({ lines: [], ...quote }); const [diff, setDiff] = useState<any[] | null>(null); const [stale, setStale] = useState<any>(null); const saving = useRef(false);
+  const initial = useMemo(() => JSON.stringify(pickQuote(quote)), [quote.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const store = useDraft({
+    id: me && canWrite ? { module: "crm", form: "soumission", owner: me.id, company: companyId, recordId: quote.id ?? null } : null,
+    data: { v: pickQuote(open), base: quote.updated_at ?? null },
+    label: (d) => `CRM — ${quote.id ? "Soumission" : "Nouvelle soumission"}${d.v.number ? ` « ${d.v.number} »` : ""}`,
+    route: `/entrepreneur/crm?company=${companyId}&tab=quotes&quote=${quote.id ?? "nouveau"}`,
+    isEmpty: (d) => JSON.stringify(d.v) === initial,
+    onRestore: (d) => { if (quote.id && d.base && quote.updated_at && d.base !== quote.updated_at) setStale(d.v); else setOpen((x: any) => ({ ...x, ...d.v })); },
+  });
+  const edit = (v: any) => { crmDirty = companyId; setOpen(v); };
+  useEffect(() => () => { crmDirty = null; }, []);
+  const save = async () => { if (saving.current) return; saving.current = true; try { const lines: QLine[] = open.lines ?? []; const row = { company_id: companyId, client_id: open.client_id || null, lead_id: open.lead_id || null, number: open.number || null, lines, inclusions: open.inclusions || null, exclusions: open.exclusions || null, conditions: open.conditions || null, valid_until: open.valid_until || null, subtotal: subtotal(lines), updated_at: new Date().toISOString() };
+    const { error } = open.id ? await db.from("ent_crm_quotes").update(row).eq("id", open.id) : await db.from("ent_crm_quotes").insert(row);
+    if (error) toast({ title: "Refusé — votre saisie est conservée", description: error.message, variant: "destructive" }); else { crmDirty = null; store.finalize(); onSaved(); } } finally { saving.current = false; } };
+  const applyTpl = (id: string) => { const t = tpls.find((x) => x.id === id); if (!t) return; if ((open.lines ?? []).some((l: QLine) => l.desc) && !confirm("Remplacer les lignes actuelles par celles du modèle ?")) return;
+    edit({ ...open, lines: (t.lines as QLine[]).map((l) => ({ ...l, qty: null, price: null })), inclusions: t.inclusions, exclusions: t.exclusions, conditions: t.conditions }); };
+  const addService = (id: string) => { const s = services.find((x) => x.id === id); if (!s) return;
+    edit({ ...open, lines: [...(open.lines ?? []).filter((l: QLine) => l.desc || l.price != null), { desc: s.label, qty: null, unit: s.unit, price: s.price == null ? null : Number(s.price), service_id: s.id, price_at: new Date().toISOString() }] }); };
+  // Actualisation explicite des tarifs sur un brouillon : différences présentées avant application.
+  const refreshPrices = () => { const d = (open.lines as QLine[]).map((l, i) => { const s = l.service_id && services.find((x) => x.id === l.service_id); if (!s) return null; const np = s.price == null ? null : Number(s.price); return np !== l.price ? { i, desc: l.desc, old: l.price, next: np } : null; }).filter(Boolean);
+    if (!d.length) return toast({ title: "Tarifs à jour", description: "Aucune différence avec le catalogue privé." }); setDiff(d); };
+  const applyDiff = () => { const lines = [...open.lines]; diff!.forEach((d: any) => { lines[d.i] = { ...lines[d.i], price: d.next, price_at: new Date().toISOString() }; }); edit({ ...open, lines }); setDiff(null); };
+  return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Soumission</DialogTitle></DialogHeader>
+      {canWrite && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setOpen({ lines: [], ...quote }); setStale(null); }} discardConfirm="Abandonner la préparation de cette soumission ? Les saisies non enregistrées seront effacées; la soumission enregistrée n'est pas modifiée." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+      {stale && <div role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Cette soumission a été modifiée ailleurs depuis votre préparation. L'état actuel est affiché; votre saisie est conservée à part.
+        <div className="mt-1 flex gap-2"><Button size="sm" variant="outline" onClick={() => { setOpen((x: any) => ({ ...x, ...stale })); setStale(null); }}>Appliquer ma saisie préparée</Button><Button size="sm" variant="ghost" onClick={() => setStale(null)}>Garder l'état actuel</Button></div></div>}
       <select className={sel} value={open.client_id ?? ""} onChange={(e) => edit({ ...open, client_id: e.target.value })}><option value="">Client…</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
       <Input placeholder="Numéro" value={open.number ?? ""} onChange={(e) => edit({ ...open, number: e.target.value })} />
       <div className="grid gap-2 sm:grid-cols-2">
@@ -593,8 +630,7 @@ function Quotes({ companyId, companyName, canWrite }: any) {
       <Textarea placeholder="Exclusions" value={open.exclusions ?? ""} onChange={(e) => edit({ ...open, exclusions: e.target.value })} />
       <Textarea placeholder="Conditions / échéancier" value={open.conditions ?? ""} onChange={(e) => edit({ ...open, conditions: e.target.value })} />
       <Input type="date" value={open.valid_until ?? ""} onChange={(e) => edit({ ...open, valid_until: e.target.value })} />
-      <Button onClick={save}>Enregistrer</Button></DialogContent></Dialog>}
-  </div>;
+      <Button onClick={save}>Enregistrer</Button></DialogContent></Dialog>;
 }
 
 function Projects({ companyId, canWrite }: any) {
