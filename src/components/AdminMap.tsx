@@ -312,7 +312,7 @@ const AdminMap = ({ submissions, onMove, showInactive = false, leadStatuses, onS
       });
 
     return () => { cancelled = true; };
-  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}:${s.availability_status || ""}`).join(","), leadStatuses?.map((s) => s.value).join(","), editMode]);
+  }, [geoSubs.map((s) => `${s.id}:${s.latitude}:${s.longitude}:${s.status || ""}:${s.availability_status || ""}`).join(","), leadStatuses?.map((s) => s.value).join(","), editMode, mReady]);
 
   const confirmMove = () => {
     if (!pendingMove) return;
