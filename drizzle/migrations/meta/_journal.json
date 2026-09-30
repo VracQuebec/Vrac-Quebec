@@ -540,6 +540,13 @@
       "when": 1790802627641,
       "tag": "0076_fin05_same_company_fix",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1790804466115,
+      "tag": "0077_fin05b_compte_prevu",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ export type Movement = {
   id: string; date: string; cents: number | null; dir: "in" | "out"; kind: MoveKind; label: string;
   account_id?: string | null; currency?: string; certainty?: string; flag?: string;
   obligation_id?: string; category?: string | null; ref?: string; transfer_to?: string | null;
+  unassigned?: boolean; via_card?: boolean; // FIN-05B
 };
 export type Reserve = { id: string; name: string; target: number; reserved: number; target_date: string; obligation_id?: string | null };
 export type DayRow = { date: string; inC: number; outC: number; closeC: number | null; heldC: number; availC: number | null };
@@ -19,6 +20,7 @@ export type Forecast = {
   currency: string; from: string; to: string; startC: number | null; missingBalances: string[];
   inC: number; outC: number; endC: number | null; low: { date: string; c: number } | null; firstShort: string | null; neededC: number | null;
   unknown: Movement[]; days: DayRow[]; moves: Movement[]; toReplan: number; heldEndC: number; otherCurrencies: string[];
+  partial: string[]; unassignedC: number; // FIN-05B : prévision partielle si un doublon ne peut être exclu
 };
 
 /** Montant d'une entrée attendue encore à recevoir (encaissement déclaré déduit, jamais négatif). */
@@ -47,12 +49,14 @@ export function forecast(input: {
   const globalAsOf = asOfs.sort().at(-1) ?? null;
 
   const kept: Movement[] = []; const unknown: Movement[] = [];
-  let toReplan = 0;
+  let toReplan = 0, viaCard = 0;
   for (const m0 of input.moves) {
     const m = { ...m0 };
     if ((m.currency ?? "CAD") !== cur) continue;
     // Compte hors trésorerie (carte, crédit, compte exclu) : n'affecte pas l'encaisse.
     if (m.account_id && !cashIds.has(m.account_id) && m.kind !== "transfer") continue;
+    // Achat réglé par carte : aucune sortie bancaire; c'est le remboursement de la carte qui sort du compte, une seule fois.
+    if (m.via_card) { viaCard++; continue; }
     if (m.kind === "transfer") {
       const inFrom = !!m.account_id && cashIds.has(m.account_id), inTo = !!m.transfer_to && cashIds.has(m.transfer_to);
       if (inFrom === inTo) continue; // deux comptes inclus (ou aucun) : effet global nul
@@ -96,11 +100,17 @@ export function forecast(input: {
       if (!firstShort && bal < th) firstShort = d;
     }
   }
+  const hasCard = input.accounts.some((a) => a.kind === "card" || a.kind === "credit");
+  const unassigned = kept.filter((m) => m.unassigned);
+  const unassignedC = unassigned.reduce((s, m) => s + (m.dir === "out" ? m.cents! : 0), 0);
+  const partial: string[] = [];
+  if (hasCard && unassigned.length) partial.push(`${unassigned.length} échéance(s) « Non affecté » : si certaines sont payées par carte, elles seraient comptées en plus du remboursement de la carte.`);
+  if (viaCard && !hasCard) partial.push(`${viaCard} règlement(s) par carte sans compte carte : le remboursement de la carte n'est pas connu.`);
   const others = [...new Set(input.moves.map((m) => m.currency ?? "CAD").concat(input.accounts.map((a) => a.currency)))].filter((c) => c !== cur);
   return {
     currency: cur, from: input.from, to: input.to, startC, missingBalances: missing, inC, outC,
     endC: bal, low, firstShort, neededC: low ? Math.max(0, th - low.c) : null, unknown, days, moves: kept, toReplan,
-    heldEndC: days.at(-1)?.heldC ?? 0, otherCurrencies: others,
+    heldEndC: days.at(-1)?.heldC ?? 0, otherCurrencies: others, partial, unassignedC,
   };
 }
 
@@ -162,4 +172,34 @@ export function sourceHash(moves: readonly Movement[]) {
   const s = moves.map((m) => `${m.id}:${m.date}:${m.cents}`).sort().join("|");
   let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36);
+}
+
+// ---------- FIN-05B : paiements nets d'un budget ----------
+export type NetAlloc = { payment_id: string; cents: number; date: string; match: boolean };
+export type NetRefund = { id: string; payment_id: string; cents: number; date: string };
+export type NetLine = { date: string; type: "Versement" | "Remboursement"; payment_id: string; cents: number; note?: string };
+/**
+ * Versements affectés à la sélection (date d'affectation dans la période) moins remboursements reçus (date du remboursement dans la période).
+ * Un remboursement consomme d'abord le reliquat non affecté du paiement (aucun effet sur les catégories), puis réduit les affectations
+ * au prorata. Annulations et réaffectations : les affectations annulées sont exclues en amont, aucune ligne de remboursement.
+ */
+export function netPaid(i: { from: string; to: string; allocs: NetAlloc[]; payments: Record<string, number>; refunds: NetRefund[] }) {
+  const lines: NetLine[] = [];
+  let gross = 0;
+  for (const a of i.allocs) if (a.match && a.date >= i.from && a.date <= i.to) { gross += a.cents; lines.push({ date: a.date, type: "Versement", payment_id: a.payment_id, cents: a.cents }); }
+  const allBy = new Map<string, number>(), matchBy = new Map<string, number>();
+  for (const a of i.allocs) { allBy.set(a.payment_id, (allBy.get(a.payment_id) ?? 0) + a.cents); if (a.match) matchBy.set(a.payment_id, (matchBy.get(a.payment_id) ?? 0) + a.cents); }
+  const done = new Map<string, number>();
+  let refunded = 0;
+  for (const r of [...i.refunds].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))) {
+    const all = allBy.get(r.payment_id) ?? 0, before = done.get(r.payment_id) ?? 0;
+    done.set(r.payment_id, before + r.cents);
+    const unalloc = Math.max(0, (i.payments[r.payment_id] ?? all) - all);
+    const reduce = Math.max(0, r.cents - Math.max(0, unalloc - before));
+    const share = all > 0 ? (matchBy.get(r.payment_id) ?? 0) / all : 0;
+    const c = Math.round(reduce * share);
+    if (c > 0 && r.date >= i.from && r.date <= i.to) { refunded += c; lines.push({ date: r.date, type: "Remboursement", payment_id: r.payment_id, cents: -c, note: reduce < r.cents ? "partie reliquat non affecté exclue" : undefined }); }
+  }
+  lines.sort((a, b) => a.date.localeCompare(b.date));
+  return { grossC: gross, refundC: refunded, netC: gross - refunded, lines };
 }
