@@ -37,7 +37,7 @@ export default function CompleteDialog({ target, onOpenChange, onSaved }: {
   const { toast } = useToast();
   const today = new Date().toISOString().slice(0, 10);
   const [f, setF] = useState<Record<string, string>>({});
-  const dd = useDialogDraft({ open: !!target, module: "flotte", form: "fin-entretien", company: getActiveCompanyId(), recordId: target?.id ?? null,
+  const dd = useDialogDraft({ open: !!target, module: "flotte", form: "fin-entretien", company: getActiveCompanyId(), recordId: target ? `${target.kind}:${(target.record as { id: string }).id}` : null,
     data: f, setData: setF, label: (d) => `Flotte — Fin d'entretien${d.notes ? ` « ${String(d.notes).slice(0, 40)} »` : ""}`,
     route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined, fileNames: [] });
   const [busy, setBusy] = useState(false);
@@ -65,6 +65,7 @@ export default function CompleteDialog({ target, onOpenChange, onSaved }: {
   const num = (v: string) => (v.trim() ? Number(v) : null);
 
   const save = async () => {
+    if (busy) return;
     setBusy(true);
     try {
       const input = {
@@ -89,7 +90,7 @@ export default function CompleteDialog({ target, onOpenChange, onSaved }: {
         title: "Travail terminé",
         description: "Historique, coûts et alertes mis à jour.",
       });
-      onOpenChange(false);
+      dd.finalize(); onOpenChange(false);
       onSaved();
     } catch (e) {
       toast({ title: "Enregistrement impossible", description: (e as Error).message, variant: "destructive" });
@@ -153,4 +154,4 @@ export default function CompleteDialog({ target, onOpenChange, onSaved }: {
       </DialogContent>
     </Dialog>
   );
-}dd.finalize(); 
+}
