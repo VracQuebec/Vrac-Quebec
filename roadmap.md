@@ -102,3 +102,11 @@
 
 - [x] CRM fiche client (création/modification) et ajout de contact : fenêtres avec brouillon, essayées (fermeture, section+Retour, actualisation, menu, double clic, Entrée x3)
 - [ ] CRM : soumissions, chantiers, tâches, tarifs, pièces; « + Opportunité » (question native) sur la fiche client
+
+## NAV-01B — état (reprise couverture)
+- [x] Éditeur d'articles : nouvel article non enregistré → brouillon (actualisation, section+Retour, menu vérifiés; aucune création serveur). Articles existants : déjà enregistrés automatiquement au serveur.
+- [ ] Flotte : seul « Véhicule » vérifié au navigateur; entretien, réparation, inspection, dépense, travaux, clôture raccordés mais non essayés.
+- [ ] CRM : projets (enregistrement au blur), vues enregistrées, motif de perte, équipe/statuts (questions natives restantes).
+- [ ] Administration (hors articles) et autres écrans de l'inventaire : non raccordés.
+- [ ] Listes/cartes : conservation recherche/filtres/tri/position non généralisée.
+- Bloqués : levée de suspension (aucune suspension fictive active); remboursement/reliquat (accord requis pour un règlement fictif supplémentaire); conflit « fiche client modifiée ailleurs » non essayé.
