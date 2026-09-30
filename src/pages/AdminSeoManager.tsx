@@ -571,10 +571,10 @@ function MaterialsTab() {
   );
 }
 
-function MaterialEditor({ initial, allMaterials, onClose, onSave }: {
-  initial: Material; allMaterials: Material[]; onClose: () => void; onSave: (m: Material) => void;
+function MaterialEditor({ initial, allMaterials, onClose, onSave, onChange }: {
+  initial: Material; allMaterials: Material[]; onClose: () => void; onSave: (m: Material) => void; onChange: (m: Material) => void;
 }) {
-  const [form, setForm] = useState<Material>(initial);
+  const form = initial; const setForm = onChange; // contrôlé par l'onglet (brouillon commun)
   return (
     <Modal title={initial.id ? `Modifier ${initial.name}` : "Nouveau matériau"} onClose={onClose}>
       <div className="space-y-3 text-sm">
