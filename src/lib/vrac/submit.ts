@@ -3,7 +3,7 @@
 // Le navigateur n'enregistre rien lui-même : tout passe par
 // quote-submit (recalcul serveur, CRM, courriels, notifications).
 // ============================================================
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { buildQuoteRequest, type QuoteContext } from "@/lib/vrac/estimate";
 import type { VracDraft } from "@/lib/vrac/catalog";
@@ -25,11 +25,15 @@ export function useQuoteSubmit() {
   // Horodatage d'ouverture : sert de contrôle anti-robot côté serveur.
   const [formStartedAt] = useState(() => Date.now());
   const [honeypot, setHoneypot] = useState("");
+  // Verrou synchrone : double clic, touche Entrée répétée ou envois parallèles → une seule requête.
+  const inFlight = useRef(false);
+  const done = useRef(false); // demande confirmée : Retour/nouveau clic ne la répète pas
 
   const send = useCallback(async (draft: VracDraft, action: SubmitAction, ctx: QuoteContext = {}) => {
     const request = buildQuoteRequest(draft, ctx);
     if ("unsupported" in request) { setError(request.unsupported); return; }
-
+    if (inFlight.current || done.current) return;
+    inFlight.current = true;
     setPending(action);
     setError(null);
     try {
@@ -59,6 +63,7 @@ export function useQuoteSubmit() {
         try { const parsed = JSON.parse(details); if (parsed?.error) message = parsed.error; } catch { /* non JSON */ }
         throw new Error(message || "Envoi impossible pour le moment.");
       }
+      done.current = true;
       setResult({
         quote_number: data?.quote_number ?? null,
         request_number: data?.request_number ?? null,
@@ -69,12 +74,15 @@ export function useQuoteSubmit() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Envoi impossible pour le moment.");
     } finally {
+      inFlight.current = false;
       setPending(null);
     }
   }, [formStartedAt, honeypot]);
 
   /** Demande « Sur demande » : envoyée sans calcul client, traitée côté serveur. */
   const sendManual = useCallback(async (draft: VracDraft) => {
+    if (inFlight.current || done.current) return;
+    inFlight.current = true;
     setPending("submit"); setError(null);
     try {
       const qty = draft.quantityMode === "tonnes" ? Number(draft.tonnes)
@@ -101,10 +109,11 @@ export function useQuoteSubmit() {
         },
       });
       if (fnError || data?.ok === false) throw new Error(data?.error || "Envoi impossible pour le moment.");
+      done.current = true;
       setResult({ quote_number: null, request_number: data?.request_number ?? null, valid_until: null, emailed_to: data?.emailed_to ?? null, action: "submit" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Envoi impossible pour le moment.");
-    } finally { setPending(null); }
+    } finally { inFlight.current = false; setPending(null); }
   }, [formStartedAt, honeypot]);
 
   return { result, pending, error, send, sendManual, honeypot, setHoneypot };

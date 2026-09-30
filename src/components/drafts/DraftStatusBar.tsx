@@ -4,12 +4,17 @@ import type { DraftStatus, SyncStatus } from "@/lib/drafts/useDraft";
 
 const time = (iso: string | null) => iso ? new Date(iso).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" }) : "";
 
-export default function DraftStatusBar({ status, savedAt, restored, onDiscard, scope = "cet appareil", sync, synced, conflict, onUseServer, onKeepLocal }: {
+export default function DraftStatusBar({ status, savedAt, restored, onDiscard, scope = "cet appareil", sync, synced, conflict, onUseServer, onKeepLocal, onRestartAsNew }: {
   status: DraftStatus; savedAt: string | null; restored: boolean; onDiscard?: () => void; scope?: string;
-  sync?: SyncStatus; synced?: boolean; conflict?: unknown; onUseServer?: () => void; onKeepLocal?: () => void;
+  sync?: SyncStatus; synced?: boolean; conflict?: unknown; onUseServer?: () => void; onKeepLocal?: () => void; onRestartAsNew?: () => void;
 }) {
   if (sync === "denied") return <p role="status" className="rounded-md bg-secondary px-3 py-1.5 text-xs text-muted-foreground" data-testid="draft-status">Brouillon non repris : l'accès à cette entreprise n'est plus autorisé pour ce compte.</p>;
-  if (sync === "closed") return <p role="status" className="rounded-md bg-secondary px-3 py-1.5 text-xs text-muted-foreground" data-testid="draft-status">Ce brouillon a été terminé ou abandonné depuis un autre onglet ou appareil.</p>;
+  if (sync === "closed") return (
+    <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-secondary px-3 py-1.5 text-xs text-muted-foreground" data-testid="draft-status">
+      <span>Ce brouillon a été terminé ou abandonné depuis un autre onglet ou appareil. Votre saisie affichée est gardée sur cet appareil seulement.</span>
+      {onRestartAsNew && <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={onRestartAsNew}>Reprendre dans un nouveau brouillon</Button>}
+    </div>
+  );
   if (status === "idle" || status === "finalized") return null;
   const where = !synced ? `sur ${scope}`
     : sync === "synced" ? "au compte (synchronisé)"

@@ -79,7 +79,11 @@ export function useDraft<T>(opts: {
       const k = (e as DraftSyncError).kind;
       if (k === "offline" || k === "other") setSync("pending");
       else if (k === "denied") setSync("denied");
-      else if (k === "closed") { finalized.current = true; discardDraft(key); setSync("closed"); setStatus("finalized"); }
+      else if (k === "closed") {
+        // Clos ailleurs : la saisie de cet onglet reste affichée et gardée sur l'appareil (non synchronisée);
+        // elle ne sera reprise au compte QUE sur action explicite (« Reprendre dans un nouveau brouillon »).
+        finalized.current = true; patchMeta(key, { serverRev: null, unsynced: true }); setSync("closed");
+      }
       else if (k === "conflict") {
         try { const srv = await fetchServerDraft(cid); if (srv) { keepConflictCopy(key, srv.data, "serveur"); setConflict(srv); } } catch { /* reste en attente */ }
         setSync("conflict");
@@ -222,5 +226,15 @@ export function useDraft<T>(opts: {
     setConflict(null); setSync("pending"); void push();
   }, [conflict, key, push]);
 
-  return { status, sync, synced, savedAt, restoredMeta, ready, conflict, flush, finalize, discard, useServerVersion, keepLocalVersion };
+  /** Après clôture ailleurs : reprendre la saisie affichée comme NOUVEAU brouillon (action explicite). */
+  const restartAsNew = useCallback(async () => {
+    const cid = idRef.current; if (!cid || !key) return;
+    try { await reopenServerDraft(cid); } catch { /* hors ligne : la transmission suivante réessaiera */ }
+    finalized.current = false;
+    const m = writeDraft(cid, latest.current, null, cb.current.label?.(latest.current), { serverRev: null, unsynced: true, step: cb.current.step?.(latest.current) ?? null, route: cb.current.route ?? null });
+    if (m) { meta.current = m; lastWritten.current = JSON.stringify(latest.current); setSavedAt(m.updatedAt); setStatus("saved_local"); }
+    setSync("pending"); void push();
+  }, [key, push]);
+
+  return { restartAsNew, status, sync, synced, savedAt, restoredMeta, ready, conflict, flush, finalize, discard, useServerVersion, keepLocalVersion };
 }
