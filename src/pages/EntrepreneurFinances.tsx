@@ -322,7 +322,8 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
     data: { p, preset, unit, adv },
     label: (d) => d.p.label ? `Obligation « ${d.p.label} »` : "Nouvelle obligation",
     route: `/entrepreneur/finances?company=${companyId}&brouillon=obligation`,
-    isEmpty: (d) => !d.p.label && (d.p.amount == null || d.p.amount === "") && !d.p.anchor_date && !d.p.payee_label && !d.p.notes,
+    // Tout champ modifié (sélection, case, ligne, saison…) compte : seul l'état initial est « vierge ».
+    isEmpty: (d) => JSON.stringify(d.p) === JSON.stringify(DEFAULT_OBLIGATION) && d.preset === toPreset("once", 1) && d.unit === "days",
     onRestore: (d) => { setP(d.p); setPreset(d.preset); setUnit(d.unit); setAdv(d.adv); },
   });
   const abandon = () => { store.discard(); setP(DEFAULT_OBLIGATION); setPreset(toPreset("once", 1)); setUnit("days"); setAdv(false); };
@@ -448,7 +449,6 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
       {seasons.map((s, i) => <div key={i} className="flex flex-wrap items-center gap-1">Du <Input className="w-24" placeholder="MM-JJ" aria-label="Début de saison" disabled={dis} value={s.from} onChange={(e) => up("seasons", seasons.map((x, j) => (j === i ? { ...x, from: e.target.value } : x)))} /> au <Input className="w-24" placeholder="MM-JJ" aria-label="Fin de saison" disabled={dis} value={s.to} onChange={(e) => up("seasons", seasons.map((x, j) => (j === i ? { ...x, to: e.target.value } : x)))} /><Button type="button" size="sm" variant="ghost" disabled={dis} onClick={() => up("seasons", seasons.filter((_, j) => j !== i))}>Retirer</Button></div>)}
       <Button type="button" size="sm" variant="outline" disabled={dis} onClick={() => up("seasons", [...seasons, { from: "11-01", to: "04-30" }])}>Ajouter une saison</Button>
     </div>}
-    </fieldset>
     {locked && <p className="text-xs text-muted-foreground">Montant et règle de récurrence d'une série active : utilisez « Changer la règle à partir d'une date » ou « Suspendre » depuis une échéance, pour conserver l'historique.</p>}
 
     {!locked && (pv || pvErr) && <section aria-label="Aperçu" className="space-y-1 rounded-md border border-primary/40 bg-primary/5 p-2 text-sm">
@@ -484,6 +484,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
       <L l="Chantier"><select className={`${sel} w-full`} value={p.project_id ?? ""} onChange={(e) => up("project_id", e.target.value)}><option value="">Aucun</option>{lk?.projects.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></L>
       <div className="sm:col-span-2"><L l="Notes privées"><Textarea value={p.notes ?? ""} onChange={(e) => up("notes", e.target.value)} /></L></div>
     </div>}
+    </fieldset>
     {dup && <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-sm">{dup}<div className="mt-2 flex gap-2"><Button size="sm" onClick={() => { setDup(null); save(true); }}>Enregistrer quand même</Button><Button size="sm" variant="outline" onClick={() => setDup(null)}>Revoir</Button></div></div>}
     <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Annuler</Button><Button disabled={busy} onClick={() => save()}>{busy ? "Enregistrement…" : ruleChange ? "Appliquer la nouvelle règle" : "Enregistrer"}</Button></div>
   </DialogContent></Dialog>;
