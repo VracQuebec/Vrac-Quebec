@@ -133,6 +133,25 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
     }
   }, [canWrite]);
+  // NAV-01B : la fenêtre ouverte (échéance, correction de règlement, modification/changement de règle, création)
+  // est reflétée dans l'adresse : une actualisation la rouvre (fiche relue au serveur) au lieu de la replier.
+  const openKey = occ ? `echeance|${occ.id}` : payOpen ? `reglement-correction|${payOpen}` : form?.id && form.ruleChange ? `obligation-regle|${form.id}|${form.ruleChange.effective}` : form?.id ? `obligation-modif|${form.id}` : form && !form.init ? `obligation|${form.instance ?? ""}` : "";
+  const prevOpen = useRef("");
+  useEffect(() => {
+    if (openKey === prevOpen.current) return;
+    const was = prevOpen.current; prevOpen.current = openKey;
+    if (!openKey && !was) return;
+    const q = new URLSearchParams(window.location.search);
+    ["brouillon", "echeance", "reglement", "obligation", "effet", "instance"].forEach((k) => q.delete(k));
+    const [kind, a, b] = openKey.split("|");
+    if (kind) q.set("brouillon", kind);
+    if (kind === "echeance") q.set("echeance", a);
+    if (kind === "reglement-correction") q.set("reglement", a);
+    if (kind === "obligation-regle" || kind === "obligation-modif") q.set("obligation", a);
+    if (kind === "obligation-regle") q.set("effet", b);
+    if (kind === "obligation" && a) q.set("instance", a);
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
+  }, [openKey]);
   const add = canWrite ? <Button onClick={() => setForm({ id: null })}><Plus className="mr-1 h-4 w-4" />Ajouter une obligation</Button> : null;
   const onPayMany = canWrite ? (list: Occ[]) => setPay(list.map((o) => ({ id: o.id, label: o.label, due_date: o.due_date, balance: o.balance, amount_quality: o.amount_quality, payee: o.payee, payee_key: o.payee_key }))) : undefined;
   return <>
@@ -663,7 +682,7 @@ function OccurrenceDialog({ companyId, occ, canWrite, onClose, onChanged, onEdit
       {impact && <p className="text-xs">Impact : {impact.count} échéance(s){impact.dates?.length ? ` — ${impact.dates.slice(0, 6).map(fmtDate).join(", ")}${impact.dates.length > 6 ? "…" : ""}` : ""}. Les échéances passées déjà ajustées individuellement ne changent pas ; l'ancienne version est conservée.</p>}
       <div className="flex gap-2"><Button size="sm" disabled={busy} onClick={() => { if (ql !== "unknown" && (amt === "" || Number(amt) < 0)) return toast({ title: "Montant invalide", variant: "destructive" }); run(() => api.editAmount(o.id, scope, ql === "unknown" ? null : Number(amt), ql), "Montant mis à jour", "amount"); }}>Confirmer</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div>
     </div>}
-    {mode === "planned" && <div className="space-y-2 rounded-md border border-border p-3"><p className="text-xs">L'échéance contractuelle ({fmtDate(o.due_date)}) reste inchangée.</p><Input type="date" value={planned} onChange={(e) => setPlanned(e.target.value)} /><div className="flex gap-2"><Button size="sm" disabled={busy || !planned} onClick={() => run(() => api.reschedule(o.id, planned), "Date planifiée déplacée", "planned")}>Confirmer</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div></div>}
+    {mode === "planned" && <div className="space-y-2 rounded-md border border-border p-3"><p className="text-xs">L'échéance contractuelle ({fmtDate(o.due_date)}) reste inchangée.</p><Input type="date" value={planned} onChange={(e) => setPlanned(e.target.value)} /><div className="flex gap-2"><Button size="sm" disabled={busy || !planned} onClick={() => run(async () => { /* réessai après réponse perdue : si le serveur a déjà appliqué cette date, rien n'est renvoyé (pas d'écriture en double) */ const cur = await st.occDetail(o.id).catch(() => null); if (cur?.occ?.planned_date === planned && cur?.occ?.planned_override) return; await api.reschedule(o.id, planned); }, "Date planifiée déplacée", "planned")}>Confirmer</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div></div>}
     {mode === "cancel" && <div className="space-y-2 rounded-md border border-border p-3"><Textarea placeholder="Motif de l'annulation (obligatoire)" value={reason} onChange={(e) => setReason(e.target.value)} /><div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !reason.trim()} onClick={() => run(() => api.cancelOcc(o.id, reason), "Échéance annulée (conservée dans l'historique)", "cancel")}>Annuler l'échéance</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div></div>}
     {mode === "archive" && <div className="space-y-2 rounded-md border border-border p-3"><p className="text-xs">Arrête les échéances à partir de cette date. Les échéances antérieures sont conservées.</p><Input type="date" value={eff} onChange={(e) => setEff(e.target.value)} /><div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy || !eff} onClick={() => run(() => api.archiveObligation(o.obligation_id, eff), "Série archivée", "archive")}>Archiver</Button><Button size="sm" variant="outline" onClick={back}>Retour</Button></div></div>}
     {mode === "pause" && <div className="space-y-2 rounded-md border border-border p-3 text-sm">
