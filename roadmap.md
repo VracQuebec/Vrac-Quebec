@@ -141,3 +141,9 @@
 - [x] Moteur pur treasury.ts (cents, solde inconnu ≠ 0, retard « À replanifier », transferts nuls, carte hors encaisse, réserves sans double déduction) + 7 essais
 - [x] Onglet Trésorerie (prévision 13 sem./30-90 j/6-12 mois/perso, graphique, détail, CSV, comptes, entrées + brouillon, budgets, réserves, scénarios)
 - [ ] Parcours navigateur mobile représentatif (non exécuté)
+
+## FIN-05B
+- [x] Compte prévu par échéance (« Non affecté » sinon), carte hors banque, prévision partielle signalée
+- [x] Paiements nets = versements − remboursements (reliquat non affecté exclu, prorata), détail + export alignés
+- [x] Lecture seule bloquée côté serveur (essai annulé ensuite)
+- [ ] Parcours navigateur mobile : non exécuté (connexion d'essai non approuvée) — essai manuel fourni
