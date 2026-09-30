@@ -99,3 +99,6 @@
 - [ ] Articles : éditeur /admin/blogue/editer/:id (AdminBlogEditor), génération /admin/blogue/generer
 - [ ] Administration : centre de contrôle, marché (transactions, commissions, lots, catégories, jumelage), SEO, territoires, CRM admin, plateforme, offres matériaux
 - [ ] Session/droits, téléphone réel
+
+- [x] CRM fiche client (création/modification) et ajout de contact : fenêtres avec brouillon, essayées (fermeture, section+Retour, actualisation, menu, double clic, Entrée x3)
+- [ ] CRM : soumissions, chantiers, tâches, tarifs, pièces; « + Opportunité » (question native) sur la fiche client
