@@ -122,6 +122,9 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
         .catch(() => toast({ title: "Échéance inaccessible", description: "Accès refusé ou service indisponible. La préparation reste conservée.", variant: "destructive" }));
       q.delete("brouillon"); q.delete("echeance");
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
+    } else if (canWrite && q.get("brouillon") === "obligation-regle" && q.get("obligation")) {
+      setForm({ id: q.get("obligation"), ruleChange: { effective: q.get("effet") || todayIn(TZ) } }); q.delete("brouillon"); q.delete("obligation"); q.delete("effet");
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
     } else if (canWrite && q.get("brouillon") === "obligation-modif" && q.get("obligation")) {
       setForm({ id: q.get("obligation") }); q.delete("brouillon"); q.delete("obligation");
       window.history.replaceState(window.history.state, "", `${window.location.pathname}${q.toString() ? `?${q}` : ""}`);
@@ -338,13 +341,13 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
   const dropOnRestore = useRef(false);
   const mark = (o: any) => (o ? `${o.rev ?? ""}|${o.updated_at ?? ""}` : "");
   const draftable = !id && !ruleChange && !init;
-  const editDraft = !!id && !ruleChange && !!loaded && !stale;
+  const editDraft = !!id && !!loaded && !stale;
   const store = useDraft({
     id: me && draftable ? { module: "finances", form: "obligation", owner: me.id, company: companyId, instance: draftInstance }
-      : me && editDraft ? { module: "finances", form: "obligation-modif", owner: me.id, company: companyId, recordId: id } : null,
-    data: { p, preset, unit, adv, base: mark(loaded) },
-    label: (d) => id ? `Modification de l'obligation « ${loaded?.label ?? d.p.label ?? ""} »` : d.p.label ? `Obligation « ${d.p.label} »` : "Nouvelle obligation",
-    route: id ? `/entrepreneur/finances?company=${companyId}&brouillon=obligation-modif&obligation=${id}` : `/entrepreneur/finances?company=${companyId}&brouillon=obligation`,
+      : me && editDraft ? { module: "finances", form: ruleChange ? "obligation-regle" : "obligation-modif", owner: me.id, company: companyId, recordId: id } : null,
+    data: { p, preset, unit, adv, base: mark(loaded), eff: ruleChange ? eff : null },
+    label: (d) => ruleChange ? `Changement de règle de « ${loaded?.label ?? d.p.label ?? ""} » au ${fmtDate(eff)}` : id ? `Modification de l'obligation « ${loaded?.label ?? d.p.label ?? ""} »` : d.p.label ? `Obligation « ${d.p.label} »` : "Nouvelle obligation",
+    route: ruleChange && id ? `/entrepreneur/finances?company=${companyId}&brouillon=obligation-regle&obligation=${id}&effet=${eff}` : id ? `/entrepreneur/finances?company=${companyId}&brouillon=obligation-modif&obligation=${id}` : `/entrepreneur/finances?company=${companyId}&brouillon=obligation`,
     // Tout champ modifié (sélection, case, ligne, saison…) compte : seul l'état initial est « vierge ».
     isEmpty: (d) => id ? JSON.stringify(d.p) === JSON.stringify(loadedP.current) : JSON.stringify(d.p) === JSON.stringify(DEFAULT_OBLIGATION) && d.preset === toPreset("once", 1) && d.unit === "days",
     onRestore: (d) => {
@@ -352,7 +355,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
         if (dropOnRestore.current) { dropOnRestore.current = false; setTimeout(() => store.discard(), 0); return; }
         const cur = mark(loaded);
         if ((d as any).base !== cur && (d as any).base !== forceBase.current) { setStale(d); return; }
-        setP({ ...d.p, rev: loaded?.rev, updated_at: loaded?.updated_at });
+        setP({ ...d.p, rev: loaded?.rev, updated_at: loaded?.updated_at }); if (ruleChange && (d as any).eff) setEff((d as any).eff);
       } else setP(d.p);
       setPreset(d.preset); setUnit(d.unit); setAdv(d.adv);
     },
@@ -365,7 +368,7 @@ function ObligationForm({ companyId, companyName, id, init, cats, ruleChange, dr
       const v = await api.versions(id); const last: any = v[v.length - 1]; setStatus(o.status);
       const x = { ...o, amount: last?.amount ?? "", amount_quality: last?.amount_quality ?? "unknown", seasons: o.seasons ?? [] };
       if (ruleChange) { x.amount_quality = "keep"; x.anchor_date = eff; }
-      setP(x); loadedP.current = x; if (!ruleChange) setLoaded(o); setPreset(toPreset(o.frequency, o.interval_n)); if (o.frequency === "weekly" && ![1, 2, 4].includes(o.interval_n)) setUnit("weeks"); if (o.frequency === "monthly" && ![1, 2, 3, 4, 6].includes(o.interval_n)) setUnit("months");
+      setP(x); loadedP.current = x; setLoaded(o); setPreset(toPreset(o.frequency, o.interval_n)); if (o.frequency === "weekly" && ![1, 2, 4].includes(o.interval_n)) setUnit("weeks"); if (o.frequency === "monthly" && ![1, 2, 3, 4, 6].includes(o.interval_n)) setUnit("months");
     });
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { api.lookups(companyId).then(setLk); load(); }, [companyId, load]);
