@@ -72,8 +72,9 @@ export default function AdminControlCenter() {
   const filter = ((params.get("f") as Filter) || "all") as Filter;
   const setFilter = (f: Filter) => { const n = new URLSearchParams(params); f === "all" ? n.delete("f") : n.set("f", f); setParams(n, { replace: true }); };
   const ssKey = `vq.cc.ctx.${user?.id ?? "anon"}`;
-  const [q, setQState] = useState<string>(() => { try { return JSON.parse(sessionStorage.getItem(ssKey) || "{}").q ?? ""; } catch { return ""; } });
-  const setQ = (v: string) => { setQState(v); try { const o = JSON.parse(sessionStorage.getItem(ssKey) || "{}"); sessionStorage.setItem(ssKey, JSON.stringify({ ...o, q: v })); } catch { /* ignore */ } };
+  const [q, setQState] = useState<string>("");
+  useEffect(() => { if (!user) return; try { setQState(JSON.parse(sessionStorage.getItem(ssKey) || "{}").q ?? ""); } catch { /* ignore */ } }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const setQ = (v: string) => { setQState(v); if (!user) return; try { const o = JSON.parse(sessionStorage.getItem(ssKey) || "{}"); sessionStorage.setItem(ssKey, JSON.stringify({ ...o, q: v })); } catch { /* ignore */ } };
   const selectedKey = params.get("demande");
   const scrollDone = useRef(false);
   const [takeMode, setTakeMode] = useState(false);
@@ -203,11 +204,17 @@ export default function AdminControlCenter() {
 
   const selected = rows.find((r) => r.key === selectedKey) ?? null;
   const saveScroll = () => { try { const o = JSON.parse(sessionStorage.getItem(ssKey) || "{}"); sessionStorage.setItem(ssKey, JSON.stringify({ ...o, y: window.scrollY })); } catch { /* ignore */ } };
-  useEffect(() => { const h = () => saveScroll(); window.addEventListener("scroll", h, { passive: true }); return () => window.removeEventListener("scroll", h); }); // eslint-disable-line react-hooks/exhaustive-deps
+  // Position : mémorisée seulement quand aucune fiche n'est ouverte (le panneau bloque le défilement), rétablie à sa fermeture.
+  useEffect(() => { if (selectedKey) return; const h = () => saveScroll(); window.addEventListener("scroll", h, { passive: true }); return () => window.removeEventListener("scroll", h); }); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (scrollDone.current || !lastSync || !rows.length) return; scrollDone.current = true;
     try { const y = JSON.parse(sessionStorage.getItem(ssKey) || "{}").y; if (y > 0) requestAnimationFrame(() => window.scrollTo(0, y)); } catch { /* ignore */ }
   }, [lastSync, rows.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const prevSel = useRef(selectedKey);
+  useEffect(() => {
+    if (prevSel.current && !selectedKey) { try { const y = JSON.parse(sessionStorage.getItem(ssKey) || "{}").y; if (y > 0) setTimeout(() => window.scrollTo(0, y), 50); } catch { /* ignore */ } }
+    prevSel.current = selectedKey;
+  }, [selectedKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const open = (key: string, take = false) => { saveScroll(); setTakeMode(take); const n = new URLSearchParams(params); n.set("demande", key); setParams(n); };
   const close = () => {
     setTakeMode(false);
