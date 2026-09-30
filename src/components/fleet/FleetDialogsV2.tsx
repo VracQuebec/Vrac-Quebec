@@ -60,7 +60,7 @@ export function ExpenseDialog({ open, onOpenChange, vehicles, vehicleId, record,
   const { toast } = useToast();
   const today = new Date().toISOString().slice(0, 10);
   const [f, setF] = useState<Record<string, string>>({});
-  const dd = useDialogDraft({ open: open, module: "flotte", form: "depense", company: getActiveCompanyId(), recordId: record?.id ?? null,
+  const dd = useDialogDraft({ open: open, module: "flotte", form: "depense", company: (record as { company_id?: string | null } | null | undefined)?.company_id ?? vehicles.find((v) => v.id === vehicleId)?.company_id ?? getActiveCompanyId(), recordId: record?.id ?? `nouveau@${vehicleId ?? "flotte"}`,
     data: f, setData: setF, label: (d: Record<string, string>) => `Flotte — Dépense${d.description ? ` « ${String(d.description).slice(0, 40)} »` : ""}`,
     route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined, fileNames: [] });
   const [photos, setPhotos] = useState<File[]>([]);
@@ -196,7 +196,7 @@ export function WorkItemDialog({ open, onOpenChange, vehicles, vehicleId, record
 }) {
   const { toast } = useToast();
   const [f, setF] = useState<Record<string, string>>({});
-  const dd = useDialogDraft({ open: open, module: "flotte", form: "travail", company: getActiveCompanyId(), recordId: record?.id ?? null,
+  const dd = useDialogDraft({ open: open, module: "flotte", form: "travail", company: (record as { company_id?: string | null } | null | undefined)?.company_id ?? vehicles.find((v) => v.id === vehicleId)?.company_id ?? getActiveCompanyId(), recordId: record?.id ?? `nouveau@${vehicleId ?? "flotte"}`,
     data: f, setData: setF, label: (d: Record<string, string>) => `Flotte — Travail${d.title ? ` « ${String(d.title).slice(0, 40)} »` : ""}`,
     route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined, fileNames: [] });
   const [busy, setBusy] = useState(false);
