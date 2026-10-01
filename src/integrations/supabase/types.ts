@@ -5895,6 +5895,7 @@ export type Database = {
           retention_id: string
           void_key: string | null
           void_reason: string | null
+          void_request_hash: string | null
           voided_at: string | null
           voided_by: string | null
         }
@@ -5912,6 +5913,7 @@ export type Database = {
           retention_id: string
           void_key?: string | null
           void_reason?: string | null
+          void_request_hash?: string | null
           voided_at?: string | null
           voided_by?: string | null
         }
@@ -5929,6 +5931,7 @@ export type Database = {
           retention_id?: string
           void_key?: string | null
           void_reason?: string | null
+          void_request_hash?: string | null
           voided_at?: string | null
           voided_by?: string | null
         }
@@ -5974,10 +5977,12 @@ export type Database = {
           planned_release: string | null
           reason: string
           release_condition: string
+          request_hash: string | null
           rev: number
           status: string
           void_key: string | null
           void_reason: string | null
+          void_request_hash: string | null
           voided_at: string | null
           voided_by: string | null
         }
@@ -5998,10 +6003,12 @@ export type Database = {
           planned_release?: string | null
           reason: string
           release_condition: string
+          request_hash?: string | null
           rev?: number
           status?: string
           void_key?: string | null
           void_reason?: string | null
+          void_request_hash?: string | null
           voided_at?: string | null
           voided_by?: string | null
         }
@@ -6022,10 +6029,12 @@ export type Database = {
           planned_release?: string | null
           reason?: string
           release_condition?: string
+          request_hash?: string | null
           rev?: number
           status?: string
           void_key?: string | null
           void_reason?: string | null
+          void_request_hash?: string | null
           voided_at?: string | null
           voided_by?: string | null
         }
