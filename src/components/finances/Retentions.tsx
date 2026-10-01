@@ -13,6 +13,7 @@ import * as RT from "@/lib/finances/retention";
 import { todayIn } from "@/lib/finances/period";
 import ConstructionPayTest from "@/components/finances/ConstructionPayTest";
 import ConstructionPayVoidTest from "@/components/finances/ConstructionPayVoidTest";
+import ConstructionPayAnalysisTest from "@/components/finances/ConstructionPayAnalysisTest";
 
 type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const money = (n?: number | string | null) => n == null ? "—" : Number(n).toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
