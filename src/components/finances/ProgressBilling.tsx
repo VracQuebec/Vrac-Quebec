@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { todayIn, fmtDate } from "@/lib/finances/period";
 import * as P from "@/lib/finances/progress";
+import ProgressB2 from "@/components/finances/ProgressB2";
 
 const sel = "h-10 rounded-md border border-input bg-background px-2 text-sm";
 const money = (n?: number | null) =>
@@ -70,7 +71,7 @@ export function ProgressPlans({
   );
 }
 
-type Form = { kind: P.Kind; mode: P.Mode; value: string; issue: string; due: string };
+type Form = { kind: P.Kind; mode: P.Mode; value: string; issue: string; due: string; qty: Record<string, string> };
 
 export default function ProgressPlanDialog({
   planId,
@@ -89,7 +90,7 @@ export default function ProgressPlanDialog({
 }) {
   const [sum, setSum] = useState<P.Summary | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
-  const [form, setForm] = useState<Form>({ kind: "acompte", mode: "pct", value: "", issue: todayIn(), due: "" });
+  const [form, setForm] = useState<Form>({ kind: "acompte", mode: "pct", value: "", issue: todayIn(), due: "", qty: {} });
   const [draft, setDraft] = useState<{ key: string; rev: number | null } | null>(null); // brouillon serveur repris ou créé
   const [preview, setPreview] = useState<P.Situation | null>(null); // aperçu valide pour le formulaire affiché
   const [pending, setPending] = useState<{ id: string; key: string; rev: number; hash: string } | null>(null); // rejeu après réponse perdue
@@ -138,6 +139,8 @@ export default function ProgressPlanDialog({
   }, [load, companyId]);
 
   const active = sum?.situations.find((s) => s.status === "brouillon") ?? null;
+  const track: P.Track = sum?.track ?? "global";
+  const nextMs = (sum?.milestones ?? []).filter((m) => m.status === "realise").sort((a, b) => a.ord - b.ord)[0] ?? null;
   const edit = (p: Partial<Form>) => {
     if (busy) return;
     formRev.current++;
@@ -152,9 +155,13 @@ export default function ProgressPlanDialog({
     setForm({
       kind: active.kind,
       mode: active.mode,
-      value: active.kind === "solde" ? "" : active.value.replace(".", ","),
+      value: active.kind === "solde" || active.mode === "lines" || active.mode === "jalon" ? "" : active.value.replace(".", ","),
       issue: active.issue_date ?? todayIn(),
       due: active.due_date ?? "",
+      qty:
+        active.mode === "lines" && active.kind !== "solde"
+          ? Object.fromEntries(Object.entries(JSON.parse(active.value || "{}") as Record<string, string>).map(([k, v]) => [k, String(v).replace(".", ",")]))
+          : {},
     });
     setDraft({ key: active.draft_key, rev: active.rev });
     setPreview(active);
@@ -165,10 +172,44 @@ export default function ProgressPlanDialog({
   const doPreview = async () => {
     if (busy || !sum) return;
     setErr(null);
-    const value = form.kind === "solde" ? null : P.parseCumul(form.value);
-    if (form.kind !== "solde" && value == null) {
-      setErr("Cumul invalide : nombre positif, au plus 2 décimales (ex. 30 ou 1 250,50).");
-      return;
+    let value: string | null;
+    let kind = form.kind;
+    let mode = form.mode;
+    if (track === "lines") {
+      mode = "lines";
+      if (kind === "acompte") kind = "situation";
+      if (kind === "solde") value = null;
+      else {
+        const o: Record<string, string> = {};
+        for (const [k, v] of Object.entries(form.qty)) {
+          if (!v.trim()) continue;
+          const q = P.parseQty(v);
+          if (q == null) {
+            setErr(`Quantité cumulée invalide pour la ligne ${k} : nombre positif ou nul, au plus 4 décimales (ex. 2,5).`);
+            return;
+          }
+          o[k] = q;
+        }
+        if (!Object.keys(o).length) {
+          setErr("Saisissez au moins une quantité cumulée.");
+          return;
+        }
+        value = JSON.stringify(o);
+      }
+    } else if (track === "milestones") {
+      if (!nextMs) {
+        setErr("Aucun jalon réalisé non facturé : déclarez d'abord un jalon réalisé.");
+        return;
+      }
+      kind = "situation";
+      mode = "jalon";
+      value = nextMs.id;
+    } else {
+      value = form.kind === "solde" ? null : P.parseCumul(form.value);
+      if (form.kind !== "solde" && value == null) {
+        setErr("Cumul invalide : nombre positif, au plus 2 décimales (ex. 30 ou 1 250,50).");
+        return;
+      }
     }
     if (active && !draft) {
       setErr("Un brouillon existe déjà : reprenez-le ou abandonnez-le.");
@@ -183,8 +224,8 @@ export default function ProgressPlanDialog({
       const s = await P.saveDraft({
         plan: planId,
         key: d.key,
-        kind: form.kind,
-        mode: form.mode,
+        kind,
+        mode,
         value,
         issue: form.issue,
         due: form.due,
@@ -217,7 +258,7 @@ export default function ProgressPlanDialog({
       setPending(null);
       setPreview(null);
       setDraft(null);
-      setForm({ kind: "situation", mode: form.mode, value: "", issue: todayIn(), due: "" });
+      setForm({ kind: "situation", mode: track === "global" ? form.mode : "pct", value: "", issue: todayIn(), due: "", qty: {} });
       await load();
       if (g !== gen.current) return;
       onChanged();
@@ -407,6 +448,15 @@ export default function ProgressPlanDialog({
           </ul>
         )}
 
+        <ProgressB2
+          key={`${sum.id}:${sum.contract_version ?? 1}`}
+          sum={sum}
+          canWrite={canWrite}
+          hasDraft={!!active}
+          reload={load}
+          onChanged={onChanged}
+        />
+
         {canWrite && !full && (
           <div className="space-y-2 rounded border border-border p-2">
             {active && !draft && (
@@ -431,6 +481,7 @@ export default function ProgressPlanDialog({
             {(!active || draft) && (
               <>
                 <fieldset disabled={busy} aria-busy={busy} className="grid gap-2 sm:grid-cols-5">
+                  {track === "global" && (
                   <select
                     aria-label="Type"
                     className={sel}
@@ -443,7 +494,19 @@ export default function ProgressPlanDialog({
                       </option>
                     ))}
                   </select>
-                  {form.kind !== "solde" && (
+                  )}
+                  {track === "lines" && (
+                    <select aria-label="Type" className={sel} value={form.kind === "solde" ? "solde" : "situation"} onChange={(e) => edit({ kind: e.target.value as P.Kind })}>
+                      <option value="situation">Situation (quantités cumulées)</option>
+                      <option value="solde">Solde final (toutes les quantités)</option>
+                    </select>
+                  )}
+                  {track === "milestones" && (
+                    <p className="text-sm sm:col-span-2">
+                      {nextMs ? `Prochain jalon réalisé : ${nextMs.ord}. ${nextMs.title} (${money(nextMs.share)})` : "Aucun jalon réalisé non facturé."}
+                    </p>
+                  )}
+                  {track === "global" && form.kind !== "solde" && (
                     <select
                       aria-label="Mode"
                       className={sel}
@@ -458,7 +521,7 @@ export default function ProgressPlanDialog({
                       )}
                     </select>
                   )}
-                  {form.kind !== "solde" && (
+                  {track === "global" && form.kind !== "solde" && (
                     <Input
                       aria-label="Cumul contractuel"
                       inputMode="decimal"
@@ -475,6 +538,25 @@ export default function ProgressPlanDialog({
                     Échéance
                     <Input type="date" value={form.due} onChange={(e) => edit({ due: e.target.value })} />
                   </label>
+                  {track === "lines" && form.kind !== "solde" && (
+                    <div className="space-y-1 sm:col-span-5" aria-label="Quantités cumulées par ligne">
+                      {(sum.lines ?? []).map((l) => (
+                        <label key={l.id} className="grid grid-cols-[1fr_8rem] items-center gap-2 text-xs">
+                          <span>
+                            {l.id} · {l.desc} — contrat {Number(l.qty).toLocaleString("fr-CA")} {l.unit ?? ""}, déjà facturé{" "}
+                            {Number(l.billed_qty).toLocaleString("fr-CA")}
+                          </span>
+                          <Input
+                            aria-label={`Cumul réalisé ${l.id}`}
+                            inputMode="decimal"
+                            placeholder={String(l.billed_qty).replace(".", ",")}
+                            value={form.qty[l.id] ?? ""}
+                            onChange={(e) => edit({ qty: { ...form.qty, [l.id]: e.target.value } })}
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </fieldset>
                 <p className="text-xs text-muted-foreground">
                   Saisissez le CUMUL contractuel facturé à ce jour (pas le montant de cette facture). Une facture
@@ -552,6 +634,18 @@ export default function ProgressPlanDialog({
                     : `${money(pv.remaining.cap ?? pv.remaining.ht)} HT`}
                 </p>
                 {gapNote(pv.gap_vs_quote)}
+                {(pv as P.Computed & { lines_detail?: (P.LineState & { cum_qty: number; new_qty: number; new_amt: number; rest_qty: number })[] }).lines_detail && (
+                  <table className="w-full text-xs" aria-label="Détail par ligne">
+                    <thead>
+                      <tr className="text-left text-muted-foreground"><th>Ligne</th><th>Contrat</th><th>Déjà facturé</th><th>Cette situation</th><th>Restant</th><th>Montant</th></tr>
+                    </thead>
+                    <tbody>
+                      {(pv as P.Computed & { lines_detail: (P.LineState & { cum_qty: number; new_qty: number; new_amt: number; rest_qty: number })[] }).lines_detail.map((l) => (
+                        <tr key={l.id}><td>{l.id} · {l.desc}</td><td>{l.qty}</td><td>{l.billed_qty}</td><td>{l.new_qty}</td><td>{l.rest_qty}</td><td>{money(l.new_amt)}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Aperçu serveur : rien n'est facturé ni numéroté tant que vous n'émettez pas. Toute modification retire
                   « Émettre ».
