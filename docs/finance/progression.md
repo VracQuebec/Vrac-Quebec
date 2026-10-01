@@ -137,3 +137,9 @@ HEAD 2c986097542e9ea23d3ccb6c99895f2e0240f5ce, déploiement 7fa7828c-3b83-4be4-9
 - Essai serveur TEST annulé (nettoyage vérifié : 0 modèle/version/occurrence/facture liée) : 11 règles invalides refusées avec message; once v1 émis puis v2 même ancrage (effet 10-02) : aucune date v2, préparation v2 refusée; v3 once 11-10 (effet 11-01) visible; v4 effet 11-10 exclut v3 (borne exclusive), aucune nouvelle occurrence; aperçu effet 2027-01-01 = 3 dates; quotidien : total 396, tronqué, 300 affichées; fiche 2025–2026 total 730 shown 300 truncated; fenêtre future 273 dates dès 2026-10-01.
 - Tests : fin-09c1 16 (6 nouveaux, écrans simulés à promesses contrôlées). Finances 100 réussis, 13 ignorés; types 0; build 0; sitemap restauré (identique).
 - Limites : aucun essai concurrent réel; vrais écrans non parcourus; la reprise par adresse est testée en simulation seulement.
+
+## FIN-09C1 — correction contexte entreprise/modèle (2026-10-01)
+- Cause : `RecurringInvoices` comparait à `firstCompany` jamais actualisée (A→B→A laissait un formulaire de B sous A); `TemplateForm` gardait tpl/f/effective au changement de modèle/entreprise.
+- Correctif : entreprise précédente actualisée à chaque transition, reset synchrone pendant le rendu (open/creating/rows/err), enfants rendus seulement en contexte stable, callbacks liés à l'entreprise du rendu; `TemplateForm`/`OccurrenceEditor` remontés par clé entreprise+modèle+type; `TemplateForm` ne rend ni n'envoie rien si ses props diffèrent du contexte de montage, et refuse un `tpl` différent du modèle.
+- Validation : 2 tests UI simulés (A→B→A; changement de modèle pendant sauvegarde différée). `bunx vitest run src/test/fin-` : 102 réussis, 13 ignorés; `tsgo` 0; `bun run build` 0; sitemap restauré.
+- Limites : simulation seulement, aucun essai concurrent réel ni parcours des vrais écrans.
