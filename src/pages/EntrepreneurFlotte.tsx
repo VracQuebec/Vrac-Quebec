@@ -20,6 +20,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { useListScroll } from "@/lib/navigation/listContext";
 import { setActiveCompanyId } from "@/lib/fleet/tenant";
 import type { Vehicle } from "@/lib/fleet/api";
+import { createdLabel } from "@/lib/fleet/api";
 import { adminStatusLabel, categoryLabel, opsStatus, TONE_CLASS } from "@/lib/fleet/v2";
 import { TRUCK_TYPE_LABELS } from "@/lib/calendar-utils";
 
@@ -107,6 +108,7 @@ export default function EntrepreneurFlotte() {
                 ["Immatriculation", v.plate],
                 ["Capacité", v.capacity],
                 ["Statut", adminStatusLabel(v)],
+                ["Création", createdLabel(v).replace(/^Créé le /, "")],
               ];
               return (
                 <li key={v.id} className="rounded-2xl border border-border bg-card p-4">
