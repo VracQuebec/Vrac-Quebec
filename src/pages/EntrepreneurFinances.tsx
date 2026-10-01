@@ -105,7 +105,7 @@ export default function EntrepreneurFinances({ admin = false }: { admin?: boolea
 function InvoicesTab({ companyId, companyName, canWrite }: { companyId: string; companyName: string; canWrite: boolean }) {
   const [sub, setSub] = useState<"factures" | "recurrences">(() => new URLSearchParams(window.location.search).get("sous") === "recurrences" ? "recurrences" : "factures");
   return <div className="space-y-3">
-    <div role="tablist" className="flex gap-2">{([["factures", "Factures"], ["recurrences", "Récurrences"]] as const).map(([v, l]) => <Button key={v} role="tab" aria-selected={sub === v} size="sm" variant={sub === v ? "default" : "outline"} onClick={() => setSub(v)}>{l}</Button>)}</div>
+    <div role="tablist" className="flex gap-2">{([["factures", "Factures"], ["recurrences", "Récurrences"]] as const).map(([v, l]) => <Button key={v} role="tab" aria-selected={sub === v} size="sm" variant={sub === v ? "default" : "outline"} onClick={() => { setSub(v); const q = new URLSearchParams(window.location.search); if (v === "recurrences") q.set("sous", v); else ["sous", "rec", "occ", "rec_form"].forEach((k) => q.delete(k)); window.history.replaceState(window.history.state, "", `${window.location.pathname}?${q}`); }}>{l}</Button>)}</div>
     {sub === "factures" ? <Invoices companyId={companyId} companyName={companyName} canWrite={canWrite} /> : <RecurringInvoices companyId={companyId} canWrite={canWrite} />}
   </div>;
 }
