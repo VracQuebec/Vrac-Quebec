@@ -582,6 +582,13 @@
       "when": 1790818039171,
       "tag": "0082_fin07_profil_fiscal_taxes",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1790818459110,
+      "tag": "0083_fin07b_arrondi_taxes_incluses",
+      "breakpoints": true
     }
   ]
 }
