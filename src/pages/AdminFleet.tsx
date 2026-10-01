@@ -18,7 +18,7 @@ import {
 } from "@/components/fleet/FleetDialogs";
 import CompleteDialog from "@/components/fleet/CompleteDialog";
 import {
-  buildTodo, costTotals, dateLabel, fetchCosts, fetchFleetEvents, fetchInspections,
+  buildTodo, costTotals, dateLabel, createdLabel, fetchCosts, fetchFleetEvents, fetchInspections,
   fetchMaintenance, fetchRepairs, fetchVehicles, money, PRIORITY_LABELS,
   REPAIR_STATUS_LABELS, scanDue, SERVICE_STATUS_LABELS, vehicleLabel,
   type Cost, type FleetEvent, type Inspection, type Maintenance, type Repair, type Vehicle,
@@ -415,7 +415,8 @@ export default function AdminFleet() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-sm font-display font-semibold truncate">{m.maintenance_type}</div>
-                    <div className="text-xs text-muted-foreground font-body">{vName(m.vehicle_id)} · {dateLabel(m.performed_on)}</div>
+                    <div className="text-xs text-muted-foreground font-body">{vName(m.vehicle_id)} · Effectué le {dateLabel(m.performed_on)}</div>
+<div className="text-[11px] text-muted-foreground font-body">{createdLabel(m)}</div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-sm font-display">{money(m.cost)}</div>
@@ -435,7 +436,8 @@ export default function AdminFleet() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-sm font-display font-semibold truncate">{r.problem}</div>
-                    <div className="text-xs text-muted-foreground font-body">{vName(r.vehicle_id)} · {dateLabel(r.reported_on)}</div>
+                    <div className="text-xs text-muted-foreground font-body">{vName(r.vehicle_id)} · Signalé le {dateLabel(r.reported_on)}</div>
+<div className="text-[11px] text-muted-foreground font-body">{createdLabel(r)}</div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className={`text-xs font-display font-semibold ${r.priority === "urgente" ? "text-destructive" : "text-muted-foreground"}`}>
@@ -457,6 +459,7 @@ export default function AdminFleet() {
                 <button onClick={() => setInspDialog({ open: true, record: i })} className="min-w-0 text-left flex-1">
                   <div className="text-sm font-display font-semibold truncate">{vName(i.vehicle_id)}</div>
                   <div className="text-xs text-muted-foreground font-body truncate">{i.comment || "Inspection quotidienne"}</div>
+<div className="text-[11px] text-muted-foreground font-body">{createdLabel(i)}</div>
                 </button>
                 <div className="text-right shrink-0 flex items-center gap-2">
                   <div>
@@ -539,7 +542,8 @@ export default function AdminFleet() {
                   <div className="text-sm font-display font-semibold truncate">
                     {EXPENSE_LABELS[x.category] ?? x.category}{x.description ? ` — ${x.description}` : ""}
                   </div>
-                  <div className="text-xs text-muted-foreground font-body">{vName(x.vehicle_id)} · {dateLabel(x.spent_on)}</div>
+                  <div className="text-xs text-muted-foreground font-body">{vName(x.vehicle_id)} · Dépense du {dateLabel(x.spent_on)}</div>
+<div className="text-[11px] text-muted-foreground font-body">{createdLabel(x)}</div>
                 </div>
                 <div className="text-sm font-display shrink-0">{money(x.amount)}</div>
               </button>

@@ -11,7 +11,7 @@ import {
   InspectionDialog, MaintenanceDialog, RepairDialog, VehicleDialog,
 } from "@/components/fleet/FleetDialogs";
 import {
-  buildTodo, CHECK_LABELS, costTotals, dateLabel, fetchCosts, fetchFleetEvents,
+  buildTodo, CHECK_LABELS, costTotals, dateLabel, createdLabel, fetchCosts, fetchFleetEvents,
   fetchInspections, fetchMaintenance, fetchParts, fetchRepairs, inspectionToRepair,
   money, PRIORITY_LABELS, REPAIR_STATUS_LABELS, SERVICE_STATUS_LABELS,
   updateVehicleReadings, vehicleLabel, fetchChangeLog, logSentence, type FleetLogEntry,
@@ -251,7 +251,7 @@ export default function AdminFleetVehicle() {
             <Info label="Kilométrage" value={vehicle.odometer_km ? `${Number(vehicle.odometer_km).toLocaleString("fr-CA")} km` : null} />
             <Info label="Heures moteur" value={vehicle.engine_hours} />
             <Info label="Statut" value={SERVICE_STATUS_LABELS[vehicle.service_status ?? "en_service"]} />
-            <Info label="Ajouté le" value={dateLabel(vehicle.created_at)} />
+            <Info label="Ajouté" value={createdLabel(vehicle)} />
             <div className="col-span-2 sm:col-span-3"><Info label="Notes" value={vehicle.notes} /></div>
             <div className="col-span-2 sm:col-span-3 border-t border-border pt-4">
               <div className="text-xs text-muted-foreground font-body mb-2">Mise à jour rapide des relevés</div>
@@ -323,7 +323,7 @@ export default function AdminFleetVehicle() {
                     <div className="text-sm font-display font-semibold truncate">{w.title}</div>
                     <div className="text-xs text-muted-foreground font-body">
                       {PRIORITY_LABELS[w.priority] ?? w.priority} · {WORK_STATUS_LABELS[w.status] ?? w.status}
-                      {" · "}créé le {dateLabel(w.created_at)}
+                      <span className="block">{createdLabel(w)}</span>
                       {w.scheduled_date ? ` · prévu le ${dateLabel(w.scheduled_date)}` : ""}
                       {" · "}source : {w.source}
                       {(w.occurrences ?? 1) > 1 ? ` · signalé ${w.occurrences} fois` : ""}
@@ -355,7 +355,8 @@ export default function AdminFleetVehicle() {
                     <div className="text-sm font-display font-semibold truncate">
                       {EXPENSE_LABELS[x.category] ?? x.category}{x.description ? ` — ${x.description}` : ""}
                     </div>
-                    <div className="text-xs text-muted-foreground font-body">{dateLabel(x.spent_on)}{x.supplier ? ` · ${x.supplier}` : ""}</div>
+                    <div className="text-xs text-muted-foreground font-body">Dépense du {dateLabel(x.spent_on)}{x.supplier ? ` · ${x.supplier}` : ""}</div>
+<div className="text-[11px] text-muted-foreground font-body">{createdLabel(x)}</div>
                   </div>
                   <span className="text-sm font-display shrink-0">{money(x.amount)}</span>
                 </button>
@@ -378,7 +379,7 @@ export default function AdminFleetVehicle() {
                       {[kmLabel(r.odometer_km as number | null), hoursLabel(r.engine_hours as number | null)].filter(Boolean).join(" • ") || "—"}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {dateLabel(r.read_at)} · source : {r.source}{r.is_correction ? " · correction" : ""}
+                      Relevé du {dateLabel(r.read_at)} · {createdLabel(r)} · source : {r.source}{r.is_correction ? " · correction" : ""}
                     </div>
                   </div>
                 </div>
@@ -400,7 +401,7 @@ export default function AdminFleetVehicle() {
               <div key={n.id} className="p-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-sm font-body truncate">{n.title}</div>
-                  <div className="text-xs text-muted-foreground">{dateLabel(n.created_at)} · {n.status === "done" ? "Résolue" : n.status === "unread" ? "Non lue" : "Lue"}</div>
+                  <div className="text-xs text-muted-foreground">{createdLabel(n)} · {n.status === "done" ? "Résolue" : n.status === "unread" ? "Non lue" : "Lue"}</div>
                 </div>
                 {n.status !== "done" && (
                   <Button size="sm" variant="outline" onClick={async () => {
@@ -421,7 +422,8 @@ export default function AdminFleetVehicle() {
                 <div className="flex justify-between gap-3 cursor-pointer" onClick={() => setMaintDialog({ open: true, record: m })}>
                   <div className="min-w-0">
                     <div className="text-sm font-display font-semibold">{m.maintenance_type}</div>
-                    <div className="text-xs text-muted-foreground font-body">{dateLabel(m.performed_on)} · {m.work_done || "—"}</div>
+                    <div className="text-xs text-muted-foreground font-body">Effectué le {dateLabel(m.performed_on)} · {m.work_done || "—"}</div>
+<div className="text-[11px] text-muted-foreground font-body">{createdLabel(m)}</div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-sm font-display">{money(m.cost)}</div>
@@ -449,7 +451,8 @@ export default function AdminFleetVehicle() {
                 <div className="flex justify-between gap-3 cursor-pointer" onClick={() => setRepairDialog({ open: true, record: r })}>
                   <div className="min-w-0">
                     <div className="text-sm font-display font-semibold truncate">{r.problem}</div>
-                    <div className="text-xs text-muted-foreground font-body">{dateLabel(r.reported_on)}</div>
+                    <div className="text-xs text-muted-foreground font-body">Signalé le {dateLabel(r.reported_on)}</div>
+<div className="text-[11px] text-muted-foreground font-body">{createdLabel(r)}</div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className={`text-xs font-display font-semibold ${r.priority === "urgente" ? "text-destructive" : "text-muted-foreground"}`}>
@@ -477,7 +480,8 @@ export default function AdminFleetVehicle() {
               <div key={p.id} className="p-3 flex justify-between gap-3">
                 <div>
                   <div className="text-sm font-display font-semibold">{p.name}</div>
-                  <div className="text-xs text-muted-foreground font-body">{p.part_number || "—"} · {dateLabel(p.installed_on)}</div>
+                  <div className="text-xs text-muted-foreground font-body">{p.part_number || "—"} · Installée le {dateLabel(p.installed_on)}</div>
+<div className="text-[11px] text-muted-foreground font-body">{createdLabel(p)}</div>
                 </div>
                 <span className="text-sm font-display">{money(Number(p.quantity) * Number(p.unit_cost))}</span>
               </div>
@@ -495,6 +499,7 @@ export default function AdminFleetVehicle() {
                   <div className="flex justify-between gap-3">
                     <div>
                       <div className="text-sm font-display font-semibold">{dateLabel(i.inspected_on)}</div>
+<div className="text-[11px] text-muted-foreground font-body">{createdLabel(i)}</div>
                       <div className="text-xs text-muted-foreground font-body">{i.comment || "—"}</div>
                     </div>
                     <div className="flex gap-2 shrink-0">
@@ -552,7 +557,7 @@ export default function AdminFleetVehicle() {
             <div className="rounded-xl border border-border bg-card divide-y divide-border">
               {costs.map((c) => (
                 <div key={c.id} className="p-3 flex justify-between gap-3">
-                  <div className="text-sm font-body">{c.cost_type === "entretien" ? "Entretien" : "Réparation"} · {dateLabel(c.incurred_on)}</div>
+                  <div className="text-sm font-body">{c.cost_type === "entretien" ? "Entretien" : "Réparation"} · {dateLabel(c.incurred_on)}<span className="block text-[11px] text-muted-foreground">{createdLabel(c)}</span></div>
                   <span className="text-sm font-display">{money(c.amount)}</span>
                 </div>
               ))}
@@ -603,7 +608,7 @@ export default function AdminFleetVehicle() {
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {dateLabel(e.created_at)}{e.actor_email ? ` · ${e.actor_email}` : ""}
+                  {createdLabel(e)}{e.actor_email ? ` · ${e.actor_email}` : ""}
                   {e.origin === "support_vrac_quebec" ? "" : " · Utilisateur de l'entreprise"}
                 </div>
               </div>

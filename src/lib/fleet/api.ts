@@ -688,3 +688,18 @@ export async function completeMaintenance(m: Maintenance, input: CompletionInput
   }
   await scanDue().catch(() => undefined);
 }
+
+// Horodatage de création (UTC côté serveur, affiché en America/Toronto, heure d'été gérée par Intl).
+// Distinct de la date réelle des travaux. Une valeur sans heure n'invente jamais d'heure.
+export function createdLabel(rec: unknown): string {
+  const ts = (rec as { created_at?: string | null } | null)?.created_at ?? null;
+  if (!ts) return "Créé le — · heure non disponible";
+  if (ts.length <= 10) return `Créé le ${dateLabel(ts)} · heure non disponible`;
+  const d = new Date(ts);
+  const parts = new Intl.DateTimeFormat("fr-CA", {
+    timeZone: "America/Toronto", day: "numeric", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(d);
+  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `Créé le ${g("day")} ${g("month")} ${g("year")} à ${Number(g("hour"))} h ${g("minute")}`;
+}
