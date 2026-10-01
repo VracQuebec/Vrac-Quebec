@@ -4,7 +4,9 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 
 const h = vi.hoisted(() => ({ rpc: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: h.rpc, from: () => ({}), auth: { getUser: async () => ({ data: { user: null } }) }, storage: { from: () => ({}) } } }));
-vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: true }) }));
+const au = vi.hoisted(() => ({ user: { id: "u1" } as { id: string } | null }));
+vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: au.user, isReady: true }) }));
+vi.mock("@/lib/drafts/useDraft", () => ({ useDraft: () => ({ status: "idle", savedAt: null, restoredMeta: null, finalize: () => {}, discard: () => {}, sync: "off", synced: false, conflict: null, useServerVersion: () => {}, keepLocalVersion: () => {}, restartAsNew: () => {}, restartError: null, retrySave: () => {} }) }));
 import { cpayPayload, EMPTY_CPAY } from "@/lib/finances/retention";
 import ConstructionPayTest from "@/components/finances/ConstructionPayTest";
 
@@ -12,7 +14,7 @@ type A = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const ret = (x: A = {}) => ({ id: "r1", rev: 3, rest: 114.98, status: "active", ...x });
 const pvData = (hash = "H1") => ({ data: { errors: [], amount: 4.48, paid_on: "2026-09-05", expect_hash: hash, tax: { ttc: 4.48, base: 3.9, gst: 0.19, qst: 0.39, exigible_on: "2026-09-05", date_basis: "paiement" }, after: { retention_rest: 110.5, current_due: 0 } }, error: null });
 const writes = () => h.rpc.mock.calls.filter((c) => c[0] === "fin_construction_pay");
-beforeEach(() => { h.rpc.mockReset(); });
+beforeEach(() => { h.rpc.mockReset(); localStorage.clear(); au.user = { id: "u1" }; });
 const fill = (amount = "4,48") => {
   fireEvent.click(screen.getByText(/Paiement reçu sur la retenue/));
   fireEvent.change(screen.getByLabelText("Montant payé"), { target: { value: amount } });
@@ -46,23 +48,61 @@ describe("FIN-09C2B2A — écran simulé", () => {
     expect(writes().length).toBe(0);
   });
 
-  it("réseau perdu → même clé; références A→B→A → clé A réutilisée; conflit P0409 → saisie conservée + rechargement", async () => {
+  it("écrit + réponse perdue → demande figée; remontage + nouvelle révision : rejeu exact (clé/p/rév/hash identiques), un seul paiement", async () => {
+    const paid = new Map<string, A>(); let lose = true; let rev = 3;
+    h.rpc.mockImplementation((fn: string, a: A) => {
+      if (fn === "fin_construction_pay_preview") return Promise.resolve(pvData(`H${rev}`));
+      if (!paid.has(a._key)) { paid.set(a._key, a); rev += 1; } // écriture serveur réussie (rejeu = même enregistrement)
+      if (lose) { lose = false; return Promise.resolve({ data: null, error: { message: "Failed to fetch", code: "" } }); }
+      return Promise.resolve({ data: { id: "l1", replayed: true }, error: null });
+    });
+    const done = vi.fn();
+    const r = render(<ConstructionPayTest ret={ret()} companyId="c1" invoiceId="i1" canWrite onDone={done} onReload={() => {}} />);
+    fill(); await preview(); confirmAndPay();
+    await screen.findByTestId("cpay-pending");
+    expect(screen.queryByLabelText("Montant payé")).toBeNull(); // aucune saisie/aperçu de remplacement
+    r.unmount(); // fermeture / rechargement
+    render(<ConstructionPayTest ret={ret({ rev: 4, rest: 110.5 })} companyId="c1" invoiceId="i1" canWrite onDone={done} onReload={() => {}} />);
+    await screen.findByTestId("cpay-pending");
+    expect(screen.queryByText("Aperçu du paiement (aucune écriture)")).toBeNull();
+    fireEvent.click(screen.getByText(/Récupérer le résultat/));
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    const w = writes();
+    expect(w.length).toBe(2); expect(paid.size).toBe(1);
+    expect(w[1][1]).toEqual(w[0][1]); // même clé, même payload, même rév 3, même hash H3
+    expect(w[0][1]).toMatchObject({ _expect_rev: 3, _expect_hash: "H3" });
+    expect(localStorage.length).toBe(0);
+    expect(done).toHaveBeenCalled();
+  });
+
+  it("erreur déterministe (transaction annulée) : demande effacée, saisie corrigible; P0409 : saisie conservée + rechargement", async () => {
     let n = 0; const reload = vi.fn();
     h.rpc.mockImplementation((fn: string) => fn === "fin_construction_pay_preview" ? Promise.resolve(pvData())
-      : Promise.resolve(++n <= 2 ? { data: null, error: { message: "Réseau" } } : { data: null, error: { message: "Retenue modifiée", code: "P0409" } }));
+      : Promise.resolve(++n === 1 ? { data: null, error: { message: "Paiement refusé : date", code: "P0001" } } : { data: null, error: { message: "Retenue modifiée", code: "P0409" } }));
     render(<ConstructionPayTest ret={ret()} companyId="c1" invoiceId="i1" canWrite onDone={() => {}} onReload={reload} />);
-    fill(); await preview(); confirmAndPay(); await screen.findByText("Réseau");
-    // B
+    fill(); await preview(); confirmAndPay(); await screen.findByText(/Paiement refusé/);
+    expect(screen.queryByTestId("cpay-pending")).toBeNull(); expect(localStorage.length).toBe(0);
     fireEvent.change(screen.getByLabelText("Référence de preuve"), { target: { value: "VIR-2" } }); await preview(); confirmAndPay();
-    await act(async () => { await Promise.resolve(); });
-    // retour A
-    fireEvent.change(screen.getByLabelText("Référence de preuve"), { target: { value: "VIR-1" } }); await preview(); confirmAndPay();
     await screen.findByText(/saisie conservée/);
-    const k = writes().map((c) => c[1]._key);
-    expect(k.length).toBe(3); expect(k[0]).not.toBe(k[1]); expect(k[2]).toBe(k[0]);
+    const k = writes().map((c) => c[1]._key); expect(k[0]).not.toBe(k[1]);
     expect((screen.getByLabelText("Montant payé") as HTMLInputElement).value).toBe("4,48");
-    expect(reload).toHaveBeenCalled();
-    expect(screen.queryByTestId("cpay-preview")).toBeNull();
+    expect(reload).toHaveBeenCalled(); expect(screen.queryByTestId("cpay-preview")).toBeNull();
+  });
+
+  it("demande en attente : invisible en lecture seule, autre utilisateur/entreprise/retenue; texte d'aperçu = prévision", async () => {
+    h.rpc.mockImplementation((fn: string) => fn === "fin_construction_pay_preview" ? Promise.resolve(pvData()) : Promise.resolve({ data: null, error: { message: "Réseau", code: "" } }));
+    const r = render(<ConstructionPayTest ret={ret()} companyId="c1" invoiceId="i1" canWrite onDone={() => {}} onReload={() => {}} />);
+    fill(); await preview();
+    expect(screen.getByTestId("cpay-preview").textContent).toMatch(/Après confirmation en TEST \(prévision, aucune écriture/);
+    confirmAndPay(); await screen.findByTestId("cpay-pending"); r.unmount();
+    const ro = render(<ConstructionPayTest ret={ret()} companyId="c1" invoiceId="i1" canWrite={false} onDone={() => {}} onReload={() => {}} />);
+    expect(ro.container.textContent).toBe(""); ro.unmount();
+    for (const [u, c, id] of [["u2", "c1", "r1"], ["u1", "c2", "r1"], ["u1", "c1", "r9"]]) {
+      au.user = { id: u };
+      const o = render(<ConstructionPayTest ret={ret({ id })} companyId={c} invoiceId="i1" canWrite onDone={() => {}} onReload={() => {}} />);
+      expect(screen.queryByTestId("cpay-pending")).toBeNull(); o.unmount();
+    }
+    expect(writes().length).toBe(1);
   });
 
   it("révision changée après aperçu : confirmation retirée; lecture seule / retenue soldée : aucune action", async () => {
