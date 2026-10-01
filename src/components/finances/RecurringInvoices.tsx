@@ -137,7 +137,8 @@ export function TemplateForm({ companyId, canWrite, version, onReload, onClose, 
     catch (e) { if (ok()) setErr(msg(e)); } finally { if (ok()) setBusy(false); }
   };
   const save = async () => {
-    if (!canWrite || busy) return;
+    if (!canWrite || busy || !ctxOk) return;
+    if (version && tpl?.id !== version.template.id) { setErr("Modèle changé : rechargez avant d'enregistrer"); return; }
     if (built.errors.length) { setErr(built.errors.join(" ; ")); return; }
     const cl = R.canonLines(f.lines);
     if (!cl.ok) { setErr(cl.errors.join(" ; ")); return; }
@@ -156,6 +157,7 @@ export function TemplateForm({ companyId, canWrite, version, onReload, onClose, 
     } catch (e) { if (!ok()) return; setStale(R.isConflict(e) && !!version); setErr(msg(e) + (R.isConflict(e) ? " — saisie conservée." : "")); }
     finally { if (ok()) setBusy(false); }
   };
+  if (!ctxOk) return null;
   return <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
     <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
       <DialogHeader><DialogTitle>{version ? `Nouvelle version — ${version.template.label}` : "Nouvelle facture récurrente"}</DialogTitle></DialogHeader>
