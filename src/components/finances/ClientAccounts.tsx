@@ -75,7 +75,7 @@ function ClientFile({ companyId, canWrite, row, on, filters, onBack }: { company
         <Button size="sm" onClick={preview}>Préparer une relance (simulation)</Button>
       </div>
       <section><h4 className="font-semibold">Factures</h4><ul className="divide-y divide-border text-sm">{st.invoices.map((l: J) => <li key={l.invoice_id} className="py-2">
-        <a className="font-medium underline" href={`?onglet=factures&facture=${l.invoice_id}`}>{l.number}</a>{l.is_test && " (TEST)"} · émise {l.issue_date} · échéance {l.due_date ?? "non disponible"} · total {AR.money(l.total)} · avoirs {AR.money(l.credits)} · encaissé {AR.money(l.collected)} · <strong>solde {AR.money(l.rest)}</strong>
+        <a className="font-medium underline" href={`?tab=factures&facture=${l.invoice_id}`}>{l.number}</a>{l.is_test && " (TEST)"} · émise {l.issue_date} · échéance {l.due_date ?? "non disponible"} · total {AR.money(l.total)} · avoirs {AR.money(l.credits)} · encaissé {AR.money(l.collected)} · <strong>solde {AR.money(l.rest)}</strong>
         {Number(l.future_ret) > 0 && <> · retenue à échéance future {AR.money(l.future_ret)}</>}{(l.unknown ?? []).length > 0 && <span className="text-destructive"> · donnée manquante : {l.unknown.join(" ; ")}</span>}
       </li>)}{!st.invoices.length && <li className="py-2 text-muted-foreground">Aucune facture émise.</li>}</ul></section>
       <section><h4 className="font-semibold">Règlements</h4><ul className="text-sm">{st.receipts.map((r: J) => <li key={r.id}>{r.received_on} · {r.invoice_number} · {AR.money(r.amount)}{r.reference && ` · réf. ${r.reference}`}</li>)}{!st.receipts.length && <li className="text-muted-foreground">Aucun</li>}</ul></section>

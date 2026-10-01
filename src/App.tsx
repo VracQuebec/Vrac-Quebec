@@ -75,6 +75,7 @@ const TransportRequest = lazy(() => import("./pages/TransportRequest"));
 const Soumission = lazy(() => import("./pages/Soumission"));
 const AchatVrac = lazy(() => import("./pages/AchatVrac"));
 const ClientPortal = lazy(() => import("./pages/ClientPortal"));
+const ClientAccountPortal = lazy(() => import("./pages/ClientAccountPortal"));
 const DriverPortal = lazy(() => import("./pages/DriverPortal"));
 const AdminSoumissionConfig = lazy(() => import("./pages/AdminSoumissionConfig"));
 const AdminTransportCapacities = lazy(() => import("./pages/AdminTransportCapacities"));
@@ -256,6 +257,7 @@ const App = () => (
             <Route path="/admin/seo" element={<AdminSeoManager />} />
             <Route path="/demande-transport" element={<TransportRequest />} />
             <Route path="/portail/client" element={<ClientPortal />} />
+            <Route path="/portail/compte" element={<ClientAccountPortal />} />
             <Route path="/portail/chauffeur" element={<DriverPortal />} />
             <Route path="/soumission" element={<Soumission />} />
             <Route path="/s/:token" element={<SoumissionClient />} />
