@@ -122,4 +122,5 @@ export function pvoidPayload(f: PvoidForm): { ok: boolean; p: J; errors: string[
   return { ok: errors.length === 0, p, errors };
 }
 export const pvoidPreview = (release: string, p: J) => call("fin_construction_pay_void_preview", { _release: release, _p: p });
+export const pcorrAnalyze = (release: string) => call("fin_ctax_pcorr_analyze", { _release: release });
 export const pvoid = (release: string, key: string, p: J, rev: number, hash: string) => call("fin_construction_pay_void", { _release: release, _key: key, _p: p, _expect_rev: rev, _expect_hash: hash });

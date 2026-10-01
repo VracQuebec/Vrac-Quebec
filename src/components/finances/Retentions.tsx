@@ -13,6 +13,7 @@ import * as RT from "@/lib/finances/retention";
 import { todayIn } from "@/lib/finances/period";
 import ConstructionPayTest from "@/components/finances/ConstructionPayTest";
 import ConstructionPayVoidTest from "@/components/finances/ConstructionPayVoidTest";
+import ConstructionPayAnalysisTest from "@/components/finances/ConstructionPayAnalysisTest";
 
 type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const money = (n?: number | string | null) => n == null ? "—" : Number(n).toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
@@ -148,6 +149,7 @@ export default function Retentions({ invoiceId, companyId, canWrite, refreshKey 
         <Button size="sm" variant="outline" disabled={busy || !/^\d{4}-\d{2}-\d{2}$/.test(evOn)} onClick={() => void act({ t: "ev", id: r.id, on: evOn, rev: r.rev }, (key) => RT.evaluate(r.id, key, evOn, r.rev))}>Évaluer l'exigibilité (aucun encaissement)</Button></div>}
       <ul className="text-xs">{(r.releases ?? []).map((l: J) => <li key={l.id}>{l.source === "paiement" ? "Paiement reçu (TEST, encaissement lié)" : "Libération"} {money(l.amount)} le {l.released_on} — {l.reason}{l.voided_at ? ` (annulée : ${l.void_reason})` : ""}
         {r.kind === "construction_differee" && r.status === "active" && l.source === "paiement" && <ConstructionPayVoidTest key={`${companyId}:${l.id}`} rel={l} rev={r.rev} companyId={companyId} canWrite={canWrite} onReload={load} onDone={() => cb.current()} />}
+        {r.kind === "construction_differee" && l.source === "paiement" && <ConstructionPayAnalysisTest key={`a:${companyId}:${l.id}`} rel={l} companyId={companyId} />}
         {canWrite && r.status === "active" && !l.voided_at && r.kind !== "construction_differee" && <Button size="sm" variant="ghost" disabled={busy} onClick={() => askVoid("rel", l.id, r.rev)}>Annuler</Button>}</li>)}</ul>
       {canWrite && r.status === "active" && (Number(r.rest) > 0 && rel?.id === r.id
         ? <div className="mt-1 grid gap-1 sm:grid-cols-4">
