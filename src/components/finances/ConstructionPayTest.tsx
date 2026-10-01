@@ -1,7 +1,9 @@
 // FIN-09C2B2A — paiement manuel TEST de la part retenue d'une retenue construction (B1).
 // Aperçu serveur (aucune écriture) → confirmation liée à l'empreinte + révision → enregistrement atomique
 // (réduction de la retenue + encaissement lié + part fiscale datée si encore différée). Aucun paiement réel.
-// Clé mémorisée par contenu (A→B→A réutilise la clé A); conflit = saisie conservée, situation rechargée.
+// Réponse perdue (résultat inconnu) : la requête exacte (clé + p + rev + hash d'origine) est figée hors brouillon,
+// survit fermeture/remontage/rechargement, et bloque saisie/aperçu/nouvelle soumission jusqu'au rejeu exact.
+// Erreur serveur déterministe (transaction annulée) : demande effacée, saisie corrigible. Conflit = saisie conservée, situation rechargée.
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +12,7 @@ import { useDraft } from "@/lib/drafts/useDraft";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { makeGuard, isConflict } from "@/lib/finances/recurring";
 import * as RT from "@/lib/finances/retention";
+import { readPending, savePending, clearPending, isDeterministic, type Pending } from "@/lib/finances/pendingSubmit";
 
 type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const money = (n?: number | string | null) => n == null ? "—" : Number(n).toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
@@ -20,7 +23,10 @@ export default function ConstructionPayTest({ ret, companyId, canWrite, onDone, 
   const [open, setOpen] = useState(false); const [f, setF] = useState<RT.CpayForm>(RT.EMPTY_CPAY);
   const [pv, setPv] = useState<{ sig: string; rev: number; data: J } | null>(null); const [confirm, setConfirm] = useState<string | null>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null); const [conflict, setConflict] = useState(false);
-  const keys = useRef(new Map<string, string>()); const guard = useRef(makeGuard()).current;
+  const OP = "ctax_pay"; const uid = user?.id ?? null;
+  const [pending, setPending] = useState<Pending | null>(null);
+  useEffect(() => { setPending(uid && canWrite ? readPending(OP, uid, companyId, ret.id) : null); }, [uid, canWrite, companyId, ret.id]);
+  const guard = useRef(makeGuard()).current;
   const cbs = useRef({ onDone, onReload }); cbs.current = { onDone, onReload };
   useEffect(() => () => guard.bump(), [guard]);
   useEffect(() => { guard.bump(); setBusy(false); }, [canWrite, ret.id, guard]);
@@ -36,7 +42,8 @@ export default function ConstructionPayTest({ ret, companyId, canWrite, onDone, 
   // toute modification retire l'aperçu et la confirmation (synchrone)
   const edit = (p: Partial<RT.CpayForm>) => { setF((x) => ({ ...x, ...p })); setPv(null); setConfirm(null); setErr(null); };
 
-  if (!canWrite || ret.status !== "active" || !(Number(ret.rest) > 0)) return null;
+  if (!canWrite) return null;
+  if (!pending && (ret.status !== "active" || !(Number(ret.rest) > 0))) return null;
 
   const doPreview = async () => {
     if (!built.ok) { setErr(built.errors.join(" ; ")); return; }
@@ -44,22 +51,42 @@ export default function ConstructionPayTest({ ret, companyId, canWrite, onDone, 
     try { const r = await RT.cpayPreview(ret.id, built.p); if (!ok()) return; setPv({ sig: sg, rev: rv, data: r }); setConfirm(null); setConflict(false); if ((r.errors ?? []).length) setErr(r.errors.join(" ; ")); }
     catch (e) { if (ok()) setErr(msg(e)); } finally { if (ok()) setBusy(false); }
   };
-  const doPay = async () => {
-    if (busy || !pvOk || confirm !== pv!.data.expect_hash) return;
-    const req = { p: built.p, rev: pv!.rev, hash: pv!.data.expect_hash as string };
-    const rs = JSON.stringify(req);
-    let key = keys.current.get(rs); if (!key) { key = crypto.randomUUID(); keys.current.set(rs, key); }
+  // envoi (nouvelle demande figée avant l'appel, ou rejeu EXACT de la demande en attente)
+  const send = async (q: Pending, fresh: boolean) => {
     const ok = guard.take(); setBusy(true); setErr(null);
     try {
-      await RT.cpay(ret.id, key, req.p, req.rev, req.hash); if (!ok()) return;
-      store.finalize(); keys.current.clear(); setOpen(false); setF(RT.EMPTY_CPAY); setPv(null); setConfirm(null);
+      const a = q.args; await RT.cpay(ret.id, q.key, a.p, a.rev, a.hash); if (!ok()) return;
+      clearPending(OP, q.user, q.company, q.record); setPending(null);
+      store.finalize(); setOpen(false); setF(RT.EMPTY_CPAY); setPv(null); setConfirm(null);
       await cbs.current.onReload(); if (ok()) cbs.current.onDone();
     } catch (e) {
       if (!ok()) return;
+      if (!isDeterministic(e)) { setErr(`${msg(e)} — résultat inconnu : la demande exacte est conservée, récupérez-la avant toute autre saisie.`); return; }
+      clearPending(OP, q.user, q.company, q.record); setPending(null); // transaction annulée côté serveur : rien d'enregistré
       if (isConflict(e)) { setConflict(true); setPv(null); setConfirm(null); setErr(`${msg(e)} — saisie conservée : situation serveur rechargée, refaites l'aperçu puis confirmez.`); await cbs.current.onReload(); }
-      else setErr(msg(e));
+      else { setPv(null); setConfirm(null); setErr(`${msg(e)}${fresh ? "" : " — demande précédente refusée sans écriture : corrigez puis refaites l'aperçu."}`); }
     } finally { if (ok()) setBusy(false); }
   };
+  const doPay = async () => {
+    if (busy || pending || !uid || !pvOk || confirm !== pv!.data.expect_hash) return;
+    let q: Pending;
+    try { q = savePending({ op: OP, user: uid, company: companyId, record: ret.id, key: crypto.randomUUID(), args: { p: built.p, rev: pv!.rev, hash: pv!.data.expect_hash as string } }); }
+    catch (e) { setErr(msg(e)); setPending(readPending(OP, uid, companyId, ret.id)); return; }
+    setPending(q); await send(q, true);
+  };
+  const recover = async () => {
+    if (busy || !uid || !canWrite) return;
+    const q = readPending(OP, uid, companyId, ret.id); // relu et relié au compte/entreprise/retenue courants
+    if (!q) { setPending(null); return; }
+    await send(q, false);
+  };
+
+  if (pending) return <div className="mt-1 rounded border border-dashed border-border p-2 text-xs" data-testid="cpay-pending">
+    <p className="font-medium">Paiement TEST envoyé — résultat inconnu (réponse perdue)</p>
+    <p>Demande figée : {money(pending.args?.p?.amount)} le {pending.args?.p?.paid_on}, réf. {pending.args?.p?.reference} (révision {pending.args?.rev}). Aucune nouvelle saisie ni aperçu tant que le résultat n'est pas déterminé : la récupération rejoue exactement cette demande (même clé) et ne peut pas créer un deuxième paiement.</p>
+    {err && <p role="alert" className="text-destructive">{err}</p>}
+    <Button size="sm" className="mt-1" disabled={busy} onClick={recover}>Récupérer le résultat (rejeu exact)</Button>
+  </div>;
 
   const t = pv?.data?.tax;
   return <div className="mt-1 rounded border border-dashed border-border p-2 text-xs" data-testid="cpay">
@@ -80,7 +107,7 @@ export default function ConstructionPayTest({ ret, companyId, canWrite, onDone, 
       {err && <p role="alert" className="text-destructive">{err}</p>}
       {conflict && <p role="status">Version serveur rechargée. Votre saisie est conservée : refaites l'aperçu.</p>}
       {pvOk && <div data-testid="cpay-preview" className="rounded bg-secondary p-2">
-        <p>Comptabilisé en TEST : encaissement de <strong>{money(pv!.data.amount)}</strong> le {pv!.data.paid_on}, affecté à la retenue · retenue restante après : {money(pv!.data.after?.retention_rest)} · part courante inchangée : {money(pv!.data.after?.current_due)}</p>
+        <p>Après confirmation en TEST (prévision, aucune écriture pour l'instant) : encaissement de <strong>{money(pv!.data.amount)}</strong> le {pv!.data.paid_on}, affecté à la retenue · retenue restante après : {money(pv!.data.after?.retention_rest)} · part courante inchangée : {money(pv!.data.after?.current_due)}</p>
         {t?.already_exigible ? <p>Exigibilité : aucune nouvelle part fiscale (taxes de cette portion déjà exigibles par échéance, revue ou libération antérieure).</p>
           : <p>Exigibilité : base {money(t?.base)} + TPS {money(t?.gst)} + TVQ {money(t?.qst)} = {money(t?.ttc)}, exigible le {t?.exigible_on} ({t?.date_basis === "paiement" ? "date du paiement reçu" : "échéance contractuelle antérieure"}).</p>}
         <p className="text-muted-foreground">Montants figés de la facture inchangés. Annulation de ce paiement : non prise en charge (sous-lot B2).</p>
