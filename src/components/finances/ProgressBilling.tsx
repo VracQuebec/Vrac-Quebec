@@ -34,13 +34,14 @@ export default function ProgressPlanDialog({ planId, companyId, canWrite, onClos
   const [preview, setPreview] = useState<P.Situation | null>(null); // aperçu valide pour le formulaire affiché
   const [pending, setPending] = useState<{ id: string; key: string; rev: number; hash: string } | null>(null); // rejeu après réponse perdue
   const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);
-  const gen = useRef(0);
+  const gen = useRef(0); // contexte (dossier/entreprise) : toute réponse d'un ancien contexte est ignorée
+  const seq = useRef(0); // ordre des lectures du résumé
 
   const load = useCallback(async () => {
-    const g = ++gen.current; setLoadErr(null);
-    try { const s = await P.summary(planId); if (g === gen.current) setSum(s); } catch (e) { if (g === gen.current) setLoadErr((e as Error).message); }
+    const q = ++seq.current; setLoadErr(null);
+    try { const s = await P.summary(planId); if (q === seq.current) setSum(s); } catch (e) { if (q === seq.current) setLoadErr((e as Error).message); }
   }, [planId]);
-  useEffect(() => { setSum(null); setDraft(null); setPreview(null); setPending(null); setBusy(false); setErr(null); void load(); return () => { gen.current++; }; }, [load, companyId]);
+  useEffect(() => { gen.current++; setSum(null); setDraft(null); setPreview(null); setPending(null); setBusy(false); setErr(null); void load(); return () => { gen.current++; seq.current++; }; }, [load, companyId]);
 
   const active = sum?.situations.find((s) => s.status === "brouillon") ?? null;
   const edit = (p: Partial<Form>) => { setForm((f) => ({ ...f, ...p })); setPreview(null); setPending(null); setErr(null); };

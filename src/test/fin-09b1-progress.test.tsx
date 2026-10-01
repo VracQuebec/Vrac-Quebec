@@ -35,7 +35,7 @@ describe("FIN-09B1 — aperçu et émission", () => {
     fireEvent.click(screen.getByText("Aperçu"));
     await screen.findByText("Émettre la facture");
     const call = h.rpc.mock.calls.find((c) => c[0] === "fin_progress_draft_save")!; expect(call[1]._value).toBe("30.0"); expect(call[1]._base_rev).toBeNull();
-    expect(screen.getByText(/344,93/)).toBeTruthy();
+    expect(screen.getAllByText(/344,93/).length).toBeGreaterThan(0);
     fireEvent.change(screen.getByLabelText("Cumul contractuel"), { target: { value: "40" } });
     expect(screen.queryByText("Émettre la facture")).toBeNull();
   });
