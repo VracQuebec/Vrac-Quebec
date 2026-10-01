@@ -43,7 +43,7 @@ describe("FIN-08B Encaissements (interface simulée)", () => {
     fireEvent.change(screen.getByPlaceholderText("1149.75"), { target: { value: "400" } });
     fireEvent.click(screen.getByText("Enregistrer"));
     const retry = await screen.findByText("Réessayer le même envoi");
-    expect((screen.getByPlaceholderText("1149.75") as HTMLInputElement).disabled).toBe(true); // champs figés
+    expect((screen.getByPlaceholderText("1149.75").closest("fieldset") as HTMLFieldSetElement).disabled).toBe(true); // champs figés
     fireEvent.click(retry);
     await waitFor(() => expect(keys).toHaveLength(2));
     expect(keys[0]).toBe(keys[1]);
