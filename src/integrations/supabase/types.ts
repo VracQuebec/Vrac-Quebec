@@ -4836,6 +4836,146 @@ export type Database = {
           },
         ]
       }
+      fin_portal_access: {
+        Row: {
+          client_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_portal_access_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_portal_access_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_portal_requests: {
+        Row: {
+          access_id: string
+          amount: number | null
+          client_id: string
+          company_id: string
+          created_at: string
+          created_by: string
+          handle_note: string | null
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          invoice_id: string | null
+          kind: string
+          message: string | null
+          paid_on: string | null
+          reference: string | null
+          status: string
+        }
+        Insert: {
+          access_id: string
+          amount?: number | null
+          client_id: string
+          company_id: string
+          created_at?: string
+          created_by: string
+          handle_note?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          invoice_id?: string | null
+          kind: string
+          message?: string | null
+          paid_on?: string | null
+          reference?: string | null
+          status?: string
+        }
+        Update: {
+          access_id?: string
+          amount?: number | null
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          handle_note?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          invoice_id?: string | null
+          kind?: string
+          message?: string | null
+          paid_on?: string | null
+          reference?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_portal_requests_access_id_fkey"
+            columns: ["access_id"]
+            isOneToOne: false
+            referencedRelation: "fin_portal_access"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_portal_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_portal_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_portal_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_progress_amendments: {
         Row: {
           approval_date: string | null
@@ -23879,6 +24019,58 @@ export type Database = {
         }
         Returns: Json
       }
+      fin_ar_accounts: {
+        Args: {
+          _company: string
+          _filter?: string
+          _limit?: number
+          _offset?: number
+          _on: string
+          _q?: string
+        }
+        Returns: Json
+      }
+      fin_ar_collect_preview: {
+        Args: { _client_key: string; _company: string; _on: string }
+        Returns: Json
+      }
+      fin_ar_lines: {
+        Args: { _company: string; _on: string }
+        Returns: {
+          b1_30: number
+          b31_60: number
+          b61_90: number
+          b90: number
+          client_id: string
+          client_key: string
+          client_name: string
+          collected: number
+          credits: number
+          current_due: number
+          due_date: string
+          due_today: number
+          future_ret: number
+          held: number
+          invoice_id: string
+          is_test: boolean
+          issue_date: string
+          not_due: number
+          number: string
+          rest: number
+          total: number
+          unallocated: number
+          unknown: string[]
+        }[]
+      }
+      fin_ar_statement: {
+        Args: { _client_key: string; _company: string; _on: string }
+        Returns: Json
+      }
+      fin_ar_statement_core: {
+        Args: { _client_key: string; _company: string; _on: string }
+        Returns: Json
+      }
+      fin_ar_sum: { Args: { _rows: Json }; Returns: Json }
       fin_archive_obligation: {
         Args: { _effective: string; _id: string }
         Returns: number
@@ -24243,6 +24435,65 @@ export type Database = {
           _from: string
           _to: string
         }
+        Returns: Json
+      }
+      fin_portal_active: {
+        Args: { _access: string }
+        Returns: {
+          client_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fin_portal_access"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      fin_portal_grant: {
+        Args: {
+          _client: string
+          _company: string
+          _email: string
+          _expires: string
+        }
+        Returns: string
+      }
+      fin_portal_mine: { Args: never; Returns: Json }
+      fin_portal_request: {
+        Args: {
+          _access: string
+          _amount: string
+          _invoice: string
+          _kind: string
+          _message: string
+          _paid_on: string
+          _reference: string
+        }
+        Returns: string
+      }
+      fin_portal_request_handle: {
+        Args: { _id: string; _note: string }
+        Returns: undefined
+      }
+      fin_portal_revoke: {
+        Args: { _access: string; _reason: string }
+        Returns: undefined
+      }
+      fin_portal_staff_list: {
+        Args: { _client: string; _company: string }
+        Returns: Json
+      }
+      fin_portal_statement: {
+        Args: { _access: string; _on: string }
         Returns: Json
       }
       fin_preview: {
