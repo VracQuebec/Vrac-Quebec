@@ -693,13 +693,14 @@ export async function completeMaintenance(m: Maintenance, input: CompletionInput
 // Distinct de la date réelle des travaux. Une valeur sans heure n'invente jamais d'heure.
 export function createdLabel(rec: unknown): string {
   const ts = (rec as { created_at?: string | null } | null)?.created_at ?? null;
-  if (!ts) return "Créé le — · heure non disponible";
-  if (ts.length <= 10) return `Créé le ${dateLabel(ts)} · heure non disponible`;
+  if (!ts) return "Enregistré le — · heure non enregistrée";
+  if (ts.length <= 10) return `Enregistré le ${dateLabel(ts)} · heure non enregistrée`;
   const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return "Enregistré le — · heure non enregistrée";
   const parts = new Intl.DateTimeFormat("fr-CA", {
     timeZone: "America/Toronto", day: "numeric", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit", hourCycle: "h23",
   }).formatToParts(d);
   const g = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  return `Créé le ${g("day")} ${g("month")} ${g("year")} à ${Number(g("hour"))} h ${g("minute")}`;
+  return `Enregistré le ${g("day")} ${g("month")} ${g("year")} à ${Number(g("hour"))} h ${g("minute")}`;
 }

@@ -251,7 +251,7 @@ export default function AdminFleetVehicle() {
             <Info label="Kilométrage" value={vehicle.odometer_km ? `${Number(vehicle.odometer_km).toLocaleString("fr-CA")} km` : null} />
             <Info label="Heures moteur" value={vehicle.engine_hours} />
             <Info label="Statut" value={SERVICE_STATUS_LABELS[vehicle.service_status ?? "en_service"]} />
-            <Info label="Ajouté" value={createdLabel(vehicle)} />
+            <Info label="Inscription" value={createdLabel(vehicle)} />
             <div className="col-span-2 sm:col-span-3"><Info label="Notes" value={vehicle.notes} /></div>
             <div className="col-span-2 sm:col-span-3 border-t border-border pt-4">
               <div className="text-xs text-muted-foreground font-body mb-2">Mise à jour rapide des relevés</div>
