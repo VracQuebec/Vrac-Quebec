@@ -3558,6 +3558,111 @@ export type Database = {
           },
         ]
       }
+      fin_credit_notes: {
+        Row: {
+          client_snapshot: Json | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          credit_snapshot: Json | null
+          draft_key: string
+          exempt_base: number | null
+          gst: number | null
+          id: string
+          invoice_id: string
+          invoice_snapshot: Json | null
+          issue_key: string | null
+          issued_at: string | null
+          issued_by: string | null
+          items: Json
+          number: string | null
+          pdf_path: string | null
+          qst: number | null
+          reason: string
+          seller_snapshot: Json | null
+          seq: number | null
+          status: string
+          taxable_base: number | null
+          template_snapshot: Json | null
+          total: number | null
+          updated_at: string
+          zero_rated_base: number | null
+        }
+        Insert: {
+          client_snapshot?: Json | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          credit_snapshot?: Json | null
+          draft_key: string
+          exempt_base?: number | null
+          gst?: number | null
+          id?: string
+          invoice_id: string
+          invoice_snapshot?: Json | null
+          issue_key?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          items?: Json
+          number?: string | null
+          pdf_path?: string | null
+          qst?: number | null
+          reason: string
+          seller_snapshot?: Json | null
+          seq?: number | null
+          status?: string
+          taxable_base?: number | null
+          template_snapshot?: Json | null
+          total?: number | null
+          updated_at?: string
+          zero_rated_base?: number | null
+        }
+        Update: {
+          client_snapshot?: Json | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          credit_snapshot?: Json | null
+          draft_key?: string
+          exempt_base?: number | null
+          gst?: number | null
+          id?: string
+          invoice_id?: string
+          invoice_snapshot?: Json | null
+          issue_key?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          items?: Json
+          number?: string | null
+          pdf_path?: string | null
+          qst?: number | null
+          reason?: string
+          seller_snapshot?: Json | null
+          seq?: number | null
+          status?: string
+          taxable_base?: number | null
+          template_snapshot?: Json | null
+          total?: number | null
+          updated_at?: string
+          zero_rated_base?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_credit_notes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_credit_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_events: {
         Row: {
           action: string
@@ -3788,6 +3893,8 @@ export type Database = {
         Row: {
           brand_color: string | null
           company_id: string
+          credit_next_number: number
+          credit_prefix: string
           custom_template_ref: string | null
           default_terms: string | null
           footer: string | null
@@ -3801,6 +3908,8 @@ export type Database = {
         Insert: {
           brand_color?: string | null
           company_id: string
+          credit_next_number?: number
+          credit_prefix?: string
           custom_template_ref?: string | null
           default_terms?: string | null
           footer?: string | null
@@ -3814,6 +3923,8 @@ export type Database = {
         Update: {
           brand_color?: string | null
           company_id?: string
+          credit_next_number?: number
+          credit_prefix?: string
           custom_template_ref?: string | null
           default_terms?: string | null
           footer?: string | null
@@ -22647,6 +22758,28 @@ export type Database = {
         Returns: undefined
       }
       fin_confirm_unsettled: { Args: { _occ: string }; Returns: undefined }
+      fin_credit_compute: {
+        Args: { _exclude: string; _invoice: string; _items: Json }
+        Returns: Json
+      }
+      fin_credit_discard: { Args: { _id: string }; Returns: undefined }
+      fin_credit_issue: {
+        Args: { _expect_total: number; _id: string; _issue_key: string }
+        Returns: Json
+      }
+      fin_credit_save: {
+        Args: {
+          _draft_key: string
+          _invoice: string
+          _items: Json
+          _reason: string
+        }
+        Returns: Json
+      }
+      fin_credit_set_pdf: {
+        Args: { _id: string; _path: string }
+        Returns: undefined
+      }
       fin_digest_at: {
         Args: { _digest: string; _now: string }
         Returns: string
@@ -22679,6 +22812,7 @@ export type Database = {
           slot: number
         }[]
       }
+      fin_invoice_balance: { Args: { _invoice: string }; Returns: Json }
       fin_invoice_from_quote: { Args: { _quote_id: string }; Returns: string }
       fin_invoice_issue: {
         Args: { _id: string; _replace_inflow?: string }

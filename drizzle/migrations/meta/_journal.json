@@ -617,6 +617,13 @@
       "when": 1790823830385,
       "tag": "0087_fin08b_lock_order_idem",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1790826921421,
+      "tag": "0088_fin09a_credit_notes",
+      "breakpoints": true
     }
   ]
 }
