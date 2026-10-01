@@ -23043,6 +23043,10 @@ export type Database = {
         Returns: Json
       }
       fin_invoice_receipts_sync: { Args: { _invoice: string }; Returns: Json }
+      fin_json_num_ok: {
+        Args: { _allow_null?: boolean; _v: Json }
+        Returns: boolean
+      }
       fin_lift_pause: {
         Args: {
           _dry?: boolean
@@ -23194,7 +23198,13 @@ export type Database = {
         Returns: Json
       }
       fin_progress_abandon: {
-        Args: { _key: string; _reason: string; _situation: string }
+        Args: {
+          _expect_hash: string
+          _expect_rev: number
+          _key: string
+          _reason: string
+          _situation: string
+        }
         Returns: Json
       }
       fin_progress_check_dates: {
@@ -23235,6 +23245,16 @@ export type Database = {
         Returns: Json
       }
       fin_progress_for_quote: { Args: { _quote: string }; Returns: Json }
+      fin_progress_input_hash: {
+        Args: {
+          _due: string
+          _issue: string
+          _kind: string
+          _mode: string
+          _value: string
+        }
+        Returns: string
+      }
       fin_progress_issue: {
         Args: {
           _expect_hash: string
@@ -23254,6 +23274,10 @@ export type Database = {
         Args: { _now: string; _qe: number; _qs: number }
         Returns: string
       }
+      fin_quote_family: { Args: { _root: string }; Returns: string[] }
+      fin_quote_family_engaged: { Args: { _root: string }; Returns: boolean }
+      fin_quote_family_lock: { Args: { _root: string }; Returns: undefined }
+      fin_quote_family_root: { Args: { _q: string }; Returns: string }
       fin_refund_add: {
         Args: {
           _amount: number
