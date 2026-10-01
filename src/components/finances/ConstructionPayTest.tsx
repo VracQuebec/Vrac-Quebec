@@ -15,7 +15,7 @@ type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const money = (n?: number | string | null) => n == null ? "—" : Number(n).toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
 const msg = (e: unknown) => (e as Error)?.message ?? "Erreur";
 
-export default function ConstructionPayTest({ ret, companyId, invoiceId, canWrite, onDone, onReload }: { ret: J; companyId: string; invoiceId: string; canWrite: boolean; onDone: () => void; onReload: () => Promise<void> | void }) {
+export default function ConstructionPayTest({ ret, companyId, canWrite, onDone, onReload }: { ret: J; companyId: string; invoiceId: string; canWrite: boolean; onDone: () => void; onReload: () => Promise<void> | void }) {
   const { user } = useAuthReady();
   const [open, setOpen] = useState(false); const [f, setF] = useState<RT.CpayForm>(RT.EMPTY_CPAY);
   const [pv, setPv] = useState<{ sig: string; rev: number; data: J } | null>(null); const [confirm, setConfirm] = useState<string | null>(null);
@@ -89,6 +89,5 @@ export default function ConstructionPayTest({ ret, companyId, invoiceId, canWrit
       </div>}
       {pv && !pvOk && !(pv.data.errors ?? []).length && <p className="text-muted-foreground">Saisie ou retenue modifiée depuis l'aperçu : refaites l'aperçu.</p>}
     </div>}
-    <span hidden>{invoiceId}</span>
   </div>;
 }
