@@ -13,7 +13,7 @@ import { fmtDate, todayIn } from "@/lib/finances/period";
 const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const money = (n?: number | null) => Number(n ?? 0).toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
 const sel = "h-10 rounded-md border border-input bg-background px-2 text-sm";
-type Sum = { total: number; legacy: number; receipts: number; received: number; rest: number; unallocated: number; paid: boolean };
+type Sum = { credits?: number; net?: number; collected?: number; settled_by_credit?: boolean; total: number; legacy: number; receipts: number; received: number; rest: number; unallocated: number; paid: boolean };
 const emptyForm = () => ({ amount: "", date: todayIn(), method: "virement", account: "", ref: "" });
 
 export default function InvoiceReceipts({ invoiceId, companyId, canWrite, onChanged }: { invoiceId: string; companyId: string; canWrite: boolean; onChanged: () => void }) {
@@ -89,8 +89,8 @@ export default function InvoiceReceipts({ invoiceId, companyId, canWrite, onChan
       <h3 className="font-display font-bold">Encaissements</h3>
       {canWrite && !open && <Button size="sm" onClick={() => setOpen(true)}>Enregistrer un encaissement</Button>}
     </div>
-    <p className="text-xs">Total {money(sum.total)} · encaissé {money(sum.received)} · <strong>reste {money(sum.rest)}</strong>{sum.paid ? " · Payée" : ""}
-      {sum.unallocated > 0 && <> · <span className="text-amber-800">trop-perçu non affecté {money(sum.unallocated)}</span></>}</p>
+    <p className="text-xs">Total brut {money(sum.total)}{Number(sum.credits) > 0 && <> · notes de crédit − {money(sum.credits)} · net {money(sum.net)}</>} · encaissé {money(sum.collected ?? sum.received)} · <strong>net à recevoir {money(sum.rest)}</strong>{sum.paid ? " · Payée" : sum.settled_by_credit ? " · Soldée par avoir (non encaissée)" : ""}
+      {sum.unallocated > 0 && <> · <span className="text-amber-800">{Number(sum.credits) > 0 ? "crédit disponible / trop-perçu" : "trop-perçu"} non affecté {money(sum.unallocated)} (aucun remboursement automatique)</span></>}</p>
     {open && <fieldset disabled={!!pending} className="contents"><div className="grid gap-2 rounded bg-secondary/40 p-2 sm:grid-cols-2">
       <p className="text-xs text-muted-foreground sm:col-span-2">Encaissement déclaré manuellement, sans confirmation bancaire. Paiement partiel accepté.</p>
       <label className="text-xs">Montant<Input inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder={String(sum.rest)} /></label>

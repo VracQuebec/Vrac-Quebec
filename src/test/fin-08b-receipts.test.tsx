@@ -19,7 +19,7 @@ describe("FIN-08B Encaissements (interface simulée)", () => {
     await screen.findByText(/Encaissements indisponibles/);
     expect(screen.queryByText(/0,00/)).toBeNull();
     fireEvent.click(screen.getByText("Réessayer"));
-    await screen.findByText(/reste 749,75/);
+    await screen.findByText(/recevoir 749,75/);
   });
 
   it("réponse périmée d'une autre facture ignorée", async () => {
@@ -27,7 +27,7 @@ describe("FIN-08B Encaissements (interface simulée)", () => {
     h.rpc.mockImplementationOnce(() => new Promise((r) => { slow = r; })).mockResolvedValueOnce(sum(500, 0));
     const { rerender } = render(<InvoiceReceipts invoiceId="A" companyId="c1" canWrite onChanged={() => {}} />);
     rerender(<InvoiceReceipts invoiceId="B" companyId="c1" canWrite onChanged={() => {}} />);
-    await screen.findByText(/reste 500,00/);
+    await screen.findByText(/recevoir 500,00/);
     await act(async () => { slow(sum(1149.75, 400)); });
     expect(screen.queryByText(/749,75/)).toBeNull();
   });
