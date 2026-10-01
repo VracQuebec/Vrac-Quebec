@@ -403,9 +403,15 @@ export default function RecurringInvoices({ companyId, canWrite }: { companyId: 
   const [creating, setCreating] = useState(() => getQ("rec_form") === "new");
   const [seq, setSeq] = useState(0);
   const guard = useRef(R.makeGuard()).current;
-  const firstCompany = useRef(companyId);
+  // Entreprise précédente, actualisée à CHAQUE transition (A→B→A) : reset synchrone pendant le rendu,
+  // donc aucun enfant n'est rendu ni ne reçoit d'ancien identifiant/saisie avant un effet.
+  const [ctx, setCtx] = useState(companyId);
+  if (ctx !== companyId) { guard.bump(); setCtx(companyId); setOpen(null); setCreating(false); setRows(null); setErr(null); }
+  const live = useRef(companyId); live.current = companyId;
+  /** Callback enfant lié à l'entreprise de son rendu : ignoré si l'entreprise a changé depuis. */
+  const bound = <A extends unknown[]>(fn: (...a: A) => void) => { const c = companyId; return (...a: A) => { if (live.current === c) fn(...a); }; };
+  const stable = ctx === companyId;
   useEffect(() => () => guard.bump(), [guard]);
-  useEffect(() => { guard.bump(); if (firstCompany.current !== companyId) { setOpen(null); setCreating(false); } setRows(null); }, [companyId, guard]);
   useEffect(() => { setQ({ rec: open, ...(creating ? { rec_form: "new" } : !open ? { rec_form: null, occ: null } : {}) }); }, [open, creating]);
   useEffect(() => { const ok = guard.take(); R.list(companyId).then((r) => { if (ok()) { setRows(r); setErr(null); } }).catch((e) => ok() && setErr(msg(e))); }, [companyId, seq, guard]);
   return <div className="space-y-3">
@@ -417,7 +423,7 @@ export default function RecurringInvoices({ companyId, canWrite }: { companyId: 
     {rows && rows.length > 0 && <ul className="divide-y rounded-md border">{rows.map((r) => <li key={r.id}><button className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-secondary" onClick={() => setOpen(r.id)}>
       <span className="font-medium">{r.label}</span><span className="text-muted-foreground">{r.client_name}{r.contract_ref ? ` · ${r.contract_ref}` : ""}</span>
       <span className="ml-auto text-xs">{R.STATUS_LABEL[r.status]} · {r.drafts} brouillon(s) · {r.issued} émise(s)</span></button></li>)}</ul>}
-    {creating && <TemplateForm companyId={companyId} canWrite={canWrite} onClose={() => setCreating(false)} onSaved={(id) => { setCreating(false); setSeq((x) => x + 1); setOpen(id); }} />}
-    {open && <RecurringDetail key={`${companyId}|${open}`} id={open} companyId={companyId} canWrite={canWrite} onClose={() => setOpen(null)} onChanged={() => setSeq((x) => x + 1)} />}
+    {stable && creating && <TemplateForm key={`${companyId}|new`} companyId={companyId} canWrite={canWrite} onClose={bound(() => setCreating(false))} onSaved={bound((id: string) => { setCreating(false); setSeq((x) => x + 1); setOpen(id); })} />}
+    {stable && open && <RecurringDetail key={`${companyId}|${open}`} id={open} companyId={companyId} canWrite={canWrite} onClose={bound(() => setOpen(null))} onChanged={bound(() => setSeq((x) => x + 1))} />}
   </div>;
 }
