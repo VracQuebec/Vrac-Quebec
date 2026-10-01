@@ -118,3 +118,30 @@ describe("FIN-09C2 — écran simulé", () => {
     expect(writes().length).toBe(0);
   });
 });
+
+describe("FIN-09C2 — correctifs de relecture", () => {
+  it("échéancier incohérent : projection refusée, jamais plafonnée", () => {
+    expect(() => splitInflow({ amount: 100, received: 50, expected_on: "2026-10-31", retention_schedule: [{ id: "r1", date: null, amount: 60 }] })).toThrow(/retenu 60.00 \$ > reste dû 50.00 \$/);
+    for (const s of [{}, [{ id: "r1", date: null, amount: "abc" }], [{ id: "r1", date: "31/12/2026", amount: 1 }], [{ date: null, amount: 1 }], [{ id: "r1", date: null, amount: 0 }]])
+      expect(() => splitInflow({ amount: 100, received: 0, expected_on: "2026-10-31", retention_schedule: s })).toThrow(/Prévision refusée/);
+  });
+
+  it("lectures dans le désordre : seule la plus récente s'applique, ancienne erreur ignorée", async () => {
+    const d1 = deferred(); const d2 = deferred(); let n = 0;
+    h.rpc.mockImplementation(() => (++n === 1 ? d1.p : d2.p));
+    const r = render(<Retentions invoiceId="i1" companyId="c1" canWrite onChanged={() => {}} refreshKey={0} />);
+    r.rerender(<Retentions invoiceId="i1" companyId="c1" canWrite onChanged={() => {}} refreshKey={1} />);
+    await act(async () => { d2.res(summary({ position: { ...pos, held: 7 } })); await d2.p; });
+    await act(async () => { d1.res({ data: null, error: { message: "Ancienne erreur" } }); await d1.p; });
+    expect(screen.getByTestId("ret-position").textContent).toMatch(/7,00/);
+    expect(screen.queryByText(/Ancienne erreur/)).toBeNull();
+  });
+
+  it("retenue active entièrement libérée : « Annuler la retenue » reste accessible, pas de « Libérer… »", async () => {
+    const ret = { id: "r1", amount: 114.98, rest: 0, rev: 3, status: "active", reason: "G", release_condition: "R", releases: [], mode: "amount" };
+    h.rpc.mockImplementation(() => Promise.resolve(summary({ retentions: [ret] })));
+    render(<Retentions invoiceId="i1" companyId="c1" canWrite onChanged={() => {}} />);
+    expect(await screen.findByText("Annuler la retenue")).toBeTruthy();
+    expect(screen.queryByText("Libérer…")).toBeNull();
+  });
+});
