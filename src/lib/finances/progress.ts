@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 export type Kind = "acompte" | "situation" | "solde";
-export type Mode = "pct" | "amount" | "amount_ttc";
+export type Mode = "pct" | "amount" | "amount_ttc" | "lines" | "jalon";
 export type Parts = { bt: number; bz: number; be: number; gst: number; qst: number; ht: number; total: number; pct?: number; cap?: number };
 export type Gap = { ht: number; gst: number; qst: number; total: number };
 /** basis: plafond contractuel en HT (contrat HT) ou TTC (contrat taxes incluses). Taxes calculées sur chaque facture. */
@@ -11,8 +11,17 @@ export type Computed = { basis?: "ht" | "ttc"; contract: Parts; prev: Parts; cum
 export type Situation = { id: string; seq: number | null; kind: Kind; mode: Mode; value: string; status: "brouillon" | "emise" | "abandonnee"; issue_date: string | null; due_date: string | null;
   computed: Computed; rev: number; hash: string; draft_key: string; abandon_reason: string | null; invoice_id: string | null; number: string | null;
   balance: { total: number; credits: number; net: number; collected: number; rest: number; unallocated: number } | null };
+export type Track = "global" | "lines" | "milestones";
+export type LineState = { id: string; desc: string | null; unit: string | null; tax: string; qty: number; price: number; disc_pct: number | null; amount: number; billed_qty: number; billed_amt: number };
+export type Milestone = { id: string; ord: number; title: string; due_hint: string | null; share: number; status: "prevu" | "realise" | "facture" | "archive"; rev: number; done_at: string | null; done_by: string | null; invoice_id: string | null };
+export type Amendment = { id: string; seq: number; status: "brouillon" | "approuve" | "abandonne" | "rejete"; reason: string; changes: unknown[]; rev: number; hash: string; draft_key: string;
+  impact: { cap_before: number; cap_after: number; billed_cap: number; delta: Gap & { cap: number }; changes: { id: string; desc: string; qty_before: number; qty_after: number; amount_before: number; amount_after: number; new?: boolean }[] };
+  approval_ref: string | null; approval_date: string | null; approver_name: string | null; from_version: number; to_version: number | null; approved_at: string | null; close_reason: string | null };
 export type Summary = { id: string; company_id: string; quote_id: string; client_name: string | null; quote_number: string | null; quote_version: number | null;
-  contract: Parts & { gst_rate: number | null; qst_rate: number | null }; billed: { ht: number; gst: number; qst: number; total: number }; situations: Situation[] };
+  contract: Parts & { gst_rate: number | null; qst_rate: number | null }; billed: { ht: number; gst: number; qst: number; total: number }; situations: Situation[];
+  track?: Track; contract_version?: number; lines?: LineState[]; milestones?: Milestone[]; amendments?: Amendment[]; initial?: Parts | null;
+  cap?: { t: number; z: number; e: number; billed_t: number; billed_z: number; billed_e: number; allocated: number };
+  versions?: { version: number; contract: Parts; amendment_id: string | null; created_by: string | null; created_at: string }[] };
 
 export const KIND_LABEL: Record<Kind, string> = { acompte: "Acompte (part du prix)", situation: "Situation progressive", solde: "Solde final" };
 
@@ -37,3 +46,23 @@ export async function issue(id: string, key: string, rev: number, hash: string) 
 /** Abandon contrôlé : révision + empreinte attendues; au réessai, renvoyer exactement les mêmes paramètres. */
 export async function abandon(id: string, key: string, reason: string, rev: number, hash: string) { const { data, error } = await db.rpc("fin_progress_abandon", { _situation: id, _key: key, _reason: reason, _expect_rev: rev, _expect_hash: hash }); fail(error); return data as Situation; }
 export const newKey = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`);
+
+/** Quantité fr-CA (« 2,5 », « 1 000 ») → texte décimal (zéro permis, 4 décimales au plus), ou null. */
+export function parseQty(raw: string): string | null {
+  const t = raw.replace(/[\s\u00A0\u202F]/g, "").replace(",", ".");
+  return /^\d{1,12}(\.\d{1,4})?$/.test(t) ? t : null;
+}
+export const TRACK_LABEL: Record<Track, string> = { global: "Global (% ou montant)", lines: "Quantités par ligne", milestones: "Jalons" };
+export async function setTrack(plan: string, track: Track, version: number) { const { data, error } = await db.rpc("fin_progress_set_track", { _plan: plan, _track: track, _expect_version: version }); fail(error); return data; }
+export async function milestoneSave(p: { plan: string; id: string | null; key: string | null; title: string; ord: number; due: string | null; share: string; baseRev: number | null }) {
+  const { data, error } = await db.rpc("fin_progress_milestone_save", { _plan: p.plan, _id: p.id, _key: p.key, _title: p.title, _ord: p.ord, _due: p.due || null, _share: p.share, _base_rev: p.baseRev }); fail(error); return data as Milestone;
+}
+export async function milestoneSet(id: string, action: "realise" | "archive", baseRev: number) { const { data, error } = await db.rpc("fin_progress_milestone_set", { _id: id, _action: action, _base_rev: baseRev }); fail(error); return data as Milestone; }
+export async function amendSave(p: { plan: string; key: string; reason: string; changes: unknown[]; ref: string; refDate: string | null; approver: string; refQuote: string | null; baseRev: number | null }) {
+  const { data, error } = await db.rpc("fin_progress_amend_save", { _plan: p.plan, _draft_key: p.key, _reason: p.reason, _changes: p.changes, _ref: p.ref, _ref_date: p.refDate || null, _approver: p.approver, _ref_quote: p.refQuote, _base_rev: p.baseRev });
+  fail(error); return data as Amendment;
+}
+export async function amendApprove(id: string, key: string, rev: number, hash: string) { const { data, error } = await db.rpc("fin_progress_amend_approve", { _amend: id, _key: key, _expect_rev: rev, _expect_hash: hash }); fail(error); return data as { version: number; already: boolean }; }
+export async function amendClose(id: string, key: string, status: "abandonne" | "rejete", reason: string, rev: number, hash: string) {
+  const { data, error } = await db.rpc("fin_progress_amend_close", { _amend: id, _key: key, _status: status, _reason: reason, _expect_rev: rev, _expect_hash: hash }); fail(error); return data as Amendment;
+}
