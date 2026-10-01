@@ -188,3 +188,25 @@ HEAD 2c986097542e9ea23d3ccb6c99895f2e0240f5ce, déploiement 7fa7828c-3b83-4be4-9
 - Base : une seule tentative, refusée (« EAUTHQUERY authentication query failed: connection to database not available »). Aucun essai serveur exécuté.
 - Exécuté réellement : vérification hors base (entiers exacts Python, algorithme identique) — 100/5/9.98 cumuls 0..11498 monotones/bornés/somme exacte (4.48 → 3.90/.19/.39, 4.49 → 3.91/.19/.39, aucune TVQ négative) ; petits instantanés exhaustifs ; gros montant aux frontières ; bornes numeric(14,2).
 - Restant avant publication : appliquer 0111, puis essai TEST annulé (exhaustif, gros montants, chronologie datée passée, rejeux/mismatch, facture réelle refusée, une entrée trésorerie, accès directs refusés, nettoyage/profil).
+
+### FIN-09C2B1 — validation serveur (2026-10-01, après redémarrage backend)
+
+Correctif 0111 (fin_ctax_alloc en arithmétique numeric exacte, même méthode à diviseur / départage D'Hondt) appliqué et vérifié sur serveur : balayage exhaustif cumuls 0..11498 sur instantané 100/5/9.98 = 0 non-monotone, 0 total inexact, fin exacte 100/5/9.98 ; gros montants 500 000 000 HT / 25 000 000 TPS / 49 875 000 TVQ sans dépassement ; 4.48 → 3.90/0.19/0.39 ; 4.49 → 3.91/0.19/0.39 (aucune TVQ négative).
+
+Essai serveur TEST complet (entreprise TEST A, transaction annulée, 12 vérifications, toutes réussies) :
+1. Aperçu zéro écriture : base 100.00, TPS 5.00, TVQ 9.98, TTC 114.98, exigible immédiat 45.00/89.77, courant 1034.77, 0 écriture.
+2. Émission : retenue créée, facture F-00001 émise, 1 seule entrée de trésorerie, position cohérente (total 1149.75, retenu 114.98, courant 1034.77, échéancier 114.98 au 2026-09-20).
+3. Rejeu exact : même id, replayed=true.
+4. Même clé + autre contenu : P0409 refusé.
+5. Empreinte périmée / facture déjà émise : refusé.
+6. 8 saisies invalides refusées (champ inconnu, pct 0/101, clause manquante, date impossible, échéance = émission, contrat après facture, test_confirm absent).
+7. Libération 4.48 (2026-09-10) : événement base 3.90 / TPS 0.19 / TVQ 0.39, exigible 2026-09-10.
+8. Libération 0.01 (2026-09-12) : base 0.01 / TPS 0.00 / TVQ 0.00 — monotone, aucune part négative.
+9. Chronologie : libération avant facture, hors ordre et date future toutes refusées (messages explicites B1/B2).
+10. Revue avant échéance sans écriture ; revue future refusée ; revue après échéance (2026-09-25) : événement échéance base 96.09 / TPS 4.81 / TVQ 9.59, exigible 2026-09-20 ; libération antérieure à l'exigibilité enregistrée refusée.
+11. Libération finale 110.49 : aucun doublon, totaux exacts 100.00 / 5.00 / 9.98, cumul 114.98, 3 événements.
+12. Une seule entrée de trésorerie ; taxes de facture figées inchangées.
+
+Nettoyage prouvé : 0 facture TEST, 0 retenue, 0 libération, 0 événement fiscal ; profil TEST restauré « a_completer/a_completer ».
+
+Limites inchangées : aucun essai de concurrence réelle ni parcours d'écran réel ; B2 (factures réelles/progressives/récurrentes, TTC, mixtes, non-inscrits, hors Québec, annulations/avoirs, paiement sans libération) reste à faire ; rien de publié.
