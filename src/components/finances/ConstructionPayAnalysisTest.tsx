@@ -1,6 +1,6 @@
 // FIN-09C2B2B2A — analyse LECTURE SEULE d'un paiement de retenue construction TEST.
 // Aucune action financière : explique la route (B2B1 admise ou refus) et les prérequis; données absentes affichées « non disponible », jamais 0.
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { makeGuard } from "@/lib/finances/recurring";
@@ -8,15 +8,16 @@ import * as RT from "@/lib/finances/retention";
 
 type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const ND = "non disponible";
-const money = (n?: number | string | null) => n == null || n === "" ? ND : Number(n).toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
+const money = (n?: number | string | null) => { if (n == null || n === "" || typeof n === "boolean") return ND; const v = Number(n); return Number.isFinite(v) ? v.toLocaleString("fr-CA", { style: "currency", currency: "CAD" }) : ND; };
 const txt = (s?: string | null) => s == null || s === "" ? ND : s;
 
-export default function ConstructionPayAnalysisTest({ rel, companyId }: { rel: J; companyId: string }) {
+export default function ConstructionPayAnalysisTest({ rel, companyId, rev }: { rel: J; companyId: string; rev?: number | null }) {
   const { user } = useAuthReady(); const uid = user?.id ?? null;
   const [data, setData] = useState<J | null>(null); const [err, setErr] = useState<string | null>(null); const [busy, setBusy] = useState(false);
   const guard = useRef(makeGuard()).current;
-  const ctx = `${uid}|${companyId}|${rel.id}`; const ctxRef = useRef(ctx);
+  const ctx = `${uid}|${companyId}|${rel.id}|${rev ?? ""}|${rel.voided_at ?? ""}|${rel.amount ?? ""}|${rel.released_on ?? ""}`; const ctxRef = useRef(ctx);
   if (ctxRef.current !== ctx) { ctxRef.current = ctx; guard.bump(); if (data || err || busy) { setData(null); setErr(null); setBusy(false); } }
+  useEffect(() => () => guard.bump(), [guard]);
   if (!uid) return null;
   const run = async () => {
     const ok = guard.take(); setBusy(true); setErr(null); setData(null);
