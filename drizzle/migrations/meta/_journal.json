@@ -610,6 +610,13 @@
       "when": 1790822190485,
       "tag": "0086_fin08b_invoice_receipts",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1790823830385,
+      "tag": "0087_fin08b_lock_order_idem",
+      "breakpoints": true
     }
   ]
 }
