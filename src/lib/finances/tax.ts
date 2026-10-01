@@ -1,7 +1,8 @@
 // FIN-07 — Moteur commun TPS/TVQ (miroir exact de public.fin_tax_compute).
 // Calcul décimal exact (BigInt), aucun taux codé ici : les taux viennent de fin_tax_rates (versionnés par date).
 // Règle d'arrondi : chaque taxe arrondie au cent (demi éloigné de zéro) sur la base du document.
-// Prix taxes incluses : base = arrondi(total / (1 + taux)), TPS = arrondi(base × taux TPS), la TVQ reçoit le solde.
+// Prix taxes incluses : chaque taxe = total × taux / (1 + taux cumulés), arrondie au cent; la base hors taxes est le solde
+// (aucune taxe n'absorbe d'écart; rounding_gap = écart éventuel de ±1 ¢ entre base × taux et la taxe extraite, documenté).
 export type TaxTreatment = "taxable" | "detaxe" | "exonere" | "a_determiner";
 export type RegStatus = "inscrit" | "non_inscrit" | "a_completer";
 export type TaxLine = { qty: number | string | null; price: number | string | null; disc_pct?: number | string | null; tax?: TaxTreatment | null };
@@ -10,7 +11,7 @@ export type TaxResult = {
   currency: "CAD"; prices_include_tax: boolean; gst_status: RegStatus; qst_status: RegStatus;
   gst_rate: number | null; qst_rate: number | null;
   subtotal: number; discount: number; taxable_base: number | null; zero_rated_base: number; exempt_base: number; undetermined: number;
-  gst: number | null; qst: number | null; pre_tax: number | null; total: number | null; resolved: boolean; reasons: string[];
+  gst: number | null; qst: number | null; rounding_gap?: number | null; pre_tax: number | null; total: number | null; resolved: boolean; reasons: string[];
 };
 
 export const TREATMENT_LABEL: Record<TaxTreatment, string> = { taxable: "Taxable", detaxe: "Détaxé (0 %)", exonere: "Exonéré", a_determiner: "À déterminer" };
@@ -51,15 +52,17 @@ export function computeTaxes(lines: TaxLine[], opts: { gstStatus: RegStatus; qst
     if (!["inscrit", "non_inscrit"].includes(opts.qstStatus)) reasons.push("Statut TVQ de l'entreprise à compléter");
     if ((gi && !g) || (qi && !q)) reasons.push("Taux non disponible à cette date");
   }
-  const ok = reasons.length === 0; let base = bt, tg = 0n, tq = 0n;
+  const ok = reasons.length === 0; let base = bt, tg = 0n, tq = 0n, gap = 0n;
   if (ok && bt !== 0n) {
     if (opts.pricesIncludeTax) {
-      // facteur = 1 + g + q sur une échelle commune
+      // Chaque taxe = total TTC × taux / (1 + taux cumulés), précision complète puis arrondi au cent ; base = solde.
       const S = Math.max(g?.s ?? 0, q?.s ?? 0); const one = pow(S);
       const sc = (x: D | null, on: boolean) => (on && x ? x.n * pow(S - x.s) : 0n);
-      base = toCents(bt * one, one + sc(g, gi) + sc(q, qi));
-      if (gi && qi) { tg = toCents(base * g!.n, pow(g!.s)); tq = bt - base - tg; }
-      else if (gi) tg = bt - base; else if (qi) tq = bt - base;
+      const f = one + sc(g, gi) + sc(q, qi);
+      if (gi) tg = toCents(bt * sc(g, true), f);
+      if (qi) tq = toCents(bt * sc(q, true), f);
+      base = bt - tg - tq;
+      gap = (gi ? toCents(base * g!.n, pow(g!.s)) : 0n) + (qi ? toCents(base * q!.n, pow(q!.s)) : 0n) - (tg + tq);
     } else {
       if (gi) tg = toCents(bt * g!.n, pow(g!.s));
       if (qi) tq = toCents(bt * q!.n, pow(q!.s));
@@ -72,7 +75,7 @@ export function computeTaxes(lines: TaxLine[], opts: { gstStatus: RegStatus; qst
     zero_rated_base: cents(bz), exempt_base: cents(be), undetermined: cents(bu),
     gst: ok ? cents(tg) : null, qst: ok ? cents(tq) : null,
     pre_tax: ok ? cents(base + bz + be) : null, total: ok ? cents(base + tg + tq + bz + be) : null,
-    resolved: ok, reasons,
+    resolved: ok, reasons, rounding_gap: ok ? cents(gap) : null,
   };
 }
 
