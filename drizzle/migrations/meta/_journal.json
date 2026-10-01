@@ -680,6 +680,13 @@
       "when": 1790830698722,
       "tag": "0096_fin09b1_issue_replay_strict",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1790832897915,
+      "tag": "0097_fin09b2_lines_milestones_amendments",
+      "breakpoints": true
     }
   ]
 }
