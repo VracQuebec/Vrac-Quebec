@@ -673,6 +673,13 @@
       "when": 1790830639463,
       "tag": "0095_fin09b1_family_replay_abandon",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1790830698722,
+      "tag": "0096_fin09b1_issue_replay_strict",
+      "breakpoints": true
     }
   ]
 }
