@@ -561,6 +561,13 @@
       "when": 1790809568332,
       "tag": "0079_fin06_rappels_fix_raisons",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1790813297083,
+      "tag": "0080_fin06b_cloche",
+      "breakpoints": true
     }
   ]
 }

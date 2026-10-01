@@ -22357,6 +22357,22 @@ export type Database = {
         Args: { _anchor: string; _day: number; _k: number }
         Returns: string
       }
+      fin_my_bell: {
+        Args: { _limit?: number }
+        Returns: {
+          company_id: string
+          company_name: string
+          created_at: string
+          event_date: string
+          kind: string
+          partial: boolean
+          read_at: string
+          reason: string
+          remaining: number
+          reminder_id: string
+          scenario: string
+        }[]
+      }
       fin_occ_paid: { Args: { _occ: string }; Returns: number }
       fin_occurrence_detail: { Args: { _occ: string }; Returns: Json }
       fin_open_for_payee: {

@@ -65,6 +65,19 @@ export default function Reminders({ companyId, companyName, canWrite, onOpenOcc,
     setLoading(false);
   }, [companyId]);
   useEffect(() => { load(); }, [load]);
+  // Lien de la cloche : ?rappel=<id>. La lecture passe par la RLS : un rappel d'une autre
+  // entreprise ou après retrait d'accès est simplement introuvable.
+  const [deep, setDeep] = useState(() => new URLSearchParams(window.location.search).get("rappel"));
+  useEffect(() => {
+    if (!deep || loading) return;
+    const r = rows.find((x) => x.id === deep);
+    const q = new URLSearchParams(window.location.search); q.delete("rappel");
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}?${q}`);
+    setDeep(null);
+    if (!r) { toast({ title: "Rappel indisponible", description: "Il n'existe plus ou vous n'y avez plus accès.", variant: "destructive" }); return; }
+    setList(r.status === "resolu" ? "resolu" : r.status);
+    open(r);
+  }, [deep, loading, rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const delsBy = useMemo(() => { const m: Record<string, Del[]> = {}; dels.forEach((d) => (m[d.reminder_id] ??= []).push(d)); return m; }, [dels]);
   const isUnread = (r: Rem) => r.status !== "resolu" && (delsBy[r.id] ?? []).some((d) => d.user_id === me && d.channel === "app" && d.state === "livre" && !d.read_at);
@@ -135,7 +148,7 @@ export default function Reminders({ companyId, companyName, canWrite, onOpenOcc,
                 {r.meta?.partiel && <span className="ml-1 font-semibold text-destructive">· prévision partielle ({(r.meta?.raisons_partiel ?? []).join(", ")})</span>}</div>}
               {r.status === "reporte" && r.snoozed_until && <div className="text-xs">Reporté jusqu'au {new Date(r.snoozed_until).toLocaleString("fr-CA", { timeZone: "America/Toronto" })}</div>}
               {r.status === "resolu" && <div className="text-xs text-muted-foreground">Résolu : {RESOLVED[r.resolved_reason ?? ""] ?? r.resolved_reason} (historique conservé)</div>}
-              {ds.length > 0 && <div className="mt-1 flex flex-wrap gap-1">{ds.filter((d) => canWrite || d.user_id === me).map((d) => <span key={d.id} title={d.last_error ?? ""} className={`rounded px-1.5 py-0.5 text-[10px] ${d.state === "echoue" ? "bg-destructive/15 text-destructive" : "bg-secondary"}`}>{CH[d.channel]}{canWrite && d.user_id !== me ? ` · ${memberName(d.user_id)}` : ""} : {STATE[d.state]}{d.state === "en_attente" && d.attempts > 0 ? ` (reprise ${d.attempts}/3)` : ""}</span>)}</div>}
+              {ds.length > 0 && <div className="mt-1 flex flex-wrap gap-1">{ds.filter((d) => canWrite || d.user_id === me).map((d) => <span key={d.id} title={d.last_error === "coordonnees_a_completer" ? "Coordonnées à compléter" : d.last_error ?? ""} className={`rounded px-1.5 py-0.5 text-[10px] ${d.state === "echoue" ? "bg-destructive/15 text-destructive" : "bg-secondary"}`}>{CH[d.channel]}{canWrite && d.user_id !== me ? ` · ${memberName(d.user_id)}` : ""} : {d.last_error === "coordonnees_a_completer" ? "Coordonnées à compléter" : STATE[d.state]}{d.state === "en_attente" && d.attempts > 0 ? ` (reprise ${d.attempts}/3)` : ""}</span>)}</div>}
             </div>
             <div className="flex flex-wrap gap-1">
               <Button size="sm" onClick={() => open(r)}><ExternalLink className="mr-1 h-3.5 w-3.5" />Ouvrir</Button>

@@ -2,3 +2,4 @@
 - FIN-04 : recherche Finances = contrat unique (lib/finances/query.ts → fin_select / fin_pay_select) pour écran, totaux et CSV; vues dans fin_saved_views (RLS fin_can_*) — aucune divergence entre écran et export.
 - FIN-05 : trésorerie calculée côté client par un moteur pur (src/lib/finances/treasury.ts) sur les données lues sous RLS; scénarios = copies en mémoire, jamais d'écriture sur obligations/règlements — une seule logique testable.
 - FIN-06 : rappels générés et distribués côté serveur par fin_reminders_sweep (dans la tâche existante crm-notifications-sweep, 10 min); dédup par dedupe_key + unique(rappel, destinataire, canal); courriel/texto en mode test (« simulé », aucun appel externe) — pas de dépendance à l'ouverture d'une page.
+- FIN-06B : la cloche entrepreneur lit les rappels « application » via fin_my_bell (même source fin_reminder_deliveries, droits revérifiés à chaque lecture) — aucune deuxième file; adresse absente = échec permanent sans reprise.

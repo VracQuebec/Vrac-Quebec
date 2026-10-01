@@ -28,6 +28,7 @@ const ago = (iso: string) => {
 /** Icône + libellé d'action déduits du lien réel de l'avis. */
 const kindOf = (n: MktNotification) => {
   const link = n.link ?? "";
+  if (link.startsWith("/entrepreneur/finances")) return { icon: ClipboardList, action: "Ouvrir la fiche" };
   if (link.includes("transport")) return { icon: Truck, action: "Voir le suivi" };
   if (link.includes("carte") || link.includes("dompe") || link.includes("site"))
     return { icon: MapPin, action: "Voir le site" };
