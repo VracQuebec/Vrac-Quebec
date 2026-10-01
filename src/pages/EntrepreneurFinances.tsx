@@ -26,6 +26,7 @@ import Averages from "@/components/finances/Averages";
 import Treasury from "@/components/finances/Treasury";
 import Reminders from "@/components/finances/Reminders";
 import Invoices from "@/components/finances/Invoices";
+import RecurringInvoices from "@/components/finances/RecurringInvoices";
 
 type Tab = "factures" | "tresorerie" | "rappels" | "apercu" | "calendrier" | "apayer" | "reglements" | "moyennes" | "parametres";
 const TABS: { v: Tab; l: string }[] = [{ v: "apercu", l: "Vue d'ensemble" }, { v: "calendrier", l: "Calendrier" }, { v: "apayer", l: "À payer" }, { v: "reglements", l: "Règlements" }, { v: "moyennes", l: "Moyennes et équivalents" }, { v: "factures", l: "Factures" }, { v: "tresorerie", l: "Trésorerie" }, { v: "rappels", l: "Rappels" }, { v: "parametres", l: "Paramètres" }];
@@ -101,6 +102,14 @@ export default function EntrepreneurFinances({ admin = false }: { admin?: boolea
   );
 }
 
+function InvoicesTab({ companyId, companyName, canWrite }: { companyId: string; companyName: string; canWrite: boolean }) {
+  const [sub, setSub] = useState<"factures" | "recurrences">(() => new URLSearchParams(window.location.search).get("sous") === "recurrences" ? "recurrences" : "factures");
+  return <div className="space-y-3">
+    <div role="tablist" className="flex gap-2">{([["factures", "Factures"], ["recurrences", "Récurrences"]] as const).map(([v, l]) => <Button key={v} role="tab" aria-selected={sub === v} size="sm" variant={sub === v ? "default" : "outline"} onClick={() => setSub(v)}>{l}</Button>)}</div>
+    {sub === "factures" ? <Invoices companyId={companyId} companyName={companyName} canWrite={canWrite} /> : <RecurringInvoices companyId={companyId} canWrite={canWrite} />}
+  </div>;
+}
+
 function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { companyId: string; companyName: string; tab: Tab; canWrite: boolean; canCorrect: boolean }) {
   const [rev, setRev] = useState(0);
   const [form, setForm] = useState<{ id: string | null; init?: any; ruleChange?: { effective: string }; instance?: string } | null>(null);
@@ -164,7 +173,7 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
     {tab === "calendrier" && <Browse companyId={companyId} rev={rev} cats={cats} mode="calendar" add={add} onOpen={setOcc} />}
     {tab === "apayer" && <FinanceSearch key="occ" companyId={companyId} companyName={companyName} ctx="occ" rev={rev} canWrite={canWrite} canCorrect={canCorrect} add={add} onPayMany={onPayMany} onOpenPayment={setPayOpen} renderOcc={(o, pick) => <OccRow o={o} onOpen={setOcc} pick={pick} />} />}
     {tab === "reglements" && <FinanceSearch key="pay" companyId={companyId} companyName={companyName} ctx="pay" rev={rev} canWrite={canWrite} canCorrect={canCorrect} onOpenPayment={setPayOpen} renderOcc={(o) => <OccRow o={o} onOpen={setOcc} />} />}
-    {tab === "factures" && <Invoices companyId={companyId} companyName={companyName} canWrite={canWrite} />}
+    {tab === "factures" && <InvoicesTab companyId={companyId} companyName={companyName} canWrite={canWrite} />}
     {tab === "tresorerie" && <Treasury companyId={companyId} companyName={companyName} canWrite={canWrite} cats={cats.filter((c) => !c.archived_at)} />}
     {tab === "rappels" && <Reminders companyId={companyId} companyName={companyName} canWrite={canWrite}
       onOpenOcc={(id) => st.occDetail(id).then((d: any) => { if (d?.occ?.obligation_id) setOcc(d.occ); else toast({ title: "Échéance introuvable ou inaccessible", variant: "destructive" }); })}

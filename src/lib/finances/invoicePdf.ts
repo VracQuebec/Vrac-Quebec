@@ -49,6 +49,7 @@ export type InvoicePdfData = {
   template: { color?: string | null; footer?: string | null; version?: number };
   logo?: { data: string; format: "PNG" | "JPEG"; w: number; h: number } | null;
   progress?: ProgressRecap | null;
+  recurring?: { label?: string; contract_ref?: string | null; version?: number; scheduled_on?: string; service_from?: string | null; service_to?: string | null } | null;
 };
 type PP = { ht: number | string; total: number | string; pct?: number | string; cap?: number | string };
 export type ProgressRecap = {
@@ -321,6 +322,21 @@ export function renderInvoicePdf(d: InvoicePdfData): jsPDF {
       y += 3.4;
     });
   });
+
+  // FIN-09C1 — Référence de récurrence (instantané figé à l'émission)
+  const rc = d.recurring;
+  if (rc) {
+    const rl = wrap(`Facture récurrente « ${rc.label ?? ""} »${rc.contract_ref ? ` — contrat ${rc.contract_ref}` : ""} — version ${rc.version ?? ""} — occurrence prévue le ${rc.scheduled_on ?? ""}${rc.service_from ? ` — période de service du ${rc.service_from} au ${rc.service_to}` : ""}`, W - 2 * M);
+    if (y + 4 + rl.length * 3.6 > H - FOOT - 4) {
+      doc.addPage();
+      y = header(false) + 2;
+    }
+    y += 3;
+    rl.forEach((w) => {
+      T(w, M, y + 2);
+      y += 3.6;
+    });
+  }
 
   // FIN-09B1 — Récapitulatif de facturation progressive (depuis l'instantané figé; bloc insécable)
   const pg = d.progress;
