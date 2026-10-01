@@ -743,6 +743,13 @@
       "when": 1790841614114,
       "tag": "0105_fin09c2_retention_validate_fix",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1790841678110,
+      "tag": "0106_fin09c2_guard_trg_fix",
+      "breakpoints": true
     }
   ]
 }
