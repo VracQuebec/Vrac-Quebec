@@ -110,3 +110,16 @@ export function cpayPayload(f: CpayForm, rest?: number | string | null): { ok: b
 }
 export const cpayPreview = (ret: string, p: J) => call("fin_construction_pay_preview", { _retention: ret, _p: p });
 export const cpay = (ret: string, key: string, p: J, rev: number, hash: string) => call("fin_construction_pay", { _retention: ret, _key: key, _p: p, _expect_rev: rev, _expect_hash: hash });
+
+// FIN-09C2B2B1 — annulation d'une ERREUR DE SAISIE d'un paiement de retenue TEST (sans effet fiscal; ni remboursement ni retour bancaire).
+export type PvoidForm = { reason: string; test_confirm: boolean; error_confirm: boolean };
+export const EMPTY_PVOID: PvoidForm = { reason: "", test_confirm: false, error_confirm: false };
+export function pvoidPayload(f: PvoidForm): { ok: boolean; p: J; errors: string[] } {
+  const errors: string[] = []; const p: J = {};
+  const why = f.reason.trim(); if (!why || why.length > 400) errors.push("Motif requis (400 caractères au plus)"); else p.reason = why;
+  if (!f.test_confirm) errors.push("Confirmez le mode TEST"); else p.test_confirm = "oui";
+  if (!f.error_confirm) errors.push("Confirmez qu'il s'agit d'une erreur de saisie (pas un remboursement ni un retour bancaire)"); else p.error_confirm = "oui";
+  return { ok: errors.length === 0, p, errors };
+}
+export const pvoidPreview = (release: string, p: J) => call("fin_construction_pay_void_preview", { _release: release, _p: p });
+export const pvoid = (release: string, key: string, p: J, rev: number, hash: string) => call("fin_construction_pay_void", { _release: release, _key: key, _p: p, _expect_rev: rev, _expect_hash: hash });
