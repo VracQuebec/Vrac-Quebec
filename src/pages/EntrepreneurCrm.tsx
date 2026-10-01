@@ -456,13 +456,6 @@ const pickClient = (c: any) => Object.fromEntries(CLIENT_KEYS.map((k) => [k, c[k
 function ClientDialog({ client, companyId, onClose, onSaved }: any) {
   const { user: me } = useAuthReady(); const { canWrite } = useContext(CrmCtx);
   const [f, setF] = useState<any>(pickClient(client)); const [stale, setStale] = useState<any>(null); const saving = useRef(false);
-  // FIN-07 : même moteur que le serveur (fin_tax_compute), profil de l'entreprise émettrice, taux centralisés.
-  const [tx, setTx] = useState<{ rates: TaxRates; gst: RegStatus; qst: RegStatus } | null>(null);
-  useEffect(() => { (async () => { const rates = await loadRates(db); const { data } = await db.from("ent_crm_settings").select("gst_status,qst_status").eq("company_id", companyId).maybeSingle();
-    setTx({ rates, gst: data?.gst_status ?? "a_completer", qst: data?.qst_status ?? "a_completer" }); })(); }, [companyId]);
-  const preview = tx ? computeTaxes(open.lines ?? [], { gstStatus: tx.gst, qstStatus: tx.qst, rates: tx.rates, pricesIncludeTax: !!open.prices_include_tax }) : null;
-  const stored = quote.id && quote.status === "brouillon" ? quote.tax_snapshot : null;
-  const gap = preview && stored && (stored.total !== preview.total || stored.gst !== preview.gst || stored.qst !== preview.qst || stored.resolved !== preview.resolved);
   const initial = useMemo(() => JSON.stringify(pickClient(client)), [client.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const locked = !!client.jsc_client_id;
   const store = useDraft({
@@ -607,6 +600,13 @@ const pickQuote = (q: any) => Object.fromEntries(QUOTE_KEYS.map((k) => [k, q[k] 
 function QuoteDialog({ quote, companyId, clients, services, tpls, onClose, onSaved }: any) {
   const { user: me } = useAuthReady(); const { canWrite } = useContext(CrmCtx);
   const [open, setOpen] = useState<any>({ lines: [], ...quote }); const [diff, setDiff] = useState<any[] | null>(null); const [stale, setStale] = useState<any>(null); const saving = useRef(false);
+  // FIN-07 : même moteur que le serveur (fin_tax_compute), profil de l'entreprise émettrice, taux centralisés.
+  const [tx, setTx] = useState<{ rates: TaxRates; gst: RegStatus; qst: RegStatus } | null>(null);
+  useEffect(() => { (async () => { const rates = await loadRates(db); const { data } = await db.from("ent_crm_settings").select("gst_status,qst_status").eq("company_id", companyId).maybeSingle();
+    setTx({ rates, gst: data?.gst_status ?? "a_completer", qst: data?.qst_status ?? "a_completer" }); })(); }, [companyId]);
+  const preview = tx ? computeTaxes(open.lines ?? [], { gstStatus: tx.gst, qstStatus: tx.qst, rates: tx.rates, pricesIncludeTax: !!open.prices_include_tax }) : null;
+  const stored = quote.id && quote.status === "brouillon" ? quote.tax_snapshot : null;
+  const gap = preview && stored && (stored.total !== preview.total || stored.gst !== preview.gst || stored.qst !== preview.qst || stored.resolved !== preview.resolved);
   const initial = useMemo(() => JSON.stringify(pickQuote(quote)), [quote.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const store = useDraft({
     id: me && canWrite ? { module: "crm", form: "soumission", owner: me.id, company: companyId, recordId: quote.id ?? null } : null,
