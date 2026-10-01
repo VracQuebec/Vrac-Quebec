@@ -184,7 +184,7 @@ HEAD 2c986097542e9ea23d3ccb6c99895f2e0240f5ce, déploiement 7fa7828c-3b83-4be4-9
 
 ### FIN-09C2B1 — passe 2026-10-01 (dépassement bigint fin_ctax_alloc)
 - Défaut : 0110 calcule w×c en bigint ; à 500 000 000 HT / 25 000 000 TPS / 49 875 000 TVQ, produit ≈ 2,87e21 > 9,22e18 (dépassement).
-- Correctif préparé (même méthode à diviseur, même ordre d'égalité, numeric exact, div entière) : docs/finance/pending/0111_fin09c2b1_alloc_numeric.sql — NON APPLIQUÉ.
+- Correctif préparé (même méthode à diviseur, même ordre d'égalité, numeric exact, div entière) : fichier provisoire (retiré depuis; voir drizzle/migrations/0111_fin09c2b1_alloc_numeric.sql).
 - Base : une seule tentative, refusée (« EAUTHQUERY authentication query failed: connection to database not available »). Aucun essai serveur exécuté.
 - Exécuté réellement : vérification hors base (entiers exacts Python, algorithme identique) — 100/5/9.98 cumuls 0..11498 monotones/bornés/somme exacte (4.48 → 3.90/.19/.39, 4.49 → 3.91/.19/.39, aucune TVQ négative) ; petits instantanés exhaustifs ; gros montant aux frontières ; bornes numeric(14,2).
 - Restant avant publication : appliquer 0111, puis essai TEST annulé (exhaustif, gros montants, chronologie datée passée, rejeux/mismatch, facture réelle refusée, une entrée trésorerie, accès directs refusés, nettoyage/profil).
@@ -193,7 +193,7 @@ HEAD 2c986097542e9ea23d3ccb6c99895f2e0240f5ce, déploiement 7fa7828c-3b83-4be4-9
 
 Correctif 0111 (fin_ctax_alloc en arithmétique numeric exacte, même méthode à diviseur / départage D'Hondt) appliqué et vérifié sur serveur : balayage exhaustif cumuls 0..11498 sur instantané 100/5/9.98 = 0 non-monotone, 0 total inexact, fin exacte 100/5/9.98 ; gros montants 500 000 000 HT / 25 000 000 TPS / 49 875 000 TVQ sans dépassement ; 4.48 → 3.90/0.19/0.39 ; 4.49 → 3.91/0.19/0.39 (aucune TVQ négative).
 
-Essai serveur TEST complet (entreprise TEST A, transaction annulée, 12 vérifications, toutes réussies) :
+Essai serveur TEST (entreprise TEST A, transaction annulée) — CORRECTION 2026-10-01 : exécuté sous le rôle admin (repli « support »), pas un propriétaire TEST, et plusieurs résultats étaient seulement journalisés sans assertion; ces 12 points sont des observations, pas des preuves par assertion. Voir la clôture ci-dessous :
 1. Aperçu zéro écriture : base 100.00, TPS 5.00, TVQ 9.98, TTC 114.98, exigible immédiat 45.00/89.77, courant 1034.77, 0 écriture.
 2. Émission : retenue créée, facture F-00001 émise, 1 seule entrée de trésorerie, position cohérente (total 1149.75, retenu 114.98, courant 1034.77, échéancier 114.98 au 2026-09-20).
 3. Rejeu exact : même id, replayed=true.
@@ -210,3 +210,19 @@ Essai serveur TEST complet (entreprise TEST A, transaction annulée, 12 vérific
 Nettoyage prouvé : 0 facture TEST, 0 retenue, 0 libération, 0 événement fiscal ; profil TEST restauré « a_completer/a_completer ».
 
 Limites inchangées : aucun essai de concurrence réelle ni parcours d'écran réel ; B2 (factures réelles/progressives/récurrentes, TTC, mixtes, non-inscrits, hors Québec, annulations/avoirs, paiement sans libération) reste à faire ; rien de publié.
+
+### FIN-09C2B1 — clôture de revue (2026-10-01, HEAD 4e5f7849)
+- Enregistrement : le SQL de 0111 déjà appliqué est désormais une vraie migration du registre Drizzle (drizzle/migrations/0111_fin09c2b1_alloc_numeric.sql, journal à jour; CREATE OR REPLACE + REVOKE, idempotent, aucun recalcul de documents/événements). Fichier « pending » retiré.
+- Essai TEST unique en transaction annulée, chaque point en ASSERT (échec = arrêt) ; fin par exception volontaire ROLLBACK_OK :
+  - rôle authenticated, membre actif non-admin (aucune entrée user_roles) promu propriétaire temporairement; fin_can_write TEST vrai, autre entreprise faux;
+  - fin_ctax_alloc et fin_ctax_validate : EXECUTE refusé (42501); aperçu/émission sur facture d'un autre tenant refusés; insertion directe événement/libération refusée, modification directe de retenue sans effet;
+  - facture non-TEST : aperçu et émission refusés, facture restée brouillon;
+  - émission TEST : retenue construction 114.98, une entrée de trésorerie, taxes figées inchangées jusqu'à la fin;
+  - libération 4.48 → 3.90/0.19/0.39, puis 0.01 → 0.01/0.00/0.00, aucun composant négatif;
+  - rejeu exact de la 1re libération après évolution, révision originale → même id, aucun doublon; même clé autre montant → P0409; révision périmée → refus; compteurs et révision inchangés;
+  - revue 2026-09-25 → exigibilité 2026-09-20; rejeu exact sans doublon; même clé autre date → P0409; révision périmée → refus;
+  - libération datée avant l'exigibilité enregistrée et avant la facture → refus atomique (libérations, événements, révision inchangés);
+  - libération finale : totaux exacts 100.00/5.00/9.98;
+  - gros instantané 500 000 000/25 000 000/49 875 000 : total−1.00, −0.03, −0.02, −0.01 (dernier cent : TVQ 49 874 999.99), fin exacte; somme, bornes, monotonie vérifiées.
+- Nettoyage prouvé : 0 facture/retenue/libération/événement créés; rôle du membre restauré (operateur), 0 user_roles, profil a_completer sans numéro.
+- Limites : aucune concurrence réelle (sessions parallèles), aucun parcours d'écran réel, B2 non commencé, conformité fiscale non certifiée; rien publié. Coût en crédits non disponible.
