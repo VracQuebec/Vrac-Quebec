@@ -126,4 +126,58 @@ describe("FIN-09C2B2A — écran simulé", () => {
     await act(async () => { res({ data: { id: "l1" }, error: null }); await p; });
     expect(done).not.toHaveBeenCalled();
   });
+
+  it("stockage indisponible (accès refusé / écriture refusée / quota) : zéro paiement envoyé, saisie conservée", async () => {
+    h.rpc.mockImplementation(() => Promise.resolve(pvData()));
+    const proto = Object.getPrototypeOf(window.localStorage);
+    const cases: Array<() => () => void> = [
+      () => { const d = Object.getOwnPropertyDescriptor(window, "localStorage")!; Object.defineProperty(window, "localStorage", { configurable: true, get: () => { throw new Error("SecurityError"); } }); return () => Object.defineProperty(window, "localStorage", d); },
+      () => { const sp = vi.spyOn(proto, "setItem").mockImplementation(() => { throw new DOMException("quota", "QuotaExceededError"); }); return () => sp.mockRestore(); },
+      () => { const sp = vi.spyOn(proto, "setItem").mockImplementation(() => {}); return () => sp.mockRestore(); }, // écriture silencieusement perdue
+    ];
+    for (const mk of cases) {
+      const r = render(<ConstructionPayTest ret={ret()} companyId="c1" invoiceId="i1" canWrite onDone={() => {}} onReload={() => {}} />);
+      fill(); await preview();
+      const undo = mk(); confirmAndPay();
+      await screen.findByText(/Stockage du navigateur indisponible/); undo();
+      expect(writes().length).toBe(0);
+      expect((screen.getByLabelText("Montant payé") as HTMLInputElement).value).toBe("4,48");
+      expect(screen.queryByTestId("cpay-pending")).toBeNull();
+      r.unmount();
+    }
+  });
+
+  it("08007 (issue inconnue) : demande conservée puis rejeu exact; P0001 reste corrigible", async () => {
+    let n = 0;
+    h.rpc.mockImplementation((fn: string) => fn === "fin_construction_pay_preview" ? Promise.resolve(pvData())
+      : Promise.resolve(++n === 1 ? { data: null, error: { message: "transaction_resolution_unknown", code: "08007" } } : { data: { id: "l1", replayed: true }, error: null }));
+    const done = vi.fn();
+    render(<ConstructionPayTest ret={ret()} companyId="c1" invoiceId="i1" canWrite onDone={done} onReload={() => {}} />);
+    fill(); await preview(); confirmAndPay();
+    await screen.findByTestId("cpay-pending"); expect(localStorage.length).toBe(1);
+    fireEvent.click(screen.getByText(/Récupérer le résultat/));
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    const w = writes(); expect(w.length).toBe(2); expect(w[1][1]).toEqual(w[0][1]);
+    expect(localStorage.length).toBe(0); expect(done).toHaveBeenCalled();
+  });
+
+  it("changement de compte puis d'entreprise sur la MÊME instance pendant l'envoi : aucun rappel, aucune reprise ailleurs; demande conservée pour le compte d'origine", async () => {
+    let res!: (v: A) => void; const p = new Promise<A>((r) => { res = r; });
+    h.rpc.mockImplementation((fn: string) => fn === "fin_construction_pay" ? p : Promise.resolve(pvData()));
+    const done = vi.fn(); const reload = vi.fn();
+    const r = render(<ConstructionPayTest ret={ret()} companyId="c1" invoiceId="i1" canWrite onDone={done} onReload={reload} />);
+    fill(); await preview(); confirmAndPay();
+    await screen.findByTestId("cpay-pending");
+    au.user = { id: "u2" };
+    r.rerender(<ConstructionPayTest ret={ret()} companyId="c1" invoiceId="i1" canWrite onDone={done} onReload={reload} />);
+    expect(screen.queryByTestId("cpay-pending")).toBeNull();
+    r.rerender(<ConstructionPayTest ret={ret()} companyId="c2" invoiceId="i1" canWrite onDone={done} onReload={reload} />);
+    expect(screen.queryByTestId("cpay-pending")).toBeNull();
+    await act(async () => { res({ data: { id: "l1" }, error: null }); await p; await Promise.resolve(); });
+    expect(done).not.toHaveBeenCalled(); expect(reload).not.toHaveBeenCalled(); expect(writes().length).toBe(1);
+    expect(localStorage.getItem("vq.pending.ctax_pay:u1:c1:r1")).not.toBeNull();
+    au.user = { id: "u1" };
+    r.rerender(<ConstructionPayTest ret={ret()} companyId="c1" invoiceId="i1" canWrite onDone={done} onReload={reload} />);
+    await screen.findByTestId("cpay-pending");
+  });
 });
