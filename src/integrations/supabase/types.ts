@@ -3757,6 +3757,7 @@ export type Database = {
           legacy_received: number
           note: string | null
           received: number
+          retention_schedule: Json
           updated_at: string
         }
         Insert: {
@@ -3775,6 +3776,7 @@ export type Database = {
           legacy_received?: number
           note?: string | null
           received?: number
+          retention_schedule?: Json
           updated_at?: string
         }
         Update: {
@@ -3793,6 +3795,7 @@ export type Database = {
           legacy_received?: number
           note?: string | null
           received?: number
+          retention_schedule?: Json
           updated_at?: string
         }
         Relationships: [
@@ -5837,6 +5840,208 @@ export type Database = {
             columns: ["obligation_id"]
             isOneToOne: false
             referencedRelation: "fin_obligations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_retention_events: {
+        Row: {
+          action: string
+          actor: string | null
+          at: string
+          company_id: string
+          detail: Json
+          id: string
+          invoice_id: string
+          release_id: string | null
+          retention_id: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          at?: string
+          company_id: string
+          detail?: Json
+          id?: string
+          invoice_id: string
+          release_id?: string | null
+          retention_id: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          at?: string
+          company_id?: string
+          detail?: Json
+          id?: string
+          invoice_id?: string
+          release_id?: string | null
+          retention_id?: string
+        }
+        Relationships: []
+      }
+      fin_retention_releases: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          idem_key: string
+          invoice_id: string
+          payload_hash: string
+          reason: string
+          released_on: string
+          retention_id: string
+          void_key: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idem_key: string
+          invoice_id: string
+          payload_hash: string
+          reason: string
+          released_on: string
+          retention_id: string
+          void_key?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idem_key?: string
+          invoice_id?: string
+          payload_hash?: string
+          reason?: string
+          released_on?: string
+          retention_id?: string
+          void_key?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_retention_releases_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_retention_releases_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_retention_releases_retention_id_fkey"
+            columns: ["retention_id"]
+            isOneToOne: false
+            referencedRelation: "fin_retentions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_retentions: {
+        Row: {
+          amount: number
+          base_amount: number
+          company_id: string
+          contract_ref: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          idem_key: string
+          invoice_id: string
+          kind: string
+          mode: string
+          payload_hash: string
+          pct: number | null
+          planned_release: string | null
+          reason: string
+          release_condition: string
+          rev: number
+          status: string
+          void_key: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount: number
+          base_amount: number
+          company_id: string
+          contract_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idem_key: string
+          invoice_id: string
+          kind: string
+          mode: string
+          payload_hash: string
+          pct?: number | null
+          planned_release?: string | null
+          reason: string
+          release_condition: string
+          rev?: number
+          status?: string
+          void_key?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount?: number
+          base_amount?: number
+          company_id?: string
+          contract_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idem_key?: string
+          invoice_id?: string
+          kind?: string
+          mode?: string
+          payload_hash?: string
+          pct?: number | null
+          planned_release?: string | null
+          reason?: string
+          release_condition?: string
+          rev?: number
+          status?: string
+          void_key?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_retentions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_retentions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fin_invoices"
             referencedColumns: ["id"]
           },
         ]
@@ -23593,6 +23798,7 @@ export type Database = {
         Args: { _id: string; _note: string }
         Returns: undefined
       }
+      fin_invoice_position: { Args: { _invoice: string }; Returns: Json }
       fin_invoice_receipt_add: {
         Args: {
           _account: string
@@ -24118,6 +24324,52 @@ export type Database = {
       fin_reschedule: {
         Args: { _occ: string; _planned: string }
         Returns: undefined
+      }
+      fin_retention_check: { Args: { _invoice: string }; Returns: undefined }
+      fin_retention_create: {
+        Args: { _expect_hash: string; _invoice: string; _key: string; _p: Json }
+        Returns: Json
+      }
+      fin_retention_preview: {
+        Args: { _invoice: string; _p: Json }
+        Returns: Json
+      }
+      fin_retention_release: {
+        Args: {
+          _amount: string
+          _date: string
+          _expect_rev: number
+          _key: string
+          _reason: string
+          _retention: string
+        }
+        Returns: Json
+      }
+      fin_retention_release_void: {
+        Args: {
+          _expect_rev: number
+          _key: string
+          _reason: string
+          _release: string
+        }
+        Returns: Json
+      }
+      fin_retention_summary: { Args: { _invoice: string }; Returns: Json }
+      fin_retention_validate: {
+        Args: {
+          _inv: Database["public"]["Tables"]["fin_invoices"]["Row"]
+          _p: Json
+        }
+        Returns: Json
+      }
+      fin_retention_void: {
+        Args: {
+          _expect_rev: number
+          _key: string
+          _reason: string
+          _retention: string
+        }
+        Returns: Json
       }
       fin_rule_fields: { Args: { _p: Json }; Returns: Json }
       fin_rule_json: {

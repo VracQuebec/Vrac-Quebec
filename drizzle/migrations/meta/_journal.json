@@ -729,6 +729,13 @@
       "when": 1790837725584,
       "tag": "0103_fin09c1_review_bounds_v1",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1790841386988,
+      "tag": "0104_fin09c2_retentions",
+      "breakpoints": true
     }
   ]
 }
