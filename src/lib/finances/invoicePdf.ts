@@ -347,19 +347,16 @@ export function renderInvoicePdf(d: InvoicePdfData): jsPDF {
     const txt = [
       `Retenue de construction (${cs.basis === "law" ? "prévue par la loi" : "convention écrite"} — contrat ${cs.contract_ref ?? ""} du ${cs.contract_date ?? ""}; clause : ${cs.clause_ref ?? ""}).`,
       `Prix et taxes totaux facturés : voir ci-dessus (montants figés). Part payable à l'échéance de la facture : ${money(Number(cs.current_part))}.`,
-      `Somme retenue : ${money(Number(cs.ttc))} = base ${money(Number(cs.base))} + TPS ${money(Number(cs.gst))} + TVQ ${money(Number(cs.qst))}. La TPS/TVQ sur la somme retenue n'est pas exigible à la date de facture : elle le devient au paiement ou à la libération de la retenue, au plus tard à l'échéance contractuelle du ${cs.contractual_due ?? ""}.`,
+      `Somme retenue : ${money(Number(cs.ttc))} = base ${money(Number(cs.base))} + TPS ${money(Number(cs.gst))} + TVQ ${money(Number(cs.qst))}. La TPS/TVQ sur la somme retenue n'est pas exigible à la date de facture (échéance contractuelle postérieure) : elle le devient au paiement ou à la libération de la retenue, au plus tard à l'échéance contractuelle du ${cs.contractual_due ?? ""}.`,
       `TPS/TVQ exigibles à la date de facture : ${money(Number(cs.immediate_gst))} / ${money(Number(cs.immediate_qst))}. Condition de libération : ${cs.release_condition ?? ""}.`,
     ].flatMap((x) => wrap(x, W - 2 * M));
-    if (y + 6 + txt.length * 3.6 > H - FOOT - 4) {
-      doc.addPage();
-      y = header(false) + 2;
-    }
-    y += 3;
-    doc.setFont("helvetica", "bold");
-    T("Retenue de construction — taxes différées", M, y + 2);
-    y += 4;
-    doc.setFont("helvetica", "normal");
+    // Pagination par ligne (contenus longs) : titre répété « (suite) », pied de page jamais recouvert.
+    const title = "Retenue de construction — taxes différées";
+    const head = (cont: boolean) => { doc.setFont("helvetica", "bold"); T(cont ? `${title} (suite)` : title, M, y + 2); y += 4; doc.setFont("helvetica", "normal"); };
+    if (y + 10 + 3.6 * 2 > H - FOOT - 4) { doc.addPage(); y = header(false) + 2; }
+    y += 3; head(false);
     txt.forEach((w) => {
+      if (y + 3.6 > H - FOOT - 4) { doc.addPage(); y = header(false) + 2; head(true); }
       T(w, M, y + 2);
       y += 3.6;
     });

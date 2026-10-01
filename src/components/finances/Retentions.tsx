@@ -137,7 +137,7 @@ export default function Retentions({ invoiceId, companyId, canWrite, refreshKey 
     </div>}
 
     {(s?.retentions ?? []).map((r: J) => <div key={r.id} className="rounded border border-border p-2 text-sm">
-      <p><strong>{money(r.amount)}</strong>{r.mode === "percent" ? ` (${String(r.pct).replace(".", ",")} % de ${money(r.base_amount)})` : ""} · {r.status === "annulee" ? `annulée le ${stamp(r.voided_at)} — ${r.void_reason}` : `reste retenu ${money(r.rest)}`}</p>
+      <p><strong>{money(r.amount)}</strong>{r.ctax?.snapshot ? ` TTC = base HT ${money(r.ctax.snapshot.base)}${r.ctax.snapshot.mode === "percent" ? ` (${String(r.ctax.snapshot.pct).replace(".", ",")} % de ${money(r.ctax.snapshot.invoice_pre_tax)} HT)` : ""} + TPS ${money(r.ctax.snapshot.gst)} + TVQ ${money(r.ctax.snapshot.qst)}` : r.mode === "percent" ? ` (${String(r.pct).replace(".", ",")} % de ${money(r.base_amount)})` : ""} · {r.status === "annulee" ? `annulée le ${stamp(r.voided_at)} — ${r.void_reason}` : `reste retenu ${money(r.rest)}`}</p>
       <p className="text-xs text-muted-foreground">Motif : {r.reason}{r.contract_ref ? ` · contrat ${r.contract_ref}` : ""} · condition : {r.release_condition} · {r.planned_release ? `libération prévue ${r.planned_release}` : "date de libération à compléter"} · créée {stamp(r.created_at)}</p>
       {r.ctax && <CtaxState c={r.ctax} />}
       {r.ctax && canWrite && r.status === "active" && Number(r.ctax.deferred?.ttc) > 0 && <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">

@@ -14,20 +14,23 @@ type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const money = (n?: number | string | null) => n == null ? "—" : Number(n).toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
 const msg = (e: unknown) => (e as Error)?.message ?? "Erreur";
 
-export default function ConstructionIssueTest({ invoiceId, companyId, canWrite, beforePreview, onIssued }: { invoiceId: string; companyId: string; canWrite: boolean; beforePreview: () => Promise<boolean>; onIssued: () => void }) {
+export default function ConstructionIssueTest({ invoiceId, companyId, canWrite, invSig, beforePreview, onIssued, onBusy, onReload }: { invoiceId: string; companyId: string; canWrite: boolean; /** Contenu visible de la facture (lignes, client, dates…) : tout changement invalide aperçu et confirmation. */ invSig: string; beforePreview: () => Promise<boolean>; onIssued: () => void; onBusy?: (b: boolean) => void; onReload?: () => void }) {
   const { user } = useAuthReady();
   const [open, setOpen] = useState(false); const [f, setF] = useState<RT.CtaxForm>(RT.EMPTY_CTAX);
   const [pv, setPv] = useState<{ sig: string; data: J } | null>(null); const [confirm, setConfirm] = useState<string | null>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);
   const keyRef = useRef<{ sig: string; key: string } | null>(null);
   const guard = useRef(makeGuard()).current; const cb = useRef(onIssued); cb.current = onIssued;
+  const bz = useRef(onBusy); bz.current = onBusy; const rl = useRef(onReload); rl.current = onReload;
+  useEffect(() => { bz.current?.(busy); }, [busy]);
+  useEffect(() => () => bz.current?.(false), []);
   useEffect(() => () => guard.bump(), [guard]);
   useEffect(() => { guard.bump(); setBusy(false); }, [canWrite, guard]);
   const store = useDraft({
     id: user && canWrite && open ? { module: "finances", form: "retenue-construction", owner: user.id, company: companyId, recordId: invoiceId } : null,
     data: f, isEmpty: (d) => JSON.stringify(d) === JSON.stringify(RT.EMPTY_CTAX), onRestore: (d) => setF(d), label: () => "Retenue construction (TEST)",
   });
-  const built = RT.ctaxPayload(f); const sig = JSON.stringify(built.p);
+  const built = RT.ctaxPayload(f); const sig = JSON.stringify([built.p, invSig]);
   const pvOk = !!pv && pv.sig === sig && !(pv.data.errors ?? []).length;
   const edit = (p: Partial<RT.CtaxForm>) => { setF((x) => ({ ...x, ...p })); setErr(null); };
   if (!canWrite) return null;
@@ -44,13 +47,13 @@ export default function ConstructionIssueTest({ invoiceId, companyId, canWrite, 
   };
   const doIssue = async () => {
     if (busy || !pvOk || confirm !== pv!.data.expect_hash) return;
-    const key = keyFor(keyRef, { p: built.p, h: pv!.data.expect_hash }); const ok = guard.take(); setBusy(true); setErr(null);
+    const key = keyFor(keyRef, { p: built.p, h: pv!.data.expect_hash, s: invSig }); const ok = guard.take(); setBusy(true); setErr(null);
     try {
       await RT.ctaxIssue(invoiceId, key, built.p, pv!.data.expect_hash); if (!ok()) return;
       store.finalize(); keyRef.current = null; setOpen(false); cb.current();
     } catch (e) {
       if (!ok()) return;
-      if (isConflict(e)) { setPv(null); setConfirm(null); keyRef.current = null; setErr(`${msg(e)} — saisie conservée : refaites l'aperçu.`); }
+      if (isConflict(e)) { setPv(null); setConfirm(null); keyRef.current = null; setErr(`${msg(e)} — saisie conservée, situation rechargée : refaites l'aperçu.`); rl.current?.(); }
       else setErr(msg(e));
     } finally { if (ok()) setBusy(false); }
   };
