@@ -56,7 +56,7 @@ export type ProgressRecap = {
   cum: PP;
   new: PP;
   remaining: PP;
-  gap_vs_quote?: { total: number | string } | null;
+  gap_vs_quote?: { ht?: number | string; gst?: number | string; qst?: number | string; total: number | string } | null;
   previous?: { number: string; total: number | string }[];
 };
 
