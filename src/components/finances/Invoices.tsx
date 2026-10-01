@@ -13,6 +13,7 @@ import { computeTaxes, loadRates, TREATMENT_LABEL, type RegStatus, type TaxRates
 import { renderInvoicePdf, type InvoicePdfData } from "@/lib/finances/invoicePdf";
 import { fmtDate, todayIn } from "@/lib/finances/period";
 import InvoiceReceipts from "@/components/finances/InvoiceReceipts";
+import CreditNotes from "@/components/finances/CreditNotes";
 
 const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const BUCKET = "fin-invoices";
@@ -22,11 +23,18 @@ const UNITS = ["unité", "t", "m³", "voyage", "h", "jour", "forfait"];
 type Line = { desc: string; qty: number | null; unit: string; price: number | null; disc_pct?: number | null; tax?: TaxTreatment | null };
 type Inv = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
+/** Avoirs émis sur la facture (lecture sous RLS). */
+export const credits = (i: Inv) => (i.fin_credit_notes ?? []).filter((c: Inv) => c.status === "emise").reduce((a: number, c: Inv) => a + Number(c.total ?? 0), 0);
+/** Net = total brut figé − avoirs émis (plancher zéro); même règle que fin_invoice_balance côté serveur. */
+export const invoiceNet = (i: Inv) => Math.max(0, Math.round((Number(i.total ?? 0) - credits(i)) * 100) / 100);
+export const invoiceRest = (i: Inv) => Math.max(0, invoiceNet(i) - Number(i.fin_expected_inflows?.received ?? 0));
+
 /** État d'affichage dérivé : « Payée » vient uniquement des encaissements reliés, jamais d'un statut saisi. */
 export function invoiceState(i: Inv, today: string) {
   if (i.status === "brouillon") return { label: "Brouillon", tone: "bg-muted text-muted-foreground" };
-  const rest = Number(i.total ?? 0) - Number(i.fin_expected_inflows?.received ?? 0);
-  if (rest <= 0.004) return { label: "Payée (encaissements reliés)", tone: "bg-primary/15 text-foreground" };
+  const net = invoiceNet(i); const rec = Number(i.fin_expected_inflows?.received ?? 0);
+  if (net <= 0.004 && credits(i) > 0) return { label: "Soldée par avoir", tone: "bg-primary/10 text-foreground" };
+  if (net - rec <= 0.004) return { label: credits(i) > 0 ? "Payée (après avoir)" : "Payée (encaissements reliés)", tone: "bg-primary/15 text-foreground" };
   if (i.due_date && i.due_date < today) return { label: "En retard", tone: "bg-destructive/15 text-destructive" };
   return { label: i.sent_at ? "Envoyée" : "Émise (non envoyée)", tone: "bg-secondary text-foreground" };
 }
@@ -57,7 +65,7 @@ export default function Invoices({ companyId, canWrite }: { companyId: string; c
   const today = todayIn();
 
   const load = useCallback(async () => {
-    const { data, error } = await db.from("fin_invoices").select("id,status,number,client_name,issue_date,due_date,total,sent_at,is_test,quote_id,fin_expected_inflows!fin_invoices_expected_inflow_id_fkey(received)").eq("company_id", companyId).order("created_at", { ascending: false }).limit(500);
+    const { data, error } = await db.from("fin_invoices").select("id,status,number,client_name,issue_date,due_date,total,sent_at,is_test,quote_id,fin_expected_inflows!fin_invoices_expected_inflow_id_fkey(received),fin_credit_notes(total,status)").eq("company_id", companyId).order("created_at", { ascending: false }).limit(500);
     if (error) toast({ title: "Lecture impossible", description: error.message, variant: "destructive" });
     setRows(data ?? []);
   }, [companyId]);
@@ -76,7 +84,7 @@ export default function Invoices({ companyId, canWrite }: { companyId: string; c
     return true;
   }), [rows, f, today]);
   const issued = list.filter((i) => i.status === "emise");
-  const totals = { total: issued.reduce((a, i) => a + Number(i.total ?? 0), 0), rest: issued.reduce((a, i) => a + Math.max(0, Number(i.total ?? 0) - Number(i.fin_expected_inflows?.received ?? 0)), 0) };
+  const totals = { total: issued.reduce((a, i) => a + Number(i.total ?? 0), 0), credits: issued.reduce((a, i) => a + credits(i), 0), rest: issued.reduce((a, i) => a + invoiceRest(i), 0) };
 
   const create = async () => {
     const { data, error } = await db.from("fin_invoices").insert({ company_id: companyId, issue_date: today, lines: [{ desc: "", qty: 1, unit: "unité", price: null, tax: null }] }).select("id").single();
@@ -97,13 +105,13 @@ export default function Invoices({ companyId, canWrite }: { companyId: string; c
       <label className="text-xs">au<Input type="date" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} /></label>
       <label className="text-xs">Échéance au plus tard<Input type="date" value={f.due} onChange={(e) => setF({ ...f, due: e.target.value })} /></label>
     </div>
-    <p className="text-sm">Factures émises affichées : <strong>{money(totals.total)}</strong> · reste à recevoir : <strong>{money(totals.rest)}</strong> <span className="text-xs text-muted-foreground">(selon les encaissements reliés; brouillons exclus)</span></p>
+    <p className="text-sm">Factures émises affichées : <strong>{money(totals.total)}</strong> · {totals.credits > 0 && <>notes de crédit − {money(totals.credits)} · </>}net à recevoir : <strong>{money(totals.rest)}</strong> <span className="text-xs text-muted-foreground">(brut figé − avoirs émis − encaissements reliés; brouillons exclus)</span></p>
     {rows == null ? <p className="text-muted-foreground">Chargement…</p> : !list.length ? <p className="text-muted-foreground">Aucune facture.</p> :
-      <ul className="divide-y divide-border rounded-lg border border-border bg-card">{list.map((i) => { const s = invoiceState(i, today); const rest = Number(i.total ?? 0) - Number(i.fin_expected_inflows?.received ?? 0);
+      <ul className="divide-y divide-border rounded-lg border border-border bg-card">{list.map((i) => { const s = invoiceState(i, today); const rest = invoiceRest(i);
         return <li key={i.id}><button className="flex w-full flex-wrap items-center justify-between gap-2 p-3 text-left" onClick={() => setOpen(i.id)}>
           <span className="min-w-0"><span className="font-display font-semibold">{i.number ?? "Brouillon"}{i.is_test ? " · TEST" : ""}</span> · {i.client_name || "Client à compléter"}
             <span className="block text-xs text-muted-foreground">{i.issue_date ? `Date ${fmtDate(i.issue_date)}` : ""}{i.due_date ? ` · échéance ${fmtDate(i.due_date)}` : ""}</span></span>
-          <span className="text-right text-sm"><span className={`rounded px-1.5 py-0.5 text-xs ${s.tone}`}>{s.label}</span><span className="block">{money(i.total)}{i.status === "emise" ? ` · reste ${money(Math.max(0, rest))}` : ""}</span></span>
+          <span className="text-right text-sm"><span className={`rounded px-1.5 py-0.5 text-xs ${s.tone}`}>{s.label}</span><span className="block">{money(i.total)}{i.status === "emise" ? `${credits(i) > 0 ? ` · avoirs − ${money(credits(i))}` : ""} · reste ${money(rest)}` : ""}</span></span>
         </button></li>; })}</ul>}
     {openId && <InvoiceDialog key={openId} id={openId} companyId={companyId} canWrite={canWrite} onClose={() => setOpen(null)} onChanged={load} />}
     {settingsOpen && <InvoiceSettings companyId={companyId} canWrite={canWrite} onClose={() => setSettingsOpen(false)} />}
@@ -184,7 +192,8 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
     <DialogHeader><DialogTitle>{inv.number ? `Facture ${inv.number}` : "Facture — brouillon"}{inv.is_test ? " (TEST)" : ""}</DialogTitle></DialogHeader>
     {!draft && <div className="rounded border border-border p-2 text-xs">Émise le {new Date(inv.issued_at).toLocaleString("fr-CA", { timeZone: "America/Toronto" })} · contenu figé (client, entreprise, lignes, taxes, modalités, modèle v{inv.template_snapshot?.version}).
       {inv.sent_at ? ` Envoyée (déclarée) le ${new Date(inv.sent_at).toLocaleString("fr-CA", { timeZone: "America/Toronto" })} — ${inv.sent_note}.` : " Pas encore marquée envoyée (un téléchargement ne prouve pas l'envoi)."}
-      {rec && <> Entrée attendue liée : {money(rec.amount)} · encaissé {money(rec.received)} · reste {money(Math.max(0, Number(rec.amount) - Number(rec.received)))}.</>} Correction : par une note de crédit (lot suivant).</div>}
+      {rec && <> Entrée attendue liée (montant net après avoirs) : {money(rec.amount)} · encaissé {money(rec.received)}.</>} Correction : par une note de crédit (ci-dessous); la facture originale et son PDF restent inchangés.</div>}
+    {!draft && <CreditNotes invoice={inv} companyId={companyId} canWrite={canWrite} onChanged={() => { void load(); onChanged(); }} />}
     {!draft && <InvoiceReceipts invoiceId={id} companyId={companyId} canWrite={canWrite} onChanged={() => { void load(); onChanged(); }} />}
     {quote && <p className="text-xs text-muted-foreground">Créée depuis la soumission {quote.number ?? ""} v{quote.version} (soumission inchangée).</p>}
     {gap && <p role="status" className="rounded border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Écart fiscal avec la soumission : total {money(qs.total)} → {money(preview.total)} (TPS {money(qs.gst)} → {money(preview.gst)}, TVQ {money(qs.qst)} → {money(preview.qst)}). Vérifiez avant d'émettre.</p>}
