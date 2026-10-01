@@ -25,8 +25,8 @@ export function parseCumul(raw: string): string | null {
 }
 
 const fail = (e: { message?: string; code?: string } | null) => { if (e) { const x = new Error(e.message || "Erreur serveur") as Error & { code?: string }; x.code = e.code; throw x; } };
-export async function createPlan(quoteId: string, key: string) { const { data, error } = await db.rpc("fin_progress_plan_create", { _quote: quoteId, _key: key }); fail(error); return data as { plan_id?: string; already?: boolean; conflict?: "invoice"; invoice_id?: string }; }
-export async function planForQuote(quoteId: string) { const { data, error } = await db.rpc("fin_progress_for_quote", { _quote: quoteId }); fail(error); return data as { plan_id: string | null; invoice_id: string | null }; }
+export async function createPlan(quoteId: string, key: string) { const { data, error } = await db.rpc("fin_progress_plan_create", { _quote: quoteId, _key: key }); fail(error); return data as { plan_id?: string; already?: boolean; conflict?: "invoice" | "family_plan"; invoice_id?: string; family?: boolean; message?: string }; }
+export async function planForQuote(quoteId: string) { const { data, error } = await db.rpc("fin_progress_for_quote", { _quote: quoteId }); fail(error); return data as { plan_id: string | null; invoice_id: string | null; family: boolean }; }
 export async function listPlans(company: string) { const { data, error } = await db.rpc("fin_progress_list", { _company: company }); fail(error); return (data ?? []) as { id: string; quote_number: string | null; quote_version: number | null; client_name: string | null; contract_total: number; billed_total: number; has_draft: boolean }[]; }
 export async function summary(plan: string) { const { data, error } = await db.rpc("fin_progress_summary", { _plan: plan }); fail(error); return data as Summary; }
 export async function saveDraft(p: { plan: string; key: string; kind: Kind; mode: Mode; value: string | null; issue: string | null; due: string | null; baseRev: number | null }) {
@@ -34,5 +34,6 @@ export async function saveDraft(p: { plan: string; key: string; kind: Kind; mode
   fail(error); return data as Situation;
 }
 export async function issue(id: string, key: string, rev: number, hash: string) { const { data, error } = await db.rpc("fin_progress_issue", { _situation: id, _issue_key: key, _expect_rev: rev, _expect_hash: hash }); fail(error); return data as { invoice_id: string; number: string; already: boolean }; }
-export async function abandon(id: string, key: string, reason: string) { const { data, error } = await db.rpc("fin_progress_abandon", { _situation: id, _key: key, _reason: reason }); fail(error); return data as Situation; }
+/** Abandon contrôlé : révision + empreinte attendues; au réessai, renvoyer exactement les mêmes paramètres. */
+export async function abandon(id: string, key: string, reason: string, rev: number, hash: string) { const { data, error } = await db.rpc("fin_progress_abandon", { _situation: id, _key: key, _reason: reason, _expect_rev: rev, _expect_hash: hash }); fail(error); return data as Situation; }
 export const newKey = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`);

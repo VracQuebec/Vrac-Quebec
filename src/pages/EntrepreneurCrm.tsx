@@ -582,7 +582,8 @@ function Quotes({ companyId, companyName, canWrite }: any) {
         {canWrite && q.status === "acceptee" && <Button size="sm" variant="outline" onClick={async () => {
           const { data, error } = await db.rpc("fin_progress_plan_create", { _quote: q.id, _key: `progress:${q.id}` });
           if (error) return toast({ title: "Refusé", description: error.message, variant: "destructive" });
-          if (data?.conflict === "invoice") { if (window.confirm("Une facture ordinaire existe déjà pour cette soumission : la facturation progressive est impossible (la facture n'est pas modifiée). Ouvrir cette facture ?")) window.location.assign(`/entrepreneur/finances?company=${q.company_id}&tab=factures&facture=${data.invoice_id}`); return; }
+          if (data?.conflict === "invoice") { if (window.confirm(`${data.message ?? "Une facture ordinaire existe déjà pour cette soumission : la facturation progressive est impossible (la facture n'est pas modifiée)."} Ouvrir cette facture ?`)) window.location.assign(`/entrepreneur/finances?company=${q.company_id}&tab=factures&facture=${data.invoice_id}`); return; }
+          if (data?.conflict === "family_plan") { if (window.confirm(`${data.message} Ouvrir ce dossier ?`)) window.location.assign(`/entrepreneur/finances?company=${q.company_id}&tab=factures&dossier=${data.plan_id}`); return; }
           window.location.assign(`/entrepreneur/finances?company=${q.company_id}&tab=factures&dossier=${data.plan_id}`); }}>Facturation progressive</Button>}
         {canWrite && q.status === "remise" && <><Button size="sm" onClick={() => setStatus(q, "acceptee")}>Accepter (documenter)</Button><Button size="sm" variant="outline" onClick={() => setStatus(q, "refusee")}>Refusée</Button></>}
         {canWrite && q.status === "acceptee" && !(Array.isArray(q.ent_crm_projects) ? q.ent_crm_projects.length : q.ent_crm_projects) && <Button size="sm" onClick={() => toProject(q)}>Créer le chantier</Button>}
