@@ -155,6 +155,11 @@ export default function ProgressB2({ sum, canWrite, hasDraft, reload, onChanged 
             {canWrite && a.status === "brouillon" && (
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" variant="outline" disabled={locked} onClick={() => resumeAm(a)}>Reprendre</Button>
+                <Button size="sm" variant="outline" disabled={locked} onClick={() => {
+                  const body = { plan: sum.id, key: a.draft_key, reason: a.reason, changes: (a.changes ?? []) as unknown[], ref: a.approval_ref ?? "", refDate: a.approval_date ?? null,
+                    approver: a.approver_name ?? "", refQuote: (a as unknown as { ref_quote_id?: string | null }).ref_quote_id ?? null, baseRev: a.rev };
+                  void exec({ label: `Actualisation de l'impact de l'avenant ${a.seq}`, run: async () => { const r = await P.amendSave(body); if (amDraft?.key === a.draft_key) setAmDraft({ key: a.draft_key, rev: r.rev }); } });
+                }}>Actualiser l'impact</Button>
                 <label className="flex items-center gap-1 text-xs"><input type="checkbox" disabled={locked} checked={!!confirm[a.id]} onChange={(e) => setConfirm({ ...confirm, [a.id]: e.target.checked })} />
                   Je confirme l'accord du client tel que déclaré</label>
                 <Button size="sm" disabled={locked || !confirm[a.id] || hasDraft} onClick={() => { const k = P.newKey(); void exec({ label: `Approbation de l'avenant ${a.seq}`, run: () => P.amendApprove(a.id, k, a.rev, a.hash) }); }}>Approuver</Button>
