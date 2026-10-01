@@ -575,6 +575,13 @@
       "when": 1790817718030,
       "tag": "0081_fleet_created_at_immutable",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1790818039171,
+      "tag": "0082_fin07_profil_fiscal_taxes",
+      "breakpoints": true
     }
   ]
 }
