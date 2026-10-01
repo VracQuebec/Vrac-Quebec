@@ -691,12 +691,44 @@ export async function completeMaintenance(m: Maintenance, input: CompletionInput
 
 // Horodatage de création (UTC côté serveur, affiché en America/Toronto, heure d'été gérée par Intl).
 // Distinct de la date réelle des travaux. Une valeur sans heure n'invente jamais d'heure.
+// Accepté : instant ISO avec fuseau EXPLICITE (Z ou ±HH:MM valide) et date calendrier réelle.
+// Refusé (jamais interprété selon le fuseau de l'appareil ni normalisé silencieusement) :
+// heure sans fuseau, décalage invalide, date impossible (ex. 2026-02-30).
+const UNKNOWN_TIME = "Enregistré le — · heure non enregistrée";
+const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const INSTANT_RE = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?(Z|[+-]\d{2}:\d{2})$/;
+function validCalendarDate(y: number, mo: number, d: number): boolean {
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return false;
+  const u = new Date(Date.UTC(y, mo - 1, d));
+  return u.getUTCFullYear() === y && u.getUTCMonth() === mo - 1 && u.getUTCDate() === d;
+}
+function parseStrictInstant(ts: string): Date | null {
+  const m = INSTANT_RE.exec(ts);
+  if (!m) return null;
+  const [, Y, Mo, D, H, Mi, S, F, off] = m;
+  const y = +Y, mo = +Mo, d = +D, h = +H, mi = +Mi, s = S ? +S : 0;
+  if (!validCalendarDate(y, mo, d) || h > 23 || mi > 59 || s > 59) return null;
+  let offMin = 0;
+  if (off !== "Z") {
+    const oh = +off.slice(1, 3), om = +off.slice(4, 6);
+    if (oh > 23 || om > 59) return null;
+    offMin = (off[0] === "-" ? -1 : 1) * (oh * 60 + om);
+  }
+  const frac = F ? +(`0.${F}`) : 0;
+  const ms = Date.UTC(y, mo - 1, d, h, mi, s) - offMin * 60000 + Math.round(frac * 1000);
+  const dt = new Date(ms);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
 export function createdLabel(rec: unknown): string {
   const ts = (rec as { created_at?: string | null } | null)?.created_at ?? null;
-  if (!ts) return "Enregistré le — · heure non enregistrée";
-  if (ts.length <= 10) return `Enregistré le ${dateLabel(ts)} · heure non enregistrée`;
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return "Enregistré le — · heure non enregistrée";
+  if (!ts) return UNKNOWN_TIME;
+  if (ts.length <= 10) {
+    const m = DATE_ONLY_RE.exec(ts);
+    if (!m || !validCalendarDate(+m[1], +m[2], +m[3])) return UNKNOWN_TIME;
+    return `Enregistré le ${dateLabel(ts)} · heure non enregistrée`;
+  }
+  const d = parseStrictInstant(ts);
+  if (!d) return UNKNOWN_TIME;
   const parts = new Intl.DateTimeFormat("fr-CA", {
     timeZone: "America/Toronto", day: "numeric", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit", hourCycle: "h23",
