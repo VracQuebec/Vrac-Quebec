@@ -42,8 +42,9 @@ describe("FIN-08B Encaissements (interface simulée)", () => {
     fireEvent.click(await screen.findByText("Enregistrer un encaissement"));
     fireEvent.change(screen.getByPlaceholderText("1149.75"), { target: { value: "400" } });
     fireEvent.click(screen.getByText("Enregistrer"));
-    await waitFor(() => expect(screen.getByText("Enregistrer")).not.toBeDisabled());
-    fireEvent.click(screen.getByText("Enregistrer"));
+    const retry = await screen.findByText("Réessayer le même envoi");
+    expect((screen.getByPlaceholderText("1149.75") as HTMLInputElement).disabled).toBe(true); // champs figés
+    fireEvent.click(retry);
     await waitFor(() => expect(keys).toHaveLength(2));
     expect(keys[0]).toBe(keys[1]);
     // nouvelle saisie sur une autre facture : formulaire vide, nouvelle clé
@@ -56,5 +57,17 @@ describe("FIN-08B Encaissements (interface simulée)", () => {
     fireEvent.click(screen.getByText("Enregistrer"));
     await waitFor(() => expect(keys).toHaveLength(3));
     expect(keys[2]).not.toBe(keys[0]);
+  });
+
+  it("clé réutilisée pour une autre requête : refus explicite, aucune transformation silencieuse", async () => {
+    h.rpc.mockImplementation((fn: string) => fn === "fin_invoice_receipt_summary" ? Promise.resolve(sum(100, 0))
+      : Promise.resolve({ data: null, error: { code: "P0409", message: "Clé de saisie déjà utilisée pour un autre encaissement" } }));
+    render(<InvoiceReceipts invoiceId="A" companyId="c1" canWrite onChanged={() => {}} />);
+    fireEvent.click(await screen.findByText("Enregistrer un encaissement"));
+    fireEvent.change(screen.getByPlaceholderText("100"), { target: { value: "10" } });
+    fireEvent.click(screen.getByText("Enregistrer"));
+    const { toast } = await import("@/hooks/use-toast");
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ description: expect.stringMatching(/déjà utilisée/) })));
+    expect(screen.queryByText("Réessayer le même envoi")).toBeNull();
   });
 });
