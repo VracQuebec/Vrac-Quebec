@@ -5408,6 +5408,290 @@ export type Database = {
           },
         ]
       }
+      fin_psp_accounts: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          mode: string
+          provider: string
+          scope: string
+          status: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          mode?: string
+          provider?: string
+          scope: string
+          status?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          mode?: string
+          provider?: string
+          scope?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_psp_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_psp_adjustments: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          event_row_id: string
+          id: string
+          kind: string
+          ref: string
+          transaction_id: string
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          event_row_id: string
+          id?: string
+          kind: string
+          ref: string
+          transaction_id: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          event_row_id?: string
+          id?: string
+          kind?: string
+          ref?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_psp_adjustments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_psp_adjustments_event_row_id_fkey"
+            columns: ["event_row_id"]
+            isOneToOne: false
+            referencedRelation: "fin_psp_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_psp_adjustments_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "fin_psp_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_psp_events: {
+        Row: {
+          account_id: string
+          company_id: string
+          created_by: string | null
+          event_id: string
+          id: string
+          note: string | null
+          occurred_at: string | null
+          outcome: string
+          payload: Json
+          payload_hash: string
+          received_at: string
+          transaction_id: string | null
+          type: string
+        }
+        Insert: {
+          account_id: string
+          company_id: string
+          created_by?: string | null
+          event_id: string
+          id?: string
+          note?: string | null
+          occurred_at?: string | null
+          outcome: string
+          payload: Json
+          payload_hash: string
+          received_at?: string
+          transaction_id?: string | null
+          type: string
+        }
+        Update: {
+          account_id?: string
+          company_id?: string
+          created_by?: string | null
+          event_id?: string
+          id?: string
+          note?: string | null
+          occurred_at?: string | null
+          outcome?: string
+          payload?: Json
+          payload_hash?: string
+          received_at?: string
+          transaction_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_psp_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_psp_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_psp_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_psp_events_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "fin_psp_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_psp_sim_companies: {
+        Row: {
+          added_at: string
+          company_id: string
+        }
+        Insert: {
+          added_at?: string
+          company_id: string
+        }
+        Update: {
+          added_at?: string
+          company_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_psp_sim_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_psp_transactions: {
+        Row: {
+          account_id: string
+          company_id: string
+          created_at: string
+          currency: string
+          disputed: number
+          fee: number | null
+          gross: number
+          id: string
+          invoice_id: string
+          net: number | null
+          occurred_at: string | null
+          paid_out: number
+          payment_ref: string
+          receipt_id: string | null
+          refunded: number
+          returned: number
+          review: string[]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          company_id: string
+          created_at?: string
+          currency?: string
+          disputed?: number
+          fee?: number | null
+          gross: number
+          id?: string
+          invoice_id: string
+          net?: number | null
+          occurred_at?: string | null
+          paid_out?: number
+          payment_ref: string
+          receipt_id?: string | null
+          refunded?: number
+          returned?: number
+          review?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          company_id?: string
+          created_at?: string
+          currency?: string
+          disputed?: number
+          fee?: number | null
+          gross?: number
+          id?: string
+          invoice_id?: string
+          net?: number | null
+          occurred_at?: string | null
+          paid_out?: number
+          payment_ref?: string
+          receipt_id?: string | null
+          refunded?: number
+          returned?: number
+          review?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_psp_transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_psp_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_psp_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_psp_transactions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_psp_transactions_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: true
+            referencedRelation: "fin_invoice_receipts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_recurring_events: {
         Row: {
           action: string
@@ -24653,6 +24937,12 @@ export type Database = {
         Returns: Json
       }
       fin_progress_summary: { Args: { _plan: string }; Returns: Json }
+      fin_psp_ingest: { Args: { _account: string; _ev: Json }; Returns: Json }
+      fin_psp_overview: { Args: { _company: string }; Returns: Json }
+      fin_psp_sim_event: {
+        Args: { _company: string; _ev: Json }
+        Returns: Json
+      }
       fin_quiet_until: {
         Args: { _now: string; _qe: number; _qs: number }
         Returns: string
