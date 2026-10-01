@@ -3972,6 +3972,7 @@ export type Database = {
           pdf_path: string | null
           prices_include_tax: boolean
           private_note: string | null
+          progress_situation_id: string | null
           project_id: string | null
           quote_id: string | null
           seller_snapshot: Json | null
@@ -4009,6 +4010,7 @@ export type Database = {
           pdf_path?: string | null
           prices_include_tax?: boolean
           private_note?: string | null
+          progress_situation_id?: string | null
           project_id?: string | null
           quote_id?: string | null
           seller_snapshot?: Json | null
@@ -4046,6 +4048,7 @@ export type Database = {
           pdf_path?: string | null
           prices_include_tax?: boolean
           private_note?: string | null
+          progress_situation_id?: string | null
           project_id?: string | null
           quote_id?: string | null
           seller_snapshot?: Json | null
@@ -4087,6 +4090,13 @@ export type Database = {
             columns: ["expected_inflow_id"]
             isOneToOne: false
             referencedRelation: "fin_expected_inflows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoices_progress_situation_id_fkey"
+            columns: ["progress_situation_id"]
+            isOneToOne: false
+            referencedRelation: "fin_progress_situations"
             referencedColumns: ["id"]
           },
           {
@@ -4716,6 +4726,170 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_progress_plans: {
+        Row: {
+          client_id: string
+          company_id: string
+          contract: Json
+          create_key: string
+          created_at: string
+          created_by: string | null
+          id: string
+          quote_id: string
+          source: Json
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          contract: Json
+          create_key: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          quote_id: string
+          source: Json
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          contract?: Json
+          create_key?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          quote_id?: string
+          source?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_progress_plans_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_progress_plans_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_progress_plans_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_progress_situations: {
+        Row: {
+          abandon_key: string | null
+          abandon_reason: string | null
+          abandoned_at: string | null
+          abandoned_by: string | null
+          company_id: string
+          computed: Json
+          created_at: string
+          created_by: string | null
+          draft_key: string
+          due_date: string | null
+          hash: string
+          id: string
+          input_hash: string
+          invoice_id: string | null
+          issue_date: string | null
+          issue_key: string | null
+          issued_at: string | null
+          issued_by: string | null
+          kind: string
+          mode: string
+          plan_id: string
+          rev: number
+          seq: number | null
+          status: string
+          value: string
+        }
+        Insert: {
+          abandon_key?: string | null
+          abandon_reason?: string | null
+          abandoned_at?: string | null
+          abandoned_by?: string | null
+          company_id: string
+          computed: Json
+          created_at?: string
+          created_by?: string | null
+          draft_key: string
+          due_date?: string | null
+          hash: string
+          id?: string
+          input_hash: string
+          invoice_id?: string | null
+          issue_date?: string | null
+          issue_key?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          kind: string
+          mode: string
+          plan_id: string
+          rev?: number
+          seq?: number | null
+          status?: string
+          value: string
+        }
+        Update: {
+          abandon_key?: string | null
+          abandon_reason?: string | null
+          abandoned_at?: string | null
+          abandoned_by?: string | null
+          company_id?: string
+          computed?: Json
+          created_at?: string
+          created_by?: string | null
+          draft_key?: string
+          due_date?: string | null
+          hash?: string
+          id?: string
+          input_hash?: string
+          invoice_id?: string | null
+          issue_date?: string | null
+          issue_key?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          kind?: string
+          mode?: string
+          plan_id?: string
+          rev?: number
+          seq?: number | null
+          status?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_progress_situations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_progress_situations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_progress_situations_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "fin_progress_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -23019,6 +23193,47 @@ export type Database = {
         Args: { _company: string; _from: string; _p: Json; _to: string }
         Returns: Json
       }
+      fin_progress_abandon: {
+        Args: { _key: string; _reason: string; _situation: string }
+        Returns: Json
+      }
+      fin_progress_check_dates: {
+        Args: { _d: string; _due: string; _plan: string }
+        Returns: undefined
+      }
+      fin_progress_compute: {
+        Args: { _kind: string; _mode: string; _plan: string; _value: string }
+        Returns: Json
+      }
+      fin_progress_draft_save: {
+        Args: {
+          _base_rev: number
+          _draft_key: string
+          _due_date: string
+          _issue_date: string
+          _kind: string
+          _mode: string
+          _plan: string
+          _value: string
+        }
+        Returns: Json
+      }
+      fin_progress_for_quote: { Args: { _quote: string }; Returns: Json }
+      fin_progress_issue: {
+        Args: {
+          _expect_hash: string
+          _expect_rev: number
+          _issue_key: string
+          _situation: string
+        }
+        Returns: Json
+      }
+      fin_progress_list: { Args: { _company: string }; Returns: Json }
+      fin_progress_plan_create: {
+        Args: { _key: string; _quote: string }
+        Returns: Json
+      }
+      fin_progress_summary: { Args: { _plan: string }; Returns: Json }
       fin_quiet_until: {
         Args: { _now: string; _qe: number; _qs: number }
         Returns: string
