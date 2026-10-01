@@ -631,6 +631,13 @@
       "when": 1790827112049,
       "tag": "0089_fin09a_sync_fully_credited",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1790827156008,
+      "tag": "0090_fin09a_revoke_direct_writes",
+      "breakpoints": true
     }
   ]
 }
