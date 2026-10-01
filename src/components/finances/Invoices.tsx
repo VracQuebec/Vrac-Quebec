@@ -161,6 +161,7 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
     setBusy(true);
     try {
       let path = inv.pdf_path as string | null;
+      if (!draft && !path && !canWrite) { const doc = renderInvoicePdf(await pdfData(inv)); download ? doc.save(`${inv.number}.pdf`) : window.open(URL.createObjectURL(doc.output("blob")), "_blank"); return; }
       if (!draft && !path) { // premier rendu d'une facture émise : figé dans le stockage privé
         const blob = renderInvoicePdf(await pdfData(inv)).output("blob"); path = `${companyId}/pdf/${id}-${inv.number}.pdf`;
         const up = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: "application/pdf", upsert: false });
