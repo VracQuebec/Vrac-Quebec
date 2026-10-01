@@ -862,6 +862,13 @@
       "when": 1790897480226,
       "tag": "0122_fin11_psp_simulation_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 123,
+      "version": "7",
+      "when": 1790897627450,
+      "tag": "0123_fin11_psp_receipt_method",
+      "breakpoints": true
     }
   ]
 }
