@@ -1,5 +1,6 @@
 // Consultation d'une soumission par le client (lien unique, sans compte).
 import { useCallback, useEffect, useState } from "react";
+import TaxSummary from "@/components/finances/TaxSummary";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,7 @@ export default function SoumissionClient() {
       <tbody>{lines.map((l, i) => <tr key={i} className="border-t border-border"><td className="py-1">{l.desc}</td><td>{l.qty ?? "—"}</td><td>{unitLabel(l.unit)}</td><td>{money(l.price)}</td><td>{money(lineTotal(l))}</td></tr>)}</tbody></table>
       <div className="mt-3 space-y-0.5 text-right text-sm">
         <p>Sous-total : {money(q.subtotal)}</p>
-        {q.taxes_applied ? <><p>TPS ({q.gst_rate} %){q.gst_number ? ` — n° ${q.gst_number}` : ""} : {money(q.tax_gst)}</p><p>TVQ ({q.qst_rate} %){q.qst_number ? ` — n° ${q.qst_number}` : ""} : {money(q.tax_qst)}</p><p className="font-bold">Total : {money(q.total)}</p></>
+        {q.tax_snapshot ? <TaxSummary className="max-w-sm" r={q.tax_snapshot} gstNumber={q.gst_number} qstNumber={q.qst_number} /> : q.taxes_applied ? <><p>TPS ({q.gst_rate} %){q.gst_number ? ` — n° ${q.gst_number}` : ""} : {money(q.tax_gst)}</p><p>TVQ ({q.qst_rate} %){q.qst_number ? ` — n° ${q.qst_number}` : ""} : {money(q.tax_qst)}</p><p className="font-bold">Total : {money(q.total)}</p></>
           : <p className="text-xs text-muted-foreground">Taxes non incluses dans ce montant.</p>}
       </div></div>
     {q.inclusions && <p className="mt-3 text-sm"><strong>Inclusions :</strong> {q.inclusions}</p>}

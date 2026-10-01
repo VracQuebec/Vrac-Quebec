@@ -2574,6 +2574,7 @@ export type Database = {
           number: string | null
           paid_amount: number | null
           parent_quote_id: string | null
+          prices_include_tax: boolean
           qst_rate: number | null
           share_token: string | null
           shared_at: string | null
@@ -2581,6 +2582,7 @@ export type Database = {
           subtotal: number
           tax_gst: number | null
           tax_qst: number | null
+          tax_snapshot: Json | null
           taxes_applied: boolean
           total: number | null
           updated_at: string
@@ -2612,6 +2614,7 @@ export type Database = {
           number?: string | null
           paid_amount?: number | null
           parent_quote_id?: string | null
+          prices_include_tax?: boolean
           qst_rate?: number | null
           share_token?: string | null
           shared_at?: string | null
@@ -2619,6 +2622,7 @@ export type Database = {
           subtotal?: number
           tax_gst?: number | null
           tax_qst?: number | null
+          tax_snapshot?: Json | null
           taxes_applied?: boolean
           total?: number | null
           updated_at?: string
@@ -2650,6 +2654,7 @@ export type Database = {
           number?: string | null
           paid_amount?: number | null
           parent_quote_id?: string | null
+          prices_include_tax?: boolean
           qst_rate?: number | null
           share_token?: string | null
           shared_at?: string | null
@@ -2657,6 +2662,7 @@ export type Database = {
           subtotal?: number
           tax_gst?: number | null
           tax_qst?: number | null
+          tax_snapshot?: Json | null
           taxes_applied?: boolean
           total?: number | null
           updated_at?: string
@@ -2843,10 +2849,14 @@ export type Database = {
         Row: {
           brand_color: string | null
           company_id: string
+          gst_effective: string | null
           gst_number: string | null
           gst_rate: number | null
+          gst_status: string
+          qst_effective: string | null
           qst_number: string | null
           qst_rate: number | null
+          qst_status: string
           quote_footer: string | null
           taxes_enabled: boolean
           trades: string[]
@@ -2855,10 +2865,14 @@ export type Database = {
         Insert: {
           brand_color?: string | null
           company_id: string
+          gst_effective?: string | null
           gst_number?: string | null
           gst_rate?: number | null
+          gst_status?: string
+          qst_effective?: string | null
           qst_number?: string | null
           qst_rate?: number | null
+          qst_status?: string
           quote_footer?: string | null
           taxes_enabled?: boolean
           trades?: string[]
@@ -2867,10 +2881,14 @@ export type Database = {
         Update: {
           brand_color?: string | null
           company_id?: string
+          gst_effective?: string | null
           gst_number?: string | null
           gst_rate?: number | null
+          gst_status?: string
+          qst_effective?: string | null
           qst_number?: string | null
           qst_rate?: number | null
+          qst_status?: string
           quote_footer?: string | null
           taxes_enabled?: boolean
           trades?: string[]
@@ -2991,6 +3009,41 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "ent_crm_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ent_crm_tax_profile_history: {
+        Row: {
+          after: Json
+          before: Json | null
+          changed_at: string
+          changed_by: string | null
+          company_id: string
+          id: string
+        }
+        Insert: {
+          after: Json
+          before?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          company_id: string
+          id?: string
+        }
+        Update: {
+          after?: Json
+          before?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          company_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_crm_tax_profile_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -4764,6 +4817,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fin_tax_rates: {
+        Row: {
+          created_at: string
+          effective_from: string
+          id: string
+          jurisdiction: string
+          note: string | null
+          rate: number
+          tax: string
+        }
+        Insert: {
+          created_at?: string
+          effective_from: string
+          id?: string
+          jurisdiction?: string
+          note?: string | null
+          rate: number
+          tax: string
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          id?: string
+          jurisdiction?: string
+          note?: string | null
+          rate?: number
+          tax?: string
+        }
+        Relationships: []
       }
       fin_transfers: {
         Row: {
@@ -22574,6 +22657,22 @@ export type Database = {
       fin_settle_since: { Args: { _company: string }; Returns: string }
       fin_shift: { Args: { _d: string; _p: string }; Returns: string }
       fin_skip: { Args: { _d: string; _r: Json }; Returns: boolean }
+      fin_tax_compute: {
+        Args: {
+          _gst_status: string
+          _lines: Json
+          _on: string
+          _prices_include: boolean
+          _qst_status: string
+          _rates?: Json
+        }
+        Returns: Json
+      }
+      fin_tax_correction: {
+        Args: { _lines: Json; _quote_id: string }
+        Returns: Json
+      }
+      fin_tax_rate: { Args: { _on: string; _tax: string }; Returns: number }
       fin_validate_rule: { Args: { _r: Json }; Returns: undefined }
       fleet_can_access: { Args: { _company_id: string }; Returns: boolean }
       fleet_can_administer: { Args: { _company_id: string }; Returns: boolean }
