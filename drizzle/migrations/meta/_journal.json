@@ -680,6 +680,27 @@
       "when": 1790830698722,
       "tag": "0096_fin09b1_issue_replay_strict",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1790832897915,
+      "tag": "0097_fin09b2_lines_milestones_amendments",
+      "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1790833136681,
+      "tag": "0098_fin09b2_fix_ambiguous_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1790833197277,
+      "tag": "0099_fin09b2_lines_solde_value",
+      "breakpoints": true
     }
   ]
 }

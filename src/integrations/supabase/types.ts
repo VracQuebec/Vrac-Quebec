@@ -4730,39 +4730,297 @@ export type Database = {
           },
         ]
       }
+      fin_progress_amendments: {
+        Row: {
+          approval_date: string | null
+          approval_ref: string | null
+          approve_key: string | null
+          approved_at: string | null
+          approved_by: string | null
+          approver_name: string | null
+          changes: Json
+          close_key: string | null
+          close_reason: string | null
+          closed_at: string | null
+          closed_by: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          draft_key: string
+          from_version: number
+          hash: string
+          id: string
+          impact: Json
+          input_hash: string
+          plan_id: string
+          reason: string
+          ref_quote_id: string | null
+          rev: number
+          seq: number
+          status: string
+          to_version: number | null
+        }
+        Insert: {
+          approval_date?: string | null
+          approval_ref?: string | null
+          approve_key?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_name?: string | null
+          changes: Json
+          close_key?: string | null
+          close_reason?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          draft_key: string
+          from_version: number
+          hash: string
+          id?: string
+          impact: Json
+          input_hash: string
+          plan_id: string
+          reason: string
+          ref_quote_id?: string | null
+          rev?: number
+          seq: number
+          status?: string
+          to_version?: number | null
+        }
+        Update: {
+          approval_date?: string | null
+          approval_ref?: string | null
+          approve_key?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          approver_name?: string | null
+          changes?: Json
+          close_key?: string | null
+          close_reason?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          draft_key?: string
+          from_version?: number
+          hash?: string
+          id?: string
+          impact?: Json
+          input_hash?: string
+          plan_id?: string
+          reason?: string
+          ref_quote_id?: string | null
+          rev?: number
+          seq?: number
+          status?: string
+          to_version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_progress_amendments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_progress_amendments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "fin_progress_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_progress_amendments_ref_quote_id_fkey"
+            columns: ["ref_quote_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_progress_contract_versions: {
+        Row: {
+          amendment_id: string | null
+          company_id: string
+          contract: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          lines: Json
+          plan_id: string
+          version: number
+        }
+        Insert: {
+          amendment_id?: string | null
+          company_id: string
+          contract: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lines: Json
+          plan_id: string
+          version: number
+        }
+        Update: {
+          amendment_id?: string | null
+          company_id?: string
+          contract?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lines?: Json
+          plan_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_progress_contract_versions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_progress_contract_versions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "fin_progress_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_progress_milestones: {
+        Row: {
+          company_id: string
+          create_key: string
+          created_at: string
+          created_by: string | null
+          done_at: string | null
+          done_by: string | null
+          due_hint: string | null
+          id: string
+          invoice_id: string | null
+          ord: number
+          plan_id: string
+          rev: number
+          share: number
+          situation_id: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          company_id: string
+          create_key: string
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          due_hint?: string | null
+          id?: string
+          invoice_id?: string | null
+          ord: number
+          plan_id: string
+          rev?: number
+          share: number
+          situation_id?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          company_id?: string
+          create_key?: string
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          due_hint?: string | null
+          id?: string
+          invoice_id?: string | null
+          ord?: number
+          plan_id?: string
+          rev?: number
+          share?: number
+          situation_id?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_progress_milestones_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_progress_milestones_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_progress_milestones_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "fin_progress_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_progress_milestones_situation_id_fkey"
+            columns: ["situation_id"]
+            isOneToOne: false
+            referencedRelation: "fin_progress_situations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_progress_plans: {
         Row: {
           client_id: string
           company_id: string
           contract: Json
+          contract_version: number
           create_key: string
           created_at: string
           created_by: string | null
           id: string
+          lines: Json | null
           quote_id: string
           source: Json
+          track: string
         }
         Insert: {
           client_id: string
           company_id: string
           contract: Json
+          contract_version?: number
           create_key: string
           created_at?: string
           created_by?: string | null
           id?: string
+          lines?: Json | null
           quote_id: string
           source: Json
+          track?: string
         }
         Update: {
           client_id?: string
           company_id?: string
           contract?: Json
+          contract_version?: number
           create_key?: string
           created_at?: string
           created_by?: string | null
           id?: string
+          lines?: Json | null
           quote_id?: string
           source?: Json
+          track?: string
         }
         Relationships: [
           {
@@ -4809,6 +5067,7 @@ export type Database = {
           issued_at: string | null
           issued_by: string | null
           kind: string
+          milestone_id: string | null
           mode: string
           plan_id: string
           rev: number
@@ -4836,6 +5095,7 @@ export type Database = {
           issued_at?: string | null
           issued_by?: string | null
           kind: string
+          milestone_id?: string | null
           mode: string
           plan_id: string
           rev?: number
@@ -4863,6 +5123,7 @@ export type Database = {
           issued_at?: string | null
           issued_by?: string | null
           kind?: string
+          milestone_id?: string | null
           mode?: string
           plan_id?: string
           rev?: number
@@ -4883,6 +5144,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_progress_situations_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "fin_progress_milestones"
             referencedColumns: ["id"]
           },
           {
@@ -23207,6 +23475,45 @@ export type Database = {
         }
         Returns: Json
       }
+      fin_progress_amend_approve: {
+        Args: {
+          _amend: string
+          _expect_hash: string
+          _expect_rev: number
+          _key: string
+        }
+        Returns: Json
+      }
+      fin_progress_amend_close: {
+        Args: {
+          _amend: string
+          _expect_hash: string
+          _expect_rev: number
+          _key: string
+          _reason: string
+          _status: string
+        }
+        Returns: Json
+      }
+      fin_progress_amend_compute: {
+        Args: { _changes: Json; _on: string; _plan: string }
+        Returns: Json
+      }
+      fin_progress_amend_save: {
+        Args: {
+          _approver: string
+          _base_rev: number
+          _changes: Json
+          _draft_key: string
+          _plan: string
+          _reason: string
+          _ref: string
+          _ref_date: string
+          _ref_quote: string
+        }
+        Returns: Json
+      }
+      fin_progress_cap: { Args: { _plan: string }; Returns: Json }
       fin_progress_check_dates: {
         Args: { _d: string; _due: string; _plan: string }
         Returns: undefined
@@ -23231,6 +23538,20 @@ export type Database = {
             }
             Returns: Json
           }
+      fin_progress_compute_any: {
+        Args: {
+          _kind: string
+          _mode: string
+          _on: string
+          _plan: string
+          _value: string
+        }
+        Returns: Json
+      }
+      fin_progress_compute_lines: {
+        Args: { _kind: string; _on: string; _plan: string; _value: string }
+        Returns: Json
+      }
       fin_progress_draft_save: {
         Args: {
           _base_rev: number
@@ -23264,9 +23585,36 @@ export type Database = {
         }
         Returns: Json
       }
+      fin_progress_line_amt: {
+        Args: { _disc: number; _price: number; _q: number }
+        Returns: number
+      }
+      fin_progress_lines_state: { Args: { _plan: string }; Returns: Json }
       fin_progress_list: { Args: { _company: string }; Returns: Json }
+      fin_progress_milestone_save: {
+        Args: {
+          _base_rev: number
+          _due: string
+          _id: string
+          _key: string
+          _ord: number
+          _plan: string
+          _share: string
+          _title: string
+        }
+        Returns: Json
+      }
+      fin_progress_milestone_set: {
+        Args: { _action: string; _base_rev: number; _id: string }
+        Returns: Json
+      }
       fin_progress_plan_create: {
         Args: { _key: string; _quote: string }
+        Returns: Json
+      }
+      fin_progress_qty_canon: { Args: { _value: string }; Returns: string }
+      fin_progress_set_track: {
+        Args: { _expect_version: number; _plan: string; _track: string }
         Returns: Json
       }
       fin_progress_summary: { Args: { _plan: string }; Returns: Json }
