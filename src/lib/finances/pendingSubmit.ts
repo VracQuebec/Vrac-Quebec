@@ -14,16 +14,22 @@ export function readPending(op: string, user: string, company: string, record: s
     return p?.v === 1 && p.op === op && p.user === user && p.company === company && p.record === record && typeof p.key === "string" ? p : null;
   } catch { return null; }
 }
+export const UNAVAILABLE = "Stockage du navigateur indisponible : impossible de garantir la reprise en cas de coupure, paiement non envoyé (saisie conservée).";
 /** Écrit AVANT l'appel réseau ; refuse de remplacer une demande en attente différente. */
 export function savePending(p: Omit<Pending, "v" | "at">): Pending {
   const cur = readPending(p.op, p.user, p.company, p.record);
   if (cur && (cur.key !== p.key || JSON.stringify(cur.args) !== JSON.stringify(p.args))) throw new Error("Une demande précédente a un résultat inconnu : récupérez-la d'abord");
-  const full: Pending = cur ?? { ...p, v: 1, at: new Date().toISOString() };
-  ls()?.setItem(slot(p.op, p.user, p.company, p.record), JSON.stringify(full));
+  if (cur) return cur;
+  const full: Pending = { ...p, v: 1, at: new Date().toISOString() };
+  const s = ls(); const k = slot(p.op, p.user, p.company, p.record); const raw = JSON.stringify(full);
+  if (!s) throw new Error(UNAVAILABLE);
+  try { s.setItem(k, raw); } catch { throw new Error(UNAVAILABLE); }
+  let back: string | null = null; try { back = s.getItem(k); } catch { /* lecture refusée */ }
+  if (back !== raw) { try { s.removeItem(k); } catch { /* ignoré */ } throw new Error(UNAVAILABLE); }
   return full;
 }
 export function clearPending(op: string, user: string, company: string, record: string) { ls()?.removeItem(slot(op, user, company, record)); }
 
-/** Erreur serveur déterministe (SQLSTATE ou code PostgREST) : la transaction a été annulée, la saisie peut être corrigée.
- *  Sinon (aucun code : réseau, délai, passerelle) le résultat est INCONNU. */
-export const isDeterministic = (e: unknown) => { const c = (e as { code?: string })?.code ?? ""; return /^[0-9A-Z]{5}$/.test(c) || /^PGRST/.test(c); };
+/** Refus serveur dont l'issue est connue (SQLSTATE hors classe 08 « connexion », ou code PostgREST) : saisie corrigible.
+ *  Résultat INCONNU (demande conservée) : aucun code (réseau, délai, passerelle) ou classe 08 (dont 08007 transaction_resolution_unknown). */
+export const isDeterministic = (e: unknown) => { const c = (e as { code?: string })?.code ?? ""; if (/^08/.test(c)) return false; return /^[0-9A-Z]{5}$/.test(c) || /^PGRST/.test(c); };
