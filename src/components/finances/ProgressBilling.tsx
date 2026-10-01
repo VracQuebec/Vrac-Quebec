@@ -97,6 +97,7 @@ export default function ProgressPlanDialog({ planId, companyId, canWrite, onClos
 
   if (loadErr) return <Dialog open onOpenChange={onClose}><DialogContent><p role="alert">Dossier illisible : {loadErr}</p><Button onClick={load}>Réessayer</Button></DialogContent></Dialog>;
   if (!sum) return <Dialog open onOpenChange={onClose}><DialogContent><p>Chargement…</p></DialogContent></Dialog>;
+  if (sum.company_id !== companyId) return <Dialog open onOpenChange={onClose}><DialogContent><p role="alert">Ce dossier n'appartient pas à l'entreprise sélectionnée : affichage et actions refusés.</p></DialogContent></Dialog>;
   const c = sum.contract; const issued = sum.situations.filter((s) => s.status === "emise");
   const credits = issued.reduce((a, s) => a + Number(s.balance?.credits ?? 0), 0); const collected = issued.reduce((a, s) => a + Number(s.balance?.collected ?? 0), 0);
   const ttc = Boolean((c as unknown as { prices_include_tax?: boolean }).prices_include_tax);
@@ -121,20 +122,24 @@ export default function ProgressPlanDialog({ planId, companyId, canWrite, onClos
       <span>{money(s.computed.new.total)}{s.invoice_id && <> · <button className="underline" onClick={() => onOpenInvoice(s.invoice_id!)}>Facture {s.number}</button>{s.balance ? ` · net ${money(s.balance.net)} · encaissé ${money(s.balance.collected)} · reste ${money(s.balance.rest)}` : ""}</>}</span></li>)}</ul>}
 
     {canWrite && !full && <div className="space-y-2 rounded border border-border p-2">
-      {active && !draft && <p role="status" className="text-sm">Un brouillon de situation existe (non facturé, aucun numéro). <Button size="sm" variant="outline" onClick={resume}>Reprendre le brouillon</Button> <Button size="sm" variant="ghost" disabled={busy} onClick={doAbandon}>Abandonner…</Button></p>}
+      {active && !draft && <p role="status" className="text-sm">Un brouillon de situation existe (non facturé, aucun numéro). <Button size="sm" variant="outline" onClick={resume}>Reprendre le brouillon</Button> <Button size="sm" variant="ghost" disabled={busy} onClick={() => { setAbandonOpen(true); setErr(null); }}>Abandonner…</Button></p>}
       {(!active || draft) && <>
-        <div className="grid gap-2 sm:grid-cols-5">
+        <fieldset disabled={busy} aria-busy={busy} className="grid gap-2 sm:grid-cols-5">
           <select aria-label="Type" className={sel} value={form.kind} onChange={(e) => edit({ kind: e.target.value as P.Kind })}>{(Object.keys(P.KIND_LABEL) as P.Kind[]).map((k) => <option key={k} value={k}>{P.KIND_LABEL[k]}</option>)}</select>
           {form.kind !== "solde" && <select aria-label="Mode" className={sel} value={form.mode} onChange={(e) => edit({ mode: e.target.value as P.Mode })}><option value="pct">Cumul en % du contrat</option>{ttc ? <option value="amount_ttc">Cumul en montant TTC</option> : <option value="amount">Cumul en montant HT</option>}</select>}
           {form.kind !== "solde" && <Input aria-label="Cumul contractuel" inputMode="decimal" placeholder={form.mode === "pct" ? "ex. 30" : "ex. 300,00"} value={form.value} onChange={(e) => edit({ value: e.target.value })} />}
           <label className="text-xs">Date de facture<Input type="date" value={form.issue} onChange={(e) => edit({ issue: e.target.value })} /></label>
           <label className="text-xs">Échéance<Input type="date" value={form.due} onChange={(e) => edit({ due: e.target.value })} /></label>
-        </div>
+        </fieldset>
         <p className="text-xs text-muted-foreground">Saisissez le CUMUL contractuel facturé à ce jour (pas le montant de cette facture). Une facture d'acompte facture une part du prix : ce n'est ni un dépôt remboursable ni une préautorisation bancaire.</p>
         <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={busy} onClick={doPreview}>Aperçu</Button>
           {preview && <Button disabled={busy} onClick={doIssue}>{pending ? "Réessayer l'émission" : "Émettre la facture"}</Button>}
-          {active && <Button variant="ghost" disabled={busy} onClick={doAbandon}>Abandonner le brouillon…</Button>}</div>
+          {active && <Button variant="ghost" disabled={busy} onClick={() => { setAbandonOpen(true); setErr(null); }}>Abandonner le brouillon…</Button>}</div>
       </>}
+      {(abandonOpen || pendingAb) && active && <div className="space-y-2 rounded border border-border p-2" aria-label="Abandon du brouillon">
+        <label className="text-xs">Motif de l'abandon (conservé dans l'historique)<Input aria-label="Motif de l'abandon" value={pendingAb ? pendingAb.reason : reason} disabled={busy || !!pendingAb} onChange={(e) => setReason(e.target.value)} /></label>
+        <div className="flex gap-2"><Button size="sm" variant="destructive" disabled={busy} onClick={doAbandon}>{pendingAb ? "Réessayer l'abandon" : "Confirmer l'abandon"}</Button>
+          {!pendingAb && <Button size="sm" variant="ghost" disabled={busy} onClick={() => { setAbandonOpen(false); setReason(""); }}>Annuler</Button>}</div></div>}
       {pv && <div className="rounded bg-muted p-2 text-sm" aria-label="Aperçu de la situation">
         <p>Cumul après cette facture : {pv.cum.pct} % · {money(pv.cum.ht)} HT · {money(pv.cum.total)} TTC</p>
         <p className="font-semibold">Nouveau montant à facturer : {money(pv.new.ht)} HT + TPS {money(pv.new.gst)} + TVQ {money(pv.new.qst)} = {money(pv.new.total)}</p>
