@@ -86,3 +86,27 @@ export function ctaxPayload(f: CtaxForm): { ok: boolean; p: J; errors: string[] 
 export const ctaxPreview = (invoice: string, p: J) => call("fin_construction_preview", { _invoice: invoice, _p: p });
 export const ctaxIssue = (invoice: string, key: string, p: J, hash: string) => call("fin_construction_issue", { _invoice: invoice, _key: key, _p: p, _expect_hash: hash });
 export const evaluate = (ret: string, key: string, on: string, rev: number) => call("fin_construction_evaluate", { _retention: ret, _key: key, _on: on, _expect_rev: rev });
+
+// FIN-09C2B2A — paiement manuel TEST d'une retenue construction B1 (libération source « paiement » + encaissement lié, atomiques).
+// Aucun paiement réel, aucune affectation implicite : la saisie porte uniquement sur la part retenue (part courante = encaissement ordinaire).
+export type CpayForm = { amount: string; paid_on: string; method: string; reference: string; reason: string; test_confirm: boolean };
+export const EMPTY_CPAY: CpayForm = { amount: "", paid_on: "", method: "virement", reference: "", reason: "", test_confirm: false };
+export const PAY_METHODS: Record<string, string> = { virement: "Virement", interac: "Interac", cheque: "Chèque", especes: "Espèces", carte: "Carte", prelevement: "Prélèvement", autre: "Autre" };
+export const ARC_RC4052 = "https://www.canada.ca/en/revenue-agency/services/forms-publications/publications/rc4052/rc4052-gst-hst-information-home-construction-industry.html";
+
+/** Formulaire → charge utile serveur (montant fr-CA canonique, jamais de 0 implicite; restant = borne locale indicative). */
+export function cpayPayload(f: CpayForm, rest?: number | string | null): { ok: boolean; p: J; errors: string[] } {
+  const errors: string[] = []; const p: J = {};
+  const a = decFr(f.amount, 2);
+  if (a == null || Number(a) <= 0) errors.push("Montant payé positif requis (2 décimales au plus)");
+  else if (rest != null && (toCents(Number(a)) ?? 0) > (toCents(Number(rest)) ?? 0)) errors.push("Montant supérieur à la retenue restante : un paiement mêlant part courante et retenue n'est pas pris en charge (part courante = encaissement ordinaire)");
+  else p.amount = a;
+  if (!isDate(f.paid_on)) errors.push("Date de paiement reçu requise"); else p.paid_on = f.paid_on;
+  if (!PAY_METHODS[f.method]) errors.push("Mode de paiement requis"); else p.method = f.method;
+  const ref = f.reference.trim(); if (!ref) errors.push("Référence de preuve requise"); else p.reference = ref;
+  const why = f.reason.trim(); if (!why) errors.push("Motif requis"); else p.reason = why;
+  if (!f.test_confirm) errors.push("Confirmez le mode TEST (aucun paiement réel)"); else p.test_confirm = "oui";
+  return { ok: errors.length === 0, p, errors };
+}
+export const cpayPreview = (ret: string, p: J) => call("fin_construction_pay_preview", { _retention: ret, _p: p });
+export const cpay = (ret: string, key: string, p: J, rev: number, hash: string) => call("fin_construction_pay", { _retention: ret, _key: key, _p: p, _expect_rev: rev, _expect_hash: hash });
