@@ -3646,6 +3646,7 @@ export type Database = {
           id: string
           invoice_id: string | null
           kind: string
+          legacy_received: number
           note: string | null
           received: number
           updated_at: string
@@ -3663,6 +3664,7 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           kind?: string
+          legacy_received?: number
           note?: string | null
           received?: number
           updated_at?: string
@@ -3680,6 +3682,7 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           kind?: string
+          legacy_received?: number
           note?: string | null
           received?: number
           updated_at?: string
@@ -3701,6 +3704,79 @@ export type Database = {
           },
           {
             foreignKeyName: "fin_expected_inflows_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_invoice_receipts: {
+        Row: {
+          account_id: string | null
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          idem_key: string
+          invoice_id: string
+          method: string
+          received_on: string
+          reference: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idem_key: string
+          invoice_id: string
+          method: string
+          received_on: string
+          reference?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idem_key?: string
+          invoice_id?: string
+          method?: string
+          received_on?: string
+          reference?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoice_receipts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoice_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoice_receipts_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "fin_invoices"
@@ -22612,6 +22688,24 @@ export type Database = {
         Args: { _id: string; _note: string }
         Returns: undefined
       }
+      fin_invoice_receipt_add: {
+        Args: {
+          _account: string
+          _amount: number
+          _date: string
+          _idem: string
+          _invoice: string
+          _method: string
+          _ref: string
+        }
+        Returns: Json
+      }
+      fin_invoice_receipt_summary: { Args: { _invoice: string }; Returns: Json }
+      fin_invoice_receipt_void: {
+        Args: { _id: string; _reason: string }
+        Returns: Json
+      }
+      fin_invoice_receipts_sync: { Args: { _invoice: string }; Returns: Json }
       fin_lift_pause: {
         Args: {
           _dry?: boolean
