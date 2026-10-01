@@ -13,10 +13,11 @@ import { fmtDate, todayIn } from "@/lib/finances/period";
 const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const money = (n?: number | null) => Number(n ?? 0).toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
 const sel = "h-10 rounded-md border border-input bg-background px-2 text-sm";
-type Sum = { credits?: number; net?: number; collected?: number; settled_by_credit?: boolean; total: number; legacy: number; receipts: number; received: number; rest: number; unallocated: number; paid: boolean };
+export type Sum = { credits?: number; net?: number; collected?: number; settled_by_credit?: boolean; total: number; legacy: number; receipts: number; received: number; rest: number; unallocated: number; paid: boolean };
 const emptyForm = () => ({ amount: "", date: todayIn(), method: "virement", account: "", ref: "" });
 
-export default function InvoiceReceipts({ invoiceId, companyId, canWrite, onChanged }: { invoiceId: string; companyId: string; canWrite: boolean; onChanged: () => void }) {
+/** refreshKey : change quand un autre élément (ex. note de crédit émise) modifie le solde; recharge sans toucher à une saisie en cours. */
+export default function InvoiceReceipts({ invoiceId, companyId, canWrite, onChanged, refreshKey = 0, onSummary }: { invoiceId: string; companyId: string; canWrite: boolean; onChanged: () => void; refreshKey?: number; onSummary?: (s: Sum | null) => void }) {
   const [sum, setSum] = useState<Sum | null>(null);
   const [rows, setRows] = useState<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([]);
@@ -28,18 +29,20 @@ export default function InvoiceReceipts({ invoiceId, companyId, canWrite, onChan
   const [pending, setPending] = useState<null | { amount: number; date: string; method: string; account: string; ref: string }>(null);
   const idem = useRef<string>(crypto.randomUUID());
   const gen = useRef(0); // invalide les réponses d'une ancienne facture/entreprise
+  const seq = useRef(0); // ordre des lectures : seule la plus récente s'applique (n'interrompt pas une saisie en cours)
+  const summaryCb = useRef(onSummary); summaryCb.current = onSummary;
   const key = `${companyId}:${invoiceId}`;
 
   const load = useCallback(async () => {
-    const my = ++gen.current; setStatus("loading");
+    const ctx = gen.current; const my = ++seq.current; setStatus("loading");
     try {
       const [s, r, a] = await Promise.all([db.rpc("fin_invoice_receipt_summary", { _invoice: invoiceId }),
         db.from("fin_invoice_receipts").select("*").eq("invoice_id", invoiceId).order("received_on").order("created_at"),
         db.from("fin_accounts").select("id,name").eq("company_id", companyId).is("archived_at", null).order("name")]);
-      if (my !== gen.current) return;
-      if (s.error || r.error || !s.data) { setStatus("error"); return; }
-      setSum(s.data); setRows(r.data ?? []); setAccounts(a.data ?? []); setAccErr(!!a.error); setStatus("ready");
-    } catch { if (my === gen.current) setStatus("error"); }
+      if (ctx !== gen.current || my !== seq.current) return;
+      if (s.error || r.error || !s.data) { setStatus("error"); summaryCb.current?.(null); return; }
+      setSum(s.data); setRows(r.data ?? []); setAccounts(a.data ?? []); setAccErr(!!a.error); setStatus("ready"); summaryCb.current?.(s.data);
+    } catch { if (ctx === gen.current && my === seq.current) { setStatus("error"); summaryCb.current?.(null); } }
   }, [invoiceId, companyId]);
 
   useEffect(() => { // changement de facture/entreprise : tout repart de zéro
@@ -47,6 +50,8 @@ export default function InvoiceReceipts({ invoiceId, companyId, canWrite, onChan
     void load();
     return () => { gen.current++; };
   }, [key, load]);
+  const first = useRef(true);
+  useEffect(() => { if (first.current) { first.current = false; return; } void load(); }, [refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const add = async () => {
     if (busy) return;
