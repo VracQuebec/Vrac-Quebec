@@ -4,6 +4,7 @@ Mode de travail : un lot validé, puis publication confirmée avant le suivant. 
 Abonnements, connexion bancaire et envois réels (courriel, texto, push) : jamais activés par ces travaux.
 
 ## FIN-08B — Encaissements reliés aux factures (2026-10-01)
+
 - Réalisé et vérifié côté serveur (essais TEST annulés dans la même transaction) et par tests ciblés : 15/15 réussis, build de production code de sortie 0.
 - Verrous : ajout et annulation verrouillent la facture puis l'encaissement (même ordre). Aucun essai concurrent réel exécuté (pas de deux sessions TEST isolées) : garantie par conception, non démontrée par essai.
 - Idempotence : rejeu identique = même opération; même clé pour une requête différente ou une autre facture = refus explicite (P0409).
@@ -13,9 +14,11 @@ Abonnements, connexion bancaire et envois réels (courriel, texto, push) : jamai
 - Limites conservées : compte informatif seulement; trop-perçu isolé dans sa facture.
 
 ## FIN-08B — Constat de publication (2026-10-01)
+
 - Déploiement e9e61f56-ab19-4f59-858f-1ac75608aa6b du HEAD a8c07b4 (code applicatif 66c48051) : interface Lovable constatée par ChatGPT vers 03:51 UTC, message « Votre site web a été mis à jour ». Constat rapporté, non vérifié par Lovable; l'interface réelle des Finances n'a pas été vérifiée.
 
 ## FIN-09A — Notes de crédit liées aux factures (2026-10-01)
+
 - Réalisé : brouillon lié depuis une facture émise (motif obligatoire, lignes/quantités ou montant plafonné), aperçu serveur, émission explicite, numéro unique par entreprise (série NC-), PDF privé « NOTE DE CRÉDIT » rendu depuis instantanés (facture originale et son PDF inchangés).
 - Solde : une source commune serveur (fin_invoice_balance) = brut figé − avoirs émis − encaissements actifs/antérieurs, plancher 0; trop-perçu / crédit disponible isolé, aucun remboursement ni mouvement bancaire. Facture entièrement créditée : entrée attendue retirée des prévisions (archivée).
 - Vérifié côté serveur (entreprise TEST, tout annulé) : 1 149,75 − 400 − avoir 229,95 = 519,80; rejeu identique = un seul avoir; autre payload / même clé autre avoir = P0409; surcrédit refusé; trois crédits successifs = 1 000 + 50 + 99,75 exactement (résidu exact); facture payée créditée → trop-perçu 229,95 isolé; lignes mixtes TTC cumul = total facture; profil fiscal modifié sans effet sur l'avoir; lecture seule et autre entreprise refusées; aucune écriture directe accordée.
@@ -26,7 +29,14 @@ Abonnements, connexion bancaire et envois réels (courriel, texto, push) : jamai
 - Publication : EN ATTENTE (par ChatGPT après examen).
 
 ### FIN-09A — Corrections avant publication (relecture du commit 6ad37cd, 2026-10-01)
+
 - Migration additive 0091 : fin_credit_compute devient interne (aucun droit d'exécution anon/authenticated, vérifié par has_function_privilege; appel direct anonyme → 42501 « permission denied »). Anciennes signatures save/issue sans révision retirées des rôles clients (DEPRECATED).
+
+## FIN-09A — Publication confirmée par ChatGPT
+
+- Déploiement e0b07298-582c-4bec-99eb-12b72a5eb686 du commit e94c65244ed93fdaa74d2d26d5e6e7f5d2332a2c : interface Lovable vérifiée le 2026-10-01, message « Votre site web a été mis à jour », puis « Tout est publié ».
+- Coût FIN-09A : 40,3 crédits (19 + 21,3, corrections comprises). Solde affiché après publication : 860 crédits. Les rapports de crédits sont en texte uniquement.
+- Les limites de vérification ci-dessus restent applicables.
 - Validation stricte : indices négatifs, hors limites, non entiers, dupliqués, non numériques, quantités ≤ 0, mode inconnu, montants non numériques ou à plus de 2 décimales → refus 22023 (10 cas vérifiés, dont « 10 × ligne A » qui aurait crédité 1 000 HT).
 - Arrondis : part de base figée par ligne répartie cumulativement; crédit de quantité = arrondi du cumul après − arrondi du cumul avant; taxes cumulées proportionnelles à la taxe facturée. Cas qty 3 × 0,335 + ligne 10,00 : unités 0,34 / 0,33 / 0,34 puis autre ligne → cumul 11,01 + 0,55 + 1,10 = 12,66 = facture. TTC mixte (taxable, détaxé, exonéré, crédits par demi-quantités) : cumul = 128,11 exact.
 - Plus de troncature silencieuse : après un crédit par montant de 950,33, une ligne de 100 est refusée (« disponible 49,67 ») à l'aperçu et à l'émission; nouveau mode explicite « Solde exact restant » → cumul 1 149,75 = facture.
@@ -38,6 +48,7 @@ Abonnements, connexion bancaire et envois réels (courriel, texto, push) : jamai
 - Toujours NON exécutés : essai concurrent réel à deux sessions; parcours visuel réel ordinateur/mobile. Le fichier sitemap est régénéré à chaque démarrage/compilation et peut réapparaître dans un commit.
 
 ## À venir (selon les plans déjà convenus — rien de ceci n'est livré)
+
 - FIN-09B : acomptes et facturation progressive. FIN-09C : récurrence et retenues. (FIN-09A avoirs ci-dessus.)
 - FIN-10 à FIN-23.
 - OPS-00 à OPS-13.
