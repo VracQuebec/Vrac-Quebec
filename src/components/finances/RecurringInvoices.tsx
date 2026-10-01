@@ -103,6 +103,10 @@ export function TemplateForm({ companyId, canWrite, version, onReload, onClose, 
   const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null); const [stale, setStale] = useState(false);
   const keyRef = useRef<{ sig: string; key: string } | null>(null);
   const guard = useRef(R.makeGuard()).current;
+  // Contexte figé au montage (entreprise + modèle + type) : les parents remontent par clé; si les props
+  // changent malgré tout, rien n'est rendu ni envoyé avec l'ancienne saisie.
+  const mountCtx = useRef(`${companyId}|${version?.template.id ?? "new"}`).current;
+  const ctxOk = mountCtx === `${companyId}|${version?.template.id ?? "new"}`;
   useEffect(() => () => guard.bump(), [guard]);
   useEffect(() => { guard.bump(); setBusy(false); }, [companyId, canWrite, version?.template.id, guard]);
   useEffect(() => { const ok = guard.take(); api.lookups(companyId).then((x) => ok() && setLk(x)).catch(() => {}); }, [companyId, guard]);
@@ -388,10 +392,10 @@ export function RecurringDetail({ id, companyId, canWrite, onClose, onChanged }:
         <section><h3 className="mb-1 font-semibold">Historique</h3><ul className="text-xs">{(s.events as J[]).map((e, i) => <li key={i}>{new Date(e.at).toLocaleString("fr-CA")} — {R.EVENT_LABEL[e.action] ?? e.action}{e.reason ? ` : ${e.reason}` : ""}{e.actor ? ` (${e.actor})` : ""}</li>)}</ul></section>
       </div>}
       <div className="flex justify-end"><Button variant="outline" disabled={busy} onClick={onClose}>Fermer</Button></div>
-      {occ && <OccurrenceEditor key={occ.id} occ={occ} companyId={companyId} canWrite={canWrite}
+      {occ && <OccurrenceEditor key={`${companyId}|${occ.id}`} occ={occ} companyId={companyId} canWrite={canWrite}
         onReload={async () => { const r = await fetchSummary(); return ((r.occurrences ?? []) as J[]).find((o) => o.id === occ.id) ?? null; }}
         onClose={() => { setOccId(null); load(); }} onChanged={() => { load(); onChanged(); }} />}
-      {ver && s && <TemplateForm companyId={companyId} canWrite={canWrite} version={{ template: s }} onReload={fetchSummary} onClose={() => setVer(false)} onSaved={() => { setVer(false); load(); onChanged(); }} />}
+      {ver && s && <TemplateForm key={`${companyId}|${s.id}|version`} companyId={companyId} canWrite={canWrite} version={{ template: s }} onReload={fetchSummary} onClose={() => setVer(false)} onSaved={() => { setVer(false); load(); onChanged(); }} />}
     </DialogContent>
   </Dialog>;
 }
