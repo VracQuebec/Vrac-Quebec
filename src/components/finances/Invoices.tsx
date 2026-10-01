@@ -14,6 +14,7 @@ import { renderInvoicePdf, type InvoicePdfData } from "@/lib/finances/invoicePdf
 import { fmtDate, todayIn } from "@/lib/finances/period";
 import InvoiceReceipts, { type Sum } from "@/components/finances/InvoiceReceipts";
 import CreditNotes from "@/components/finances/CreditNotes";
+import Retentions from "@/components/finances/Retentions";
 import ProgressPlanDialog, { ProgressPlans } from "@/components/finances/ProgressBilling";
 
 const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -200,7 +201,8 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
       {inv.sent_at ? ` Envoyée (déclarée) le ${new Date(inv.sent_at).toLocaleString("fr-CA", { timeZone: "America/Toronto" })} — ${inv.sent_note}.` : " Pas encore marquée envoyée (un téléchargement ne prouve pas l'envoi)."}
       {rec && <> Entrée attendue liée : {bal ? <>net après avoirs {money(bal.net)} · encaissé {money(bal.collected ?? bal.received)} · net à recevoir {money(bal.rest)}</> : "solde en cours de lecture"}{rec.archived_at ? " · retirée des prévisions de trésorerie (soldée par note de crédit)" : ""}.</>} Correction : par une note de crédit (ci-dessous); la facture originale et son PDF restent inchangés.</div>}
     {!draft && <CreditNotes invoice={inv} companyId={companyId} canWrite={canWrite} onChanged={() => { setRefresh((n) => n + 1); void load(); onChanged(); }} />}
-    {!draft && <InvoiceReceipts invoiceId={id} companyId={companyId} canWrite={canWrite} refreshKey={refresh} onSummary={setBal} onChanged={() => { void load(); onChanged(); }} />}
+    {!draft && <InvoiceReceipts invoiceId={id} companyId={companyId} canWrite={canWrite} refreshKey={refresh} onSummary={setBal} onChanged={() => { setRefresh((n) => n + 1); void load(); onChanged(); }} />}
+    {!draft && <Retentions key={`${companyId}|${id}`} invoiceId={id} companyId={companyId} canWrite={canWrite} refreshKey={refresh} onChanged={() => { setRefresh((n) => n + 1); void load(); onChanged(); }} />}
     {quote && <p className="text-xs text-muted-foreground">Créée depuis la soumission {quote.number ?? ""} v{quote.version} (soumission inchangée).</p>}
     {inv.tax_snapshot?.recurring && <p className="text-xs text-muted-foreground">Facture récurrente « {inv.tax_snapshot.recurring.label} »{inv.tax_snapshot.recurring.contract_ref ? ` (contrat ${inv.tax_snapshot.recurring.contract_ref})` : ""}, version {inv.tax_snapshot.recurring.version}, occurrence prévue le {inv.tax_snapshot.recurring.scheduled_on}{inv.tax_snapshot.recurring.service_from ? `, service du ${inv.tax_snapshot.recurring.service_from} au ${inv.tax_snapshot.recurring.service_to}` : ""}.</p>}
     {inv.tax_snapshot?.progress && <p className="text-xs text-muted-foreground">Facture de facturation progressive ({inv.tax_snapshot.progress.kind === "acompte" ? "acompte" : inv.tax_snapshot.progress.kind === "solde" ? "solde final" : "situation"} n° {inv.tax_snapshot.progress.seq}, cumul {inv.tax_snapshot.progress.cum?.pct} % de la soumission {inv.tax_snapshot.progress.quote_number ?? ""}). Récapitulatif dans le PDF.</p>}

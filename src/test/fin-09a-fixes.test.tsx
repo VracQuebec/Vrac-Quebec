@@ -7,6 +7,8 @@ import { MemoryRouter } from "react-router-dom";
 const h = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: h.rpc, from: h.from, storage: { from: () => ({}) } } }));
 vi.mock("@/hooks/use-toast", () => ({ toast: vi.fn() }));
+// FIN-09C2 : la section Retenues (testée dans fin-09c2) est neutralisée ici, ce test vérifiant les avoirs.
+vi.mock("@/components/finances/Retentions", () => ({ default: () => null }));
 import CreditNotes, { creditItems, parseDecimal } from "@/components/finances/CreditNotes";
 import Invoices from "@/components/finances/Invoices";
 import { renderCreditNotePdf } from "@/lib/finances/creditNotePdf";
