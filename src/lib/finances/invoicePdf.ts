@@ -14,7 +14,11 @@ export type InvoicePdfData = {
   tax: { subtotal: number; discount: number; taxable_base: number | null; zero_rated_base: number; exempt_base: number; undetermined: number; gst: number | null; qst: number | null; gst_rate: number | null; qst_rate: number | null; pre_tax: number | null; total: number | null; prices_include_tax: boolean; gst_status?: string; qst_status?: string };
   template: { color?: string | null; footer?: string | null; version?: number };
   logo?: { data: string; format: "PNG" | "JPEG"; w: number; h: number } | null;
+  progress?: ProgressRecap | null;
 };
+type PP = { ht: number | string; total: number | string; pct?: number | string };
+export type ProgressRecap = { kind: "acompte" | "situation" | "solde"; seq: number; quote_number?: string | null; contract: PP; prev: PP; cum: PP; new: PP; remaining: PP;
+  previous?: { number: string; total: number | string }[] };
 
 // Polices standard PDF (WinAnsi) : on remplace les espaces fines et signes hors jeu.
 const clean = (s: string) => s.replace(/[\u202F\u00A0]/g, " ").replace(/[\u2212\u2013\u2014]/g, "-").replace(/[\u2019]/g, "'");
@@ -115,6 +119,29 @@ export function renderInvoicePdf(d: InvoicePdfData): jsPDF {
   const notes = ["Détaxé : taxable au taux de 0 %. Exonéré : non assujetti à la TPS/TVQ."];
   if (t.prices_include_tax) notes.push("Prix saisis taxes incluses : chaque taxe est extraite du total et arrondie au cent.");
   notes.forEach((n) => { wrap(n, W - 2 * M).forEach((w) => { T(w, M, y + 2); y += 3.4; }); });
+
+  // FIN-09B1 — Récapitulatif de facturation progressive (depuis l'instantané figé; bloc insécable)
+  const pg = d.progress;
+  if (pg) {
+    const kind = pg.kind === "acompte" ? "Facture d'acompte (part du prix, non remboursable comme dépôt)" : pg.kind === "solde" ? "Facture de solde final" : "Facture de situation progressive";
+    const prevs = (pg.previous ?? []).map((p) => `${p.number} (${money(Number(p.total))})`).join(", ");
+    const rr: [string, string, string][] = [
+      ["Contrat (soumission " + (pg.quote_number ?? "") + ")", money(Number(pg.contract.ht)), money(Number(pg.contract.total))],
+      ["Déjà facturé avant cette facture", money(Number(pg.prev.ht)), money(Number(pg.prev.total))],
+      [`Cumul après cette facture (${num(pg.cum.pct)} %)`, money(Number(pg.cum.ht)), money(Number(pg.cum.total))],
+      ["Cette facture", money(Number(pg.new.ht)), money(Number(pg.new.total))],
+      ["Reste à facturer", money(Number(pg.remaining.ht)), money(Number(pg.remaining.total))],
+    ];
+    const prevLines = prevs ? wrap(`Factures précédentes : ${prevs}`, W - 2 * M) : [];
+    const need2 = 14 + rr.length * 5 + prevLines.length * 3.6;
+    if (y + need2 > H - FOOT - 4) { doc.addPage(); y = header(false) + 2; }
+    y += 5; doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(17, 17, 17);
+    T(`RÉCAPITULATIF — ${kind} n° ${pg.seq}`, M, y); y += 5;
+    doc.setFontSize(8); doc.setTextColor(110, 110, 110); T("Avant taxes", W - M - 40, y, { align: "right" }); T("Taxes incluses", W - M, y, { align: "right" }); y += 4.5;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(17, 17, 17);
+    rr.forEach(([k, a, b], idx) => { if (idx === 3) doc.setFont("helvetica", "bold"); T(k, M, y); T(a, W - M - 40, y, { align: "right" }); T(b, W - M, y, { align: "right" }); doc.setFont("helvetica", "normal"); y += 5; });
+    doc.setFontSize(7.5); doc.setTextColor(90, 90, 90); prevLines.forEach((w) => { T(w, M, y); y += 3.6; });
+  }
 
   // Pied de page, pagination et filigrane sur toutes les pages
   const pages = doc.getNumberOfPages(); const mark = d.isTest ? (d.status === "brouillon" ? "BROUILLON - TEST" : "TEST") : d.status === "brouillon" ? "BROUILLON" : null;

@@ -202,6 +202,7 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
     {!draft && <CreditNotes invoice={inv} companyId={companyId} canWrite={canWrite} onChanged={() => { setRefresh((n) => n + 1); void load(); onChanged(); }} />}
     {!draft && <InvoiceReceipts invoiceId={id} companyId={companyId} canWrite={canWrite} refreshKey={refresh} onSummary={setBal} onChanged={() => { void load(); onChanged(); }} />}
     {quote && <p className="text-xs text-muted-foreground">Créée depuis la soumission {quote.number ?? ""} v{quote.version} (soumission inchangée).</p>}
+    {inv.tax_snapshot?.progress && <p className="text-xs text-muted-foreground">Facture de facturation progressive ({inv.tax_snapshot.progress.kind === "acompte" ? "acompte" : inv.tax_snapshot.progress.kind === "solde" ? "solde final" : "situation"} n° {inv.tax_snapshot.progress.seq}, cumul {inv.tax_snapshot.progress.cum?.pct} % de la soumission {inv.tax_snapshot.progress.quote_number ?? ""}). Récapitulatif dans le PDF.</p>}
     {gap && <p role="status" className="rounded border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Écart fiscal avec la soumission : total {money(qs.total)} → {money(preview.total)} (TPS {money(qs.gst)} → {money(preview.gst)}, TVQ {money(qs.qst)} → {money(preview.qst)}). Vérifiez avant d'émettre.</p>}
 
     <fieldset disabled={!editable} className="space-y-2">
