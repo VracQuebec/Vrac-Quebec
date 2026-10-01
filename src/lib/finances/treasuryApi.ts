@@ -1,5 +1,6 @@
 // FIN-05 — Lecture des données de trésorerie. Sécurité par la base (RLS fin_can_read / fin_can_write, même entreprise imposée par trigger).
 // Aucune écriture sur les obligations ni les règlements.
+import { splitInflow } from "./retention";
 import { supabase } from "@/integrations/supabase/client";
 import * as api from "./api";
 import { netPaid, toCents, type Account, type Balance, type Movement, type Reserve } from "./treasury";
@@ -8,7 +9,7 @@ import { addDays } from "./period";
 const db = supabase as any;
 const err = (e: any) => { if (e) throw new Error(e.message || "Erreur serveur"); };
 
-export type Inflow = { id: string; account_id: string | null; amount: number; received: number; expected_on: string; counterparty: string; certainty: string; kind: string; note: string | null; archived_at: string | null };
+export type Inflow = { id: string; account_id: string | null; amount: number; received: number; expected_on: string; counterparty: string; certainty: string; kind: string; note: string | null; archived_at: string | null; retention_schedule?: { id: string; date: string | null; amount: number }[] | null };
 export type Transfer = { id: string; from_account: string; to_account: string; amount: number; planned_on: string; note: string | null };
 export type Budget = { id: string; category_id: string | null; truck_id: string | null; project_id: string | null; period_from: string; period_to: string; amount: number };
 export type Scenario = { id: string; name: string; hypotheses: any[]; source_hash: string | null; updated_at: string };
@@ -53,12 +54,15 @@ export async function loadTreasury(c: string, from: string, to: string) {
   }
   for (const p of pays.data ?? []) moves.push({ id: `p:${p.id}`, ref: p.id, date: p.paid_on, cents: toCents(p.amount), dir: "out", kind: "payment", label: `Règlement déclaré — ${p.payee_name ?? ""}${p.method === "carte" ? " (carte)" : ""}`, via_card: p.method === "carte" });
   for (const r of refs.data ?? []) moves.push({ id: `r:${r.id}`, ref: r.id, date: r.refunded_on, cents: toCents(r.amount), dir: "in", kind: "refund", label: `Remboursement reçu${r.reason ? ` — ${r.reason}` : ""}` });
+  let retentionUndated = 0; // FIN-09C2 : part retenue sans date prévue = « à compléter », exclue des dates précises
   for (const i of inf) {
-    const left = Math.max(0, (toCents(i.amount) ?? 0) - (toCents(i.received) ?? 0)); // encaissement déclaré : réduit l'entrée attendue
-    if (left > 0 && i.kind !== "credit") moves.push({ id: `i:${i.id}`, ref: i.id, date: i.expected_on, cents: left, dir: "in", kind: "inflow", label: `${i.counterparty} (${i.certainty})`, account_id: i.account_id, certainty: i.certainty, currency: (acc.find((a) => a.id === i.account_id)?.currency) ?? "CAD" });
+    if (i.kind === "credit") continue;
+    // encaissement déclaré : réduit l'entrée attendue; part retenue planifiée à sa propre date (même entrée, jamais comptée deux fois)
+    const sp = splitInflow(i); retentionUndated += sp.undated;
+    sp.parts.forEach((pt, k) => moves.push({ id: k === 0 && !pt.retention ? `i:${i.id}` : `i:${i.id}:r:${pt.retention}`, ref: i.id, date: pt.date, cents: pt.cents, dir: "in", kind: "inflow", label: `${i.counterparty} (${i.certainty})${pt.retention ? " — retenue" : ""}`, account_id: i.account_id, certainty: i.certainty, currency: (acc.find((a) => a.id === i.account_id)?.currency) ?? "CAD" }));
   }
   for (const t of trf) moves.push({ id: `t:${t.id}`, ref: t.id, date: t.planned_on, cents: toCents(t.amount), dir: "out", kind: "transfer", label: "Transfert entre comptes", account_id: t.from_account, transfer_to: t.to_account });
-  return { obligationAccounts: oa, accounts: acc, balances: bal, inflows: inf, transfers: trf, reserves: res.map((r) => ({ ...r, target: Number(r.target), reserved: Number(r.reserved) })), moves };
+  return { obligationAccounts: oa, accounts: acc, balances: bal, inflows: inf, transfers: trf, reserves: res.map((r) => ({ ...r, target: Number(r.target), reserved: Number(r.reserved) })), moves, retentionUndated };
 }
 
 export async function obligationAccounts(c: string) {
