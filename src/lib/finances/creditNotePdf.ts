@@ -8,7 +8,7 @@ export type CreditNotePdfData = {
   seller: { name?: string | null; legal_name?: string | null; address?: string | null; phone?: string | null; email?: string | null; gst_number?: string | null; qst_number?: string | null };
   client: { name?: string | null; address?: string | null; email?: string | null; phone?: string | null };
   invoice: { number?: string | null; issue_date?: string | null; total?: number | null };
-  credit: { mode: string; lines: { desc?: string | null; unit?: string | null; qty: number; tax: string; gross: number }[]; taxable_base: number; zero_rated_base: number; exempt_base: number; pre_tax: number; gst: number; qst: number; total: number; gst_rate: number; qst_rate: number; gst_status?: string; qst_status?: string };
+  credit: { mode: string; lines: { desc?: string | null; unit?: string | null; qty: number; tax: string; gross: number; base?: number | null }[]; taxable_base: number; zero_rated_base: number; exempt_base: number; pre_tax: number; gst: number; qst: number; total: number; gst_rate: number; qst_rate: number; gst_status?: string; qst_status?: string };
   template: { color?: string | null; footer?: string | null };
   logo?: { data: string; format: "PNG" | "JPEG"; w: number; h: number } | null;
 };
@@ -50,21 +50,35 @@ export function renderCreditNotePdf(d: CreditNotePdfData): jsPDF {
   const det: [string, string][] = [["Date de la note", date(d.issuedAt)], ["Facture source", d.invoice.number ?? "-"], ["Date de la facture", date(d.invoice.issue_date)], ["Total de la facture", money(d.invoice.total)]];
   let dy = y + 5; det.forEach(([k, v]) => { doc.setTextColor(110, 110, 110); T(k, W / 2 + 10, dy); doc.setTextColor(17, 17, 17); T(v, W - M, dy, { align: "right" }); dy += 4.6; });
   y = Math.max(cy, dy) + 3;
-  doc.setFont("helvetica", "bold"); doc.setFontSize(9); T("Motif", M, y); doc.setFont("helvetica", "normal");
-  wrap(d.reason, W - 2 * M).forEach((w) => { y += 4.3; T(w, M, y); }); y += 6;
+  const LIMIT = H - FOOT - 4;
+  // Motif paginé : chaque ligne vérifie la place restante (motifs longs sur plusieurs pages).
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(17, 17, 17); T("Motif", M, y); doc.setFont("helvetica", "normal");
+  for (const w of wrap(d.reason, W - 2 * M)) {
+    if (y + 4.3 > LIMIT) { doc.addPage(); y = header(); doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(17, 17, 17); T("Motif (suite)", M, y); doc.setFont("helvetica", "normal"); }
+    y += 4.3; T(w, M, y);
+  }
+  y += 6;
 
-  if (d.credit.lines?.length) {
+  const DESC_W = 74;
+  const tableHead = () => {
     doc.setFillColor(...color); doc.rect(M, y, W - 2 * M, 6.5, "F"); doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(255, 255, 255);
-    T("Description créditée", M + 1.5, y + 4.4); T("Qté", M + 110, y + 4.4, { align: "right" }); T("Traitement", M + 114, y + 4.4); T("Montant (prix de la facture)", W - M - 1.5, y + 4.4, { align: "right" });
+    T("Description créditée", M + 1.5, y + 4.4); T("Qté", M + 94, y + 4.4, { align: "right" }); T("Traitement", M + 97, y + 4.4);
+    T("Montant (prix facture)", W - M - 32, y + 4.4, { align: "right" }); T("Base HT", W - M - 1.5, y + 4.4, { align: "right" });
     y += 9; doc.setTextColor(17, 17, 17); doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
+  };
+  if (d.credit.lines?.length) {
+    if (y + 16 > LIMIT) { doc.addPage(); y = header(); }
+    tableHead();
     for (const l of d.credit.lines) {
-      const dl = wrap(l.desc || "-", 90); const h = dl.length * 3.8 + 2.2;
-      if (y + h > H - FOOT - 4) { doc.addPage(); y = header(); doc.setFontSize(8.5); }
-      dl.forEach((t, i) => T(t, M + 1.5, y + 3.2 + i * 3.8));
-      T(`${l.qty} ${l.unit ?? ""}`.trim(), M + 110, y + 3.2, { align: "right" }); T(TREATMENT_LABEL[l.tax as TaxTreatment] ?? l.tax, M + 114, y + 3.2); T(money(l.gross), W - M - 1.5, y + 3.2, { align: "right" });
-      y += h;
+      const dl = wrap(l.desc || "-", DESC_W);
+      if (y + 6 > LIMIT) { doc.addPage(); y = header(); tableHead(); }
+      T(`${l.qty} ${l.unit ?? ""}`.trim(), M + 94, y + 3.2, { align: "right" }); T(TREATMENT_LABEL[l.tax as TaxTreatment] ?? l.tax, M + 97, y + 3.2);
+      T(money(l.gross), W - M - 32, y + 3.2, { align: "right" }); if (l.base != null) T(money(l.base), W - M - 1.5, y + 3.2, { align: "right" });
+      // Description longue : continue sur la page suivante avec l'en-tête du tableau répété.
+      dl.forEach((t) => { if (y + 3.8 > LIMIT) { doc.addPage(); y = header(); tableHead(); T("(suite)", M + 94, y + 3.2, { align: "right" }); } T(t, M + 1.5, y + 3.2); y += 3.8; });
+      y += 2.2;
     }
-  } else { doc.setFontSize(8.5); T("Crédit par montant (sans retour de lignes).", M, y); y += 6; }
+  } else { doc.setFontSize(8.5); T(d.credit.mode === "balance" ? "Crédit du solde exact restant (sans retour de lignes)." : "Crédit par montant (sans retour de lignes).", M, y); y += 6; }
 
   const c = d.credit; const rows: [string, string, boolean?][] = [];
   rows.push(["Base taxable créditée", money(c.taxable_base)]);
