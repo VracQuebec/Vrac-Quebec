@@ -40,7 +40,7 @@ describe("FIN-09C2B2B2A — analyse", () => {
     render(<ConstructionPayAnalysisTest rel={{ id: "l1" }} companyId="c1" />);
     fireEvent.click(screen.getByText(/Analyser la correction/));
     const r = await screen.findByTestId("pcorr-analysis-result");
-    expect(r.textContent).toMatch(/base non disponible/); expect(r.textContent).not.toMatch(/0,00/);
+    expect(r.textContent).toMatch(/base non disponible/); expect(r.textContent).toMatch(/Instantané facture \(immuable\) : base non disponible · TPS non disponible/);
     expect(screen.getByTestId("pcorr-missing")).toBeTruthy(); expect(screen.getByTestId("pcorr-amb")).toBeTruthy();
   });
   it("refus autre tenant affiché", async () => {
