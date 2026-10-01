@@ -840,36 +840,39 @@ function JscAttachPreview() {
   </section>;
 }
 
-/** Taxes des soumissions : désactivées par défaut; taux et numéros saisis par l'entreprise. */
+/** FIN-07 — Profil fiscal de l'entreprise émettrice : statut TPS et TVQ séparés, avec date d'effet; historique conservé côté serveur. */
 function TaxSettings({ companyId, canAdmin }: { companyId: string; canAdmin: boolean }) {
-  const [s, setS] = useState<any>(null);
-  useEffect(() => { db.from("ent_crm_settings").select("taxes_enabled,gst_rate,qst_rate,gst_number,qst_number").eq("company_id", companyId).maybeSingle().then(({ data }: any) => setS(data ?? { taxes_enabled: false })); }, [companyId]);
-  // NAV-01B : préparation des taxes en brouillon (compte + entreprise); rien n'est appliqué avant « Enregistrer ».
+  const [s, setS] = useState<any>(null); const [co, setCo] = useState<any>(null); const [hist, setHist] = useState<any[]>([]);
+  const F = "gst_status,gst_number,gst_effective,qst_status,qst_number,qst_effective";
+  useEffect(() => { db.from("ent_crm_settings").select(F).eq("company_id", companyId).maybeSingle().then(({ data }: any) => setS(data ?? { gst_status: "a_completer", qst_status: "a_completer" }));
+    db.from("jsc_companies").select("name,legal_name,address,phone,email").eq("id", companyId).maybeSingle().then(({ data }: any) => setCo(data));
+    if (canAdmin) db.from("ent_crm_tax_profile_history").select("changed_at,after").eq("company_id", companyId).order("changed_at", { ascending: false }).limit(5).then(({ data }: any) => setHist(data ?? [])); }, [companyId, canAdmin]);
   const { user: me } = useAuthReady(); const [base, setBase] = useState<string>("");
   useEffect(() => { if (s && !base) setBase(JSON.stringify(s)); }, [s, base]);
   const store = useDraft({
-    id: me && canAdmin && base ? { module: "crm", form: "reglages-taxes", owner: me.id, company: companyId, recordId: companyId } : null,
-    data: s ?? {}, label: () => "CRM — Taxes des soumissions", route: `/entrepreneur/crm?company=${companyId}&tab=team`,
+    id: me && canAdmin && base ? { module: "crm", form: "profil-fiscal", owner: me.id, company: companyId, recordId: companyId } : null,
+    data: s ?? {}, label: () => "CRM — Profil fiscal", route: `/entrepreneur/crm?company=${companyId}&tab=team`,
     isEmpty: (d) => JSON.stringify(d) === base, onRestore: (d) => setS((cur: any) => ({ ...cur, ...d })),
   });
   if (!s) return null;
   const save = async () => {
-    const g = s.gst_rate === "" || s.gst_rate == null ? null : Number(s.gst_rate), q = s.qst_rate === "" || s.qst_rate == null ? null : Number(s.qst_rate);
-    if (s.taxes_enabled && (g == null || q == null || g < 0 || q < 0 || g > 30 || q > 30)) return toast({ title: "Taux invalides", description: "Saisissez les deux taux (en %) avant d'activer les taxes.", variant: "destructive" });
-    const { error } = await db.from("ent_crm_settings").upsert({ company_id: companyId, taxes_enabled: !!s.taxes_enabled, gst_rate: g, qst_rate: q, gst_number: s.gst_number || null, qst_number: s.qst_number || null, updated_at: new Date().toISOString() });
+    const row: any = { company_id: companyId, updated_at: new Date().toISOString() }; for (const k of F.split(",")) row[k] = s[k] || null;
+    row.gst_status = s.gst_status || "a_completer"; row.qst_status = s.qst_status || "a_completer";
+    const { error } = await db.from("ent_crm_settings").upsert(row);
     if (!error) { store.finalize(); setBase(JSON.stringify(s)); }
-    toast({ title: error ? "Refusé" : "Taxes enregistrées", description: error?.message ?? "Appliquées aux prochaines soumissions remises; les soumissions déjà remises ne changent pas." });
+    toast({ title: error ? "Refusé" : "Profil fiscal enregistré", description: error?.message ?? "S'applique aux prochaines soumissions remises; les soumissions déjà remises ou acceptées ne changent pas.", variant: error ? "destructive" : undefined });
   };
-  return <section className="rounded-lg border border-border bg-card p-4"><h2 className="mb-2 font-display font-bold">Taxes des soumissions</h2>
-    {canAdmin && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setS(JSON.parse(base)); }} discardConfirm="Abandonner cette préparation ? Les réglages enregistrés ne changent pas." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
-    <label className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={!canAdmin} checked={!!s.taxes_enabled} onChange={(e) => setS({ ...s, taxes_enabled: e.target.checked })} />Calculer TPS et TVQ sur mes soumissions</label>
-    <div className="mt-2 grid grid-cols-2 gap-2">
-      <Input aria-label="Taux TPS (%)" disabled={!canAdmin} type="number" step="0.001" placeholder="Taux TPS (%)" value={s.gst_rate ?? ""} onChange={(e) => setS({ ...s, gst_rate: e.target.value })} />
-      <Input aria-label="Taux TVQ (%)" disabled={!canAdmin} type="number" step="0.001" placeholder="Taux TVQ (%)" value={s.qst_rate ?? ""} onChange={(e) => setS({ ...s, qst_rate: e.target.value })} />
-      <Input aria-label="Numéro TPS" disabled={!canAdmin} placeholder="N° TPS" value={s.gst_number ?? ""} onChange={(e) => setS({ ...s, gst_number: e.target.value })} />
-      <Input aria-label="Numéro TVQ" disabled={!canAdmin} placeholder="N° TVQ" value={s.qst_number ?? ""} onChange={(e) => setS({ ...s, qst_number: e.target.value })} />
-    </div>
-    <p className="mt-2 text-xs text-muted-foreground">Vérifiez les taux en vigueur auprès de Revenu Québec. Les montants sont figés au moment où la soumission est remise.</p>
+  const tax = (k: "gst" | "qst", name: string, fmt: RegExp, ph: string) => <fieldset className="rounded border border-border p-2"><legend className="px-1 text-sm font-semibold">{name}</legend>
+    <select aria-label={`Statut ${name}`} disabled={!canAdmin} className="h-10 w-full rounded-md border border-border bg-background px-2 text-sm" value={s[`${k}_status`] ?? "a_completer"} onChange={(e) => setS({ ...s, [`${k}_status`]: e.target.value })}>{(Object.keys(STATUS_LABEL) as RegStatus[]).map((v) => <option key={v} value={v}>{STATUS_LABEL[v]}</option>)}</select>
+    <div className="mt-1 grid grid-cols-2 gap-1"><Input aria-label={`Numéro ${name}`} disabled={!canAdmin} placeholder={ph} value={s[`${k}_number`] ?? ""} onChange={(e) => setS({ ...s, [`${k}_number`]: e.target.value })} />
+    <Input aria-label={`Date d'effet ${name}`} disabled={!canAdmin} type="date" value={s[`${k}_effective`] ?? ""} onChange={(e) => setS({ ...s, [`${k}_effective`]: e.target.value })} /></div>
+    {s[`${k}_number`] && <p className="mt-1 text-xs text-muted-foreground">{fmt.test(String(s[`${k}_number`]).trim()) ? "Format valide — inscription non vérifiée officiellement." : "Format inhabituel — vérifiez le numéro."}</p>}</fieldset>;
+  return <section className="rounded-lg border border-border bg-card p-4"><h2 className="mb-2 font-display font-bold">Profil fiscal</h2>
+    {canAdmin && <DraftStatusBar status={store.status} savedAt={store.savedAt} restored={!!store.restoredMeta} onDiscard={() => { store.discard(); setS(JSON.parse(base)); }} discardConfirm="Abandonner cette préparation ? Le profil enregistré ne change pas." sync={store.sync} synced={store.synced} conflict={store.conflict} onUseServer={store.useServerVersion} onKeepLocal={store.keepLocalVersion} onRestartAsNew={store.restartAsNew} restartError={store.restartError} onRetry={store.retrySave} />}
+    {co && <p className="mb-2 text-xs text-muted-foreground">{co.legal_name || co.name}{co.legal_name && co.name !== co.legal_name ? ` (${co.name})` : ""}{co.address ? ` · ${co.address}` : ""}{co.phone ? ` · ${co.phone}` : ""}{co.email ? ` · ${co.email}` : ""}</p>}
+    <div className="grid gap-2 sm:grid-cols-2">{tax("gst", "TPS", GST_FORMAT, "123456789RT0001")}{tax("qst", "TVQ", QST_FORMAT, "1234567890TQ0001")}</div>
+    <p className="mt-2 text-xs text-muted-foreground">Taux centralisés (TPS 5 %, TVQ 9,975 % en vigueur au Québec). Tant qu'un statut est « À compléter », une soumission avec lignes taxables reste en brouillon.</p>
     {canAdmin && <Button size="sm" className="mt-2" onClick={save}>Enregistrer</Button>}
+    {hist.length > 0 && <div className="mt-2 text-xs text-muted-foreground"><p className="font-semibold">Historique</p>{hist.map((h, i) => <p key={i}>{new Date(h.changed_at).toLocaleString("fr-CA", { timeZone: "America/Toronto" })} — TPS {STATUS_LABEL[h.after.gst_status as RegStatus]}, TVQ {STATUS_LABEL[h.after.qst_status as RegStatus]}</p>)}</div>}
   </section>;
 }
