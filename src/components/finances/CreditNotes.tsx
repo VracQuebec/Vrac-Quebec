@@ -84,7 +84,7 @@ export default function CreditNotes({ invoice, companyId, canWrite, onChanged }:
 
   const preview = async () => {
     if (!f.reason.trim()) return toast({ title: "Motif obligatoire", variant: "destructive" });
-    const it = creditItems(f); if (!it.ok) return toast({ title: "Saisie invalide", description: it.error, variant: "destructive" });
+    const it = creditItems(f); if ("error" in it) return toast({ title: "Saisie invalide", description: it.error, variant: "destructive" });
     const my = gen.current; setBusy(true); setConflict(null);
     const res = await db.rpc("fin_credit_save", { _invoice: invoice.id, _draft_key: draftKey.current, _reason: f.reason, _items: it.items, _base_rev: rev.current }).then((r: R) => r, asErr);
     if (my !== gen.current) return; setBusy(false);
