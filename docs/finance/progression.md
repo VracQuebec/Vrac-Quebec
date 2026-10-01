@@ -26,17 +26,11 @@ Abonnements, connexion bancaire et envois réels (courriel, texto, push) : jamai
 - NON exécuté : essai concurrent réel (pas de deux sessions TEST isolées) — garantie par verrou commun facture, non démontrée. Parcours visuel réel ordinateur/mobile NON VÉRIFIÉ (test d'interface isolé seulement).
 - Limites : pas d'annulation d'un avoir émis (aucune procédure traçable existante); pas de remboursement ni affectation du crédit disponible; conformité fiscale non certifiée.
 - Sources de conception : Revenu Québec, Retours de biens et Réductions de prix (https://www.revenuquebec.ca/fr/entreprises/taxes/tpstvh-et-tvq/situations-particulieres-liees-a-la-tpstvh-et-a-la-tvq/retours-de-biens/ et .../reductions-de-prix/) : note identifiant vendeur et inscriptions, client, date, TPS/TVQ ajustées.
-- Publication : EN ATTENTE (par ChatGPT après examen).
+- Publication : CONFIRMÉE par ChatGPT après examen (constat ci-dessous).
 
 ### FIN-09A — Corrections avant publication (relecture du commit 6ad37cd, 2026-10-01)
 
 - Migration additive 0091 : fin_credit_compute devient interne (aucun droit d'exécution anon/authenticated, vérifié par has_function_privilege; appel direct anonyme → 42501 « permission denied »). Anciennes signatures save/issue sans révision retirées des rôles clients (DEPRECATED).
-
-## FIN-09A — Publication confirmée par ChatGPT
-
-- Déploiement e0b07298-582c-4bec-99eb-12b72a5eb686 du commit e94c65244ed93fdaa74d2d26d5e6e7f5d2332a2c : interface Lovable vérifiée le 2026-10-01, message « Votre site web a été mis à jour », puis « Tout est publié ».
-- Coût FIN-09A : 40,3 crédits (19 + 21,3, corrections comprises). Solde affiché après publication : 860 crédits. Les rapports de crédits sont en texte uniquement.
-- Les limites de vérification ci-dessus restent applicables.
 - Validation stricte : indices négatifs, hors limites, non entiers, dupliqués, non numériques, quantités ≤ 0, mode inconnu, montants non numériques ou à plus de 2 décimales → refus 22023 (10 cas vérifiés, dont « 10 × ligne A » qui aurait crédité 1 000 HT).
 - Arrondis : part de base figée par ligne répartie cumulativement; crédit de quantité = arrondi du cumul après − arrondi du cumul avant; taxes cumulées proportionnelles à la taxe facturée. Cas qty 3 × 0,335 + ligne 10,00 : unités 0,34 / 0,33 / 0,34 puis autre ligne → cumul 11,01 + 0,55 + 1,10 = 12,66 = facture. TTC mixte (taxable, détaxé, exonéré, crédits par demi-quantités) : cumul = 128,11 exact.
 - Plus de troncature silencieuse : après un crédit par montant de 950,33, une ligne de 100 est refusée (« disponible 49,67 ») à l'aperçu et à l'émission; nouveau mode explicite « Solde exact restant » → cumul 1 149,75 = facture.
@@ -55,3 +49,9 @@ Abonnements, connexion bancaire et envois réels (courriel, texto, push) : jamai
 - AVIS-01 à AVIS-03.
 
 Les états non vérifiés listés ci-dessus et dans les lots précédents ne doivent pas être annoncés comme livrés.
+
+## FIN-09A — Publication confirmée par ChatGPT
+
+- Déploiement e0b07298-582c-4bec-99eb-12b72a5eb686 du commit e94c65244ed93fdaa74d2d26d5e6e7f5d2332a2c : interface Lovable vérifiée le 2026-10-01, message « Votre site web a été mis à jour », puis « Tout est publié ».
+- Coût FIN-09A : 40,3 crédits (19 + 21,3, corrections comprises). Solde affiché après publication : 860 crédits. Les rapports de crédits sont en texte uniquement.
+- Les limites de vérification ci-dessus restent applicables.
