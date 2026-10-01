@@ -14,6 +14,7 @@ import { renderInvoicePdf, type InvoicePdfData } from "@/lib/finances/invoicePdf
 import { fmtDate, todayIn } from "@/lib/finances/period";
 import InvoiceReceipts, { type Sum } from "@/components/finances/InvoiceReceipts";
 import CreditNotes from "@/components/finances/CreditNotes";
+import ProgressPlanDialog, { ProgressPlans } from "@/components/finances/ProgressBilling";
 
 const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const BUCKET = "fin-invoices";
@@ -52,7 +53,8 @@ async function pdfData(i: Inv, live?: { seller: Inv; template: Inv; tax: Inv; pr
   const seller = frozen ? i.seller_snapshot : live!.seller; const tpl = frozen ? i.template_snapshot : live!.template;
   const client = frozen ? i.client_snapshot : { name: i.client_name, address: i.client_address, email: i.client_email, phone: i.client_phone };
   return { status: i.status, isTest: !!i.is_test, number: i.number, issueDate: i.issue_date, dueDate: i.due_date, terms: i.terms, projectName: live?.project ?? i.ent_crm_projects?.name ?? null,
-    seller, client, lines: i.lines, tax: frozen ? i.tax_snapshot : live!.tax as InvoicePdfData["tax"], template: { color: tpl?.color ?? tpl?.brand_color, footer: tpl?.footer, version: tpl?.version ?? tpl?.template_version }, logo: await logoFor(tpl?.logo_path) };
+    seller, client, lines: i.lines, tax: frozen ? i.tax_snapshot : live!.tax as InvoicePdfData["tax"], template: { color: tpl?.color ?? tpl?.brand_color, footer: tpl?.footer, version: tpl?.version ?? tpl?.template_version }, logo: await logoFor(tpl?.logo_path),
+    progress: frozen ? i.tax_snapshot?.progress ?? null : null };
 }
 
 export default function Invoices({ companyId, canWrite }: { companyId: string; companyName: string; canWrite: boolean }) {
@@ -60,8 +62,9 @@ export default function Invoices({ companyId, canWrite }: { companyId: string; c
   const [rows, setRows] = useState<Inv[] | null>(null);
   const [f, setF] = useState({ q: "", status: "", from: "", to: "", due: "" });
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const openId = params.get("facture");
+  const openId = params.get("facture"); const planId = params.get("dossier"); const [plansKey, setPlansKey] = useState(0);
   const setOpen = (id: string | null) => { const p = new URLSearchParams(params); id ? p.set("facture", id) : p.delete("facture"); setParams(p); };
+  const setPlan = (id: string | null) => { const p = new URLSearchParams(params); id ? p.set("dossier", id) : p.delete("dossier"); p.delete("facture"); setParams(p); };
   const today = todayIn();
 
   const load = useCallback(async () => {
@@ -106,6 +109,7 @@ export default function Invoices({ companyId, canWrite }: { companyId: string; c
       <label className="text-xs">Échéance au plus tard<Input type="date" value={f.due} onChange={(e) => setF({ ...f, due: e.target.value })} /></label>
     </div>
     <p className="text-sm">Factures émises affichées : <strong>{money(totals.total)}</strong> · {totals.credits > 0 && <>notes de crédit − {money(totals.credits)} · </>}net à recevoir : <strong>{money(totals.rest)}</strong> <span className="text-xs text-muted-foreground">(brut figé − avoirs émis − encaissements reliés; brouillons exclus)</span></p>
+    <ProgressPlans companyId={companyId} refreshKey={plansKey} onOpen={setPlan} />
     {rows == null ? <p className="text-muted-foreground">Chargement…</p> : !list.length ? <p className="text-muted-foreground">Aucune facture.</p> :
       <ul className="divide-y divide-border rounded-lg border border-border bg-card">{list.map((i) => { const s = invoiceState(i, today); const rest = invoiceRest(i);
         return <li key={i.id}><button className="flex w-full flex-wrap items-center justify-between gap-2 p-3 text-left" onClick={() => setOpen(i.id)}>
@@ -114,6 +118,7 @@ export default function Invoices({ companyId, canWrite }: { companyId: string; c
           <span className="text-right text-sm"><span className={`rounded px-1.5 py-0.5 text-xs ${s.tone}`}>{s.label}</span><span className="block">{money(i.total)}{i.status === "emise" ? `${credits(i) > 0 ? ` · avoirs − ${money(credits(i))}` : ""} · reste ${money(rest)}` : ""}</span></span>
         </button></li>; })}</ul>}
     {openId && <InvoiceDialog key={openId} id={openId} companyId={companyId} canWrite={canWrite} onClose={() => setOpen(null)} onChanged={load} />}
+    {planId && !openId && <ProgressPlanDialog key={`${companyId}:${planId}`} planId={planId} companyId={companyId} canWrite={canWrite} onClose={() => setPlan(null)} onOpenInvoice={setOpen} onChanged={() => { void load(); setPlansKey((n) => n + 1); }} />}
     {settingsOpen && <InvoiceSettings companyId={companyId} canWrite={canWrite} onClose={() => setSettingsOpen(false)} />}
   </div>;
 }
@@ -197,6 +202,7 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
     {!draft && <CreditNotes invoice={inv} companyId={companyId} canWrite={canWrite} onChanged={() => { setRefresh((n) => n + 1); void load(); onChanged(); }} />}
     {!draft && <InvoiceReceipts invoiceId={id} companyId={companyId} canWrite={canWrite} refreshKey={refresh} onSummary={setBal} onChanged={() => { void load(); onChanged(); }} />}
     {quote && <p className="text-xs text-muted-foreground">Créée depuis la soumission {quote.number ?? ""} v{quote.version} (soumission inchangée).</p>}
+    {inv.tax_snapshot?.progress && <p className="text-xs text-muted-foreground">Facture de facturation progressive ({inv.tax_snapshot.progress.kind === "acompte" ? "acompte" : inv.tax_snapshot.progress.kind === "solde" ? "solde final" : "situation"} n° {inv.tax_snapshot.progress.seq}, cumul {inv.tax_snapshot.progress.cum?.pct} % de la soumission {inv.tax_snapshot.progress.quote_number ?? ""}). Récapitulatif dans le PDF.</p>}
     {gap && <p role="status" className="rounded border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Écart fiscal avec la soumission : total {money(qs.total)} → {money(preview.total)} (TPS {money(qs.gst)} → {money(preview.gst)}, TVQ {money(qs.qst)} → {money(preview.qst)}). Vérifiez avant d'émettre.</p>}
 
     <fieldset disabled={!editable} className="space-y-2">
