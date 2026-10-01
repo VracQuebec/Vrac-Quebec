@@ -869,6 +869,13 @@
       "when": 1790897627450,
       "tag": "0123_fin11_psp_receipt_method",
       "breakpoints": true
+    },
+    {
+      "idx": 124,
+      "version": "7",
+      "when": 1790897790478,
+      "tag": "0124_fin11_psp_overview_payload",
+      "breakpoints": true
     }
   ]
 }
