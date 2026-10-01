@@ -1,0 +1,2 @@
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.fin_progress_plans, public.fin_progress_situations FROM PUBLIC, anon, authenticated;
+REVOKE SELECT ON public.fin_progress_plans, public.fin_progress_situations FROM anon;

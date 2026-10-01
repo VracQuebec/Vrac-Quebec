@@ -652,6 +652,13 @@
       "when": 1790829628942,
       "tag": "0092_fin09b1_progress_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1790829856847,
+      "tag": "0093_fin09b1_revoke_direct_writes",
+      "breakpoints": true
     }
   ]
 }
