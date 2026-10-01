@@ -4,7 +4,12 @@
 import { jsPDF } from "jspdf";
 import { computeTaxes, TREATMENT_LABEL, type TaxLine, type TaxTreatment } from "./tax";
 
-export type InvoicePdfLine = TaxLine & { desc: string; unit?: string | null };
+/** prog : ligne de facture progressive par quantités (qté de cette facture, cumul, prix unitaire contractuel). */
+export type InvoicePdfLine = TaxLine & {
+  desc: string;
+  unit?: string | null;
+  prog?: { qty_new: number | string; qty_cum: number | string; qty_contract: number | string; unit_price?: number | string | null; disc_pct?: number | string | null } | null;
+};
 export type InvoicePdfData = {
   status: "brouillon" | "emise";
   isTest: boolean;
@@ -58,6 +63,10 @@ export type ProgressRecap = {
   remaining: PP;
   gap_vs_quote?: { ht?: number | string; gst?: number | string; qst?: number | string; total: number | string } | null;
   previous?: { number: string; total: number | string }[];
+  contract_version?: number;
+  initial?: PP | null;
+  amendments?: { seq: number; reason: string; approval_ref?: string | null; delta?: { cap?: number | string; total?: number | string } }[];
+  milestone?: { ord: number; title: string } | null;
 };
 
 // Polices standard PDF (WinAnsi) : on remplace les espaces fines et signes hors jeu.
@@ -224,7 +233,11 @@ export function renderInvoicePdf(d: InvoicePdfData): jsPDF {
       qstStatus: "non_inscrit",
       rates: { gst: 0, qst: 0 },
     });
-    const dl = wrap(l.desc || "-", cols[0].w - 3);
+    const pr = l.prog;
+    const dl = wrap(
+      (l.desc || "-") + (pr ? ` (cumul ${num(pr.qty_cum)} / ${num(pr.qty_contract)}${l.unit ? ` ${l.unit}` : ""})` : ""),
+      cols[0].w - 3,
+    );
     const h = Math.max(1, dl.length) * 3.8 + 2.2;
     if (y + h > H - FOOT - 4) {
       doc.addPage();
@@ -233,10 +246,10 @@ export function renderInvoicePdf(d: InvoicePdfData): jsPDF {
     }
     const cells = [
       null,
-      num(l.qty),
+      pr ? num(pr.qty_new) : num(l.qty),
       l.unit ?? "",
-      l.price == null ? "" : money(Number(l.price)),
-      l.disc_pct ? `${num(l.disc_pct)} %` : "",
+      pr ? (pr.unit_price == null ? "" : money(Number(pr.unit_price))) : l.price == null ? "" : money(Number(l.price)),
+      pr ? (pr.disc_pct ? `${num(pr.disc_pct)} %` : "") : l.disc_pct ? `${num(l.disc_pct)} %` : "",
       treatmentText(l.tax, gstOn, qstOn),
       money(one.subtotal - one.discount),
     ];
@@ -319,9 +332,18 @@ export function renderInvoicePdf(d: InvoicePdfData): jsPDF {
           ? "Facture de solde final"
           : "Facture de situation progressive";
     const prevs = (pg.previous ?? []).map((p) => `${p.number} (${money(Number(p.total))})`).join(", ");
+    const amds = pg.amendments ?? [];
     const rr: [string, string, string][] = [
+      ...(amds.length && pg.initial
+        ? ([
+            ["Contrat initial (soumission " + (pg.quote_number ?? "") + ")", money(Number(pg.initial.ht)), money(Number(pg.initial.total))],
+            ...amds.map(
+              (a) => [`Avenant ${a.seq} approuvé : ${a.reason}`.slice(0, 70), "", money(Number(a.delta?.total ?? 0))] as [string, string, string],
+            ),
+          ] as [string, string, string][])
+        : []),
       [
-        "Contrat (soumission " + (pg.quote_number ?? "") + ")",
+        (amds.length ? `Contrat révisé (v${pg.contract_version ?? amds.length + 1})` : "Contrat (soumission " + (pg.quote_number ?? "") + ")"),
         money(Number(pg.contract.ht)),
         money(Number(pg.contract.total)),
       ],
@@ -338,6 +360,7 @@ export function renderInvoicePdf(d: InvoicePdfData): jsPDF {
         ? `Écart d'arrondi par rapport à l'estimation de la soumission : HT ${money(Number(g.ht))} ; TPS ${money(Number(g.gst))} ; TVQ ${money(Number(g.qst))} ; TTC ${money(Number(g.total))} (taxes calculées sur chaque facture, non ajustées).`
         : "";
     const prevLines = [
+      ...(pg.milestone ? wrap(`Jalon facturé : ${pg.milestone.ord}. ${pg.milestone.title}`, W - 2 * M) : []),
       ...(prevs ? wrap(`Factures précédentes : ${prevs}`, W - 2 * M) : []),
       ...(gapTxt ? wrap(gapTxt, W - 2 * M) : []),
     ];
@@ -360,8 +383,13 @@ export function renderInvoicePdf(d: InvoicePdfData): jsPDF {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(17, 17, 17);
+    const boldIdx = rr.length - 2;
     rr.forEach(([k, a, b], idx) => {
-      if (idx === 3) doc.setFont("helvetica", "bold");
+      if (y > H - FOOT - 8) {
+        doc.addPage();
+        y = header(false) + 6;
+      }
+      if (idx === boldIdx) doc.setFont("helvetica", "bold");
       T(k, M, y);
       T(a, W - M - 40, y, { align: "right" });
       T(b, W - M, y, { align: "right" });
