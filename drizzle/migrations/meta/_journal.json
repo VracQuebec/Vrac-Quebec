@@ -624,6 +624,13 @@
       "when": 1790826921421,
       "tag": "0088_fin09a_credit_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1790827112049,
+      "tag": "0089_fin09a_sync_fully_credited",
+      "breakpoints": true
     }
   ]
 }
