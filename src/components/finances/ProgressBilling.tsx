@@ -109,16 +109,21 @@ export default function ProgressPlanDialog({
   const seq = useRef(0); // ordre des lectures du résumé
   const formRev = useRef(0); // version du formulaire : un aperçu ne vaut que pour la saisie envoyée
 
+  const ctxRef = useRef(""); // dossier + entreprise affichés
+  ctxRef.current = `${planId}|${companyId}`;
   const load = useCallback(async () => {
+    const want = `${planId}|${companyId}`;
+    if (want !== ctxRef.current) return; // ancien écran : ne touche ni l'ordre ni l'état
+    const g = gen.current;
     const q = ++seq.current;
     setLoadErr(null);
     try {
       const s = await P.summary(planId);
-      if (q === seq.current) setSum(s);
+      if (q === seq.current && g === gen.current && want === ctxRef.current && s?.id === planId) setSum(s);
     } catch (e) {
-      if (q === seq.current) setLoadErr((e as Error).message);
+      if (q === seq.current && g === gen.current && want === ctxRef.current) setLoadErr((e as Error).message);
     }
-  }, [planId]);
+  }, [planId, companyId]);
   useEffect(() => {
     gen.current++;
     formRev.current++;
@@ -136,7 +141,7 @@ export default function ProgressPlanDialog({
       gen.current++;
       seq.current++;
     };
-  }, [load, companyId]);
+  }, [load]);
 
   const active = sum?.situations.find((s) => s.status === "brouillon") ?? null;
   const track: P.Track = sum?.track ?? "global";

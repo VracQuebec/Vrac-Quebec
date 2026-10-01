@@ -1,6 +1,6 @@
 // FIN-09B2 — Suivi du dossier progressif : choix du suivi, jalons, avenants approuvés.
 // Tous les montants, plafonds et contrôles sont décidés au serveur; l'écran ne fait qu'afficher et envoyer.
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fmtDate, todayIn } from "@/lib/finances/period";
@@ -13,7 +13,7 @@ const MS: Record<P.Milestone["status"], string> = { prevu: "Prévu", realise: "R
 const AS: Record<P.Amendment["status"], string> = { brouillon: "Brouillon (sans effet)", approuve: "Approuvé", abandonne: "Abandonné", rejete: "Rejeté" };
 const TAX: Record<string, string> = { taxable: "Taxable", detaxe: "Détaxé (0 %)", exonere: "Exonéré" };
 
-type Pending = { label: string; run: () => Promise<unknown> };
+type Pending = { label: string; run: () => Promise<unknown>; after?: (r: unknown) => void };
 type QtyRow = { id: string; qty: string };
 type NewRow = { desc: string; unit: string; qty: string; price: string; tax: string };
 type AmForm = { reason: string; qtys: QtyRow[]; news: NewRow[]; ref: string; refDate: string; approver: string };
@@ -37,24 +37,39 @@ export default function ProgressB2({ sum, canWrite, hasDraft, reload, onChanged 
   const [amDraft, setAmDraft] = useState<{ key: string; rev: number | null } | null>(null);
   const [confirm, setConfirm] = useState<Record<string, boolean>>({});
   const [closeReason, setCloseReason] = useState("");
+  const [amDirty, setAmDirty] = useState(false); // brouillon repris modifié et non enregistré
   const locked = busy || !!pend;
+  // Contexte : dossier, entreprise, droits. Toute réponse d'un ancien contexte (ou après démontage) est ignorée.
+  const ctx = useRef(0);
+  useEffect(() => {
+    ctx.current++;
+    setPend(null); setBusy(false); setMsg(null); setConfirm({});
+    return () => { ctx.current++; };
+  }, [sum.id, sum.company_id, canWrite]);
+  const ckey = (a: P.Amendment) => `${a.id}:${a.rev}:${a.hash}`;
+  const editingThis = (a: P.Amendment) => !!amDraft && amDraft.key === a.draft_key && amDirty;
+  const canApprove = (a: P.Amendment) => canWrite && !locked && !hasDraft && !!confirm[ckey(a)] && !editingThis(a);
 
   const exec = async (p: Pending) => {
     if (busy) return;
+    const c = ctx.current;
     setPend(p); setBusy(true); setMsg(null);
     try {
-      await p.run();
+      const r = await p.run();
+      if (c !== ctx.current) return false; // action enregistrée au serveur, mais l'écran a changé : aucune retombée
       setPend(null);
-      await reload();
+      p.after?.(r);
       onChanged();
+      await reload();
       return true;
     } catch (e) {
+      if (c !== ctx.current) return false;
       const x = e as Error & { code?: string };
       if (x.code === "P0409") { setPend(null); setMsg(`${x.message} Rien n'a été appliqué automatiquement : vérifiez l'état rechargé.`); void reload(); }
       else if (/réseau|network|fetch|failed/i.test(x.message)) setMsg(`${x.message} Réessayez : la même demande sera renvoyée.`);
       else { setPend(null); setMsg(x.message); }
       return false;
-    } finally { setBusy(false); }
+    } finally { if (c === ctx.current) setBusy(false); }
   };
 
   const ms_ = sum.milestones ?? [];
@@ -79,16 +94,26 @@ export default function ProgressB2({ sum, canWrite, hasDraft, reload, onChanged 
     const d = amDraft ?? { key: P.newKey(), rev: null };
     const body = { plan: sum.id, key: d.key, reason: am.reason, changes, ref: am.ref, refDate: am.refDate || null, approver: am.approver, refQuote: null, baseRev: d.rev };
     setAmDraft(d);
-    void exec({ label: "Enregistrement de l'avenant", run: async () => { const a = await P.amendSave(body); setAmDraft({ key: d.key, rev: a.rev }); } });
+    void exec({ label: "Enregistrement de l'avenant", run: () => P.amendSave(body),
+      after: (a) => { setAmDraft({ key: d.key, rev: (a as P.Amendment).rev }); setAmDirty(false); setConfirm({}); } });
   };
   const resumeAm = (a: P.Amendment) => {
     const ch = (a.changes ?? []) as Record<string, string>[];
     setAm({ reason: a.reason, qtys: ch.filter((c) => c.id).map((c) => ({ id: c.id, qty: String(c.qty).replace(".", ",") })),
       news: ch.filter((c) => !c.id).map((c) => ({ desc: c.desc, unit: c.unit ?? "", qty: String(c.qty).replace(".", ","), price: String(c.price).replace(".", ","), tax: c.tax })),
       ref: a.approval_ref ?? "", refDate: a.approval_date ?? todayIn(), approver: a.approver_name ?? "" });
-    setAmDraft({ key: a.draft_key, rev: a.rev });
+    setAmDraft({ key: a.draft_key, rev: a.rev }); setAmDirty(false);
   };
-  const editAm = (p: Partial<AmForm>) => { if (!locked) setAm((f) => ({ ...f, ...p })); };
+  const editAm = (p: Partial<AmForm>) => {
+    if (locked) return;
+    setAm((f) => ({ ...f, ...p }));
+    if (amDraft) { setAmDirty(true); setConfirm({}); } // toute édition invalide la confirmation jusqu'à un nouvel impact enregistré
+  };
+  const approve = (a: P.Amendment) => {
+    if (!canApprove(a)) return; // garde aussi dans le gestionnaire
+    const k = P.newKey(); const id = a.id, rev = a.rev, hash = a.hash;
+    void exec({ label: `Approbation de l'avenant ${a.seq}`, run: () => P.amendApprove(id, k, rev, hash) });
+  };
 
   return (
     <div className="space-y-3 text-sm">
@@ -155,14 +180,16 @@ export default function ProgressB2({ sum, canWrite, hasDraft, reload, onChanged 
             {canWrite && a.status === "brouillon" && (
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" variant="outline" disabled={locked} onClick={() => resumeAm(a)}>Reprendre</Button>
-                <Button size="sm" variant="outline" disabled={locked} onClick={() => {
+                <Button size="sm" variant="outline" disabled={locked || editingThis(a)} onClick={() => {
+                  if (editingThis(a)) return;
                   const body = { plan: sum.id, key: a.draft_key, reason: a.reason, changes: (a.changes ?? []) as unknown[], ref: a.approval_ref ?? "", refDate: a.approval_date ?? null,
                     approver: a.approver_name ?? "", refQuote: (a as unknown as { ref_quote_id?: string | null }).ref_quote_id ?? null, baseRev: a.rev };
-                  void exec({ label: `Actualisation de l'impact de l'avenant ${a.seq}`, run: async () => { const r = await P.amendSave(body); if (amDraft?.key === a.draft_key) setAmDraft({ key: a.draft_key, rev: r.rev }); } });
+                  void exec({ label: `Actualisation de l'impact de l'avenant ${a.seq}`, run: () => P.amendSave(body), after: (r) => { if (amDraft?.key === a.draft_key) setAmDraft({ key: a.draft_key, rev: (r as P.Amendment).rev }); } });
                 }}>Actualiser l'impact</Button>
-                <label className="flex items-center gap-1 text-xs"><input type="checkbox" disabled={locked} checked={!!confirm[a.id]} onChange={(e) => setConfirm({ ...confirm, [a.id]: e.target.checked })} />
+                <label className="flex items-center gap-1 text-xs"><input type="checkbox" disabled={locked || editingThis(a)} checked={!!confirm[ckey(a)]} onChange={(e) => setConfirm({ [ckey(a)]: e.target.checked })} />
                   Je confirme l'accord du client tel que déclaré</label>
-                <Button size="sm" disabled={locked || !confirm[a.id] || hasDraft} onClick={() => { const k = P.newKey(); void exec({ label: `Approbation de l'avenant ${a.seq}`, run: () => P.amendApprove(a.id, k, a.rev, a.hash) }); }}>Approuver</Button>
+                <Button size="sm" disabled={!canApprove(a)} onClick={() => approve(a)}>Approuver</Button>
+                {editingThis(a) && <span className="text-xs text-destructive">Brouillon modifié : enregistrez-le pour recalculer l'impact avant d'approuver.</span>}
                 <Input aria-label="Motif de clôture" className="h-9 w-48" placeholder="Motif (rejet/abandon)" value={closeReason} disabled={locked} onChange={(e) => setCloseReason(e.target.value)} />
                 {(["rejete", "abandonne"] as const).map((st) => (
                   <Button key={st} size="sm" variant="ghost" disabled={locked || !closeReason.trim()} onClick={() => { const k = P.newKey(); const r = closeReason.trim(); void exec({ label: "Clôture de l'avenant", run: () => P.amendClose(a.id, k, st, r, a.rev, a.hash) }); }}>{st === "rejete" ? "Rejeter" : "Abandonner"}</Button>
