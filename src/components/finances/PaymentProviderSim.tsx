@@ -38,6 +38,11 @@ export default function PaymentProviderSim({ companyId }: { companyId: string })
 
 function useSend(companyId: string, onDone: () => void) {
   const [busy, setBusy] = useState(false);
+  const resend = async (payload: P.PspEvent) => {
+    setBusy(true);
+    try { const r = await P.simulator.send(companyId, payload); toast({ title: r.duplicate ? "Doublon reconnu — aucun effet" : (P.OUTCOME[r.outcome] ?? r.outcome), description: r.note ?? undefined }); }
+    catch (e) { toast({ title: "Refusé", description: (e as Error).message, variant: "destructive" }); } finally { setBusy(false); onDone(); }
+  };
   const send = async (evs: Omit<P.PspEvent, "currency" | "occurred_at">[]) => {
     setBusy(true);
     try { for (const e of evs) { const r = await P.simulator.send(companyId, { currency: "CAD", occurred_at: new Date().toISOString(), ...e });
@@ -45,7 +50,7 @@ function useSend(companyId: string, onDone: () => void) {
     catch (e) { toast({ title: "Refusé", description: (e as Error).message, variant: "destructive" }); }
     finally { setBusy(false); onDone(); }
   };
-  return { busy, send };
+  return { busy, send, resend };
 }
 
 function Scenario({ companyId, onDone }: { companyId: string; onDone: () => void }) {
@@ -74,7 +79,7 @@ function Scenario({ companyId, onDone }: { companyId: string; onDone: () => void
 }
 
 function Tx({ t, companyId, canSim, onDone }: { t: J; companyId: string; canSim: boolean; onDone: () => void }) {
-  const { busy, send } = useSend(companyId, onDone); const [v, setV] = useState("");
+  const { busy, send, resend } = useSend(companyId, onDone); const [v, setV] = useState("");
   const last = t.events[t.events.length - 1];
   const adj = (type: P.PspEventType, prefix: string, extra: Partial<P.PspEvent> = {}) => void send([{ type, event_id: P.newRef("ev"), payment_ref: t.payment_ref, adjustment_ref: P.newRef(prefix), amount: v.replace(",", "."), ...extra }]);
   return <li className="rounded border border-border p-2" data-testid="psp-tx">
@@ -86,7 +91,7 @@ function Tx({ t, companyId, canSim, onDone }: { t: J; companyId: string; canSim:
     <details className="text-xs"><summary>Événements ({t.events.length})</summary><ul>{t.events.map((e: J) => <li key={e.id}>{e.received_at.slice(0, 19).replace("T", " ")} UTC · {P.TYPE[e.type] ?? e.type} · {e.event_id} · {P.OUTCOME[e.outcome]}{e.note && ` — ${e.note}`}</li>)}</ul></details>
     {canSim && <div className="mt-1 flex flex-wrap items-end gap-1">
       <Input aria-label="Montant de l'ajustement" value={v} onChange={(e) => setV(e.target.value)} className="w-24" placeholder="montant" />
-      {last && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void send([{ type: last.type, event_id: last.event_id, payment_ref: t.payment_ref, invoice_id: t.invoice_id, amount: last.amount ?? undefined, ...(last.fee != null ? { fee: last.fee } : {}) }])}>Renvoyer le dernier (doublon)</Button>}
+      {last && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void resend(last.payload)}>Renvoyer le dernier (doublon)</Button>}
       <Button size="sm" variant="ghost" disabled={busy || !v} onClick={() => void send([{ type: "fee.known", event_id: P.newRef("ev"), payment_ref: t.payment_ref, fee: v.replace(",", ".") }])}>Frais connus</Button>
       <Button size="sm" variant="ghost" disabled={busy || !v} onClick={() => adj("refund.succeeded", "rf")}>Remboursement</Button>
       <Button size="sm" variant="ghost" disabled={busy || !v} onClick={() => adj("payment.returned", "rt")}>Retour</Button>

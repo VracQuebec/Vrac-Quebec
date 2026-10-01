@@ -11,11 +11,19 @@ type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const PAGE = 20;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Part du solde sans échéance connue : solde − (non échu + échu + retards + retenues futures), valeurs serveur seulement. */
+function unk(t: Partial<AR.Sums>): number | null {
+  const ks = ["rest", "not_due", "due_today", "b1_30", "b31_60", "b61_90", "b90", "future_ret"] as const;
+  if (ks.some((k) => t[k] == null || !Number.isFinite(Number(t[k])))) return null;
+  const v = Number(t.rest) - ks.slice(1).reduce((a, k) => a + Number(t[k]), 0);
+  return Math.round(v * 100) / 100;
+}
 function SumsGrid({ t }: { t: Partial<AR.Sums> }) {
   const cell = (l: string, v: unknown, strong = false) => <div className="rounded border border-border p-2"><p className="text-xs text-muted-foreground">{l}</p><p className={strong ? "font-semibold" : ""}>{AR.money(v)}</p></div>;
   return <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
     {cell("Solde restant", t.rest, true)}{cell("Exigible maintenant", t.due_now, true)}{cell("dont en retard", t.overdue)}{cell("Retenues à échéance future", t.future_ret)}
-    {AR.BUCKETS.map(([k, l]) => <div key={k}>{cell(l, t[k])}</div>)}{cell("Crédits / versements non affectés (séparés)", t.unallocated)}
+    {AR.BUCKETS.map(([k, l]) => <div key={k}>{cell(l, t[k])}</div>)}
+    {unk(t) != null && unk(t)! > 0 && <div className="rounded border border-destructive p-2" data-testid="ar-unknown-due"><p className="text-xs text-muted-foreground">Échéance inconnue — ventilation indéterminée (inclus dans le solde)</p><p>{AR.money(unk(t))}</p></div>}{cell("Crédits / versements non affectés (séparés)", t.unallocated)}
   </div>;
 }
 
