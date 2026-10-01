@@ -12,6 +12,7 @@ import TaxSummary from "@/components/finances/TaxSummary";
 import { computeTaxes, loadRates, TREATMENT_LABEL, type RegStatus, type TaxRates, type TaxTreatment } from "@/lib/finances/tax";
 import { renderInvoicePdf, type InvoicePdfData } from "@/lib/finances/invoicePdf";
 import { fmtDate, todayIn } from "@/lib/finances/period";
+import InvoiceReceipts from "@/components/finances/InvoiceReceipts";
 
 const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const BUCKET = "fin-invoices";
@@ -184,6 +185,7 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
     {!draft && <div className="rounded border border-border p-2 text-xs">Émise le {new Date(inv.issued_at).toLocaleString("fr-CA", { timeZone: "America/Toronto" })} · contenu figé (client, entreprise, lignes, taxes, modalités, modèle v{inv.template_snapshot?.version}).
       {inv.sent_at ? ` Envoyée (déclarée) le ${new Date(inv.sent_at).toLocaleString("fr-CA", { timeZone: "America/Toronto" })} — ${inv.sent_note}.` : " Pas encore marquée envoyée (un téléchargement ne prouve pas l'envoi)."}
       {rec && <> Entrée attendue liée : {money(rec.amount)} · encaissé {money(rec.received)} · reste {money(Math.max(0, Number(rec.amount) - Number(rec.received)))}.</>} Correction : par une note de crédit (lot suivant).</div>}
+    {!draft && <InvoiceReceipts invoiceId={id} companyId={companyId} canWrite={canWrite} onChanged={() => { void load(); onChanged(); }} />}
     {quote && <p className="text-xs text-muted-foreground">Créée depuis la soumission {quote.number ?? ""} v{quote.version} (soumission inchangée).</p>}
     {gap && <p role="status" className="rounded border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Écart fiscal avec la soumission : total {money(qs.total)} → {money(preview.total)} (TPS {money(qs.gst)} → {money(preview.gst)}, TVQ {money(qs.qst)} → {money(preview.qst)}). Vérifiez avant d'émettre.</p>}
 
