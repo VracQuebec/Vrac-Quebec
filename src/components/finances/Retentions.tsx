@@ -28,13 +28,16 @@ export default function Retentions({ invoiceId, companyId, canWrite, refreshKey 
   const createKey = useRef<{ sig: string; key: string } | null>(null); const actKey = useRef<{ sig: string; key: string } | null>(null);
   const guard = useRef(makeGuard()).current;
   const cb = useRef(onChanged); cb.current = onChanged;
-  useEffect(() => () => guard.bump(), [guard]);
-  useEffect(() => { guard.bump(); setBusy(false); }, [canWrite, guard]);
+  // Lectures : séquence propre (seule la plus récente s'applique), distincte de la garde des mutations,
+  // pour qu'un rafraîchissement n'annule jamais le rappel d'une mutation réussie.
+  const readSeq = useRef(0);
+  useEffect(() => () => { guard.bump(); readSeq.current++; }, [guard]);
+  useEffect(() => { guard.bump(); readSeq.current++; setBusy(false); }, [canWrite, guard]);
 
   const load = useCallback(async () => {
-    const ok = guard.take();
-    try { const r = await RT.summary(invoiceId); if (ok()) { setS(r); setLoadErr(null); } } catch (e) { if (ok()) setLoadErr(msg(e)); }
-  }, [invoiceId, guard]);
+    const my = ++readSeq.current;
+    try { const r = await RT.summary(invoiceId); if (my === readSeq.current) { setS(r); setLoadErr(null); } } catch (e) { if (my === readSeq.current) setLoadErr(msg(e)); }
+  }, [invoiceId]);
   useEffect(() => { void load(); }, [load, refreshKey]);
 
   const store = useDraft({
@@ -136,13 +139,13 @@ export default function Retentions({ invoiceId, companyId, canWrite, refreshKey 
       <p className="text-xs text-muted-foreground">Motif : {r.reason}{r.contract_ref ? ` · contrat ${r.contract_ref}` : ""} · condition : {r.release_condition} · {r.planned_release ? `libération prévue ${r.planned_release}` : "date de libération à compléter"} · créée {stamp(r.created_at)}</p>
       <ul className="text-xs">{(r.releases ?? []).map((l: J) => <li key={l.id}>Libération {money(l.amount)} le {l.released_on} — {l.reason}{l.voided_at ? ` (annulée : ${l.void_reason})` : ""}
         {canWrite && r.status === "active" && !l.voided_at && <Button size="sm" variant="ghost" disabled={busy} onClick={() => askVoid("rel", l.id, r.rev)}>Annuler</Button>}</li>)}</ul>
-      {canWrite && r.status === "active" && Number(r.rest) > 0 && (rel?.id === r.id
+      {canWrite && r.status === "active" && (Number(r.rest) > 0 && rel?.id === r.id
         ? <div className="mt-1 grid gap-1 sm:grid-cols-4">
             <Input aria-label="Montant à libérer" inputMode="decimal" value={rel.amount} onChange={(e) => setRel({ ...rel, amount: e.target.value })} />
             <Input aria-label="Date de libération" type="date" value={rel.date} onChange={(e) => setRel({ ...rel, date: e.target.value })} />
             <Input aria-label="Motif de libération" value={rel.reason} onChange={(e) => setRel({ ...rel, reason: e.target.value })} />
             <Button size="sm" disabled={busy} onClick={() => doRelease(r)}>Libérer</Button></div>
-        : <span className="flex gap-2"><Button size="sm" variant="outline" disabled={busy} onClick={() => { setRel({ id: r.id, amount: String(r.rest).replace(".", ","), date: todayIn(), reason: "" }); actKey.current = null; }}>Libérer…</Button>
+        : <span className="flex gap-2">{Number(r.rest) > 0 && <Button size="sm" variant="outline" disabled={busy} onClick={() => { setRel({ id: r.id, amount: String(r.rest).replace(".", ","), date: todayIn(), reason: "" }); actKey.current = null; }}>Libérer…</Button>}
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => askVoid("ret", r.id, r.rev)}>Annuler la retenue</Button></span>)}
     </div>)}
     {(s?.events ?? []).length > 0 && <details className="text-xs"><summary>Journal</summary><ul>{s.events.map((e: J) => <li key={e.id}>{stamp(e.at)} — {ACTION[e.action] ?? e.action}{e.detail?.amount != null ? ` ${money(e.detail.amount)}` : ""}{e.detail?.reason ? ` : ${e.detail.reason}` : ""}</li>)}</ul></details>}

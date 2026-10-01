@@ -29,14 +29,22 @@ export function retPayload(f: RetForm): { ok: boolean; p: J; errors: string[] } 
 }
 
 /** Une entrée attendue liée → mouvements de trésorerie : part courante à l'échéance, part retenue à sa date prévue;
- *  retenue sans date = « à compléter », exclue des dates précises. Total = reste dû de l'entrée (jamais compté deux fois). */
-export function splitInflow(i: { amount: number; received: number; expected_on: string; retention_schedule?: { id: string; date: string | null; amount: number }[] | null }) {
+ *  retenue sans date = « à compléter », exclue des dates précises. Total = reste dû de l'entrée (jamais compté deux fois).
+ *  Échéancier invalide ou retenu > reste dû : projection REFUSÉE (erreur), jamais plafonnée ni ajustée. */
+export function splitInflow(i: { amount: number; received: number; expected_on: string; retention_schedule?: unknown }) {
   const left = Math.max(0, (toCents(i.amount) ?? 0) - (toCents(i.received) ?? 0));
   const parts: { date: string; cents: number; retention?: string }[] = []; let undated = 0; let held = 0;
-  for (const s of i.retention_schedule ?? []) {
-    const c = Math.min(toCents(s.amount) ?? 0, left - held); if (c <= 0) continue; held += c;
-    if (s.date) parts.push({ date: s.date, cents: c, retention: s.id }); else undated += c;
+  const sch = i.retention_schedule ?? [];
+  const bad = (why: string) => new Error(`Prévision refusée : échéancier de retenue incohérent (${why}). Rechargez ou corrigez la retenue.`);
+  if (!Array.isArray(sch)) throw bad("format");
+  for (const s of sch as { id?: unknown; date?: unknown; amount?: unknown }[]) {
+    const c = s && typeof s === "object" && typeof s.amount !== "boolean" ? toCents(s.amount as number) : null;
+    if (!s || typeof s.id !== "string" || c == null || !Number.isFinite(c) || c <= 0) throw bad("montant invalide");
+    if (s.date != null && (typeof s.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s.date))) throw bad("date invalide");
+    held += c;
+    if (s.date) parts.push({ date: s.date as string, cents: c, retention: s.id }); else undated += c;
   }
+  if (held > left) throw bad(`retenu ${(held / 100).toFixed(2)} $ > reste dû ${(left / 100).toFixed(2)} $`);
   const current = left - held;
   if (current > 0) parts.unshift({ date: i.expected_on, cents: current });
   return { parts, undated, left };
