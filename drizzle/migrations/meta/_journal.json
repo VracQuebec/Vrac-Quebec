@@ -708,6 +708,13 @@
       "when": 1790833756710,
       "tag": "0100_fin09b2_amend_required_fields_refresh",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1790836553442,
+      "tag": "0101_fin09c1_recurring_invoices",
+      "breakpoints": true
     }
   ]
 }

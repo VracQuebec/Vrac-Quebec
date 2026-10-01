@@ -3975,6 +3975,7 @@ export type Database = {
           progress_situation_id: string | null
           project_id: string | null
           quote_id: string | null
+          recurrence_occurrence_id: string | null
           seller_snapshot: Json | null
           sent_at: string | null
           sent_note: string | null
@@ -4013,6 +4014,7 @@ export type Database = {
           progress_situation_id?: string | null
           project_id?: string | null
           quote_id?: string | null
+          recurrence_occurrence_id?: string | null
           seller_snapshot?: Json | null
           sent_at?: string | null
           sent_note?: string | null
@@ -4051,6 +4053,7 @@ export type Database = {
           progress_situation_id?: string | null
           project_id?: string | null
           quote_id?: string | null
+          recurrence_occurrence_id?: string | null
           seller_snapshot?: Json | null
           sent_at?: string | null
           sent_note?: string | null
@@ -4111,6 +4114,13 @@ export type Database = {
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "ent_crm_quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoices_recurrence_occurrence_id_fkey"
+            columns: ["recurrence_occurrence_id"]
+            isOneToOne: true
+            referencedRelation: "fin_recurring_occurrences"
             referencedColumns: ["id"]
           },
         ]
@@ -5158,6 +5168,296 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "fin_progress_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_recurring_events: {
+        Row: {
+          action: string
+          actor: string | null
+          company_id: string
+          created_at: string
+          detail: Json | null
+          id: string
+          input_hash: string | null
+          op_key: string | null
+          reason: string | null
+          result: Json | null
+          template_id: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          company_id: string
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          input_hash?: string | null
+          op_key?: string | null
+          reason?: string | null
+          result?: Json | null
+          template_id: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          company_id?: string
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          input_hash?: string | null
+          op_key?: string | null
+          reason?: string | null
+          result?: Json | null
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_recurring_events_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "fin_recurring_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_recurring_occurrences: {
+        Row: {
+          abandon_key: string | null
+          abandon_reason: string | null
+          abandoned_at: string | null
+          abandoned_by: string | null
+          batch_key: string
+          company_id: string
+          computed: Json
+          created_at: string
+          created_by: string | null
+          due_date: string
+          hash: string
+          id: string
+          input_hash: string
+          invoice_id: string | null
+          issue_date: string
+          issue_key: string | null
+          issued_at: string | null
+          issued_by: string | null
+          lines: Json
+          note: string | null
+          occ_key: string
+          planned_on: string
+          prices_include_tax: boolean
+          rev: number
+          scheduled_on: string
+          service_from: string | null
+          service_to: string | null
+          status: string
+          template_id: string
+          terms: string | null
+          version: number
+        }
+        Insert: {
+          abandon_key?: string | null
+          abandon_reason?: string | null
+          abandoned_at?: string | null
+          abandoned_by?: string | null
+          batch_key: string
+          company_id: string
+          computed: Json
+          created_at?: string
+          created_by?: string | null
+          due_date: string
+          hash: string
+          id?: string
+          input_hash: string
+          invoice_id?: string | null
+          issue_date: string
+          issue_key?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          lines: Json
+          note?: string | null
+          occ_key: string
+          planned_on: string
+          prices_include_tax: boolean
+          rev?: number
+          scheduled_on: string
+          service_from?: string | null
+          service_to?: string | null
+          status?: string
+          template_id: string
+          terms?: string | null
+          version: number
+        }
+        Update: {
+          abandon_key?: string | null
+          abandon_reason?: string | null
+          abandoned_at?: string | null
+          abandoned_by?: string | null
+          batch_key?: string
+          company_id?: string
+          computed?: Json
+          created_at?: string
+          created_by?: string | null
+          due_date?: string
+          hash?: string
+          id?: string
+          input_hash?: string
+          invoice_id?: string | null
+          issue_date?: string
+          issue_key?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          lines?: Json
+          note?: string | null
+          occ_key?: string
+          planned_on?: string
+          prices_include_tax?: boolean
+          rev?: number
+          scheduled_on?: string
+          service_from?: string | null
+          service_to?: string | null
+          status?: string
+          template_id?: string
+          terms?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_recurring_occurrences_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: true
+            referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_recurring_occurrences_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "fin_recurring_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_recurring_templates: {
+        Row: {
+          client_id: string
+          company_id: string
+          contract_ref: string | null
+          create_hash: string
+          create_key: string
+          created_at: string
+          created_by: string | null
+          current_version: number
+          id: string
+          label: string
+          project_id: string | null
+          rev: number
+          status: string
+        }
+        Insert: {
+          client_id: string
+          company_id: string
+          contract_ref?: string | null
+          create_hash: string
+          create_key: string
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          id?: string
+          label: string
+          project_id?: string | null
+          rev?: number
+          status?: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string
+          contract_ref?: string | null
+          create_hash?: string
+          create_key?: string
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          id?: string
+          label?: string
+          project_id?: string | null
+          rev?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_recurring_templates_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_recurring_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_recurring_templates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_recurring_versions: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          due_days: number
+          effective_from: string | null
+          id: string
+          lines: Json
+          prices_include_tax: boolean
+          rule: Json
+          template_id: string
+          terms: string | null
+          version: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          due_days: number
+          effective_from?: string | null
+          id?: string
+          lines: Json
+          prices_include_tax: boolean
+          rule: Json
+          template_id: string
+          terms?: string | null
+          version: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          due_days?: number
+          effective_from?: string | null
+          id?: string
+          lines?: Json
+          prices_include_tax?: boolean
+          rule?: Json
+          template_id?: string
+          terms?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_recurring_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "fin_recurring_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -23626,6 +23926,138 @@ export type Database = {
       fin_quote_family_engaged: { Args: { _root: string }; Returns: boolean }
       fin_quote_family_lock: { Args: { _root: string }; Returns: undefined }
       fin_quote_family_root: { Args: { _q: string }; Returns: string }
+      fin_rec_abandon: {
+        Args: {
+          _expect_hash: string
+          _expect_rev: number
+          _key: string
+          _occ: string
+          _reason: string
+        }
+        Returns: Json
+      }
+      fin_rec_check_dates: {
+        Args: { _due: string; _issue: string; _sf: string; _st: string }
+        Returns: undefined
+      }
+      fin_rec_compute: {
+        Args: {
+          _client: string
+          _company: string
+          _lines: Json
+          _on: string
+          _pit: boolean
+        }
+        Returns: Json
+      }
+      fin_rec_draft_save: {
+        Args: {
+          _base_rev: number
+          _due: string
+          _issue: string
+          _lines: Json
+          _note: string
+          _occ: string
+          _sf: string
+          _st: string
+        }
+        Returns: Json
+      }
+      fin_rec_gen: {
+        Args: { _from: string; _template: string; _to: string }
+        Returns: {
+          occ_key: string
+          planned_on: string
+          scheduled_on: string
+          version: number
+        }[]
+      }
+      fin_rec_input_hash: {
+        Args: {
+          _due: string
+          _issue: string
+          _lines: Json
+          _note: string
+          _sf: string
+          _st: string
+        }
+        Returns: string
+      }
+      fin_rec_issue: {
+        Args: {
+          _expect_hash: string
+          _expect_rev: number
+          _key: string
+          _occ: string
+        }
+        Returns: Json
+      }
+      fin_rec_lines: { Args: { _lines: Json }; Returns: Json }
+      fin_rec_list: { Args: { _company: string }; Returns: Json }
+      fin_rec_prepare: {
+        Args: {
+          _expect_rev: number
+          _key: string
+          _occ_keys: string[]
+          _template: string
+        }
+        Returns: Json
+      }
+      fin_rec_rule: { Args: { _r: Json }; Returns: Json }
+      fin_rec_rule_preview: {
+        Args: {
+          _company: string
+          _effective?: string
+          _from: string
+          _rule: Json
+          _to: string
+        }
+        Returns: Json
+      }
+      fin_rec_set_status: {
+        Args: {
+          _action: string
+          _expect_rev: number
+          _key: string
+          _reason: string
+          _template: string
+        }
+        Returns: Json
+      }
+      fin_rec_summary: {
+        Args: { _from: string; _template: string; _to: string }
+        Returns: Json
+      }
+      fin_rec_template_create: {
+        Args: {
+          _client: string
+          _company: string
+          _contract_ref: string
+          _due_days: number
+          _key: string
+          _label: string
+          _lines: Json
+          _pit: boolean
+          _project: string
+          _rule: Json
+          _terms: string
+        }
+        Returns: Json
+      }
+      fin_rec_version_add: {
+        Args: {
+          _due_days: number
+          _effective: string
+          _expect_rev: number
+          _key: string
+          _lines: Json
+          _pit: boolean
+          _rule: Json
+          _template: string
+          _terms: string
+        }
+        Returns: Json
+      }
       fin_refund_add: {
         Args: {
           _amount: number
