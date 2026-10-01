@@ -128,7 +128,7 @@ export default function Invoices({ companyId, canWrite }: { companyId: string; c
 function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: string; companyId: string; canWrite: boolean; onClose: () => void; onChanged: () => void }) {
   const [inv, setInv] = useState<Inv | null>(null); const [ctx, setCtx] = useState<{ rates: TaxRates; gst: RegStatus; qst: RegStatus; seller: Inv; template: Inv } | null>(null);
   const [clients, setClients] = useState<Inv[]>([]); const [projects, setProjects] = useState<Inv[]>([]); const [inflows, setInflows] = useState<Inv[]>([]);
-  const [quote, setQuote] = useState<Inv | null>(null); const [busy, setBusy] = useState(false); const [confirm, setConfirm] = useState(false); const [replace, setReplace] = useState("");
+  const [quote, setQuote] = useState<Inv | null>(null); const [busy, setBusy] = useState(false); const [ctaxLock, setCtaxLock] = useState(false); const [confirm, setConfirm] = useState(false); const [replace, setReplace] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0); const [bal, setBal] = useState<Sum | null>(null); // solde : source commune (fin_invoice_receipt_summary)
 
@@ -166,7 +166,7 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
     await load(); onChanged(); return true;
   };
   const issue = async () => {
-    if (busy) return; setBusy(true); setErr(null);
+    if (busy || ctaxLock) return; setBusy(true); setErr(null);
     if (!(await save())) { setBusy(false); return; }
     setBusy(true);
     const { data, error } = await db.rpc("fin_invoice_issue", { _id: id, _replace_inflow: replace || null }); setBusy(false); setConfirm(false);
@@ -204,13 +204,13 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
     {!draft && <CreditNotes invoice={inv} companyId={companyId} canWrite={canWrite} onChanged={() => { setRefresh((n) => n + 1); void load(); onChanged(); }} />}
     {!draft && <InvoiceReceipts invoiceId={id} companyId={companyId} canWrite={canWrite} refreshKey={refresh} onSummary={setBal} onChanged={() => { setRefresh((n) => n + 1); void load(); onChanged(); }} />}
     {!draft && <Retentions key={`${companyId}|${id}`} invoiceId={id} companyId={companyId} canWrite={canWrite} refreshKey={refresh} onChanged={() => { setRefresh((n) => n + 1); void load(); onChanged(); }} />}
-    {draft && !!inv.is_test && canWrite && <ConstructionIssueTest key={`${companyId}|${id}`} invoiceId={id} companyId={companyId} canWrite={canWrite} beforePreview={save} onIssued={() => { void load(); onChanged(); }} />}
+    {draft && !!inv.is_test && canWrite && <ConstructionIssueTest key={`${companyId}|${id}`} invoiceId={id} companyId={companyId} canWrite={canWrite} invSig={JSON.stringify([...[inv.client_id, inv.client_name, inv.client_address, inv.client_email, inv.client_phone, inv.project_id, inv.issue_date, inv.due_date, inv.terms].map((v) => v || null), lines, !!inv.prices_include_tax, !!inv.is_test])} beforePreview={save} onBusy={setCtaxLock} onReload={() => { void load(); }} onIssued={() => { void load(); onChanged(); }} />}
     {quote && <p className="text-xs text-muted-foreground">Créée depuis la soumission {quote.number ?? ""} v{quote.version} (soumission inchangée).</p>}
     {inv.tax_snapshot?.recurring && <p className="text-xs text-muted-foreground">Facture récurrente « {inv.tax_snapshot.recurring.label} »{inv.tax_snapshot.recurring.contract_ref ? ` (contrat ${inv.tax_snapshot.recurring.contract_ref})` : ""}, version {inv.tax_snapshot.recurring.version}, occurrence prévue le {inv.tax_snapshot.recurring.scheduled_on}{inv.tax_snapshot.recurring.service_from ? `, service du ${inv.tax_snapshot.recurring.service_from} au ${inv.tax_snapshot.recurring.service_to}` : ""}.</p>}
     {inv.tax_snapshot?.progress && <p className="text-xs text-muted-foreground">Facture de facturation progressive ({inv.tax_snapshot.progress.kind === "acompte" ? "acompte" : inv.tax_snapshot.progress.kind === "solde" ? "solde final" : "situation"} n° {inv.tax_snapshot.progress.seq}, cumul {inv.tax_snapshot.progress.cum?.pct} % de la soumission {inv.tax_snapshot.progress.quote_number ?? ""}). Récapitulatif dans le PDF.</p>}
     {gap && <p role="status" className="rounded border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Écart fiscal avec la soumission : total {money(qs.total)} → {money(preview.total)} (TPS {money(qs.gst)} → {money(preview.gst)}, TVQ {money(qs.qst)} → {money(preview.qst)}). Vérifiez avant d'émettre.</p>}
 
-    <fieldset disabled={!editable} className="space-y-2">
+    <fieldset disabled={!editable || ctaxLock} className="space-y-2">
       <div className="grid gap-2 sm:grid-cols-2">
         <select aria-label="Client existant" className={sel} value={inv.client_id ?? ""} onChange={(e) => pickClient(e.target.value)}><option value="">Nouveau client (saisie libre)</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
         <Input placeholder="Nom du client *" value={inv.client_name ?? ""} onChange={(e) => set({ client_name: e.target.value })} />
@@ -246,12 +246,12 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
     <div className="flex flex-wrap gap-2">
       <Button variant="outline" disabled={busy} onClick={() => openPdf(false)}>{draft ? "Aperçu PDF (BROUILLON)" : "Ouvrir le PDF"}</Button>
       <Button variant="outline" disabled={busy} onClick={() => openPdf(true)}>Télécharger</Button>
-      {editable && <><Button variant="outline" disabled={busy} onClick={save}>Enregistrer le brouillon</Button><Button disabled={busy} onClick={() => setConfirm(true)}>Émettre…</Button><Button variant="ghost" onClick={del}>Supprimer le brouillon</Button></>}
+      {editable && <><Button variant="outline" disabled={busy || ctaxLock} onClick={save}>Enregistrer le brouillon</Button><Button disabled={busy || ctaxLock} onClick={() => setConfirm(true)}>Émettre…</Button><Button variant="ghost" onClick={del}>Supprimer le brouillon</Button></>}
       {!draft && canWrite && !inv.sent_at && <Button variant="outline" onClick={markSent}>Marquer « Envoyée »</Button>}
     </div>
     {confirm && <div className="rounded border border-border p-2 text-sm"><p className="font-semibold">Émettre la facture ?</p><p className="text-xs">Un numéro unique sera attribué et le contenu sera figé (plus de modification ni de suppression). Une entrée attendue sera créée dans la trésorerie.</p>
       {inflows.length > 0 && <label className="mt-1 block text-xs">Remplacer une prévision existante (encaissements conservés) :<select className={`${sel} mt-1 w-full`} value={replace} onChange={(e) => setReplace(e.target.value)}><option value="">Non, créer une nouvelle entrée attendue</option>{inflows.map((x) => <option key={x.id} value={x.id}>{x.counterparty || "Entrée"} · {money(x.amount)} · {fmtDate(x.expected_on)}{Number(x.received) ? ` · déjà encaissé ${money(x.received)}` : ""}</option>)}</select></label>}
-      <div className="mt-2 flex gap-2"><Button disabled={busy} onClick={issue}>Confirmer l'émission</Button><Button variant="ghost" onClick={() => setConfirm(false)}>Annuler</Button></div></div>}
+      <div className="mt-2 flex gap-2"><Button disabled={busy || ctaxLock} onClick={issue}>Confirmer l'émission</Button><Button variant="ghost" onClick={() => setConfirm(false)}>Annuler</Button></div></div>}
   </DialogContent></Dialog>;
 }
 
