@@ -110,7 +110,7 @@ export default function ProgressPlanDialog({ planId, companyId, canWrite, onClos
       {(!active || draft) && <>
         <div className="grid gap-2 sm:grid-cols-5">
           <select aria-label="Type" className={sel} value={form.kind} onChange={(e) => edit({ kind: e.target.value as P.Kind })}>{(Object.keys(P.KIND_LABEL) as P.Kind[]).map((k) => <option key={k} value={k}>{P.KIND_LABEL[k]}</option>)}</select>
-          {form.kind !== "solde" && <select aria-label="Mode" className={sel} value={form.mode} onChange={(e) => edit({ mode: e.target.value as P.Mode })}><option value="pct">Cumul en % du contrat</option><option value="amount">Cumul en montant HT</option></select>}
+          {form.kind !== "solde" && <select aria-label="Mode" className={sel} value={form.mode} onChange={(e) => edit({ mode: e.target.value as P.Mode })}><option value="pct">Cumul en % du contrat</option>{ttc ? <option value="amount_ttc">Cumul en montant TTC</option> : <option value="amount">Cumul en montant HT</option>}</select>}
           {form.kind !== "solde" && <Input aria-label="Cumul contractuel" inputMode="decimal" placeholder={form.mode === "pct" ? "ex. 30" : "ex. 300,00"} value={form.value} onChange={(e) => edit({ value: e.target.value })} />}
           <label className="text-xs">Date de facture<Input type="date" value={form.issue} onChange={(e) => edit({ issue: e.target.value })} /></label>
           <label className="text-xs">Échéance<Input type="date" value={form.due} onChange={(e) => edit({ due: e.target.value })} /></label>
@@ -123,11 +123,13 @@ export default function ProgressPlanDialog({ planId, companyId, canWrite, onClos
       {pv && <div className="rounded bg-muted p-2 text-sm" aria-label="Aperçu de la situation">
         <p>Cumul après cette facture : {pv.cum.pct} % · {money(pv.cum.ht)} HT · {money(pv.cum.total)} TTC</p>
         <p className="font-semibold">Nouveau montant à facturer : {money(pv.new.ht)} HT + TPS {money(pv.new.gst)} + TVQ {money(pv.new.qst)} = {money(pv.new.total)}</p>
-        <p>Restera à facturer : {money(pv.remaining.ht)} HT · {money(pv.remaining.total)} TTC</p>
+        <p>Restera à facturer : {ttc ? `${money(pv.remaining.cap ?? pv.remaining.total)} TTC` : `${money(pv.remaining.cap ?? pv.remaining.ht)} HT`}</p>
+        {gapNote(pv.gap_vs_quote)}
         <p className="text-xs text-muted-foreground">Aperçu serveur : rien n'est facturé ni numéroté tant que vous n'émettez pas. Toute modification retire « Émettre ».</p></div>}
       {err && <p role="alert" className="rounded border border-destructive/50 bg-destructive/10 p-2 text-sm">{err}</p>}
     </div>}
     {full && <p className="text-sm">Contrat entièrement facturé. Toute correction passe par une note de crédit sur la facture concernée.</p>}
+    {full && gapNote(lastGap)}
     {issued.length > 0 && <p className="text-xs text-muted-foreground">Dernière facture le {fmtDate(issued[issued.length - 1].issue_date)}.</p>}
   </DialogContent></Dialog>;
 }
