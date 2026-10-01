@@ -701,6 +701,13 @@
       "when": 1790833197277,
       "tag": "0099_fin09b2_lines_solde_value",
       "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1790833756710,
+      "tag": "0100_fin09b2_amend_required_fields_refresh",
+      "breakpoints": true
     }
   ]
 }

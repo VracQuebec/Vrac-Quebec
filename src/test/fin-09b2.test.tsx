@@ -107,3 +107,41 @@ describe("FIN-09B2 — PDF", () => {
     if (process.env.PDF_OUT) writeFileSync(process.env.PDF_OUT, Buffer.from(doc.output("arraybuffer")));
   });
 });
+
+describe("FIN-09B2 relecture — sortir d'un conflit (UI simulée)", () => {
+  it("avenant : approbation P0409 puis « Actualiser l'impact » renvoie le même contenu à la révision courante", async () => {
+    const am = { id: "a1", seq: 1, status: "brouillon", reason: "Roc", changes: [{ id: "L1", qty: "12" }], rev: 3, hash: "ha", draft_key: "dk", from_version: 1, to_version: null, approved_at: null, close_reason: null,
+      approval_ref: "Courriel", approval_date: "2026-09-30", approver_name: "M. TEST", impact: { cap_before: 1000, cap_after: 1200, billed_cap: 0, delta: { cap: 200, ht: 200, gst: 10, qst: 19.95, total: 229.95 }, changes: [] } };
+    h.rpc.mockImplementation((fn: string) => {
+      if (fn === "fin_progress_summary") return Promise.resolve({ data: base({ amendments: [am] }), error: null });
+      if (fn === "fin_progress_amend_approve") return Promise.resolve({ data: null, error: { code: "P0409", message: "Impact changé depuis l'aperçu : enregistrez l'avenant de nouveau" } });
+      return Promise.resolve({ data: { ...am, rev: 4, hash: "hb" }, error: null });
+    });
+    ui();
+    fireEvent.click(await screen.findByLabelText(/Je confirme l'accord du client/));
+    fireEvent.click(screen.getByText("Approuver"));
+    expect(await screen.findByText(/Impact changé/)).toBeTruthy();
+    fireEvent.click(screen.getByText("Actualiser l'impact"));
+    await waitFor(() => expect(h.rpc.mock.calls.some((c) => c[0] === "fin_progress_amend_save")).toBe(true));
+    const c = h.rpc.mock.calls.find((x) => x[0] === "fin_progress_amend_save")!;
+    expect(c[1]._base_rev).toBe(3); expect(c[1]._draft_key).toBe("dk"); expect(c[1]._reason).toBe("Roc"); expect(c[1]._changes).toEqual([{ id: "L1", qty: "12" }]);
+  });
+  it("situation : émission P0409 puis « Aperçu » renvoie la même saisie à la révision courante, sans émission automatique", async () => {
+    const ms = [{ id: "m1", ord: 1, title: "Excavation", share: 350, status: "realise", rev: 3 }];
+    let saves = 0;
+    h.rpc.mockImplementation((fn: string) => {
+      if (fn === "fin_progress_summary") return Promise.resolve({ data: base({ track: "milestones", milestones: ms }), error: null });
+      if (fn === "fin_progress_issue") return Promise.resolve({ data: null, error: { code: "P0409", message: "Montants ou contrat changés depuis l'aperçu : refaites l'aperçu" } });
+      saves++; return Promise.resolve({ data: { ...draft, mode: "jalon", value: "m1", rev: saves, hash: "h" + saves, computed: { ...draft.computed, lines_detail: undefined } }, error: null });
+    });
+    ui();
+    fireEvent.click(await screen.findByText("Aperçu"));
+    fireEvent.click(await screen.findByText("Émettre la facture"));
+    expect(await screen.findByText(/refaites l'aperçu/)).toBeTruthy();
+    fireEvent.click(screen.getByText("Aperçu"));
+    await waitFor(() => expect(saves).toBe(2));
+    const calls = h.rpc.mock.calls.filter((x) => x[0] === "fin_progress_draft_save");
+    expect(calls[1][1]._base_rev).toBe(1); expect(calls[1][1]._draft_key).toBe(calls[0][1]._draft_key); expect(calls[1][1]._value).toBe("m1");
+    expect(h.rpc.mock.calls.filter((x) => x[0] === "fin_progress_issue").length).toBe(1);
+  });
+});
