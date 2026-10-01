@@ -94,7 +94,7 @@ export default function InvoiceReceipts({ invoiceId, companyId, canWrite, onChan
       <h3 className="font-display font-bold">Encaissements</h3>
       {canWrite && !open && <Button size="sm" onClick={() => setOpen(true)}>Enregistrer un encaissement</Button>}
     </div>
-    <p className="text-xs">Total brut {money(sum.total)}{Number(sum.credits) > 0 && <> · notes de crédit − {money(sum.credits)} · net {money(sum.net)}</>} · encaissé {money(sum.collected ?? sum.received)} · <strong>net à recevoir {money(sum.rest)}</strong>{sum.paid ? " · Payée" : sum.settled_by_credit ? " · Soldée par avoir (non encaissée)" : ""}
+    <p className="text-xs" aria-busy={status === "loading"}>Total brut {money(sum.total)}{Number(sum.credits) > 0 && <> · notes de crédit − {money(sum.credits)} · net {money(sum.net)}</>} · encaissé {money(sum.collected ?? sum.received)} · <strong>net à recevoir {money(sum.rest)}</strong>{sum.paid ? " · Payée" : sum.settled_by_credit ? " · Soldée par avoir (non encaissée)" : ""}{status === "loading" && " · mise à jour…"}
       {sum.unallocated > 0 && <> · <span className="text-amber-800">{Number(sum.credits) > 0 ? "crédit disponible / trop-perçu" : "trop-perçu"} non affecté {money(sum.unallocated)} (aucun remboursement automatique)</span></>}</p>
     {open && <fieldset disabled={!!pending} className="contents"><div className="grid gap-2 rounded bg-secondary/40 p-2 sm:grid-cols-2">
       <p className="text-xs text-muted-foreground sm:col-span-2">Encaissement déclaré manuellement, sans confirmation bancaire. Paiement partiel accepté.</p>
