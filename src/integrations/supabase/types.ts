@@ -5891,8 +5891,10 @@ export type Database = {
           invoice_id: string
           payload_hash: string
           reason: string
+          receipt_id: string | null
           released_on: string
           retention_id: string
+          source: string
           void_key: string | null
           void_reason: string | null
           void_request_hash: string | null
@@ -5909,8 +5911,10 @@ export type Database = {
           invoice_id: string
           payload_hash: string
           reason: string
+          receipt_id?: string | null
           released_on: string
           retention_id: string
+          source?: string
           void_key?: string | null
           void_reason?: string | null
           void_request_hash?: string | null
@@ -5927,8 +5931,10 @@ export type Database = {
           invoice_id?: string
           payload_hash?: string
           reason?: string
+          receipt_id?: string | null
           released_on?: string
           retention_id?: string
+          source?: string
           void_key?: string | null
           void_reason?: string | null
           void_request_hash?: string | null
@@ -5951,6 +5957,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fin_retention_releases_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "fin_invoice_receipts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fin_retention_releases_retention_id_fkey"
             columns: ["retention_id"]
             isOneToOne: false
@@ -5966,6 +5979,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           cum_ttc: number
+          date_basis: string | null
           exigible_on: string
           gst: number
           id: string
@@ -5984,6 +5998,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           cum_ttc: number
+          date_basis?: string | null
           exigible_on: string
           gst: number
           id?: string
@@ -6002,6 +6017,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           cum_ttc?: number
+          date_basis?: string | null
           exigible_on?: string
           gst?: number
           id?: string
@@ -23819,6 +23835,20 @@ export type Database = {
         Args: { _expect_hash: string; _invoice: string; _key: string; _p: Json }
         Returns: Json
       }
+      fin_construction_pay: {
+        Args: {
+          _expect_hash: string
+          _expect_rev: number
+          _key: string
+          _p: Json
+          _retention: string
+        }
+        Returns: Json
+      }
+      fin_construction_pay_preview: {
+        Args: { _p: Json; _retention: string }
+        Returns: Json
+      }
       fin_construction_preview: {
         Args: { _invoice: string; _p: Json }
         Returns: Json
@@ -23873,6 +23903,13 @@ export type Database = {
       }
       fin_ctax_alloc: { Args: { _cum: number; _s: Json }; Returns: Json }
       fin_ctax_date: { Args: { _t: string }; Returns: string }
+      fin_ctax_pay_eval: {
+        Args: {
+          _p: Json
+          _r: Database["public"]["Tables"]["fin_retentions"]["Row"]
+        }
+        Returns: Json
+      }
       fin_ctax_state: { Args: { _retention: string }; Returns: Json }
       fin_ctax_validate: {
         Args: {
