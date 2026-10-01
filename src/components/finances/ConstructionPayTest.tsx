@@ -29,7 +29,12 @@ export default function ConstructionPayTest({ ret, companyId, canWrite, onDone, 
   const guard = useRef(makeGuard()).current;
   const cbs = useRef({ onDone, onReload }); cbs.current = { onDone, onReload };
   useEffect(() => () => guard.bump(), [guard]);
-  useEffect(() => { guard.bump(); setBusy(false); }, [canWrite, ret.id, guard]);
+  // contexte complet : tout changement (compte, entreprise, retenue, droits) invalide SYNCHRONEMENT les promesses en cours
+  const ctx = `${uid}|${companyId}|${ret.id}|${canWrite}`; const ctxRef = useRef(ctx);
+  if (ctxRef.current !== ctx) { ctxRef.current = ctx; guard.bump(); }
+  useEffect(() => { setBusy(false); setErr(null); setPv(null); setConfirm(null); }, [ctx]);
+  // une demande d'un autre contexte n'est jamais affichée ni rejouée, même pendant le rendu de transition
+  const curPending = pending && uid && canWrite && pending.user === uid && pending.company === companyId && pending.record === ret.id ? pending : null;
 
   const store = useDraft({
     id: user && canWrite && open ? { module: "finances", form: "paiement-retenue", owner: user.id, company: companyId, recordId: ret.id } : null,
@@ -43,7 +48,7 @@ export default function ConstructionPayTest({ ret, companyId, canWrite, onDone, 
   const edit = (p: Partial<RT.CpayForm>) => { setF((x) => ({ ...x, ...p })); setPv(null); setConfirm(null); setErr(null); };
 
   if (!canWrite) return null;
-  if (!pending && (ret.status !== "active" || !(Number(ret.rest) > 0))) return null;
+  if (!curPending && (ret.status !== "active" || !(Number(ret.rest) > 0))) return null;
 
   const doPreview = async () => {
     if (!built.ok) { setErr(built.errors.join(" ; ")); return; }
@@ -68,7 +73,7 @@ export default function ConstructionPayTest({ ret, companyId, canWrite, onDone, 
     } finally { if (ok()) setBusy(false); }
   };
   const doPay = async () => {
-    if (busy || pending || !uid || !pvOk || confirm !== pv!.data.expect_hash) return;
+    if (busy || curPending || !uid || !pvOk || confirm !== pv!.data.expect_hash) return;
     let q: Pending;
     try { q = savePending({ op: OP, user: uid, company: companyId, record: ret.id, key: crypto.randomUUID(), args: { p: built.p, rev: pv!.rev, hash: pv!.data.expect_hash as string } }); }
     catch (e) { setErr(msg(e)); setPending(readPending(OP, uid, companyId, ret.id)); return; }
@@ -81,9 +86,9 @@ export default function ConstructionPayTest({ ret, companyId, canWrite, onDone, 
     await send(q, false);
   };
 
-  if (pending) return <div className="mt-1 rounded border border-dashed border-border p-2 text-xs" data-testid="cpay-pending">
+  if (curPending) return <div className="mt-1 rounded border border-dashed border-border p-2 text-xs" data-testid="cpay-pending">
     <p className="font-medium">Paiement TEST envoyé — résultat inconnu (réponse perdue)</p>
-    <p>Demande figée : {money(pending.args?.p?.amount)} le {pending.args?.p?.paid_on}, réf. {pending.args?.p?.reference} (révision {pending.args?.rev}). Aucune nouvelle saisie ni aperçu tant que le résultat n'est pas déterminé : la récupération rejoue exactement cette demande (même clé) et ne peut pas créer un deuxième paiement.</p>
+    <p>Demande figée : {money(curPending.args?.p?.amount)} le {curPending.args?.p?.paid_on}, réf. {curPending.args?.p?.reference} (révision {curPending.args?.rev}). Aucune nouvelle saisie ni aperçu tant que le résultat n'est pas déterminé : la récupération rejoue exactement cette demande (même clé) et ne peut pas créer un deuxième paiement.</p>
     {err && <p role="alert" className="text-destructive">{err}</p>}
     <Button size="sm" className="mt-1" disabled={busy} onClick={recover}>Récupérer le résultat (rejeu exact)</Button>
   </div>;
