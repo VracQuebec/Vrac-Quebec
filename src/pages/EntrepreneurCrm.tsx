@@ -19,6 +19,8 @@ import { STAGES, SOURCES, TRADES, label, resolveCompanies, quoteSubtotal, toCsv,
 import { UNITS, unitLabel, ensureTemplates, subtotal, lineTotal, incomplete, copyLinks, type QLine } from "@/lib/entcrm/catalog";
 import CrmFiles from "@/components/entcrm/CrmFiles";
 import CrmServices from "@/components/entcrm/CrmServices";
+import TaxSummary from "@/components/finances/TaxSummary";
+import { computeTaxes, loadRates, STATUS_LABEL, TREATMENT_LABEL, GST_FORMAT, QST_FORMAT, type TaxRates, type RegStatus } from "@/lib/finances/tax";
 
 const db = supabase as any;
 const TABS = [
@@ -454,6 +456,13 @@ const pickClient = (c: any) => Object.fromEntries(CLIENT_KEYS.map((k) => [k, c[k
 function ClientDialog({ client, companyId, onClose, onSaved }: any) {
   const { user: me } = useAuthReady(); const { canWrite } = useContext(CrmCtx);
   const [f, setF] = useState<any>(pickClient(client)); const [stale, setStale] = useState<any>(null); const saving = useRef(false);
+  // FIN-07 : même moteur que le serveur (fin_tax_compute), profil de l'entreprise émettrice, taux centralisés.
+  const [tx, setTx] = useState<{ rates: TaxRates; gst: RegStatus; qst: RegStatus } | null>(null);
+  useEffect(() => { (async () => { const rates = await loadRates(db); const { data } = await db.from("ent_crm_settings").select("gst_status,qst_status").eq("company_id", companyId).maybeSingle();
+    setTx({ rates, gst: data?.gst_status ?? "a_completer", qst: data?.qst_status ?? "a_completer" }); })(); }, [companyId]);
+  const preview = tx ? computeTaxes(open.lines ?? [], { gstStatus: tx.gst, qstStatus: tx.qst, rates: tx.rates, pricesIncludeTax: !!open.prices_include_tax }) : null;
+  const stored = quote.id && quote.status === "brouillon" ? quote.tax_snapshot : null;
+  const gap = preview && stored && (stored.total !== preview.total || stored.gst !== preview.gst || stored.qst !== preview.qst || stored.resolved !== preview.resolved);
   const initial = useMemo(() => JSON.stringify(pickClient(client)), [client.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const locked = !!client.jsc_client_id;
   const store = useDraft({
@@ -538,7 +547,7 @@ function Quotes({ companyId, companyName, canWrite }: any) {
     const { data, error } = await db.from("ent_crm_projects").insert({ company_id: companyId, client_id: q.client_id, quote_id: q.id, name }).select("id").single();
     if (!error && data) await copyLinks(companyId, [{ t: "quote", id: q.id }, ...(q.lead_id ? [{ t: "lead", id: q.lead_id }] : [])], { t: "project", id: data.id });
     toast({ title: error ? "Refusé" : "Chantier créé avec les pièces de la soumission", description: error?.message.includes("duplicate") ? "Un chantier existe déjà pour cette soumission." : error?.message }); load(); return error ? error.message : null; };
-  const revise = async (q: any) => { const { id, created_at, updated_at, ent_crm_clients, ent_crm_projects, accepted_source, accepted_by_name, accepted_at, accepted_recorded_by, invoiced_amount, paid_amount, share_token, shared_at, client_viewed_at, client_response, client_response_name, client_response_note, client_responded_at, taxes_applied, gst_rate, qst_rate, tax_gst, tax_qst, total, ...rest } = q;
+  const revise = async (q: any) => { const { id, created_at, updated_at, ent_crm_clients, ent_crm_projects, accepted_source, accepted_by_name, accepted_at, accepted_recorded_by, invoiced_amount, paid_amount, share_token, shared_at, client_viewed_at, client_response, client_response_name, client_response_note, client_responded_at, tax_snapshot, taxes_applied, gst_rate, qst_rate, tax_gst, tax_qst, total, ...rest } = q;
     const { error } = await db.from("ent_crm_quotes").insert({ ...rest, status: "brouillon", version: q.version + 1, parent_quote_id: q.id }); toast({ title: error ? "Refusé" : "Révision créée (la version acceptée reste inchangée)", description: error?.message }); load(); };
   const fin = (q: any, k: string) => setParam("fd", `${k === "invoiced_amount" ? "facture" : "encaisse"}:${q.id}`);
   const [fdKind, fdId] = (fd ?? "").split(":"); const fdQuote = rows.find((r) => r.id === fdId);
@@ -554,16 +563,18 @@ function Quotes({ companyId, companyName, canWrite }: any) {
     return <div className="print:p-0"><Button className="print:hidden mb-3" onClick={() => window.print()}>Télécharger / imprimer en PDF</Button> <Button variant="outline" className="print:hidden mb-3" onClick={() => setPrint(null)}>Fermer</Button>
     <div className="rounded border border-border bg-card p-6 text-sm"><p className="font-display text-lg font-bold">{companyName}</p><h2 className="font-display text-xl font-bold">Soumission {print.number ?? ""} (v{print.version})</h2><p>Client : {print.ent_crm_clients?.name ?? "—"}</p>
       <div className="mt-3 overflow-x-auto"><table className="w-full text-xs sm:text-sm [&_th]:whitespace-nowrap [&_th]:pr-1.5 [&_td]:pr-1.5 [&_td:not(:first-child)]:whitespace-nowrap"><thead><tr className="text-left"><th>Description</th><th>Qté</th><th>Unité</th><th>Prix</th><th>Total</th></tr></thead><tbody>{lines.map((l, i) => <tr key={i}><td>{l.section ? `${l.section} — ` : ""}{l.desc}</td><td>{l.qty ?? "À compléter"}</td><td>{unitLabel(l.unit)}</td><td>{l.price == null ? "À renseigner" : money(l.price)}</td><td>{lineTotal(l) == null ? "—" : money(lineTotal(l))}</td></tr>)}</tbody></table></div>
-      <p className="mt-2 font-bold">Sous-total : {money(st)}</p>
+      {print.tax_snapshot ? <TaxSummary className="mt-2 max-w-sm" r={print.tax_snapshot} gstNumber={print.tax_snapshot.seller?.gst_number} qstNumber={print.tax_snapshot.seller?.qst_number} />
+      : <><p className="mt-2 font-bold">Sous-total : {money(st)}</p>
       {print.taxes_applied ? <><p>TPS ({print.gst_rate} %) : {money(print.tax_gst)}</p><p>TVQ ({print.qst_rate} %) : {money(print.tax_qst)}</p><p className="font-bold">Total : {money(print.total)}</p></>
-        : <p className="text-xs">Taxes non appliquées{print.status === "brouillon" ? " (calculées à la remise si activées dans les paramètres)" : ""}. Ce montant n'est pas un total taxes incluses.</p>}
+        : <p className="text-xs">Taxes non appliquées{print.status === "brouillon" ? " (calculées à la remise si activées dans les paramètres)" : ""}. Ce montant n'est pas un total taxes incluses.</p>}</>}
+      {print.tax_snapshot && !print.tax_snapshot.final && <p className="text-xs">Brouillon : aperçu non figé, recalculé à la remise.</p>}
       {incomplete(lines) > 0 && <p className="text-xs text-destructive">{incomplete(lines)} ligne(s) à compléter : montant partiel.</p>}
       {print.inclusions && <p className="mt-2"><strong>Inclusions :</strong> {print.inclusions}</p>}{print.exclusions && <p><strong>Exclusions :</strong> {print.exclusions}</p>}{print.conditions && <p><strong>Conditions :</strong> {print.conditions}</p>}{print.valid_until && <p>Valide jusqu'au {print.valid_until}</p>}
       {printDocs.length > 0 && <p className="mt-2"><strong>Pièces prévues pour le client (liste des noms, fichiers non inclus dans ce document) :</strong> {printDocs.join(", ")}</p>}</div></div>; }
   return <div>{canWrite && <Button className="mb-3" onClick={() => edit({ lines: [] })}><Plus className="mr-1 h-4 w-4" />Nouvelle soumission</Button>}
     <div className="grid gap-2">{rows.map((q) => <div key={q.id} className="rounded-lg border border-border bg-card p-3 text-sm">
       <p className="font-display font-bold">{q.number || "Soumission"} · {q.ent_crm_clients?.name ?? "Sans client"} · v{q.version} · <span className="uppercase">{q.status}</span></p>
-      <p className="text-xs">{q.taxes_applied ? <>Sous-total : {money(Number(q.subtotal))} · TPS : {money(q.tax_gst)} · TVQ : {money(q.tax_qst)} · <strong>Total : {money(q.total)}</strong></> : <>Estimé hors taxes : {money(Number(q.subtotal))}{q.status === "brouillon" ? " (taxes calculées à la remise si activées)" : " · taxes non appliquées"}</>} · Facturé : {money(q.invoiced_amount)} · Encaissé : {money(q.paid_amount)}</p>
+      <p className="text-xs">{q.tax_snapshot?.final ? <>Hors taxes : {money(Number(q.subtotal))} · TPS : {money(q.tax_gst)} · TVQ : {money(q.tax_qst)} · <strong>Total : {money(q.total)}</strong></> : q.status === "brouillon" && q.tax_snapshot ? <>Aperçu : {q.tax_snapshot.resolved ? <>total {money(q.tax_snapshot.total)} (non figé)</> : <span className="text-destructive">taxes à déterminer</span>}</> : q.taxes_applied ? <>Sous-total : {money(Number(q.subtotal))} · TPS : {money(q.tax_gst)} · TVQ : {money(q.tax_qst)} · <strong>Total : {money(q.total)}</strong></> : <>Estimé hors taxes : {money(Number(q.subtotal))}{q.status === "brouillon" ? " (taxes calculées à la remise si activées)" : " · taxes non appliquées"}</>} · Facturé : {money(q.invoiced_amount)} · Encaissé : {money(q.paid_amount)}</p>
       {q.accepted_at && <p className="text-xs text-muted-foreground">Acceptée par {q.accepted_by_name} ({q.accepted_source}) le {new Date(q.accepted_at).toLocaleString("fr-CA")}</p>}
       {q.shared_at && <p className="text-xs text-muted-foreground">Lien client créé le {new Date(q.shared_at).toLocaleString("fr-CA")}{q.client_viewed_at ? ` · consulté le ${new Date(q.client_viewed_at).toLocaleString("fr-CA")}` : " · pas encore consulté"}{q.client_response ? ` · réponse : ${q.client_response === "acceptee" ? "acceptée" : "refusée"} par ${q.client_response_name}` : ""}</p>}
       {q.client_response_note && <p className="text-xs">Commentaire du client : {q.client_response_note}</p>}
@@ -591,8 +602,8 @@ function Quotes({ companyId, companyName, canWrite }: any) {
   </div>;
 }
 
-const QUOTE_KEYS = ["client_id", "number", "lines", "inclusions", "exclusions", "conditions", "valid_until"] as const;
-const pickQuote = (q: any) => Object.fromEntries(QUOTE_KEYS.map((k) => [k, q[k] ?? (k === "lines" ? [] : "")]));
+const QUOTE_KEYS = ["client_id", "number", "prices_include_tax", "lines", "inclusions", "exclusions", "conditions", "valid_until"] as const;
+const pickQuote = (q: any) => Object.fromEntries(QUOTE_KEYS.map((k) => [k, q[k] ?? (k === "lines" ? [] : k === "prices_include_tax" ? false : "")]));
 function QuoteDialog({ quote, companyId, clients, services, tpls, onClose, onSaved }: any) {
   const { user: me } = useAuthReady(); const { canWrite } = useContext(CrmCtx);
   const [open, setOpen] = useState<any>({ lines: [], ...quote }); const [diff, setDiff] = useState<any[] | null>(null); const [stale, setStale] = useState<any>(null); const saving = useRef(false);
@@ -607,7 +618,7 @@ function QuoteDialog({ quote, companyId, clients, services, tpls, onClose, onSav
   });
   const edit = (v: any) => { crmDirty = companyId; setOpen(v); };
   useEffect(() => () => { crmDirty = null; }, []);
-  const save = async () => { if (saving.current) return; saving.current = true; try { const lines: QLine[] = open.lines ?? []; const row = { company_id: companyId, client_id: open.client_id || null, lead_id: open.lead_id || null, number: open.number || null, lines, inclusions: open.inclusions || null, exclusions: open.exclusions || null, conditions: open.conditions || null, valid_until: open.valid_until || null, subtotal: subtotal(lines), updated_at: new Date().toISOString() };
+  const save = async () => { if (saving.current) return; saving.current = true; try { const lines: QLine[] = open.lines ?? []; const row = { company_id: companyId, client_id: open.client_id || null, lead_id: open.lead_id || null, number: open.number || null, lines, prices_include_tax: !!open.prices_include_tax, inclusions: open.inclusions || null, exclusions: open.exclusions || null, conditions: open.conditions || null, valid_until: open.valid_until || null, subtotal: subtotal(lines), updated_at: new Date().toISOString() };
     const { error } = open.id ? await db.from("ent_crm_quotes").update(row).eq("id", open.id) : await db.from("ent_crm_quotes").insert(row);
     if (error) toast({ title: "Refusé — votre saisie est conservée", description: error.message, variant: "destructive" }); else { crmDirty = null; store.finalize(); onSaved(); } } finally { saving.current = false; } };
   const applyTpl = (id: string) => { const t = tpls.find((x) => x.id === id); if (!t) return; if ((open.lines ?? []).some((l: QLine) => l.desc) && !confirm("Remplacer les lignes actuelles par celles du modèle ?")) return;
@@ -628,17 +639,23 @@ function QuoteDialog({ quote, companyId, clients, services, tpls, onClose, onSav
         <select aria-label="Modèle" className={sel} value="" onChange={(e) => applyTpl(e.target.value)}><option value="">Partir d'un modèle métier…</option>{tpls.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
         <select aria-label="Ajouter une prestation" className={sel} value="" onChange={(e) => addService(e.target.value)}><option value="">+ Prestation de mon catalogue…</option>{services.map((s) => <option key={s.id} value={s.id}>{s.label} ({s.price == null ? "À renseigner" : money(Number(s.price))}/{unitLabel(s.unit)})</option>)}</select>
       </div>
-      {(open.lines as QLine[]).map((l, i) => <div key={i} className="grid grid-cols-[1fr_4rem_5.5rem_5.5rem_1.5rem] gap-1">
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!open.prices_include_tax} onChange={(e) => edit({ ...open, prices_include_tax: e.target.checked })} />Prix saisis taxes incluses</label>
+      {(open.lines as QLine[]).some((l) => !l.tax) && (open.lines as QLine[]).length > 0 && <div className="flex flex-wrap items-center gap-1 text-xs"><span>Lignes sans traitement fiscal :</span>{(["taxable", "detaxe", "exonere"] as const).map((t) => <Button key={t} size="sm" variant="outline" onClick={() => edit({ ...open, lines: open.lines.map((l: QLine) => l.tax ? l : { ...l, tax: t }) })}>Tout en {TREATMENT_LABEL[t].toLowerCase()}</Button>)}</div>}
+      {(open.lines as QLine[]).map((l, i) => <div key={i} className="space-y-1 rounded border border-border p-1"><div className="grid grid-cols-[1fr_4rem_5.5rem_5.5rem_1.5rem] gap-1">
         <Input aria-label="Description" placeholder={l.section ? `${l.section} — description` : "Description"} value={l.desc} onChange={(e) => { const lines = [...open.lines]; lines[i] = { ...l, desc: e.target.value }; edit({ ...open, lines }); }} />
         <Input aria-label="Quantité" type="number" placeholder="Qté" value={l.qty ?? ""} onChange={(e) => { const lines = [...open.lines]; lines[i] = { ...l, qty: e.target.value === "" ? null : Number(e.target.value) }; edit({ ...open, lines }); }} />
         <select aria-label="Unité" className="h-10 rounded-md border border-border bg-background px-1 text-xs" value={l.unit} onChange={(e) => { const lines = [...open.lines]; lines[i] = { ...l, unit: e.target.value }; edit({ ...open, lines }); }}>{UNITS.map((u) => <option key={u.v} value={u.v}>{u.l}</option>)}{!UNITS.some((u) => u.v === l.unit) && <option value={l.unit}>{l.unit}</option>}</select>
         <Input aria-label="Prix" type="number" placeholder="Prix" value={l.price ?? ""} onChange={(e) => { const lines = [...open.lines]; lines[i] = { ...l, price: e.target.value === "" ? null : Number(e.target.value) }; edit({ ...open, lines }); }} />
-        <button aria-label="Retirer la ligne" onClick={() => edit({ ...open, lines: open.lines.filter((_: any, j: number) => j !== i) })}>×</button></div>)}
+        <button aria-label="Retirer la ligne" onClick={() => edit({ ...open, lines: open.lines.filter((_: any, j: number) => j !== i) })}>×</button></div>
+        <div className="grid grid-cols-2 gap-1"><select aria-label="Traitement fiscal" className={`h-9 rounded-md border bg-background px-1 text-xs ${l.tax ? "border-border" : "border-destructive"}`} value={l.tax ?? "a_determiner"} onChange={(e) => { const lines = [...open.lines]; lines[i] = { ...l, tax: e.target.value }; edit({ ...open, lines }); }}>{(Object.keys(TREATMENT_LABEL) as (keyof typeof TREATMENT_LABEL)[]).map((t) => <option key={t} value={t}>{TREATMENT_LABEL[t]}</option>)}</select>
+        <Input aria-label="Rabais (%)" type="number" className="h-9 text-xs" placeholder="Rabais %" value={l.disc_pct ?? ""} onChange={(e) => { const lines = [...open.lines]; lines[i] = { ...l, disc_pct: e.target.value === "" ? null : Number(e.target.value) }; edit({ ...open, lines }); }} /></div></div>)}
       <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => edit({ ...open, lines: [...open.lines, { desc: "", qty: null, unit: "unite", price: null }] })}>+ Ligne libre</Button>
         {(open.lines as QLine[]).some((l) => l.service_id) && <Button variant="outline" size="sm" onClick={refreshPrices}>Actualiser les tarifs</Button>}</div>
       {diff && <div className="rounded border border-border p-2 text-xs"><p className="font-semibold">Différences avec le catalogue actuel :</p>{diff.map((d: any) => <p key={d.i}>{d.desc} : {d.old == null ? "À renseigner" : money(d.old)} → {d.next == null ? "À renseigner" : money(d.next)}</p>)}<div className="mt-1 flex gap-1"><Button size="sm" onClick={applyDiff}>Appliquer</Button><Button size="sm" variant="ghost" onClick={() => setDiff(null)}>Ignorer</Button></div></div>}
-      <p className="text-sm font-bold">Montant hors taxes : {money(subtotal(open.lines))}{incomplete(open.lines) > 0 && <span className="ml-1 text-xs font-normal text-destructive">({incomplete(open.lines)} ligne(s) à compléter)</span>}</p>
-      <p className="text-xs text-muted-foreground">Les taxes sont calculées et figées au moment de la remise, selon « Équipe et paramètres ».</p>
+      {preview && <TaxSummary r={preview} className="rounded border border-border p-2" />}
+      {gap && <p role="status" className="rounded border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Écart avec le dernier calcul enregistré : total {money(stored.total)} → {money(preview!.total)} (TPS {money(stored.gst)} → {money(preview!.gst)}, TVQ {money(stored.qst)} → {money(preview!.qst)}). Le nouveau calcul s'applique en enregistrant.</p>}
+      <p className="text-sm font-bold">Montant avant rabais : {money(subtotal(open.lines))}{incomplete(open.lines) > 0 && <span className="ml-1 text-xs font-normal text-destructive">({incomplete(open.lines)} ligne(s) à compléter)</span>}</p>
+      <p className="text-xs text-muted-foreground">Le serveur recalcule et fige les taxes à la remise selon le profil fiscal de votre entreprise (« Équipe et paramètres »).</p>
       <Textarea placeholder="Inclusions" value={open.inclusions ?? ""} onChange={(e) => edit({ ...open, inclusions: e.target.value })} />
       <Textarea placeholder="Exclusions" value={open.exclusions ?? ""} onChange={(e) => edit({ ...open, exclusions: e.target.value })} />
       <Textarea placeholder="Conditions / échéancier" value={open.conditions ?? ""} onChange={(e) => edit({ ...open, conditions: e.target.value })} />

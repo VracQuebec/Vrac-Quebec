@@ -18,7 +18,7 @@ export const FILE_MAX = 20 * 1024 * 1024;
 export const FILE_ACCEPT = ".jpg,.jpeg,.png,.webp,.heic,.pdf,image/jpeg,image/png,image/webp,image/heic,application/pdf";
 
 /** Ligne de soumission : les valeurs sont figées au moment de l'ajout. */
-export type QLine = { desc: string; qty: number | null; unit: string; price: number | null; section?: string; service_id?: string | null; price_at?: string | null };
+export type QLine = { desc: string; qty: number | null; unit: string; price: number | null; section?: string; service_id?: string | null; price_at?: string | null; disc_pct?: number | null; tax?: "taxable" | "detaxe" | "exonere" | "a_determiner" | null };
 
 export const DEFAULT_TEMPLATES: { trade: string; name: string; lines: QLine[]; inclusions: string; exclusions: string; conditions: string }[] = [
   { trade: "transport", name: "Transport de matériaux / location de camion", inclusions: "Transport entre l'origine et la destination indiquées.", exclusions: "Frais de disposition, attente au-delà du temps prévu.", conditions: "Quantités à confirmer à la livraison (billets de pesée).",
