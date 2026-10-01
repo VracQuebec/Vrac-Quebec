@@ -49,6 +49,9 @@ export type InvoicePdfData = {
   template: { color?: string | null; footer?: string | null; version?: number };
   logo?: { data: string; format: "PNG" | "JPEG"; w: number; h: number } | null;
   progress?: ProgressRecap | null;
+  /** FIN-09C2B1 — instantané figé de la retenue construction à taxes différées (factures TEST seulement). */
+  construction?: { base: number | string; gst: number | string; qst: number | string; ttc: number | string; current_part: number | string; immediate_gst: number | string; immediate_qst: number | string;
+    contractual_due?: string; contract_ref?: string; contract_date?: string; clause_ref?: string; basis?: string; release_condition?: string; mode?: string; pct?: number | string | null } | null;
   recurring?: { label?: string; contract_ref?: string | null; version?: number; scheduled_on?: string; service_from?: string | null; service_to?: string | null } | null;
 };
 type PP = { ht: number | string; total: number | string; pct?: number | string; cap?: number | string };
@@ -333,6 +336,30 @@ export function renderInvoicePdf(d: InvoicePdfData): jsPDF {
     }
     y += 3;
     rl.forEach((w) => {
+      T(w, M, y + 2);
+      y += 3.6;
+    });
+  }
+
+  // FIN-09C2B1 — Retenue de construction à taxes différées (instantané figé; jamais « taxe exigible » sur la part différée)
+  const cs = d.construction;
+  if (cs) {
+    const txt = [
+      `Retenue de construction (${cs.basis === "law" ? "prévue par la loi" : "convention écrite"} — contrat ${cs.contract_ref ?? ""} du ${cs.contract_date ?? ""}; clause : ${cs.clause_ref ?? ""}).`,
+      `Prix et taxes totaux facturés : voir ci-dessus (montants figés). Part payable à l'échéance de la facture : ${money(Number(cs.current_part))}.`,
+      `Somme retenue : ${money(Number(cs.ttc))} = base ${money(Number(cs.base))} + TPS ${money(Number(cs.gst))} + TVQ ${money(Number(cs.qst))}. La TPS/TVQ sur la somme retenue n'est pas exigible à la date de facture : elle le devient au paiement ou à la libération de la retenue, au plus tard à l'échéance contractuelle du ${cs.contractual_due ?? ""}.`,
+      `TPS/TVQ exigibles à la date de facture : ${money(Number(cs.immediate_gst))} / ${money(Number(cs.immediate_qst))}. Condition de libération : ${cs.release_condition ?? ""}.`,
+    ].flatMap((x) => wrap(x, W - 2 * M));
+    if (y + 6 + txt.length * 3.6 > H - FOOT - 4) {
+      doc.addPage();
+      y = header(false) + 2;
+    }
+    y += 3;
+    doc.setFont("helvetica", "bold");
+    T("Retenue de construction — taxes différées", M, y + 2);
+    y += 4;
+    doc.setFont("helvetica", "normal");
+    txt.forEach((w) => {
       T(w, M, y + 2);
       y += 3.6;
     });

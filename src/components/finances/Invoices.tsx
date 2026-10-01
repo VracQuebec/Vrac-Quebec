@@ -15,6 +15,7 @@ import { fmtDate, todayIn } from "@/lib/finances/period";
 import InvoiceReceipts, { type Sum } from "@/components/finances/InvoiceReceipts";
 import CreditNotes from "@/components/finances/CreditNotes";
 import Retentions from "@/components/finances/Retentions";
+import ConstructionIssueTest from "@/components/finances/ConstructionIssueTest";
 import ProgressPlanDialog, { ProgressPlans } from "@/components/finances/ProgressBilling";
 
 const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -55,7 +56,7 @@ async function pdfData(i: Inv, live?: { seller: Inv; template: Inv; tax: Inv; pr
   const client = frozen ? i.client_snapshot : { name: i.client_name, address: i.client_address, email: i.client_email, phone: i.client_phone };
   return { status: i.status, isTest: !!i.is_test, number: i.number, issueDate: i.issue_date, dueDate: i.due_date, terms: i.terms, projectName: live?.project ?? i.ent_crm_projects?.name ?? null,
     seller, client, lines: i.lines, tax: frozen ? i.tax_snapshot : live!.tax as InvoicePdfData["tax"], template: { color: tpl?.color ?? tpl?.brand_color, footer: tpl?.footer, version: tpl?.version ?? tpl?.template_version }, logo: await logoFor(tpl?.logo_path),
-    progress: frozen ? i.tax_snapshot?.progress ?? null : null, recurring: frozen ? i.tax_snapshot?.recurring ?? null : null };
+    progress: frozen ? i.tax_snapshot?.progress ?? null : null, recurring: frozen ? i.tax_snapshot?.recurring ?? null : null, construction: frozen ? i.tax_snapshot?.construction ?? null : null };
 }
 
 export default function Invoices({ companyId, canWrite }: { companyId: string; companyName: string; canWrite: boolean }) {
@@ -203,6 +204,7 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
     {!draft && <CreditNotes invoice={inv} companyId={companyId} canWrite={canWrite} onChanged={() => { setRefresh((n) => n + 1); void load(); onChanged(); }} />}
     {!draft && <InvoiceReceipts invoiceId={id} companyId={companyId} canWrite={canWrite} refreshKey={refresh} onSummary={setBal} onChanged={() => { setRefresh((n) => n + 1); void load(); onChanged(); }} />}
     {!draft && <Retentions key={`${companyId}|${id}`} invoiceId={id} companyId={companyId} canWrite={canWrite} refreshKey={refresh} onChanged={() => { setRefresh((n) => n + 1); void load(); onChanged(); }} />}
+    {draft && !!inv.is_test && canWrite && <ConstructionIssueTest key={`${companyId}|${id}`} invoiceId={id} companyId={companyId} canWrite={canWrite} beforePreview={save} onIssued={() => { void load(); onChanged(); }} />}
     {quote && <p className="text-xs text-muted-foreground">Créée depuis la soumission {quote.number ?? ""} v{quote.version} (soumission inchangée).</p>}
     {inv.tax_snapshot?.recurring && <p className="text-xs text-muted-foreground">Facture récurrente « {inv.tax_snapshot.recurring.label} »{inv.tax_snapshot.recurring.contract_ref ? ` (contrat ${inv.tax_snapshot.recurring.contract_ref})` : ""}, version {inv.tax_snapshot.recurring.version}, occurrence prévue le {inv.tax_snapshot.recurring.scheduled_on}{inv.tax_snapshot.recurring.service_from ? `, service du ${inv.tax_snapshot.recurring.service_from} au ${inv.tax_snapshot.recurring.service_to}` : ""}.</p>}
     {inv.tax_snapshot?.progress && <p className="text-xs text-muted-foreground">Facture de facturation progressive ({inv.tax_snapshot.progress.kind === "acompte" ? "acompte" : inv.tax_snapshot.progress.kind === "solde" ? "solde final" : "situation"} n° {inv.tax_snapshot.progress.seq}, cumul {inv.tax_snapshot.progress.cum?.pct} % de la soumission {inv.tax_snapshot.progress.quote_number ?? ""}). Récapitulatif dans le PDF.</p>}
