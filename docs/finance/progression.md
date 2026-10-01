@@ -1,6 +1,6 @@
 # Progression Finances
 
-Mode de travail : un lot validé, puis publication confirmée avant le suivant. Publication déclenchée par ChatGPT, autorisée par l'utilisateur après chaque lot validé.
+Mode de travail : un lot validé, puis publication confirmée avant le suivant. ANCIEN mode (2026-10-01, historique) : publication déclenchée par ChatGPT, autorisée par l'utilisateur après chaque lot validé. NOUVEAU mode depuis REPRISE-01 (2026-10-01) : ChatGPT prépare les prompts, l'utilisateur les copie-colle lui-même dans Lovable; chaque prompt autorise uniquement le périmètre qu'il décrit; aucune publication sans instruction explicite de l'utilisateur; les anciennes autorisations autonomes sont historiques, non actives.
 Abonnements, connexion bancaire et envois réels (courriel, texto, push) : jamais activés par ces travaux.
 
 ## FIN-08B — Encaissements reliés aux factures (2026-10-01)
