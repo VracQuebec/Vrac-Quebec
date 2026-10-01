@@ -33,19 +33,22 @@ export default function ProgressPlanDialog({ planId, companyId, canWrite, onClos
   const [draft, setDraft] = useState<{ key: string; rev: number | null } | null>(null); // brouillon serveur repris ou créé
   const [preview, setPreview] = useState<P.Situation | null>(null); // aperçu valide pour le formulaire affiché
   const [pending, setPending] = useState<{ id: string; key: string; rev: number; hash: string } | null>(null); // rejeu après réponse perdue
+  const [abandonOpen, setAbandonOpen] = useState(false); const [reason, setReason] = useState("");
+  const [pendingAb, setPendingAb] = useState<{ id: string; key: string; reason: string; rev: number; hash: string } | null>(null); // rejeu exact de l'abandon
   const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);
   const gen = useRef(0); // contexte (dossier/entreprise) : toute réponse d'un ancien contexte est ignorée
   const seq = useRef(0); // ordre des lectures du résumé
+  const formRev = useRef(0); // version du formulaire : un aperçu ne vaut que pour la saisie envoyée
 
   const load = useCallback(async () => {
     const q = ++seq.current; setLoadErr(null);
     try { const s = await P.summary(planId); if (q === seq.current) setSum(s); } catch (e) { if (q === seq.current) setLoadErr((e as Error).message); }
   }, [planId]);
-  useEffect(() => { gen.current++; setSum(null); setDraft(null); setPreview(null); setPending(null); setBusy(false); setErr(null); void load(); return () => { gen.current++; seq.current++; }; }, [load, companyId]);
+  useEffect(() => { gen.current++; formRev.current++; setSum(null); setDraft(null); setPreview(null); setPending(null); setPendingAb(null); setAbandonOpen(false); setReason(""); setBusy(false); setErr(null); void load(); return () => { gen.current++; seq.current++; }; }, [load, companyId]);
 
   const active = sum?.situations.find((s) => s.status === "brouillon") ?? null;
-  const edit = (p: Partial<Form>) => { setForm((f) => ({ ...f, ...p })); setPreview(null); setPending(null); setErr(null); };
-  const resume = () => { if (!active) return; setForm({ kind: active.kind, mode: active.mode, value: active.kind === "solde" ? "" : active.value.replace(".", ","), issue: active.issue_date ?? todayIn(), due: active.due_date ?? "" });
+  const edit = (p: Partial<Form>) => { if (busy) return; formRev.current++; setForm((f) => ({ ...f, ...p })); setPreview(null); setPending(null); setErr(null); };
+  const resume = () => { if (!active || busy) return; formRev.current++; setForm({ kind: active.kind, mode: active.mode, value: active.kind === "solde" ? "" : active.value.replace(".", ","), issue: active.issue_date ?? todayIn(), due: active.due_date ?? "" });
     setDraft({ key: active.draft_key, rev: active.rev }); setPreview(active); setPending(null); setErr(null); };
 
   const doPreview = async () => {
@@ -54,10 +57,13 @@ export default function ProgressPlanDialog({ planId, companyId, canWrite, onClos
     if (form.kind !== "solde" && value == null) { setErr("Cumul invalide : nombre positif, au plus 2 décimales (ex. 30 ou 1 250,50)."); return; }
     if (active && !draft) { setErr("Un brouillon existe déjà : reprenez-le ou abandonnez-le."); return; }
     const d = draft ?? { key: P.newKey(), rev: null }; if (!draft) setDraft(d);
-    const g = gen.current; setBusy(true);
+    const g = gen.current; const fr = formRev.current; setBusy(true);
     try {
       const s = await P.saveDraft({ plan: planId, key: d.key, kind: form.kind, mode: form.mode, value, issue: form.issue, due: form.due, baseRev: d.rev });
-      if (g !== gen.current) return; setDraft({ key: d.key, rev: s.rev }); setPreview(s); void load();
+      if (g !== gen.current) return; setDraft({ key: d.key, rev: s.rev });
+      if (fr !== formRev.current) { setPreview(null); setErr("La saisie a changé pendant l'aperçu : refaites l'aperçu."); }
+      else setPreview(s);
+      void load();
     } catch (e) { if (g === gen.current) setErr((e as Error).message); } finally { if (g === gen.current) setBusy(false); }
   };
   const doIssue = async () => {
@@ -66,18 +72,27 @@ export default function ProgressPlanDialog({ planId, companyId, canWrite, onClos
     const g = gen.current; setBusy(true); setErr(null);
     try {
       const r = await P.issue(req.id, req.key, req.rev, req.hash); if (g !== gen.current) return;
-      setPending(null); setPreview(null); setDraft(null); setForm({ kind: "situation", mode: form.mode, value: "", issue: todayIn(), due: "" });
-      await load(); onChanged(); setErr(null); window.alert(`Facture ${r.number} ${r.already ? "déjà émise" : "émise"}. Émise ne veut pas dire envoyée.`);
+      formRev.current++; setPending(null); setPreview(null); setDraft(null); setForm({ kind: "situation", mode: form.mode, value: "", issue: todayIn(), due: "" });
+      await load(); if (g !== gen.current) return;
+      onChanged(); setErr(null); window.alert(`Facture ${r.number} ${r.already ? "déjà émise" : "émise"}. Émise ne veut pas dire envoyée.`);
     } catch (e) { if (g !== gen.current) return; const x = e as Error & { code?: string };
       if (x.code === "P0409") { setPending(null); setPreview(null); setErr(`${x.message} Aucune émission automatique : refaites l'aperçu.`); void load(); }
       else setErr(`${x.message} Vous pouvez réessayer : la même demande sera renvoyée (aucun doublon).`);
     } finally { if (g === gen.current) setBusy(false); }
   };
   const doAbandon = async () => {
-    if (!active || busy) return; const reason = window.prompt("Motif de l'abandon du brouillon (conservé dans l'historique) :") ?? ""; if (!reason.trim()) return;
-    const g = gen.current; setBusy(true); setErr(null);
-    try { await P.abandon(active.id, P.newKey(), reason); if (g !== gen.current) return; setDraft(null); setPreview(null); setPending(null); await load(); onChanged(); }
-    catch (e) { if (g === gen.current) setErr((e as Error).message); } finally { if (g === gen.current) setBusy(false); }
+    if (busy) return;
+    const req = pendingAb ?? (active && reason.trim() ? { id: active.id, key: P.newKey(), reason: reason.trim(), rev: active.rev, hash: active.hash } : null);
+    if (!req) { setErr("Motif d'abandon requis."); return; }
+    setPendingAb(req); const g = gen.current; setBusy(true); setErr(null);
+    try {
+      await P.abandon(req.id, req.key, req.reason, req.rev, req.hash); if (g !== gen.current) return;
+      formRev.current++; setPendingAb(null); setAbandonOpen(false); setReason(""); setDraft(null); setPreview(null); setPending(null);
+      await load(); if (g !== gen.current) return; onChanged();
+    } catch (e) { if (g !== gen.current) return; const x = e as Error & { code?: string };
+      if (x.code === "P0409") { setPendingAb(null); setAbandonOpen(false); setDraft(null); setPreview(null); setErr(`${x.message} Le brouillon actuel a été rechargé : vérifiez-le avant toute action.`); void load(); }
+      else setErr(`${x.message} Vous pouvez réessayer : le même abandon sera renvoyé (même motif, aucune autre clé).`);
+    } finally { if (g === gen.current) setBusy(false); }
   };
 
   if (loadErr) return <Dialog open onOpenChange={onClose}><DialogContent><p role="alert">Dossier illisible : {loadErr}</p><Button onClick={load}>Réessayer</Button></DialogContent></Dialog>;
