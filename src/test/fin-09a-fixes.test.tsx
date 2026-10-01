@@ -101,7 +101,7 @@ describe("FIN-09A correctifs — fiche ouverte", () => {
     await screen.findAllByText(/749,75/);
     await openAmount("200");
     fireEvent.click(await screen.findByText(/Émettre la note de crédit/));
-    await waitFor(() => expect(screen.getByText(/net à recevoir 519,80/)).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText(/net à recevoir 519,80/).length).toBe(2)); // fiche (source commune) + encaissements
     expect(screen.getByText(/notes de crédit − 229,95/)).toBeTruthy();
     expect(screen.queryByText(/net à recevoir 749,75/)).toBeNull();
   });
