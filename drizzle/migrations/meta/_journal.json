@@ -694,6 +694,13 @@
       "when": 1790833136681,
       "tag": "0098_fin09b2_fix_ambiguous_id",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1790833197277,
+      "tag": "0099_fin09b2_lines_solde_value",
+      "breakpoints": true
     }
   ]
 }
