@@ -16,7 +16,7 @@ type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const money = (n?: number | string | null) => n == null ? "—" : Number(n).toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
 const stamp = (d?: string | null) => d ? new Date(d).toLocaleString("fr-CA", { timeZone: "America/Toronto" }) : "—";
 const msg = (e: unknown) => (e as Error)?.message ?? "Erreur";
-const ACTION: Record<string, string> = { create: "Retenue créée", release: "Libération", void: "Retenue annulée", release_void: "Libération annulée" };
+const ACTION: Record<string, string> = { create: "Retenue créée", release: "Libération", void: "Retenue annulée", release_void: "Libération annulée", create_construction: "Retenue construction (TEST) créée à l'émission", tax_due_review: "Revue d'exigibilité : échéance atteinte" };
 
 export default function Retentions({ invoiceId, companyId, canWrite, refreshKey = 0, onChanged }: { invoiceId: string; companyId: string; canWrite: boolean; refreshKey?: number; onChanged: () => void }) {
   const { user } = useAuthReady();
@@ -25,6 +25,7 @@ export default function Retentions({ invoiceId, companyId, canWrite, refreshKey 
   const [pv, setPv] = useState<{ sig: string; data: J } | null>(null); const [confirm, setConfirm] = useState<string | null>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null); const [conflict, setConflict] = useState(false);
   const [rel, setRel] = useState<{ id: string; amount: string; date: string; reason: string } | null>(null);
+  const [evOn, setEvOn] = useState<string>(todayIn());
   const createKey = useRef<{ sig: string; key: string } | null>(null); const actKey = useRef<{ sig: string; key: string } | null>(null);
   const guard = useRef(makeGuard()).current;
   const cb = useRef(onChanged); cb.current = onChanged;
@@ -102,6 +103,7 @@ export default function Retentions({ invoiceId, companyId, canWrite, refreshKey 
       <dt>Part exigible courante</dt><dd className="font-semibold">{money(p.current_due)}</dd><dt>Part retenue</dt><dd>{money(p.held)}</dd>
       <dt>Libérées</dt><dd>{money(p.released)}</dd>
     </dl>}
+    {p && Number(p.held) > 0 && (s?.retentions ?? []).some((r: J) => r.kind === "construction_differee") && <p className="text-xs">Solde payable et exigibilité fiscale sont distincts : voir l'état fiscal préparatoire de la retenue construction ci-dessous.</p>}
     <p className="text-xs text-muted-foreground">Une retenue n'est ni un avoir ni un paiement ni une réduction du prix : la facture, ses taxes et son PDF restent inchangés.</p>
     {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
     {conflict && <p role="status" className="text-xs">Version serveur rechargée. Votre saisie est conservée : refaites l'aperçu pour la réappliquer.</p>}
@@ -137,8 +139,12 @@ export default function Retentions({ invoiceId, companyId, canWrite, refreshKey 
     {(s?.retentions ?? []).map((r: J) => <div key={r.id} className="rounded border border-border p-2 text-sm">
       <p><strong>{money(r.amount)}</strong>{r.mode === "percent" ? ` (${String(r.pct).replace(".", ",")} % de ${money(r.base_amount)})` : ""} · {r.status === "annulee" ? `annulée le ${stamp(r.voided_at)} — ${r.void_reason}` : `reste retenu ${money(r.rest)}`}</p>
       <p className="text-xs text-muted-foreground">Motif : {r.reason}{r.contract_ref ? ` · contrat ${r.contract_ref}` : ""} · condition : {r.release_condition} · {r.planned_release ? `libération prévue ${r.planned_release}` : "date de libération à compléter"} · créée {stamp(r.created_at)}</p>
+      {r.ctax && <CtaxState c={r.ctax} />}
+      {r.ctax && canWrite && r.status === "active" && Number(r.ctax.deferred?.ttc) > 0 && <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+        <label>Revue à la date<Input aria-label="Date de revue d'exigibilité" type="date" className="h-8 w-40" value={evOn} onChange={(e) => setEvOn(e.target.value)} /></label>
+        <Button size="sm" variant="outline" disabled={busy || !/^\d{4}-\d{2}-\d{2}$/.test(evOn)} onClick={() => void act({ t: "ev", id: r.id, on: evOn, rev: r.rev }, (key) => RT.evaluate(r.id, key, evOn, r.rev))}>Évaluer l'exigibilité (aucun encaissement)</Button></div>}
       <ul className="text-xs">{(r.releases ?? []).map((l: J) => <li key={l.id}>Libération {money(l.amount)} le {l.released_on} — {l.reason}{l.voided_at ? ` (annulée : ${l.void_reason})` : ""}
-        {canWrite && r.status === "active" && !l.voided_at && <Button size="sm" variant="ghost" disabled={busy} onClick={() => askVoid("rel", l.id, r.rev)}>Annuler</Button>}</li>)}</ul>
+        {canWrite && r.status === "active" && !l.voided_at && r.kind !== "construction_differee" && <Button size="sm" variant="ghost" disabled={busy} onClick={() => askVoid("rel", l.id, r.rev)}>Annuler</Button>}</li>)}</ul>
       {canWrite && r.status === "active" && (Number(r.rest) > 0 && rel?.id === r.id
         ? <div className="mt-1 grid gap-1 sm:grid-cols-4">
             <Input aria-label="Montant à libérer" inputMode="decimal" value={rel.amount} onChange={(e) => setRel({ ...rel, amount: e.target.value })} />
@@ -146,8 +152,20 @@ export default function Retentions({ invoiceId, companyId, canWrite, refreshKey 
             <Input aria-label="Motif de libération" value={rel.reason} onChange={(e) => setRel({ ...rel, reason: e.target.value })} />
             <Button size="sm" disabled={busy} onClick={() => doRelease(r)}>Libérer</Button></div>
         : <span className="flex gap-2">{Number(r.rest) > 0 && <Button size="sm" variant="outline" disabled={busy} onClick={() => { setRel({ id: r.id, amount: String(r.rest).replace(".", ","), date: todayIn(), reason: "" }); actKey.current = null; }}>Libérer…</Button>}
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => askVoid("ret", r.id, r.rev)}>Annuler la retenue</Button></span>)}
+            {r.kind !== "construction_differee" && <Button size="sm" variant="ghost" disabled={busy} onClick={() => askVoid("ret", r.id, r.rev)}>Annuler la retenue</Button>}</span>)}
     </div>)}
     {(s?.events ?? []).length > 0 && <details className="text-xs"><summary>Journal</summary><ul>{s.events.map((e: J) => <li key={e.id}>{stamp(e.at)} — {ACTION[e.action] ?? e.action}{e.detail?.amount != null ? ` ${money(e.detail.amount)}` : ""}{e.detail?.reason ? ` : ${e.detail.reason}` : ""}</li>)}</ul></details>}
   </section>;
+}
+
+/** FIN-09C2B1 — état fiscal PRÉPARATOIRE d'une retenue construction (instantané figé + exigibilité constatée). */
+function CtaxState({ c }: { c: J }) {
+  const sn = c.snapshot ?? {};
+  return <div data-testid="ctax-state" className="mt-1 rounded border border-dashed border-border p-2 text-xs">
+    <p className="font-medium">TEST — retenue de construction à taxes différées (état préparatoire, aucune déclaration ni remise)</p>
+    <p>Facture : TPS {money(sn.invoice_gst)} · TVQ {money(sn.invoice_qst)} (montants figés). Exigibles à l'émission : TPS {money(sn.immediate_gst)} · TVQ {money(sn.immediate_qst)}.</p>
+    <p>Retenue : base HT {money(sn.base)} + TPS {money(sn.gst)} + TVQ {money(sn.qst)} = {money(sn.ttc)} · échéance contractuelle {sn.contractual_due} · {sn.basis === "law" ? "prévue par la loi" : "convention écrite"} ({sn.contract_ref}, {sn.contract_date}; clause : {sn.clause_ref})</p>
+    <p>Taxes de la retenue devenues exigibles : TPS {money(c.exigible?.gst)} · TVQ {money(c.exigible?.qst)} · encore différées : TPS {money(c.deferred?.gst)} · TVQ {money(c.deferred?.qst)}</p>
+    {(c.events ?? []).length > 0 && <ul>{c.events.map((e: J) => <li key={e.id}>{e.source === "echeance" ? "Échéance contractuelle" : "Libération effective"} — exigible le {e.exigible_on} : {money(e.ttc)} (base {money(e.base)}, TPS {money(e.gst)}, TVQ {money(e.qst)})</li>)}</ul>}
+  </div>;
 }

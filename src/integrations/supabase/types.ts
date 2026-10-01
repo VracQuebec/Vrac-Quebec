@@ -5959,6 +5959,92 @@ export type Database = {
           },
         ]
       }
+      fin_retention_tax_events: {
+        Row: {
+          base: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          cum_ttc: number
+          exigible_on: string
+          gst: number
+          id: string
+          idem_key: string | null
+          invoice_id: string
+          qst: number
+          release_id: string | null
+          request_hash: string | null
+          retention_id: string
+          source: string
+          ttc: number
+        }
+        Insert: {
+          base: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          cum_ttc: number
+          exigible_on: string
+          gst: number
+          id?: string
+          idem_key?: string | null
+          invoice_id: string
+          qst: number
+          release_id?: string | null
+          request_hash?: string | null
+          retention_id: string
+          source: string
+          ttc: number
+        }
+        Update: {
+          base?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          cum_ttc?: number
+          exigible_on?: string
+          gst?: number
+          id?: string
+          idem_key?: string | null
+          invoice_id?: string
+          qst?: number
+          release_id?: string | null
+          request_hash?: string | null
+          retention_id?: string
+          source?: string
+          ttc?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_retention_tax_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_retention_tax_events_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_retention_tax_events_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "fin_retention_releases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_retention_tax_events_retention_id_fkey"
+            columns: ["retention_id"]
+            isOneToOne: false
+            referencedRelation: "fin_retentions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_retentions: {
         Row: {
           amount: number
@@ -5967,6 +6053,7 @@ export type Database = {
           contract_ref: string | null
           created_at: string
           created_by: string | null
+          ctax_snapshot: Json | null
           id: string
           idem_key: string
           invoice_id: string
@@ -5993,6 +6080,7 @@ export type Database = {
           contract_ref?: string | null
           created_at?: string
           created_by?: string | null
+          ctax_snapshot?: Json | null
           id?: string
           idem_key: string
           invoice_id: string
@@ -6019,6 +6107,7 @@ export type Database = {
           contract_ref?: string | null
           created_at?: string
           created_by?: string | null
+          ctax_snapshot?: Json | null
           id?: string
           idem_key?: string
           invoice_id?: string
@@ -23717,6 +23806,23 @@ export type Database = {
         Returns: undefined
       }
       fin_confirm_unsettled: { Args: { _occ: string }; Returns: undefined }
+      fin_construction_evaluate: {
+        Args: {
+          _expect_rev: number
+          _key: string
+          _on: string
+          _retention: string
+        }
+        Returns: Json
+      }
+      fin_construction_issue: {
+        Args: { _expect_hash: string; _invoice: string; _key: string; _p: Json }
+        Returns: Json
+      }
+      fin_construction_preview: {
+        Args: { _invoice: string; _p: Json }
+        Returns: Json
+      }
       fin_credit_compute: {
         Args: { _exclude: string; _invoice: string; _items: Json }
         Returns: Json
@@ -23764,6 +23870,16 @@ export type Database = {
       fin_credit_set_pdf: {
         Args: { _id: string; _path: string }
         Returns: undefined
+      }
+      fin_ctax_alloc: { Args: { _cum: number; _s: Json }; Returns: Json }
+      fin_ctax_date: { Args: { _t: string }; Returns: string }
+      fin_ctax_state: { Args: { _retention: string }; Returns: Json }
+      fin_ctax_validate: {
+        Args: {
+          _i: Database["public"]["Tables"]["fin_invoices"]["Row"]
+          _p: Json
+        }
+        Returns: Json
       }
       fin_digest_at: {
         Args: { _digest: string; _now: string }

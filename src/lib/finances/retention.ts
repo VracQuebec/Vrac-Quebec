@@ -11,7 +11,7 @@ type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 export type RetKind = "taxes_exigibles" | "construction_differee";
 export type RetForm = { kind: RetKind; mode: "amount" | "percent"; amount: string; pct: string; reason: string; contract_ref: string; planned_release: string; release_condition: string };
 export const EMPTY_RET: RetForm = { kind: "taxes_exigibles", mode: "amount", amount: "", pct: "", reason: "", contract_ref: "", planned_release: "", release_condition: "" };
-export const CONSTRUCTION_BLOCK = "Retenue de construction avec taxes différées : non prise en charge ici. Pour un contrat de construction admissible, la TPS/TVQ sur la somme retenue est perçue à la première date où elle est payée ou exigible (Revenu Québec) — alors que cette facture a déjà figé ses taxes. Ce cas reste à valider (sous-lot FIN-09C2 restant).";
+export const CONSTRUCTION_BLOCK = "Retenue de construction avec taxes différées : non prise en charge ici. Pour un contrat de construction admissible, la TPS/TVQ sur la somme retenue est perçue à la première date où elle est payée ou exigible (Revenu Québec) — alors que cette facture a déjà figé ses taxes. Ce cas reste à valider (sous-lot FIN-09C2 restant). Chemin préparatoire FIN-09C2B1 : factures TEST seulement, à choisir AVANT l'émission depuis le brouillon.";
 export const REVENU_QC = "https://www.revenuquebec.ca/fr/entreprises/taxes/tpstvh-et-tvq/perception-de-la-tps-et-de-la-tvq/moment-ou-la-tpstvh-et-la-tvq-doivent-etre-percues/";
 
 /** Formulaire → charge utile serveur (montants fr-CA canonisés, jamais de 0 implicite) ou erreurs locales. Validation finale : serveur. */
@@ -61,3 +61,28 @@ export const create = (invoice: string, key: string, p: J, hash: string) => call
 export const release = (ret: string, key: string, amount: string, date: string, reason: string, rev: number) => call("fin_retention_release", { _retention: ret, _key: key, _amount: amount, _date: date, _reason: reason, _expect_rev: rev });
 export const voidRetention = (ret: string, key: string, reason: string, rev: number) => call("fin_retention_void", { _retention: ret, _key: key, _reason: reason, _expect_rev: rev });
 export const voidRelease = (rel: string, key: string, reason: string, rev: number) => call("fin_retention_release_void", { _release: rel, _key: key, _reason: reason, _expect_rev: rev });
+
+// FIN-09C2B1 — retenue construction à taxes différées, PRÉPARATOIRE, factures TEST seulement, choisie avant émission.
+export type CtaxForm = { mode: "amount" | "percent"; amount: string; pct: string; reason: string; basis: "" | "law" | "written_agreement"; works: string;
+  contract_ref: string; contract_date: string; clause_ref: string; release_condition: string; contractual_due: string; test_confirm: boolean };
+export const EMPTY_CTAX: CtaxForm = { mode: "percent", amount: "", pct: "", reason: "", basis: "", works: "", contract_ref: "", contract_date: "", clause_ref: "", release_condition: "", contractual_due: "", test_confirm: false };
+export const WORKS: Record<string, string> = { construction: "Construction", renovation: "Rénovation", transformation: "Transformation", reparation: "Réparation d'un immeuble", navire: "Navire" };
+const isDate = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d + "T00:00:00Z")) && new Date(d + "T00:00:00Z").toISOString().slice(0, 10) === d;
+
+/** Formulaire → charge utile serveur (chaînes canoniques; rien de déduit; vide ≠ 0). Validation finale : serveur. */
+export function ctaxPayload(f: CtaxForm): { ok: boolean; p: J; errors: string[] } {
+  const errors: string[] = []; const p: J = { mode: f.mode };
+  if (f.mode === "amount") { const a = decFr(f.amount, 2); if (a == null || Number(a) <= 0) errors.push("Montant HT retenu positif requis (2 décimales au plus)"); else p.amount = a; }
+  else { const v = decFr(f.pct, 4); if (v == null || Number(v) <= 0 || Number(v) > 100) errors.push("Pourcentage HT de plus de 0 à 100 requis"); else p.pct = v; }
+  if (f.basis !== "law" && f.basis !== "written_agreement") errors.push("Fondement requis : loi ou convention écrite"); else p.basis = f.basis;
+  if (!WORKS[f.works]) errors.push("Nature des travaux requise"); else p.works = f.works;
+  for (const [k, l] of [["reason", "Motif"], ["contract_ref", "Référence du contrat"], ["clause_ref", "Clause ou preuve documentaire"], ["release_condition", "Condition de libération"]] as const) {
+    const v = f[k].trim(); if (!v) errors.push(`${l} requis(e)`); else p[k] = v; }
+  if (!isDate(f.contract_date)) errors.push("Date du contrat requise"); else p.contract_date = f.contract_date;
+  if (!isDate(f.contractual_due)) errors.push("Échéance contractuelle requise"); else p.contractual_due = f.contractual_due;
+  if (!f.test_confirm) errors.push("Confirmez le mode TEST préparatoire"); else p.test_confirm = "oui";
+  return { ok: errors.length === 0, p, errors };
+}
+export const ctaxPreview = (invoice: string, p: J) => call("fin_construction_preview", { _invoice: invoice, _p: p });
+export const ctaxIssue = (invoice: string, key: string, p: J, hash: string) => call("fin_construction_issue", { _invoice: invoice, _key: key, _p: p, _expect_hash: hash });
+export const evaluate = (ret: string, key: string, on: string, rev: number) => call("fin_construction_evaluate", { _retention: ret, _key: key, _on: on, _expect_rev: rev });
