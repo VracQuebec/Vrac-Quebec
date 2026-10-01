@@ -181,3 +181,10 @@ HEAD 2c986097542e9ea23d3ccb6c99895f2e0240f5ce, déploiement 7fa7828c-3b83-4be4-9
 - Écran : aperçu/confirmation/clé liés au contenu visible de la facture (toute modification les retire); facture verrouillée pendant l'aperçu/émission construction; conflit = saisie conservée + rechargement. Affichage retenue construction « TTC = base HT (x % de … HT) + TPS + TVQ ». PDF : section paginée ligne par ligne avec titre « (suite) » (PDF fictif aux textes maximaux rendu en images et inspecté : 2 pages, pied de page dégagé).
 - Preuves : tests ciblés 9/9, suite Finances 121 réussis / 13 ignorés, types et build code 0, sitemap remis à f23b865 (diff nul, 2528 URL uniques).
 - NON VÉRIFIÉ : l'essai serveur TEST (vérification exhaustive des cumuls 0..11 498, libération 4,48 puis 0,01, ordre inverse, dates avant facture, rejeux) n'a pas pu être exécuté — base de données injoignable pendant la passe. À exécuter avant toute publication.
+
+### FIN-09C2B1 — passe 2026-10-01 (dépassement bigint fin_ctax_alloc)
+- Défaut : 0110 calcule w×c en bigint ; à 500 000 000 HT / 25 000 000 TPS / 49 875 000 TVQ, produit ≈ 2,87e21 > 9,22e18 (dépassement).
+- Correctif préparé (même méthode à diviseur, même ordre d'égalité, numeric exact, div entière) : docs/finance/pending/0111_fin09c2b1_alloc_numeric.sql — NON APPLIQUÉ.
+- Base : une seule tentative, refusée (« EAUTHQUERY authentication query failed: connection to database not available »). Aucun essai serveur exécuté.
+- Exécuté réellement : vérification hors base (entiers exacts Python, algorithme identique) — 100/5/9.98 cumuls 0..11498 monotones/bornés/somme exacte (4.48 → 3.90/.19/.39, 4.49 → 3.91/.19/.39, aucune TVQ négative) ; petits instantanés exhaustifs ; gros montant aux frontières ; bornes numeric(14,2).
+- Restant avant publication : appliquer 0111, puis essai TEST annulé (exhaustif, gros montants, chronologie datée passée, rejeux/mismatch, facture réelle refusée, une entrée trésorerie, accès directs refusés, nettoyage/profil).
