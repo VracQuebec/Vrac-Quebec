@@ -27,6 +27,7 @@ import Treasury from "@/components/finances/Treasury";
 import Reminders from "@/components/finances/Reminders";
 import Invoices from "@/components/finances/Invoices";
 import RecurringInvoices from "@/components/finances/RecurringInvoices";
+import ClientAccounts from "@/components/finances/ClientAccounts";
 
 type Tab = "factures" | "tresorerie" | "rappels" | "apercu" | "calendrier" | "apayer" | "reglements" | "moyennes" | "parametres";
 const TABS: { v: Tab; l: string }[] = [{ v: "apercu", l: "Vue d'ensemble" }, { v: "calendrier", l: "Calendrier" }, { v: "apayer", l: "À payer" }, { v: "reglements", l: "Règlements" }, { v: "moyennes", l: "Moyennes et équivalents" }, { v: "factures", l: "Factures" }, { v: "tresorerie", l: "Trésorerie" }, { v: "rappels", l: "Rappels" }, { v: "parametres", l: "Paramètres" }];
@@ -103,10 +104,10 @@ export default function EntrepreneurFinances({ admin = false }: { admin?: boolea
 }
 
 function InvoicesTab({ companyId, companyName, canWrite }: { companyId: string; companyName: string; canWrite: boolean }) {
-  const [sub, setSub] = useState<"factures" | "recurrences">(() => new URLSearchParams(window.location.search).get("sous") === "recurrences" ? "recurrences" : "factures");
+  const [sub, setSub] = useState<"factures" | "recurrences" | "comptes">(() => { const s = new URLSearchParams(window.location.search).get("sous"); return s === "recurrences" || s === "comptes" ? s : "factures"; });
   return <div className="space-y-3">
-    <div role="tablist" className="flex gap-2">{([["factures", "Factures"], ["recurrences", "Récurrences"]] as const).map(([v, l]) => <Button key={v} role="tab" aria-selected={sub === v} size="sm" variant={sub === v ? "default" : "outline"} onClick={() => { setSub(v); const q = new URLSearchParams(window.location.search); if (v === "recurrences") q.set("sous", v); else ["sous", "rec", "occ", "rec_form"].forEach((k) => q.delete(k)); window.history.replaceState(window.history.state, "", `${window.location.pathname}?${q}`); }}>{l}</Button>)}</div>
-    {sub === "factures" ? <Invoices companyId={companyId} companyName={companyName} canWrite={canWrite} /> : <RecurringInvoices companyId={companyId} canWrite={canWrite} />}
+    <div role="tablist" className="flex flex-wrap gap-2">{([["factures", "Factures"], ["recurrences", "Récurrences"], ["comptes", "Comptes clients"]] as const).map(([v, l]) => <Button key={v} role="tab" aria-selected={sub === v} size="sm" variant={sub === v ? "default" : "outline"} onClick={() => { setSub(v); const q = new URLSearchParams(window.location.search); if (v !== "factures") q.set("sous", v); else q.delete("sous"); if (v !== "recurrences") ["rec", "occ", "rec_form"].forEach((k) => q.delete(k)); window.history.replaceState(window.history.state, "", `${window.location.pathname}?${q}`); }}>{l}</Button>)}</div>
+    {sub === "factures" ? <Invoices companyId={companyId} companyName={companyName} canWrite={canWrite} /> : sub === "recurrences" ? <RecurringInvoices companyId={companyId} canWrite={canWrite} /> : <ClientAccounts key={companyId} companyId={companyId} canWrite={canWrite} />}
   </div>;
 }
 
