@@ -217,4 +217,36 @@ describe("FIN-09C1 relecture — écrans simulés", () => {
     expect(window.location.search).toContain("occ=o1");
     window.history.replaceState(null, "", "/");
   });
+
+  it("entreprise A→B→A : le formulaire de A n'est jamais rendu sous B ni ressuscité au retour", async () => {
+    window.history.replaceState(null, "", "/entrepreneur/finances?company=c1&sous=recurrences&rec_form=new");
+    h.rpc.mockImplementation(() => Promise.resolve({ data: [], error: null }));
+    const r = render(<RecurringInvoices companyId="c1" canWrite />);
+    expect(screen.getByText("Nouvelle facture récurrente")).toBeTruthy();
+    r.rerender(<RecurringInvoices companyId="c2" canWrite />);
+    expect(screen.queryByText("Nouvelle facture récurrente")).toBeNull();
+    fireEvent.click(screen.getByText("Nouvelle récurrence"));
+    expect(screen.getByText("Nouvelle facture récurrente")).toBeTruthy();
+    r.rerender(<RecurringInvoices companyId="c1" canWrite />);
+    expect(screen.queryByText("Nouvelle facture récurrente")).toBeNull();
+    await waitFor(() => expect(window.location.search).not.toContain("rec_form"));
+    expect(h.rpc.mock.calls.some((c) => c[0] === "fin_rec_template_create")).toBe(false);
+    window.history.replaceState(null, "", "/");
+  });
+
+  it("changement de modèle (même entreprise) pendant une sauvegarde différée : aucun ancien callback ni ancienne saisie envoyée", async () => {
+    const d = deferred(); const onSaved = vi.fn();
+    h.rpc.mockImplementation((fn: string) => fn === "fin_rec_rule_preview" ? Promise.resolve({ data: { dates: [], total: 0, truncated: false }, error: null }) : fn === "fin_rec_version_add" ? d.p : Promise.resolve({ data: [], error: null }));
+    const el = (t: A) => <TemplateForm companyId="c1" canWrite version={{ template: t }} onClose={() => {}} onSaved={onSaved} />;
+    const r = render(el(tpl));
+    fireEvent.change(screen.getByLabelText("Date d'effet"), { target: { value: "2026-12-01" } });
+    fireEvent.click(screen.getByText("Aperçu des dates (lecture seule)"));
+    fireEvent.click(await screen.findByLabelText(/Je confirme cet effet/));
+    fireEvent.click(screen.getByText("Enregistrer la version"));
+    r.rerender(el({ ...tpl, id: "tB", label: "Autre modèle" }));
+    expect(screen.queryByText("Enregistrer la version")).toBeNull();
+    await act(async () => { d.res({ data: { version: 2 }, error: null }); await d.p; });
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(h.rpc.mock.calls.filter((c) => c[0] === "fin_rec_version_add").map((c) => c[1]._template)).toEqual([tpl.id]);
+  });
 });
