@@ -13,7 +13,7 @@ import { fmtDate, todayIn } from "@/lib/finances/period";
 const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const money = (n?: number | null) => Number(n ?? 0).toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
 const sel = "h-10 rounded-md border border-input bg-background px-2 text-sm";
-type Sum = { total: number; legacy: number; receipts: number; received: number; rest: number; unallocated: number; paid: boolean };
+type Sum = { credits?: number; net?: number; collected?: number; settled_by_credit?: boolean; total: number; legacy: number; receipts: number; received: number; rest: number; unallocated: number; paid: boolean };
 const emptyForm = () => ({ amount: "", date: todayIn(), method: "virement", account: "", ref: "" });
 
 export default function InvoiceReceipts({ invoiceId, companyId, canWrite, onChanged }: { invoiceId: string; companyId: string; canWrite: boolean; onChanged: () => void }) {
