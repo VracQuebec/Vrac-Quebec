@@ -589,6 +589,20 @@
       "when": 1790818459110,
       "tag": "0083_fin07b_arrondi_taxes_incluses",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1790819436016,
+      "tag": "0084_fin08_factures",
+      "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1790819757233,
+      "tag": "0085_fin08_reset_flag",
+      "breakpoints": true
     }
   ]
 }

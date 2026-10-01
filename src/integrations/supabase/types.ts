@@ -3644,6 +3644,7 @@ export type Database = {
           created_by: string | null
           expected_on: string
           id: string
+          invoice_id: string | null
           kind: string
           note: string | null
           received: number
@@ -3660,6 +3661,7 @@ export type Database = {
           created_by?: string | null
           expected_on: string
           id?: string
+          invoice_id?: string | null
           kind?: string
           note?: string | null
           received?: number
@@ -3676,6 +3678,7 @@ export type Database = {
           created_by?: string | null
           expected_on?: string
           id?: string
+          invoice_id?: string | null
           kind?: string
           note?: string | null
           received?: number
@@ -3694,6 +3697,220 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_expected_inflows_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_invoice_settings: {
+        Row: {
+          brand_color: string | null
+          company_id: string
+          custom_template_ref: string | null
+          default_terms: string | null
+          footer: string | null
+          logo_path: string | null
+          next_number: number
+          prefix: string
+          template_key: string
+          template_version: number
+          updated_at: string
+        }
+        Insert: {
+          brand_color?: string | null
+          company_id: string
+          custom_template_ref?: string | null
+          default_terms?: string | null
+          footer?: string | null
+          logo_path?: string | null
+          next_number?: number
+          prefix?: string
+          template_key?: string
+          template_version?: number
+          updated_at?: string
+        }
+        Update: {
+          brand_color?: string | null
+          company_id?: string
+          custom_template_ref?: string | null
+          default_terms?: string | null
+          footer?: string | null
+          logo_path?: string | null
+          next_number?: number
+          prefix?: string
+          template_key?: string
+          template_version?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoice_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_invoices: {
+        Row: {
+          client_address: string | null
+          client_email: string | null
+          client_id: string | null
+          client_name: string | null
+          client_phone: string | null
+          client_snapshot: Json | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          credit_of: string | null
+          due_date: string | null
+          expected_inflow_id: string | null
+          id: string
+          is_test: boolean
+          issue_date: string | null
+          issued_at: string | null
+          issued_by: string | null
+          lines: Json
+          number: string | null
+          pdf_path: string | null
+          prices_include_tax: boolean
+          private_note: string | null
+          project_id: string | null
+          quote_id: string | null
+          seller_snapshot: Json | null
+          sent_at: string | null
+          sent_note: string | null
+          seq: number | null
+          status: string
+          subtotal: number | null
+          tax_snapshot: Json | null
+          template_snapshot: Json | null
+          terms: string | null
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          client_address?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          client_snapshot?: Json | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          credit_of?: string | null
+          due_date?: string | null
+          expected_inflow_id?: string | null
+          id?: string
+          is_test?: boolean
+          issue_date?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          lines?: Json
+          number?: string | null
+          pdf_path?: string | null
+          prices_include_tax?: boolean
+          private_note?: string | null
+          project_id?: string | null
+          quote_id?: string | null
+          seller_snapshot?: Json | null
+          sent_at?: string | null
+          sent_note?: string | null
+          seq?: number | null
+          status?: string
+          subtotal?: number | null
+          tax_snapshot?: Json | null
+          template_snapshot?: Json | null
+          terms?: string | null
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          client_address?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          client_snapshot?: Json | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          credit_of?: string | null
+          due_date?: string | null
+          expected_inflow_id?: string | null
+          id?: string
+          is_test?: boolean
+          issue_date?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          lines?: Json
+          number?: string | null
+          pdf_path?: string | null
+          prices_include_tax?: boolean
+          private_note?: string | null
+          project_id?: string | null
+          quote_id?: string | null
+          seller_snapshot?: Json | null
+          sent_at?: string | null
+          sent_note?: string | null
+          seq?: number | null
+          status?: string
+          subtotal?: number | null
+          tax_snapshot?: Json | null
+          template_snapshot?: Json | null
+          terms?: string | null
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoices_credit_of_fkey"
+            columns: ["credit_of"]
+            isOneToOne: false
+            referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoices_expected_inflow_id_fkey"
+            columns: ["expected_inflow_id"]
+            isOneToOne: false
+            referencedRelation: "fin_expected_inflows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_invoices_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_quotes"
             referencedColumns: ["id"]
           },
         ]
@@ -22385,6 +22602,15 @@ export type Database = {
           planned: string
           slot: number
         }[]
+      }
+      fin_invoice_from_quote: { Args: { _quote_id: string }; Returns: string }
+      fin_invoice_issue: {
+        Args: { _id: string; _replace_inflow?: string }
+        Returns: Json
+      }
+      fin_invoice_mark_sent: {
+        Args: { _id: string; _note: string }
+        Returns: undefined
       }
       fin_lift_pause: {
         Args: {
