@@ -12,7 +12,7 @@ import TaxSummary from "@/components/finances/TaxSummary";
 import { computeTaxes, loadRates, TREATMENT_LABEL, type RegStatus, type TaxRates, type TaxTreatment } from "@/lib/finances/tax";
 import { renderInvoicePdf, type InvoicePdfData } from "@/lib/finances/invoicePdf";
 import { fmtDate, todayIn } from "@/lib/finances/period";
-import InvoiceReceipts from "@/components/finances/InvoiceReceipts";
+import InvoiceReceipts, { type Sum } from "@/components/finances/InvoiceReceipts";
 import CreditNotes from "@/components/finances/CreditNotes";
 
 const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -123,9 +123,10 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
   const [clients, setClients] = useState<Inv[]>([]); const [projects, setProjects] = useState<Inv[]>([]); const [inflows, setInflows] = useState<Inv[]>([]);
   const [quote, setQuote] = useState<Inv | null>(null); const [busy, setBusy] = useState(false); const [confirm, setConfirm] = useState(false); const [replace, setReplace] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [refresh, setRefresh] = useState(0); const [bal, setBal] = useState<Sum | null>(null); // solde : source commune (fin_invoice_receipt_summary)
 
   const load = useCallback(async () => {
-    const { data } = await db.from("fin_invoices").select("*, ent_crm_projects(name), fin_expected_inflows!fin_invoices_expected_inflow_id_fkey(id,amount,received)").eq("id", id).maybeSingle();
+    const { data } = await db.from("fin_invoices").select("*, ent_crm_projects(name), fin_expected_inflows!fin_invoices_expected_inflow_id_fkey(id,amount,received,archived_at)").eq("id", id).maybeSingle();
     setInv(data);
     if (data?.quote_id) { const { data: q } = await db.from("ent_crm_quotes").select("number,version,tax_snapshot,total,subtotal").eq("id", data.quote_id).maybeSingle(); setQuote(q); }
   }, [id]);
@@ -192,9 +193,9 @@ function InvoiceDialog({ id, companyId, canWrite, onClose, onChanged }: { id: st
     <DialogHeader><DialogTitle>{inv.number ? `Facture ${inv.number}` : "Facture — brouillon"}{inv.is_test ? " (TEST)" : ""}</DialogTitle></DialogHeader>
     {!draft && <div className="rounded border border-border p-2 text-xs">Émise le {new Date(inv.issued_at).toLocaleString("fr-CA", { timeZone: "America/Toronto" })} · contenu figé (client, entreprise, lignes, taxes, modalités, modèle v{inv.template_snapshot?.version}).
       {inv.sent_at ? ` Envoyée (déclarée) le ${new Date(inv.sent_at).toLocaleString("fr-CA", { timeZone: "America/Toronto" })} — ${inv.sent_note}.` : " Pas encore marquée envoyée (un téléchargement ne prouve pas l'envoi)."}
-      {rec && <> Entrée attendue liée (montant net après avoirs) : {money(rec.amount)} · encaissé {money(rec.received)}.</>} Correction : par une note de crédit (ci-dessous); la facture originale et son PDF restent inchangés.</div>}
-    {!draft && <CreditNotes invoice={inv} companyId={companyId} canWrite={canWrite} onChanged={() => { void load(); onChanged(); }} />}
-    {!draft && <InvoiceReceipts invoiceId={id} companyId={companyId} canWrite={canWrite} onChanged={() => { void load(); onChanged(); }} />}
+      {rec && <> Entrée attendue liée : {bal ? <>net après avoirs {money(bal.net)} · encaissé {money(bal.collected ?? bal.received)} · net à recevoir {money(bal.rest)}</> : "solde en cours de lecture"}{rec.archived_at ? " · retirée des prévisions de trésorerie (soldée par note de crédit)" : ""}.</>} Correction : par une note de crédit (ci-dessous); la facture originale et son PDF restent inchangés.</div>}
+    {!draft && <CreditNotes invoice={inv} companyId={companyId} canWrite={canWrite} onChanged={() => { setRefresh((n) => n + 1); void load(); onChanged(); }} />}
+    {!draft && <InvoiceReceipts invoiceId={id} companyId={companyId} canWrite={canWrite} refreshKey={refresh} onSummary={setBal} onChanged={() => { void load(); onChanged(); }} />}
     {quote && <p className="text-xs text-muted-foreground">Créée depuis la soumission {quote.number ?? ""} v{quote.version} (soumission inchangée).</p>}
     {gap && <p role="status" className="rounded border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Écart fiscal avec la soumission : total {money(qs.total)} → {money(preview.total)} (TPS {money(qs.gst)} → {money(preview.gst)}, TVQ {money(qs.qst)} → {money(preview.qst)}). Vérifiez avant d'émettre.</p>}
 

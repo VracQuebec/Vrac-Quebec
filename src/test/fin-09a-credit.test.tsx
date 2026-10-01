@@ -23,8 +23,8 @@ describe("FIN-09A solde net", () => {
     expect(invoiceState({ ...i, fin_expected_inflows: { received: 919.8 } }, "2026-10-01").label).toMatch(/^Payée/);
   });
   it("éléments du brouillon", () => {
-    expect(creditItems({ reason: "x", mode: "lines", qty: { 0: "3", 1: "" }, taxable: "", zero_rated: "", exempt: "" })).toEqual({ mode: "lines", lines: [{ i: 0, qty: 3 }] });
-    expect(creditItems({ reason: "x", mode: "amount", qty: {}, taxable: "200", zero_rated: "", exempt: "" })).toEqual({ mode: "amount", taxable: 200, zero_rated: 0, exempt: 0 });
+    expect(creditItems({ reason: "x", mode: "lines", qty: { 0: "3", 1: "" }, taxable: "", zero_rated: "", exempt: "" })).toEqual({ ok: true, items: { mode: "lines", lines: [{ i: 0, qty: 3 }] } });
+    expect(creditItems({ reason: "x", mode: "amount", qty: {}, taxable: "200", zero_rated: "", exempt: "" })).toEqual({ ok: true, items: { mode: "amount", taxable: 200, zero_rated: 0, exempt: 0 } });
   });
   it("PDF : NOTE DE CRÉDIT, facture source, numéros de taxes, montants", () => {
     const doc = renderCreditNotePdf({ status: "emise", isTest: true, number: "NC-00001", issuedAt: "2026-10-01T04:00:00Z", reason: "Rabais TEST",
@@ -40,7 +40,7 @@ describe("FIN-09A interface (simulée)", () => {
   it("réponse perdue à l'émission : même clé et même montant au réessai, une seule émission", async () => {
     const calls: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
     h.rpc.mockImplementation((fn: string, a: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-      if (fn === "fin_credit_save") return Promise.resolve({ data: { id: "c1", preview }, error: null });
+      if (fn === "fin_credit_save") return Promise.resolve({ data: { id: "c1", rev: 1, hash: "h1", preview }, error: null });
       calls.push(a); return calls.length === 1 ? Promise.reject(new Error("réseau")) : Promise.resolve({ data: { number: "NC-00001", replayed: true, balance: { rest: 519.8 } }, error: null });
     });
     render(<CreditNotes invoice={inv} companyId="c1" canWrite onChanged={() => {}} />);
