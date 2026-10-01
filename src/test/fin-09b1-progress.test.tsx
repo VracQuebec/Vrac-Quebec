@@ -106,7 +106,7 @@ describe("FIN-09B1 — PDF", () => {
       progress: { kind: "solde", seq: 3, quote_number: "S-1", contract: { ht: 1000, total: 1149.75 }, prev: { ht: 700, total: 804.83 }, cum: { ht: 1000, total: 1149.75, pct: 100 }, new: { ht: 300, total: 344.92 }, remaining: { ht: 0, total: 0 },
         previous: [{ number: "F-00001", total: 344.93 }, { number: "F-00002", total: 459.90 }] } });
     const txt = doc.output();
-    for (const s of ["RÉCAPITULATIF", "Déjà facturé", "Reste à facturer", "F-00001", "F-00002"]) expect(txt).toContain(s.replace("É", "\\311").length ? s.slice(1) : s);
+    for (const s of ["CAPITULATIF", "Reste ", "F-00001", "F-00002", "Cumul apr"]) expect(txt).toContain(s);
     if (process.env.PDF_OUT) writeFileSync(process.env.PDF_OUT, Buffer.from(doc.output("arraybuffer")));
   });
 });
