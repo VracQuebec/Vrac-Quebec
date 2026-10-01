@@ -108,7 +108,7 @@ export default function EntrepreneurFlotte() {
                 ["Immatriculation", v.plate],
                 ["Capacité", v.capacity],
                 ["Statut", adminStatusLabel(v)],
-                ["Création", createdLabel(v).replace(/^Créé le /, "")],
+                ["Enregistré", createdLabel(v).replace(/^Enregistré le /, "")],
               ];
               return (
                 <li key={v.id} className="rounded-2xl border border-border bg-card p-4">
