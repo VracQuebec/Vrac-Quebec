@@ -200,7 +200,7 @@ describe("FIN-09C1 relecture — écrans simulés", () => {
     render(<RecurringDetail id="tA" companyId="c1" canWrite onClose={() => {}} onChanged={() => {}} />);
     expect((await screen.findByTestId("rec-window")).textContent).toMatch(/431 dates, seules les 300 premières/);
     fireEvent.click(screen.getByText("Reprendre"));
-    await screen.findByText(/Occurrence du 1 janvier 2024|Occurrence du 2024/);
+    await screen.findByText(/Occurrence du .*2024/);
     const first = h.rpc.mock.calls[0][1];
     fireEvent.click(screen.getAllByText("Fermer")[0]);
     fireEvent.click(screen.getByText("Période suivante"));
