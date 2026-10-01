@@ -24017,6 +24017,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fin_ctax_pcorr_analyze: { Args: { _release: string }; Returns: Json }
       fin_ctax_pcorr_eval: {
         Args: {
           _l: Database["public"]["Tables"]["fin_retention_releases"]["Row"]
