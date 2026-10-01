@@ -84,16 +84,20 @@ export default function ProgressPlanDialog({ planId, companyId, canWrite, onClos
   if (!sum) return <Dialog open onOpenChange={onClose}><DialogContent><p>Chargement…</p></DialogContent></Dialog>;
   const c = sum.contract; const issued = sum.situations.filter((s) => s.status === "emise");
   const credits = issued.reduce((a, s) => a + Number(s.balance?.credits ?? 0), 0); const collected = issued.reduce((a, s) => a + Number(s.balance?.collected ?? 0), 0);
-  const restToBill = Math.round((Number(c.total) - Number(sum.billed.total)) * 100) / 100; const full = restToBill <= 0;
+  const ttc = Boolean((c as unknown as { prices_include_tax?: boolean }).prices_include_tax);
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  const capLeft = ttc ? r2(Number(c.total) - Number(sum.billed.total)) : r2(Number(c.ht) - Number(sum.billed.ht)); const full = capLeft <= 0;
+  const gapNote = (g?: P.Gap | null) => g && Number(g.total) !== 0 ? <p className="text-xs">Écart d'arrondi par rapport à l'estimation de la soumission : HT {money(g.ht)} · TPS {money(g.gst)} · TVQ {money(g.qst)} · TTC {money(g.total)}. Les taxes de chaque facture sont calculées sur sa propre part; cet écart n'est pas absorbé dans la taxe.</p> : null;
+  const lastGap = issued.length ? issued[issued.length - 1].computed.gap_vs_quote : null;
   const pv = preview?.computed;
 
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
     <DialogHeader><DialogTitle>Facturation progressive — soumission {sum.quote_number ?? ""} v{sum.quote_version ?? 1}</DialogTitle></DialogHeader>
-    <p className="text-sm">{sum.client_name ?? "Client"} · contrat figé (lignes, remises et taxes de la soumission acceptée).</p>
+    <p className="text-sm">{sum.client_name ?? "Client"} · contrat figé (lignes, remises et taxes de la soumission acceptée). Plafond contractuel : {ttc ? `${money(c.total)} TTC (prix taxes incluses)` : `${money(c.ht)} HT`}.</p>
     <table className="w-full text-sm"><thead><tr className="text-left text-xs text-muted-foreground"><th></th><th>HT</th><th>TPS</th><th>TVQ</th><th>TTC</th></tr></thead><tbody>
-      <tr><td>Contrat</td><td>{money(c.ht)}</td><td>{money(c.gst)}</td><td>{money(c.qst)}</td><td>{money(c.total)}</td></tr>
+      <tr><td>Contrat (estimation de la soumission)</td><td>{money(c.ht)}</td><td>{money(c.gst)}</td><td>{money(c.qst)}</td><td>{money(c.total)}</td></tr>
       <tr><td>Déjà facturé</td><td>{money(sum.billed.ht)}</td><td>{money(sum.billed.gst)}</td><td>{money(sum.billed.qst)}</td><td>{money(sum.billed.total)}</td></tr>
-      <tr><td>Reste à facturer</td><td>{money(Number(c.ht) - Number(sum.billed.ht))}</td><td></td><td></td><td>{money(restToBill)}</td></tr>
+      <tr><td>Reste à facturer ({ttc ? "TTC" : "HT"})</td><td>{ttc ? "" : money(capLeft)}</td><td></td><td></td><td>{ttc ? money(capLeft) : ""}</td></tr>
     </tbody></table>
     <p className="text-xs text-muted-foreground">Encaissé sur ces factures : {money(collected)} (chaque encaissement reste sur sa facture, aucun transfert). Notes de crédit émises : {money(credits)} — elles réduisent le solde de la facture concernée mais ne rouvrent pas le montant contractuel déjà facturé. Les montants facturés sont déduits même impayés.</p>
 
@@ -106,7 +110,7 @@ export default function ProgressPlanDialog({ planId, companyId, canWrite, onClos
       {(!active || draft) && <>
         <div className="grid gap-2 sm:grid-cols-5">
           <select aria-label="Type" className={sel} value={form.kind} onChange={(e) => edit({ kind: e.target.value as P.Kind })}>{(Object.keys(P.KIND_LABEL) as P.Kind[]).map((k) => <option key={k} value={k}>{P.KIND_LABEL[k]}</option>)}</select>
-          {form.kind !== "solde" && <select aria-label="Mode" className={sel} value={form.mode} onChange={(e) => edit({ mode: e.target.value as P.Mode })}><option value="pct">Cumul en % du contrat</option><option value="amount">Cumul en montant HT</option></select>}
+          {form.kind !== "solde" && <select aria-label="Mode" className={sel} value={form.mode} onChange={(e) => edit({ mode: e.target.value as P.Mode })}><option value="pct">Cumul en % du contrat</option>{ttc ? <option value="amount_ttc">Cumul en montant TTC</option> : <option value="amount">Cumul en montant HT</option>}</select>}
           {form.kind !== "solde" && <Input aria-label="Cumul contractuel" inputMode="decimal" placeholder={form.mode === "pct" ? "ex. 30" : "ex. 300,00"} value={form.value} onChange={(e) => edit({ value: e.target.value })} />}
           <label className="text-xs">Date de facture<Input type="date" value={form.issue} onChange={(e) => edit({ issue: e.target.value })} /></label>
           <label className="text-xs">Échéance<Input type="date" value={form.due} onChange={(e) => edit({ due: e.target.value })} /></label>
@@ -119,11 +123,13 @@ export default function ProgressPlanDialog({ planId, companyId, canWrite, onClos
       {pv && <div className="rounded bg-muted p-2 text-sm" aria-label="Aperçu de la situation">
         <p>Cumul après cette facture : {pv.cum.pct} % · {money(pv.cum.ht)} HT · {money(pv.cum.total)} TTC</p>
         <p className="font-semibold">Nouveau montant à facturer : {money(pv.new.ht)} HT + TPS {money(pv.new.gst)} + TVQ {money(pv.new.qst)} = {money(pv.new.total)}</p>
-        <p>Restera à facturer : {money(pv.remaining.ht)} HT · {money(pv.remaining.total)} TTC</p>
+        <p>Restera à facturer : {ttc ? `${money(pv.remaining.cap ?? pv.remaining.total)} TTC` : `${money(pv.remaining.cap ?? pv.remaining.ht)} HT`}</p>
+        {gapNote(pv.gap_vs_quote)}
         <p className="text-xs text-muted-foreground">Aperçu serveur : rien n'est facturé ni numéroté tant que vous n'émettez pas. Toute modification retire « Émettre ».</p></div>}
       {err && <p role="alert" className="rounded border border-destructive/50 bg-destructive/10 p-2 text-sm">{err}</p>}
     </div>}
     {full && <p className="text-sm">Contrat entièrement facturé. Toute correction passe par une note de crédit sur la facture concernée.</p>}
+    {full && gapNote(lastGap)}
     {issued.length > 0 && <p className="text-xs text-muted-foreground">Dernière facture le {fmtDate(issued[issued.length - 1].issue_date)}.</p>}
   </DialogContent></Dialog>;
 }

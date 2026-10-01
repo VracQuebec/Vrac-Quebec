@@ -16,9 +16,9 @@ export type InvoicePdfData = {
   logo?: { data: string; format: "PNG" | "JPEG"; w: number; h: number } | null;
   progress?: ProgressRecap | null;
 };
-type PP = { ht: number | string; total: number | string; pct?: number | string };
-export type ProgressRecap = { kind: "acompte" | "situation" | "solde"; seq: number; quote_number?: string | null; contract: PP; prev: PP; cum: PP; new: PP; remaining: PP;
-  previous?: { number: string; total: number | string }[] };
+type PP = { ht: number | string; total: number | string; pct?: number | string; cap?: number | string };
+export type ProgressRecap = { kind: "acompte" | "situation" | "solde"; seq: number; quote_number?: string | null; basis?: "ht" | "ttc"; contract: PP; prev: PP; cum: PP; new: PP; remaining: PP;
+  gap_vs_quote?: { total: number | string } | null; previous?: { number: string; total: number | string }[] };
 
 // Polices standard PDF (WinAnsi) : on remplace les espaces fines et signes hors jeu.
 const clean = (s: string) => s.replace(/[\u202F\u00A0]/g, " ").replace(/[\u2212\u2013\u2014]/g, "-").replace(/[\u2019]/g, "'");
@@ -130,9 +130,13 @@ export function renderInvoicePdf(d: InvoicePdfData): jsPDF {
       ["Déjà facturé avant cette facture", money(Number(pg.prev.ht)), money(Number(pg.prev.total))],
       [`Cumul après cette facture (${num(pg.cum.pct)} %)`, money(Number(pg.cum.ht)), money(Number(pg.cum.total))],
       ["Cette facture", money(Number(pg.new.ht)), money(Number(pg.new.total))],
-      ["Reste à facturer", money(Number(pg.remaining.ht)), money(Number(pg.remaining.total))],
+      pg.basis === "ttc"
+        ? ["Reste à facturer (plafond TTC)", "", money(Number(pg.remaining.cap ?? pg.remaining.total))]
+        : ["Reste à facturer (plafond HT)", money(Number(pg.remaining.cap ?? pg.remaining.ht)), ""],
     ];
-    const prevLines = prevs ? wrap(`Factures précédentes : ${prevs}`, W - 2 * M) : [];
+    const g = pg.gap_vs_quote;
+    const gapTxt = g && Number(g.total) !== 0 ? `Écart d'arrondi par rapport à l'estimation de la soumission : TTC ${money(Number(g.total))} (taxes calculées sur chaque facture, non ajustées).` : "";
+    const prevLines = [...(prevs ? wrap(`Factures précédentes : ${prevs}`, W - 2 * M) : []), ...(gapTxt ? wrap(gapTxt, W - 2 * M) : [])];
     const need2 = 14 + rr.length * 5 + prevLines.length * 3.6;
     if (y + need2 > H - FOOT - 4) { doc.addPage(); y = header(false) + 2; }
     y += 5; doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(17, 17, 17);

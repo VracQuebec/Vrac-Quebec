@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 const db = supabase as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 export type Kind = "acompte" | "situation" | "solde";
-export type Mode = "pct" | "amount";
-export type Parts = { bt: number; bz: number; be: number; gst: number; qst: number; ht: number; total: number; pct?: number };
-export type Computed = { contract: Parts; prev: Parts; cum: Parts; new: Parts; remaining: { ht: number; total: number } };
+export type Mode = "pct" | "amount" | "amount_ttc";
+export type Parts = { bt: number; bz: number; be: number; gst: number; qst: number; ht: number; total: number; pct?: number; cap?: number };
+export type Gap = { ht: number; gst: number; qst: number; total: number };
+/** basis: plafond contractuel en HT (contrat HT) ou TTC (contrat taxes incluses). Taxes calculées sur chaque facture. */
+export type Computed = { basis?: "ht" | "ttc"; contract: Parts; prev: Parts; cum: Parts; new: Parts; remaining: { ht: number; total: number; cap?: number }; gap_vs_quote?: Gap | null };
 export type Situation = { id: string; seq: number | null; kind: Kind; mode: Mode; value: string; status: "brouillon" | "emise" | "abandonnee"; issue_date: string | null; due_date: string | null;
   computed: Computed; rev: number; hash: string; draft_key: string; abandon_reason: string | null; invoice_id: string | null; number: string | null;
   balance: { total: number; credits: number; net: number; collected: number; rest: number; unallocated: number } | null };

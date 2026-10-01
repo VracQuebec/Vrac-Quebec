@@ -101,9 +101,9 @@ describe("FIN-09B1 — PDF", () => {
     const doc = renderInvoicePdf({ status: "emise", isTest: true, number: "F-00003", issueDate: "2026-10-01", dueDate: null, terms: null,
       seller: { name: "Entreprise TEST", gst_number: "123456789RT0001", qst_number: "1234567890TQ0001" }, client: { name: "Client TEST" },
       lines: [{ desc: "Solde final n° 3 — soumission S-1 v1 — cumul 100 % du contrat (part taxable)", qty: 1, unit: "forfait", price: 300, tax: "taxable" }],
-      tax: { subtotal: 300, discount: 0, taxable_base: 300, zero_rated_base: 0, exempt_base: 0, undetermined: 0, gst: 15, qst: 29.92, gst_rate: 0.05, qst_rate: 0.09975, pre_tax: 300, total: 344.92, prices_include_tax: false, gst_status: "inscrit", qst_status: "inscrit" },
+      tax: { subtotal: 300, discount: 0, taxable_base: 300, zero_rated_base: 0, exempt_base: 0, undetermined: 0, gst: 15, qst: 29.93, gst_rate: 0.05, qst_rate: 0.09975, pre_tax: 300, total: 344.93, prices_include_tax: false, gst_status: "inscrit", qst_status: "inscrit" },
       template: { color: "#7ED321" },
-      progress: { kind: "solde", seq: 3, quote_number: "S-1", contract: { ht: 1000, total: 1149.75 }, prev: { ht: 700, total: 804.83 }, cum: { ht: 1000, total: 1149.75, pct: 100 }, new: { ht: 300, total: 344.92 }, remaining: { ht: 0, total: 0 },
+      progress: { kind: "solde", seq: 3, quote_number: "S-1", contract: { ht: 1000, total: 1149.75 }, prev: { ht: 700, total: 804.83 }, cum: { ht: 1000, total: 1149.76, pct: 100 }, basis: "ht", new: { ht: 300, total: 344.93 }, remaining: { ht: 0, total: -0.01, cap: 0 }, gap_vs_quote: { total: 0.01 },
         previous: [{ number: "F-00001", total: 344.93 }, { number: "F-00002", total: 459.90 }] } });
     const txt = doc.output();
     for (const s of ["CAPITULATIF", "Reste ", "F-00001", "F-00002", "Cumul apr"]) expect(txt).toContain(s);

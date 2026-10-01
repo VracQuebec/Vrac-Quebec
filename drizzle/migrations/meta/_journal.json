@@ -659,6 +659,13 @@
       "when": 1790829856847,
       "tag": "0093_fin09b1_revoke_direct_writes",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1790830284060,
+      "tag": "0094_fin09b1_tax_per_invoice",
+      "breakpoints": true
     }
   ]
 }

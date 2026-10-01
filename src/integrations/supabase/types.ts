@@ -23201,10 +23201,26 @@ export type Database = {
         Args: { _d: string; _due: string; _plan: string }
         Returns: undefined
       }
-      fin_progress_compute: {
-        Args: { _kind: string; _mode: string; _plan: string; _value: string }
-        Returns: Json
-      }
+      fin_progress_compute:
+        | {
+            Args: {
+              _kind: string
+              _mode: string
+              _plan: string
+              _value: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _kind: string
+              _mode: string
+              _on: string
+              _plan: string
+              _value: string
+            }
+            Returns: Json
+          }
       fin_progress_draft_save: {
         Args: {
           _base_rev: number
