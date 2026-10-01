@@ -120,7 +120,7 @@ export function renderInvoicePdf(d: InvoicePdfData): jsPDF {
   const pages = doc.getNumberOfPages(); const mark = d.isTest ? (d.status === "brouillon" ? "BROUILLON - TEST" : "TEST") : d.status === "brouillon" ? "BROUILLON" : null;
   for (let p = 1; p <= pages; p++) {
     doc.setPage(p);
-    if (mark) { const G = (doc as unknown as { GState: new (o: object) => unknown }).GState; doc.setGState(new G({ opacity: 0.13 }) as never);
+    if (mark) { const G = (doc as unknown as { GState: new (o: object) => unknown }).GState; doc.setGState(new G({ opacity: 0.2 }) as never);
       doc.setTextColor(120, 120, 120); doc.setFont("helvetica", "bold"); doc.setFontSize(mark.length > 10 ? 50 : 72); T(mark, W / 2, H / 2 + 20, { align: "center", angle: 35 });
       doc.setGState(new G({ opacity: 1 }) as never); }
     doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.2); doc.line(M, H - FOOT + 4, W - M, H - FOOT + 4);
