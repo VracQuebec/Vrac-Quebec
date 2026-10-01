@@ -3666,6 +3666,99 @@ export type Database = {
           },
         ]
       }
+      fin_ctax_corrections: {
+        Row: {
+          actor: string | null
+          after: Json | null
+          before: Json
+          company_id: string
+          created_at: string
+          id: string
+          idem_key: string
+          invoice_id: string
+          kind: string
+          reason: string
+          receipt_id: string
+          release_id: string
+          request: Json
+          request_hash: string
+          retention_id: string
+          tx: number
+        }
+        Insert: {
+          actor?: string | null
+          after?: Json | null
+          before: Json
+          company_id: string
+          created_at?: string
+          id?: string
+          idem_key: string
+          invoice_id: string
+          kind?: string
+          reason: string
+          receipt_id: string
+          release_id: string
+          request: Json
+          request_hash: string
+          retention_id: string
+          tx?: number
+        }
+        Update: {
+          actor?: string | null
+          after?: Json | null
+          before?: Json
+          company_id?: string
+          created_at?: string
+          id?: string
+          idem_key?: string
+          invoice_id?: string
+          kind?: string
+          reason?: string
+          receipt_id?: string
+          release_id?: string
+          request?: Json
+          request_hash?: string
+          retention_id?: string
+          tx?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_ctax_corrections_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_ctax_corrections_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "fin_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_ctax_corrections_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: true
+            referencedRelation: "fin_invoice_receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_ctax_corrections_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: true
+            referencedRelation: "fin_retention_releases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_ctax_corrections_retention_id_fkey"
+            columns: ["retention_id"]
+            isOneToOne: false
+            referencedRelation: "fin_retentions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_events: {
         Row: {
           action: string
@@ -23849,6 +23942,20 @@ export type Database = {
         Args: { _p: Json; _retention: string }
         Returns: Json
       }
+      fin_construction_pay_void: {
+        Args: {
+          _expect_hash: string
+          _expect_rev: number
+          _key: string
+          _p: Json
+          _release: string
+        }
+        Returns: Json
+      }
+      fin_construction_pay_void_preview: {
+        Args: { _p: Json; _release: string }
+        Returns: Json
+      }
       fin_construction_preview: {
         Args: { _invoice: string; _p: Json }
         Returns: Json
@@ -23905,6 +24012,14 @@ export type Database = {
       fin_ctax_date: { Args: { _t: string }; Returns: string }
       fin_ctax_pay_eval: {
         Args: {
+          _p: Json
+          _r: Database["public"]["Tables"]["fin_retentions"]["Row"]
+        }
+        Returns: Json
+      }
+      fin_ctax_pcorr_eval: {
+        Args: {
+          _l: Database["public"]["Tables"]["fin_retention_releases"]["Row"]
           _p: Json
           _r: Database["public"]["Tables"]["fin_retentions"]["Row"]
         }
