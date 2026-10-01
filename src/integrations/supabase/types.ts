@@ -3579,6 +3579,7 @@ export type Database = {
           pdf_path: string | null
           qst: number | null
           reason: string
+          rev: number
           seller_snapshot: Json | null
           seq: number | null
           status: string
@@ -3608,6 +3609,7 @@ export type Database = {
           pdf_path?: string | null
           qst?: number | null
           reason: string
+          rev?: number
           seller_snapshot?: Json | null
           seq?: number | null
           status?: string
@@ -3637,6 +3639,7 @@ export type Database = {
           pdf_path?: string | null
           qst?: number | null
           reason?: string
+          rev?: number
           seller_snapshot?: Json | null
           seq?: number | null
           status?: string
@@ -22763,19 +22766,45 @@ export type Database = {
         Returns: Json
       }
       fin_credit_discard: { Args: { _id: string }; Returns: undefined }
-      fin_credit_issue: {
-        Args: { _expect_total: number; _id: string; _issue_key: string }
-        Returns: Json
+      fin_credit_hash: {
+        Args: { _items: Json; _reason: string }
+        Returns: string
       }
-      fin_credit_save: {
-        Args: {
-          _draft_key: string
-          _invoice: string
-          _items: Json
-          _reason: string
-        }
-        Returns: Json
-      }
+      fin_credit_issue:
+        | {
+            Args: { _expect_total: number; _id: string; _issue_key: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _expect_hash: string
+              _expect_rev: number
+              _expect_total: number
+              _id: string
+              _issue_key: string
+            }
+            Returns: Json
+          }
+      fin_credit_save:
+        | {
+            Args: {
+              _draft_key: string
+              _invoice: string
+              _items: Json
+              _reason: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _base_rev: number
+              _draft_key: string
+              _invoice: string
+              _items: Json
+              _reason: string
+            }
+            Returns: Json
+          }
       fin_credit_set_pdf: {
         Args: { _id: string; _path: string }
         Returns: undefined
