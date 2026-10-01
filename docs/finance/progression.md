@@ -25,6 +25,18 @@ Abonnements, connexion bancaire et envois réels (courriel, texto, push) : jamai
 - Sources de conception : Revenu Québec, Retours de biens et Réductions de prix (https://www.revenuquebec.ca/fr/entreprises/taxes/tpstvh-et-tvq/situations-particulieres-liees-a-la-tpstvh-et-a-la-tvq/retours-de-biens/ et .../reductions-de-prix/) : note identifiant vendeur et inscriptions, client, date, TPS/TVQ ajustées.
 - Publication : EN ATTENTE (par ChatGPT après examen).
 
+### FIN-09A — Corrections avant publication (relecture du commit 6ad37cd, 2026-10-01)
+- Migration additive 0091 : fin_credit_compute devient interne (aucun droit d'exécution anon/authenticated, vérifié par has_function_privilege; appel direct anonyme → 42501 « permission denied »). Anciennes signatures save/issue sans révision retirées des rôles clients (DEPRECATED).
+- Validation stricte : indices négatifs, hors limites, non entiers, dupliqués, non numériques, quantités ≤ 0, mode inconnu, montants non numériques ou à plus de 2 décimales → refus 22023 (10 cas vérifiés, dont « 10 × ligne A » qui aurait crédité 1 000 HT).
+- Arrondis : part de base figée par ligne répartie cumulativement; crédit de quantité = arrondi du cumul après − arrondi du cumul avant; taxes cumulées proportionnelles à la taxe facturée. Cas qty 3 × 0,335 + ligne 10,00 : unités 0,34 / 0,33 / 0,34 puis autre ligne → cumul 11,01 + 0,55 + 1,10 = 12,66 = facture. TTC mixte (taxable, détaxé, exonéré, crédits par demi-quantités) : cumul = 128,11 exact.
+- Plus de troncature silencieuse : après un crédit par montant de 950,33, une ligne de 100 est refusée (« disponible 49,67 ») à l'aperçu et à l'émission; nouveau mode explicite « Solde exact restant » → cumul 1 149,75 = facture.
+- Révision/empreinte : chaque brouillon a une révision; aperçu et émission transmettent révision + empreinte (motif + contenu). Brouillon modifié ailleurs à total identique → P0409, sauvegarde sur révision périmée → P0409. Interface : toute modification retire « Émettre »; conflit = message, aucune réémission automatique; réponse perdue = même clé, révision et empreinte; saisie fr-CA (200,50 ; 0,5) jamais convertie en 0; erreurs réseau de lecture/aperçu affichées; occupation réinitialisée au changement de facture/entreprise.
+- Solde : le résumé des encaissements se recharge après émission d'un avoir sans fermer une saisie en cours; la fiche affiche le net depuis la même source serveur et « retirée des prévisions » pour une entrée archivée (plus d'ancien montant présenté comme net).
+- PDF : motif et descriptions longs paginés, en-tête du tableau répété, colonne « Base HT ». Vérifié visuellement sur un PDF fictif de 4 pages converti en images.
+- Essais serveur TEST annulés (vérifié : 0 avoir, 0 facture, profil « à compléter », rôle d'origine) : 519,80; rejeu = 1; facture payée → trop-perçu 229,95, aucun remboursement créé (5 remboursements préexistants inchangés); profil changé sans effet (TPS 5,00 / TVQ 9,98 pour 100 $); autre entreprise et lecture seule refusées.
+- Tests : 26/26 (20 précédents + 6 nouveaux, dont intégration : fiche ouverte passe de 749,75 à 519,80 après l'avoir 229,95). public/sitemap.xml remis à sa version antérieure au lot (bruit généré).
+- Toujours NON exécutés : essai concurrent réel à deux sessions; parcours visuel réel ordinateur/mobile. Le fichier sitemap est régénéré à chaque démarrage/compilation et peut réapparaître dans un commit.
+
 ## À venir (selon les plans déjà convenus — rien de ceci n'est livré)
 - FIN-09B : acomptes et facturation progressive. FIN-09C : récurrence et retenues. (FIN-09A avoirs ci-dessus.)
 - FIN-10 à FIN-23.
