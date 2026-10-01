@@ -20,4 +20,38 @@ describe("Flotte — horodatage d'inscription", () => {
     expect(createdLabel({ created_at: "pas une date" })).toMatch(/heure non enregistrée/);
     expect(createdLabel({ created_at: "2026-02-01" })).not.toMatch(/0 h 00|minuit/);
   });
+  it("heure sans fuseau explicite rejetée (jamais interprétée selon l'appareil)", () => {
+    expect(createdLabel({ created_at: "2026-02-01T12:00:00" })).toBe("Enregistré le — · heure non enregistrée");
+    expect(createdLabel({ created_at: "2026-02-01 12:00:00" })).toBe("Enregistré le — · heure non enregistrée");
+  });
+  it("date calendrier impossible rejetée (jamais normalisée silencieusement)", () => {
+    expect(createdLabel({ created_at: "2026-02-30T12:00:00Z" })).toBe("Enregistré le — · heure non enregistrée");
+    expect(createdLabel({ created_at: "2026-13-01T12:00:00Z" })).toBe("Enregistré le — · heure non enregistrée");
+    expect(createdLabel({ created_at: "2026-02-30" })).toBe("Enregistré le — · heure non enregistrée");
+    expect(createdLabel({ created_at: "2026-02-01T25:00:00Z" })).toBe("Enregistré le — · heure non enregistrée");
+  });
+  it("décalage invalide rejeté", () => {
+    expect(createdLabel({ created_at: "2026-02-01T12:00:00+24:00" })).toBe("Enregistré le — · heure non enregistrée");
+    expect(createdLabel({ created_at: "2026-02-01T12:00:00+05:60" })).toBe("Enregistré le — · heure non enregistrée");
+  });
+  it("offsets explicites équivalents → même heure Toronto", () => {
+    const a = createdLabel({ created_at: "2026-01-15T14:05:00Z" });
+    const b = createdLabel({ created_at: "2026-01-15T09:05:00-05:00" });
+    const c = createdLabel({ created_at: "2026-01-15T16:05:00+02:00" });
+    expect(a).toMatch(/à 9 h 05$/);
+    expect(b).toBe(a);
+    expect(c).toBe(a);
+  });
+  it("résultat indépendant du fuseau de l'environnement", () => {
+    const attendu = createdLabel({ created_at: "2026-07-15T14:05:00Z" });
+    const tz = process.env.TZ;
+    try {
+      process.env.TZ = "Pacific/Auckland";
+      expect(createdLabel({ created_at: "2026-07-15T14:05:00Z" })).toBe(attendu);
+      process.env.TZ = "America/Vancouver";
+      expect(createdLabel({ created_at: "2026-07-15T14:05:00Z" })).toBe(attendu);
+    } finally {
+      if (tz === undefined) delete process.env.TZ; else process.env.TZ = tz;
+    }
+  });
 });
