@@ -58,4 +58,34 @@ describe("FIN-09C2B2B2A — analyse", () => {
     await act(async () => { res({ data: { ...base, route: "refused", reasons: ["x"], linked_tax_events: [] }, error: null }); });
     expect(screen.queryByTestId("pcorr-analysis-result")).toBeNull();
   });
+  it("démontage avant réponse : aucune mise à jour tardive", async () => {
+    let res: (v: A) => void = () => {}; const err = vi.spyOn(console, "error");
+    h.rpc.mockImplementation(() => new Promise((r) => { res = r; }));
+    const r = render(<ConstructionPayAnalysisTest rel={{ id: "l1" }} companyId="c1" rev={4} />);
+    fireEvent.click(screen.getByText(/Analyser la correction/)); r.unmount();
+    await act(async () => { res({ data: { ...base, route: "refused", reasons: ["x"] }, error: null }); });
+    expect(err.mock.calls.flat().join(" ")).not.toMatch(/unmounted/); err.mockRestore();
+  });
+  for (const [nom, p] of [["entreprise", { companyId: "c2" }], ["libération", { rel: { id: "l2" } }], ["révision", { rev: 5 }]] as const) {
+    it(`changement ${nom} même instance : résultat retiré, réponse ancienne ignorée`, async () => {
+      h.rpc.mockImplementationOnce(() => ok({ ...base, route: "refused", reasons: ["ancien"] }));
+      const props: A = { rel: { id: "l1" }, companyId: "c1", rev: 4 };
+      const { rerender } = render(<ConstructionPayAnalysisTest {...props} />);
+      fireEvent.click(screen.getByText(/Analyser la correction/)); await screen.findByTestId("pcorr-analysis-result");
+      rerender(<ConstructionPayAnalysisTest {...props} {...p} />);
+      expect(screen.queryByTestId("pcorr-analysis-result")).toBeNull();
+      let res: (v: A) => void = () => {}; h.rpc.mockImplementationOnce(() => new Promise((r) => { res = r; }));
+      fireEvent.click(screen.getByText(/Analyser la correction/));
+      rerender(<ConstructionPayAnalysisTest {...props} />);
+      await act(async () => { res({ data: { ...base, route: "refused", reasons: ["périmé"] }, error: null }); });
+      expect(screen.queryByText("périmé")).toBeNull();
+    });
+  }
+  it("valeurs non numériques / non finies : non disponible, jamais NaN/Infinity", async () => {
+    h.rpc.mockImplementation(() => ok({ ...base, route: "refused", reasons: [], snapshot: { base: "abc", gst: "Infinity", qst: {}, ttc: NaN } }));
+    render(<ConstructionPayAnalysisTest rel={{ id: "l1" }} companyId="c1" />);
+    fireEvent.click(screen.getByText(/Analyser la correction/));
+    const t = (await screen.findByTestId("pcorr-analysis-result")).textContent!;
+    expect(t).not.toMatch(/NaN|Infinity|∞/); expect(t).toMatch(/base non disponible · TPS non disponible · TVQ non disponible · TTC non disponible/);
+  });
 });
