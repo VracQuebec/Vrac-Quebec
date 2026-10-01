@@ -1,6 +1,6 @@
 # Progression Finances
 
-Mode de travail : un lot validé, puis publication confirmée avant le suivant. Publication déclenchée par l'utilisateur via l'outil dédié.
+Mode de travail : un lot validé, puis publication confirmée avant le suivant. Publication déclenchée par ChatGPT, autorisée par l'utilisateur après chaque lot validé.
 Abonnements, connexion bancaire et envois réels (courriel, texto, push) : jamais activés par ces travaux.
 
 ## FIN-08B — Encaissements reliés aux factures (2026-10-01)
