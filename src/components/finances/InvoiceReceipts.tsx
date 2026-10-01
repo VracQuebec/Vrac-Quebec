@@ -24,6 +24,8 @@ export default function InvoiceReceipts({ invoiceId, companyId, canWrite, onChan
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [open, setOpen] = useState(false); const [busy, setBusy] = useState(false);
   const [f, setF] = useState(emptyForm);
+  // Envoi non confirmé : les champs sont figés pour que le réessai rejoue exactement la même requête.
+  const [pending, setPending] = useState<null | { amount: number; date: string; method: string; account: string; ref: string }>(null);
   const idem = useRef<string>(crypto.randomUUID());
   const gen = useRef(0); // invalide les réponses d'une ancienne facture/entreprise
   const key = `${companyId}:${invoiceId}`;
@@ -41,24 +43,29 @@ export default function InvoiceReceipts({ invoiceId, companyId, canWrite, onChan
   }, [invoiceId, companyId]);
 
   useEffect(() => { // changement de facture/entreprise : tout repart de zéro
-    setSum(null); setRows([]); setAccounts([]); setOpen(false); setBusy(false); setF(emptyForm()); idem.current = crypto.randomUUID();
+    setSum(null); setRows([]); setAccounts([]); setOpen(false); setBusy(false); setF(emptyForm()); setPending(null); idem.current = crypto.randomUUID();
     void load();
     return () => { gen.current++; };
   }, [key, load]);
 
   const add = async () => {
-    if (busy) return; const amount = Number(f.amount.replace(",", "."));
-    if (!(amount > 0)) return toast({ title: "Montant positif requis", variant: "destructive" });
+    if (busy) return;
+    const p = pending ?? { amount: Number(f.amount.replace(",", ".")), date: f.date, method: f.method, account: f.account, ref: f.ref };
+    if (!(p.amount > 0)) return toast({ title: "Montant positif requis", variant: "destructive" });
     setBusy(true); const my = gen.current; const forKey = key;
     let res: { data: any; error: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
-    try { res = await db.rpc("fin_invoice_receipt_add", { _invoice: invoiceId, _amount: amount, _date: f.date, _method: f.method, _account: f.account || null, _ref: f.ref, _idem: idem.current }); }
+    try { res = await db.rpc("fin_invoice_receipt_add", { _invoice: invoiceId, _amount: p.amount, _date: p.date, _method: p.method, _account: p.account || null, _ref: p.ref, _idem: idem.current }); }
     catch { res = { data: null, error: { message: "Réponse non reçue. Réessayez : la même saisie ne sera enregistrée qu'une fois." } }; }
     if (my !== gen.current || forKey !== key) return;
     setBusy(false);
     // Erreur ou réponse perdue : on garde la clé, un nouvel envoi rejoue la même saisie.
-    if (res.error) return toast({ title: "Non confirmé", description: res.error.message, variant: "destructive" });
+    if (res.error) {
+      if (res.error.code === "P0409") { setPending(null); idem.current = crypto.randomUUID(); await load(); }
+      else setPending(p);
+      return toast({ title: "Non confirmé", description: res.error.message, variant: "destructive" });
+    }
     const data = res.data;
-    idem.current = crypto.randomUUID(); setOpen(false); setF(emptyForm());
+    idem.current = crypto.randomUUID(); setPending(null); setOpen(false); setF(emptyForm());
     toast({ title: data.replayed ? "Encaissement déjà enregistré" : "Encaissement déclaré", description: data.unallocated > 0 ? `Trop-perçu de ${money(data.unallocated)} conservé comme montant client non affecté.` : `Reste à recevoir : ${money(data.rest)}` });
     await load(); onChanged();
   };
@@ -84,7 +91,7 @@ export default function InvoiceReceipts({ invoiceId, companyId, canWrite, onChan
     </div>
     <p className="text-xs">Total {money(sum.total)} · encaissé {money(sum.received)} · <strong>reste {money(sum.rest)}</strong>{sum.paid ? " · Payée" : ""}
       {sum.unallocated > 0 && <> · <span className="text-amber-800">trop-perçu non affecté {money(sum.unallocated)}</span></>}</p>
-    {open && <div className="grid gap-2 rounded bg-secondary/40 p-2 sm:grid-cols-2">
+    {open && <fieldset disabled={!!pending} className="contents"><div className="grid gap-2 rounded bg-secondary/40 p-2 sm:grid-cols-2">
       <p className="text-xs text-muted-foreground sm:col-span-2">Encaissement déclaré manuellement, sans confirmation bancaire. Paiement partiel accepté.</p>
       <label className="text-xs">Montant<Input inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder={String(sum.rest)} /></label>
       <label className="text-xs">Date<Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></label>
@@ -92,7 +99,11 @@ export default function InvoiceReceipts({ invoiceId, companyId, canWrite, onChan
       <label className="text-xs">Compte (facultatif, informatif)<select className={`${sel} w-full`} value={f.account} onChange={(e) => setF({ ...f, account: e.target.value })}><option value="">Non précisé</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
         {accErr && <span className="text-destructive">Comptes indisponibles : saisie possible sans compte.</span>}</label>
       <label className="text-xs sm:col-span-2">Référence<Input value={f.ref} onChange={(e) => setF({ ...f, ref: e.target.value })} placeholder="n° de chèque, virement…" /></label>
-      <div className="flex gap-2 sm:col-span-2"><Button size="sm" disabled={busy} onClick={add}>{busy ? "Envoi…" : "Enregistrer"}</Button><Button size="sm" variant="outline" onClick={() => setOpen(false)}>Annuler</Button></div>
+    </div></fieldset>}
+    {open && <div className="flex flex-wrap gap-2">
+      {pending && <p role="status" className="w-full text-xs">Envoi non confirmé : réessayez la même saisie (enregistrée une seule fois), ou abandonnez puis vérifiez l'historique avant une nouvelle saisie.</p>}
+      <Button size="sm" disabled={busy} onClick={add}>{busy ? "Envoi…" : pending ? "Réessayer le même envoi" : "Enregistrer"}</Button>
+      <Button size="sm" variant="outline" disabled={busy} onClick={() => { setOpen(false); if (pending) { setPending(null); setF(emptyForm()); idem.current = crypto.randomUUID(); void load(); } }}>{pending ? "Abandonner et vérifier" : "Annuler"}</Button>
     </div>}
     <ul className="divide-y divide-border text-xs">
       {sum.legacy > 0 && <li className="py-1">Déclaration antérieure : {money(sum.legacy)} (date et moyen non connus)</li>}
