@@ -291,3 +291,7 @@ B1 PUBLIÉ : déploiement 7bc4d061-86ce-4739-bef1-033d4c7759a3, code 2cfde735462
 ### FIN-09C2B2B2A — tentative de validation du parcours réel à l'écran (2026-10-01, non publié)
 - Bloqué, aucun code modifié : l'entreprise TEST (0986b4f6…) ne contient aucune retenue ni libération persistée (lecture seule : 0 / 0; tous les essais précédents étaient annulés), et l'aperçu n'a aucune session connectée. Aucune donnée, aucun compte ni droit créé. Parcours ordinateur/mobile non vérifié.
 - Débloquer : une retenue TEST persistée (facture TEST émise + au moins un paiement de retenue) et une session de compte TEST dans l'aperçu, sur décision explicite de l'utilisateur.
+
+### FIN-09C2B2B2A — préparation du scénario TEST-CLOTURE-FIN09 (2026-10-01, non publié)
+- Préparation bloquée, rien créé, aucun code modifié : isolation non démontrable. L'entreprise « TEST — Entreprise A » n'a aucun indicateur d'isolation au niveau entreprise; seul fin_invoices.is_test existe, et la trésorerie, les recherches/exports CSV Finances et les rappels (fin_reminders_sweep) ne filtrent pas is_test. Seule protection prouvée : blocage des envois vers adresses réservées (.invalid/.test).
+- Chemin identifié dans le code, non parcouru : Espace entrepreneur → Finances (/entrepreneur/finances) → onglet Factures → sous-onglet Factures → ouvrir la facture TEST → section « Retenues contractuelles » → historique → « Analyser la correction (TEST, lecture seule) ».
