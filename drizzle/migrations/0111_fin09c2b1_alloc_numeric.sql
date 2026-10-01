@@ -1,6 +1,6 @@
--- EN ATTENTE (non appliquée : base injoignable le 2026-10-01 11:5x UTC).
 -- Correctif additif FIN-09C2B1 : fin_ctax_alloc en arithmétique numeric exacte (aucun bigint, aucun float).
 -- Même méthode à diviseur (quota inférieur puis plus fort quotient w/(a+1), égalité = plus petit indice).
+-- Déjà appliqué directement le 2026-10-01 après redémarrage; cette migration l'enregistre (idempotente).
 CREATE OR REPLACE FUNCTION public.fin_ctax_alloc(_s jsonb, _cum numeric)
 RETURNS jsonb LANGUAGE plpgsql IMMUTABLE SET search_path = public AS $$
 DECLARE w numeric[]; a numeric[]; t numeric; c numeric; b int; i int;
