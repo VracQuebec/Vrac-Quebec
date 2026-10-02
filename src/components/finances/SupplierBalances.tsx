@@ -45,13 +45,13 @@ export default function SupplierBalances({ companyId, companyName, supplierId, s
 
     <div><p className="font-semibold">Trop-payés disponibles</p><ul className="divide-y rounded border text-xs">{overs.map((p) => <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 p-2">
       <span>Versement du {fmtDate(p.paid_on)} de {fmtMoney(p.amount)}{p.reference ? ` (${p.reference})` : ""} · <strong>disponible {fmtMoney(p.available)}</strong></span>
-      {canWrite && <span className="flex gap-1"><Button size="sm" variant="outline" disabled={!open.length} onClick={() => setAct({ a: "alloc", src: { kind: "payment", id: p.id, label: `trop-payé du ${fmtDate(p.paid_on)}`, available: p.available } })}>Affecter à une facture</Button>
+      {canWrite && <span className="flex flex-wrap gap-1"><Button size="sm" variant="outline" disabled={!open.length} onClick={() => setAct({ a: "alloc", src: { kind: "payment", id: p.id, label: `trop-payé du ${fmtDate(p.paid_on)}`, available: p.available } })}>Affecter à une facture</Button>
         <Button size="sm" variant="outline" onClick={() => setAct({ a: "refund", src: { kind: "payment", id: p.id, label: `trop-payé du ${fmtDate(p.paid_on)}`, available: p.available } })}>Remboursement reçu</Button></span>}</li>)}
       {!overs.length && <li className="p-2 text-muted-foreground">Aucun trop-payé disponible.</li>}</ul></div>
 
     <div><p className="font-semibold">Notes de crédit disponibles</p><ul className="divide-y rounded border text-xs">{crs.map((c) => <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 p-2">
       <span>{c.reference ?? "—"} · crédit {fmtMoney(c.total)} · affecté {fmtMoney(c.allocated)} · remboursé {fmtMoney(c.refunded)} · <strong>disponible {fmtMoney(c.available)}</strong></span>
-      {canWrite && <span className="flex gap-1"><Button size="sm" variant="outline" disabled={!open.length} onClick={() => setAct({ a: "alloc", src: { kind: "credit", id: c.id, label: `note ${c.reference ?? ""}`, available: c.available } })}>Affecter à une facture</Button>
+      {canWrite && <span className="flex flex-wrap gap-1"><Button size="sm" variant="outline" disabled={!open.length} onClick={() => setAct({ a: "alloc", src: { kind: "credit", id: c.id, label: `note ${c.reference ?? ""}`, available: c.available } })}>Affecter à une facture</Button>
         <Button size="sm" variant="outline" onClick={() => setAct({ a: "refund", src: { kind: "credit", id: c.id, label: `note ${c.reference ?? ""}`, available: c.available } })}>Remboursement reçu</Button></span>}</li>)}
       {!crs.length && <li className="p-2 text-muted-foreground">Aucune note de crédit disponible.</li>}</ul></div>
 
