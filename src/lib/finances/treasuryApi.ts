@@ -38,12 +38,15 @@ async function allOcc(c: string, from: string, to: string, f: api.Filters = {}) 
 export async function loadTreasury(c: string, from: string, to: string) {
   const [acc, bal, inf, trf, res, oa] = await Promise.all([accounts(c), balances(c), inflows(c), transfers(c), reserves(c), obligationAccounts(c)]);
   const oldest = bal.map((b) => b.as_of).sort()[0] ?? from;
-  const [occ, pays, refs] = await Promise.all([
+  const [occ, undatedOcc, pays, refs, rest] = await Promise.all([
     allOcc(c, addDays(from, -730), to),
+    allOcc(c, addDays(from, -730), to, { due_unknown: "only" } as api.Filters),
     db.from("fin_payments").select("id,amount,paid_on,payee_name,method").eq("company_id", c).eq("status", "validated").gt("paid_on", oldest).lte("paid_on", to),
     db.from("fin_refunds").select("id,amount,refunded_on,reason").eq("company_id", c).is("voided_at", null).gt("refunded_on", oldest).lte("refunded_on", to),
+    // FIN-12D1 : restitution d'un excédent d'avance = entrée d'argent (jamais un revenu)
+    db.from("fin_exp_restitutions").select("id,amount,received_on").eq("company_id", c).is("voided_at", null).gt("received_on", oldest).lte("received_on", to),
   ]);
-  err(pays.error); err(refs.error);
+  err(pays.error); err(refs.error); err(rest.error);
   const moves: Movement[] = [];
   for (const o of occ) {
     if (o.status !== "active" || ["reglee", "aucun", "annulee"].includes(o.settle)) continue;
@@ -54,6 +57,16 @@ export async function loadTreasury(c: string, from: string, to: string) {
   }
   for (const p of pays.data ?? []) moves.push({ id: `p:${p.id}`, ref: p.id, date: p.paid_on, cents: toCents(p.amount), dir: "out", kind: "payment", label: `Règlement déclaré — ${p.payee_name ?? ""}${p.method === "carte" ? " (carte)" : ""}`, via_card: p.method === "carte" });
   for (const r of refs.data ?? []) moves.push({ id: `r:${r.id}`, ref: r.id, date: r.refunded_on, cents: toCents(r.amount), dir: "in", kind: "refund", label: `Remboursement reçu${r.reason ? ` — ${r.reason}` : ""}` });
+  for (const r of rest.data ?? []) moves.push({ id: `x:${r.id}`, ref: r.id, date: r.received_on, cents: toCents(r.amount), dir: "in", kind: "refund", label: "Restitution d'avance par l'employé (pas un revenu)" });
+  // FIN-12D1 : échéance inconnue = dette non datée, jamais placée à une date arbitraire; date planifiée saisie explicitement = projetée à cette date.
+  let dueUnknownC = 0; let dueUnknownCount = 0;
+  for (const o of undatedOcc) {
+    if (o.status !== "active" || ["reglee", "aucun", "annulee"].includes(o.settle)) continue;
+    const rest2 = o.amount == null ? null : toCents(o.balance ?? o.amount);
+    if (rest2 !== null && rest2 <= 0) continue;
+    if (o.planned_override) { moves.push({ id: `o:${o.id}`, ref: o.id, date: o.planned_date, cents: rest2, dir: "out", kind: o.planned_date < from ? "late" : "occurrence", label: `${o.label} (date planifiée saisie)`, obligation_id: o.obligation_id, category: o.category, account_id: oa[o.obligation_id] ?? null, unassigned: !oa[o.obligation_id] }); continue; }
+    dueUnknownCount++; dueUnknownC += rest2 ?? 0;
+  }
   let retentionUndated = 0; // FIN-09C2 : part retenue sans date prévue = « à compléter », exclue des dates précises
   for (const i of inf) {
     if (i.kind === "credit") continue;
@@ -62,7 +75,7 @@ export async function loadTreasury(c: string, from: string, to: string) {
     sp.parts.forEach((pt, k) => moves.push({ id: k === 0 && !pt.retention ? `i:${i.id}` : `i:${i.id}:r:${pt.retention}`, ref: i.id, date: pt.date, cents: pt.cents, dir: "in", kind: "inflow", label: `${i.counterparty} (${i.certainty})${pt.retention ? " — retenue" : ""}`, account_id: i.account_id, certainty: i.certainty, currency: (acc.find((a) => a.id === i.account_id)?.currency) ?? "CAD" }));
   }
   for (const t of trf) moves.push({ id: `t:${t.id}`, ref: t.id, date: t.planned_on, cents: toCents(t.amount), dir: "out", kind: "transfer", label: "Transfert entre comptes", account_id: t.from_account, transfer_to: t.to_account });
-  return { obligationAccounts: oa, accounts: acc, balances: bal, inflows: inf, transfers: trf, reserves: res.map((r) => ({ ...r, target: Number(r.target), reserved: Number(r.reserved) })), moves, retentionUndated };
+  return { obligationAccounts: oa, accounts: acc, balances: bal, inflows: inf, transfers: trf, reserves: res.map((r) => ({ ...r, target: Number(r.target), reserved: Number(r.reserved) })), moves, retentionUndated, dueUnknownC, dueUnknownCount };
 }
 
 export async function obligationAccounts(c: string) {
