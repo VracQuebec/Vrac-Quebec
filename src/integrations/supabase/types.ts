@@ -5146,6 +5146,323 @@ export type Database = {
           },
         ]
       }
+      fin_gl_account_links: {
+        Row: {
+          company_id: string
+          fin_account_id: string
+          gl_account_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          fin_account_id: string
+          gl_account_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          fin_account_id?: string
+          gl_account_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_gl_account_links_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_gl_account_links_fin_account_id_fkey"
+            columns: ["fin_account_id"]
+            isOneToOne: true
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_gl_account_links_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_gl_accounts: {
+        Row: {
+          active: boolean
+          category: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          number: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          number: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_gl_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_gl_entries: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string
+          draft_key: string | null
+          entry_date: string
+          entry_no: number | null
+          id: string
+          origin: string
+          reference: string | null
+          rev: number
+          reversal_reason: string | null
+          reverse_key: string | null
+          reversed_by_id: string | null
+          reverses_id: string | null
+          source_id: string | null
+          source_kind: string | null
+          source_label: string | null
+          source_purpose: string | null
+          status: string
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          draft_key?: string | null
+          entry_date: string
+          entry_no?: number | null
+          id?: string
+          origin?: string
+          reference?: string | null
+          rev?: number
+          reversal_reason?: string | null
+          reverse_key?: string | null
+          reversed_by_id?: string | null
+          reverses_id?: string | null
+          source_id?: string | null
+          source_kind?: string | null
+          source_label?: string | null
+          source_purpose?: string | null
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          draft_key?: string | null
+          entry_date?: string
+          entry_no?: number | null
+          id?: string
+          origin?: string
+          reference?: string | null
+          rev?: number
+          reversal_reason?: string | null
+          reverse_key?: string | null
+          reversed_by_id?: string | null
+          reverses_id?: string | null
+          source_id?: string | null
+          source_kind?: string | null
+          source_label?: string | null
+          source_purpose?: string | null
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_gl_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_gl_entries_reversed_by_id_fkey"
+            columns: ["reversed_by_id"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_gl_entries_reverses_id_fkey"
+            columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_gl_events: {
+        Row: {
+          action: string
+          actor: string | null
+          at: string
+          company_id: string
+          data: Json | null
+          entry_id: string | null
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          at?: string
+          company_id: string
+          data?: Json | null
+          entry_id?: string | null
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          at?: string
+          company_id?: string
+          data?: Json | null
+          entry_id?: string | null
+          id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
+      fin_gl_lines: {
+        Row: {
+          company_id: string
+          credit: number
+          debit: number
+          entry_id: string
+          gl_account_id: string
+          id: string
+          line_no: number
+          memo: string | null
+        }
+        Insert: {
+          company_id: string
+          credit?: number
+          debit?: number
+          entry_id: string
+          gl_account_id: string
+          id?: string
+          line_no: number
+          memo?: string | null
+        }
+        Update: {
+          company_id?: string
+          credit?: number
+          debit?: number
+          entry_id?: string
+          gl_account_id?: string
+          id?: string
+          line_no?: number
+          memo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_gl_lines_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_gl_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_gl_lines_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_gl_mappings: {
+        Row: {
+          company_id: string
+          gl_account_id: string
+          role: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          gl_account_id: string
+          role: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          gl_account_id?: string
+          role?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_gl_mappings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_gl_mappings_gl_account_id_fkey"
+            columns: ["gl_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_invoice_receipts: {
         Row: {
           account_id: string | null
@@ -27024,6 +27341,94 @@ export type Database = {
           slot: number
         }[]
       }
+      fin_gl_account_save: {
+        Args: {
+          _active: boolean
+          _category: string
+          _company: string
+          _id: string
+          _name: string
+          _number: string
+        }
+        Returns: string
+      }
+      fin_gl_check_lines: {
+        Args: { _company: string; _lines: Json }
+        Returns: undefined
+      }
+      fin_gl_entry_discard: {
+        Args: { _id: string; _rev: number }
+        Returns: undefined
+      }
+      fin_gl_entry_reverse: {
+        Args: { _date: string; _id: string; _key: string; _reason: string }
+        Returns: Json
+      }
+      fin_gl_entry_save: {
+        Args: {
+          _company: string
+          _date: string
+          _desc: string
+          _id: string
+          _key: string
+          _lines: Json
+          _ref: string
+          _rev: number
+        }
+        Returns: Json
+      }
+      fin_gl_entry_validate: {
+        Args: { _id: string; _rev: number }
+        Returns: Json
+      }
+      fin_gl_ledger: {
+        Args: { _account: string; _company: string; _from: string; _to: string }
+        Returns: Json
+      }
+      fin_gl_link_set: {
+        Args: { _company: string; _fin_account: string; _gl: string }
+        Returns: undefined
+      }
+      fin_gl_lock: { Args: { _company: string }; Returns: undefined }
+      fin_gl_map_set: {
+        Args: { _company: string; _gl: string; _role: string }
+        Returns: undefined
+      }
+      fin_gl_next_no: { Args: { _company: string }; Returns: number }
+      fin_gl_pending: { Args: { _company: string }; Returns: Json }
+      fin_gl_queue: {
+        Args: { _company: string }
+        Returns: {
+          kind: string
+          label: string
+          lines: Json
+          missing: string[]
+          on_date: string
+          posted_id: string
+          purpose: string
+          ref: string
+          src: string
+        }[]
+      }
+      fin_gl_raw: {
+        Args: { _company: string }
+        Returns: {
+          kind: string
+          label: string
+          on_date: string
+          raw: Json
+          ref: string
+          src: string
+          voided: boolean
+        }[]
+      }
+      fin_gl_resolve: {
+        Args: { _company: string; _raw: Json }
+        Returns: Record<string, unknown>
+      }
+      fin_gl_role_category: { Args: { _role: string }; Returns: string }
+      fin_gl_sync: { Args: { _company: string }; Returns: Json }
+      fin_gl_trial: { Args: { _company: string; _to: string }; Returns: Json }
       fin_invoice_balance: { Args: { _invoice: string }; Returns: Json }
       fin_invoice_from_quote: { Args: { _quote_id: string }; Returns: string }
       fin_invoice_issue: {
