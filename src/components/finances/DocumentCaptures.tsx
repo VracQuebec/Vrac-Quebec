@@ -81,12 +81,12 @@ function CaptureReview({ companyId, id, sups, canWrite, onBack, onOpenBill, onOp
         const d = x.extraction?.documents?.[0] ?? null; return C.editsFrom(d, 0, C.matchSupplier(d?.supplier_name ?? null, sups).exact ?? ""); });
     } catch (er: any) { if (alive.current) setLoadErr(er.message); }
   }, [id, lk, sups]);
-  useEffect(() => { void load(); P.openFile && C.detail(id).then((x) => P.openFile(x.file_id)).then((u) => { if (alive.current) setUrl(u); }).catch(() => {}); }, [load, id]);
+  useEffect(() => { void load(); C.detail(id).then((x) => P.openFile(x.file_id)).then((u) => { if (alive.current) setUrl(u); }).catch(() => {}); }, [load, id]);
   useEffect(() => { if (!dirty || !e) return; try { localStorage.setItem(lk, JSON.stringify(e)); } catch { /* indisponible */ } }, [e, dirty, lk]);
   useEffect(() => { if (!e?.supplier_id) { setBills([]); return; } P.overview(companyId, { supplier_id: e.supplier_id, status: "active" }, 100, 0).then((d) => { if (alive.current) setBills(d.rows); }).catch(() => setBills([])); }, [companyId, e?.supplier_id]);
   useEffect(() => { if (!e || e.kind !== "bill" || !e.supplier_id) { setDups(null); return; }
-    const t = setTimeout(() => P.dups(companyId, null, { ...C.toBillForm(e), file_id: c?.file_id ?? "", file_sha256: c?.file_sha256 ?? "" }).then((d) => { if (alive.current) setDups(d); }).catch(() => {}), 400); return () => clearTimeout(t); },
-    [companyId, e, c?.file_id, c?.file_sha256]);
+    const t = setTimeout(() => P.dups(companyId, null, { ...C.toBillForm(e), file_id: c?.file_id ?? "", file_sha256: c?.file_sha256 ?? "" }).then((d) => { if (!alive.current) return; const own = new Set((c?.results ?? []).map((r) => r.id)); setDups({ exact: d.exact.filter((x) => !own.has(x.id)), probable: d.probable.filter((x) => !own.has(x.id)) }); }).catch(() => {}), 400); return () => clearTimeout(t); },
+    [companyId, e, c?.file_id, c?.file_sha256, c?.results]);
 
   if (loadErr) return <section className="space-y-2"><p role="alert" className="text-sm text-destructive">{loadErr}</p><Button size="sm" variant="outline" onClick={onBack}>Retour</Button></section>;
   if (!c || !e) return <p className="text-sm text-muted-foreground">Chargement…</p>;
