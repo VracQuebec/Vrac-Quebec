@@ -104,9 +104,9 @@ export function lineFromExtraction(ex: Extraction | null, l: Line): Line {
 /** FIN-12C → FIN-12D : copie privée de la pièce dans le dossier des notes de frais et reprise de la lecture existante (aucune nouvelle consommation). */
 export async function fromCapture(c: string, capId: string) {
   const { data: cap } = await db.from("fin_doc_captures").select("id,file_id").eq("id", capId).maybeSingle(); if (!cap) throw new Error("Document inaccessible");
-  const { data: row } = await db.from("ent_crm_files").select("storage_path,file_name,name").eq("id", cap.file_id).maybeSingle(); if (!row) throw new Error("Pièce inaccessible");
+  const { data: row } = await db.from("ent_crm_files").select("storage_path,file_name").eq("id", cap.file_id).maybeSingle(); if (!row) throw new Error("Pièce inaccessible");
   const dl = await supabase.storage.from("entcrm-files").download(row.storage_path); if (dl.error || !dl.data) throw new Error("Téléchargement impossible");
-  const name = String(row.file_name ?? row.name ?? row.storage_path.split("/").pop());
+  const name = String(row.file_name ?? row.storage_path.split("/").pop());
   const f = await uploadFile(c, dl.data, name);
   await call("fin_exp_file_from_capture", { _file: f.id, _capture: capId, _reason: "Orienté vers une note de frais (payé par un employé)" });
   return f;
