@@ -3808,6 +3808,7 @@ export type Database = {
           created_by: string | null
           dismiss_reason: string | null
           edits: Json | null
+          exp_file_id: string | null
           extract_count: number
           extract_error: string | null
           extracted_at: string | null
@@ -3827,6 +3828,7 @@ export type Database = {
           created_by?: string | null
           dismiss_reason?: string | null
           edits?: Json | null
+          exp_file_id?: string | null
           extract_count?: number
           extract_error?: string | null
           extracted_at?: string | null
@@ -3846,6 +3848,7 @@ export type Database = {
           created_by?: string | null
           dismiss_reason?: string | null
           edits?: Json | null
+          exp_file_id?: string | null
           extract_count?: number
           extract_error?: string | null
           extracted_at?: string | null
@@ -3871,6 +3874,13 @@ export type Database = {
             columns: ["converted_file_id"]
             isOneToOne: false
             referencedRelation: "ent_crm_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_doc_captures_exp_file_id_fkey"
+            columns: ["exp_file_id"]
+            isOneToOne: false
+            referencedRelation: "fin_exp_files"
             referencedColumns: ["id"]
           },
           {
@@ -26081,6 +26091,7 @@ export type Database = {
         Args: { _id: string; _path: string }
         Returns: undefined
       }
+      fin_crm_file_exp_ok: { Args: { _file: string }; Returns: boolean }
       fin_ctax_alloc: { Args: { _cum: number; _s: Json }; Returns: Json }
       fin_ctax_date: { Args: { _t: string }; Returns: string }
       fin_ctax_pay_eval: {
@@ -26154,6 +26165,10 @@ export type Database = {
       fin_exp_alloc_sum: { Args: { _report: string }; Returns: number }
       fin_exp_alloc_void: {
         Args: { _id: string; _reason: string }
+        Returns: Json
+      }
+      fin_exp_bill_search: {
+        Args: { _company: string; _id?: string; _q?: string }
         Returns: Json
       }
       fin_exp_can_see: {

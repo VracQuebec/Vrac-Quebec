@@ -205,7 +205,7 @@ function TotalsCards({ t }: { t: api.Totals | null }) {
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">{c.map(([l, v]) => <div key={l} className="rounded-md border border-border bg-card p-3"><p className="text-xs text-muted-foreground">{l}</p><p className="font-display text-lg font-bold" data-testid={`tot-${l}`}>{v}</p></div>)}</div>
     {t.remaining !== undefined && <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
       {box("Reste à payer sur ces échéances, à ce jour", fmtMoney(t.remaining), `${t.late_count ?? 0} en retard (${fmtMoney(t.late_amount ?? 0)})${t.remaining_estimated ? ` · dont basé sur estimation ${fmtMoney(t.remaining_estimated)}` : ""}${t.to_confirm_amount ? ` · dont règlement à confirmer ${fmtMoney(t.to_confirm_amount)}` : ""}`, "reste")}
-      {box("Échéance inconnue (hors période, non datée)", fmtMoney(t.due_unknown_remaining ?? 0), `${t.due_unknown_count ?? 0} facture(s) fournisseur sans échéance : comptées dans la dette, exclues des prévisions datées`, "echeance-inconnue")}
+      {box("Échéance inconnue (hors période, non datée)", fmtMoney(t.due_unknown_remaining ?? 0), `${t.due_unknown_count ?? 0} échéance(s) sans date (factures, notes de frais) : comptées dans la dette, exclues des prévisions datées`, "echeance-inconnue")}
       {box("Versements déclarés dans la période (date du versement)", fmtMoney(t.declared ?? 0), m || "Aucun", "declare")}
       {box("Reliquats non affectés (toutes dates)", fmtMoney(t.unallocated ?? 0), `${t.unallocated_count ?? 0} versement(s) avec avance / trop-payé`, "reliquat")}
       {box("Remboursements reçus dans la période", fmtMoney(t.refunds ?? 0), `${t.unknown_count} montant(s) à compléter · ${t.drafts ?? 0} brouillon(s)`)}
