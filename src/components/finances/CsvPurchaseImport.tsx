@@ -107,7 +107,7 @@ export default function CsvPurchaseImport({ companyId, sups, onOpenBill, onOpenC
       {unknownSups.length > 0 && <div className="space-y-2 rounded-md border border-amber-500/40 p-2"><p className="text-sm font-semibold">Fournisseurs à associer (aucune fiche créée automatiquement)</p>
         {unknownSups.map((d) => <label key={d.supplierName} className="block text-sm"><span className="mb-1 block text-xs">« {d.supplierName} » {d.supplierChoices.length > 1 ? "— plusieurs fiches portent ce nom" : "— aucune fiche exacte"}</span>
           <select aria-label={`Associer ${d.supplierName}`} className={sel} value={s.supplierMap[C.norm(d.supplierName)] ?? ""} onChange={(e) => { up({ supplierMap: { ...s.supplierMap, [C.norm(d.supplierName)]: e.target.value } }); setChecks(null); }}>
-            <option value="">— Choisir une fiche existante —</option>{(sups ?? []).filter((x) => !x.archived).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>)}
+            <option value="">— Choisir une fiche existante —</option>{(sups ?? []).filter((x) => !x.archived).map((x) => <option key={x.id} value={x.id}>{x.name}{(sups ?? []).filter((y) => !y.archived && C.norm(y.name) === C.norm(x.name)).length > 1 ? ` · fiche n° ${x.id.slice(0, 6)}` : ""}</option>)}</select></label>)}
         <p className="text-[11px] text-muted-foreground">Fournisseur absent ? Créez sa fiche dans « Factures et crédits », puis revenez : vos choix sont conservés.</p></div>}
 
       {!num ? <p role="alert" className="text-sm text-destructive">Choisissez le format des nombres pour afficher l'aperçu.</p> : <>
