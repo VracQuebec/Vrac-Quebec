@@ -328,3 +328,11 @@ B1 PUBLIÉ : déploiement 7bc4d061-86ce-4739-bef1-033d4c7759a3, code 2cfde735462
 - Essais SIMULTANÉS réels (requêtes HTTP parallèles, données TEST conservées « FIN12A1 Concurrence ») : double confirmation → 1 facture/1 obligation; double remplacement d'une estimation → 1 succès, 1 refus P0409; même crédit affecté en parallèle → somme affectée ≤ crédit, rejeu même clé sans 2e affectation.
 - Écran : tests 10/10 (fin-12a + fin-12a1), types OK; parcours bureau 1280 px et mobile 390 px (DEMO-FACT-1200 : crédit FIN12A1-DEMO-CR200 affecté → reste 700 $).
 - Reste : traitement réel du trop-payé, crédits non liés à une facture remboursés, OCR, commandes/réceptions, notes de frais, import CSV. FIN-12 non complet.
+
+## FIN-12B — Commandes fournisseurs, réceptions et rapprochement (TEST, non publié)
+- Migration 0127 : fin_purchase_orders, fin_po_receipts, fin_po_matches, fin_po_events (append-only) + RPC fin_po_*; gardes ajoutées à fin_bill_confirm/fin_bill_void.
+- Écran : Finances → Fournisseurs et achats → onglet Commandes (liste avec engagements / factures à payer / sorties restantes, détail, réceptions, rapprochement, modification motivée, clôture, annulation, historique, instantané).
+- Essai serveur séquentiel (rollback) : engagement 1 000; réceptions 40 puis 60 → restant 60 puis 0, aucune dette; facture 400 / 40 t → dette 400, engagement 600, prévu 1 000; règlement 100 → dette 300, sorties 900; facture 600 → engagement 0, dette 900; replays sans doublon; surfacturation sans motif refusée; annulation/rétablissement du rapprochement (600 ↔ 0) sans perte de facture ni règlement; facture rapprochée non annulable; réduction sous le reçu refusée; TEST B refusé.
+- Essai simultané réel (REST, compte TEST A) : 4 confirmations → 1; 3 réceptions de 50 t → 2 acceptées, 1 refusée (100 t max); même clé ×3 → 1 réception; 2 rapprochements de 60 t → 1 accepté, 1 refusé (facture refusée restée brouillon); même clé ×3 → aucun doublon. Données conservées : commande FIN12B-CONC-4e04ea et factures FIN12B-CONC-4e04ea-F0/F1; commande écran FIN12B-DEMO (40 t reçues).
+- Simulations d'écran : src/test/fin-12b.test.tsx 6/6. Parcours 1280 px et 390 px.
+- Limites : OCR, notes de frais, import CSV, remboursements fournisseurs, trop-payés hors lot; pas de lien inventaire; essais simultanés à petite échelle. FIN-12 non complet.
