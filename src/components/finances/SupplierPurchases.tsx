@@ -13,9 +13,10 @@ import { PaymentDialog, type PayTarget } from "@/components/finances/Settlements
 import PurchaseOrders from "@/components/finances/PurchaseOrders";
 import DocumentCaptures from "@/components/finances/DocumentCaptures";
 import * as Cap from "@/lib/finances/captures";
+import CsvPurchaseImport from "@/components/finances/CsvPurchaseImport";
 
 const sel = "h-10 w-full rounded-md border border-input bg-background px-2 text-sm";
-type View = { k: "list" } | { k: "bill"; id: string | null } | { k: "supplier"; id: string } | { k: "credit"; id: string | null };
+type View = { k: "list" } | { k: "csv" } | { k: "bill"; id: string | null } | { k: "supplier"; id: string } | { k: "credit"; id: string | null };
 const L = ({ l, children, className = "" }: { l: string; children: React.ReactNode; className?: string }) => <label className={`block text-sm ${className}`}><span className="mb-1 block text-xs font-semibold text-muted-foreground">{l}</span>{children}</label>;
 const money = (n: number | null | undefined) => (n == null ? "—" : fmtMoney(n));
 
@@ -35,8 +36,9 @@ export default function SupplierPurchases({ companyId, companyName, canWrite, ca
     </div>
     {tab === "docs" ? <DocumentCaptures key={companyId} companyId={companyId} sups={sups} canWrite={canWrite} onOpenBill={(id) => { setTab("bills"); setView({ k: "bill", id }); }} onOpenCredit={(id) => { setTab("bills"); setView({ k: "credit", id }); }} />
     : tab === "orders" ? <PurchaseOrders key={companyId} companyId={companyId} sups={sups} canWrite={canWrite} canCorrect={canCorrect} onOpenBill={(id) => { setTab("bills"); setView({ k: "bill", id }); }} /> : <>
-    <p className="text-xs text-muted-foreground">Factures et notes de crédit fournisseurs : un brouillon n'a aucun effet financier; la confirmation d'une facture crée ou remplace exactement une échéance « À payer »; un crédit réduit le solde d'une facture sans être un encaissement. Lecture des reçus : onglet « Reçus et documents ». Notes de frais et import CSV : à venir.</p>
-    {view.k === "list" && <BillList companyId={companyId} sups={sups} rev={rev} canWrite={canWrite} onOpen={(id) => setView({ k: "bill", id })} onSupplier={(id) => setView({ k: "supplier", id })} onNewSupplier={() => setView({ k: "supplier", id: "" })} onCredit={(id) => setView({ k: "credit", id })} />}
+    <p className="text-xs text-muted-foreground">Factures et notes de crédit fournisseurs : un brouillon n'a aucun effet financier; la confirmation d'une facture crée ou remplace exactement une échéance « À payer »; un crédit réduit le solde d'une facture sans être un encaissement. Lecture des reçus : onglet « Reçus et documents ». Import CSV : bouton « Importer un CSV » (brouillons seulement).</p>
+    {view.k === "csv" && <CsvPurchaseImport key={companyId} companyId={companyId} sups={sups} onOpenBill={(id) => setView({ k: "bill", id })} onOpenCredit={(id) => setView({ k: "credit", id })} onClose={back} />}
+    {view.k === "list" && <BillList onCsv={() => setView({ k: "csv" })} companyId={companyId} sups={sups} rev={rev} canWrite={canWrite} onOpen={(id) => setView({ k: "bill", id })} onSupplier={(id) => setView({ k: "supplier", id })} onNewSupplier={() => setView({ k: "supplier", id: "" })} onCredit={(id) => setView({ k: "credit", id })} />}
     {view.k === "bill" && <BillEditor key={view.id ?? "new"} companyId={companyId} companyName={companyName} id={view.id} sups={sups ?? []} canWrite={canWrite} canCorrect={canCorrect} initialOcc={view.id ? null : initialOcc ?? null}
       onOpen={(id) => setView({ k: "bill", id })} onBack={back} />}
     {view.k === "supplier" && <SupplierSheet key={view.id} companyId={companyId} id={view.id || null} canWrite={canWrite} onBack={back} onSaved={(id) => { loadSups(); setView({ k: "supplier", id }); }} onOpenBill={(id) => setView({ k: "bill", id })} onOpenCredit={(id) => setView({ k: "credit", id })} />}
@@ -45,7 +47,7 @@ export default function SupplierPurchases({ companyId, companyName, canWrite, ca
   </div>;
 }
 
-function BillList({ companyId, sups, rev, canWrite, onOpen, onSupplier, onNewSupplier, onCredit }: { companyId: string; sups: { id: string; name: string; archived: boolean }[] | null; rev: number; canWrite: boolean; onOpen: (id: string | null) => void; onSupplier: (id: string) => void; onNewSupplier: () => void; onCredit: (id: string | null) => void }) {
+function BillList({ companyId, sups, rev, canWrite, onOpen, onSupplier, onNewSupplier, onCredit, onCsv }: { onCsv: () => void; companyId: string; sups: { id: string; name: string; archived: boolean }[] | null; rev: number; canWrite: boolean; onOpen: (id: string | null) => void; onSupplier: (id: string) => void; onNewSupplier: () => void; onCredit: (id: string | null) => void }) {
   const [f, setF] = useState<{ supplier_id: string; status: string; q: string }>({ supplier_id: "", status: "active", q: "" });
   const [page, setPage] = useState(0);
   const [data, setData] = useState<Awaited<ReturnType<typeof P.overview>> | null>(null);
@@ -62,6 +64,7 @@ function BillList({ companyId, sups, rev, canWrite, onOpen, onSupplier, onNewSup
     <div className="flex flex-wrap gap-2">
       {canWrite && <Button size="sm" onClick={() => onOpen(null)} disabled={!sups?.length}>Ajouter une facture fournisseur</Button>}
       {canWrite && <Button size="sm" variant="outline" onClick={() => onCredit(null)} disabled={!sups?.length}>Ajouter une note de crédit</Button>}
+      {canWrite && <Button size="sm" variant="outline" onClick={onCsv} disabled={!sups?.length}>Importer un CSV</Button>}
       {canWrite && <Button size="sm" variant="outline" onClick={onNewSupplier}>Ajouter ou réutiliser un fournisseur</Button>}
     </div>
     {sups && !sups.length && <p className="text-sm text-muted-foreground">Aucun fournisseur. Ajoutez-en un (ou réutilisez une fiche existante) avant la première facture.</p>}
