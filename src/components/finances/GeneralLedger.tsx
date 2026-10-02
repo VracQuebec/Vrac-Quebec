@@ -114,7 +114,7 @@ function Draft({ companyId, accs, byId, init, onClose, onDone }: { companyId: st
     finally { setBusy(false); }
   };
   const drop = async () => { if (!cur.id || cur.rev == null) { sessionStorage.removeItem(store); onClose(); return; } setBusy(true); try { await G.discard(cur.id, cur.rev); sessionStorage.removeItem(store); onDone(); onClose(); } catch (e) { err(e); } finally { setBusy(false); } };
-  return <Dialog open onOpenChange={(o) => !o && onClose()}><DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
+  return <Dialog open onOpenChange={(o) => !o && onClose()}><DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-3xl overflow-y-auto break-words">
     <DialogHeader><DialogTitle>{init ? "Brouillon d'écriture" : "Nouvelle écriture manuelle"}</DialogTitle></DialogHeader>
     <div className="grid gap-2 sm:grid-cols-3">
       <label className="text-sm">Date comptable *<Input type="date" value={s.date} onChange={(e) => setS({ ...s, date: e.target.value })} /></label>
@@ -151,14 +151,14 @@ function EntryDialog({ id, companyId, byId, canCorrect, onClose, onOpen, onChang
     try { const r = await G.reverse(e.id, rv.reason, rv.date, rv.key); toast({ title: `Contrepassation n° ${r.entry_no} créée` }); onChange(); onOpen(r.id); }
     catch (x: any) { setMsg(x?.message?.includes("Failed to fetch") ? "Erreur réseau : réessayez, la contrepassation ne sera créée qu'une fois." : x?.message); } finally { setBusy(false); } };
   const ACT: Record<string, string> = { draft_create: "Brouillon créé", draft_update: "Brouillon modifié", validate: "Validée", reverse: "Contrepassation", auto_post: "Comptabilisée automatiquement", auto_void: "Contrepassée (pièce annulée)" };
-  return <Dialog open onOpenChange={(o) => !o && onClose()}><DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
+  return <Dialog open onOpenChange={(o) => !o && onClose()}><DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto break-words">
     <DialogHeader><DialogTitle>{!e ? "Écriture" : e.status === "draft" ? "Brouillon" : `Écriture n° ${e.entry_no}`}</DialogTitle></DialogHeader>
     {!e ? <p className="text-sm text-muted-foreground">Chargement…</p> : <div className="space-y-3 text-sm">
       <p><strong>{fmtDate(e.entry_date)}</strong>{e.reference ? ` · ${e.reference}` : ""} — {e.description}</p>
       {e.source_kind && <p>Pièce source : {G.SOURCE[e.source_kind]?.l ?? e.source_kind}{e.source_label ? ` — ${e.source_label}` : ""} {href && <a className="underline" href={href}>Ouvrir la pièce</a>}</p>}
       {e.reverses_id && <p>Contrepasse l'écriture <button className="underline" onClick={() => onOpen(e.reverses_id!)}>d'origine</button>{e.reversal_reason ? ` — motif : ${e.reversal_reason}` : ""}</p>}
       {e.reversed_by_id && <p className="font-semibold">Contrepassée par <button className="underline" onClick={() => onOpen(e.reversed_by_id!)}>cette écriture</button></p>}
-      <div className="overflow-x-auto"><table className="w-full min-w-[420px] text-sm"><thead><tr className="text-left text-xs text-muted-foreground"><th>Compte</th><th className="text-right">Débit</th><th className="text-right">Crédit</th></tr></thead>
+      <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-xs text-muted-foreground"><th>Compte</th><th className="text-right">Débit</th><th className="text-right">Crédit</th></tr></thead>
         <tbody>{e.lines.map((l) => <tr key={l.id} className="border-t border-border"><td className="py-1">{acctLabel(byId, l.gl_account_id)}{l.memo ? <div className="text-xs text-muted-foreground">{l.memo}</div> : null}</td><td className="text-right">{l.debit ? fmtMoney(l.debit) : ""}</td><td className="text-right">{l.credit ? fmtMoney(l.credit) : ""}</td></tr>)}
           <tr className="border-t border-border font-semibold"><td>Total</td><td className="text-right">{fmtMoney(G.balance(e.lines).debit)}</td><td className="text-right">{fmtMoney(G.balance(e.lines).credit)}</td></tr></tbody></table></div>
       {ev.length > 0 && <div><h4 className="font-semibold">Historique</h4><ul className="text-xs">{ev.map((x, i) => <li key={i}>{new Date(x.at).toLocaleString("fr-CA")} — {ACT[x.action] ?? x.action}{x.reason ? ` (motif : ${x.reason})` : ""}</li>)}</ul></div>}
@@ -248,7 +248,7 @@ function Plan({ companyId, accs, canWrite, reload }: { companyId: string; accs: 
         <select disabled={!canWrite} className={`${sel} ${lk[fa.id] ? "" : "border-destructive"}`} value={lk[fa.id] ?? ""} onChange={(e) => doLink(fa.id, e.target.value)}>
           <option value="">À compléter</option>{act.filter((a) => a.category === "actif" || a.category === "passif").map((a) => <option key={a.id} value={a.id}>{a.number} · {a.name}</option>)}</select></label>)}</div>}
     </section>
-    {form && <Dialog open onOpenChange={(o) => !o && setForm(null)}><DialogContent className="max-w-md">
+    {form && <Dialog open onOpenChange={(o) => !o && setForm(null)}><DialogContent className="w-[calc(100vw-1rem)] max-w-md">
       <DialogHeader><DialogTitle>{form.id ? "Modifier le compte" : "Nouveau compte"}</DialogTitle></DialogHeader>
       <label className="text-sm">Numéro *<Input value={form.number} maxLength={20} onChange={(e) => setForm({ ...form, number: e.target.value })} /></label>
       <label className="text-sm">Nom *<Input value={form.name} maxLength={120} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
