@@ -25950,6 +25950,7 @@ export type Database = {
         Args: { _id: string; _reason: string }
         Returns: undefined
       }
+      fin_cap_exp_ok: { Args: { _cap: string }; Returns: boolean }
       fin_cap_for_bill: { Args: { _bill: string }; Returns: Json }
       fin_cap_log: {
         Args: {
