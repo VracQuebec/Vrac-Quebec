@@ -7173,39 +7173,54 @@ export type Database = {
       }
       fin_refunds: {
         Row: {
+          account_id: string | null
           amount: number
           company_id: string
           created_at: string
           created_by: string | null
+          file_id: string | null
           id: string
+          idem_key: string | null
+          method: string | null
           payment_id: string
           reason: string
+          reference: string | null
           refunded_on: string
           void_reason: string | null
           voided_at: string | null
           voided_by: string | null
         }
         Insert: {
+          account_id?: string | null
           amount: number
           company_id: string
           created_at?: string
           created_by?: string | null
+          file_id?: string | null
           id?: string
+          idem_key?: string | null
+          method?: string | null
           payment_id: string
           reason: string
+          reference?: string | null
           refunded_on: string
           void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
         }
         Update: {
+          account_id?: string | null
           amount?: number
           company_id?: string
           created_at?: string
           created_by?: string | null
+          file_id?: string | null
           id?: string
+          idem_key?: string | null
+          method?: string | null
           payment_id?: string
           reason?: string
+          reference?: string | null
           refunded_on?: string
           void_reason?: string | null
           voided_at?: string | null
@@ -7213,10 +7228,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fin_refunds_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fin_refunds_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_refunds_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_files"
             referencedColumns: ["id"]
           },
           {
@@ -8289,6 +8318,85 @@ export type Database = {
             columns: ["credit_id"]
             isOneToOne: false
             referencedRelation: "fin_supplier_credits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_supplier_credit_refunds: {
+        Row: {
+          account_id: string | null
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          credit_id: string
+          file_id: string | null
+          id: string
+          idem_key: string
+          method: string
+          note: string | null
+          reference: string | null
+          refunded_on: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          credit_id: string
+          file_id?: string | null
+          id?: string
+          idem_key: string
+          method: string
+          note?: string | null
+          reference?: string | null
+          refunded_on: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          credit_id?: string
+          file_id?: string | null
+          id?: string
+          idem_key?: string
+          method?: string
+          note?: string | null
+          reference?: string | null
+          refunded_on?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_supplier_credit_refunds_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_supplier_credit_refunds_credit_id_fkey"
+            columns: ["credit_id"]
+            isOneToOne: false
+            referencedRelation: "fin_supplier_credits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_supplier_credit_refunds_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_files"
             referencedColumns: ["id"]
           },
         ]
@@ -26195,6 +26303,7 @@ export type Database = {
             }
             Returns: Json
           }
+      fin_credit_refunded: { Args: { _credit: string }; Returns: number }
       fin_credit_save:
         | {
             Args: {
@@ -27211,6 +27320,7 @@ export type Database = {
         Args: { _alloc: string; _reason: string }
         Returns: Json
       }
+      fin_scr_avail: { Args: { _credit: string }; Returns: number }
       fin_scr_confirm: {
         Args: {
           _dup_reason: string
@@ -27295,6 +27405,23 @@ export type Database = {
       fin_settle_since: { Args: { _company: string }; Returns: string }
       fin_shift: { Args: { _d: string; _p: string }; Returns: string }
       fin_skip: { Args: { _d: string; _r: Json }; Returns: boolean }
+      fin_sup_refund: {
+        Args: {
+          _dry?: boolean
+          _p: Json
+          _source: string
+          _source_kind: string
+        }
+        Returns: Json
+      }
+      fin_sup_refund_void: {
+        Args: { _reason: string; _refund: string; _source_kind: string }
+        Returns: Json
+      }
+      fin_supplier_balances: {
+        Args: { _company: string; _supplier: string }
+        Returns: Json
+      }
       fin_supplier_detail: {
         Args: { _company: string; _supplier: string }
         Returns: Json
