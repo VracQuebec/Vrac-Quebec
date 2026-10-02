@@ -28,6 +28,9 @@ export default function SupplierBalances({ companyId, companyName, supplierId, s
   const ask = (q: string, fn: (r: string) => Promise<unknown>, ok: string) => { const r = window.prompt(q); if (r?.trim()) void undo(() => fn(r.trim()), ok); };
   const Refunds = ({ list, kind }: { list: P.SupRefund[]; kind: "payment" | "credit" }) => <>{list.map((r) => <li key={r.id} className={r.voided_at ? "text-muted-foreground line-through" : ""}>
     Remboursement reçu {fmtDate(r.date)} · {fmtMoney(r.amount)}{r.method ? ` · ${st.METHOD_LABEL[r.method] ?? r.method}` : ""}{r.account ? ` · ${r.account}` : ""}{r.reference ? ` · ${r.reference}` : ""}{r.voided_at ? ` — saisie annulée : ${r.void_reason}` : ""}
+    {r.file_id && <span className="ml-1 inline-flex flex-wrap gap-1 no-underline" style={{ textDecoration: "none" }}>
+      <Button size="sm" variant="outline" aria-label="Ouvrir le justificatif du remboursement" onClick={() => { const w = window.open("", "_blank"); P.openFile(r.file_id!).then((u) => { if (w) w.location.href = u; else window.location.href = u; }).catch((x) => { w?.close(); toast({ title: "Justificatif inaccessible", description: x.message, variant: "destructive" }); }); }}>Ouvrir le justificatif</Button>
+      <Button size="sm" variant="outline" aria-label="Télécharger le justificatif du remboursement" onClick={() => P.openFile(r.file_id!, true).then((u) => { window.location.href = u; }).catch((x) => toast({ title: "Justificatif inaccessible", description: x.message, variant: "destructive" }))}>Télécharger</Button></span>}
     {canCorrect && !r.voided_at && <Button size="sm" variant="ghost" onClick={() => ask("Motif de l'annulation (enregistrement erroné; aucun transfert n'est créé) :", (x) => P.supRefundVoid(kind, r.id, x), "Remboursement annulé — disponible rétabli")}>Annuler</Button>}</li>)}</>;
 
   return <section className="space-y-3 text-sm" data-testid="sup-balances">

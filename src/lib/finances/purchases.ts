@@ -100,10 +100,10 @@ export async function uploadProof(c: string, file: File) {
   if (error) { await supabase.storage.from(FILE_BUCKET).remove([path]); throw new Error(`Enregistrement refusé : ${error.message}`); }
   return { id: data.id as string, sha: hash, name: file.name };
 }
-export async function openFile(fileId: string) {
-  const { data } = await db.from("ent_crm_files").select("storage_path").eq("id", fileId).maybeSingle();
+export async function openFile(fileId: string, download = false) {
+  const { data } = await db.from("ent_crm_files").select("storage_path,file_name").eq("id", fileId).maybeSingle();
   if (!data) throw new Error("Pièce inaccessible");
-  const { data: s, error } = await supabase.storage.from(FILE_BUCKET).createSignedUrl(data.storage_path, 300);
+  const { data: s, error } = await supabase.storage.from(FILE_BUCKET).createSignedUrl(data.storage_path, 300, download ? { download: data.file_name || true } : undefined);
   if (error || !s) throw new Error("Pièce inaccessible");
   return s.signedUrl;
 }
