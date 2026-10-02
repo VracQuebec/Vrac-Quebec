@@ -26190,6 +26190,10 @@ export type Database = {
         Args: { _force: boolean; _id: string }
         Returns: Json
       }
+      fin_exp_file_from_capture: {
+        Args: { _capture: string; _file: string; _reason: string }
+        Returns: Json
+      }
       fin_exp_file_set: {
         Args: {
           _error: string
@@ -26200,6 +26204,11 @@ export type Database = {
         }
         Returns: undefined
       }
+      fin_exp_file_set_converted: {
+        Args: { _converted: string; _id: string }
+        Returns: undefined
+      }
+      fin_exp_file_visible: { Args: { _file: string }; Returns: boolean }
       fin_exp_hash: { Args: { _report: string }; Returns: string }
       fin_exp_log: {
         Args: {
