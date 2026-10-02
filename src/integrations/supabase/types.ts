@@ -3490,6 +3490,47 @@ export type Database = {
           },
         ]
       }
+      fin_bank_files: {
+        Row: {
+          company_id: string
+          content: string
+          created_at: string
+          created_by: string
+          file_name: string
+          id: string
+          sha256: string
+          size_bytes: number
+        }
+        Insert: {
+          company_id: string
+          content: string
+          created_at?: string
+          created_by?: string
+          file_name: string
+          id?: string
+          sha256: string
+          size_bytes: number
+        }
+        Update: {
+          company_id?: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          file_name?: string
+          id?: string
+          sha256?: string
+          size_bytes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_bank_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_bank_imports: {
         Row: {
           account_id: string
@@ -3507,6 +3548,7 @@ export type Database = {
           period_to: string | null
           request_key: string
           settings: Json
+          source_file_id: string | null
           summary: Json
         }
         Insert: {
@@ -3525,6 +3567,7 @@ export type Database = {
           period_to?: string | null
           request_key: string
           settings: Json
+          source_file_id?: string | null
           summary?: Json
         }
         Update: {
@@ -3543,6 +3586,7 @@ export type Database = {
           period_to?: string | null
           request_key?: string
           settings?: Json
+          source_file_id?: string | null
           summary?: Json
         }
         Relationships: [
@@ -3565,6 +3609,13 @@ export type Database = {
             columns: ["file_id"]
             isOneToOne: false
             referencedRelation: "ent_crm_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_imports_source_file_id_fkey"
+            columns: ["source_file_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_files"
             referencedColumns: ["id"]
           },
         ]
@@ -26480,6 +26531,11 @@ export type Database = {
       fin_bank_date: { Args: { _fmt: string; _s: string }; Returns: string }
       fin_bank_eval: {
         Args: { _account: string; _rows: Json; _settings: Json }
+        Returns: Json
+      }
+      fin_bank_file_get: { Args: { _import: string }; Returns: Json }
+      fin_bank_file_put: {
+        Args: { _company: string; _content: string; _name: string }
         Returns: Json
       }
       fin_bank_guard: {

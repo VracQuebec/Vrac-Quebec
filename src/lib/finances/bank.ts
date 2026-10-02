@@ -3,7 +3,6 @@
 // observation : jamais de facture, règlement, revenu ou dépense créés, jamais ajoutée à la trésorerie.
 import { supabase } from "@/integrations/supabase/client";
 import { parseCsv, norm, type NumFmt, type DateFmt } from "./csvImport";
-import { FILE_BUCKET, sha256 } from "./purchases";
 
 const db = supabase as any;
 export { parseCsv };
@@ -49,15 +48,15 @@ export type Summary = { import_id: string; ajoutees: number; deja_presentes: num
 const rpc = async (fn: string, args: Record<string, unknown>) => { const { data, error } = await db.rpc(fn, args); if (error) throw Object.assign(new Error(error.message), { code: error.code }); return data; };
 
 export const preview = (company: string, account: string, rows: SrcRow[], s: Settings) => rpc("fin_bank_preview", { _company: company, _account: account, _rows: rows, _settings: s }) as Promise<Eval[]>;
-export async function uploadStatement(company: string, file: File) {
-  if (file.size > 2 * 1024 * 1024) throw new Error("Fichier trop lourd (2 Mo au maximum).");
-  const sha = await sha256(file);
-  const path = `company/${company}/bank/${crypto.randomUUID()}.csv`;
-  const up = await supabase.storage.from(FILE_BUCKET).upload(path, file, { contentType: "text/csv", upsert: false });
-  if (up.error) throw new Error(`Envoi du fichier privé refusé : ${up.error.message}`);
-  const { data, error } = await db.from("ent_crm_files").insert({ company_id: company, storage_path: path, file_name: file.name, mime_type: "text/csv", size_bytes: file.size, title: file.name.replace(/\.[^.]+$/, ""), category: "autre", description: "Relevé bancaire (CSV)" }).select("id").single();
-  if (error) { await supabase.storage.from(FILE_BUCKET).remove([path]); throw new Error(`Enregistrement du fichier refusé : ${error.message}`); }
-  return { id: data.id as string, sha };
+/** Original conservé en privé (base, lecture limitée aux droits financiers de l'entreprise); empreinte calculée côté serveur. */
+export async function uploadStatement(company: string, name: string, text: string) {
+  if (new Blob([text]).size > 2 * 1024 * 1024) throw new Error("Fichier trop lourd (2 Mo au maximum).");
+  const r = await rpc("fin_bank_file_put", { _company: company, _name: name, _content: text });
+  return { id: null as string | null, sha: r.sha as string };
+}
+export async function downloadOriginal(importId: string) {
+  const r = await rpc("fin_bank_file_get", { _import: importId });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([r.content], { type: "text/csv;charset=utf-8" })); a.download = r.file_name; a.click();
 }
 export const commit = (a: { company: string; account: string; rows: SrcRow[]; settings: Settings; fileName: string; sha: string; fileId: string | null; key: string; decisions: Record<string, "add" | "skip">; opening: number | null; closing: number | null; complete: boolean }) =>
   rpc("fin_bank_commit", { _company: a.company, _account: a.account, _rows: a.rows, _settings: a.settings, _file_name: a.fileName, _file_sha: a.sha, _file_id: a.fileId,

@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import * as B from "@/lib/finances/bank";
 import { accounts as loadAccounts } from "@/lib/finances/treasuryApi";
-import { openFile } from "@/lib/finances/purchases";
 import { fmtDate, fmtMoney } from "@/lib/finances/period";
 
 const sel = "h-10 w-full rounded-md border border-input bg-background px-2 text-sm";
@@ -75,7 +74,7 @@ function ImportFlow({ companyId, account, onDone, onClose }: { companyId: string
     const key = s.key ?? crypto.randomUUID(); let fileId = s.fileId; let sha = s.sha;
     setS({ ...s, key });
     try {
-      if (!fileId || !sha) { const f = await B.uploadStatement(companyId, new File([s.text], s.fileName, { type: "text/csv" })); fileId = f.id; sha = f.sha; setS((x) => (x ? { ...x, key, fileId, sha } : x)); }
+      if (!fileId || !sha) { const f = await B.uploadStatement(companyId, s.fileName, s.text); fileId = f.id; sha = f.sha; setS((x) => (x ? { ...x, key, fileId, sha } : x)); }
       const r = await B.commit({ company: companyId, account, rows, settings: s.s, fileName: s.fileName, sha: sha!, fileId, key, decisions: s.decisions, opening: open as number | null, closing: close as number | null, complete: s.complete });
       setRes(r); setS(null); setEv(null); onDone();
     } catch (e: any) { setError(`${e.message} — la correspondance, vos choix et le fichier sont conservés; « Valider » reprend la même demande sans rien recréer.`); } finally { setBusy(false); }
@@ -87,7 +86,7 @@ function ImportFlow({ companyId, account, onDone, onClose }: { companyId: string
   if (res) return <section className="space-y-3 rounded-md border border-border p-3" aria-label="Bilan de l'import">
     <h3 className="font-display font-semibold">Bilan de l'import{res.replay ? " (demande déjà traitée — aucun ajout)" : ""}</h3>
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{[["Ajoutées", res.ajoutees], ["Déjà présentes", res.deja_presentes], ["À examiner", res.a_examiner], ["Refusées", res.refusees]].map(([l, n]) => <div key={l as string} className="rounded-md bg-secondary p-2 text-sm"><div className="text-xs text-muted-foreground">{l}</div><strong className="text-lg">{n as number}</strong></div>)}</div>
-    {res.balance && <p className={`text-sm ${res.balance.ok ? "" : "text-destructive"}`}>Contrôle des soldes : ouverture {fmtMoney(res.balance.opening)} + entrées {fmtMoney(res.balance.in)} − sorties {fmtMoney(res.balance.out)} = {fmtMoney(res.balance.expected)} ; clôture du relevé {fmtMoney(res.balance.closing)} → {res.balance.ok ? "concordant" : `écart ${fmtMoney(res.balance.diff)}`}</p>}
+    {res.balance && <p className={`text-sm ${res.balance.ok ? "" : "text-destructive"}`}>Contrôle des soldes : ouverture {fmtMoney(res.balance.opening)} + entrées {fmtMoney(res.balance.in)} − sorties {fmtMoney(res.balance.out)} = {fmtMoney(res.balance.expected)} ; clôture du relevé {fmtMoney(res.balance.closing)} → {res.balance.ok ? "concordant" : res.balance.diff === 0 ? "non validé : des lignes ont été refusées" : `écart ${fmtMoney(res.balance.diff)}`}</p>}
     <ul className="max-h-80 space-y-1 overflow-auto text-xs">{res.rows.map((r) => <li key={r.row_no} className="flex flex-wrap gap-x-2 border-b border-border py-1"><span>Ligne {r.row_no}</span><strong>{RES[r.result] ?? r.result}</strong>{r.amount != null && <span>{sens(r.amount)} {fmtMoney(Math.abs(r.amount))}</span>}<span className="text-muted-foreground">{r.description}</span>{r.reason && <span className="w-full text-muted-foreground">{r.reason}</span>}</li>)}</ul>
     <Button onClick={onClose}>Voir les transactions à rapprocher</Button>
   </section>;
@@ -155,7 +154,7 @@ function Control({ companyId, ov, canWrite, reload }: { companyId: string; ov: B
     <ul className="space-y-2">{lines.map((l) => <li key={l.id} className="rounded-md border border-border">
       <button className="flex w-full flex-wrap items-baseline gap-x-3 p-2 text-left text-sm" aria-expanded={open === l.id} onClick={() => setOpen(open === l.id ? null : l.id)}>
         <span>{fmtDate(l.date)}</span><strong className={l.amount > 0 ? "text-primary" : ""}>{l.amount > 0 ? "Entrée" : "Sortie"} {fmtMoney(Math.abs(l.amount))}</strong>
-        <span className="min-w-0 flex-1 break-words">{l.description}{l.reference ? ` · Réf. ${l.reference}` : ""}</span>
+        <span className="order-last w-full break-words sm:order-none sm:w-auto sm:min-w-0 sm:flex-1">{l.description}{l.reference ? ` · Réf. ${l.reference}` : ""}</span>
         <span className="rounded bg-secondary px-2 py-0.5 text-xs">{B.STATUS_LABEL[B.displayStatus(l)]}</span>
         {l.twins > 1 && <span className="w-full text-xs text-muted-foreground">{l.twins} transactions identiques conservées séparément dans ce compte</span>}
       </button>
@@ -169,8 +168,8 @@ function Control({ companyId, ov, canWrite, reload }: { companyId: string; ov: B
       <h3 className="font-display font-semibold">Relevés importés</h3>
       <ul className="space-y-1 text-sm">{ov.imports.map((i) => <li key={i.id} className="border-b border-border py-1">
         <div className="flex flex-wrap gap-x-3"><strong className="break-all">{i.file_name}</strong><span>{i.period_from ? `${fmtDate(i.period_from)} → ${fmtDate(i.period_to)}` : "aucune ligne valide"}</span><span className="text-xs text-muted-foreground">importé le {new Date(i.at).toLocaleString("fr-CA")}</span>
-          {i.file_id && <button className="text-xs underline" onClick={async () => { try { window.open(await openFile(i.file_id, true), "_blank"); } catch (e: any) { toast({ title: e.message, variant: "destructive" }); } }}>Télécharger l'original</button>}</div>
-        <div className="text-xs text-muted-foreground">Ajoutées {i.summary?.ajoutees ?? 0} · déjà présentes {i.summary?.deja_presentes ?? 0} · à examiner {i.summary?.a_examiner ?? 0} · refusées {i.summary?.refusees ?? 0}{i.balance ? ` · soldes ${i.balance.ok ? "concordants" : `écart ${fmtMoney(i.balance.diff)}`}` : " · soldes non fournis"}{i.complete ? " · relevé complet" : " · relevé non déclaré complet"}</div>
+          {<button className="text-xs underline" onClick={async () => { try { await B.downloadOriginal(i.id); } catch (e: any) { toast({ title: e.message, variant: "destructive" }); } }}>Télécharger l'original</button>}</div>
+        <div className="text-xs text-muted-foreground">Ajoutées {i.summary?.ajoutees ?? 0} · déjà présentes {i.summary?.deja_presentes ?? 0} · à examiner {i.summary?.a_examiner ?? 0} · refusées {i.summary?.refusees ?? 0}{i.balance ? ` · soldes ${i.balance.ok ? "concordants" : i.balance.diff === 0 ? "non validés (lignes refusées)" : `écart ${fmtMoney(i.balance.diff)}`}` : " · soldes non fournis"}{i.complete ? " · relevé complet" : " · relevé non déclaré complet"}</div>
       </li>)}</ul>
     </section>
   </div>;
