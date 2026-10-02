@@ -116,14 +116,14 @@ export default function CsvPurchaseImport({ companyId, sups, onOpenBill, onOpenC
         {error && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm">{error}</p>}
         <ul className="space-y-2" aria-label="Aperçu des documents">{docs.map((d) => { const c = checks?.[d.key]; const st = d.errors.length ? "refuse" : c?.outcome; const ok = ready(d);
           return <li key={d.key} className="rounded-md border p-2 text-sm" data-testid="csv-doc">
-            <label className="flex items-start gap-2"><input type="checkbox" aria-label={`Importer ${d.reference}`} disabled={!ok} checked={ok && s.picked.includes(d.key)}
+            <div className="flex items-start gap-2"><input type="checkbox" aria-label={`Importer ${d.reference}`} disabled={!ok} checked={ok && s.picked.includes(d.key)}
               onChange={(e) => up({ picked: e.target.checked ? [...s.picked, d.key] : s.picked.filter((k) => k !== d.key) })} className="mt-1" />
               <span className="min-w-0 flex-1"><strong>{d.kind === "credit" ? "Note de crédit" : d.kind === "facture" ? "Facture" : d.kind === "releve" ? "Relevé" : "Inconnu"} {d.reference || "—"}</strong> · {d.supplierName || "fournisseur ?"} · lignes {d.rows.join(", ")}
                 <span className="block text-xs text-muted-foreground">Date {d.p.doc_date ?? "?"} · échéance {d.p.due_date ?? "inconnue"} · sous-total {money(d.p.subtotal)} · TPS {money(d.p.gst)} · TVQ {money(d.p.qst)} · total {money(d.p.total)} · {d.p.lines.length} ligne(s) regroupée(s)</span>
                 {d.p.lines.length > 1 && <span className="block text-xs">{d.p.lines.map((l, i) => <span key={i} className="block">• {l.description || "—"} {l.quantity ?? ""} {l.unit} {l.amount != null ? `= ${fmtMoney(l.amount)}` : ""}</span>)}</span>}
                 <span className={`mt-1 block text-xs font-semibold ${st === "refuse" || st === "conflit" ? "text-destructive" : ""}`} data-testid="csv-status">{st ? OUT[st] : "Non vérifié"}{st === "nouveau" && !resolved(d) && " — reçu à résoudre"}{c?.existing && ` (existant ${money(c.existing.total)}, ${c.existing.status === "draft" ? "brouillon" : c.existing.status === "confirmed" ? "confirmé" : c.existing.status})`}</span>
                 {[...d.errors, ...(c?.problem ? [c.problem] : [])].map((e) => <span key={e} className="block text-xs text-destructive">{e}</span>)}
-                {c?.outcome === "nouveau" && !!c.captures?.length && <span className="mt-2 block space-y-1 rounded-md border border-amber-500/40 p-2 text-xs" data-testid="csv-capmatch" onClick={(e) => e.preventDefault()}>
+                {c?.outcome === "nouveau" && !!c.captures?.length && <span className="mt-2 block space-y-1 rounded-md border border-amber-500/40 p-2 text-xs" data-testid="csv-capmatch">
                   <span className="block font-semibold">Reçu déjà lu dans « Reçus et documents » — choisissez :</span>
                   {c.captures.map((m) => <label key={m.capture_id} className="flex items-start gap-2"><input type="radio" name={`res-${d.key}`} disabled={d.kind !== "facture"} checked={resOf(d.key)?.kind === "attach" && (resOf(d.key) as any).capture_id === m.capture_id}
                     onChange={() => up({ res: { ...(s.res ?? {}), [d.key]: { kind: "attach", capture_id: m.capture_id } } })} />
@@ -132,7 +132,7 @@ export default function CsvPurchaseImport({ companyId, sups, onOpenBill, onOpenC
                     onChange={() => up({ res: { ...(s.res ?? {}), [d.key]: { kind: "distinct" } } })} />
                     <span>Document distinct du reçu {c.captures.some((m) => m.level === "certaine") ? "(impossible : correspondance certaine)" : "(choix explicite, tracé)"}</span></label>
                 </span>}
-              </span></label></li>; })}</ul>
+              </span></div></li>; })}</ul>
         {checks && <Button onClick={runImport} disabled={busy || !s.picked.length} data-testid="csv-import">{busy ? "Import…" : `Importer ${s.picked.length} document(s) en brouillon`}</Button>}
       </>}
     </>}
