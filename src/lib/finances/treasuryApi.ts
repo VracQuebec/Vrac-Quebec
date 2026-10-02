@@ -38,15 +38,17 @@ async function allOcc(c: string, from: string, to: string, f: api.Filters = {}) 
 export async function loadTreasury(c: string, from: string, to: string) {
   const [acc, bal, inf, trf, res, oa] = await Promise.all([accounts(c), balances(c), inflows(c), transfers(c), reserves(c), obligationAccounts(c)]);
   const oldest = bal.map((b) => b.as_of).sort()[0] ?? from;
-  const [occ, undatedOcc, pays, refs, rest] = await Promise.all([
+  const [occ, undatedOcc, pays, refs, rest, crefs] = await Promise.all([
     allOcc(c, addDays(from, -730), to),
     allOcc(c, addDays(from, -730), to, { due_unknown: "only" } as api.Filters),
     db.from("fin_payments").select("id,amount,paid_on,payee_name,method").eq("company_id", c).eq("status", "validated").gt("paid_on", oldest).lte("paid_on", to),
-    db.from("fin_refunds").select("id,amount,refunded_on,reason").eq("company_id", c).is("voided_at", null).gt("refunded_on", oldest).lte("refunded_on", to),
+    db.from("fin_refunds").select("id,amount,refunded_on,reason,account_id").eq("company_id", c).is("voided_at", null).gt("refunded_on", oldest).lte("refunded_on", to),
     // FIN-12D1 : restitution d'un excédent d'avance = entrée d'argent (jamais un revenu)
     db.from("fin_exp_restitutions").select("id,amount,received_on").eq("company_id", c).is("voided_at", null).gt("received_on", oldest).lte("received_on", to),
+    // FIN-12F : remboursement reçu sur note de crédit fournisseur = entrée d'argent réalisée (ni vente ni revenu)
+    db.from("fin_supplier_credit_refunds").select("id,amount,refunded_on,account_id").eq("company_id", c).is("voided_at", null).gt("refunded_on", oldest).lte("refunded_on", to),
   ]);
-  err(pays.error); err(refs.error); err(rest.error);
+  err(pays.error); err(refs.error); err(rest.error); err(crefs.error);
   const moves: Movement[] = [];
   for (const o of occ) {
     if (o.status !== "active" || ["reglee", "aucun", "annulee"].includes(o.settle)) continue;
@@ -56,7 +58,8 @@ export async function loadTreasury(c: string, from: string, to: string) {
     moves.push({ id: `o:${o.id}`, ref: o.id, date: o.planned_date, cents: rest, dir: "out", kind: o.planned_date < from ? "late" : "occurrence", label: o.label, obligation_id: o.obligation_id, category: o.category, account_id, unassigned: !account_id });
   }
   for (const p of pays.data ?? []) moves.push({ id: `p:${p.id}`, ref: p.id, date: p.paid_on, cents: toCents(p.amount), dir: "out", kind: "payment", label: `Règlement déclaré — ${p.payee_name ?? ""}${p.method === "carte" ? " (carte)" : ""}`, via_card: p.method === "carte" });
-  for (const r of refs.data ?? []) moves.push({ id: `r:${r.id}`, ref: r.id, date: r.refunded_on, cents: toCents(r.amount), dir: "in", kind: "refund", label: `Remboursement reçu${r.reason ? ` — ${r.reason}` : ""}` });
+  for (const r of refs.data ?? []) moves.push({ id: `r:${r.id}`, ref: r.id, date: r.refunded_on, cents: toCents(r.amount), dir: "in", kind: "refund", label: `Remboursement reçu${r.reason ? ` — ${r.reason}` : ""}`, ...(r.account_id ? { account_id: r.account_id } : {}) });
+  for (const r of crefs.data ?? []) moves.push({ id: `cr:${r.id}`, ref: r.id, date: r.refunded_on, cents: toCents(r.amount), dir: "in", kind: "refund", label: "Remboursement reçu d'un fournisseur (note de crédit — pas un revenu)", ...(r.account_id ? { account_id: r.account_id } : {}) });
   for (const r of rest.data ?? []) moves.push({ id: `x:${r.id}`, ref: r.id, date: r.received_on, cents: toCents(r.amount), dir: "in", kind: "refund", label: "Restitution d'avance par l'employé (pas un revenu)" });
   // FIN-12D1 : échéance inconnue = dette non datée, jamais placée à une date arbitraire; date planifiée saisie explicitement = projetée à cette date.
   let dueUnknownC = 0; let dueUnknownCount = 0;

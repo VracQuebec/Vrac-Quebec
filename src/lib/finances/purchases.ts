@@ -145,3 +145,29 @@ export async function billPosition(id: string) {
   return { ...data, total: n(data.total), credited: Number(data.credited ?? 0), paid: Number(data.paid ?? 0), rest: n(data.rest), overpaid: n(data.overpaid),
     allocs: ((data.allocs ?? []) as any[]).map((a) => ({ ...a, amount: Number(a.amount) })) } as Position;
 }
+
+// FIN-12F — Trop-payés et remboursements reçus des fournisseurs. Disponibles, droits et concurrence calculés par la base.
+export type SupRefund = { id: string; amount: number; date: string; method: string | null; reference: string | null; account: string | null; file_id: string | null; note: string | null; voided_at: string | null; void_reason: string | null };
+export type SupAlloc = { id: string; amount: number; created_at: string; reversed_at: string | null; reversed_reason: string | null; bill_id: string | null; bill_ref: string | null; later?: boolean };
+export type SupBalances = {
+  bills: { id: string; reference: string | null; doc_date: string | null; due_date: string | null; due_unknown: boolean; occurrence_id: string; total: number; paid: number; credited: number; rest: number }[];
+  payments: { id: string; paid_on: string; amount: number; method: string; reference: string | null; status: string; available: number; excess_origin: number | null; allocs: SupAlloc[]; refunds: SupRefund[] }[];
+  credits: { id: string; reference: string | null; doc_date: string | null; total: number; status: string; rev: number; allocated: number; refunded: number; available: number; allocs: SupAlloc[]; refunds: SupRefund[] }[];
+  overpaid_available: number; credit_available: number; rest_total: number;
+};
+const nums = (o: any, keys: string[]) => { for (const k of keys) if (o[k] != null) o[k] = Number(o[k]); return o; };
+export async function supplierBalances(c: string, supplier: string): Promise<SupBalances> {
+  const { data, error } = await db.rpc("fin_supplier_balances", { _company: c, _supplier: supplier }); err(error);
+  const fx = (l: any[]) => l.map((x) => nums(x, ["amount"]));
+  return { ...nums({ ...data }, ["overpaid_available", "credit_available", "rest_total"]),
+    bills: (data.bills as any[]).map((b) => nums(b, ["total", "paid", "credited", "rest"])),
+    payments: (data.payments as any[]).map((p) => ({ ...nums(p, ["amount", "available", "excess_origin"]), allocs: fx(p.allocs), refunds: fx(p.refunds) })),
+    credits: (data.credits as any[]).map((s) => ({ ...nums(s, ["total", "allocated", "refunded", "available"]), allocs: fx(s.allocs), refunds: fx(s.refunds) })) };
+}
+export type RefundInput = { amount: number; date: string; account_id: string; method: string; reference: string | null; file_id: string | null; note: string | null; idem_key: string };
+export async function supRefund(kind: "payment" | "credit", source: string, p: RefundInput, dry: boolean) {
+  const { data, error } = await db.rpc("fin_sup_refund", { _source_kind: kind, _source: source, _p: p, _dry: dry }); err(error);
+  return data as { available: number; after?: number; cash_in?: number; refund_id?: string; replay?: boolean };
+}
+export async function supRefundVoid(kind: "payment" | "credit", id: string, reason: string) { const { error } = await db.rpc("fin_sup_refund_void", { _source_kind: kind, _refund: id, _reason: reason }); err(error); }
+export async function finAccounts(c: string) { const { data, error } = await db.from("fin_accounts").select("id,name,kind").eq("company_id", c).is("archived_at", null).order("name"); err(error); return (data ?? []) as { id: string; name: string; kind: string }[]; }

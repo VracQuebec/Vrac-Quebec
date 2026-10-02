@@ -14,6 +14,7 @@ import PurchaseOrders from "@/components/finances/PurchaseOrders";
 import DocumentCaptures from "@/components/finances/DocumentCaptures";
 import * as Cap from "@/lib/finances/captures";
 import CsvPurchaseImport from "@/components/finances/CsvPurchaseImport";
+import SupplierBalances from "@/components/finances/SupplierBalances";
 
 const sel = "h-10 w-full rounded-md border border-input bg-background px-2 text-sm";
 type View = { k: "list" } | { k: "csv" } | { k: "bill"; id: string | null } | { k: "supplier"; id: string } | { k: "credit"; id: string | null };
@@ -41,7 +42,7 @@ export default function SupplierPurchases({ companyId, companyName, canWrite, ca
     {view.k === "list" && <BillList onCsv={() => setView({ k: "csv" })} companyId={companyId} sups={sups} rev={rev} canWrite={canWrite} onOpen={(id) => setView({ k: "bill", id })} onSupplier={(id) => setView({ k: "supplier", id })} onNewSupplier={() => setView({ k: "supplier", id: "" })} onCredit={(id) => setView({ k: "credit", id })} />}
     {view.k === "bill" && <BillEditor key={view.id ?? "new"} companyId={companyId} companyName={companyName} id={view.id} sups={sups ?? []} canWrite={canWrite} canCorrect={canCorrect} initialOcc={view.id ? null : initialOcc ?? null}
       onOpen={(id) => setView({ k: "bill", id })} onBack={back} />}
-    {view.k === "supplier" && <SupplierSheet key={view.id} companyId={companyId} id={view.id || null} canWrite={canWrite} onBack={back} onSaved={(id) => { loadSups(); setView({ k: "supplier", id }); }} onOpenBill={(id) => setView({ k: "bill", id })} onOpenCredit={(id) => setView({ k: "credit", id })} />}
+    {view.k === "supplier" && <SupplierSheet key={view.id} companyId={companyId} companyName={companyName} canCorrect={canCorrect} id={view.id || null} canWrite={canWrite} onBack={back} onSaved={(id) => { loadSups(); setView({ k: "supplier", id }); }} onOpenBill={(id) => setView({ k: "bill", id })} onOpenCredit={(id) => setView({ k: "credit", id })} />}
     {view.k === "credit" && <CreditEditor key={view.id ?? "new"} companyId={companyId} id={view.id} sups={sups ?? []} canWrite={canWrite} canCorrect={canCorrect} onOpen={(id) => setView({ k: "credit", id })} onOpenBill={(id) => setView({ k: "bill", id })} onBack={back} />}
     </>}
   </div>;
@@ -262,7 +263,7 @@ function ConfirmPanel({ companyId, bill, initialOcc, onClose, onDone, onOpen }: 
   </div>;
 }
 
-function SupplierSheet({ companyId, id, canWrite, onBack, onSaved, onOpenBill, onOpenCredit }: { companyId: string; id: string | null; canWrite: boolean; onBack: () => void; onSaved: (id: string) => void; onOpenBill: (id: string) => void; onOpenCredit: (id: string) => void }) {
+function SupplierSheet({ companyId, companyName = "", canCorrect = false, id, canWrite, onBack, onSaved, onOpenBill, onOpenCredit }: { companyId: string; companyName?: string; canCorrect?: boolean; id: string | null; canWrite: boolean; onBack: () => void; onSaved: (id: string) => void; onOpenBill: (id: string) => void; onOpenCredit: (id: string) => void }) {
   const [d, setD] = useState<any>(null); const [err, setErr] = useState<string | null>(null);
   const [p, setP] = useState<Record<string, string>>({ name: "", phone: "", email: "", address: "", city: "", account_ref: "", payment_terms: "", internal_notes: "" });
   const [reuse, setReuse] = useState(""); const [contacts, setContacts] = useState<{ id: string; name: string }[]>([]);
@@ -293,6 +294,7 @@ function SupplierSheet({ companyId, id, canWrite, onBack, onSaved, onOpenBill, o
       <p className="text-xs text-muted-foreground">Fiche créée {P.fmtStamp(d.created_at)} · modifiée {P.fmtStamp(d.updated_at)} (heure de Toronto).</p>
       {bills && <div className="text-sm"><p><strong>Solde à payer {fmtMoney(bills.totals.rest)}</strong> · confirmé {fmtMoney(bills.totals.confirmed_total)} · réglé {fmtMoney(bills.totals.paid)} · crédits affectés {fmtMoney(bills.totals.credited ?? 0)} · crédit disponible {fmtMoney(bills.totals.credit_available ?? 0)} · dont échéance inconnue {fmtMoney(bills.totals.rest_due_unknown)}{bills.totals.overpaid > 0 ? ` · trop-payé ${fmtMoney(bills.totals.overpaid)}` : ""}</p>
         <ul className="mt-1 divide-y rounded border">{bills.rows.map((r) => <li key={r.id}><button className="w-full p-2 text-left hover:bg-muted/40" onClick={() => onOpenBill(r.id)}>{r.reference ?? "—"} · {P.STATUS_LABEL[r.status]} · {money(r.total)}{r.status === "confirmed" ? ` · reste ${money(r.rest)}` : ""}{r.file_id ? " · pièce jointe" : ""}</button></li>)}{!bills.rows.length && <li className="p-2 text-muted-foreground">Aucune facture.</li>}</ul></div>}
+      <SupplierBalances companyId={companyId} companyName={companyName} supplierId={id} supplierName={d.name} canWrite={canWrite} canCorrect={canCorrect} />
       <div className="text-sm"><p className="font-semibold">Notes de crédit</p><ul className="text-xs">{((d.credits ?? []) as any[]).map((c) => <li key={c.id}><button className="underline-offset-2 hover:underline" onClick={() => onOpenCredit(c.id)}>{c.reference ?? "—"} · {P.STATUS_LABEL[c.status]} · {money(c.total == null ? null : Number(c.total))}{c.status === "confirmed" ? ` · disponible ${fmtMoney(Number(c.available))}` : ""}</button></li>)}{!(d.credits ?? []).length && <li className="text-muted-foreground">Aucune note de crédit.</li>}</ul></div>
       <div className="text-sm"><p className="font-semibold">Règlements</p><ul className="text-xs">{(d.payments as any[]).map((x) => <li key={x.id}>{fmtDate(x.paid_on)} · {fmtMoney(Number(x.amount))} · {st.METHOD_LABEL[x.method] ?? x.method}{x.status !== "validated" ? ` (${st.PAY_STATUS[x.status] ?? x.status})` : ""}{x.reference ? ` · ${x.reference}` : ""}</li>)}{!d.payments.length && <li className="text-muted-foreground">Aucun règlement.</li>}</ul></div>
     </>}

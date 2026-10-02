@@ -55,10 +55,11 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
   }).catch((e) => toast({ title: "Erreur", description: e.message, variant: "destructive" }));
   useEffect(() => { void loadOpen(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const allocs = useMemo(() => Object.entries(pick).filter(([, v]) => Number(v) > 0).map(([id, v]) => ({ occurrence_id: id, amount: r2(Number(v)) })), [pick]);
-  const body = { amount: Number(amount), paid_on: date, method, source_label: src || null, reference: ref || null, note: note || null, idem_key: idem, allocations: allocs, draft: future };
+  const [excessOk, setExcessOk] = useState(false);
+  const body = { excess_confirm: excessOk && sum && sum.remainder > 0 ? sum.remainder : null, amount: Number(amount), paid_on: date, method, source_label: src || null, reference: ref || null, note: note || null, idem_key: idem, allocations: allocs, draft: future };
 
   useEffect(() => {
-    setSum(null); setSumErr(null);
+    setSum(null); setSumErr(null); setExcessOk(false);
     if (!allocs.length || !(Number(amount) > 0) || !method || !date) return;
     const t = setTimeout(() => st.savePayment(companyId, body, true).then(setSum).catch((e) => setSumErr(e.message)), 300);
     return () => clearTimeout(t);
@@ -118,11 +119,12 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
       {sumErr ? <p className="text-destructive" role="alert">{sumErr}</p> : sum && <>
         <p>Versement de <strong>{fmtMoney(sum.amount ?? Number(amount))}</strong> à {sum.payee}{future ? " — brouillon" : ""}</p>
         <ul className="text-xs">{sum.rows.map((x) => <li key={x.occurrence_id}>{fmtDate(x.due)} · {x.label} : {fmtMoney(x.alloc)} → nouveau solde {fmtMoney(x.balance_after)}{x.quality === "estimated" ? " (basé sur une estimation)" : ""}</li>)}</ul>
-        {sum.remainder > 0 && <p className="text-xs text-amber-700" data-testid="reliquat">Reliquat non affecté : {fmtMoney(sum.remainder)} — avance / trop-payé auprès de ce bénéficiaire, à confirmer selon la pièce.</p>}
+        {sum.remainder > 0 && <div className="space-y-1 rounded border border-amber-500/40 bg-amber-500/10 p-2 text-xs" data-testid="reliquat"><p>Trop-payé : le versement dépasse le solde de {fmtMoney(sum.remainder)}. Une seule sortie d'argent de {fmtMoney(sum.amount ?? Number(amount))} est enregistrée; l'excédent reste disponible chez ce bénéficiaire, relié à ce versement (aucune note de crédit n'est créée).</p>
+          <label className="flex items-start gap-2"><input type="checkbox" aria-label="Confirmer le trop-payé" checked={excessOk} onChange={(e) => setExcessOk(e.target.checked)} /><span>Je confirme le montant excédentaire de <strong>{fmtMoney(sum.remainder)}</strong>.</span></label></div>}
         {sum.duplicates.length > 0 && <p className="text-xs text-amber-700">Doublon probable : un règlement du même montant, à la même date et au même bénéficiaire existe déjà. Deux versements légitimes restent possibles.</p>}
       </>}
     </section>}
-    <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Annuler</Button><Button disabled={busy || !sum} onClick={submit}>{busy ? "Enregistrement…" : future ? "Enregistrer le brouillon" : "Valider le règlement"}</Button></div>
+    <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Annuler</Button><Button disabled={busy || !sum || (sum.remainder > 0 && !excessOk)} onClick={submit}>{busy ? "Enregistrement…" : future ? "Enregistrer le brouillon" : "Valider le règlement"}</Button></div>
   </DialogContent></Dialog>;
 }
 
