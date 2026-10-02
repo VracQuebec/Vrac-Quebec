@@ -1037,6 +1037,13 @@
       "when": 1790957439186,
       "tag": "0147_fin13a1_payment_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 148,
+      "version": "7",
+      "when": 1790958972592,
+      "tag": "0148_fin14_general_ledger",
+      "breakpoints": true
     }
   ]
 }
