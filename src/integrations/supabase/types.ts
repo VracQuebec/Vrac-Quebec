@@ -3956,6 +3956,597 @@ export type Database = {
           },
         ]
       }
+      fin_exp_advances: {
+        Row: {
+          amount: number
+          approve_key: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          employee_id: string
+          employee_name: string
+          id: string
+          obligation_id: string | null
+          occurrence_id: string | null
+          paid_amount: number | null
+          paid_on: string | null
+          pay_key: string | null
+          payment_id: string | null
+          planned_on: string | null
+          proof_file_id: string | null
+          purpose: string
+          reference: string | null
+          rev: number
+          self_approval_reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          approve_key?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          employee_id: string
+          employee_name: string
+          id?: string
+          obligation_id?: string | null
+          occurrence_id?: string | null
+          paid_amount?: number | null
+          paid_on?: string | null
+          pay_key?: string | null
+          payment_id?: string | null
+          planned_on?: string | null
+          proof_file_id?: string | null
+          purpose: string
+          reference?: string | null
+          rev?: number
+          self_approval_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approve_key?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          employee_id?: string
+          employee_name?: string
+          id?: string
+          obligation_id?: string | null
+          occurrence_id?: string | null
+          paid_amount?: number | null
+          paid_on?: string | null
+          pay_key?: string | null
+          payment_id?: string | null
+          planned_on?: string | null
+          proof_file_id?: string | null
+          purpose?: string
+          reference?: string | null
+          rev?: number
+          self_approval_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_exp_advances_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_exp_advances_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "fin_obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_exp_advances_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "fin_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_exp_advances_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "fin_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_exp_advances_proof_file_id_fkey"
+            columns: ["proof_file_id"]
+            isOneToOne: false
+            referencedRelation: "fin_exp_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_exp_allocs: {
+        Row: {
+          advance_id: string
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          idem_key: string
+          report_id: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          advance_id: string
+          amount: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idem_key: string
+          report_id: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          advance_id?: string
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idem_key?: string
+          report_id?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_exp_allocs_advance_id_fkey"
+            columns: ["advance_id"]
+            isOneToOne: false
+            referencedRelation: "fin_exp_advances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_exp_allocs_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "fin_exp_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_exp_events: {
+        Row: {
+          action: string
+          actor: string | null
+          advance_id: string | null
+          company_id: string
+          created_at: string
+          detail: Json | null
+          id: number
+          reason: string | null
+          report_id: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          advance_id?: string | null
+          company_id: string
+          created_at?: string
+          detail?: Json | null
+          id?: number
+          reason?: string | null
+          report_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          advance_id?: string | null
+          company_id?: string
+          created_at?: string
+          detail?: Json | null
+          id?: number
+          reason?: string | null
+          report_id?: string | null
+        }
+        Relationships: []
+      }
+      fin_exp_files: {
+        Row: {
+          company_id: string
+          converted_path: string | null
+          created_at: string
+          created_by: string | null
+          extract_count: number
+          extract_error: string | null
+          extract_status: string
+          extracted_at: string | null
+          extraction: Json | null
+          id: string
+          mime: string
+          name: string
+          owner_id: string
+          sha256: string | null
+          size_bytes: number
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          converted_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          extract_count?: number
+          extract_error?: string | null
+          extract_status?: string
+          extracted_at?: string | null
+          extraction?: Json | null
+          id?: string
+          mime: string
+          name: string
+          owner_id: string
+          sha256?: string | null
+          size_bytes: number
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          converted_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          extract_count?: number
+          extract_error?: string | null
+          extract_status?: string
+          extracted_at?: string | null
+          extraction?: Json | null
+          id?: string
+          mime?: string
+          name?: string
+          owner_id?: string
+          sha256?: string | null
+          size_bytes?: number
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_exp_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_exp_lines: {
+        Row: {
+          accepted_amount: number | null
+          business_amount: number | null
+          capture_id: string | null
+          category: string | null
+          company_id: string
+          created_at: string
+          crm_file_id: string | null
+          currency: string
+          decision_reason: string | null
+          description: string | null
+          doc_amount: number | null
+          file_id: string | null
+          gst: number | null
+          id: string
+          merchant: string | null
+          missing_accepted_reason: string | null
+          missing_receipt_note: string | null
+          payer: string
+          pos: number
+          project_id: string | null
+          qst: number | null
+          receipt_sha: string | null
+          report_id: string
+          spent_on: string | null
+          split_reason: string | null
+          supplier_bill_id: string | null
+          truck_id: string | null
+        }
+        Insert: {
+          accepted_amount?: number | null
+          business_amount?: number | null
+          capture_id?: string | null
+          category?: string | null
+          company_id: string
+          created_at?: string
+          crm_file_id?: string | null
+          currency?: string
+          decision_reason?: string | null
+          description?: string | null
+          doc_amount?: number | null
+          file_id?: string | null
+          gst?: number | null
+          id?: string
+          merchant?: string | null
+          missing_accepted_reason?: string | null
+          missing_receipt_note?: string | null
+          payer?: string
+          pos: number
+          project_id?: string | null
+          qst?: number | null
+          receipt_sha?: string | null
+          report_id: string
+          spent_on?: string | null
+          split_reason?: string | null
+          supplier_bill_id?: string | null
+          truck_id?: string | null
+        }
+        Update: {
+          accepted_amount?: number | null
+          business_amount?: number | null
+          capture_id?: string | null
+          category?: string | null
+          company_id?: string
+          created_at?: string
+          crm_file_id?: string | null
+          currency?: string
+          decision_reason?: string | null
+          description?: string | null
+          doc_amount?: number | null
+          file_id?: string | null
+          gst?: number | null
+          id?: string
+          merchant?: string | null
+          missing_accepted_reason?: string | null
+          missing_receipt_note?: string | null
+          payer?: string
+          pos?: number
+          project_id?: string | null
+          qst?: number | null
+          receipt_sha?: string | null
+          report_id?: string
+          spent_on?: string | null
+          split_reason?: string | null
+          supplier_bill_id?: string | null
+          truck_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_exp_lines_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "fin_doc_captures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_exp_lines_crm_file_id_fkey"
+            columns: ["crm_file_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_exp_lines_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "fin_exp_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_exp_lines_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "fin_exp_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_exp_lines_supplier_bill_id_fkey"
+            columns: ["supplier_bill_id"]
+            isOneToOne: false
+            referencedRelation: "fin_supplier_bills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_exp_reports: {
+        Row: {
+          approval: string | null
+          approve_key: string | null
+          approved_total: number | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          due_date: string | null
+          employee_id: string
+          employee_name: string
+          id: string
+          obligation_id: string | null
+          occurrence_id: string | null
+          period_end: string | null
+          period_start: string | null
+          purpose: string
+          reimbursable_total: number | null
+          rev: number
+          self_approval_reason: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          submitted_hash: string | null
+          submitted_snapshot: Json | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approval?: string | null
+          approve_key?: string | null
+          approved_total?: number | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          due_date?: string | null
+          employee_id: string
+          employee_name: string
+          id?: string
+          obligation_id?: string | null
+          occurrence_id?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          purpose: string
+          reimbursable_total?: number | null
+          rev?: number
+          self_approval_reason?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          submitted_hash?: string | null
+          submitted_snapshot?: Json | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approval?: string | null
+          approve_key?: string | null
+          approved_total?: number | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          due_date?: string | null
+          employee_id?: string
+          employee_name?: string
+          id?: string
+          obligation_id?: string | null
+          occurrence_id?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          purpose?: string
+          reimbursable_total?: number | null
+          rev?: number
+          self_approval_reason?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          submitted_hash?: string | null
+          submitted_snapshot?: Json | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_exp_reports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_exp_reports_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "fin_obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_exp_reports_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "fin_occurrences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_exp_restitutions: {
+        Row: {
+          advance_id: string
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          idem_key: string
+          proof_file_id: string | null
+          received_on: string
+          reference: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          advance_id: string
+          amount: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idem_key: string
+          proof_file_id?: string | null
+          received_on: string
+          reference?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          advance_id?: string
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          idem_key?: string
+          proof_file_id?: string | null
+          received_on?: string
+          reference?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_exp_restitutions_advance_id_fkey"
+            columns: ["advance_id"]
+            isOneToOne: false
+            referencedRelation: "fin_exp_advances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_exp_restitutions_proof_file_id_fkey"
+            columns: ["proof_file_id"]
+            isOneToOne: false
+            referencedRelation: "fin_exp_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_expected_inflows: {
         Row: {
           account_id: string | null
@@ -25533,6 +26124,134 @@ export type Database = {
       fin_ensure_occurrences: {
         Args: { _company: string; _from: string; _to: string }
         Returns: number
+      }
+      fin_exp_adjust: {
+        Args: { _accepted: number; _line: string; _reason: string }
+        Returns: Json
+      }
+      fin_exp_adv_avail: { Args: { _adv: string }; Returns: number }
+      fin_exp_adv_decide: {
+        Args: {
+          _decision: string
+          _id: string
+          _key: string
+          _note: string
+          _self_reason: string
+        }
+        Returns: Json
+      }
+      fin_exp_adv_pay: { Args: { _id: string; _p: Json }; Returns: Json }
+      fin_exp_adv_save: { Args: { _company: string; _p: Json }; Returns: Json }
+      fin_exp_alloc: {
+        Args: {
+          _advance: string
+          _amount: number
+          _key: string
+          _report: string
+        }
+        Returns: Json
+      }
+      fin_exp_alloc_sum: { Args: { _report: string }; Returns: number }
+      fin_exp_alloc_void: {
+        Args: { _id: string; _reason: string }
+        Returns: Json
+      }
+      fin_exp_can_see: {
+        Args: { _company: string; _employee: string }
+        Returns: boolean
+      }
+      fin_exp_decide: {
+        Args: {
+          _decision: string
+          _due: string
+          _expect_hash: string
+          _expect_version: number
+          _id: string
+          _key: string
+          _lines: Json
+          _note: string
+          _self_reason: string
+        }
+        Returns: Json
+      }
+      fin_exp_file_add: {
+        Args: {
+          _company: string
+          _converted: string
+          _mime: string
+          _name: string
+          _path: string
+          _sha: string
+          _size: number
+        }
+        Returns: Json
+      }
+      fin_exp_file_begin: {
+        Args: { _force: boolean; _id: string }
+        Returns: Json
+      }
+      fin_exp_file_set: {
+        Args: {
+          _error: string
+          _extraction: Json
+          _id: string
+          _ok: boolean
+          _sha: string
+        }
+        Returns: undefined
+      }
+      fin_exp_hash: { Args: { _report: string }; Returns: string }
+      fin_exp_log: {
+        Args: {
+          _a: string
+          _act: string
+          _c: string
+          _d: Json
+          _r: string
+          _reason: string
+        }
+        Returns: undefined
+      }
+      fin_exp_lookups: { Args: { _company: string }; Returns: Json }
+      fin_exp_member: {
+        Args: { _company: string; _user: string }
+        Returns: boolean
+      }
+      fin_exp_my_companies: { Args: never; Returns: Json }
+      fin_exp_name: {
+        Args: { _company: string; _user: string }
+        Returns: string
+      }
+      fin_exp_overview: {
+        Args: { _company: string; _mine: boolean }
+        Returns: Json
+      }
+      fin_exp_path_ok: {
+        Args: { _name: string; _write: boolean }
+        Returns: boolean
+      }
+      fin_exp_payee: {
+        Args: { _company: string; _user: string }
+        Returns: string
+      }
+      fin_exp_receipt_uses: {
+        Args: { _line: Database["public"]["Tables"]["fin_exp_lines"]["Row"] }
+        Returns: Json
+      }
+      fin_exp_reimburse: { Args: { _p: Json; _report: string }; Returns: Json }
+      fin_exp_report_detail: { Args: { _id: string }; Returns: Json }
+      fin_exp_restitute: { Args: { _advance: string; _p: Json }; Returns: Json }
+      fin_exp_restitution_void: {
+        Args: { _id: string; _reason: string }
+        Returns: Json
+      }
+      fin_exp_save: {
+        Args: { _base_rev: number; _company: string; _id: string; _p: Json }
+        Returns: Json
+      }
+      fin_exp_submit: {
+        Args: { _expect_rev: number; _id: string }
+        Returns: Json
       }
       fin_exploitant_candidates: { Args: never; Returns: Json }
       fin_fold: { Args: { t: string }; Returns: string }
