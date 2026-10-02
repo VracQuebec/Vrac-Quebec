@@ -11,6 +11,8 @@ import * as st from "@/lib/finances/settlement";
 import { fmtDate, fmtMoney } from "@/lib/finances/period";
 import { PaymentDialog, type PayTarget } from "@/components/finances/Settlements";
 import PurchaseOrders from "@/components/finances/PurchaseOrders";
+import DocumentCaptures from "@/components/finances/DocumentCaptures";
+import * as Cap from "@/lib/finances/captures";
 
 const sel = "h-10 w-full rounded-md border border-input bg-background px-2 text-sm";
 type View = { k: "list" } | { k: "bill"; id: string | null } | { k: "supplier"; id: string } | { k: "credit"; id: string | null };
@@ -24,14 +26,16 @@ export default function SupplierPurchases({ companyId, companyName, canWrite, ca
   const loadSups = useCallback(() => { P.suppliers(companyId).then(setSups).catch(() => setSups(null)); }, [companyId]);
   useEffect(() => { loadSups(); }, [loadSups, rev]);
   const back = () => { setView({ k: "list" }); setRev((r) => r + 1); };
-  const [tab, setTab] = useState<"bills" | "orders">("bills");
+  const [tab, setTab] = useState<"bills" | "orders" | "docs">("bills");
   return <div className="space-y-3" data-testid="fin12a">
-    <div className="flex gap-2" role="tablist" aria-label="Achats">
+    <div className="flex flex-wrap gap-2" role="tablist" aria-label="Achats">
       <Button size="sm" role="tab" aria-selected={tab === "bills"} variant={tab === "bills" ? "default" : "outline"} onClick={() => { setTab("bills"); back(); }}>Factures et crédits</Button>
+      <Button size="sm" role="tab" aria-selected={tab === "docs"} variant={tab === "docs" ? "default" : "outline"} onClick={() => setTab("docs")}>Reçus et documents</Button>
       <Button size="sm" role="tab" aria-selected={tab === "orders"} variant={tab === "orders" ? "default" : "outline"} onClick={() => setTab("orders")}>Commandes</Button>
     </div>
-    {tab === "orders" ? <PurchaseOrders key={companyId} companyId={companyId} sups={sups} canWrite={canWrite} canCorrect={canCorrect} onOpenBill={(id) => { setTab("bills"); setView({ k: "bill", id }); }} /> : <>
-    <p className="text-xs text-muted-foreground">Factures et notes de crédit fournisseurs : un brouillon n'a aucun effet financier; la confirmation d'une facture crée ou remplace exactement une échéance « À payer »; un crédit réduit le solde d'une facture sans être un encaissement. OCR, notes de frais et import CSV : à venir.</p>
+    {tab === "docs" ? <DocumentCaptures key={companyId} companyId={companyId} sups={sups} canWrite={canWrite} onOpenBill={(id) => { setTab("bills"); setView({ k: "bill", id }); }} onOpenCredit={(id) => { setTab("bills"); setView({ k: "credit", id }); }} />
+    : tab === "orders" ? <PurchaseOrders key={companyId} companyId={companyId} sups={sups} canWrite={canWrite} canCorrect={canCorrect} onOpenBill={(id) => { setTab("bills"); setView({ k: "bill", id }); }} /> : <>
+    <p className="text-xs text-muted-foreground">Factures et notes de crédit fournisseurs : un brouillon n'a aucun effet financier; la confirmation d'une facture crée ou remplace exactement une échéance « À payer »; un crédit réduit le solde d'une facture sans être un encaissement. Lecture des reçus : onglet « Reçus et documents ». Notes de frais et import CSV : à venir.</p>
     {view.k === "list" && <BillList companyId={companyId} sups={sups} rev={rev} canWrite={canWrite} onOpen={(id) => setView({ k: "bill", id })} onSupplier={(id) => setView({ k: "supplier", id })} onNewSupplier={() => setView({ k: "supplier", id: "" })} onCredit={(id) => setView({ k: "credit", id })} />}
     {view.k === "bill" && <BillEditor key={view.id ?? "new"} companyId={companyId} companyName={companyName} id={view.id} sups={sups ?? []} canWrite={canWrite} canCorrect={canCorrect} initialOcc={view.id ? null : initialOcc ?? null}
       onOpen={(id) => setView({ k: "bill", id })} onBack={back} />}
@@ -112,6 +116,8 @@ function BillEditor({ companyId, companyName, id, sups, canWrite, canCorrect, in
   const [pos, setPos] = useState<P.Position | null>(null);
   const [posErr, setPosErr] = useState<string | null>(null);
   const [allocReason, setAllocReason] = useState("");
+  const [capFiles, setCapFiles] = useState<Awaited<ReturnType<typeof Cap.forBill>>>([]);
+  useEffect(() => { if (id) Cap.forBill(id).then(setCapFiles).catch(() => setCapFiles([])); }, [id]);
   const alive = useRef(true); useEffect(() => () => { alive.current = false; }, []);
 
   const load = useCallback(async () => {
@@ -170,6 +176,8 @@ function BillEditor({ companyId, companyName, id, sups, canWrite, canCorrect, in
     </fieldset>
     {!P.taxComplete(form) && <p className="text-xs text-amber-700">Ventilation fiscale à compléter : aucune taxe n'est supposée nulle et aucune admissibilité n'est déduite.</p>}
     {gap != null && gap !== 0 && <p className="text-xs text-destructive">Écart de {fmtMoney(gap)} entre le total et avant taxes + TPS + TVQ. Le document est conservé tel quel : vérifiez la saisie.</p>}
+    {capFiles.length > 0 && <div className="text-sm" data-testid="cap-files"><span className="text-xs font-semibold text-muted-foreground">Pièces jointes depuis « Reçus et documents »</span>
+      <ul className="text-xs">{capFiles.map((x) => <li key={x.capture_id + x.kind}>{x.name} · {x.kind === "attached" ? "jointe" : "source du brouillon"} · {P.fmtStamp(x.at)} <Button size="sm" variant="link" onClick={() => P.openFile(x.file_id).then((u) => window.open(u, "_blank", "noopener")).catch((e) => toast({ title: e.message, variant: "destructive" }))}>Ouvrir</Button></li>)}</ul></div>}
     <div className="space-y-1 text-sm"><span className="text-xs font-semibold text-muted-foreground">Justificatif (photo ou PDF, stockage privé)</span>
       {form.file_id ? <p>{form.file_name || "pièce jointe"} <Button size="sm" variant="link" onClick={() => P.openFile(form.file_id).then((u) => window.open(u, "_blank", "noopener")).catch((e) => toast({ title: e.message, variant: "destructive" }))}>Ouvrir</Button>{editable && <Button size="sm" variant="link" onClick={() => { setDirty(true); setForm((f) => ({ ...f, file_id: "", file_sha256: "", file_name: "" })); }}>Retirer</Button>}</p>
         : editable && <div className="flex flex-wrap gap-2"><Input aria-label="Joindre un justificatif" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" capture="environment" className="max-w-xs" onChange={(e) => attach(e.target.files?.[0])} />

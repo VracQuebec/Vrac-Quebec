@@ -3759,6 +3759,119 @@ export type Database = {
           },
         ]
       }
+      fin_doc_capture_events: {
+        Row: {
+          action: string
+          actor: string | null
+          capture_id: string
+          company_id: string
+          created_at: string
+          detail: Json | null
+          id: number
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          capture_id: string
+          company_id: string
+          created_at?: string
+          detail?: Json | null
+          id?: number
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          capture_id?: string
+          company_id?: string
+          created_at?: string
+          detail?: Json | null
+          id?: number
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_doc_capture_events_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "fin_doc_captures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_doc_captures: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          dismiss_reason: string | null
+          edits: Json | null
+          extract_count: number
+          extract_error: string | null
+          extracted_at: string | null
+          extraction: Json | null
+          file_id: string
+          file_sha256: string | null
+          id: string
+          results: Json
+          rev: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          dismiss_reason?: string | null
+          edits?: Json | null
+          extract_count?: number
+          extract_error?: string | null
+          extracted_at?: string | null
+          extraction?: Json | null
+          file_id: string
+          file_sha256?: string | null
+          id?: string
+          results?: Json
+          rev?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          dismiss_reason?: string | null
+          edits?: Json | null
+          extract_count?: number
+          extract_error?: string | null
+          extracted_at?: string | null
+          extraction?: Json | null
+          file_id?: string
+          file_sha256?: string | null
+          id?: string
+          results?: Json
+          rev?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_doc_captures_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_doc_captures_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_events: {
         Row: {
           action: string
@@ -25204,6 +25317,54 @@ export type Database = {
       fin_can_write: { Args: { _company_id: string }; Returns: boolean }
       fin_cancel_occurrence: {
         Args: { _occ: string; _reason: string }
+        Returns: undefined
+      }
+      fin_cap_attach: { Args: { _bill: string; _id: string }; Returns: Json }
+      fin_cap_begin_extract: {
+        Args: { _force: boolean; _id: string }
+        Returns: string
+      }
+      fin_cap_create: {
+        Args: {
+          _dup_reason: string
+          _id: string
+          _index: number
+          _kind: string
+          _p: Json
+        }
+        Returns: Json
+      }
+      fin_cap_detail: { Args: { _id: string }; Returns: Json }
+      fin_cap_dismiss: {
+        Args: { _id: string; _reason: string }
+        Returns: undefined
+      }
+      fin_cap_for_bill: { Args: { _bill: string }; Returns: Json }
+      fin_cap_log: {
+        Args: {
+          _a: string
+          _c: Database["public"]["Tables"]["fin_doc_captures"]["Row"]
+          _d: Json
+          _r: string
+        }
+        Returns: undefined
+      }
+      fin_cap_register: {
+        Args: { _company: string; _file: string }
+        Returns: Json
+      }
+      fin_cap_save_edits: {
+        Args: { _edits: Json; _id: string; _rev: number }
+        Returns: Json
+      }
+      fin_cap_set_extraction: {
+        Args: {
+          _error: string
+          _extraction: Json
+          _id: string
+          _ok: boolean
+          _sha: string
+        }
         Returns: undefined
       }
       fin_change_rule: {
