@@ -23,7 +23,7 @@ export const TYPE_LABEL: Record<ExDoc["doc_type"], string> = { facture: "Facture
 export const LIMITS = "Photo JPG, PNG ou WEBP, ou PDF · 20 Mo au maximum · lecture automatique jusqu'à 10 pages. Photo HEIC (iPhone) : convertie en JPEG sur votre appareil avant lecture, original conservé.";
 
 export async function list(c: string) {
-  const { data, error } = await db.from("fin_doc_captures").select("id,status,results,created_at,extracted_at,file:ent_crm_files(file_name,mime_type)").eq("company_id", c).order("created_at", { ascending: false }).limit(100);
+  const { data, error } = await db.from("fin_doc_captures").select("id,status,results,created_at,extracted_at,file:ent_crm_files!fin_doc_captures_file_id_fkey(file_name,mime_type)").eq("company_id", c).order("created_at", { ascending: false }).limit(100);
   err(error); return (data ?? []) as { id: string; status: CapStatus; results: CapResult[]; created_at: string; extracted_at: string | null; file: { file_name: string; mime_type: string } | null }[];
 }
 export async function register(c: string, fileId: string) { const { data, error } = await db.rpc("fin_cap_register", { _company: c, _file: fileId }); err(error); return data as { id: string; replay?: boolean }; }
