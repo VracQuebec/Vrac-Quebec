@@ -357,3 +357,18 @@ B1 PUBLIÉ : déploiement 7bc4d061-86ce-4739-bef1-033d4c7759a3, code 2cfde735462
 - Accès : employé X (test-a-operateur) refusé sur la note de Y (détail, modification, soumission, liste, table, lecture) ; TEST B refusé sur A (détail, liste, décision, remboursement, affectation, lecture, fonction de lecture 403).
 - Écran 1280 et 390 px : création avec reçu → soumission → approbation → remboursement 25 $ → rechargement : reste dû 35 $ ; aucun débordement.
 - Réserves : lecture automatique d'un justificatif de note (fonction fin-exp-extract) déployée mais pas déclenchée en essai ; conversion HEIC des notes non rejouée ; écran d'échec HEIC FIN-12C1 toujours non provoqué ; devise CAD seulement ; lien vers un achat existant par identifiant saisi. FIN-12 non complet (import CSV, remboursements/trop-payés fournisseurs).
+
+## FIN-12D1 — Finition des raccordements et des justificatifs (TEST, 2026-10-02)
+Corrections :
+- Trésorerie : la restitution d'un excédent d'avance est comptée comme entrée d'argent (jamais un revenu). Une dette à échéance inconnue n'est plus placée à une date : elle est signalée à part, et projetée seulement si une date planifiée est saisie.
+- À payer : encadré « Dette à échéance inconnue » avec la vue « Voir ces échéances ». Une ligne non datée affiche « Échéance inconnue » au lieu d'une date (fin_list expose due_unknown).
+- Rattachement à un achat : recherche lisible par fournisseur, numéro, date ou montant (fin_exp_bill_search, responsables Finances seulement), sans identifiant à copier.
+- Confidentialité : lien source → copie (fin_doc_captures.exp_file_id). L'original, la lecture OCR, le détail, l'OCR serveur et le journal de la pièce source sont réservés à qui peut voir la note.
+Essais (TEST C isolé, employé fictif ajouté comme opérateur) :
+- Note de 300 $, avance de 150 $ versée puis affectée, remboursement de 100 $ : reste dû 50 $ (détail de la note, À payer, Calendrier).
+- Trésorerie avec un solde de 1 000 $ daté de la veille : 250 $ sortis (avance + remboursement), 50 $ non daté. Après avoir saisi une date planifiée (15 oct.), la seconde avance de 100 $ (dépense de 60 $, restitution de 40 $) donne : entrées 40 $, sorties 400 $, solde de fin 640 $.
+- Nouveau solde de 690 $ daté du jour, qui inclut déjà ces sorties : solde de départ 690 $, sorties 50 $, solde de fin 640 $ (aucune double soustraction). Aucune entrée attendue ni revenu créé.
+- OCR direct dans « Mes notes de frais » (employé TEST A), à 1280 et 390 px : lecture réelle, suggestions appliquées, catégorie corrigée, HEIC converti et lu, réouverture fidèle, pièce privée lisible par l'employé. L'employé ne voit aucune obligation de l'entreprise.
+- Reçu transféré depuis Reçus et documents : le propriétaire garde l'accès. Les comptes lecture et employé sont refusés sur la ligne de capture, le fichier original (téléchargement et lien signé), fin_cap_detail, l'OCR serveur, le journal et la copie.
+- Recherche d'achat : propriétaire autorisé ; employé, compte lecture et autre entreprise refusés (403) ; lien enregistré sur une dépense payée par l'entreprise (aucun montant à rembourser).
+Réserves : le transfert depuis Reçus et documents exige que la pièce ait déjà été lue (empreinte serveur requise). Écran d'échec HEIC de FIN-12C1 toujours non provoqué. CAD seulement. FIN-12 incomplet (import CSV, remboursements et trop-payés fournisseurs).
