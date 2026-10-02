@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import * as B from "@/lib/finances/bank";
 import { accounts as loadAccounts } from "@/lib/finances/treasuryApi";
-import { openFile } from "@/lib/finances/purchases";
 import { fmtDate, fmtMoney } from "@/lib/finances/period";
 
 const sel = "h-10 w-full rounded-md border border-input bg-background px-2 text-sm";
@@ -75,7 +74,7 @@ function ImportFlow({ companyId, account, onDone, onClose }: { companyId: string
     const key = s.key ?? crypto.randomUUID(); let fileId = s.fileId; let sha = s.sha;
     setS({ ...s, key });
     try {
-      if (!fileId || !sha) { const f = await B.uploadStatement(companyId, new File([s.text], s.fileName, { type: "text/csv" })); fileId = f.id; sha = f.sha; setS((x) => (x ? { ...x, key, fileId, sha } : x)); }
+      if (!fileId || !sha) { const f = await B.uploadStatement(companyId, s.fileName, s.text); fileId = f.id; sha = f.sha; setS((x) => (x ? { ...x, key, fileId, sha } : x)); }
       const r = await B.commit({ company: companyId, account, rows, settings: s.s, fileName: s.fileName, sha: sha!, fileId, key, decisions: s.decisions, opening: open as number | null, closing: close as number | null, complete: s.complete });
       setRes(r); setS(null); setEv(null); onDone();
     } catch (e: any) { setError(`${e.message} — la correspondance, vos choix et le fichier sont conservés; « Valider » reprend la même demande sans rien recréer.`); } finally { setBusy(false); }
@@ -169,7 +168,7 @@ function Control({ companyId, ov, canWrite, reload }: { companyId: string; ov: B
       <h3 className="font-display font-semibold">Relevés importés</h3>
       <ul className="space-y-1 text-sm">{ov.imports.map((i) => <li key={i.id} className="border-b border-border py-1">
         <div className="flex flex-wrap gap-x-3"><strong className="break-all">{i.file_name}</strong><span>{i.period_from ? `${fmtDate(i.period_from)} → ${fmtDate(i.period_to)}` : "aucune ligne valide"}</span><span className="text-xs text-muted-foreground">importé le {new Date(i.at).toLocaleString("fr-CA")}</span>
-          {i.file_id && <button className="text-xs underline" onClick={async () => { try { window.open(await openFile(i.file_id, true), "_blank"); } catch (e: any) { toast({ title: e.message, variant: "destructive" }); } }}>Télécharger l'original</button>}</div>
+          {<button className="text-xs underline" onClick={async () => { try { await B.downloadOriginal(i.id); } catch (e: any) { toast({ title: e.message, variant: "destructive" }); } }}>Télécharger l'original</button>}</div>
         <div className="text-xs text-muted-foreground">Ajoutées {i.summary?.ajoutees ?? 0} · déjà présentes {i.summary?.deja_presentes ?? 0} · à examiner {i.summary?.a_examiner ?? 0} · refusées {i.summary?.refusees ?? 0}{i.balance ? ` · soldes ${i.balance.ok ? "concordants" : i.balance.diff === 0 ? "non validés (lignes refusées)" : `écart ${fmtMoney(i.balance.diff)}`}` : " · soldes non fournis"}{i.complete ? " · relevé complet" : " · relevé non déclaré complet"}</div>
       </li>)}</ul>
     </section>
