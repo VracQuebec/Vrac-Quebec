@@ -48,9 +48,9 @@ describe("FIN-12A1 — crédits fournisseurs", () => {
     });
     const { rerender } = render(<SupplierPurchases key="A" companyId="A" companyName="A" canWrite canCorrect />);
     rerender(<SupplierPurchases key="B" companyId="B" companyName="B" canWrite canCorrect />);
-    await screen.findByText("CR-B");
+    await screen.findByText(/CR-B/);
     await act(async () => { lateA({ data: crs("A"), error: null }); await new Promise((r) => setTimeout(r, 30)); });
-    expect(screen.queryByText("CR-A")).toBeNull();
+    expect(screen.queryByText(/CR-A/)).toBeNull();
   });
   it("montants inconnus restent inconnus (jamais 0)", () => {
     const p = creditPayload({ ...emptyCredit("s1"), total: "200" });
