@@ -72,12 +72,13 @@ export async function confirm(id: string, occ: string | null, rev: number, key: 
 export async function voidBill(id: string, rev: number, reason: string) { const { error } = await db.rpc("fin_bill_void", { _id: id, _expect_rev: rev, _reason: reason }); err(error); }
 /** Estimations compatibles (même entreprise, actives, non confirmées, même fournisseur ou sans fournisseur), non déjà remplacées. */
 export async function candidates(c: string, supplier: string) {
-  const [o, b] = await Promise.all([
+  const [o, b, po] = await Promise.all([
     db.from("fin_occurrences").select("id,due_date,amount,amount_quality,obligation:fin_obligations!inner(label,payee_client_id)").eq("company_id", c).eq("status", "active").neq("amount_quality", "confirmed").order("due_date").limit(300),
     db.from("fin_supplier_bills").select("occurrence_id").eq("company_id", c).eq("status", "confirmed"),
+    db.from("fin_purchase_orders").select("occurrence_id").eq("company_id", c).in("status", ["confirmed", "closed"]), // FIN-12B : engagement de commande = rapprochement seulement
   ]);
   err(o.error);
-  const taken = new Set(((b.data ?? []) as any[]).map((x) => x.occurrence_id));
+  const taken = new Set([...((b.data ?? []) as any[]), ...((po.data ?? []) as any[])].map((x) => x.occurrence_id));
   return ((o.data ?? []) as any[]).filter((x) => !taken.has(x.id) && (!x.obligation.payee_client_id || x.obligation.payee_client_id === supplier))
     .map((x) => ({ id: x.id as string, due_date: x.due_date as string, amount: x.amount == null ? null : Number(x.amount), quality: x.amount_quality as string, label: x.obligation.label as string }));
 }
@@ -109,7 +110,7 @@ export async function openFile(fileId: string) {
 export const fmtStamp = (iso: string | null | undefined) => iso ? new Date(iso).toLocaleString("fr-CA", { timeZone: TZ, dateStyle: "medium", timeStyle: "short" }) : "—";
 export const STATUS_LABEL: Record<string, string> = { draft: "Brouillon", confirmed: "Confirmée", void: "Annulée" };
 export const EVENT_LABEL: Record<string, string> = { draft_create: "Brouillon créé", confirm: "Document confirmé", void: "Annulée", allocate: "Crédit affecté", allocate_void: "Affectation annulée",
-  credit_allocate: "Crédit fournisseur affecté", credit_allocate_void: "Affectation de crédit annulée" };
+  credit_allocate: "Crédit fournisseur affecté", credit_allocate_void: "Affectation de crédit annulée", po_match: "Rapprochée à une commande", po_match_void: "Rapprochement à une commande annulé" };
 
 // ===== FIN-12A1 — Crédits fournisseurs (jamais un encaissement; réduisent le solde d'une facture confirmée) =====
 export type CreditForm = { supplier_id: string; reference: string; doc_date: string; description: string; subtotal: string; gst: string; qst: string; total: string;
