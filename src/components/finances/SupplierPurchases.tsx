@@ -116,6 +116,8 @@ function BillEditor({ companyId, companyName, id, sups, canWrite, canCorrect, in
   const [pos, setPos] = useState<P.Position | null>(null);
   const [posErr, setPosErr] = useState<string | null>(null);
   const [allocReason, setAllocReason] = useState("");
+  const [capFiles, setCapFiles] = useState<Awaited<ReturnType<typeof Cap.forBill>>>([]);
+  useEffect(() => { if (id) Cap.forBill(id).then(setCapFiles).catch(() => setCapFiles([])); }, [id]);
   const alive = useRef(true); useEffect(() => () => { alive.current = false; }, []);
 
   const load = useCallback(async () => {
@@ -174,6 +176,8 @@ function BillEditor({ companyId, companyName, id, sups, canWrite, canCorrect, in
     </fieldset>
     {!P.taxComplete(form) && <p className="text-xs text-amber-700">Ventilation fiscale à compléter : aucune taxe n'est supposée nulle et aucune admissibilité n'est déduite.</p>}
     {gap != null && gap !== 0 && <p className="text-xs text-destructive">Écart de {fmtMoney(gap)} entre le total et avant taxes + TPS + TVQ. Le document est conservé tel quel : vérifiez la saisie.</p>}
+    {capFiles.length > 0 && <div className="text-sm" data-testid="cap-files"><span className="text-xs font-semibold text-muted-foreground">Pièces jointes depuis « Reçus et documents »</span>
+      <ul className="text-xs">{capFiles.map((x) => <li key={x.capture_id + x.kind}>{x.name} · {x.kind === "attached" ? "jointe" : "source du brouillon"} · {P.fmtStamp(x.at)} <Button size="sm" variant="link" onClick={() => P.openFile(x.file_id).then((u) => window.open(u, "_blank", "noopener")).catch((e) => toast({ title: e.message, variant: "destructive" }))}>Ouvrir</Button></li>)}</ul></div>}
     <div className="space-y-1 text-sm"><span className="text-xs font-semibold text-muted-foreground">Justificatif (photo ou PDF, stockage privé)</span>
       {form.file_id ? <p>{form.file_name || "pièce jointe"} <Button size="sm" variant="link" onClick={() => P.openFile(form.file_id).then((u) => window.open(u, "_blank", "noopener")).catch((e) => toast({ title: e.message, variant: "destructive" }))}>Ouvrir</Button>{editable && <Button size="sm" variant="link" onClick={() => { setDirty(true); setForm((f) => ({ ...f, file_id: "", file_sha256: "", file_name: "" })); }}>Retirer</Button>}</p>
         : editable && <div className="flex flex-wrap gap-2"><Input aria-label="Joindre un justificatif" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" capture="environment" className="max-w-xs" onChange={(e) => attach(e.target.files?.[0])} />
