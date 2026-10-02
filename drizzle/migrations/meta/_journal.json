@@ -960,6 +960,20 @@
       "when": 1790947830683,
       "tag": "0136_fin12d1_list_due_unknown",
       "breakpoints": true
+    },
+    {
+      "idx": 137,
+      "version": "7",
+      "when": 1790948520848,
+      "tag": "0137_fin12d1_capture_events_confidential",
+      "breakpoints": true
+    },
+    {
+      "idx": 138,
+      "version": "7",
+      "when": 1790948557434,
+      "tag": "0138_fin12d1_capture_events_definer",
+      "breakpoints": true
     }
   ]
 }
