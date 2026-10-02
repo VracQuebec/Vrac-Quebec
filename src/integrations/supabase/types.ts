@@ -5989,6 +5989,7 @@ export type Database = {
       }
       fin_payments: {
         Row: {
+          account_id: string | null
           amount: number
           bank_date: string | null
           company_id: string
@@ -6013,6 +6014,7 @@ export type Database = {
           voided_by: string | null
         }
         Insert: {
+          account_id?: string | null
           amount: number
           bank_date?: string | null
           company_id: string
@@ -6037,6 +6039,7 @@ export type Database = {
           voided_by?: string | null
         }
         Update: {
+          account_id?: string | null
           amount?: number
           bank_date?: string | null
           company_id?: string
@@ -6061,6 +6064,13 @@ export type Database = {
           voided_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fin_payments_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fin_payments_company_id_fkey"
             columns: ["company_id"]
@@ -26870,6 +26880,7 @@ export type Database = {
         Returns: Json
       }
       fin_exp_adv_pay: { Args: { _id: string; _p: Json }; Returns: Json }
+      fin_exp_adv_pay_core: { Args: { _id: string; _p: Json }; Returns: Json }
       fin_exp_adv_save: { Args: { _company: string; _p: Json }; Returns: Json }
       fin_exp_alloc: {
         Args: {
@@ -26981,6 +26992,10 @@ export type Database = {
         Returns: Json
       }
       fin_exp_reimburse: { Args: { _p: Json; _report: string }; Returns: Json }
+      fin_exp_reimburse_core: {
+        Args: { _p: Json; _report: string }
+        Returns: Json
+      }
       fin_exp_report_detail: { Args: { _id: string }; Returns: Json }
       fin_exp_restitute: { Args: { _advance: string; _p: Json }; Returns: Json }
       fin_exp_restitution_void: {
@@ -27119,6 +27134,10 @@ export type Database = {
         Args: { _company: string; _payee: string }
         Returns: Json
       }
+      fin_pay_account_check: {
+        Args: { _account: string; _company: string; _method: string }
+        Returns: undefined
+      }
       fin_pay_select: {
         Args: { _company: string; _f: Json; _from: string; _to: string }
         Returns: {
@@ -27153,6 +27172,15 @@ export type Database = {
       fin_payment_detail: { Args: { _payment: string }; Returns: Json }
       fin_payment_save: {
         Args: { _company: string; _dry?: boolean; _p: Json }
+        Returns: Json
+      }
+      fin_payment_set_account: {
+        Args: {
+          _account: string
+          _dry?: boolean
+          _payment: string
+          _reason: string
+        }
         Returns: Json
       }
       fin_payment_validate: {
