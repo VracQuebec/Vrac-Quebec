@@ -177,7 +177,7 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
     {tab === "apayer" && <FinanceSearch key="occ" companyId={companyId} companyName={companyName} ctx="occ" rev={rev} canWrite={canWrite} canCorrect={canCorrect} add={add} onPayMany={onPayMany} onOpenPayment={setPayOpen} renderOcc={(o, pick) => <OccRow o={o} onOpen={setOcc} pick={pick} />} />}
     {tab === "reglements" && <FinanceSearch key="pay" companyId={companyId} companyName={companyName} ctx="pay" rev={rev} canWrite={canWrite} canCorrect={canCorrect} onOpenPayment={setPayOpen} renderOcc={(o) => <OccRow o={o} onOpen={setOcc} />} />}
     {tab === "factures" && <InvoicesTab companyId={companyId} companyName={companyName} canWrite={canWrite} />}
-    {tab === "achats" && <SupplierPurchases key={companyId} companyId={companyId} companyName={companyName} canWrite={canWrite} canCorrect={canCorrect} initialOcc={params.get("occ")} />}
+    {tab === "achats" && <SupplierPurchases key={companyId} companyId={companyId} companyName={companyName} canWrite={canWrite} canCorrect={canCorrect} initialOcc={new URLSearchParams(window.location.search).get("occ")} />}
     {tab === "tresorerie" && <Treasury companyId={companyId} companyName={companyName} canWrite={canWrite} cats={cats.filter((c) => !c.archived_at)} />}
     {tab === "rappels" && <Reminders companyId={companyId} companyName={companyName} canWrite={canWrite}
       onOpenOcc={(id) => st.occDetail(id).then((d: any) => { if (d?.occ?.obligation_id) setOcc(d.occ); else toast({ title: "Échéance introuvable ou inaccessible", variant: "destructive" }); })}
