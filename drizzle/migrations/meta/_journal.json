@@ -883,6 +883,13 @@
       "when": 1790899007455,
       "tag": "0125_fin12a_supplier_bills",
       "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1790900354018,
+      "tag": "0126_fin12a1_supplier_credits",
+      "breakpoints": true
     }
   ]
 }
