@@ -124,6 +124,7 @@ function CaptureReview({ companyId, id, sups, canWrite, onBack, onSwitch, onOpen
   const createDraft = () => run("create", async () => {
     const p = e.kind === "credit" ? P.creditPayload(C.toCreditForm(e)) : P.toPayload(C.toBillForm(e));
     const r = await C.create(id, e.kind, multi ? e.index : null, p as Record<string, unknown>, exact ? dupReason : null);
+    if (r.kind === "duplicate") { toast({ title: r.doc === "credit" ? "Note de crédit déjà enregistrée" : "Facture déjà enregistrée", description: `${r.message}${r.existing ? ` (n° ${r.existing.reference ?? "—"}, ${r.existing.total ?? "?"} $)` : ""}` }); return; }
     try { localStorage.removeItem(lk); } catch { /* */ } setDirty(false);
     toast({ title: r.replay ? "Brouillon déjà créé pour ce document (repris)" : e.kind === "credit" ? "Brouillon de note de crédit créé" : "Brouillon de facture créé", description: "Aucune dette tant que le document n'est pas confirmé." });
     await load();

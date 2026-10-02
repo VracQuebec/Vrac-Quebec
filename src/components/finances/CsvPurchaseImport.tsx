@@ -35,7 +35,7 @@ export default function CsvPurchaseImport({ companyId, sups, onOpenBill, onOpenC
   const resOf = (k: string) => s?.res?.[k];
   const needsRes = (d: C.Doc) => (checks?.[d.key]?.captures?.length ?? 0) > 0;
   const resolved = (d: C.Doc) => { if (!needsRes(d)) return true; const r = resOf(d.key); const cm = checks![d.key].captures!;
-    return !!r && (r.kind === "attach" ? d.kind === "facture" && cm.some((x) => x.capture_id === r.capture_id) : !cm.some((x) => x.level === "certaine")); };
+    return !!r && (r.kind === "attach" ? (d.kind === "facture" || d.kind === "credit") && cm.some((x) => x.capture_id === r.capture_id) : !cm.some((x) => x.level === "certaine")); };
   const ready = (d: C.Doc) => !d.errors.length && checks?.[d.key]?.outcome === "nouveau" && resolved(d);
   const unknownSups = [...new Map(docs.filter((d) => d.supplierName && !d.supplierId).map((d) => [C.norm(d.supplierName), d])).values()];
 
@@ -125,9 +125,9 @@ export default function CsvPurchaseImport({ companyId, sups, onOpenBill, onOpenC
                 {[...d.errors, ...(c?.problem ? [c.problem] : [])].map((e) => <span key={e} className="block text-xs text-destructive">{e}</span>)}
                 {c?.outcome === "nouveau" && !!c.captures?.length && <span className="mt-2 block space-y-1 rounded-md border border-amber-500/40 p-2 text-xs" data-testid="csv-capmatch">
                   <span className="block font-semibold">Reçu déjà lu dans « Reçus et documents » — choisissez :</span>
-                  {c.captures.map((m) => <label key={m.capture_id} className="flex items-start gap-2"><input type="radio" name={`res-${d.key}`} disabled={d.kind !== "facture"} checked={resOf(d.key)?.kind === "attach" && (resOf(d.key) as any).capture_id === m.capture_id}
+                  {c.captures.map((m) => <label key={m.capture_id} className="flex items-start gap-2"><input type="radio" name={`res-${d.key}`} disabled={d.kind !== "facture" && d.kind !== "credit"} checked={resOf(d.key)?.kind === "attach" && (resOf(d.key) as any).capture_id === m.capture_id}
                     onChange={() => up({ res: { ...(s.res ?? {}), [d.key]: { kind: "attach", capture_id: m.capture_id } } })} />
-                    <span>Rattacher ce reçu au brouillon importé — correspondance <strong>{m.level}</strong> ({m.why}){d.kind !== "facture" && " — factures seulement"}</span></label>)}
+                    <span>Rattacher ce reçu au brouillon importé — correspondance <strong>{m.level}</strong> ({m.why}){d.kind !== "facture" && d.kind !== "credit" && " — factures et notes de crédit seulement"}</span></label>)}
                   <label className="flex items-start gap-2"><input type="radio" name={`res-${d.key}`} disabled={c.captures.some((m) => m.level === "certaine")} checked={resOf(d.key)?.kind === "distinct"}
                     onChange={() => up({ res: { ...(s.res ?? {}), [d.key]: { kind: "distinct" } } })} />
                     <span>Document distinct du reçu {c.captures.some((m) => m.level === "certaine") ? "(impossible : correspondance certaine)" : "(choix explicite, tracé)"}</span></label>

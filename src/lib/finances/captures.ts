@@ -11,6 +11,7 @@ export type ExDoc = { doc_type: "facture" | "recu" | "note_credit" | "releve" | 
   currency: string | null; subtotal: number | null; gst: number | null; qst: number | null; other_taxes: number | null; total: number | null; paid_mention: boolean; pages: string | null; lines: ExLine[]; uncertain: string[] };
 export type Extraction = { documents: ExDoc[]; notes: string | null; model?: string };
 export type CapStatus = "ajoute" | "lecture" | "a_verifier" | "echec" | "traite" | "ecarte";
+export type CapDuplicate = { kind: "duplicate"; doc: "bill" | "credit"; created: false; message: string; existing: { id: string; reference: string | null; status: string; total: number | null; doc_date: string | null } | null };
 export type CapResult = { kind: "bill" | "credit" | "attached"; id: string; index: number | null; key: string; at: string };
 export type Capture = { id: string; company_id: string; file_id: string; file_sha256: string | null; status: CapStatus; extraction: Extraction | null; extracted_at: string | null;
   extract_error: string | null; extract_count: number; edits: Edits | null; results: CapResult[]; dismiss_reason: string | null; rev: number; created_at: string; created_by: string | null;
@@ -59,7 +60,7 @@ export async function extract(id: string, force = false) {
 }
 export async function saveEdits(id: string, e: Edits, rev: number) { const { data, error } = await db.rpc("fin_cap_save_edits", { _id: id, _edits: e, _rev: rev }); err(error); return data as { rev: number }; }
 export async function create(id: string, kind: "bill" | "credit", index: number | null, p: Record<string, unknown>, dupReason: string | null) {
-  const { data, error } = await db.rpc("fin_cap_create", { _id: id, _kind: kind, _index: index, _p: p, _dup_reason: dupReason }); err(error); return data as CapResult & { replay?: boolean };
+  const { data, error } = await db.rpc("fin_cap_create", { _id: id, _kind: kind, _index: index, _p: p, _dup_reason: dupReason }); err(error); return data as (CapResult & { replay?: boolean }) | CapDuplicate;
 }
 export async function attach(id: string, bill: string) { const { data, error } = await db.rpc("fin_cap_attach", { _id: id, _bill: bill }); err(error); return data as CapResult & { replay?: boolean }; }
 export async function dismiss(id: string, reason: string) { const { error } = await db.rpc("fin_cap_dismiss", { _id: id, _reason: reason }); err(error); }

@@ -42,7 +42,7 @@ export default function SupplierPurchases({ companyId, companyName, canWrite, ca
     {view.k === "list" && <BillList onCsv={() => setView({ k: "csv" })} companyId={companyId} sups={sups} rev={rev} canWrite={canWrite} onOpen={(id) => setView({ k: "bill", id })} onSupplier={(id) => setView({ k: "supplier", id })} onNewSupplier={() => setView({ k: "supplier", id: "" })} onCredit={(id) => setView({ k: "credit", id })} />}
     {view.k === "bill" && <BillEditor key={view.id ?? "new"} companyId={companyId} companyName={companyName} id={view.id} sups={sups ?? []} canWrite={canWrite} canCorrect={canCorrect} initialOcc={view.id ? null : initialOcc ?? null}
       onOpen={(id) => setView({ k: "bill", id })} onBack={back} />}
-    {view.k === "supplier" && <SupplierSheet key={view.id} companyId={companyId} id={view.id || null} canWrite={canWrite} onBack={back} onSaved={(id) => { loadSups(); setView({ k: "supplier", id }); }} onOpenBill={(id) => setView({ k: "bill", id })} onOpenCredit={(id) => setView({ k: "credit", id })} />}
+    {view.k === "supplier" && <SupplierSheet key={view.id} companyId={companyId} companyName={companyName} canCorrect={canCorrect} id={view.id || null} canWrite={canWrite} onBack={back} onSaved={(id) => { loadSups(); setView({ k: "supplier", id }); }} onOpenBill={(id) => setView({ k: "bill", id })} onOpenCredit={(id) => setView({ k: "credit", id })} />}
     {view.k === "credit" && <CreditEditor key={view.id ?? "new"} companyId={companyId} id={view.id} sups={sups ?? []} canWrite={canWrite} canCorrect={canCorrect} onOpen={(id) => setView({ k: "credit", id })} onOpenBill={(id) => setView({ k: "bill", id })} onBack={back} />}
     </>}
   </div>;
