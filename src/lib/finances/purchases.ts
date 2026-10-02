@@ -15,8 +15,8 @@ export type BillForm = {
 export const emptyBill = (supplier = ""): BillForm => ({ supplier_id: supplier, reference: "", doc_date: "", due_date: "", description: "", category_id: "", truck_id: "", project_id: "", subtotal: "", gst: "", qst: "", total: "", file_id: "", file_sha256: "", file_name: "" });
 
 export type BillRow = { id: string; supplier_id: string; supplier: string; reference: string | null; doc_date: string | null; due_date: string | null; status: "draft" | "confirmed" | "void";
-  total: number | null; paid: number; rest: number | null; overpaid: number | null; tax_status: string; replaced: boolean; estimate: number | null; occurrence_id: string | null; file_id: string | null; created_at: string; updated_at: string };
-export type BillTotals = { count: number; confirmed_total: number; paid: number; rest: number; rest_due_known: number; rest_due_unknown: number; overpaid: number; drafts: number; tax_incomplete: number };
+  total: number | null; paid: number; credited?: number; rest: number | null; overpaid: number | null; due_unknown?: boolean; tax_status: string; replaced: boolean; estimate: number | null; occurrence_id: string | null; file_id: string | null; created_at: string; updated_at: string };
+export type BillTotals = { count: number; confirmed_total: number; paid: number; rest: number; rest_due_known: number; rest_due_unknown: number; overpaid: number; drafts: number; tax_incomplete: number; credited?: number; credit_confirmed?: number; credit_available?: number; credit_count?: number };
 export type Dups = { exact: { id: string; reference: string | null; status: string; total: number | null; doc_date: string | null; why: string }[]; probable: { id: string; reference: string | null; status: string; total: number | null; doc_date: string | null; why: string }[] };
 export type Preview = { mode: "new" | "replace"; label?: string; due_date?: string; estimate: number | null; estimate_quality?: string; real: number | null; diff: number | null; paid: number; rest: number | null; overpaid: number; taken_by?: string | null; payee_match?: boolean; status?: string };
 
@@ -46,7 +46,7 @@ export async function sha256(file: Blob): Promise<string> {
 export async function overview(c: string, f: { supplier_id?: string; status?: string; q?: string }, limit = 25, offset = 0) {
   const { data, error } = await db.rpc("fin_bills_overview", { _company: c, _f: Object.fromEntries(Object.entries(f).filter(([, v]) => v)), _limit: limit, _offset: offset }); err(error);
   const num = (x: any) => (x == null ? null : Number(x));
-  return { rows: (data.rows ?? []).map((r: any) => ({ ...r, total: num(r.total), paid: Number(r.paid ?? 0), rest: num(r.rest), overpaid: num(r.overpaid), estimate: num(r.estimate) })) as BillRow[],
+  return { rows: (data.rows ?? []).map((r: any) => ({ ...r, total: num(r.total), paid: Number(r.paid ?? 0), credited: Number(r.credited ?? 0), rest: num(r.rest), overpaid: num(r.overpaid), estimate: num(r.estimate) })) as BillRow[],
     total: Number(data.total ?? 0), totals: Object.fromEntries(Object.entries(data.totals ?? {}).map(([k, v]) => [k, Number(v)])) as unknown as BillTotals };
 }
 export async function suppliers(c: string) {
@@ -108,4 +108,39 @@ export async function openFile(fileId: string) {
 }
 export const fmtStamp = (iso: string | null | undefined) => iso ? new Date(iso).toLocaleString("fr-CA", { timeZone: TZ, dateStyle: "medium", timeStyle: "short" }) : "—";
 export const STATUS_LABEL: Record<string, string> = { draft: "Brouillon", confirmed: "Confirmée", void: "Annulée" };
-export const EVENT_LABEL: Record<string, string> = { draft_create: "Brouillon créé", confirm: "Document confirmé", void: "Annulée" };
+export const EVENT_LABEL: Record<string, string> = { draft_create: "Brouillon créé", confirm: "Document confirmé", void: "Annulée", allocate: "Crédit affecté", allocate_void: "Affectation annulée",
+  credit_allocate: "Crédit fournisseur affecté", credit_allocate_void: "Affectation de crédit annulée" };
+
+// ===== FIN-12A1 — Crédits fournisseurs (jamais un encaissement; réduisent le solde d'une facture confirmée) =====
+export type CreditForm = { supplier_id: string; reference: string; doc_date: string; description: string; subtotal: string; gst: string; qst: string; total: string;
+  file_id: string; file_sha256: string; file_name: string; linked_bill_id: string };
+export const emptyCredit = (supplier = ""): CreditForm => ({ supplier_id: supplier, reference: "", doc_date: "", description: "", subtotal: "", gst: "", qst: "", total: "", file_id: "", file_sha256: "", file_name: "", linked_bill_id: "" });
+export type CreditRow = { id: string; supplier_id: string; supplier: string; reference: string | null; doc_date: string | null; status: "draft" | "confirmed" | "void"; total: number | null;
+  tax_status: string; linked_bill_id: string | null; file_id: string | null; allocated: number; available: number | null; created_at: string };
+export type Position = { total: number | null; credited: number; paid: number; rest: number | null; overpaid: number | null; due_unknown: boolean;
+  allocs: { id: string; credit_id: string; reference: string | null; amount: number; created_at: string; reversed_at: string | null; reverse_reason: string | null }[] };
+/** Montants du document tels que saisis : un champ vide reste inconnu (null), jamais 0. */
+export function creditPayload(f: CreditForm) {
+  const n = (s: string) => (s.trim() === "" ? null : Number(s.replace(",", ".")));
+  return { supplier_id: f.supplier_id || null, reference: f.reference, doc_date: f.doc_date || null, description: f.description, subtotal: n(f.subtotal), gst: n(f.gst), qst: n(f.qst), total: n(f.total),
+    file_id: f.file_id || null, file_sha256: f.file_sha256 || null, linked_bill_id: f.linked_bill_id || null, currency: "CAD" };
+}
+const numRow = (r: any): CreditRow => ({ ...r, total: r.total == null ? null : Number(r.total), allocated: Number(r.allocated ?? 0), available: r.available == null ? null : Number(r.available) });
+export async function credits(c: string, supplier: string | null = null) { const { data, error } = await db.rpc("fin_scr_list", { _company: c, _supplier: supplier }); err(error); return ((data ?? []) as any[]).map(numRow); }
+export async function credit(id: string) { const { data, error } = await db.from("fin_supplier_credits").select("*").eq("id", id).maybeSingle(); err(error); return data; }
+export async function creditEvents(id: string) { const { data } = await db.from("fin_supplier_credit_events").select("action,reason,detail,created_at,alloc_id").eq("credit_id", id).order("created_at"); return data ?? []; }
+export async function creditAllocs(id: string) { const { data, error } = await db.from("fin_supplier_credit_allocs").select("id,bill_id,amount,created_at,reversed_at,reverse_reason,bill:fin_supplier_bills(reference)").eq("credit_id", id).order("created_at"); err(error); return (data ?? []) as any[]; }
+export async function saveCredit(c: string, id: string | null, f: CreditForm, rev: number | null, createKey: string | null) {
+  const { data, error } = await db.rpc("fin_scr_save", { _company: c, _id: id, _p: creditPayload(f), _base_rev: rev, _create_key: createKey }); err(error); return data as { id: string; rev: number; replay?: boolean };
+}
+export async function confirmCredit(id: string, rev: number, key: string, dupReason: string | null) { const { data, error } = await db.rpc("fin_scr_confirm", { _id: id, _expect_rev: rev, _key: key, _dup_reason: dupReason }); err(error); return data as { id: string; replay?: boolean }; }
+/** amount null = maximum possible (min(crédit disponible, reste de la facture)), calculé par le serveur. */
+export async function allocCredit(credit: string, bill: string, amount: number | null, key: string) { const { data, error } = await db.rpc("fin_scr_alloc", { _credit: credit, _bill: bill, _amount: amount, _key: key }); err(error); return data as { id: string; amount: number; replay?: boolean; bill_rest?: number; available?: number }; }
+export async function voidAlloc(id: string, reason: string) { const { error } = await db.rpc("fin_scr_alloc_void", { _alloc: id, _reason: reason }); err(error); }
+export async function voidCredit(id: string, rev: number, reason: string) { const { error } = await db.rpc("fin_scr_void", { _id: id, _expect_rev: rev, _reason: reason }); err(error); }
+export async function billPosition(id: string) {
+  const { data, error } = await db.rpc("fin_bill_position", { _id: id }); err(error);
+  const n = (x: any) => (x == null ? null : Number(x));
+  return { ...data, total: n(data.total), credited: Number(data.credited ?? 0), paid: Number(data.paid ?? 0), rest: n(data.rest), overpaid: n(data.overpaid),
+    allocs: ((data.allocs ?? []) as any[]).map((a) => ({ ...a, amount: Number(a.amount) })) } as Position;
+}

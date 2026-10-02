@@ -7,7 +7,7 @@ const db = supabase as any;
 export type Base = "due" | "planned";
 export type Filters = { q?: string; payee?: string; category_id?: string; status?: "active" | "cancelled" | "all"; quality?: string; frequency?: string; seasonal?: string; truck_id?: string; project_id?: string; settle?: string; method?: string; paid_from?: string; paid_to?: string };
 export type Totals = { confirmed: number; estimated: number; known: number; unknown_count: number; count: number; from: string; to: string; base: Base;
-  remaining?: number; remaining_estimated?: number; to_confirm_amount?: number; paid_on_these?: number; late_count?: number; late_amount?: number; by_settle?: Record<string, number>;
+  remaining?: number; due_unknown_remaining?: number; due_unknown_count?: number; remaining_estimated?: number; to_confirm_amount?: number; paid_on_these?: number; late_count?: number; late_amount?: number; by_settle?: Record<string, number>;
   declared?: number; declared_count?: number; declared_by_method?: Record<string, number>; refunds?: number; returned?: number; drafts?: number; unallocated?: number; unallocated_count?: number };
 
 const clean = (f: Filters) => Object.fromEntries(Object.entries(f).filter(([, v]) => v !== undefined && v !== ""));

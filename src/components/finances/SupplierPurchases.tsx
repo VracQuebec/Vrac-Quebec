@@ -12,7 +12,7 @@ import { fmtDate, fmtMoney } from "@/lib/finances/period";
 import { PaymentDialog, type PayTarget } from "@/components/finances/Settlements";
 
 const sel = "h-10 w-full rounded-md border border-input bg-background px-2 text-sm";
-type View = { k: "list" } | { k: "bill"; id: string | null } | { k: "supplier"; id: string };
+type View = { k: "list" } | { k: "bill"; id: string | null } | { k: "supplier"; id: string } | { k: "credit"; id: string | null };
 const L = ({ l, children, className = "" }: { l: string; children: React.ReactNode; className?: string }) => <label className={`block text-sm ${className}`}><span className="mb-1 block text-xs font-semibold text-muted-foreground">{l}</span>{children}</label>;
 const money = (n: number | null | undefined) => (n == null ? "—" : fmtMoney(n));
 
@@ -24,28 +24,32 @@ export default function SupplierPurchases({ companyId, companyName, canWrite, ca
   useEffect(() => { loadSups(); }, [loadSups, rev]);
   const back = () => { setView({ k: "list" }); setRev((r) => r + 1); };
   return <div className="space-y-3" data-testid="fin12a">
-    <p className="text-xs text-muted-foreground">Factures fournisseurs : un brouillon ne crée aucune dette; la confirmation crée ou remplace exactement une échéance « À payer ». OCR, commandes/réceptions, notes de frais et import CSV : à venir.</p>
-    {view.k === "list" && <BillList companyId={companyId} sups={sups} rev={rev} canWrite={canWrite} onOpen={(id) => setView({ k: "bill", id })} onSupplier={(id) => setView({ k: "supplier", id })} onNewSupplier={() => setView({ k: "supplier", id: "" })} />}
+    <p className="text-xs text-muted-foreground">Factures et notes de crédit fournisseurs : un brouillon n'a aucun effet financier; la confirmation d'une facture crée ou remplace exactement une échéance « À payer »; un crédit réduit le solde d'une facture sans être un encaissement. OCR, commandes/réceptions, notes de frais et import CSV : à venir.</p>
+    {view.k === "list" && <BillList companyId={companyId} sups={sups} rev={rev} canWrite={canWrite} onOpen={(id) => setView({ k: "bill", id })} onSupplier={(id) => setView({ k: "supplier", id })} onNewSupplier={() => setView({ k: "supplier", id: "" })} onCredit={(id) => setView({ k: "credit", id })} />}
     {view.k === "bill" && <BillEditor key={view.id ?? "new"} companyId={companyId} companyName={companyName} id={view.id} sups={sups ?? []} canWrite={canWrite} canCorrect={canCorrect} initialOcc={view.id ? null : initialOcc ?? null}
       onOpen={(id) => setView({ k: "bill", id })} onBack={back} />}
-    {view.k === "supplier" && <SupplierSheet key={view.id} companyId={companyId} id={view.id || null} canWrite={canWrite} onBack={back} onSaved={(id) => { loadSups(); setView({ k: "supplier", id }); }} onOpenBill={(id) => setView({ k: "bill", id })} />}
+    {view.k === "supplier" && <SupplierSheet key={view.id} companyId={companyId} id={view.id || null} canWrite={canWrite} onBack={back} onSaved={(id) => { loadSups(); setView({ k: "supplier", id }); }} onOpenBill={(id) => setView({ k: "bill", id })} onOpenCredit={(id) => setView({ k: "credit", id })} />}
+    {view.k === "credit" && <CreditEditor key={view.id ?? "new"} companyId={companyId} id={view.id} sups={sups ?? []} canWrite={canWrite} canCorrect={canCorrect} onOpen={(id) => setView({ k: "credit", id })} onOpenBill={(id) => setView({ k: "bill", id })} onBack={back} />}
   </div>;
 }
 
-function BillList({ companyId, sups, rev, canWrite, onOpen, onSupplier, onNewSupplier }: { companyId: string; sups: { id: string; name: string; archived: boolean }[] | null; rev: number; canWrite: boolean; onOpen: (id: string | null) => void; onSupplier: (id: string) => void; onNewSupplier: () => void }) {
+function BillList({ companyId, sups, rev, canWrite, onOpen, onSupplier, onNewSupplier, onCredit }: { companyId: string; sups: { id: string; name: string; archived: boolean }[] | null; rev: number; canWrite: boolean; onOpen: (id: string | null) => void; onSupplier: (id: string) => void; onNewSupplier: () => void; onCredit: (id: string | null) => void }) {
   const [f, setF] = useState<{ supplier_id: string; status: string; q: string }>({ supplier_id: "", status: "active", q: "" });
   const [page, setPage] = useState(0);
   const [data, setData] = useState<Awaited<ReturnType<typeof P.overview>> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [crs, setCrs] = useState<P.CreditRow[] | null>(null);
   const seq = useRef(0);
   useEffect(() => {
-    const my = ++seq.current; setError(null); setData(null);
+    const my = ++seq.current; setError(null); setData(null); setCrs(null);
     P.overview(companyId, f, 25, page * 25).then((d) => { if (my === seq.current) setData(d); }).catch((e) => { if (my === seq.current) setError(e.message); });
+    P.credits(companyId, f.supplier_id || null).then((c) => { if (my === seq.current) setCrs(c); }).catch(() => { if (my === seq.current) setCrs(null); });
   }, [companyId, f, page, rev]);
   const t = data?.totals;
   return <section className="space-y-3">
     <div className="flex flex-wrap gap-2">
       {canWrite && <Button size="sm" onClick={() => onOpen(null)} disabled={!sups?.length}>Ajouter une facture fournisseur</Button>}
+      {canWrite && <Button size="sm" variant="outline" onClick={() => onCredit(null)} disabled={!sups?.length}>Ajouter une note de crédit</Button>}
       {canWrite && <Button size="sm" variant="outline" onClick={onNewSupplier}>Ajouter ou réutiliser un fournisseur</Button>}
     </div>
     {sups && !sups.length && <p className="text-sm text-muted-foreground">Aucun fournisseur. Ajoutez-en un (ou réutilisez une fiche existante) avant la première facture.</p>}
@@ -60,16 +64,20 @@ function BillList({ companyId, sups, rev, canWrite, onOpen, onSupplier, onNewSup
       : <>
         <div className="grid gap-2 rounded-md border p-3 text-sm sm:grid-cols-4" aria-label="Totaux filtrés">
           <div><div className="text-xs text-muted-foreground">Confirmé</div><strong>{fmtMoney(t!.confirmed_total)}</strong></div>
-          <div><div className="text-xs text-muted-foreground">Réglé</div><strong>{fmtMoney(t!.paid)}</strong></div>
+          <div><div className="text-xs text-muted-foreground">Réglé · crédits affectés</div><strong>{fmtMoney(t!.paid)}</strong> · <strong data-testid="credited">{fmtMoney(t!.credited ?? 0)}</strong></div>
           <div><div className="text-xs text-muted-foreground">Reste à payer</div><strong data-testid="rest">{fmtMoney(t!.rest)}</strong></div>
           <div className="text-xs text-muted-foreground">dont échéance connue {fmtMoney(t!.rest_due_known)} · <span>échéance inconnue {fmtMoney(t!.rest_due_unknown)}</span>{t!.overpaid > 0 && <div className="text-destructive">Trop-payé {fmtMoney(t!.overpaid)}</div>}</div>
+          <p className="text-xs sm:col-span-4">Crédit fournisseur disponible (non affecté, conservé à part) : <strong data-testid="credit-available">{fmtMoney(t!.credit_available ?? 0)}</strong> — ce n'est pas un encaissement.</p>
           <p className="text-[11px] text-muted-foreground sm:col-span-4">Totaux sur les {t!.count} résultats filtrés (toutes pages). {t!.drafts} brouillon(s) non comptés. {t!.tax_incomplete} avec ventilation fiscale à compléter.</p>
         </div>
         <ul className="divide-y rounded-md border">{data.rows.map((r) => <li key={r.id}><button className="flex w-full flex-wrap items-center justify-between gap-2 p-3 text-left text-sm hover:bg-muted/40" onClick={() => onOpen(r.id)}>
           <span><strong>{r.supplier}</strong> · {r.reference ?? "sans référence"} <span className="text-xs text-muted-foreground">({P.STATUS_LABEL[r.status]}{r.tax_status === "a_completer" ? " · ventilation fiscale à compléter" : ""})</span><br />
-            <span className="text-xs text-muted-foreground">Document {r.doc_date ? fmtDate(r.doc_date) : "—"} · échéance {r.due_date ? fmtDate(r.due_date) : "inconnue"}{r.replaced ? ` · remplace une estimation de ${money(r.estimate)}` : ""}</span></span>
-          <span className="text-right">{money(r.total)}{r.status === "confirmed" && <><br /><span className="text-xs">reste {money(r.rest)}{(r.overpaid ?? 0) > 0 ? ` · trop-payé ${money(r.overpaid)}` : ""}</span></>}</span>
+            <span className="text-xs text-muted-foreground">Document {r.doc_date ? fmtDate(r.doc_date) : "—"} · échéance {r.due_unknown || !r.due_date ? (r.replaced && !r.due_unknown ? "de l'estimation" : "inconnue") : fmtDate(r.due_date)}{r.replaced ? ` · remplace une estimation de ${money(r.estimate)}` : ""}</span></span>
+          <span className="text-right">{money(r.total)}{r.status === "confirmed" && <><br /><span className="text-xs">{(r.credited ?? 0) > 0 ? `crédits ${money(r.credited)} · ` : ""}reste {money(r.rest)}{(r.overpaid ?? 0) > 0 ? ` · trop-payé ${money(r.overpaid)}` : ""}</span></>}</span>
         </button></li>)}{!data.rows.length && <li className="p-3 text-sm text-muted-foreground">Aucune facture.</li>}</ul>
+        {crs && crs.length > 0 && <div className="space-y-1"><p className="text-xs font-semibold text-muted-foreground">Notes de crédit</p><ul className="divide-y rounded-md border">{crs.map((c) => <li key={c.id}><button className="flex w-full flex-wrap justify-between gap-2 p-2 text-left text-sm hover:bg-muted/40" onClick={() => onCredit(c.id)}>
+          <span><strong>{c.supplier}</strong> · {c.reference ?? "sans numéro"} <span className="text-xs text-muted-foreground">({P.STATUS_LABEL[c.status]})</span></span>
+          <span className="text-right text-xs">{money(c.total)}{c.status === "confirmed" && <> · affecté {fmtMoney(c.allocated)} · disponible {money(c.available)}</>}</span></button></li>)}</ul></div>}
         {data.total > 25 && <div className="flex items-center gap-2 text-sm"><Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage(page - 1)}>Précédent</Button>Page {page + 1} / {Math.ceil(data.total / 25)}<Button size="sm" variant="outline" disabled={(page + 1) * 25 >= data.total} onClick={() => setPage(page + 1)}>Suivant</Button></div>}
       </>}
   </section>;
@@ -93,11 +101,15 @@ function BillEditor({ companyId, companyName, id, sups, canWrite, canCorrect, in
   const [confirmOpen, setConfirmOpen] = useState(!!initialOcc);
   const [pay, setPay] = useState<PayTarget[] | null>(null);
   const [voidReason, setVoidReason] = useState("");
+  const [pos, setPos] = useState<P.Position | null>(null);
+  const [posErr, setPosErr] = useState<string | null>(null);
+  const [allocReason, setAllocReason] = useState("");
   const alive = useRef(true); useEffect(() => () => { alive.current = false; }, []);
 
   const load = useCallback(async () => {
     if (!id) return;
     try { const x = await P.bill(id); if (!alive.current) return; if (!x) { setLoadErr("Facture introuvable ou inaccessible"); return; } setB(x); setEvents(await P.billEvents(id));
+      if (x.status === "confirmed") { try { const p = await P.billPosition(id); if (alive.current) { setPos(p); setPosErr(null); } } catch (e: any) { if (alive.current) { setPos(null); setPosErr(e.message); } } }
       if (!stored) setForm({ supplier_id: x.supplier_id, reference: x.reference ?? "", doc_date: x.doc_date ?? "", due_date: x.due_date ?? "", description: x.description ?? "", category_id: x.category_id ?? "", truck_id: x.truck_id ?? "", project_id: x.project_id ?? "",
         subtotal: x.subtotal?.toString() ?? "", gst: x.gst?.toString() ?? "", qst: x.qst?.toString() ?? "", total: x.total?.toString() ?? "", file_id: x.file_id ?? "", file_sha256: x.file_sha256 ?? "", file_name: x.file_id ? "pièce jointe" : "" });
     } catch (e: any) { if (alive.current) setLoadErr(e.message); }
@@ -168,7 +180,17 @@ function BillEditor({ companyId, companyName, id, sups, canWrite, canCorrect, in
     {confirmOpen && id && b?.status === "draft" && <ConfirmPanel companyId={companyId} bill={b} initialOcc={initialOcc} onClose={() => setConfirmOpen(false)} onDone={() => { setConfirmOpen(false); void load(); }} onOpen={onOpen} />}
     {confirmOpen && !id && <p className="text-xs text-muted-foreground">Enregistrez d'abord le brouillon; l'estimation choisie sera proposée à la confirmation.</p>}
     {b?.status === "confirmed" && <div className="space-y-1 rounded-md bg-muted/40 p-2 text-sm">
-      <p>{b.replaced_estimate ? <>Remplace l'estimation de {money(b.estimate_amount)} ({b.estimate_quality === "estimated" ? "estimée" : b.estimate_quality === "unknown" ? "à compléter" : b.estimate_quality}); le montant réel est compté une seule fois.</> : <>Nouvelle échéance unique créée à la confirmation{b.due_date ? "" : " (échéance fournisseur inconnue : planifiée à la date du document)"}.</>}</p>
+      <p>{b.replaced_estimate ? <>Remplace l'estimation de {money(b.estimate_amount)} ({b.estimate_quality === "estimated" ? "estimée" : b.estimate_quality === "unknown" ? "à compléter" : b.estimate_quality}); le montant réel est compté une seule fois.</> : <>Nouvelle échéance unique créée à la confirmation{b.due_date ? "" : " — échéance inconnue : comptée dans la dette, mais hors des prévisions datées"}.</>}</p>
+      {posErr ? <p role="alert" className="text-destructive">Position indisponible : {posErr}. Aucun solde n'est affiché.</p> : pos && <dl className="grid grid-cols-2 gap-1 sm:grid-cols-5" aria-label="Position de la facture">
+        <div><dt className="text-xs text-muted-foreground">Montant facturé</dt><dd>{money(pos.total)}</dd></div>
+        <div><dt className="text-xs text-muted-foreground">Crédits affectés</dt><dd data-testid="pos-credited">{fmtMoney(pos.credited)}</dd></div>
+        <div><dt className="text-xs text-muted-foreground">Règlements</dt><dd data-testid="pos-paid">{fmtMoney(pos.paid)}</dd></div>
+        <div><dt className="text-xs text-muted-foreground">Reste à payer</dt><dd data-testid="pos-rest"><strong>{money(pos.rest)}</strong></dd></div>
+        <div><dt className="text-xs text-muted-foreground">Échéance</dt><dd>{pos.due_unknown ? "inconnue" : "datée"}</dd></div>
+      </dl>}
+      {pos && pos.allocs.length > 0 && <ul className="text-xs">{pos.allocs.map((a) => <li key={a.id} className="flex flex-wrap items-center gap-2">Crédit {a.reference ?? "—"} · {fmtMoney(a.amount)} · {P.fmtStamp(a.created_at)}{a.reversed_at ? ` · annulé ${P.fmtStamp(a.reversed_at)} (${a.reverse_reason})` : ""}
+        {!a.reversed_at && canCorrect && <Button size="sm" variant="link" disabled={!allocReason.trim() || busy} onClick={async () => { setBusy(true); try { await P.voidAlloc(a.id, allocReason); setAllocReason(""); toast({ title: "Affectation annulée", description: "Le crédit redevient disponible; l'historique est conservé." }); await load(); } catch (e: any) { toast({ title: "Annulation refusée", description: e.message, variant: "destructive" }); } finally { setBusy(false); } }}>Annuler cette affectation</Button>}</li>)}
+        {canCorrect && pos.allocs.some((a) => !a.reversed_at) && <li><Input aria-label="Motif d'annulation d'affectation" placeholder="Motif (requis pour annuler une affectation)" value={allocReason} onChange={(e) => setAllocReason(e.target.value)} className="h-8 max-w-sm" /></li>}</ul>}
       {canCorrect && <div className="flex flex-wrap items-end gap-2"><L l="Annuler (correction) — motif requis"><Input aria-label="Motif d'annulation" value={voidReason} onChange={(e) => setVoidReason(e.target.value)} /></L>
         <Button size="sm" variant="outline" disabled={!voidReason.trim() || busy} onClick={async () => { setBusy(true); try { await P.voidBill(b.id, b.rev, voidReason); toast({ title: "Facture annulée", description: "Les règlements sont conservés; saisissez au besoin une nouvelle facture." }); await load(); } catch (e: any) { toast({ title: "Annulation refusée", description: e.message, variant: "destructive" }); } finally { setBusy(false); } }}>Annuler la facture</Button></div>}
     </div>}
@@ -221,7 +243,7 @@ function ConfirmPanel({ companyId, bill, initialOcc, onClose, onDone, onOpen }: 
   </div>;
 }
 
-function SupplierSheet({ companyId, id, canWrite, onBack, onSaved, onOpenBill }: { companyId: string; id: string | null; canWrite: boolean; onBack: () => void; onSaved: (id: string) => void; onOpenBill: (id: string) => void }) {
+function SupplierSheet({ companyId, id, canWrite, onBack, onSaved, onOpenBill, onOpenCredit }: { companyId: string; id: string | null; canWrite: boolean; onBack: () => void; onSaved: (id: string) => void; onOpenBill: (id: string) => void; onOpenCredit: (id: string) => void }) {
   const [d, setD] = useState<any>(null); const [err, setErr] = useState<string | null>(null);
   const [p, setP] = useState<Record<string, string>>({ name: "", phone: "", email: "", address: "", city: "", account_ref: "", payment_terms: "", internal_notes: "" });
   const [reuse, setReuse] = useState(""); const [contacts, setContacts] = useState<{ id: string; name: string }[]>([]);
@@ -249,10 +271,100 @@ function SupplierSheet({ companyId, id, canWrite, onBack, onSaved, onOpenBill }:
     {canWrite && <div className="flex flex-wrap gap-2"><Button size="sm" disabled={busy} onClick={() => save()}>Enregistrer</Button>
       {id && <Button size="sm" variant="outline" disabled={busy} onClick={() => save({ archived: !d.archived_at })}>{d.archived_at ? "Réactiver" : "Archiver (historique conservé)"}</Button>}</div>}
     {id && <>
-      <p className="text-xs text-muted-foreground">Fiche créée {P.fmtStamp(d.created_at)} · modifiée {P.fmtStamp(d.updated_at)} (heure de Toronto). Crédits fournisseurs : non pris en charge dans ce lot.</p>
-      {bills && <div className="text-sm"><p><strong>Solde à payer {fmtMoney(bills.totals.rest)}</strong> · confirmé {fmtMoney(bills.totals.confirmed_total)} · réglé {fmtMoney(bills.totals.paid)} · échéance inconnue {fmtMoney(bills.totals.rest_due_unknown)}{bills.totals.overpaid > 0 ? ` · trop-payé ${fmtMoney(bills.totals.overpaid)}` : ""}</p>
+      <p className="text-xs text-muted-foreground">Fiche créée {P.fmtStamp(d.created_at)} · modifiée {P.fmtStamp(d.updated_at)} (heure de Toronto).</p>
+      {bills && <div className="text-sm"><p><strong>Solde à payer {fmtMoney(bills.totals.rest)}</strong> · confirmé {fmtMoney(bills.totals.confirmed_total)} · réglé {fmtMoney(bills.totals.paid)} · crédits affectés {fmtMoney(bills.totals.credited ?? 0)} · crédit disponible {fmtMoney(bills.totals.credit_available ?? 0)} · dont échéance inconnue {fmtMoney(bills.totals.rest_due_unknown)}{bills.totals.overpaid > 0 ? ` · trop-payé ${fmtMoney(bills.totals.overpaid)}` : ""}</p>
         <ul className="mt-1 divide-y rounded border">{bills.rows.map((r) => <li key={r.id}><button className="w-full p-2 text-left hover:bg-muted/40" onClick={() => onOpenBill(r.id)}>{r.reference ?? "—"} · {P.STATUS_LABEL[r.status]} · {money(r.total)}{r.status === "confirmed" ? ` · reste ${money(r.rest)}` : ""}{r.file_id ? " · pièce jointe" : ""}</button></li>)}{!bills.rows.length && <li className="p-2 text-muted-foreground">Aucune facture.</li>}</ul></div>}
+      <div className="text-sm"><p className="font-semibold">Notes de crédit</p><ul className="text-xs">{((d.credits ?? []) as any[]).map((c) => <li key={c.id}><button className="underline-offset-2 hover:underline" onClick={() => onOpenCredit(c.id)}>{c.reference ?? "—"} · {P.STATUS_LABEL[c.status]} · {money(c.total == null ? null : Number(c.total))}{c.status === "confirmed" ? ` · disponible ${fmtMoney(Number(c.available))}` : ""}</button></li>)}{!(d.credits ?? []).length && <li className="text-muted-foreground">Aucune note de crédit.</li>}</ul></div>
       <div className="text-sm"><p className="font-semibold">Règlements</p><ul className="text-xs">{(d.payments as any[]).map((x) => <li key={x.id}>{fmtDate(x.paid_on)} · {fmtMoney(Number(x.amount))} · {st.METHOD_LABEL[x.method] ?? x.method}{x.status !== "validated" ? ` (${st.PAY_STATUS[x.status] ?? x.status})` : ""}{x.reference ? ` · ${x.reference}` : ""}</li>)}{!d.payments.length && <li className="text-muted-foreground">Aucun règlement.</li>}</ul></div>
     </>}
+  </section>;
+}
+
+/** FIN-12A1 — Note de crédit fournisseur : brouillon (aucun effet) → confirmation → affectation(s) à des factures confirmées du même fournisseur. */
+function CreditEditor({ companyId, id, sups, canWrite, canCorrect, onOpen, onOpenBill, onBack }: { companyId: string; id: string | null; sups: { id: string; name: string; archived: boolean }[]; canWrite: boolean; canCorrect: boolean; onOpen: (id: string) => void; onOpenBill: (id: string) => void; onBack: () => void }) {
+  const lk = `vq.fin12a1.credit.${companyId}.${id ?? "new"}`;
+  const stored = (() => { try { return JSON.parse(localStorage.getItem(lk) || "null"); } catch { return null; } })();
+  const [c, setC] = useState<any>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
+  const [form, setForm] = useState<P.CreditForm>(stored?.form ?? P.emptyCredit(sups.length === 1 ? sups[0].id : ""));
+  const [createKey] = useState<string>(stored?.createKey ?? crypto.randomUUID());
+  const [dirty, setDirty] = useState(!!stored);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [bills, setBills] = useState<P.BillRow[]>([]);
+  const [allocs, setAllocs] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [avail, setAvail] = useState<number | null>(null);
+  const [dupReason, setDupReason] = useState("");
+  const [target, setTarget] = useState(""); const [amt, setAmt] = useState("");
+  const [reason, setReason] = useState("");
+  const alive = useRef(true); useEffect(() => () => { alive.current = false; }, []);
+  const ck = `vq.fin12a1.creditconfirm.${id}`;
+  const load = useCallback(async () => {
+    if (!id) return;
+    try { const x = await P.credit(id); if (!alive.current) return; if (!x) { setLoadErr("Note de crédit introuvable ou inaccessible"); return; } setC(x);
+      if (!stored) setForm({ supplier_id: x.supplier_id, reference: x.reference ?? "", doc_date: x.doc_date ?? "", description: x.description ?? "", subtotal: x.subtotal?.toString() ?? "", gst: x.gst?.toString() ?? "", qst: x.qst?.toString() ?? "", total: x.total?.toString() ?? "", file_id: x.file_id ?? "", file_sha256: x.file_sha256 ?? "", file_name: x.file_id ? "pièce jointe" : "", linked_bill_id: x.linked_bill_id ?? "" });
+      const [al, ev, list] = await Promise.all([P.creditAllocs(id), P.creditEvents(id), P.credits(companyId, x.supplier_id)]);
+      if (!alive.current) return; setAllocs(al); setEvents(ev); setAvail(list.find((r) => r.id === id)?.available ?? null);
+    } catch (e: any) { if (alive.current) setLoadErr(e.message); }
+  }, [id, companyId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { if (!form.supplier_id) { setBills([]); return; } P.overview(companyId, { supplier_id: form.supplier_id, status: "confirmed" }, 200, 0).then((d) => { if (alive.current) setBills(d.rows); }).catch(() => setBills([])); }, [companyId, form.supplier_id, c?.rev]);
+  useEffect(() => { if (!dirty) return; try { localStorage.setItem(lk, JSON.stringify({ form, createKey })); } catch { /* indisponible */ } }, [form, dirty, lk, createKey]);
+  const up = (k: keyof P.CreditForm, v: string) => { setDirty(true); setForm((f) => ({ ...f, [k]: v })); };
+  const editable = canWrite && (!id || c?.status === "draft");
+  const run = async (fn: () => Promise<void>) => { setBusy(true); setErr(null); try { await fn(); } catch (e: any) { setErr(e.message); } finally { setBusy(false); } };
+  const save = () => run(async () => { const r = await P.saveCredit(companyId, id, form, c?.rev ?? null, id ? null : createKey); try { localStorage.removeItem(lk); } catch { /* */ } setDirty(false);
+    toast({ title: r.replay ? "Brouillon déjà enregistré (repris)" : "Brouillon enregistré", description: "Aucun effet financier tant que la note n'est pas confirmée et affectée." }); if (!id) onOpen(r.id); else await load(); });
+  const confirmIt = () => run(async () => { let key: string; try { key = localStorage.getItem(ck) || crypto.randomUUID(); localStorage.setItem(ck, key); } catch { key = crypto.randomUUID(); }
+    const r = await P.confirmCredit(id!, c.rev, key, dupReason.trim() || null); try { localStorage.removeItem(ck); } catch { /* */ } toast({ title: r.replay ? "Déjà confirmée (même demande)" : "Note de crédit confirmée" }); await load(); });
+  const allocate = () => run(async () => { const ak = `vq.fin12a1.alloc.${id}.${target}.${amt}`; let key: string; try { key = localStorage.getItem(ak) || crypto.randomUUID(); localStorage.setItem(ak, key); } catch { key = crypto.randomUUID(); }
+    const v = amt.trim() === "" ? null : Number(amt.replace(",", ".")); if (v != null && (!Number.isFinite(v) || v <= 0)) throw new Error("Montant invalide");
+    const r = await P.allocCredit(id!, target, v, key); try { localStorage.removeItem(ak); } catch { /* */ } setTarget(""); setAmt("");
+    toast({ title: r.replay ? "Affectation déjà enregistrée (même demande)" : `Crédit affecté : ${fmtMoney(Number(r.amount))}` }); await load(); });
+  if (loadErr) return <section className="space-y-2"><p role="alert" className="text-sm text-destructive">{loadErr}</p><Button size="sm" variant="outline" onClick={onBack}>Retour à la liste</Button></section>;
+  if (id && !c) return <p className="text-sm text-muted-foreground">Chargement…</p>;
+  const open = bills.filter((b) => (b.rest ?? 0) > 0);
+  return <section className="space-y-3 rounded-md border p-3" data-testid="credit-editor">
+    <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-display font-semibold">{id ? `Note de crédit ${c.reference ?? ""} — ${P.STATUS_LABEL[c.status]}` : "Nouvelle note de crédit fournisseur (brouillon)"}</h3><Button size="sm" variant="outline" onClick={onBack}>Retour à la liste</Button></div>
+    {id && <p className="text-xs text-muted-foreground">Créée {P.fmtStamp(c.created_at)} · modifiée {P.fmtStamp(c.updated_at)}{c.confirmed_at ? ` · confirmée ${P.fmtStamp(c.confirmed_at)}` : ""}{c.voided_at ? ` · annulée ${P.fmtStamp(c.voided_at)} (${c.void_reason})` : ""} (heure de Toronto)</p>}
+    <p className="text-xs text-muted-foreground">Un crédit fournisseur réduit ce que vous devez; ce n'est ni un encaissement ni un remboursement.</p>
+    {dirty && editable && <p className="text-xs text-amber-700">Saisie conservée sur cet appareil jusqu'à l'enregistrement.</p>}
+    <fieldset disabled={!editable || busy} className="grid gap-3 sm:grid-cols-2">
+      <L l="Fournisseur *"><select aria-label="Fournisseur" className={sel} value={form.supplier_id} onChange={(e) => { up("supplier_id", e.target.value); up("linked_bill_id", ""); }}><option value="">— Choisir —</option>{sups.filter((s) => !s.archived || s.id === form.supplier_id).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></L>
+      <L l="Numéro de la note *"><Input aria-label="Numéro de la note" value={form.reference} onChange={(e) => up("reference", e.target.value)} /></L>
+      <L l="Date du document *"><Input aria-label="Date de la note" type="date" value={form.doc_date} onChange={(e) => up("doc_date", e.target.value)} /></L>
+      <L l="Facture liée (facultatif)"><select aria-label="Facture liée" className={sel} value={form.linked_bill_id} onChange={(e) => up("linked_bill_id", e.target.value)}><option value="">Aucune</option>{bills.map((b) => <option key={b.id} value={b.id}>{b.reference ?? "—"} · {money(b.total)}</option>)}</select></L>
+      <L l="Description" className="sm:col-span-2"><Textarea rows={2} value={form.description} onChange={(e) => up("description", e.target.value)} /></L>
+      <L l="Avant taxes"><Input aria-label="Crédit avant taxes" inputMode="decimal" value={form.subtotal} onChange={(e) => up("subtotal", e.target.value)} /></L>
+      <L l="TPS"><Input aria-label="Crédit TPS" inputMode="decimal" value={form.gst} onChange={(e) => up("gst", e.target.value)} /></L>
+      <L l="TVQ"><Input aria-label="Crédit TVQ" inputMode="decimal" value={form.qst} onChange={(e) => up("qst", e.target.value)} /></L>
+      <L l="Total du crédit *"><Input aria-label="Total du crédit" inputMode="decimal" value={form.total} onChange={(e) => up("total", e.target.value)} /></L>
+    </fieldset>
+    {[form.subtotal, form.gst, form.qst].some((x) => x.trim() === "") && <p className="text-xs text-amber-700">Ventilation fiscale à compléter : aucune taxe n'est supposée nulle.</p>}
+    <div className="space-y-1 text-sm"><span className="text-xs font-semibold text-muted-foreground">Justificatif (stockage privé)</span>
+      {form.file_id ? <p>{form.file_name || "pièce jointe"} <Button size="sm" variant="link" onClick={() => P.openFile(form.file_id).then((u) => window.open(u, "_blank", "noopener")).catch((e) => toast({ title: e.message, variant: "destructive" }))}>Ouvrir</Button></p>
+        : editable && <Input aria-label="Joindre un justificatif de crédit" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" className="max-w-xs" onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setBusy(true); try { const r = await P.uploadProof(companyId, f); setDirty(true); setForm((x) => ({ ...x, file_id: r.id, file_sha256: r.sha, file_name: r.name })); } catch (er: any) { toast({ title: "Pièce non jointe", description: er.message, variant: "destructive" }); } finally { setBusy(false); } }} />}
+    </div>
+    {err && <p role="alert" className="text-sm text-destructive">Opération refusée : {err}{editable ? " Votre saisie est conservée." : ""}</p>}
+    <div className="flex flex-wrap items-end gap-2">
+      {editable && <Button size="sm" onClick={save} disabled={busy}>Enregistrer le brouillon</Button>}
+      {editable && id && !dirty && <><L l="Motif d'exception si doublon (facultatif)"><Input aria-label="Motif doublon crédit" value={dupReason} onChange={(e) => setDupReason(e.target.value)} className="h-9" /></L><Button size="sm" variant="outline" disabled={busy} onClick={confirmIt}>Confirmer la note de crédit</Button></>}
+    </div>
+    {c?.status === "confirmed" && <div className="space-y-2 rounded-md bg-muted/40 p-2 text-sm">
+      <p>Montant {money(Number(c.total))} · affecté {fmtMoney(Number(c.total) - (avail ?? Number(c.total)))} · <strong data-testid="credit-avail">disponible {money(avail)}</strong></p>
+      {canWrite && (avail ?? 0) > 0 && <div className="flex flex-wrap items-end gap-2">
+        <L l="Affecter à une facture confirmée"><select aria-label="Facture à créditer" className={sel} value={target} onChange={(e) => setTarget(e.target.value)}><option value="">— Choisir —</option>{open.map((b) => <option key={b.id} value={b.id}>{b.reference ?? "—"} · reste {money(b.rest)}</option>)}</select></L>
+        <L l="Montant (vide = maximum possible)"><Input aria-label="Montant à affecter" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value)} className="h-10 w-36" /></L>
+        <Button size="sm" disabled={!target || busy} onClick={allocate}>Affecter</Button>
+        {target && <span className="text-xs text-muted-foreground">Maximum : {money(Math.min(avail ?? 0, open.find((b) => b.id === target)?.rest ?? 0))}</span>}
+      </div>}
+      {!open.length && (avail ?? 0) > 0 && <p className="text-xs text-muted-foreground">Aucune facture confirmée avec un reste à payer pour ce fournisseur : le crédit reste disponible.</p>}
+      {allocs.length > 0 && <ul className="text-xs">{allocs.map((a) => <li key={a.id}>{P.fmtStamp(a.created_at)} · <button className="underline" onClick={() => onOpenBill(a.bill_id)}>{a.bill?.reference ?? "facture"}</button> · {fmtMoney(Number(a.amount))}{a.reversed_at ? ` · annulée ${P.fmtStamp(a.reversed_at)} (${a.reverse_reason})` : ""}
+        {!a.reversed_at && canCorrect && <Button size="sm" variant="link" disabled={!reason.trim() || busy} onClick={() => run(async () => { await P.voidAlloc(a.id, reason); setReason(""); toast({ title: "Affectation annulée", description: "Soldes rétablis; historique conservé." }); await load(); })}>Annuler</Button>}</li>)}</ul>}
+      {canCorrect && <div className="flex flex-wrap items-end gap-2"><L l="Motif (annulation d'affectation ou de la note)"><Input aria-label="Motif crédit" value={reason} onChange={(e) => setReason(e.target.value)} className="h-9" /></L>
+        <Button size="sm" variant="outline" disabled={!reason.trim() || busy || allocs.some((a) => !a.reversed_at)} onClick={() => run(async () => { await P.voidCredit(c.id, c.rev, reason); setReason(""); toast({ title: "Note de crédit annulée" }); await load(); })}>Annuler la note</Button></div>}
+    </div>}
+    {events.length > 0 && <details className="text-xs"><summary>Historique</summary><ul>{events.map((e, i) => <li key={i}>{P.fmtStamp(e.created_at)} — {P.EVENT_LABEL[e.action] ?? e.action}{e.detail?.amount != null ? ` · ${fmtMoney(Number(e.detail.amount))}` : ""}{e.reason ? ` · ${e.reason}` : ""}</li>)}</ul></details>}
   </section>;
 }
