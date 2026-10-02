@@ -59,7 +59,7 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
   const body = { excess_confirm: excessOk && sum && sum.remainder > 0 ? sum.remainder : null, amount: Number(amount), paid_on: date, method, source_label: src || null, reference: ref || null, note: note || null, idem_key: idem, allocations: allocs, draft: future };
 
   useEffect(() => {
-    setSum(null); setSumErr(null);
+    setSum(null); setSumErr(null); setExcessOk(false);
     if (!allocs.length || !(Number(amount) > 0) || !method || !date) return;
     const t = setTimeout(() => st.savePayment(companyId, body, true).then(setSum).catch((e) => setSumErr(e.message)), 300);
     return () => clearTimeout(t);
