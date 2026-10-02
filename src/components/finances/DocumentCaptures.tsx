@@ -16,7 +16,7 @@ const L = ({ l, warn, children, className = "" }: { l: string; warn?: string | n
 
 export default function DocumentCaptures({ companyId, sups, canWrite, onOpenBill, onOpenCredit }: { companyId: string; sups: Sup[] | null; canWrite: boolean; onOpenBill: (id: string) => void; onOpenCredit: (id: string) => void }) {
   const [open, setOpen] = useState<string | null>(null);
-  return open ? <CaptureReview key={open} companyId={companyId} id={open} sups={sups ?? []} canWrite={canWrite} onBack={() => setOpen(null)} onOpenBill={onOpenBill} onOpenCredit={onOpenCredit} />
+  return open ? <CaptureReview key={open} companyId={companyId} id={open} sups={sups ?? []} canWrite={canWrite} onBack={() => setOpen(null)} onSwitch={setOpen} onOpenBill={onOpenBill} onOpenCredit={onOpenCredit} />
     : <CaptureList companyId={companyId} canWrite={canWrite} onOpen={setOpen} />;
 }
 
@@ -55,7 +55,7 @@ function CaptureList({ companyId, canWrite, onOpen }: { companyId: string; canWr
   </section>;
 }
 
-function CaptureReview({ companyId, id, sups, canWrite, onBack, onOpenBill, onOpenCredit }: { companyId: string; id: string; sups: Sup[]; canWrite: boolean; onBack: () => void; onOpenBill: (id: string) => void; onOpenCredit: (id: string) => void }) {
+function CaptureReview({ companyId, id, sups, canWrite, onBack, onSwitch, onOpenBill, onOpenCredit }: { companyId: string; id: string; sups: Sup[]; canWrite: boolean; onBack: () => void; onSwitch: (id: string) => void; onOpenBill: (id: string) => void; onOpenCredit: (id: string) => void }) {
   const lk = `vq.fin12c.edits.${companyId}.${id}`;
   const [c, setC] = useState<C.Capture | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
@@ -65,6 +65,7 @@ function CaptureReview({ companyId, id, sups, canWrite, onBack, onOpenBill, onOp
   const [opErr, setOpErr] = useState<string | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [showSrc, setShowSrc] = useState(false);
+  const [convUrl, setConvUrl] = useState<string | null>(null);
   const [dups, setDups] = useState<P.Dups | null>(null);
   const [dupReason, setDupReason] = useState("");
   const [bills, setBills] = useState<P.BillRow[]>([]);
@@ -82,6 +83,7 @@ function CaptureReview({ companyId, id, sups, canWrite, onBack, onOpenBill, onOp
     } catch (er: any) { if (alive.current) setLoadErr(er.message); }
   }, [id, lk, sups]);
   useEffect(() => { void load(); C.detail(id).then((x) => P.openFile(x.file_id)).then((u) => { if (alive.current) setUrl(u); }).catch(() => {}); }, [load, id]);
+  useEffect(() => { const v = c?.converted_file_id; if (!v) { setConvUrl(null); return; } P.openFile(v).then((u) => { if (alive.current) setConvUrl(u); }).catch(() => setConvUrl(null)); }, [c?.converted_file_id]);
   useEffect(() => { if (!dirty || !e) return; try { localStorage.setItem(lk, JSON.stringify(e)); } catch { /* indisponible */ } }, [e, dirty, lk]);
   useEffect(() => { if (!e?.supplier_id) { setBills([]); return; } P.overview(companyId, { supplier_id: e.supplier_id, status: "active" }, 100, 0).then((d) => { if (alive.current) setBills(d.rows); }).catch(() => setBills([])); }, [companyId, e?.supplier_id]);
   useEffect(() => { if (!e || e.kind !== "bill" || !e.supplier_id) { setDups(null); return; }
@@ -110,6 +112,13 @@ function CaptureReview({ companyId, id, sups, canWrite, onBack, onOpenBill, onOp
     try { const r = await C.extract(id, force); toast({ title: r.status === "cached" ? "Lecture déjà disponible (réutilisée)" : "Lecture terminée", description: "Vérifiez chaque proposition." }); }
     finally { await load(); }
   });
+  const convertRead = () => run("read", async () => {
+    if (!c.converted_file_id) { setBusy("convert"); await C.convertHeic(companyId, id, c.file_id, c.file.name); await load(); }
+    setBusy("read"); setC((x) => (x ? { ...x, status: "lecture" } : x));
+    try { await C.extract(id, false); toast({ title: "Photo convertie et lue", description: "Vérifiez chaque proposition." }); } finally { await load(); }
+  });
+  const pickOther = async (f?: File | null) => { if (!f) return; await run("add", async () => { const r = await C.addFile(companyId, f); toast({ title: "Nouvelle photo ajoutée", description: "L'ancienne pièce est conservée." }); onSwitch(r.id); }); };
+  const manual = () => document.querySelector<HTMLInputElement>('[aria-label="Référence"]')?.focus();
   const applySuggestion = () => { const d = docs[e.index] ?? null; setDirty(true); setE({ ...C.editsFrom(d, e.index, e.supplier_id || (match.exact ?? "")), kind: e.kind, employee_paid: e.employee_paid }); };
   const saveEdits = () => run("save", async () => { const r = await C.saveEdits(id, e, c.rev); try { localStorage.removeItem(lk); } catch { /* */ } setDirty(false); setC({ ...c, rev: r.rev, edits: e }); toast({ title: "Corrections enregistrées" }); });
   const createDraft = () => run("create", async () => {
@@ -121,12 +130,22 @@ function CaptureReview({ companyId, id, sups, canWrite, onBack, onOpenBill, onOp
   });
   const doAttach = () => run("attach", async () => { const r = await C.attach(id, target); toast({ title: r.replay ? "Déjà joint (repris)" : "Pièce jointe à la facture", description: "Aucun montant ni solde modifié." }); setTarget(""); await load(); });
 
-  const Source = () => <div className="rounded-md border bg-muted/30 p-2">
-    {!url ? <p className="text-xs text-muted-foreground">Aperçu indisponible.</p>
-      : c.file.mime.startsWith("image/") && c.file.mime !== "image/heic" ? <img src={url} alt={`Pièce ${c.file.name}`} className="max-h-[70vh] w-full object-contain" />
-      : c.file.mime === "application/pdf" ? <iframe title="Pièce PDF" src={url} className="h-[70vh] w-full rounded bg-background" />
+  // FIN-12C1 : lien temporaire privé renouvelé à chaque ouverture; aucun fichier rendu public.
+  const openOriginal = async (download = false) => { const w = download ? null : window.open("", "_blank");
+    try { const u = await P.openFile(c.file_id); if (!alive.current) return; setUrl(u);
+      if (download) { const a = document.createElement("a"); a.href = u + (u.includes("?") ? "&" : "?") + "download=" + encodeURIComponent(c.file.name); a.rel = "noopener"; a.click(); }
+      else if (w) { w.opener = null; w.location.href = u; } else window.location.assign(u); }
+    catch (er: any) { w?.close(); toast({ title: "Pièce inaccessible", description: er.message, variant: "destructive" }); } };
+  const isHeic = c.file.mime === "image/heic";
+  const Source = () => <div className="rounded-md border bg-muted/30 p-2" data-testid="cap-source">
+    {!url ? <p className="text-xs text-muted-foreground">Aperçu en préparation… Vous pouvez ouvrir l'original ci-dessous.</p>
+      : isHeic ? (convUrl ? <img src={convUrl} alt={`Pièce ${c.file.name} (version convertie)`} className="max-h-[70vh] w-full object-contain" /> : <p className="text-xs">Photo HEIC : aperçu disponible après conversion. L'original peut être téléchargé.</p>)
+      : c.file.mime.startsWith("image/") ? <img src={url} alt={`Pièce ${c.file.name}`} className="max-h-[70vh] w-full object-contain" />
+      : c.file.mime === "application/pdf" ? <object data={url} type="application/pdf" aria-label="Pièce PDF" className="h-[70vh] w-full rounded bg-background">
+          <div role="status" className="space-y-1 p-3 text-sm" data-testid="pdf-fallback"><p className="font-semibold">Aperçu PDF intégré non pris en charge par ce navigateur.</p>
+            <p className="text-xs text-muted-foreground">La pièce est intacte et privée. Ouvrez-la dans un nouvel onglet ou téléchargez-la; votre saisie reste en place.</p></div></object>
       : <p className="text-xs">Aperçu non disponible pour ce format.</p>}
-    {url && <Button size="sm" variant="link" onClick={() => window.open(url, "_blank", "noopener")}>Ouvrir l'original</Button>}
+    <div className="flex flex-wrap gap-1"><Button size="sm" variant="link" onClick={() => openOriginal(false)}>Ouvrir l'original</Button><Button size="sm" variant="link" onClick={() => openOriginal(true)}>Télécharger l'original</Button></div>
   </div>;
 
   return <section className="space-y-3 rounded-md border p-3" data-testid="capture-review">
@@ -141,10 +160,17 @@ function CaptureReview({ companyId, id, sups, canWrite, onBack, onOpenBill, onOp
         <Button size="sm" variant="outline" className="w-full lg:hidden" onClick={() => setShowSrc((v) => !v)}>{showSrc ? "Masquer la pièce" : "Voir la pièce"}</Button>
         {showSrc && <div className="lg:hidden"><Source /></div>}
         {editable && <div className="flex flex-wrap gap-2">
-          {!c.extraction && <Button size="sm" onClick={() => read(false)} disabled={!!busy || c.status === "lecture"}>{c.status === "echec" ? "Réessayer la lecture" : "Lire le document"}</Button>}
+          {!c.extraction && isHeic && <Button size="sm" onClick={convertRead} disabled={!!busy || c.status === "lecture"}>{c.status === "echec" ? "Réessayer" : c.converted_file_id ? "Lire la photo convertie" : "Convertir et lire"}</Button>}
+          {!c.extraction && !isHeic && <Button size="sm" onClick={() => read(false)} disabled={!!busy || c.status === "lecture"}>{c.status === "echec" ? "Réessayer la lecture" : "Lire le document"}</Button>}
           {c.extraction && <Button size="sm" variant="outline" onClick={() => read(true)} disabled={!!busy || c.status === "lecture"}>Relancer la lecture</Button>}
           {c.extraction && <Button size="sm" variant="outline" onClick={applySuggestion} disabled={!!busy}>Appliquer les suggestions de lecture</Button>}
         </div>}
+        {busy === "convert" && <p role="status" className="text-sm">Conversion de la photo HEIC en cours…</p>}
+        {isHeic && editable && !c.extraction && (opErr || c.status === "echec") && <div role="alert" className="space-y-2 rounded border border-destructive/40 bg-destructive/10 p-2 text-sm" data-testid="heic-fail">
+          <p>La photo HEIC n'a pas pu être {c.converted_file_id ? "lue" : "convertie"}. La pièce et vos corrections sont conservées.</p>
+          <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={convertRead} disabled={!!busy}>Réessayer</Button>
+            <label className="inline-flex h-9 cursor-pointer items-center rounded-md border px-3 text-sm">Choisir une autre photo<input aria-label="Choisir une autre photo" type="file" accept="image/*,.heic" className="sr-only" onChange={(ev) => pickOther(ev.target.files?.[0])} /></label>
+            <Button size="sm" variant="outline" onClick={manual}>Saisir manuellement</Button></div></div>}
         {(busy === "read" || c.status === "lecture") && <p role="status" className="text-sm">Lecture en cours…</p>}
         {c.status === "echec" && c.extract_error && <p role="alert" className="rounded border border-destructive/40 bg-destructive/10 p-2 text-sm">Lecture échouée : {c.extract_error} La pièce est conservée; la saisie manuelle reste possible.</p>}
         {!c.extraction && c.status !== "echec" && <p className="text-xs text-muted-foreground">Aucune lecture lancée : les champs sont à saisir manuellement, ou lancez la lecture.</p>}
@@ -199,4 +225,4 @@ function CaptureReview({ companyId, id, sups, canWrite, onBack, onOpenBill, onOp
     </div>
   </section>;
 }
-const EV: Record<string, string> = { add: "Document ajouté", extract_start: "Lecture lancée", extract_ok: "Lecture terminée", extract_fail: "Lecture échouée", create_bill: "Brouillon de facture créé", create_credit: "Brouillon de note de crédit créé", attach: "Joint à une facture", dismiss: "Écarté" };
+const EV: Record<string, string> = { add: "Document ajouté", extract_start: "Lecture lancée", extract_ok: "Lecture terminée", extract_fail: "Lecture échouée", create_bill: "Brouillon de facture créé", create_credit: "Brouillon de note de crédit créé", attach: "Joint à une facture", dismiss: "Écarté", convert: "Photo HEIC convertie en JPEG (original conservé)" };

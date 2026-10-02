@@ -3803,6 +3803,7 @@ export type Database = {
       fin_doc_captures: {
         Row: {
           company_id: string
+          converted_file_id: string | null
           created_at: string
           created_by: string | null
           dismiss_reason: string | null
@@ -3821,6 +3822,7 @@ export type Database = {
         }
         Insert: {
           company_id: string
+          converted_file_id?: string | null
           created_at?: string
           created_by?: string | null
           dismiss_reason?: string | null
@@ -3839,6 +3841,7 @@ export type Database = {
         }
         Update: {
           company_id?: string
+          converted_file_id?: string | null
           created_at?: string
           created_by?: string | null
           dismiss_reason?: string | null
@@ -3861,6 +3864,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_doc_captures_converted_file_id_fkey"
+            columns: ["converted_file_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_files"
             referencedColumns: ["id"]
           },
           {
@@ -25355,6 +25365,10 @@ export type Database = {
       }
       fin_cap_save_edits: {
         Args: { _edits: Json; _id: string; _rev: number }
+        Returns: Json
+      }
+      fin_cap_set_converted: {
+        Args: { _file: string; _id: string }
         Returns: Json
       }
       fin_cap_set_extraction: {
