@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useDraft } from "@/lib/drafts/useDraft";
 import DraftStatusBar from "@/components/drafts/DraftStatusBar";
+import { finAccounts } from "@/lib/finances/purchases";
 import * as st from "@/lib/finances/settlement";
 import { addDays, fmtDate, fmtMoney, todayIn } from "@/lib/finances/period";
 
@@ -20,6 +21,7 @@ const isConflict = (m: string) => /Rechargez|Solde actualisé|déjà réglée|re
 export type PayTarget = { id: string; label: string; due_date: string; balance: number | null | undefined; amount_quality: string; payee: string | null; payee_key?: string };
 
 /** Enregistrer un règlement : une ou plusieurs échéances du même bénéficiaire. */
+const ACCT_KIND: Record<string, string> = { bank: "banque", cash: "caisse", card: "carte", credit: "crédit" };
 export function PaymentDialog({ companyId, companyName, targets, onClose, onDone }: { companyId: string; companyName: string; targets: PayTarget[]; onClose: () => void; onDone: () => void }) {
   const payeeKey = targets[0]?.payee_key ?? "";
   const [idem, setIdem] = useState(() => crypto.randomUUID());
@@ -56,14 +58,18 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
   useEffect(() => { void loadOpen(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const allocs = useMemo(() => Object.entries(pick).filter(([, v]) => Number(v) > 0).map(([id, v]) => ({ occurrence_id: id, amount: r2(Number(v)) })), [pick]);
   const [excessOk, setExcessOk] = useState(false);
-  const body = { excess_confirm: excessOk && sum && sum.remainder > 0 ? sum.remainder : null, amount: Number(amount), paid_on: date, method, source_label: src || null, reference: ref || null, note: note || null, idem_key: idem, allocations: allocs, draft: future };
+  // FIN-13A1 : compte financier d'où l'argent est sorti (obligatoire pour un versement effectué)
+  const [acct, setAcct] = useState("");
+  const [accts, setAccts] = useState<{ id: string; name: string; kind: string }[] | null>(null);
+  useEffect(() => { finAccounts(companyId).then(setAccts).catch(() => setAccts([])); }, [companyId]);
+  const body = { account_id: acct || null, excess_confirm: excessOk && sum && sum.remainder > 0 ? sum.remainder : null, amount: Number(amount), paid_on: date, method, source_label: src || null, reference: ref || null, note: note || null, idem_key: idem, allocations: allocs, draft: future };
 
   useEffect(() => {
     setSum(null); setSumErr(null); setExcessOk(false);
     if (!allocs.length || !(Number(amount) > 0) || !method || !date) return;
     const t = setTimeout(() => st.savePayment(companyId, body, true).then(setSum).catch((e) => setSumErr(e.message)), 300);
     return () => clearTimeout(t);
-  }, [JSON.stringify(allocs), amount, date, method, src, ref]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(allocs), amount, date, method, src, ref, acct]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const suggest = () => {
     let left = Number(amount) || 0; const next: Record<string, string> = {};
@@ -93,6 +99,7 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
     <div className="grid gap-2 sm:grid-cols-2">
       <label className="text-sm"><span className="mb-1 block text-xs text-muted-foreground">Montant versé (CAD) *</span><Input aria-label="Montant versé" type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
       <label className="text-sm"><span className="mb-1 block text-xs text-muted-foreground">Date du versement effectué *</span><Input aria-label="Date du versement" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
+      <label className="text-sm sm:col-span-2"><span className="mb-1 block text-xs text-muted-foreground">Compte financier d'où l'argent est sorti *</span><select aria-label="Compte financier" className={`${sel} w-full`} value={acct} onChange={(e) => setAcct(e.target.value)}><option value="">— Choisir —</option>{(accts ?? []).map((a) => <option key={a.id} value={a.id}>{a.name} ({ACCT_KIND[a.kind] ?? a.kind})</option>)}</select>{accts && accts.length === 0 && <span className="mt-1 block text-xs text-amber-700">Aucun compte financier : créez-en un dans Trésorerie (une caisse pour les espèces).</span>}{method === "especes" && <span className="mt-1 block text-xs text-muted-foreground">Espèces : choisissez un compte de caisse.</span>}</label>
       <label className="text-sm sm:col-span-2"><span className="mb-1 block text-xs text-muted-foreground">Moyen *</span><select aria-label="Moyen" className={`${sel} w-full`} value={method} onChange={(e) => setMethod(e.target.value)}><option value="">— Choisir —</option>{Object.entries(st.METHOD_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
     </div>
     {future && <p className="text-xs text-amber-700">Date future : ce sera un brouillon (planification), pas un versement effectué. Il ne change aucun solde.</p>}
