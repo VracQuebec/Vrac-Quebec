@@ -43,6 +43,10 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
   const { user: me } = useAuthReady();
   const tkey = useMemo(() => targets.map((t) => t.id).sort().join(",").slice(0, 180), [targets]);
   const [fileNames, setFileNames] = useState<string[]>([]);
+  // FIN-13A1 : compte financier d'où l'argent est sorti (obligatoire pour un versement effectué)
+  const [acct, setAcct] = useState("");
+  const [accts, setAccts] = useState<{ id: string; name: string; kind: string }[] | null>(null);
+  useEffect(() => { finAccounts(companyId).then(setAccts).catch(() => setAccts([])); }, [companyId]);
   const store = useDraft({
     id: me ? { module: "finances", form: "reglement", owner: me.id, company: companyId, instance: tkey } : null,
     data: { acct, pick, amount, date, method, more, src, ref, note, idem, fileNames: files.length ? files.map((f) => f.name) : fileNames },
@@ -58,10 +62,6 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
   useEffect(() => { void loadOpen(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const allocs = useMemo(() => Object.entries(pick).filter(([, v]) => Number(v) > 0).map(([id, v]) => ({ occurrence_id: id, amount: r2(Number(v)) })), [pick]);
   const [excessOk, setExcessOk] = useState(false);
-  // FIN-13A1 : compte financier d'où l'argent est sorti (obligatoire pour un versement effectué)
-  const [acct, setAcct] = useState("");
-  const [accts, setAccts] = useState<{ id: string; name: string; kind: string }[] | null>(null);
-  useEffect(() => { finAccounts(companyId).then(setAccts).catch(() => setAccts([])); }, [companyId]);
   const body = { account_id: acct || null, excess_confirm: excessOk && sum && sum.remainder > 0 ? sum.remainder : null, amount: Number(amount), paid_on: date, method, source_label: src || null, reference: ref || null, note: note || null, idem_key: idem, allocations: allocs, draft: future };
 
   useEffect(() => {
