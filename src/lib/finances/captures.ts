@@ -74,7 +74,7 @@ export function warnings(doc: ExDoc | null, e: Edits): string[] {
     if (amts.every((a) => a != null) && doc.subtotal != null) { const sum = Math.round(amts.reduce((a, b) => a + (b as number), 0) * 100) / 100; if (Math.abs(sum - doc.subtotal) > 0.01) w.push(`Somme des lignes lue (${sum.toFixed(2)} $) différente du sous-total lu (${doc.subtotal.toFixed(2)} $).`); }
   }
   if (doc?.other_taxes != null && doc.other_taxes !== 0) w.push(`Autre taxe lue (${doc.other_taxes} $) : à classer manuellement.`);
-  if (doc?.currency && doc.currency.toUpperCase() !== "CAD") w.push(`Devise lue « ${doc.currency} » : seul le CAD est pris en charge.`);
+  if (doc?.currency && !["CAD", "$", "CA$", "$CA"].includes(doc.currency.toUpperCase().replace(/\s/g, ""))) w.push(`Devise lue « ${doc.currency} » : seul le CAD est pris en charge.`);
   return w;
 }
 export function toBillForm(e: Edits): BillForm { return { ...emptyBill(e.supplier_id), reference: e.reference, doc_date: e.doc_date, due_date: e.due_date, description: e.description, subtotal: e.subtotal, gst: e.gst, qst: e.qst, total: e.total }; }
