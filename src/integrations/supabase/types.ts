@@ -26156,6 +26156,10 @@ export type Database = {
         Args: { _id: string; _reason: string }
         Returns: Json
       }
+      fin_exp_bill_search: {
+        Args: { _company: string; _id?: string; _q?: string }
+        Returns: Json
+      }
       fin_exp_can_see: {
         Args: { _company: string; _employee: string }
         Returns: boolean
