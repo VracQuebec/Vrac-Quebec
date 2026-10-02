@@ -138,14 +138,14 @@ function CaptureReview({ companyId, id, sups, canWrite, onBack, onSwitch, onOpen
     catch (er: any) { w?.close(); toast({ title: "Pièce inaccessible", description: er.message, variant: "destructive" }); } };
   const isHeic = c.file.mime === "image/heic";
   const Source = () => <div className="rounded-md border bg-muted/30 p-2" data-testid="cap-source">
+    <div className="flex flex-wrap gap-1"><Button size="sm" variant="link" onClick={() => openOriginal(false)}>Ouvrir l'original</Button><Button size="sm" variant="link" onClick={() => openOriginal(true)}>Télécharger l'original</Button></div>
     {!url ? <p className="text-xs text-muted-foreground">Aperçu en préparation… Vous pouvez ouvrir l'original ci-dessous.</p>
       : isHeic ? (convUrl ? <img src={convUrl} alt={`Pièce ${c.file.name} (version convertie)`} className="max-h-[70vh] w-full object-contain" /> : <p className="text-xs">Photo HEIC : aperçu disponible après conversion. L'original peut être téléchargé.</p>)
       : c.file.mime.startsWith("image/") ? <img src={url} alt={`Pièce ${c.file.name}`} className="max-h-[70vh] w-full object-contain" />
-      : c.file.mime === "application/pdf" ? <object data={url} type="application/pdf" aria-label="Pièce PDF" className="h-[70vh] w-full rounded bg-background">
+      : c.file.mime === "application/pdf" ? <object data={url} type="application/pdf" aria-label="Pièce PDF" className="h-[40vh] w-full rounded bg-background lg:h-[70vh]">
           <div role="status" className="space-y-1 p-3 text-sm" data-testid="pdf-fallback"><p className="font-semibold">Aperçu PDF intégré non pris en charge par ce navigateur.</p>
             <p className="text-xs text-muted-foreground">La pièce est intacte et privée. Ouvrez-la dans un nouvel onglet ou téléchargez-la; votre saisie reste en place.</p></div></object>
       : <p className="text-xs">Aperçu non disponible pour ce format.</p>}
-    <div className="flex flex-wrap gap-1"><Button size="sm" variant="link" onClick={() => openOriginal(false)}>Ouvrir l'original</Button><Button size="sm" variant="link" onClick={() => openOriginal(true)}>Télécharger l'original</Button></div>
   </div>;
 
   return <section className="space-y-3 rounded-md border p-3" data-testid="capture-review">
