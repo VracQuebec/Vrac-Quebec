@@ -26220,6 +26220,10 @@ export type Database = {
         Returns: undefined
       }
       fin_crm_file_exp_ok: { Args: { _file: string }; Returns: boolean }
+      fin_csv_cap_matches: {
+        Args: { _company: string; d: Json }
+        Returns: Json
+      }
       fin_csv_check: { Args: { _company: string; _docs: Json }; Returns: Json }
       fin_csv_commit: {
         Args: {
@@ -26232,6 +26236,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fin_csv_date: { Args: { _fmt: string; _raw: string }; Returns: Json }
       fin_csv_doc_problem: {
         Args: { _company: string; d: Json }
         Returns: string
@@ -28161,6 +28166,7 @@ export type Database = {
         }
         Returns: number
       }
+      norm_kind_releve: { Args: { _t: string }; Returns: boolean }
       ops_dashboard_stats: { Args: never; Returns: Json }
       ops_planning_range: {
         Args: { _from: string; _to: string }

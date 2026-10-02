@@ -7,7 +7,7 @@ import { sha256 } from "@/lib/finances/purchases";
 import { fmtMoney } from "@/lib/finances/period";
 
 const sel = "h-10 w-full rounded-md border border-input bg-background px-2 text-sm";
-type Saved = { fileName: string; text: string; map: C.Field[]; num: C.NumFmt | null; date: C.DateFmt | null; supplierMap: Record<string, string>; picked: string[]; reqKey: string | null; reqSig: string | null };
+type Saved = { fileName: string; text: string; map: C.Field[]; num: C.NumFmt | null; date: C.DateFmt | null; supplierMap: Record<string, string>; picked: string[]; reqKey: string | null; reqSig: string | null; res?: Record<string, C.Resolution> };
 const money = (n: number | null) => (n == null ? "inconnu" : fmtMoney(n));
 const download = (name: string, text: string) => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\uFEFF" + text], { type: "text/csv;charset=utf-8" })); a.download = name; a.click(); };
 const OUT: Record<string, string> = { nouveau: "Nouveau", deja_present: "Déjà présent", conflit: "Conflit à examiner", refuse: "Refusé", cree: "Brouillon créé" };
@@ -32,7 +32,11 @@ export default function CsvPurchaseImport({ companyId, sups, onOpenBill, onOpenC
   const needDate = C.hasSlashDates([...colVals("doc_date"), ...colVals("due_date")]);
   const num: C.NumFmt | null = s?.num ?? (numAmb ? null : hint ?? "fr");
   const docs = useMemo(() => (s && num && sups ? C.buildDocs(body, s.map, { num, date: s.date, supplierMap: s.supplierMap, sups }) : []), [s, num, sups, body]);
-  const ready = (d: C.Doc) => !d.errors.length && checks?.[d.key]?.outcome === "nouveau";
+  const resOf = (k: string) => s?.res?.[k];
+  const needsRes = (d: C.Doc) => (checks?.[d.key]?.captures?.length ?? 0) > 0;
+  const resolved = (d: C.Doc) => { if (!needsRes(d)) return true; const r = resOf(d.key); const cm = checks![d.key].captures!;
+    return !!r && (r.kind === "attach" ? d.kind === "facture" && cm.some((x) => x.capture_id === r.capture_id) : !cm.some((x) => x.level === "certaine")); };
+  const ready = (d: C.Doc) => !d.errors.length && checks?.[d.key]?.outcome === "nouveau" && resolved(d);
   const unknownSups = [...new Map(docs.filter((d) => d.supplierName && !d.supplierId).map((d) => [C.norm(d.supplierName), d])).values()];
 
   async function onFile(f: File) {
@@ -55,12 +59,12 @@ export default function CsvPurchaseImport({ companyId, sups, onOpenBill, onOpenC
   }
   async function runImport() {
     if (!s) return; const chosen = docs.filter((d) => s.picked.includes(d.key) && ready(d)); if (!chosen.length) return;
-    const sig = chosen.map((d) => d.key + d.hash).sort().join("|");
+    const sig = chosen.map((d) => d.key + d.hash + JSON.stringify(resOf(d.key) ?? null)).sort().join("|");
     const reqKey = s.reqSig === sig && s.reqKey ? s.reqKey : crypto.randomUUID(); up({ reqKey, reqSig: sig });
     setBusy(true); setError(null); const my = companyId;
     try {
       const sha = await sha256(new Blob([s.text]));
-      const r = await C.commit(companyId, reqKey, s.fileName, sha, { num, date: s.date, map: s.map }, chosen);
+      const r = await C.commit(companyId, reqKey, s.fileName, sha, { num, date: s.date, map: s.map }, chosen, s.res ?? {});
       if (company.current !== my) return;
       setResult(r); up({ picked: [], reqKey: null, reqSig: null }); setChecks(null);
     } catch (e: any) { if (company.current === my) setError(`Import non confirmé : ${e.message}. Rien n'est perdu ; « Importer » réutilise la même demande sans créer de doublon.`); }
@@ -112,14 +116,23 @@ export default function CsvPurchaseImport({ companyId, sups, onOpenBill, onOpenC
         {error && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm">{error}</p>}
         <ul className="space-y-2" aria-label="Aperçu des documents">{docs.map((d) => { const c = checks?.[d.key]; const st = d.errors.length ? "refuse" : c?.outcome; const ok = ready(d);
           return <li key={d.key} className="rounded-md border p-2 text-sm" data-testid="csv-doc">
-            <label className="flex items-start gap-2"><input type="checkbox" aria-label={`Importer ${d.reference}`} disabled={!ok} checked={ok && s.picked.includes(d.key)}
+            <div className="flex items-start gap-2"><input type="checkbox" aria-label={`Importer ${d.reference}`} disabled={!ok} checked={ok && s.picked.includes(d.key)}
               onChange={(e) => up({ picked: e.target.checked ? [...s.picked, d.key] : s.picked.filter((k) => k !== d.key) })} className="mt-1" />
               <span className="min-w-0 flex-1"><strong>{d.kind === "credit" ? "Note de crédit" : d.kind === "facture" ? "Facture" : d.kind === "releve" ? "Relevé" : "Inconnu"} {d.reference || "—"}</strong> · {d.supplierName || "fournisseur ?"} · lignes {d.rows.join(", ")}
                 <span className="block text-xs text-muted-foreground">Date {d.p.doc_date ?? "?"} · échéance {d.p.due_date ?? "inconnue"} · sous-total {money(d.p.subtotal)} · TPS {money(d.p.gst)} · TVQ {money(d.p.qst)} · total {money(d.p.total)} · {d.p.lines.length} ligne(s) regroupée(s)</span>
                 {d.p.lines.length > 1 && <span className="block text-xs">{d.p.lines.map((l, i) => <span key={i} className="block">• {l.description || "—"} {l.quantity ?? ""} {l.unit} {l.amount != null ? `= ${fmtMoney(l.amount)}` : ""}</span>)}</span>}
-                <span className={`mt-1 block text-xs font-semibold ${st === "refuse" || st === "conflit" ? "text-destructive" : ""}`} data-testid="csv-status">{st ? OUT[st] : "Non vérifié"}{c?.existing && ` (existant ${money(c.existing.total)}, ${c.existing.status === "draft" ? "brouillon" : c.existing.status === "confirmed" ? "confirmé" : c.existing.status})`}</span>
+                <span className={`mt-1 block text-xs font-semibold ${st === "refuse" || st === "conflit" ? "text-destructive" : ""}`} data-testid="csv-status">{st ? OUT[st] : "Non vérifié"}{st === "nouveau" && !resolved(d) && " — reçu à résoudre"}{c?.existing && ` (existant ${money(c.existing.total)}, ${c.existing.status === "draft" ? "brouillon" : c.existing.status === "confirmed" ? "confirmé" : c.existing.status})`}</span>
                 {[...d.errors, ...(c?.problem ? [c.problem] : [])].map((e) => <span key={e} className="block text-xs text-destructive">{e}</span>)}
-              </span></label></li>; })}</ul>
+                {c?.outcome === "nouveau" && !!c.captures?.length && <span className="mt-2 block space-y-1 rounded-md border border-amber-500/40 p-2 text-xs" data-testid="csv-capmatch">
+                  <span className="block font-semibold">Reçu déjà lu dans « Reçus et documents » — choisissez :</span>
+                  {c.captures.map((m) => <label key={m.capture_id} className="flex items-start gap-2"><input type="radio" name={`res-${d.key}`} disabled={d.kind !== "facture"} checked={resOf(d.key)?.kind === "attach" && (resOf(d.key) as any).capture_id === m.capture_id}
+                    onChange={() => up({ res: { ...(s.res ?? {}), [d.key]: { kind: "attach", capture_id: m.capture_id } } })} />
+                    <span>Rattacher ce reçu au brouillon importé — correspondance <strong>{m.level}</strong> ({m.why}){d.kind !== "facture" && " — factures seulement"}</span></label>)}
+                  <label className="flex items-start gap-2"><input type="radio" name={`res-${d.key}`} disabled={c.captures.some((m) => m.level === "certaine")} checked={resOf(d.key)?.kind === "distinct"}
+                    onChange={() => up({ res: { ...(s.res ?? {}), [d.key]: { kind: "distinct" } } })} />
+                    <span>Document distinct du reçu {c.captures.some((m) => m.level === "certaine") ? "(impossible : correspondance certaine)" : "(choix explicite, tracé)"}</span></label>
+                </span>}
+              </span></div></li>; })}</ul>
         {checks && <Button onClick={runImport} disabled={busy || !s.picked.length} data-testid="csv-import">{busy ? "Import…" : `Importer ${s.picked.length} document(s) en brouillon`}</Button>}
       </>}
     </>}
