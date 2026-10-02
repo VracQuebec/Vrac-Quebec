@@ -219,7 +219,7 @@ function OccRow({ o, onOpen, pick }: { o: Occ; onOpen: (o: Occ) => void; pick?: 
     {pick && <input type="checkbox" aria-label={`Sélectionner ${o.label} du ${fmtDate(o.due_date)}`} checked={pick.on} onChange={pick.toggle} disabled={!["non_reglee", "partielle", "a_confirmer"].includes(o.settle ?? "")} />}
     <button onClick={() => onOpen(o)} className={`flex w-full items-center justify-between gap-3 rounded-md border border-border bg-card p-3 text-left hover:bg-secondary/50 ${o.status === "cancelled" ? "opacity-60" : ""}`}>
     <div className="min-w-0"><p className="truncate font-display text-sm font-semibold">{o.label}{o.status === "cancelled" && " — annulée"}</p>
-      <p className="truncate text-xs text-muted-foreground">{fmtDate(o.ref_date)}{o.payee ? ` · ${o.payee}` : ""}{o.category ? ` · ${o.category}` : ""}{(o.rule_frequency ?? o.frequency) !== "once" ? ` · ${occFreq(o)}` : ""}{o.seasonal ? " · saisonnière" : ""}{o.planned_override ? ` · planifiée le ${fmtDate(o.planned_date)}` : ""}</p>
+      <p className="truncate text-xs text-muted-foreground">{o.due_unknown ? <span className="rounded bg-amber-500/15 px-1 text-amber-800">Échéance inconnue</span> : fmtDate(o.ref_date)}{o.payee ? ` · ${o.payee}` : ""}{o.category ? ` · ${o.category}` : ""}{(o.rule_frequency ?? o.frequency) !== "once" ? ` · ${occFreq(o)}` : ""}{o.seasonal ? " · saisonnière" : ""}{o.planned_override ? ` · planifiée le ${fmtDate(o.planned_date)}` : ""}</p>
       {o.status === "active" && <div className="mt-1"><SettleBadge o={o} /></div>}</div>
     <div className="text-right"><p className="font-display text-sm font-bold">{fmtMoney(o.amount)}</p><p className="text-[11px] text-muted-foreground">{QUALITY_LABEL[o.amount_quality]}</p>
       {o.status === "active" && (o.paid ?? 0) > 0 && <p className="text-[11px]">Reste {fmtMoney(o.balance ?? null)}</p>}</div>
@@ -664,7 +664,7 @@ function OccurrenceDialog({ companyId, occ, canWrite, onClose, onChanged, onEdit
   return <Dialog open onOpenChange={onClose}><DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto overflow-x-hidden sm:max-w-lg [&>*]:min-w-0">
     <DialogHeader><DialogTitle>{o.label}</DialogTitle></DialogHeader>
     <dl className="grid grid-cols-2 gap-1 text-sm">
-      <dt className="text-muted-foreground">Échéance contractuelle</dt><dd>{fmtDate(o.due_date)}</dd>
+      <dt className="text-muted-foreground">Échéance contractuelle</dt><dd>{o.due_unknown ? "Inconnue (non datée)" : fmtDate(o.due_date)}</dd>
       <dt className="text-muted-foreground">Paiement planifié</dt><dd>{fmtDate(o.planned_date)}{o.planned_reason ? ` — ${o.planned_reason}` : ""}</dd>
       <dt className="text-muted-foreground">Montant</dt><dd>{fmtMoney(o.amount)} ({QUALITY_LABEL[o.amount_quality]})</dd>
       <dt className="text-muted-foreground">Fréquence (version d'origine)</dt><dd className="first-letter:uppercase">{occFreq(o)}{o.seasonal ? " (saisonnière)" : ""}{o.rule_frequency && o.rule_frequency !== o.frequency ? ` — règle actuelle : ${freqLabel(o.frequency, o.interval_n)}` : ""}</dd>
