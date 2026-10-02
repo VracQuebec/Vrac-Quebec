@@ -82,9 +82,9 @@ export const hasSlashDates = (vals: string[]) => vals.some((v) => /^\d{1,2}[/.-]
 export type Sup = { id: string; name: string; archived?: boolean };
 export type Doc = {
   key: string; kind: "facture" | "credit" | "releve" | "inconnu"; supplierName: string; supplierId: string | null; supplierChoices: Sup[];
-  reference: string; rows: number[]; errors: string[];
+  reference: string; rows: number[]; errors: string[]; src: { type: string; doc_date: string; due_date: string; date_fmt: DateFmt | null };
   p: { supplier_id: string | null; reference: string; doc_date: string | null; due_date: string | null; currency: string; description: string;
-    subtotal: number | null; gst: number | null; qst: number | null; total: number | null; lines: { description: string; quantity: number | null; unit: string; unit_price: number | null; amount: number | null }[] };
+    subtotal: number | null; gst: number | null; qst: number | null; total: number | null; paid: number | null; balance: number | null; lines: { description: string; quantity: number | null; unit: string; unit_price: number | null; amount: number | null }[] };
   hash: string;
 };
 const kindOf = (s: string): Doc["kind"] => {
@@ -112,8 +112,9 @@ export function buildDocs(rows: string[][], map: Field[], o: { num: NumFmt; date
     if (kind === "inconnu") errors.push(`Type de document non reconnu « ${get(r0, "type")} »`);
     if (!supplierName) errors.push("Fournisseur manquant");
     if (!reference) errors.push("Numéro du document manquant");
-    const dd = parseDate(same("doc_date", "Date"), o.date); if (dd.err) errors.push(dd.err); if (!dd.v && !dd.err) errors.push("Date du document manquante");
-    const due = parseDate(same("due_date", "Échéance"), o.date); if (due.err) errors.push(due.err);
+    const rawDate = same("doc_date", "Date"), rawDue = same("due_date", "Échéance");
+    const dd = parseDate(rawDate, o.date); if (dd.err) errors.push(dd.err); if (!dd.v && !dd.err) errors.push("Date du document manquante");
+    const due = parseDate(rawDue, o.date); if (due.err) errors.push(due.err);
     const cur = (same("currency", "Devise") || "CAD").toUpperCase(); if (cur !== "CAD") errors.push(`Devise ${cur} non prise en charge (CAD seulement)`);
     const dn = (f: Field, l: string) => num(same(f, l), l, g[0].idx);
     const subtotal = dn("subtotal", "Sous-total"), gst = dn("gst", "TPS"), qst = dn("qst", "TVQ"), total = dn("total", "Total");
@@ -133,21 +134,24 @@ export function buildDocs(rows: string[][], map: Field[], o: { num: NumFmt; date
     const supplierId = chosen && o.sups.some((s) => s.id === chosen) ? chosen : cands.length === 1 ? cands[0].id : null;
     if (supplierName && !supplierId) errors.push(cands.length > 1 ? "Fournisseur ambigu : choisissez la fiche" : "Fournisseur introuvable : associez une fiche existante");
     const p = { supplier_id: supplierId, reference, doc_date: dd.v, due_date: due.v, currency: cur, description: lines.length === 1 ? lines[0].description : `${lines.length} lignes importées`,
-      subtotal, gst, qst, total, lines };
-    out.push({ key, kind, supplierName, supplierId, supplierChoices: cands, reference, rows: g.map((x) => x.idx), errors: [...new Set(errors)], p, hash: fnv(JSON.stringify(p)) });
+      subtotal, gst, qst, total, paid, balance, lines };
+    out.push({ key, kind, supplierName, supplierId, supplierChoices: cands, reference, rows: g.map((x) => x.idx), src: { type: get(r0, "type"), doc_date: rawDate, due_date: rawDue, date_fmt: o.date }, errors: [...new Set(errors)], p, hash: fnv(JSON.stringify(p)) });
   }
   return out;
 }
-export const docPayload = (d: Doc) => ({ key: d.key, kind: d.kind, rows: d.rows, hash: d.hash, p: { ...d.p, subtotal: d.p.subtotal ?? "", gst: d.p.gst ?? "", qst: d.p.qst ?? "", total: d.p.total ?? "" } });
+export type Resolution = { kind: "attach"; capture_id: string } | { kind: "distinct" };
+export const docPayload = (d: Doc, res?: Resolution) => ({ key: d.key, kind: d.kind, rows: d.rows, hash: d.hash, src: d.src, resolution: res ?? null,
+  p: { ...d.p, subtotal: d.p.subtotal ?? "", gst: d.p.gst ?? "", qst: d.p.qst ?? "", total: d.p.total ?? "", paid: d.p.paid ?? "", balance: d.p.balance ?? "" } });
+export type CapMatch = { capture_id: string; level: "certaine" | "possible"; why: string };
 
-export type Check = { key: string; problem: string | null; outcome: "nouveau" | "deja_present" | "conflit" | "refuse"; existing: { id: string; total: number | null; status: string } | null };
+export type Check = { key: string; problem: string | null; outcome: "nouveau" | "deja_present" | "conflit" | "refuse"; existing: { id: string; total: number | null; status: string } | null; captures?: CapMatch[] };
 export async function check(c: string, docs: Doc[]): Promise<Check[]> {
-  const { data, error } = await db.rpc("fin_csv_check", { _company: c, _docs: docs.map(docPayload) }); if (error) throw new Error(error.message); return data;
+  const { data, error } = await db.rpc("fin_csv_check", { _company: c, _docs: docs.map((d) => docPayload(d)) }); if (error) throw new Error(error.message); return data;
 }
 export type Result = { import_id: string; replay?: boolean; counts: { cree: number; deja_present: number; conflit: number; refuse: number };
-  docs: { key: string; outcome: string; reason: string | null; bill_id: string | null; credit_id: string | null }[] };
-export async function commit(c: string, requestKey: string, fileName: string, fileSha: string, settings: unknown, docs: Doc[]): Promise<Result> {
-  const { data, error } = await db.rpc("fin_csv_commit", { _company: c, _request_key: requestKey, _file_name: fileName, _file_sha: fileSha, _settings: settings, _docs: docs.map(docPayload) });
+  docs: { key: string; outcome: string; reason: string | null; bill_id: string | null; credit_id: string | null; attached_capture?: string | null }[] };
+export async function commit(c: string, requestKey: string, fileName: string, fileSha: string, settings: unknown, docs: Doc[], res: Record<string, Resolution> = {}): Promise<Result> {
+  const { data, error } = await db.rpc("fin_csv_commit", { _company: c, _request_key: requestKey, _file_name: fileName, _file_sha: fileSha, _settings: settings, _docs: docs.map((d) => docPayload(d, res[d.key])) });
   if (error) throw new Error(error.message); return data;
 }
 
