@@ -1009,6 +1009,13 @@
       "when": 1790954329374,
       "tag": "0143_fin12final_period_credit_refunds",
       "breakpoints": true
+    },
+    {
+      "idx": 144,
+      "version": "7",
+      "when": 1790955676170,
+      "tag": "0144_fin13a_bank_reconciliation",
+      "breakpoints": true
     }
   ]
 }
