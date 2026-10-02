@@ -36,3 +36,12 @@ describe("FIN-12E import CSV", () => {
     expect(C.numAmbiguous("1,234")).toBe(true); expect(C.parseCsv('a,b\n"x, y",2\n').rows[1][0]).toBe("x, y");
   });
 });
+
+describe("FIN-12E1 valeurs sources transmises au serveur", () => {
+  it("conserve la date source, le format choisi, payé et solde dans la charge envoyée", () => {
+    const [d] = build("fournisseur;numero;date;total;paye;solde\nFournisseur Fictif Ltée;1;03/04/2026;10,00;0;10,00\n", { date: "dmy" });
+    const pl = C.docPayload(d, { kind: "distinct" });
+    expect(pl.src).toEqual({ type: "", doc_date: "03/04/2026", due_date: "", date_fmt: "dmy" });
+    expect(pl.p.doc_date).toBe("2026-04-03"); expect(pl.p.paid).toBe(0); expect(pl.p.balance).toBe(10); expect(pl.resolution).toEqual({ kind: "distinct" });
+  });
+});
