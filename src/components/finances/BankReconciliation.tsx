@@ -154,7 +154,7 @@ function Control({ companyId, ov, canWrite, reload }: { companyId: string; ov: B
     <ul className="space-y-2">{lines.map((l) => <li key={l.id} className="rounded-md border border-border">
       <button className="flex w-full flex-wrap items-baseline gap-x-3 p-2 text-left text-sm" aria-expanded={open === l.id} onClick={() => setOpen(open === l.id ? null : l.id)}>
         <span>{fmtDate(l.date)}</span><strong className={l.amount > 0 ? "text-primary" : ""}>{l.amount > 0 ? "Entrée" : "Sortie"} {fmtMoney(Math.abs(l.amount))}</strong>
-        <span className="min-w-0 flex-1 break-words">{l.description}{l.reference ? ` · Réf. ${l.reference}` : ""}</span>
+        <span className="order-last w-full break-words sm:order-none sm:w-auto sm:min-w-0 sm:flex-1">{l.description}{l.reference ? ` · Réf. ${l.reference}` : ""}</span>
         <span className="rounded bg-secondary px-2 py-0.5 text-xs">{B.STATUS_LABEL[B.displayStatus(l)]}</span>
         {l.twins > 1 && <span className="w-full text-xs text-muted-foreground">{l.twins} transactions identiques conservées séparément dans ce compte</span>}
       </button>
