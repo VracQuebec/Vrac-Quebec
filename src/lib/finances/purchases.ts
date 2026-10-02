@@ -95,7 +95,7 @@ export async function uploadProof(c: string, file: File) {
   const path = `company/${c}/${crypto.randomUUID()}.${ext}`;
   const up = await supabase.storage.from(FILE_BUCKET).upload(path, file, { contentType: MIME[ext], upsert: false });
   if (up.error) throw new Error(`Envoi refusé : ${up.error.message}`);
-  const { data, error } = await db.from("ent_crm_files").insert({ company_id: c, storage_path: path, file_name: file.name, mime_type: MIME[ext], size_bytes: file.size, title: file.name.replace(/\.[^.]+$/, ""), category: "facture_fournisseur" }).select("id").single();
+  const { data, error } = await db.from("ent_crm_files").insert({ company_id: c, storage_path: path, file_name: file.name, mime_type: MIME[ext], size_bytes: file.size, title: file.name.replace(/\.[^.]+$/, ""), category: "autre", description: "Facture fournisseur" }).select("id").single();
   if (error) { await supabase.storage.from(FILE_BUCKET).remove([path]); throw new Error(`Enregistrement refusé : ${error.message}`); }
   return { id: data.id as string, sha: hash, name: file.name };
 }
