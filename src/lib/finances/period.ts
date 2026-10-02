@@ -52,7 +52,7 @@ export const periodBounds = (kind: PeriodKind, ref: string, custom?: { from: str
 export const fmtDate = (s: string) => { const { y, m, d } = parse(s); return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("fr-CA", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }); };
 export const fmtMoney = (n: number | null | undefined) => n == null ? "À compléter" : new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" }).format(n);
 
-export type Occ = { id: string; obligation_id: string; due_date: string; planned_date: string; ref_date: string; amount: number | null; amount_quality: "confirmed" | "estimated" | "unknown"; status: "active" | "cancelled"; cancel_reason: string | null; label: string; payee: string | null; category: string | null; frequency: string; interval_n?: number; seasonal?: boolean; planned_reason?: string | null; occ_key?: string; planned_override: boolean; amount_override: boolean;
+export type Occ = { id: string; obligation_id: string; due_date: string; planned_date: string; ref_date: string; amount: number | null; amount_quality: "confirmed" | "estimated" | "unknown"; status: "active" | "cancelled"; cancel_reason: string | null; label: string; payee: string | null; category: string | null; frequency: string; interval_n?: number; seasonal?: boolean; planned_reason?: string | null; occ_key?: string; planned_override: boolean; amount_override: boolean; due_unknown?: boolean;
   // FIN-03 (calcul serveur)
   payee_key?: string; paid?: number; balance?: number | null; settle?: string; late?: boolean; rule_frequency?: string | null; rule_interval?: number | null; rule_known?: boolean };
 
