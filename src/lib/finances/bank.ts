@@ -63,9 +63,13 @@ export const commit = (a: { company: string; account: string; rows: SrcRow[]; se
     _request_key: a.key, _decisions: a.decisions, _opening: a.opening, _closing: a.closing, _complete: a.complete }) as Promise<Summary>;
 
 export type Line = { id: string; date: string; amount: number; description: string | null; reference: string | null; bank_id: string | null; status: "a_rapprocher" | "a_examiner" | "rapproche" | "exclu"; reason: string | null; rev: number; distinct: boolean; import_id: string; row_no: number; raw: Record<string, string>; suggest: boolean; twins: number;
-  match: { id: string; at: string; items: { kind: string; id: string; amount: number; label: string | null; date: string | null }[] } | null; history: { kind: string; at: string; detail: any }[] | null };
-export type Overview = { lines: Line[]; totals: Record<string, number>; imports: any[]; internal: { count: number; in: number; out: number; rows: Cand[] }; fully_reconciled: boolean; period_from: string | null; period_to: string | null };
+  match: { id: string; at: string; items: { kind: string; id: string; amount: number; label: string | null; date: string | null; unspecified?: boolean }[] } | null; history: { kind: string; at: string; detail: any }[] | null };
+export type Overview = { lines: Line[]; totals: Record<string, number>; imports: any[]; internal: { count: number; in: number; out: number; rows: Cand[] }; fully_reconciled: boolean; blockers: string[]; regularize: Reg[]; period_from: string | null; period_to: string | null };
 export type Cand = { kind: string; id: string; dir: "in" | "out"; amount: number; date: string; label: string; party: string | null; reference: string | null; account_id: string | null; exact?: boolean; days?: number; reasons?: string[] };
+export type Reg = { match_id: string; line_id: string; payment_id: string; amount: number; paid_on: string; payee: string | null; line_date: string; line_desc: string | null; payment_account_id: string | null };
+/** FIN-13A1 : « Préciser le compte » d'un paiement (aperçu puis confirmation motivée; montant, date, affectations et soldes inchangés). */
+export type AcctPreview = { from: string; to: string; amount: number; paid_on: string; effect: { account: string; delta: number }[]; total_delta: number; unchanged: string };
+export const setPaymentAccount = (payment: string, account: string, reason: string, dry: boolean) => rpc("fin_payment_set_account", { _payment: payment, _account: account, _reason: reason, _dry: dry }) as Promise<AcctPreview & { to: string }>;
 export const overview = (company: string, account: string) => rpc("fin_bank_overview", { _company: company, _account: account }) as Promise<Overview>;
 export const candidates = (line: string, q: string, days: number) => rpc("fin_bank_candidates", { _line: line, _q: q || null, _days: days }) as Promise<Cand[]>;
 export const match = (line: string, items: { kind: string; id: string }[], key: string) => rpc("fin_bank_match", { _line: line, _items: items, _idem: key });

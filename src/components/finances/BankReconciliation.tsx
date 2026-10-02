@@ -37,7 +37,7 @@ export default function BankReconciliation({ companyId, canWrite }: { companyId:
     {err && <p role="alert" className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">{err}</p>}
     {!account ? <p className="text-sm text-muted-foreground">Choisissez le compte financier du relevé.</p>
       : mode === "import" ? <ImportFlow companyId={companyId} account={account} onDone={() => { reload(); }} onClose={() => { setMode("control"); reload(); }} />
-      : ov ? <Control companyId={companyId} ov={ov} canWrite={canWrite} reload={reload} /> : !err && <p className="text-sm text-muted-foreground">Chargement…</p>}
+      : ov ? <Control companyId={companyId} account={account} accountName={accs?.find((a) => a.id === account)?.name ?? "ce compte"} ov={ov} canWrite={canWrite} reload={reload} /> : !err && <p className="text-sm text-muted-foreground">Chargement…</p>}
   </div>;
 }
 
@@ -133,7 +133,7 @@ function ImportFlow({ companyId, account, onDone, onClose }: { companyId: string
   </section>;
 }
 
-function Control({ companyId, ov, canWrite, reload }: { companyId: string; ov: B.Overview; canWrite: boolean; reload: () => void }) {
+function Control({ companyId, account, accountName, ov, canWrite, reload }: { companyId: string; account: string; accountName: string; ov: B.Overview; canWrite: boolean; reload: () => void }) {
   const [f, setF] = useState<string>(""); const [q, setQ] = useState(""); const [open, setOpen] = useState<string | null>(null);
   const t = ov.totals;
   const lines = ov.lines.filter((l) => (!f || B.displayStatus(l) === f) && (!q || `${l.description ?? ""} ${l.reference ?? ""} ${Math.abs(l.amount)} ${l.date}`.toLowerCase().includes(q.toLowerCase())));
@@ -145,7 +145,18 @@ function Control({ companyId, ov, canWrite, reload }: { companyId: string; ov: B
       {card("Reste à examiner", `+${fmtMoney(t.open_in)} / −${fmtMoney(t.open_out)}`, `${t.open_count} transaction(s), dont ${t.review_count} « À examiner »`)}
       {card("Mouvements internes non rapprochés", `+${fmtMoney(ov.internal.in)} / −${fmtMoney(ov.internal.out)}`, `${ov.internal.count} sur la période du relevé`)}
     </section>
-    <p className={`text-sm ${ov.fully_reconciled ? "text-primary" : "text-muted-foreground"}`}>{ov.fully_reconciled ? "Compte entièrement concilié pour les relevés importés (relevés complets, soldes concordants, aucune transaction ouverte)." : "Compte non présenté comme entièrement concilié : relevé incomplet, soldes non fournis ou non concordants, ou transactions encore ouvertes."}{t.excluded_count > 0 && ` ${t.excluded_count} transaction(s) exclue(s) restent dans les totaux du relevé.`}</p>
+    <section aria-label="Statut de conciliation" className={`rounded-md border p-2 text-sm ${ov.fully_reconciled ? "border-primary/60" : "border-border"}`}>
+      {ov.fully_reconciled ? <p className="text-primary">Compte entièrement concilié pour les relevés importés (relevés complets, soldes concordants, aucune transaction ouverte, comptes des paiements précisés).</p>
+        : <><p className="font-semibold">Compte non concilié</p><p className="text-xs text-muted-foreground">Des soldes de relevé concordants prouvent seulement la cohérence du relevé, pas la conciliation du compte. Reste à traiter :</p>
+          <ul className="list-disc pl-5 text-xs">{ov.blockers.map((b) => <li key={b}>{b}</li>)}</ul></>}
+      {t.excluded_count > 0 && <p className="mt-1 text-xs">{t.excluded_count} transaction(s) exclue(s) ({fmtMoney(Math.abs(t.excluded_net))}) restent dans les totaux du relevé et doivent rester justifiées par leur motif.</p>}
+    </section>
+    {ov.regularize.length > 0 && <section aria-label="Régularisations" className="space-y-2 rounded-md border border-amber-500/60 p-2 text-sm">
+      <p className="font-semibold">Régularisation requise : paiements rapprochés sans compte « {accountName} »</p>
+      <p className="text-xs text-muted-foreground">Ces rapprochements ne sont pas considérés comme validés sur ce compte. Précisez le compte du paiement, ou annulez le rapprochement avec motif depuis la transaction.</p>
+      {ov.regularize.map((r) => <div key={r.match_id} className="rounded-md bg-secondary/50 p-2"><p className="text-xs">{fmtDate(r.line_date)} · {r.line_desc} ↔ paiement {fmtMoney(r.amount)} du {fmtDate(r.paid_on)}{r.payee ? ` — ${r.payee}` : ""} · {r.payment_account_id ? "autre compte" : "Compte non précisé"}</p>
+        {canWrite && !r.payment_account_id && <SetAccount payment={r.payment_id} account={account} accountName={accountName} onDone={reload} />}</div>)}
+    </section>}
     <p className="text-xs text-muted-foreground">Ces totaux décrivent le relevé : ils ne s'additionnent jamais aux mouvements de la trésorerie, qui restent la seule source des flux d'argent.</p>
     <div className="flex flex-wrap gap-2">
       <select aria-label="Filtre statut" className={`${sel} w-auto`} value={f} onChange={(e) => setF(e.target.value)}><option value="">Tous les statuts</option>{Object.entries(B.STATUS_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
@@ -158,7 +169,7 @@ function Control({ companyId, ov, canWrite, reload }: { companyId: string; ov: B
         <span className="rounded bg-secondary px-2 py-0.5 text-xs">{B.STATUS_LABEL[B.displayStatus(l)]}</span>
         {l.twins > 1 && <span className="w-full text-xs text-muted-foreground">{l.twins} transactions identiques conservées séparément dans ce compte</span>}
       </button>
-      {open === l.id && <LineDetail companyId={companyId} l={l} canWrite={canWrite} reload={reload} />}
+      {open === l.id && <LineDetail companyId={companyId} account={account} accountName={accountName} l={l} canWrite={canWrite} reload={reload} />}
     </li>)}{!lines.length && <li className="text-sm text-muted-foreground">Aucune transaction.</li>}</ul>
     <section aria-label="Mouvements internes non rapprochés" className="space-y-1">
       <h3 className="font-display font-semibold">Mouvements internes non rapprochés (période du relevé)</h3>
@@ -168,14 +179,15 @@ function Control({ companyId, ov, canWrite, reload }: { companyId: string; ov: B
       <h3 className="font-display font-semibold">Relevés importés</h3>
       <ul className="space-y-1 text-sm">{ov.imports.map((i) => <li key={i.id} className="border-b border-border py-1">
         <div className="flex flex-wrap gap-x-3"><strong className="break-all">{i.file_name}</strong><span>{i.period_from ? `${fmtDate(i.period_from)} → ${fmtDate(i.period_to)}` : "aucune ligne valide"}</span><span className="text-xs text-muted-foreground">importé le {new Date(i.at).toLocaleString("fr-CA")}</span>
-          {<button className="text-xs underline" onClick={async () => { try { await B.downloadOriginal(i.id); } catch (e: any) { toast({ title: e.message, variant: "destructive" }); } }}>Télécharger l'original</button>}</div>
+          {i.has_original ? <button className="text-xs underline" onClick={async () => { try { await B.downloadOriginal(i.id); } catch (e: any) { toast({ title: e.message, variant: "destructive" }); } }}>Télécharger l'original</button>
+            : <button className="text-xs text-muted-foreground" disabled aria-disabled="true">Original non conservé lors de cet essai</button>}</div>
         <div className="text-xs text-muted-foreground">Ajoutées {i.summary?.ajoutees ?? 0} · déjà présentes {i.summary?.deja_presentes ?? 0} · à examiner {i.summary?.a_examiner ?? 0} · refusées {i.summary?.refusees ?? 0}{i.balance ? ` · soldes ${i.balance.ok ? "concordants" : i.balance.diff === 0 ? "non validés (lignes refusées)" : `écart ${fmtMoney(i.balance.diff)}`}` : " · soldes non fournis"}{i.complete ? " · relevé complet" : " · relevé non déclaré complet"}</div>
       </li>)}</ul>
     </section>
   </div>;
 }
 
-function LineDetail({ companyId, l, canWrite, reload }: { companyId: string; l: B.Line; canWrite: boolean; reload: () => void }) {
+function LineDetail({ companyId, account, accountName, l, canWrite, reload }: { companyId: string; account: string; accountName: string; l: B.Line; canWrite: boolean; reload: () => void }) {
   const [cands, setCands] = useState<B.Cand[] | null>(null); const [q, setQ] = useState(""); const [days, setDays] = useState(10);
   const [picked, setPicked] = useState<string[]>([]); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState<string | null>(null);
   const [reason, setReason] = useState(() => sessionStorage.getItem(`fin13a.reason.${l.id}`) ?? "");
@@ -193,16 +205,18 @@ function LineDetail({ companyId, l, canWrite, reload }: { companyId: string; l: 
     {msg && <p role="alert" className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">{msg}</p>}
     {l.match ? <div className="space-y-1">
       <p className="font-semibold">Rapproché avec :</p>
-      <ul className="text-xs">{l.match.items.map((i) => <li key={i.id}>{i.date ? fmtDate(i.date) : ""} · {fmtMoney(i.amount)} · {i.label} <a className="underline" href={`?tab=${B.KIND_LINK[i.kind]}&company=${companyId}`}>Voir</a></li>)}</ul>
+      <ul className="text-xs">{l.match.items.map((i) => <li key={i.id}>{i.date ? fmtDate(i.date) : ""} · {fmtMoney(i.amount)} · {i.label}{i.unspecified && <span className="ml-1 rounded bg-amber-500/20 px-1">Compte du paiement non précisé : régularisation requise</span>} <a className="underline" href={`?tab=${B.KIND_LINK[i.kind]}&company=${companyId}`}>Voir</a></li>)}</ul>
       {canWrite && <div className="flex flex-wrap gap-2"><Input aria-label="Motif d'annulation" placeholder="Motif d'annulation (obligatoire)" value={reason} onChange={(e) => setReason(e.target.value)} className="max-w-sm" /><Button size="sm" variant="outline" disabled={busy || reason.trim().length < 3} onClick={() => act(() => B.unmatch(l.match!.id, reason), "Rapprochement annulé (le mouvement d'origine est conservé)")}>Annuler le rapprochement</Button></div>}
     </div> : <>
       <div className="flex flex-wrap gap-2"><Input aria-label="Rechercher un mouvement" placeholder="Rechercher un mouvement…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
         <select aria-label="Fenêtre de dates" className={`${sel} w-auto`} value={days} onChange={(e) => setDays(Number(e.target.value))}><option value={10}>± 10 jours</option><option value={30}>± 30 jours</option><option value={90}>± 90 jours</option></select></div>
       <p className="text-xs text-muted-foreground">Mouvements réalisés seulement (règlements, encaissements, remboursements reçus, avances, restitutions). Les échéances, factures impayées et affectations internes de crédit ne sont jamais proposées.</p>
-      <ul className="space-y-1">{cands?.map((c) => { const k = `${c.kind}:${c.id}`; return <li key={k} className={`rounded-md border p-2 ${c.exact ? "border-primary/60" : "border-border"}`}>
-        <label className="flex items-start gap-2"><input type="checkbox" disabled={!canWrite} checked={picked.includes(k)} onChange={(e) => setPicked(e.target.checked ? [...picked, k] : picked.filter((x) => x !== k))} className="mt-1" />
+      <ul className="space-y-1">{cands?.map((c) => { const k = `${c.kind}:${c.id}`; const noAcct = c.kind === "payment" && !c.account_id; return <li key={k} className={`rounded-md border p-2 ${c.exact ? "border-primary/60" : "border-border"}`}>
+        <label className="flex items-start gap-2"><input type="checkbox" aria-label={`Choisir ${fmtMoney(c.amount)} ${c.label}`} disabled={!canWrite || noAcct} checked={picked.includes(k)} onChange={(e) => setPicked(e.target.checked ? [...picked, k] : picked.filter((x) => x !== k))} className="mt-1" />
           <span className="min-w-0 flex-1"><strong>{fmtMoney(c.amount)}</strong> · {fmtDate(c.date)} · {c.label}{c.party ? ` — ${c.party}` : ""}{c.reference ? ` · Réf. ${c.reference}` : ""}
             <span className="block text-xs text-muted-foreground">{c.exact ? "Suggestion : " : ""}{c.reasons?.join(" · ")}</span></span></label>
+        {noAcct && <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">Compte non précisé : rapprochement impossible tant que le compte du paiement n'est pas précisé.</p>}
+        {noAcct && canWrite && <SetAccount payment={c.id} account={account} accountName={accountName} onDone={load} />}
         <a className="text-xs underline" href={`?tab=${B.KIND_LINK[c.kind]}&company=${companyId}`}>Voir l'élément</a></li>; })}
         {cands && !cands.length && <li className="text-xs text-muted-foreground">Aucun mouvement compatible non rapproché. Élargissez la fenêtre ou laissez la transaction « À examiner ».</li>}</ul>
       {canWrite && <>
@@ -217,5 +231,21 @@ function LineDetail({ companyId, l, canWrite, reload }: { companyId: string; l: 
     <details className="text-xs"><summary>Ligne source et historique</summary>
       <p className="break-all">Ligne {l.row_no} : {Object.entries(l.raw).map(([k, v]) => `${k} = ${v}`).join(" · ")}</p>
       <ul>{(l.history ?? []).map((h, i) => <li key={i}>{new Date(h.at).toLocaleString("fr-CA")} · {({ match: "Rapprochement", unmatch: "Rapprochement annulé", status: "Statut modifié" } as Record<string, string>)[h.kind] ?? h.kind}{h.detail?.reason ? ` — ${h.detail.reason}` : ""}</li>)}</ul></details>
+  </div>;
+}
+
+/** FIN-13A1 : préciser explicitement le compte d'un ancien paiement (aperçu de l'effet, motif obligatoire, historique serveur). */
+function SetAccount({ payment, account, accountName, onDone }: { payment: string; account: string; accountName: string; onDone: () => void }) {
+  const [open, setOpen] = useState(false); const [pv, setPv] = useState<B.AcctPreview | null>(null); const [reason, setReason] = useState(""); const [busy, setBusy] = useState(false); const [e, setE] = useState<string | null>(null);
+  const start = async () => { setOpen(true); setE(null); try { setPv(await B.setPaymentAccount(payment, account, "", true)); } catch (x: any) { setE(x.message); } };
+  const go = async () => { if (busy) return; setBusy(true); setE(null); try { await B.setPaymentAccount(payment, account, reason, false); toast({ title: `Compte précisé : ${accountName}` }); setOpen(false); onDone(); } catch (x: any) { setE(`${x.message} — votre motif est conservé.`); } finally { setBusy(false); } };
+  if (!open) return <Button size="sm" variant="outline" className="mt-1" onClick={start}>Préciser le compte</Button>;
+  return <div className="mt-1 space-y-1 rounded-md border border-border p-2 text-xs" aria-label="Préciser le compte">
+    {e && <p role="alert" className="text-destructive">{e}</p>}
+    {pv && <><p>Effet : le paiement de {fmtMoney(pv.amount)} du {fmtDate(pv.paid_on)} passe de « {pv.from} » à « {pv.to} ».</p>
+      <ul className="pl-4">{pv.effect.map((x) => <li key={x.account}>Trésorerie « {x.account} » : {x.delta > 0 ? "+" : "−"}{fmtMoney(Math.abs(x.delta))}</li>)}</ul>
+      <p>Trésorerie totale : inchangée. {pv.unchanged}.</p></>}
+    <Input aria-label="Motif du compte" placeholder="Motif (obligatoire)" value={reason} onChange={(x) => setReason(x.target.value)} />
+    <div className="flex flex-wrap gap-2"><Button size="sm" disabled={busy || !pv || reason.trim().length < 3} onClick={go}>{busy ? "Enregistrement…" : `Confirmer : ${accountName}`}</Button><Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Annuler</Button></div>
   </div>;
 }
