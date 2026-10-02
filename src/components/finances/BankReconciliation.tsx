@@ -50,7 +50,7 @@ function ImportFlow({ companyId, account, onDone, onClose }: { companyId: string
   const [error, setError] = useState<string | null>(null);
   const [res, setRes] = useState<B.Summary | null>(null);
   useEffect(() => { if (s) sessionStorage.setItem(store, JSON.stringify(s)); else sessionStorage.removeItem(store); }, [s, store]);
-  const up = (p: Partial<Saved>) => { setS((x) => (x ? { ...x, ...p, ...(p.key === undefined && !("decisions" in p) && !("opening" in p) && !("closing" in p) && !("complete" in p) ? {} : {}) } : x)); setEv(null); };
+  const up = (p: Partial<Saved>) => { setS((x) => (x ? { ...x, ...p } : x)); setEv(null); };
   const parsed = useMemo(() => (s ? B.parseCsv(s.text) : null), [s?.text]); // eslint-disable-line react-hooks/exhaustive-deps
   const headers = parsed?.rows[0] ?? [];
   const rows = useMemo(() => (s && parsed ? B.buildRows(parsed.rows, s.map) : []), [s, parsed]);
