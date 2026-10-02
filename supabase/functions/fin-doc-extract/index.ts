@@ -80,17 +80,27 @@ Deno.serve(async (req) => {
   if (dl.error || !dl.data) return fail("Pièce introuvable dans le stockage (conservée côté fiche, réessayez).");
   const bytes = new Uint8Array(await dl.data.arrayBuffer());
   const sha = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))).map((b) => b.toString(16).padStart(2, "0")).join("");
-  if (f.mime === "image/heic") return fail("Format HEIC non lisible automatiquement : saisie manuelle, ou réimportez en JPG/PNG.", sha, 400);
+  // FIN-12C1 : HEIC → la version JPEG convertie (rattachée par la base, même entreprise) est lue; l'empreinte reste celle de l'original.
+  let ocrBytes = bytes; let ocrMime = f.mime as string;
+  if (f.mime === "image/heic") {
+    const v = cap.converted;
+    if (!v) return fail("Photo HEIC pas encore convertie : utilisez « Convertir et lire », choisissez une autre photo ou saisissez manuellement.", sha, 400);
+    if (v.mime !== "image/jpeg" || !String(v.storage_path).startsWith(`company/${cap.company_id}/`)) return fail("Conversion incohérente avec l'entreprise", sha, 403);
+    const dv = await admin.storage.from("entcrm-files").download(v.storage_path);
+    if (dv.error || !dv.data) return fail("Version convertie introuvable : réessayez la conversion.", sha);
+    ocrBytes = new Uint8Array(await dv.data.arrayBuffer()); ocrMime = "image/jpeg";
+    if (ocrBytes.length > 20 * 1024 * 1024) return fail("Version convertie trop lourde (20 Mo au maximum).", sha, 400);
+  }
   if (f.mime === "application/pdf") {
     const pages = (new TextDecoder("latin1").decode(bytes).match(/\/Type\s*\/Page(?![s\w])/g) ?? []).length;
     if (pages > MAX_PAGES) return fail(`PDF de ${pages} pages : la lecture automatique est limitée à ${MAX_PAGES} pages. Séparez le fichier ou saisissez manuellement.`, sha, 400);
   }
   const key = Deno.env.get("LOVABLE_API_KEY");
   if (!key) return fail("Lecture automatique non connectée (clé absente). Saisie manuelle possible.", sha, 503);
-  const b64 = encodeBase64(bytes);
-  const part = f.mime === "application/pdf"
+  const b64 = encodeBase64(ocrBytes);
+  const part = ocrMime === "application/pdf"
     ? { type: "input_file", filename: "document.pdf", file_data: `data:application/pdf;base64,${b64}` }
-    : { type: "input_image", image_url: `data:${f.mime};base64,${b64}` };
+    : { type: "input_image", image_url: `data:${ocrMime};base64,${b64}` };
   let res: Response;
   try {
     res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
