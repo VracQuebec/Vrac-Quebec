@@ -127,7 +127,7 @@ function LineEditor({ i, l, companyId, lk, manage, up, remove, setLine }: { i: n
       <L l="Portion professionnelle demandée *"><Input aria-label="Portion professionnelle" inputMode="decimal" value={l.business_amount} onChange={(e) => up("business_amount", e.target.value)} /></L>
       <L l="Payeur" className="sm:col-span-2"><select aria-label="Payeur" className={sel} value={l.payer} onChange={(e) => up("payer", e.target.value)}>{(Object.keys(X.PAYER_LABEL) as X.Payer[]).map((p) => <option key={p} value={p}>{X.PAYER_LABEL[p]}</option>)}</select></L>
     </div>
-    {l.payer === "entreprise" && <p className="text-xs">Payée par l'entreprise : documentée seulement, aucun remboursement à l'employé.{manage && <> Si l'achat existe déjà, indiquez son identifiant pour le lier sans le recréer : <Input aria-label="Achat existant" className="mt-1" placeholder="Identifiant de la facture fournisseur" value={l.supplier_bill_id} onChange={(e) => up("supplier_bill_id", e.target.value)} /></>}</p>}
+    {l.payer === "entreprise" && <div className="text-xs"><p>Payée par l'entreprise : documentée seulement, aucun remboursement à l'employé.</p>{manage ? <BillPicker companyId={companyId} value={l.supplier_bill_id} onChange={(v) => up("supplier_bill_id", v)} /> : <p className="text-muted-foreground">Si cet achat est déjà enregistré dans les achats fournisseurs, un responsable Finances le rattachera lors de l'examen (aucune double dépense).</p>}</div>}
     {l.payer === "avance" && <p className="text-xs">Financée par une avance : une fois approuvée, elle justifie l'avance par affectation, sans second remboursement ni nouvelle sortie d'argent.</p>}
     <L l="Description"><Textarea rows={2} aria-label="Description" value={l.description} onChange={(e) => up("description", e.target.value)} /></L>
     <div className="grid gap-2 sm:grid-cols-2">
@@ -301,4 +301,21 @@ function AdvanceRow({ a, reps, manage, canCorrect, run, busy }: { a: any; reps: 
       {(a.restitutions ?? []).filter((x: any) => !x.voided_at).map((x: any) => <Button key={x.id} size="sm" variant="outline" className="mr-1" disabled={!vr.trim()} onClick={() => run(() => X.restitutionVoid(x.id, vr), "Restitution annulée")}>Annuler restitution {m(x.amount)}</Button>)}
     </details>}
   </li>;
+}
+
+/** FIN-12D1 : recherche lisible d'un achat déjà enregistré (responsables seulement; droits revérifiés par le serveur). */
+function BillPicker({ companyId, value, onChange }: { companyId: string; value: string; onChange: (v: string) => void }) {
+  const [q, setQ] = useState(""); const [rows, setRows] = useState<X.BillHit[]>([]); const [cur, setCur] = useState<X.BillHit | null>(null); const [err, setErr] = useState<string | null>(null);
+  const seq = useRef(0);
+  useEffect(() => { if (!value) { setCur(null); return; } X.billSearch(companyId, null, value).then((r) => setCur(r[0] ?? null)).catch(() => setCur(null)); }, [companyId, value]);
+  useEffect(() => { const my = ++seq.current; const t = setTimeout(() => X.billSearch(companyId, q).then((r) => { if (my === seq.current) { setRows(r); setErr(null); } }).catch((e) => { if (my === seq.current) setErr(e.message); }), 250); return () => clearTimeout(t); }, [companyId, q]);
+  const lbl = (b: X.BillHit) => `${b.supplier ?? "Fournisseur ?"} · n° ${b.reference ?? "—"} · ${b.doc_date ?? "date ?"} · ${b.total == null ? "montant ?" : fmtMoney(Number(b.total))}`;
+  return <div className="mt-1 space-y-1 rounded-md border p-2">
+    <span className="font-semibold">Achat déjà enregistré (facultatif)</span>
+    {value ? <div className="flex flex-wrap items-center gap-2" data-testid="achat-lie"><span>Lié à : {cur ? lbl(cur) : "achat sélectionné"}</span><Button type="button" size="sm" variant="outline" onClick={() => onChange("")}>Retirer le lien</Button></div> : <>
+      <Input aria-label="Rechercher un achat" placeholder="Fournisseur, n° de facture, date (AAAA-MM-JJ) ou montant" value={q} onChange={(e) => setQ(e.target.value)} />
+      {err && <p className="text-destructive">{err}</p>}
+      <ul className="max-h-48 space-y-1 overflow-y-auto">{rows.map((b) => <li key={b.id}><button type="button" className="w-full rounded border px-2 py-1 text-left hover:bg-secondary" onClick={() => onChange(b.id)}>{lbl(b)}</button></li>)}{!rows.length && !err && <li className="text-muted-foreground">Aucun achat trouvé.</li>}</ul>
+    </>}
+  </div>;
 }

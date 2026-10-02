@@ -41,6 +41,8 @@ export function summarize(lines: { payer: Payer; accepted_amount?: number | null
 
 export const myCompanies = () => call<Company[]>("fin_exp_my_companies", {});
 export const lookups = (c: string) => call<{ trucks: { id: string; name: string }[]; projects: { id: string; name: string }[]; members: { id: string; name: string; role: string }[] }>("fin_exp_lookups", { _company: c });
+export type BillHit = { id: string; supplier: string | null; reference: string | null; doc_date: string | null; total: number | null; status: string };
+export const billSearch = (c: string, q: string | null, id: string | null = null) => call<BillHit[]>("fin_exp_bill_search", { _company: c, _q: q, _id: id });
 export const overview = (c: string, mine: boolean) => call<any>("fin_exp_overview", { _company: c, _mine: mine });
 export const detail = (id: string) => call<any>("fin_exp_report_detail", { _id: id });
 export const save = (c: string, id: string | null, p: Record<string, unknown>, rev: number | null) => call<{ id: string; rev: number }>("fin_exp_save", { _company: c, _id: id, _p: p, _base_rev: rev });
