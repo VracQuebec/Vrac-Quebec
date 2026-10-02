@@ -14,13 +14,13 @@ export type CapStatus = "ajoute" | "lecture" | "a_verifier" | "echec" | "traite"
 export type CapResult = { kind: "bill" | "credit" | "attached"; id: string; index: number | null; key: string; at: string };
 export type Capture = { id: string; company_id: string; file_id: string; file_sha256: string | null; status: CapStatus; extraction: Extraction | null; extracted_at: string | null;
   extract_error: string | null; extract_count: number; edits: Edits | null; results: CapResult[]; dismiss_reason: string | null; rev: number; created_at: string; created_by: string | null;
-  file: { id: string; name: string; mime: string; size: number }; can_write: boolean; same_file: { id: string; status: string; results: CapResult[] }[] };
+  file: { id: string; name: string; mime: string; size: number }; converted_file_id?: string | null; converted?: { id: string; name: string; mime: string; size: number } | null; can_write: boolean; same_file: { id: string; status: string; results: CapResult[] }[] };
 export type Edits = { index: number; kind: "bill" | "credit"; supplier_id: string; reference: string; doc_date: string; due_date: string; description: string;
   subtotal: string; gst: string; qst: string; total: string; employee_paid: boolean };
 
 export const STATUS: Record<CapStatus, string> = { ajoute: "Document ajouté", lecture: "Lecture en cours", a_verifier: "À vérifier", echec: "Échec — réessayable", traite: "Traité", ecarte: "Écarté" };
 export const TYPE_LABEL: Record<ExDoc["doc_type"], string> = { facture: "Facture", recu: "Reçu", note_credit: "Note de crédit", releve: "Relevé fournisseur", indetermine: "Indéterminé" };
-export const LIMITS = "Photo JPG, PNG ou WEBP, ou PDF · 20 Mo au maximum · lecture automatique jusqu'à 10 pages. HEIC accepté comme pièce, mais lu seulement manuellement.";
+export const LIMITS = "Photo JPG, PNG ou WEBP, ou PDF · 20 Mo au maximum · lecture automatique jusqu'à 10 pages. Photo HEIC (iPhone) : convertie en JPEG sur votre appareil avant lecture, original conservé.";
 
 export async function list(c: string) {
   const { data, error } = await db.from("fin_doc_captures").select("id,status,results,created_at,extracted_at,file:ent_crm_files(file_name,mime_type)").eq("company_id", c).order("created_at", { ascending: false }).limit(100);
@@ -28,6 +28,23 @@ export async function list(c: string) {
 }
 export async function register(c: string, fileId: string) { const { data, error } = await db.rpc("fin_cap_register", { _company: c, _file: fileId }); err(error); return data as { id: string; replay?: boolean }; }
 export async function addFile(c: string, file: File) { const up = await uploadProof(c, file); return register(c, up.id); }
+/** FIN-12C1 — HEIC → JPEG (orientation appliquée, pleine résolution, qualité 0,92) rattaché au même document; l'original reste intact. */
+export const MAX_BYTES = 20 * 1024 * 1024;
+export async function convertHeic(c: string, capId: string, originalFileId: string, originalName: string) {
+  const { data: row } = await db.from("ent_crm_files").select("storage_path,size_bytes").eq("id", originalFileId).maybeSingle();
+  if (!row) throw new Error("Pièce originale inaccessible");
+  if ((row.size_bytes ?? 0) > MAX_BYTES) throw new Error("Photo source trop lourde (20 Mo au maximum)");
+  const dl = await supabase.storage.from("entcrm-files").download(row.storage_path);
+  if (dl.error || !dl.data) throw new Error("Téléchargement de l'original impossible");
+  let out: Blob;
+  try { const { default: heic2any } = await import("heic2any"); const r = await heic2any({ blob: dl.data, toType: "image/jpeg", quality: 0.92 }); out = Array.isArray(r) ? r[0] : r; }
+  catch (e: any) { throw new Error(`Conversion impossible (${e?.message || "photo HEIC illisible"})`); }
+  if (!out || out.size < 1000) throw new Error("Conversion vide");
+  if (out.size > MAX_BYTES) throw new Error("Version convertie trop lourde (20 Mo au maximum)");
+  const up = await uploadProof(c, new File([out], originalName.replace(/\.heic$/i, "") + "-converti.jpg", { type: "image/jpeg" }));
+  const { error } = await db.rpc("fin_cap_set_converted", { _id: capId, _file: up.id }); err(error);
+  return up.id;
+}
 export async function detail(id: string) { const { data, error } = await db.rpc("fin_cap_detail", { _id: id }); err(error); return data as Capture; }
 export async function events(id: string) { const { data } = await db.from("fin_doc_capture_events").select("action,reason,created_at").eq("capture_id", id).order("created_at"); return (data ?? []) as { action: string; reason: string | null; created_at: string }[]; }
 /** Lecture explicite seulement. Sans `force`, un résultat existant est réutilisé (aucune nouvelle consommation). */
