@@ -3446,6 +3446,335 @@ export type Database = {
           },
         ]
       }
+      fin_bank_events: {
+        Row: {
+          actor: string | null
+          at: string
+          company_id: string
+          detail: Json
+          id: string
+          import_id: string | null
+          kind: string
+          line_id: string | null
+          match_id: string | null
+        }
+        Insert: {
+          actor?: string | null
+          at?: string
+          company_id: string
+          detail?: Json
+          id?: string
+          import_id?: string | null
+          kind: string
+          line_id?: string | null
+          match_id?: string | null
+        }
+        Update: {
+          actor?: string | null
+          at?: string
+          company_id?: string
+          detail?: Json
+          id?: string
+          import_id?: string | null
+          kind?: string
+          line_id?: string | null
+          match_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_bank_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_bank_imports: {
+        Row: {
+          account_id: string
+          closing_balance: number | null
+          company_id: string
+          complete: boolean
+          created_at: string
+          created_by: string
+          file_id: string | null
+          file_name: string
+          file_sha256: string
+          id: string
+          opening_balance: number | null
+          period_from: string | null
+          period_to: string | null
+          request_key: string
+          settings: Json
+          summary: Json
+        }
+        Insert: {
+          account_id: string
+          closing_balance?: number | null
+          company_id: string
+          complete?: boolean
+          created_at?: string
+          created_by?: string
+          file_id?: string | null
+          file_name: string
+          file_sha256: string
+          id?: string
+          opening_balance?: number | null
+          period_from?: string | null
+          period_to?: string | null
+          request_key: string
+          settings: Json
+          summary?: Json
+        }
+        Update: {
+          account_id?: string
+          closing_balance?: number | null
+          company_id?: string
+          complete?: boolean
+          created_at?: string
+          created_by?: string
+          file_id?: string | null
+          file_name?: string
+          file_sha256?: string
+          id?: string
+          opening_balance?: number | null
+          period_from?: string | null
+          period_to?: string | null
+          request_key?: string
+          settings?: Json
+          summary?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_bank_imports_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_imports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_imports_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_bank_lines: {
+        Row: {
+          account_id: string
+          added_as_distinct: boolean
+          amount: number
+          bank_txn_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          fp: string
+          id: string
+          import_id: string
+          occ: number
+          raw: Json
+          reference: string | null
+          rev: number
+          row_no: number
+          src: Json
+          status: string
+          status_reason: string | null
+          txn_date: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          added_as_distinct?: boolean
+          amount: number
+          bank_txn_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          fp: string
+          id?: string
+          import_id: string
+          occ: number
+          raw: Json
+          reference?: string | null
+          rev?: number
+          row_no: number
+          src: Json
+          status?: string
+          status_reason?: string | null
+          txn_date: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          added_as_distinct?: boolean
+          amount?: number
+          bank_txn_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          fp?: string
+          id?: string
+          import_id?: string
+          occ?: number
+          raw?: Json
+          reference?: string | null
+          rev?: number
+          row_no?: number
+          src?: Json
+          status?: string
+          status_reason?: string | null
+          txn_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_bank_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_lines_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_lines_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_bank_match_items: {
+        Row: {
+          active: boolean
+          amount: number
+          company_id: string
+          id: string
+          line_id: string
+          match_id: string
+          source_id: string
+          source_kind: string
+        }
+        Insert: {
+          active?: boolean
+          amount: number
+          company_id: string
+          id?: string
+          line_id: string
+          match_id: string
+          source_id: string
+          source_kind: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          company_id?: string
+          id?: string
+          line_id?: string
+          match_id?: string
+          source_id?: string
+          source_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_bank_match_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_match_items_line_id_fkey"
+            columns: ["line_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_match_items_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_bank_matches: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          id: string
+          idem_key: string
+          line_id: string
+          status: string
+          total: number
+        }
+        Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          idem_key: string
+          line_id: string
+          status?: string
+          total: number
+        }
+        Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          idem_key?: string
+          line_id?: string
+          status?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_bank_matches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_bank_matches_line_id_fkey"
+            columns: ["line_id"]
+            isOneToOne: false
+            referencedRelation: "fin_bank_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_budgets: {
         Row: {
           amount: number
@@ -26122,6 +26451,80 @@ export type Database = {
           _size: number
         }
         Returns: string
+      }
+      fin_bank_account_ok: {
+        Args: { _account: string; _company: string }
+        Returns: undefined
+      }
+      fin_bank_candidates: {
+        Args: { _days?: number; _line: string; _q?: string }
+        Returns: Json
+      }
+      fin_bank_commit: {
+        Args: {
+          _account: string
+          _closing: number
+          _company: string
+          _complete: boolean
+          _decisions: Json
+          _file_id: string
+          _file_name: string
+          _file_sha: string
+          _opening: number
+          _request_key: string
+          _rows: Json
+          _settings: Json
+        }
+        Returns: Json
+      }
+      fin_bank_date: { Args: { _fmt: string; _s: string }; Returns: string }
+      fin_bank_eval: {
+        Args: { _account: string; _rows: Json; _settings: Json }
+        Returns: Json
+      }
+      fin_bank_guard: {
+        Args: { _company: string; _write: boolean }
+        Returns: undefined
+      }
+      fin_bank_match: {
+        Args: { _idem: string; _items: Json; _line: string }
+        Returns: Json
+      }
+      fin_bank_movements: {
+        Args: { _company: string }
+        Returns: {
+          account_id: string
+          amount: number
+          dir: string
+          id: string
+          kind: string
+          label: string
+          on_date: string
+          party: string
+          reference: string
+        }[]
+      }
+      fin_bank_num: { Args: { _fmt: string; _s: string }; Returns: number }
+      fin_bank_overview: {
+        Args: { _account: string; _company: string }
+        Returns: Json
+      }
+      fin_bank_preview: {
+        Args: {
+          _account: string
+          _company: string
+          _rows: Json
+          _settings: Json
+        }
+        Returns: Json
+      }
+      fin_bank_set_status: {
+        Args: { _line: string; _reason: string; _rev: number; _status: string }
+        Returns: Json
+      }
+      fin_bank_unmatch: {
+        Args: { _match: string; _reason: string }
+        Returns: Json
       }
       fin_bill_confirm: {
         Args: {
