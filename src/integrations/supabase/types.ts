@@ -4564,6 +4564,7 @@ export type Database = {
           company_id: string
           created_at: string
           due_date: string
+          due_unknown: boolean
           id: string
           obligation_id: string
           occ_key: string
@@ -4586,6 +4587,7 @@ export type Database = {
           company_id: string
           created_at?: string
           due_date: string
+          due_unknown?: boolean
           id?: string
           obligation_id: string
           occ_key: string
@@ -4608,6 +4610,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           due_date?: string
+          due_unknown?: boolean
           id?: string
           obligation_id?: string
           occ_key?: string
@@ -6989,6 +6992,226 @@ export type Database = {
           },
           {
             foreignKeyName: "fin_supplier_bills_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_supplier_credit_allocs: {
+        Row: {
+          amount: number
+          bill_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          credit_id: string
+          id: string
+          idem_key: string
+          reverse_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+        }
+        Insert: {
+          amount: number
+          bill_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          credit_id: string
+          id?: string
+          idem_key: string
+          reverse_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+        }
+        Update: {
+          amount?: number
+          bill_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          credit_id?: string
+          id?: string
+          idem_key?: string
+          reverse_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_supplier_credit_allocs_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "fin_supplier_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_supplier_credit_allocs_credit_id_fkey"
+            columns: ["credit_id"]
+            isOneToOne: false
+            referencedRelation: "fin_supplier_credits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_supplier_credit_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          alloc_id: string | null
+          company_id: string
+          created_at: string
+          credit_id: string
+          detail: Json | null
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          alloc_id?: string | null
+          company_id: string
+          created_at?: string
+          credit_id: string
+          detail?: Json | null
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          alloc_id?: string | null
+          company_id?: string
+          created_at?: string
+          credit_id?: string
+          detail?: Json | null
+          id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_supplier_credit_events_alloc_id_fkey"
+            columns: ["alloc_id"]
+            isOneToOne: false
+            referencedRelation: "fin_supplier_credit_allocs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_supplier_credit_events_credit_id_fkey"
+            columns: ["credit_id"]
+            isOneToOne: false
+            referencedRelation: "fin_supplier_credits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_supplier_credits: {
+        Row: {
+          company_id: string
+          confirm_key: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          create_key: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          doc_date: string | null
+          dup_override_reason: string | null
+          file_id: string | null
+          file_sha256: string | null
+          gst: number | null
+          id: string
+          linked_bill_id: string | null
+          qst: number | null
+          reference: string | null
+          rev: number
+          status: string
+          subtotal: number | null
+          supplier_id: string
+          tax_status: string
+          total: number | null
+          updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          company_id: string
+          confirm_key?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          create_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          doc_date?: string | null
+          dup_override_reason?: string | null
+          file_id?: string | null
+          file_sha256?: string | null
+          gst?: number | null
+          id?: string
+          linked_bill_id?: string | null
+          qst?: number | null
+          reference?: string | null
+          rev?: number
+          status?: string
+          subtotal?: number | null
+          supplier_id: string
+          tax_status?: string
+          total?: number | null
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          confirm_key?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          create_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          doc_date?: string | null
+          dup_override_reason?: string | null
+          file_id?: string | null
+          file_sha256?: string | null
+          gst?: number | null
+          id?: string
+          linked_bill_id?: string | null
+          qst?: number | null
+          reference?: string | null
+          rev?: number
+          status?: string
+          subtotal?: number | null
+          supplier_id?: string
+          tax_status?: string
+          total?: number | null
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_supplier_credits_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_supplier_credits_linked_bill_id_fkey"
+            columns: ["linked_bill_id"]
+            isOneToOne: false
+            referencedRelation: "fin_supplier_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_supplier_credits_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "ent_crm_clients"
@@ -24616,10 +24839,12 @@ export type Database = {
         }
         Returns: Json
       }
+      fin_bill_credited: { Args: { _bill: string }; Returns: number }
       fin_bill_dups: {
         Args: { _company: string; _id: string; _p: Json }
         Returns: Json
       }
+      fin_bill_position: { Args: { _id: string }; Returns: Json }
       fin_bill_preview: { Args: { _id: string; _occ: string }; Returns: Json }
       fin_bill_save: {
         Args: {
@@ -24706,6 +24931,7 @@ export type Database = {
         Args: { _invoice: string; _p: Json }
         Returns: Json
       }
+      fin_credit_allocated: { Args: { _credit: string }; Returns: number }
       fin_credit_compute: {
         Args: { _exclude: string; _invoice: string; _items: Json }
         Returns: Json
@@ -24915,6 +25141,7 @@ export type Database = {
           scenario: string
         }[]
       }
+      fin_occ_credited: { Args: { _occ: string }; Returns: number }
       fin_occ_paid: { Args: { _occ: string }; Returns: number }
       fin_occurrence_detail: { Args: { _occ: string }; Returns: Json }
       fin_open_for_payee: {
@@ -25478,6 +25705,51 @@ export type Database = {
           _reason: string
         }
         Returns: undefined
+      }
+      fin_scr_alloc: {
+        Args: { _amount: number; _bill: string; _credit: string; _key: string }
+        Returns: Json
+      }
+      fin_scr_alloc_void: {
+        Args: { _alloc: string; _reason: string }
+        Returns: Json
+      }
+      fin_scr_confirm: {
+        Args: {
+          _dup_reason: string
+          _expect_rev: number
+          _id: string
+          _key: string
+        }
+        Returns: Json
+      }
+      fin_scr_list: {
+        Args: { _company: string; _supplier: string }
+        Returns: Json
+      }
+      fin_scr_log: {
+        Args: {
+          _action: string
+          _alloc: string
+          _c: Database["public"]["Tables"]["fin_supplier_credits"]["Row"]
+          _detail: Json
+          _reason: string
+        }
+        Returns: undefined
+      }
+      fin_scr_save: {
+        Args: {
+          _base_rev: number
+          _company: string
+          _create_key: string
+          _id: string
+          _p: Json
+        }
+        Returns: Json
+      }
+      fin_scr_void: {
+        Args: { _expect_rev: number; _id: string; _reason: string }
+        Returns: Json
       }
       fin_season_sample: { Args: { _company: string; _p: Json }; Returns: Json }
       fin_seed_categories: { Args: { _company: string }; Returns: number }
