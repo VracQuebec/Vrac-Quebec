@@ -208,7 +208,7 @@ function TotalsCards({ t }: { t: api.Totals | null }) {
       {box("Échéance inconnue (hors période, non datée)", fmtMoney(t.due_unknown_remaining ?? 0), `${t.due_unknown_count ?? 0} échéance(s) sans date (factures, notes de frais) : comptées dans la dette, exclues des prévisions datées`, "echeance-inconnue")}
       {box("Versements déclarés dans la période (date du versement)", fmtMoney(t.declared ?? 0), m || "Aucun", "declare")}
       {box("Reliquats non affectés (toutes dates)", fmtMoney(t.unallocated ?? 0), `${t.unallocated_count ?? 0} versement(s) avec avance / trop-payé`, "reliquat")}
-      {box("Remboursements reçus dans la période", fmtMoney(t.refunds ?? 0), `${t.unknown_count} montant(s) à compléter · ${t.drafts ?? 0} brouillon(s)`)}
+      {box("Remboursements reçus dans la période", fmtMoney((t.refunds ?? 0) + (t.credit_refunds ?? 0)), `dont trop-payés ${fmtMoney(t.refunds ?? 0)} · dont notes de crédit fournisseurs ${fmtMoney(t.credit_refunds ?? 0)} (pas un revenu) · ${t.unknown_count} montant(s) à compléter · ${t.drafts ?? 0} brouillon(s)`, "rembourse")}
     </div>}
     <p className="text-xs text-muted-foreground">Du {fmtDate(t.from)} au {fmtDate(t.to)} inclus · fuseau {TZ}. Les versements sont des règlements déclarés, non rapprochés avec la banque ; un paiement par carte ne prouve pas une sortie du compte bancaire. Ni bénéfice, ni charge comptable.</p>
   </div>;
