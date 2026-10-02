@@ -3666,6 +3666,133 @@ export type Database = {
           },
         ]
       }
+      fin_csv_import_docs: {
+        Row: {
+          bill_id: string | null
+          company_id: string
+          content_hash: string | null
+          created_at: string
+          credit_id: string | null
+          doc_key: string
+          doc_kind: string
+          id: string
+          import_id: string
+          outcome: string
+          payload: Json
+          reason: string | null
+          reference: string | null
+          source_rows: number[]
+          supplier_id: string | null
+        }
+        Insert: {
+          bill_id?: string | null
+          company_id: string
+          content_hash?: string | null
+          created_at?: string
+          credit_id?: string | null
+          doc_key: string
+          doc_kind: string
+          id?: string
+          import_id: string
+          outcome: string
+          payload?: Json
+          reason?: string | null
+          reference?: string | null
+          source_rows?: number[]
+          supplier_id?: string | null
+        }
+        Update: {
+          bill_id?: string | null
+          company_id?: string
+          content_hash?: string | null
+          created_at?: string
+          credit_id?: string | null
+          doc_key?: string
+          doc_kind?: string
+          id?: string
+          import_id?: string
+          outcome?: string
+          payload?: Json
+          reason?: string | null
+          reference?: string | null
+          source_rows?: number[]
+          supplier_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_csv_import_docs_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "fin_supplier_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_csv_import_docs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_csv_import_docs_credit_id_fkey"
+            columns: ["credit_id"]
+            isOneToOne: false
+            referencedRelation: "fin_supplier_credits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_csv_import_docs_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "fin_csv_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_csv_imports: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          file_name: string
+          file_sha256: string
+          id: string
+          request_key: string
+          settings: Json
+          summary: Json
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          file_name: string
+          file_sha256: string
+          id?: string
+          request_key: string
+          settings?: Json
+          summary?: Json
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          file_name?: string
+          file_sha256?: string
+          id?: string
+          request_key?: string
+          settings?: Json
+          summary?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_csv_imports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_ctax_corrections: {
         Row: {
           actor: string | null
@@ -26093,6 +26220,23 @@ export type Database = {
         Returns: undefined
       }
       fin_crm_file_exp_ok: { Args: { _file: string }; Returns: boolean }
+      fin_csv_check: { Args: { _company: string; _docs: Json }; Returns: Json }
+      fin_csv_commit: {
+        Args: {
+          _company: string
+          _docs: Json
+          _file_name: string
+          _file_sha: string
+          _request_key: string
+          _settings: Json
+        }
+        Returns: Json
+      }
+      fin_csv_doc_problem: {
+        Args: { _company: string; d: Json }
+        Returns: string
+      }
+      fin_csv_existing: { Args: { _company: string; d: Json }; Returns: Json }
       fin_ctax_alloc: { Args: { _cum: number; _s: Json }; Returns: Json }
       fin_ctax_date: { Args: { _t: string }; Returns: string }
       fin_ctax_pay_eval: {
