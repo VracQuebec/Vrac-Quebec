@@ -4839,6 +4839,194 @@ export type Database = {
           },
         ]
       }
+      fin_po_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          company_id: string
+          created_at: string
+          detail: Json | null
+          id: string
+          order_id: string
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          company_id: string
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          order_id: string
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          company_id?: string
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          order_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_po_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "fin_purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_po_matches: {
+        Row: {
+          before_receipt: boolean
+          bill_amount: number | null
+          bill_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          exception_reason: string | null
+          id: string
+          idem_key: string
+          line_no: number
+          order_id: string
+          portion: number | null
+          portion_basis: string
+          qty: number
+          reverse_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+        }
+        Insert: {
+          before_receipt?: boolean
+          bill_amount?: number | null
+          bill_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          exception_reason?: string | null
+          id?: string
+          idem_key: string
+          line_no: number
+          order_id: string
+          portion?: number | null
+          portion_basis: string
+          qty: number
+          reverse_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+        }
+        Update: {
+          before_receipt?: boolean
+          bill_amount?: number | null
+          bill_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          exception_reason?: string | null
+          id?: string
+          idem_key?: string
+          line_no?: number
+          order_id?: string
+          portion?: number | null
+          portion_basis?: string
+          qty?: number
+          reverse_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_po_matches_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "fin_supplier_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_po_matches_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "fin_purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_po_receipts: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          delivery_ref: string | null
+          file_id: string | null
+          id: string
+          idem_key: string
+          lines: Json
+          notes: string | null
+          order_id: string
+          over_reason: string | null
+          received_on: string
+          status: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          delivery_ref?: string | null
+          file_id?: string | null
+          id?: string
+          idem_key: string
+          lines: Json
+          notes?: string | null
+          order_id: string
+          over_reason?: string | null
+          received_on: string
+          status?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          delivery_ref?: string | null
+          file_id?: string | null
+          id?: string
+          idem_key?: string
+          lines?: Json
+          notes?: string | null
+          order_id?: string
+          over_reason?: string | null
+          received_on?: string
+          status?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_po_receipts_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_po_receipts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "fin_purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_portal_access: {
         Row: {
           client_id: string
@@ -5691,6 +5879,153 @@ export type Database = {
             columns: ["receipt_id"]
             isOneToOne: true
             referencedRelation: "fin_invoice_receipts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_purchase_orders: {
+        Row: {
+          close_reason: string | null
+          closed_at: string | null
+          closed_by: string | null
+          company_id: string
+          confirm_key: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          confirmed_lines: Json | null
+          create_key: string | null
+          created_at: string
+          created_by: string | null
+          engagement_created: boolean
+          estimate_amount: number | null
+          estimate_occ_id: string | null
+          estimate_quality: string | null
+          expected_date: string | null
+          file_id: string | null
+          id: string
+          lines: Json
+          notes: string | null
+          number: string
+          obligation_id: string | null
+          occurrence_id: string | null
+          order_date: string | null
+          project_id: string | null
+          rev: number
+          site: string | null
+          status: string
+          supplier_id: string
+          supplier_ref: string | null
+          updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          close_reason?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          company_id: string
+          confirm_key?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          confirmed_lines?: Json | null
+          create_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          engagement_created?: boolean
+          estimate_amount?: number | null
+          estimate_occ_id?: string | null
+          estimate_quality?: string | null
+          expected_date?: string | null
+          file_id?: string | null
+          id?: string
+          lines?: Json
+          notes?: string | null
+          number: string
+          obligation_id?: string | null
+          occurrence_id?: string | null
+          order_date?: string | null
+          project_id?: string | null
+          rev?: number
+          site?: string | null
+          status?: string
+          supplier_id: string
+          supplier_ref?: string | null
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          close_reason?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          company_id?: string
+          confirm_key?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          confirmed_lines?: Json | null
+          create_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          engagement_created?: boolean
+          estimate_amount?: number | null
+          estimate_occ_id?: string | null
+          estimate_quality?: string | null
+          expected_date?: string | null
+          file_id?: string | null
+          id?: string
+          lines?: Json
+          notes?: string | null
+          number?: string
+          obligation_id?: string | null
+          occurrence_id?: string | null
+          order_date?: string | null
+          project_id?: string | null
+          rev?: number
+          site?: string | null
+          status?: string
+          supplier_id?: string
+          supplier_ref?: string | null
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_purchase_orders_estimate_occ_id_fkey"
+            columns: ["estimate_occ_id"]
+            isOneToOne: false
+            referencedRelation: "fin_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_purchase_orders_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_purchase_orders_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "fin_obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_purchase_orders_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "fin_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
             referencedColumns: ["id"]
           },
         ]
@@ -25216,6 +25551,100 @@ export type Database = {
           _from: string
           _to: string
         }
+        Returns: Json
+      }
+      fin_po_amend: {
+        Args: {
+          _expect_rev: number
+          _id: string
+          _lines: Json
+          _reason: string
+        }
+        Returns: Json
+      }
+      fin_po_close: {
+        Args: {
+          _expect_rev: number
+          _id: string
+          _reason: string
+          _reopen: boolean
+        }
+        Returns: Json
+      }
+      fin_po_confirm: {
+        Args: { _expect_rev: number; _id: string; _key: string }
+        Returns: Json
+      }
+      fin_po_detail: { Args: { _id: string }; Returns: Json }
+      fin_po_log: {
+        Args: {
+          _action: string
+          _detail: Json
+          _o: Database["public"]["Tables"]["fin_purchase_orders"]["Row"]
+          _reason: string
+        }
+        Returns: undefined
+      }
+      fin_po_match: {
+        Args: {
+          _bill: string
+          _bill_key: string
+          _bill_rev: number
+          _exception: string
+          _key: string
+          _lines: Json
+          _order: string
+        }
+        Returns: Json
+      }
+      fin_po_match_void: {
+        Args: { _bill: string; _order: string; _reason: string }
+        Returns: Json
+      }
+      fin_po_norm: {
+        Args: { _lines: Json; _old: Json; _strict: boolean }
+        Returns: Json
+      }
+      fin_po_overview: {
+        Args: { _company: string; _f: Json; _limit: number; _offset: number }
+        Returns: Json
+      }
+      fin_po_receipt_void: {
+        Args: { _reason: string; _receipt: string }
+        Returns: Json
+      }
+      fin_po_receive: {
+        Args: { _key: string; _order: string; _p: Json }
+        Returns: Json
+      }
+      fin_po_save: {
+        Args: {
+          _base_rev: number
+          _company: string
+          _create_key: string
+          _id: string
+          _p: Json
+        }
+        Returns: Json
+      }
+      fin_po_stats: {
+        Args: { _o: string }
+        Returns: {
+          accepted: number
+          amount_unknown: number
+          bill_amount: number
+          billed: number
+          line_no: number
+          line_total: number
+          portion: number
+          qty: number
+          refused: number
+        }[]
+      }
+      fin_po_sync: { Args: { _o: string }; Returns: Json }
+      fin_po_total: { Args: { _lines: Json }; Returns: number }
+      fin_po_void: {
+        Args: { _expect_rev: number; _id: string; _reason: string }
         Returns: Json
       }
       fin_portal_active: {
