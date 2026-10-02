@@ -262,6 +262,11 @@ export default function FinanceSearch({ companyId, companyName, ctx, rev, canWri
         {box("Solde restant connu, à ce jour", fmtMoney(ot.remaining ?? 0), `${ot.late_count ?? 0} en retard (${fmtMoney(ot.late_amount ?? 0)})`, "occ-rest")}
         {box("Échéances", String(ot.count), `${ot.unknown_count} montant(s) inconnu(s) — non comptés comme 0 $`, "occ-count")}
       </div>
+      {/* FIN-12D1 : dette à échéance inconnue = comptée dans la dette, jamais placée à une date arbitraire */}
+      {((ot.due_unknown_count ?? 0) > 0 || (F as any).due_unknown === "only") && <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-sm" data-testid="occ-due-unknown">
+        <span>{(F as any).due_unknown === "only" ? "Affichage : échéances sans date seulement." : <>Dette à échéance inconnue (non datée, hors période) : <strong>{fmtMoney(ot.due_unknown_remaining ?? 0)}</strong> · {ot.due_unknown_count} échéance(s) — comptée dans la dette, absente des dates.</>}</span>
+        <Button size="sm" variant="outline" onClick={() => setF({ due_unknown: (F as any).due_unknown === "only" ? undefined : "only" })}>{(F as any).due_unknown === "only" ? "Revenir à la période" : "Voir ces échéances"}</Button>
+      </div>}
       <p className="text-[11px] text-muted-foreground">Le solde est calculé à la date de consultation ({fmtDate(today)}), même pour des échéances anciennes. Échéances annulées exclues des montants.</p>
     </div>) : (!pay ? <p className="text-sm text-muted-foreground">Calcul…</p> : <div className="space-y-1">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
