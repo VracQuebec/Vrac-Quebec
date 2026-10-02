@@ -6803,6 +6803,243 @@ export type Database = {
           },
         ]
       }
+      fin_supplier_bill_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          bill_id: string
+          company_id: string
+          created_at: string
+          detail: Json | null
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          bill_id: string
+          company_id: string
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          bill_id?: string
+          company_id?: string
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_supplier_bill_events_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "fin_supplier_bills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_supplier_bills: {
+        Row: {
+          category_id: string | null
+          company_id: string
+          confirm_key: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          create_key: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          doc_date: string | null
+          doc_type: string
+          due_date: string | null
+          dup_override_reason: string | null
+          estimate_amount: number | null
+          estimate_quality: string | null
+          file_id: string | null
+          file_sha256: string | null
+          gst: number | null
+          id: string
+          lines: Json
+          obligation_id: string | null
+          occurrence_id: string | null
+          project_id: string | null
+          qst: number | null
+          reference: string | null
+          replaced_estimate: boolean
+          rev: number
+          status: string
+          subtotal: number | null
+          supplier_id: string
+          tax_status: string
+          total: number | null
+          truck_id: string | null
+          updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          company_id: string
+          confirm_key?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          create_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          doc_date?: string | null
+          doc_type?: string
+          due_date?: string | null
+          dup_override_reason?: string | null
+          estimate_amount?: number | null
+          estimate_quality?: string | null
+          file_id?: string | null
+          file_sha256?: string | null
+          gst?: number | null
+          id?: string
+          lines?: Json
+          obligation_id?: string | null
+          occurrence_id?: string | null
+          project_id?: string | null
+          qst?: number | null
+          reference?: string | null
+          replaced_estimate?: boolean
+          rev?: number
+          status?: string
+          subtotal?: number | null
+          supplier_id: string
+          tax_status?: string
+          total?: number | null
+          truck_id?: string | null
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          company_id?: string
+          confirm_key?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          create_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          doc_date?: string | null
+          doc_type?: string
+          due_date?: string | null
+          dup_override_reason?: string | null
+          estimate_amount?: number | null
+          estimate_quality?: string | null
+          file_id?: string | null
+          file_sha256?: string | null
+          gst?: number | null
+          id?: string
+          lines?: Json
+          obligation_id?: string | null
+          occurrence_id?: string | null
+          project_id?: string | null
+          qst?: number | null
+          reference?: string | null
+          replaced_estimate?: boolean
+          rev?: number
+          status?: string
+          subtotal?: number | null
+          supplier_id?: string
+          tax_status?: string
+          total?: number | null
+          truck_id?: string | null
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_supplier_bills_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_supplier_bills_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "fin_obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_supplier_bills_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "fin_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_supplier_bills_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_supplier_profiles: {
+        Row: {
+          account_ref: string | null
+          archived_at: string | null
+          client_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          internal_notes: string | null
+          payment_terms: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_ref?: string | null
+          archived_at?: string | null
+          client_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          internal_notes?: string | null
+          payment_terms?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_ref?: string | null
+          archived_at?: string | null
+          client_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          internal_notes?: string | null
+          payment_terms?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_supplier_profiles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_tax_rates: {
         Row: {
           created_at: string
@@ -24369,6 +24606,39 @@ export type Database = {
         }
         Returns: string
       }
+      fin_bill_confirm: {
+        Args: {
+          _dup_reason: string
+          _expect_rev: number
+          _id: string
+          _key: string
+          _occ: string
+        }
+        Returns: Json
+      }
+      fin_bill_dups: {
+        Args: { _company: string; _id: string; _p: Json }
+        Returns: Json
+      }
+      fin_bill_preview: { Args: { _id: string; _occ: string }; Returns: Json }
+      fin_bill_save: {
+        Args: {
+          _base_rev: number
+          _company: string
+          _create_key: string
+          _id: string
+          _p: Json
+        }
+        Returns: Json
+      }
+      fin_bill_void: {
+        Args: { _expect_rev: number; _id: string; _reason: string }
+        Returns: Json
+      }
+      fin_bills_overview: {
+        Args: { _company: string; _f: Json; _limit: number; _offset: number }
+        Returns: Json
+      }
       fin_can_correct: { Args: { _company_id: string }; Returns: boolean }
       fin_can_read: { Args: { _company_id: string }; Returns: boolean }
       fin_can_write: { Args: { _company_id: string }; Returns: boolean }
@@ -25199,6 +25469,16 @@ export type Database = {
         Args: { _company: string; _id: string; _p: Json }
         Returns: string
       }
+      fin_sb_check: { Args: { _company: string; _p: Json }; Returns: undefined }
+      fin_sb_log: {
+        Args: {
+          _action: string
+          _b: Database["public"]["Tables"]["fin_supplier_bills"]["Row"]
+          _detail: Json
+          _reason: string
+        }
+        Returns: undefined
+      }
       fin_season_sample: { Args: { _company: string; _p: Json }; Returns: Json }
       fin_seed_categories: { Args: { _company: string }; Returns: number }
       fin_select: {
@@ -25246,6 +25526,14 @@ export type Database = {
       fin_settle_since: { Args: { _company: string }; Returns: string }
       fin_shift: { Args: { _d: string; _p: string }; Returns: string }
       fin_skip: { Args: { _d: string; _r: Json }; Returns: boolean }
+      fin_supplier_detail: {
+        Args: { _company: string; _supplier: string }
+        Returns: Json
+      }
+      fin_supplier_save: {
+        Args: { _client: string; _company: string; _p: Json }
+        Returns: string
+      }
       fin_tax_compute: {
         Args: {
           _gst_status: string

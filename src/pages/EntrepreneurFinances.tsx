@@ -29,9 +29,10 @@ import Invoices from "@/components/finances/Invoices";
 import RecurringInvoices from "@/components/finances/RecurringInvoices";
 import ClientAccounts from "@/components/finances/ClientAccounts";
 import PaymentProviderSim from "@/components/finances/PaymentProviderSim";
+import SupplierPurchases from "@/components/finances/SupplierPurchases";
 
-type Tab = "factures" | "tresorerie" | "rappels" | "apercu" | "calendrier" | "apayer" | "reglements" | "moyennes" | "parametres";
-const TABS: { v: Tab; l: string }[] = [{ v: "apercu", l: "Vue d'ensemble" }, { v: "calendrier", l: "Calendrier" }, { v: "apayer", l: "À payer" }, { v: "reglements", l: "Règlements" }, { v: "moyennes", l: "Moyennes et équivalents" }, { v: "factures", l: "Factures" }, { v: "tresorerie", l: "Trésorerie" }, { v: "rappels", l: "Rappels" }, { v: "parametres", l: "Paramètres" }];
+type Tab = "achats" | "factures" | "tresorerie" | "rappels" | "apercu" | "calendrier" | "apayer" | "reglements" | "moyennes" | "parametres";
+const TABS: { v: Tab; l: string }[] = [{ v: "apercu", l: "Vue d'ensemble" }, { v: "calendrier", l: "Calendrier" }, { v: "apayer", l: "À payer" }, { v: "reglements", l: "Règlements" }, { v: "moyennes", l: "Moyennes et équivalents" }, { v: "factures", l: "Factures" }, { v: "achats", l: "Fournisseurs et achats" }, { v: "tresorerie", l: "Trésorerie" }, { v: "rappels", l: "Rappels" }, { v: "parametres", l: "Paramètres" }];
 const monthFr = (ym: string) => new Date(`${ym}-01T12:00:00Z`).toLocaleDateString("fr-CA", { timeZone: "UTC", month: "long", year: "numeric" });
 const SettleBadge = ({ o }: { o: Occ }) => o.settle ? <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold ${st.SETTLE_TONE[o.settle] ?? ""}`}>{st.SETTLE_LABEL[o.settle]}{o.late ? " · en retard" : ""}</span> : null;
 /** Fréquence de la version qui a produit l'échéance (jamais réécrite par une règle ultérieure). */
@@ -176,6 +177,7 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
     {tab === "apayer" && <FinanceSearch key="occ" companyId={companyId} companyName={companyName} ctx="occ" rev={rev} canWrite={canWrite} canCorrect={canCorrect} add={add} onPayMany={onPayMany} onOpenPayment={setPayOpen} renderOcc={(o, pick) => <OccRow o={o} onOpen={setOcc} pick={pick} />} />}
     {tab === "reglements" && <FinanceSearch key="pay" companyId={companyId} companyName={companyName} ctx="pay" rev={rev} canWrite={canWrite} canCorrect={canCorrect} onOpenPayment={setPayOpen} renderOcc={(o) => <OccRow o={o} onOpen={setOcc} />} />}
     {tab === "factures" && <InvoicesTab companyId={companyId} companyName={companyName} canWrite={canWrite} />}
+    {tab === "achats" && <SupplierPurchases key={companyId} companyId={companyId} companyName={companyName} canWrite={canWrite} canCorrect={canCorrect} initialOcc={new URLSearchParams(window.location.search).get("occ")} />}
     {tab === "tresorerie" && <Treasury companyId={companyId} companyName={companyName} canWrite={canWrite} cats={cats.filter((c) => !c.archived_at)} />}
     {tab === "rappels" && <Reminders companyId={companyId} companyName={companyName} canWrite={canWrite}
       onOpenOcc={(id) => st.occDetail(id).then((d: any) => { if (d?.occ?.obligation_id) setOcc(d.occ); else toast({ title: "Échéance introuvable ou inaccessible", variant: "destructive" }); })}
@@ -686,6 +688,7 @@ function OccurrenceDialog({ companyId, occ, canWrite, onClose, onChanged, onEdit
       <Button size="sm" variant="outline" onClick={() => setMode("amount")}>Modifier le montant</Button>
       <Button size="sm" variant="outline" onClick={() => setMode("planned")}>Déplacer la date planifiée</Button>
       <Button size="sm" variant="outline" onClick={() => setMode("cancel")}>Annuler cette échéance</Button>
+      {o.amount_quality !== "confirmed" && <Button size="sm" variant="outline" asChild><a href={`/entrepreneur/finances?company=${companyId}&tab=achats&occ=${o.id}`}>Ajouter la facture reçue</a></Button>}
     </div>}
     {canWrite && !mode && <div className="flex flex-wrap gap-2">
       <Button size="sm" variant="ghost" onClick={() => onEdit(o.obligation_id)}>Modifier l'obligation</Button>
