@@ -34,7 +34,7 @@ import ExpenseReports from "@/components/finances/ExpenseReports";
 import BankReconciliation from "@/components/finances/BankReconciliation";
 import GeneralLedger from "@/components/finances/GeneralLedger";
 
-type Tab = "frais" | "achats" | "factures" | "tresorerie" | "rappels" | "apercu" | "calendrier" | "apayer" | "reglements" | "moyennes" | "banque" | "parametres";
+type Tab = "frais" | "achats" | "factures" | "tresorerie" | "rappels" | "apercu" | "calendrier" | "apayer" | "reglements" | "moyennes" | "banque" | "comptabilite" | "parametres";
 const TABS: { v: Tab; l: string }[] = [{ v: "apercu", l: "Vue d'ensemble" }, { v: "calendrier", l: "Calendrier" }, { v: "apayer", l: "À payer" }, { v: "reglements", l: "Règlements" }, { v: "moyennes", l: "Moyennes et équivalents" }, { v: "factures", l: "Factures" }, { v: "achats", l: "Fournisseurs et achats" }, { v: "frais", l: "Notes de frais" }, { v: "tresorerie", l: "Trésorerie" }, { v: "banque", l: "Rapprochement bancaire" }, { v: "comptabilite", l: "Grand livre" }, { v: "rappels", l: "Rappels" }, { v: "parametres", l: "Paramètres" }];
 const monthFr = (ym: string) => new Date(`${ym}-01T12:00:00Z`).toLocaleDateString("fr-CA", { timeZone: "UTC", month: "long", year: "numeric" });
 const SettleBadge = ({ o }: { o: Occ }) => o.settle ? <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold ${st.SETTLE_TONE[o.settle] ?? ""}`}>{st.SETTLE_LABEL[o.settle]}{o.late ? " · en retard" : ""}</span> : null;
