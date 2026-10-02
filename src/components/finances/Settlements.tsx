@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useDraft } from "@/lib/drafts/useDraft";
 import DraftStatusBar from "@/components/drafts/DraftStatusBar";
+import { finAccounts } from "@/lib/finances/purchases";
 import * as st from "@/lib/finances/settlement";
 import { addDays, fmtDate, fmtMoney, todayIn } from "@/lib/finances/period";
 
@@ -20,6 +21,7 @@ const isConflict = (m: string) => /Rechargez|Solde actualisé|déjà réglée|re
 export type PayTarget = { id: string; label: string; due_date: string; balance: number | null | undefined; amount_quality: string; payee: string | null; payee_key?: string };
 
 /** Enregistrer un règlement : une ou plusieurs échéances du même bénéficiaire. */
+const ACCT_KIND: Record<string, string> = { bank: "banque", cash: "caisse", card: "carte", credit: "crédit" };
 export function PaymentDialog({ companyId, companyName, targets, onClose, onDone }: { companyId: string; companyName: string; targets: PayTarget[]; onClose: () => void; onDone: () => void }) {
   const payeeKey = targets[0]?.payee_key ?? "";
   const [idem, setIdem] = useState(() => crypto.randomUUID());
@@ -41,13 +43,17 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
   const { user: me } = useAuthReady();
   const tkey = useMemo(() => targets.map((t) => t.id).sort().join(",").slice(0, 180), [targets]);
   const [fileNames, setFileNames] = useState<string[]>([]);
+  // FIN-13A1 : compte financier d'où l'argent est sorti (obligatoire pour un versement effectué)
+  const [acct, setAcct] = useState("");
+  const [accts, setAccts] = useState<{ id: string; name: string; kind: string }[] | null>(null);
+  useEffect(() => { finAccounts(companyId).then(setAccts).catch(() => setAccts([])); }, [companyId]);
   const store = useDraft({
     id: me ? { module: "finances", form: "reglement", owner: me.id, company: companyId, instance: tkey } : null,
-    data: { pick, amount, date, method, more, src, ref, note, idem, fileNames: files.length ? files.map((f) => f.name) : fileNames },
+    data: { acct, pick, amount, date, method, more, src, ref, note, idem, fileNames: files.length ? files.map((f) => f.name) : fileNames },
     label: () => `Règlement à ${targets[0]?.payee ?? "bénéficiaire non précisé"} (${targets.length} échéance${targets.length > 1 ? "s" : ""})`,
     route: `/entrepreneur/finances?company=${companyId}&tab=apayer&brouillon=reglement&cibles=${encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(targets)))))}`,
     isEmpty: (d) => !d.fileNames?.length && !d.method && !d.src && !d.ref && !d.note && d.date === todayIn(TZ) && d.amount === String(r2(targets.reduce((s, t) => s + Number(t.balance ?? 0), 0))) && JSON.stringify(d.pick) === JSON.stringify(Object.fromEntries(targets.map((t) => [t.id, String(t.balance ?? "")]))),
-    onRestore: (d) => { setPick(d.pick); setAmount(d.amount); setDate(d.date); setMethod(d.method); setMore(d.more); setSrc(d.src); setRef(d.ref); setNote(d.note); if (d.idem) setIdem(d.idem); setFileNames(d.fileNames ?? []); void loadOpen(); },
+    onRestore: (d) => { if (d.acct) setAcct(d.acct); setPick(d.pick); setAmount(d.amount); setDate(d.date); setMethod(d.method); setMore(d.more); setSrc(d.src); setRef(d.ref); setNote(d.note); if (d.idem) setIdem(d.idem); setFileNames(d.fileNames ?? []); void loadOpen(); },
   });
   const loadOpen = () => st.openForPayee(companyId, payeeKey).then((l) => {
     setOpen(l);
@@ -56,14 +62,14 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
   useEffect(() => { void loadOpen(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const allocs = useMemo(() => Object.entries(pick).filter(([, v]) => Number(v) > 0).map(([id, v]) => ({ occurrence_id: id, amount: r2(Number(v)) })), [pick]);
   const [excessOk, setExcessOk] = useState(false);
-  const body = { excess_confirm: excessOk && sum && sum.remainder > 0 ? sum.remainder : null, amount: Number(amount), paid_on: date, method, source_label: src || null, reference: ref || null, note: note || null, idem_key: idem, allocations: allocs, draft: future };
+  const body = { account_id: acct || null, excess_confirm: excessOk && sum && sum.remainder > 0 ? sum.remainder : null, amount: Number(amount), paid_on: date, method, source_label: src || null, reference: ref || null, note: note || null, idem_key: idem, allocations: allocs, draft: future };
 
   useEffect(() => {
     setSum(null); setSumErr(null); setExcessOk(false);
     if (!allocs.length || !(Number(amount) > 0) || !method || !date) return;
     const t = setTimeout(() => st.savePayment(companyId, body, true).then(setSum).catch((e) => setSumErr(e.message)), 300);
     return () => clearTimeout(t);
-  }, [JSON.stringify(allocs), amount, date, method, src, ref]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(allocs), amount, date, method, src, ref, acct]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const suggest = () => {
     let left = Number(amount) || 0; const next: Record<string, string> = {};
@@ -93,6 +99,7 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
     <div className="grid gap-2 sm:grid-cols-2">
       <label className="text-sm"><span className="mb-1 block text-xs text-muted-foreground">Montant versé (CAD) *</span><Input aria-label="Montant versé" type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
       <label className="text-sm"><span className="mb-1 block text-xs text-muted-foreground">Date du versement effectué *</span><Input aria-label="Date du versement" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
+      <label className="text-sm sm:col-span-2"><span className="mb-1 block text-xs text-muted-foreground">Compte financier d'où l'argent est sorti *</span><select aria-label="Compte financier" className={`${sel} w-full`} value={acct} onChange={(e) => setAcct(e.target.value)}><option value="">— Choisir —</option>{(accts ?? []).map((a) => <option key={a.id} value={a.id}>{a.name} ({ACCT_KIND[a.kind] ?? a.kind})</option>)}</select>{accts && accts.length === 0 && <span className="mt-1 block text-xs text-amber-700">Aucun compte financier : créez-en un dans Trésorerie (une caisse pour les espèces).</span>}{method === "especes" && <span className="mt-1 block text-xs text-muted-foreground">Espèces : choisissez un compte de caisse.</span>}</label>
       <label className="text-sm sm:col-span-2"><span className="mb-1 block text-xs text-muted-foreground">Moyen *</span><select aria-label="Moyen" className={`${sel} w-full`} value={method} onChange={(e) => setMethod(e.target.value)}><option value="">— Choisir —</option>{Object.entries(st.METHOD_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
     </div>
     {future && <p className="text-xs text-amber-700">Date future : ce sera un brouillon (planification), pas un versement effectué. Il ne change aucun solde.</p>}
@@ -124,7 +131,7 @@ export function PaymentDialog({ companyId, companyName, targets, onClose, onDone
         {sum.duplicates.length > 0 && <p className="text-xs text-amber-700">Doublon probable : un règlement du même montant, à la même date et au même bénéficiaire existe déjà. Deux versements légitimes restent possibles.</p>}
       </>}
     </section>}
-    <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Annuler</Button><Button disabled={busy || !sum || (sum.remainder > 0 && !excessOk)} onClick={submit}>{busy ? "Enregistrement…" : future ? "Enregistrer le brouillon" : "Valider le règlement"}</Button></div>
+    <div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Annuler</Button><Button disabled={busy || !sum || (!future && !acct) || (sum.remainder > 0 && !excessOk)} onClick={submit}>{busy ? "Enregistrement…" : future ? "Enregistrer le brouillon" : "Valider le règlement"}</Button></div>
   </DialogContent></Dialog>;
 }
 
