@@ -75,10 +75,11 @@ export default function EntrepreneurFlotte() {
     <EntrepreneurAppShell title="Ma flotte" subtitle="Vos véhicules" backTo={null}>
       <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:py-8">
         {companyId && !denied && (
-          <div className="mb-4 flex gap-2">
+          <div className="mb-4 flex flex-wrap gap-2">
             <Button size="sm" variant={onglet === "vehicules" ? "default" : "outline"} onClick={() => setOnglet("vehicules")}>Véhicules</Button>
             <Button size="sm" variant={onglet === "ronde" ? "default" : "outline"} onClick={() => setOnglet("ronde")}>Ronde de sécurité</Button>
             <Button size="sm" variant="outline" asChild><a href="/entrepreneur/assurances">Assurances</a></Button>
+            <Button size="sm" variant="outline" asChild><a href="/entrepreneur/flotte/logbook">Logbook et heures de conduite</a></Button>
           </div>
         )}
         {onglet === "ronde" && companyId && !denied ? <SafetyRound companyId={companyId} /> : (<>

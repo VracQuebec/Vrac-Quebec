@@ -17900,6 +17900,483 @@ export type Database = {
           },
         ]
       }
+      log_attachments: {
+        Row: {
+          company_id: string
+          day: string | null
+          driver_user_id: string
+          event_root_id: string | null
+          file_name: string
+          id: string
+          mime_type: string | null
+          storage_path: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          company_id: string
+          day?: string | null
+          driver_user_id: string
+          event_root_id?: string | null
+          file_name: string
+          id?: string
+          mime_type?: string | null
+          storage_path: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          company_id?: string
+          day?: string | null
+          driver_user_id?: string
+          event_root_id?: string | null
+          file_name?: string
+          id?: string
+          mime_type?: string | null
+          storage_path?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "log_attachments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      log_dce_devices: {
+        Row: {
+          certification_number: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          device_identifier: string | null
+          id: string
+          model: string | null
+          provider: string | null
+          software_version: string | null
+          truck_id: string | null
+          verification_status: string
+        }
+        Insert: {
+          certification_number?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          device_identifier?: string | null
+          id?: string
+          model?: string | null
+          provider?: string | null
+          software_version?: string | null
+          truck_id?: string | null
+          verification_status?: string
+        }
+        Update: {
+          certification_number?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          device_identifier?: string | null
+          id?: string
+          model?: string | null
+          provider?: string | null
+          software_version?: string | null
+          truck_id?: string | null
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "log_dce_devices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "log_dce_devices_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      log_events: {
+        Row: {
+          actor_id: string
+          category: string | null
+          client_request_id: string
+          codriver_user_id: string | null
+          company_id: string
+          correction_reason: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          driver_user_id: string
+          duty_status: string
+          ended_at: string | null
+          entered_at: string
+          id: string
+          note: string | null
+          profile_version: number | null
+          received_at: string
+          refs: Json
+          revision: number
+          root_id: string
+          source: string
+          started_at: string
+          state: string
+          supersedes_id: string | null
+          time_zone: string
+          truck_id: string | null
+          utc_offset_min: number
+          validation_label: string
+        }
+        Insert: {
+          actor_id: string
+          category?: string | null
+          client_request_id: string
+          codriver_user_id?: string | null
+          company_id: string
+          correction_reason?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          driver_user_id: string
+          duty_status: string
+          ended_at?: string | null
+          entered_at: string
+          id?: string
+          note?: string | null
+          profile_version?: number | null
+          received_at?: string
+          refs?: Json
+          revision?: number
+          root_id: string
+          source?: string
+          started_at: string
+          state?: string
+          supersedes_id?: string | null
+          time_zone: string
+          truck_id?: string | null
+          utc_offset_min: number
+          validation_label?: string
+        }
+        Update: {
+          actor_id?: string
+          category?: string | null
+          client_request_id?: string
+          codriver_user_id?: string | null
+          company_id?: string
+          correction_reason?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          driver_user_id?: string
+          duty_status?: string
+          ended_at?: string | null
+          entered_at?: string
+          id?: string
+          note?: string | null
+          profile_version?: number | null
+          received_at?: string
+          refs?: Json
+          revision?: number
+          root_id?: string
+          source?: string
+          started_at?: string
+          state?: string
+          supersedes_id?: string | null
+          time_zone?: string
+          truck_id?: string | null
+          utc_offset_min?: number
+          validation_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "log_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "log_events_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "log_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "log_events_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      log_profile_versions: {
+        Row: {
+          changed_by: string | null
+          company_id: string
+          driver_user_id: string
+          id: string
+          profile_id: string
+          snapshot: Json
+          valid_from: string
+          version: number
+        }
+        Insert: {
+          changed_by?: string | null
+          company_id: string
+          driver_user_id: string
+          id?: string
+          profile_id: string
+          snapshot: Json
+          valid_from?: string
+          version: number
+        }
+        Update: {
+          changed_by?: string | null
+          company_id?: string
+          driver_user_id?: string
+          id?: string
+          profile_id?: string
+          snapshot?: Json
+          valid_from?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "log_profile_versions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "log_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      log_profiles: {
+        Row: {
+          codriver_user_id: string | null
+          company_id: string
+          created_at: string
+          current_truck_id: string | null
+          cycle: string
+          day_start: string
+          display_name: string | null
+          driver_user_id: string
+          history_note: string | null
+          history_status: string
+          home_terminal: string | null
+          home_terminal_address: string | null
+          id: string
+          license_jurisdiction: string | null
+          license_number: string | null
+          regime: string
+          time_zone: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          codriver_user_id?: string | null
+          company_id: string
+          created_at?: string
+          current_truck_id?: string | null
+          cycle?: string
+          day_start?: string
+          display_name?: string | null
+          driver_user_id: string
+          history_note?: string | null
+          history_status?: string
+          home_terminal?: string | null
+          home_terminal_address?: string | null
+          id?: string
+          license_jurisdiction?: string | null
+          license_number?: string | null
+          regime?: string
+          time_zone?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          codriver_user_id?: string | null
+          company_id?: string
+          created_at?: string
+          current_truck_id?: string | null
+          cycle?: string
+          day_start?: string
+          display_name?: string | null
+          driver_user_id?: string
+          history_note?: string | null
+          history_status?: string
+          home_terminal?: string | null
+          home_terminal_address?: string | null
+          id?: string
+          license_jurisdiction?: string | null
+          license_number?: string | null
+          regime?: string
+          time_zone?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "log_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "log_profiles_current_truck_id_fkey"
+            columns: ["current_truck_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      log_qualifications: {
+        Row: {
+          answers: Json
+          company_id: string
+          dce_obligation: string
+          driver_user_id: string
+          evidence_paths: string[]
+          hours_rules: string
+          id: string
+          path: string
+          reasons: string | null
+          report_obligation: string
+          reviewed_at: string
+          reviewed_by: string
+          solution_coverage: string
+        }
+        Insert: {
+          answers?: Json
+          company_id: string
+          dce_obligation?: string
+          driver_user_id: string
+          evidence_paths?: string[]
+          hours_rules?: string
+          id?: string
+          path?: string
+          reasons?: string | null
+          report_obligation?: string
+          reviewed_at?: string
+          reviewed_by: string
+          solution_coverage?: string
+        }
+        Update: {
+          answers?: Json
+          company_id?: string
+          dce_obligation?: string
+          driver_user_id?: string
+          evidence_paths?: string[]
+          hours_rules?: string
+          id?: string
+          path?: string
+          reasons?: string | null
+          report_obligation?: string
+          reviewed_at?: string
+          reviewed_by?: string
+          solution_coverage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "log_qualifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      log_trial_companies: {
+        Row: {
+          company_id: string
+          enabled_at: string
+          enabled_by: string | null
+          note: string | null
+        }
+        Insert: {
+          company_id: string
+          enabled_at?: string
+          enabled_by?: string | null
+          note?: string | null
+        }
+        Update: {
+          company_id?: string
+          enabled_at?: string
+          enabled_by?: string | null
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "log_trial_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      log_vehicle_ext: {
+        Row: {
+          company_id: string
+          device_installed: string | null
+          has_sleeper: string
+          is_leased: string
+          lessor: string | null
+          truck_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          device_installed?: string | null
+          has_sleeper?: string
+          is_leased?: string
+          lessor?: string | null
+          truck_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          device_installed?: string | null
+          has_sleeper?: string
+          is_leased?: string
+          lessor?: string | null
+          truck_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "log_vehicle_ext_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "log_vehicle_ext_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: true
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matching_settings: {
         Row: {
           created_at: string
@@ -32060,6 +32537,88 @@ export type Database = {
           roles: Database["public"]["Enums"]["app_role"][]
           user_id: string
         }[]
+      }
+      log_add_event: {
+        Args: {
+          p: Json
+          p_client_id: string
+          p_company: string
+          p_driver: string
+        }
+        Returns: Json
+      }
+      log_admin_set_trial: {
+        Args: { p_company: string; p_enabled: boolean }
+        Returns: undefined
+      }
+      log_company_drivers: {
+        Args: { p_company: string }
+        Returns: {
+          display_name: string
+          email: string
+          role: string
+          user_id: string
+        }[]
+      }
+      log_correct_event: {
+        Args: {
+          p: Json
+          p_client_id: string
+          p_event: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      log_decide: {
+        Args: { p_accept: boolean; p_note: string; p_proposal: string }
+        Returns: undefined
+      }
+      log_enabled: { Args: { _company: string }; Returns: boolean }
+      log_guard: {
+        Args: { _company: string; _driver: string }
+        Returns: undefined
+      }
+      log_is_manager: { Args: { _company: string }; Returns: boolean }
+      log_my_context: { Args: never; Returns: Json }
+      log_overlap: {
+        Args: {
+          p_company: string
+          p_driver: string
+          p_end: string
+          p_ignore: string
+          p_start: string
+        }
+        Returns: string
+      }
+      log_register_attachment: {
+        Args: {
+          p_company: string
+          p_day: string
+          p_driver: string
+          p_mime: string
+          p_name: string
+          p_path: string
+          p_root: string
+        }
+        Returns: string
+      }
+      log_save_dce: { Args: { p: Json; p_company: string }; Returns: string }
+      log_save_profile: {
+        Args: {
+          p: Json
+          p_company: string
+          p_driver: string
+          p_expected_version: number
+        }
+        Returns: number
+      }
+      log_save_qualification: {
+        Args: { p: Json; p_company: string; p_driver: string }
+        Returns: string
+      }
+      log_save_vehicle: {
+        Args: { p: Json; p_truck: string }
+        Returns: undefined
       }
       matching_lab_candidates: {
         Args: { _lat?: number; _limit?: number; _lng?: number }

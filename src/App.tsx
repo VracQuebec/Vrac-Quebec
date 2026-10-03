@@ -139,6 +139,8 @@ const DriverMission = lazy(() => import("./pages/DriverMission"));
 const AdminMissions = lazy(() => import("./pages/AdminMissions"));
 const AdminRelances = lazy(() => import("./pages/AdminRelances"));
 const AdminVolets = lazy(() => import("./pages/AdminVolets"));
+const AdminLogbook = lazy(() => import("./pages/AdminLogbook"));
+const EntrepreneurLogbook = lazy(() => import("./pages/EntrepreneurLogbook"));
 const AdminTaches = lazy(() => import("./pages/AdminTaches"));
 const AdminAgenda = lazy(() => import("./pages/AdminAgenda"));
 const EntrepreneurAgenda = lazy(() => import("./pages/EntrepreneurAgenda"));
@@ -255,6 +257,7 @@ const App = () => (
             <Route path="/entrepreneur/assurances/:policyId" element={<EntrepreneurAssurances />} />
             <Route path="/entrepreneur/transports" element={<EntrepreneurTransports />} />
             <Route path="/entrepreneur/flotte" element={<EntrepreneurFlotte />} />
+            <Route path="/entrepreneur/flotte/logbook" element={<EntrepreneurLogbook />} />
             <Route path="/entrepreneur/finances" element={<EntrepreneurFinances />} />
             <Route path="/entrepreneur/notes-de-frais" element={<EntrepreneurNotesDeFrais />} />
             <Route path="/entrepreneur/brouillons" element={<EntrepreneurBrouillons />} />
@@ -340,6 +343,7 @@ const App = () => (
             <Route path="/admin/centre-controle" element={<AdminControlCenter />} />
             <Route path="/admin/coupons" element={<AdminCoupons />} />
             <Route path="/admin/volets" element={<AdminVolets />} />
+            <Route path="/admin/logbook" element={<AdminLogbook />} />
             <Route path="/admin/taches" element={<AdminTaches />} />
             <Route path="/admin/agenda" element={<AdminAgenda />} />
             <Route path="/admin/punch" element={<AdminPunch />} />

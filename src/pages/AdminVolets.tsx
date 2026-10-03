@@ -15,6 +15,7 @@ const categories = [
     { title: "Analyses de sols", detail: "Soumissions, rendez-vous, prélèvements et résultats", to: "/admin/services?volet=sols", icon: Activity },
   ] },
   { title: "Suivi et relances", tools: [
+    { title: "Logbook (essais)", detail: "Entreprises autorisées — prototype non certifié", to: "/admin/logbook", icon: ClipboardList },
     { title: "Missions des chauffeurs", detail: "Missions et arrêts horodatés", to: "/admin/missions", icon: MapPin },
     { title: "Relances commerciales", detail: "Calendrier prévisionnel sans envoi promotionnel", to: "/admin/relances", icon: Bell },
   ] },
