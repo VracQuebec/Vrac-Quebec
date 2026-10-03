@@ -180,17 +180,24 @@ export default function UniversalNav() {
                   <SheetTitle className="font-display text-base font-bold">Navigation CRM</SheetTitle>
                 </div>
                 <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-3">
-                  {adminLinks.map(({ to, label, icon: Icon }) => (
-                    <Button
-                      key={to}
-                      type="button"
-                      variant={path === to ? "secondary" : "ghost"}
-                      onClick={() => { setAdminMenuOpen(false); navigate(to); }}
-                      className="min-h-11 w-full justify-start gap-3 whitespace-normal text-left"
-                    >
-                      <Icon className="h-4 w-4 shrink-0" />
-                      <span>{label}</span>
-                    </Button>
+                  {adminSections.map((section) => (
+                    <div key={section.title}>
+                      <p className="px-3 pb-1 pt-3 font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                        {section.title}
+                      </p>
+                      {section.links.map(({ to, label, icon: Icon }) => (
+                        <Button
+                          key={to}
+                          type="button"
+                          variant={path === to ? "secondary" : "ghost"}
+                          onClick={() => { setAdminMenuOpen(false); navigate(to); }}
+                          className="min-h-11 w-full justify-start gap-3 whitespace-normal text-left"
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span>{label}</span>
+                        </Button>
+                      ))}
+                    </div>
                   ))}
                 </div>
                 <div className="border-t border-border p-3 pb-[max(.75rem,env(safe-area-inset-bottom))]">
