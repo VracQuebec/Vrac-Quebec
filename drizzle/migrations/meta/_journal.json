@@ -1065,6 +1065,13 @@
       "when": 1790994377435,
       "tag": "0151_todo_tasks_extend",
       "breakpoints": true
+    },
+    {
+      "idx": 152,
+      "version": "7",
+      "when": 1790995002068,
+      "tag": "0152_agenda_lot_b",
+      "breakpoints": true
     }
   ]
 }
