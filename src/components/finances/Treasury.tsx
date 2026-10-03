@@ -13,6 +13,7 @@ import { addDays, addMonths, fmtDate, parse, todayIn, ymd } from "@/lib/finances
 import { daysInclusive, download, toCsv } from "@/lib/finances/query";
 import * as T from "@/lib/finances/treasury";
 import * as ta from "@/lib/finances/treasuryApi";
+import { supabase } from "@/integrations/supabase/client";
 
 const TZ = "America/Toronto";
 const sel = "h-10 rounded-md border border-input bg-background px-2 text-sm";
@@ -150,7 +151,14 @@ function Accounts({ companyId, data, canWrite, refresh }: { companyId: string; d
       <Input aria-label="Date du transfert" type="date" className="w-40" value={tr.planned_on} onChange={(e) => setTr({ ...tr, planned_on: e.target.value })} />
       <Button disabled={!tr.from_account || !tr.to_account || tr.from_account === tr.to_account || !(Number(tr.amount) > 0) || !tr.planned_on} onClick={() => save(async () => { await ta.insert("fin_transfers", { company_id: companyId, ...tr, amount: Number(tr.amount) }); setTr({ from_account: "", to_account: "", amount: "", planned_on: "" }); })}>Ajouter</Button></div>}
     <ObligationAccounts companyId={companyId} data={data} canWrite={canWrite} save={save} />
-    {data.transfers.length > 0 && <ul className="text-sm">{data.transfers.map((t) => <li key={t.id}>{fmtDate(t.planned_on)} · {money(T.toCents(t.amount))} · {data.accounts.find((x) => x.id === t.from_account)?.name} → {data.accounts.find((x) => x.id === t.to_account)?.name}{canWrite && <button className="ml-2 text-xs underline" onClick={() => save(() => ta.archive("fin_transfers", t.id))}>Retirer</button>}</li>)}</ul>}
+    {data.transfers.length > 0 && <ul className="text-sm">{data.transfers.map((t) => { const x = t as typeof t & { done_on?: string | null; gl_entry_id?: string | null };
+      return <li key={t.id}>{fmtDate(t.planned_on)} · {money(T.toCents(t.amount))} · {data.accounts.find((a) => a.id === t.from_account)?.name} → {data.accounts.find((a) => a.id === t.to_account)?.name}
+        {x.gl_entry_id ? <span className="ml-2 text-xs text-primary">Effectué le {fmtDate(x.done_on!)} · comptabilisé</span> : canWrite && <>
+          <button className="ml-2 text-xs underline" onClick={() => { const d = window.prompt("Date réelle du virement (AAAA-MM-JJ)", todayIn()); if (!d) return; const ref = window.prompt("Référence bancaire (facultatif)") ?? "";
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            save(async () => { const { data: r, error } = await (supabase.rpc as any)("fin_transfer_execute", { _transfer: t.id, _date: d, _ref: ref, _key: crypto.randomUUID() }); if (error) throw error; toast({ title: `Virement comptabilisé (écriture n° ${r.entry_no})` }); }); }}>Marquer effectué</button>
+          <button className="ml-2 text-xs underline" onClick={() => save(() => ta.archive("fin_transfers", t.id))}>Retirer</button></>}
+      </li>; })}</ul>}
     <Dialog open={!!b} onOpenChange={(o) => !o && setB(null)}><DialogContent><DialogHeader><DialogTitle>Solde du compte</DialogTitle></DialogHeader>{b && <div className="space-y-2">
       <Input aria-label="Montant du solde" type="number" step="0.01" placeholder="Montant" value={b.amount} onChange={(e) => setB({ ...b, amount: e.target.value })} />
       <Input aria-label="Date du solde" type="date" value={b.as_of} max={todayIn(TZ)} onChange={(e) => setB({ ...b, as_of: e.target.value })} />
