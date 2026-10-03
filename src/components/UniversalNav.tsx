@@ -99,6 +99,7 @@ export default function UniversalNav() {
     { to: "/admin", label: "Demandes (CRM)", icon: LayoutDashboard },
     { to: "/admin/notifications", label: "Centre de notifications", icon: Bell },
     { to: "/admin/demandes-acces", label: "Demandes d'accès", icon: Truck },
+    { to: "/admin/coupons", label: "Carnets de coupons", icon: Truck },
     { to: "/admin/calendrier", label: "Calendrier", icon: CalendarDays },
     { to: "/admin/flotte", label: "Gestion de la flotte", icon: Truck },
     { to: "/admin/business-intelligence", label: "Business Intelligence", icon: BarChart3 },

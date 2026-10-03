@@ -1236,6 +1236,160 @@ export type Database = {
           },
         ]
       }
+      cpn_book_events: {
+        Row: {
+          action: string
+          actor: string | null
+          book_id: string
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string | null
+          to_status: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          book_id: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          book_id?: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cpn_book_events_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "cpn_books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cpn_books: {
+        Row: {
+          address: string | null
+          book_number: string
+          carrier: string | null
+          city: string | null
+          copies: number
+          coupon_count: number
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          entrepreneur_id: string | null
+          first_coupon: number
+          id: string
+          last_coupon: number
+          note: string | null
+          postal_code: string | null
+          reason: string
+          recipient_company: string | null
+          recipient_name: string | null
+          recipient_type: string
+          replaces_id: string | null
+          shipped_at: string | null
+          status: string
+          submission_id: string | null
+          tracking: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          book_number: string
+          carrier?: string | null
+          city?: string | null
+          copies?: number
+          coupon_count?: number
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          entrepreneur_id?: string | null
+          first_coupon: number
+          id?: string
+          last_coupon: number
+          note?: string | null
+          postal_code?: string | null
+          reason?: string
+          recipient_company?: string | null
+          recipient_name?: string | null
+          recipient_type: string
+          replaces_id?: string | null
+          shipped_at?: string | null
+          status?: string
+          submission_id?: string | null
+          tracking?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          book_number?: string
+          carrier?: string | null
+          city?: string | null
+          copies?: number
+          coupon_count?: number
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          entrepreneur_id?: string | null
+          first_coupon?: number
+          id?: string
+          last_coupon?: number
+          note?: string | null
+          postal_code?: string | null
+          reason?: string
+          recipient_company?: string | null
+          recipient_name?: string | null
+          recipient_type?: string
+          replaces_id?: string | null
+          shipped_at?: string | null
+          status?: string
+          submission_id?: string | null
+          tracking?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cpn_books_entrepreneur_id_fkey"
+            columns: ["entrepreneur_id"]
+            isOneToOne: false
+            referencedRelation: "entrepreneurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cpn_books_replaces_id_fkey"
+            columns: ["replaces_id"]
+            isOneToOne: false
+            referencedRelation: "cpn_books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cpn_books_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "cpn_books_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_activities: {
         Row: {
           body: string | null
@@ -26482,6 +26636,40 @@ export type Database = {
       count_active_dumps_by_city: {
         Args: { _city_slug: string }
         Returns: number
+      }
+      cpn_book_action: {
+        Args: {
+          _action: string
+          _address?: string
+          _carrier?: string
+          _city?: string
+          _id: string
+          _note?: string
+          _postal?: string
+          _tracking?: string
+        }
+        Returns: Json
+      }
+      cpn_book_create: {
+        Args: { _count?: number; _ent: string; _sub: string; _type: string }
+        Returns: string
+      }
+      cpn_new_book: {
+        Args: {
+          _actor: string
+          _address: string
+          _city: string
+          _company: string
+          _count?: number
+          _ent: string
+          _name: string
+          _postal: string
+          _reason: string
+          _replaces: string
+          _sub: string
+          _type: string
+        }
+        Returns: string
       }
       crm_merge_entities: {
         Args: { _owner_type: string; _source_id: string; _target_id: string }
