@@ -117,7 +117,7 @@ export function useEntrepreneurNotifications(enabled = true) {
     );
     try {
       if (id.startsWith(OBL_PREFIX)) await (supabase as any).rpc("obl_mark_read", { _delivery: id.slice(OBL_PREFIX.length) });
-      if (id.startsWith(AGD_PREFIX)) await (supabase as any).rpc("agd_mark_read", { _delivery: id.slice(AGD_PREFIX.length) });
+      else if (id.startsWith(AGD_PREFIX)) await (supabase as any).rpc("agd_mark_read", { _delivery: id.slice(AGD_PREFIX.length) });
       else if (id.startsWith(FIN_PREFIX)) await (supabase as any).rpc("fin_reminder_mark_read", { _reminder: id.slice(FIN_PREFIX.length) });
       else await markNotificationRead(id);
     } catch {

@@ -1,10 +1,16 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import ObligationsBoard from "@/components/obligations/ObligationsBoard";
 import { useCompanyRole } from "@/components/todo/useCompanyRole";
 
 export default function EntrepreneurObligations() {
   const { companies, companyId, setCompanyId, role, ready } = useCompanyRole();
-  const canWrite = ["proprietaire", "gestionnaire", "assistance", "admin"].includes(role ?? "");
+  const [canWrite, setCanWrite] = useState(false);
+  useEffect(() => {
+    setCanWrite(false);
+    if (companyId) (supabase as any).rpc("entcrm_can_write", { _company_id: companyId }).then(({ data }: any) => setCanWrite(data === true));
+  }, [companyId]);
   return (
     <EntrepreneurAppShell title="Obligations et renouvellements" subtitle={companies.find((c) => c.id === companyId)?.name ?? ""} backTo={null} allowCompanyMembers>
       {companies.length > 1 && (
