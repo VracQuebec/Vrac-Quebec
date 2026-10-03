@@ -30462,6 +30462,7 @@ export type Database = {
         Returns: Json
       }
       pay_bracket_tax: { Args: { _br: Json; _inc: number }; Returns: number }
+      pay_can_manage: { Args: { _company: string }; Returns: boolean }
       pay_employee_save: {
         Args: {
           _active: boolean
