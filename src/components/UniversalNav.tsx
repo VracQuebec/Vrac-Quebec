@@ -94,26 +94,51 @@ export default function UniversalNav() {
 
   if (hidden) return null;
 
-  const adminLinks = [
-    { to: "/admin/centre-controle", label: "Centre de contrôle", icon: Activity },
-    { to: "/admin/volets", label: "Coupons, voyages et services", icon: Truck },
-    { to: "/admin/taches", label: "Listes de tâches", icon: ListChecks },
-    { to: "/admin/agenda", label: "Agendas des entreprises", icon: CalendarDays },
-    { to: "/admin/punch", label: "Punch et heures", icon: Clock },
-    { to: "/admin/conversations", label: "Conversations du site", icon: MessageCircle },
-    { to: "/admin", label: "Demandes (CRM)", icon: LayoutDashboard },
-    { to: "/admin/notifications", label: "Centre de notifications", icon: Bell },
-    { to: "/admin/demandes-acces", label: "Demandes d'accès", icon: Truck },
-    { to: "/admin/calendrier", label: "Calendrier", icon: CalendarDays },
-    { to: "/admin/flotte", label: "Gestion de la flotte", icon: Truck },
-    { to: "/admin/business-intelligence", label: "Business Intelligence", icon: BarChart3 },
-    { to: "/admin/blogue", label: "Blogue", icon: BookOpen },
-    { to: "/admin/liste-noire", label: "Liste noire", icon: Ban },
-    { to: "/admin/seo", label: "SEO", icon: MapPin },
-    { to: "/admin/donnees", label: "Données", icon: Database },
-    { to: "/admin/settings", label: "Paramètres", icon: Settings },
-    { to: "/admin/plateforme", label: "Paramètres plateforme", icon: Settings },
-    { to: "/admin/jsc", label: "Back office de l'entreprise", icon: Building2 },
+  const adminSections = [
+    {
+      title: "Opérations",
+      links: [
+        { to: "/admin/centre-controle", label: "Centre de contrôle", icon: Activity },
+        { to: "/admin/volets", label: "Coupons, voyages et services", icon: Truck },
+        { to: "/admin/calendrier", label: "Calendrier", icon: CalendarDays },
+        { to: "/admin/flotte", label: "Gestion de la flotte", icon: Truck },
+      ],
+    },
+    {
+      title: "Équipe",
+      links: [
+        { to: "/admin/taches", label: "Listes de tâches", icon: ListChecks },
+        { to: "/admin/agenda", label: "Agendas des entreprises", icon: CalendarDays },
+        { to: "/admin/punch", label: "Punch et heures", icon: Clock },
+        { to: "/admin/conversations", label: "Conversations du site", icon: MessageCircle },
+      ],
+    },
+    {
+      title: "Demandes et clients",
+      links: [
+        { to: "/admin", label: "Demandes (CRM)", icon: LayoutDashboard },
+        { to: "/admin/demandes-acces", label: "Demandes d'accès", icon: Truck },
+        { to: "/admin/liste-noire", label: "Liste noire", icon: Ban },
+      ],
+    },
+    {
+      title: "Contenu et visibilité",
+      links: [
+        { to: "/admin/blogue", label: "Blogue", icon: BookOpen },
+        { to: "/admin/seo", label: "SEO", icon: MapPin },
+      ],
+    },
+    {
+      title: "Pilotage",
+      links: [
+        { to: "/admin/notifications", label: "Centre de notifications", icon: Bell },
+        { to: "/admin/business-intelligence", label: "Business Intelligence", icon: BarChart3 },
+        { to: "/admin/donnees", label: "Données", icon: Database },
+        { to: "/admin/settings", label: "Paramètres", icon: Settings },
+        { to: "/admin/plateforme", label: "Paramètres plateforme", icon: Settings },
+        { to: "/admin/jsc", label: "Back office de l'entreprise", icon: Building2 },
+      ],
+    },
   ];
 
   if (isAdmin) {
