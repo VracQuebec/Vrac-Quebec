@@ -180,3 +180,6 @@
 - [ ] Application mobile native pour le suivi des chauffeurs écran verrouillé
 - [ ] Comparaison avec les compétiteurs sur les analyses de sols à vérifier avant toute publicité
 - [ ] Décision : rattachement des 23 clients JSC réels; prix Entrepreneur Pro; compte Stripe réel; autorisation de publication
+
+- [x] Ronde de sécurité (gestion de flotte) : référentiel, ronde téléphone, défauts, réparations, tableau de bord
+- [ ] Ronde : photo du défaut, mode hors connexion complet, cloisonnement TEST B à vérifier
