@@ -11138,7 +11138,11 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string | null
+          done_by: string | null
+          done_on: string | null
+          done_ref: string | null
           from_account: string
+          gl_entry_id: string | null
           id: string
           note: string | null
           planned_on: string
@@ -11150,7 +11154,11 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by?: string | null
+          done_by?: string | null
+          done_on?: string | null
+          done_ref?: string | null
           from_account: string
+          gl_entry_id?: string | null
           id?: string
           note?: string | null
           planned_on: string
@@ -11162,7 +11170,11 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string | null
+          done_by?: string | null
+          done_on?: string | null
+          done_ref?: string | null
           from_account?: string
+          gl_entry_id?: string | null
           id?: string
           note?: string | null
           planned_on?: string
@@ -11181,6 +11193,13 @@ export type Database = {
             columns: ["from_account"]
             isOneToOne: false
             referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_transfers_gl_entry_id_fkey"
+            columns: ["gl_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_entries"
             referencedColumns: ["id"]
           },
           {
@@ -32304,6 +32323,10 @@ export type Database = {
           _ref: string
         }
         Returns: undefined
+      }
+      fin_transfer_execute: {
+        Args: { _date: string; _key: string; _ref: string; _transfer: string }
+        Returns: Json
       }
       fin_validate_rule: { Args: { _r: Json }; Returns: undefined }
       fleet_can_access: { Args: { _company_id: string }; Returns: boolean }
