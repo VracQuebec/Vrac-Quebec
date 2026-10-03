@@ -67,6 +67,8 @@ export const saveDraft = (company: string, d: { id: string | null; rev: number |
 export const discard = (id: string, rev: number) => rpc("fin_gl_entry_discard", { _id: id, _rev: rev });
 export const validate = (id: string, rev: number) => rpc("fin_gl_entry_validate", { _id: id, _rev: rev }) as Promise<{ id: string; entry_no: number }>;
 export const reverse = (id: string, reason: string, date: string, key: string) => rpc("fin_gl_entry_reverse", { _id: id, _reason: reason, _date: date, _key: key }) as Promise<{ id: string; entry_no: number }>;
+/** Régularisation : validation + contrepassation datée, dans une seule transaction serveur. */
+export const validateAccrual = (id: string, rev: number, reverseOn: string, key: string) => rpc("fin_gl_accrual_validate", { _id: id, _rev: rev, _reverse_on: reverseOn, _key: key }) as Promise<{ entry_no: number; reversal_no: number }>;
 export const pending = (company: string) => rpc("fin_gl_pending", { _company: company }) as Promise<Pending[]>;
 export const sync = (company: string) => rpc("fin_gl_sync", { _company: company }) as Promise<{ posted: number; reversed: number; a_completer: number }>;
 export type LedgerRow = { entry_id: string; entry_no: number; date: string; reference: string | null; description: string; memo: string | null; debit: number; credit: number; balance: number; source_kind: string | null; source_id: string | null; origin: string };
