@@ -12,7 +12,7 @@ const PLACES = [
 ];
 const STATUS: Record<string, string> = { ouvert: "En cours", soumis: "À approuver", approuve: "Approuvé", refuse: "Refusé" };
 const MANAGERS = ["support", "proprietaire", "gestionnaire"];
-const fmtMin = (m: number) => `${Math.floor(m / 60)} h ${String(Math.round(m % 60)).padStart(2, "0")}`;
+const fmtMin = (x: number) => { const m = Math.max(0, Number(x) || 0); return `${Math.floor(m / 60)} h ${String(Math.round(m % 60)).padStart(2, "0")}`; };
 const dt = (s: string) => new Date(s).toLocaleString("fr-CA", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const localInput = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 const monday = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
@@ -107,7 +107,7 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `heures-${from}-${to}.csv`; a.click();
   };
 
-  const elapsed = openWork ? (now - new Date(openWork.started_at).getTime()) / 60000 : 0;
+  const elapsed = openWork ? Math.max(0, (now - new Date(openWork.started_at).getTime()) / 60000) : 0;
   const weekMine = useMemo(() => mine.filter((e) => e.ended_at && new Date(e.started_at) >= monday()).reduce((t, e) =>
     t + (e.kind === "travail" ? 1 : -1) * (new Date(e.ended_at!).getTime() - new Date(e.started_at).getTime()) / 60000, 0), [mine]);
 
