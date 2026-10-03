@@ -1345,6 +1345,13 @@
       "when": 1791018807966,
       "tag": "0191_fin13_transfers_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 192,
+      "version": "7",
+      "when": 1791019528952,
+      "tag": "0192_fin16_loans_assets",
+      "breakpoints": true
     }
   ]
 }

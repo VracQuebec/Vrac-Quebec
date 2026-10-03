@@ -5033,6 +5033,138 @@ export type Database = {
           },
         ]
       }
+      fin_asset_depr: {
+        Row: {
+          amount: number
+          asset_id: string
+          company_id: string
+          created_at: string
+          gl_entry_id: string | null
+          id: string
+          period: string
+        }
+        Insert: {
+          amount: number
+          asset_id: string
+          company_id: string
+          created_at?: string
+          gl_entry_id?: string | null
+          id?: string
+          period: string
+        }
+        Update: {
+          amount?: number
+          asset_id?: string
+          company_id?: string
+          created_at?: string
+          gl_entry_id?: string | null
+          id?: string
+          period?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_asset_depr_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "fin_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_asset_depr_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_asset_depr_gl_entry_id_fkey"
+            columns: ["gl_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_assets: {
+        Row: {
+          accum_gl: string | null
+          acquired_on: string
+          archived_at: string | null
+          asset_gl: string | null
+          company_id: string
+          cost: number
+          created_at: string
+          created_by: string | null
+          expense_gl: string | null
+          id: string
+          life_months: number
+          name: string
+          note: string | null
+          salvage: number
+        }
+        Insert: {
+          accum_gl?: string | null
+          acquired_on: string
+          archived_at?: string | null
+          asset_gl?: string | null
+          company_id: string
+          cost: number
+          created_at?: string
+          created_by?: string | null
+          expense_gl?: string | null
+          id?: string
+          life_months: number
+          name: string
+          note?: string | null
+          salvage?: number
+        }
+        Update: {
+          accum_gl?: string | null
+          acquired_on?: string
+          archived_at?: string | null
+          asset_gl?: string | null
+          company_id?: string
+          cost?: number
+          created_at?: string
+          created_by?: string | null
+          expense_gl?: string | null
+          id?: string
+          life_months?: number
+          name?: string
+          note?: string | null
+          salvage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_assets_accum_gl_fkey"
+            columns: ["accum_gl"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_assets_asset_gl_fkey"
+            columns: ["asset_gl"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_assets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_assets_expense_gl_fkey"
+            columns: ["expense_gl"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_balances: {
         Row: {
           account_id: string
@@ -7498,6 +7630,153 @@ export type Database = {
             columns: ["recurrence_occurrence_id"]
             isOneToOne: true
             referencedRelation: "fin_recurring_occurrences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_loan_payments: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          fin_account_id: string
+          gl_entry_id: string | null
+          id: string
+          idem_key: string
+          interest: number
+          loan_id: string
+          paid_on: string
+          principal: number
+          reference: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          fin_account_id: string
+          gl_entry_id?: string | null
+          id?: string
+          idem_key: string
+          interest: number
+          loan_id: string
+          paid_on: string
+          principal: number
+          reference?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          fin_account_id?: string
+          gl_entry_id?: string | null
+          id?: string
+          idem_key?: string
+          interest?: number
+          loan_id?: string
+          paid_on?: string
+          principal?: number
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_loan_payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_loan_payments_fin_account_id_fkey"
+            columns: ["fin_account_id"]
+            isOneToOne: false
+            referencedRelation: "fin_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_loan_payments_gl_entry_id_fkey"
+            columns: ["gl_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_loan_payments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "fin_loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_loans: {
+        Row: {
+          annual_rate: number | null
+          archived_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          interest_gl: string | null
+          lender: string | null
+          loan_gl: string | null
+          name: string
+          note: string | null
+          principal: number
+          start_on: string
+          term_months: number
+        }
+        Insert: {
+          annual_rate?: number | null
+          archived_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          interest_gl?: string | null
+          lender?: string | null
+          loan_gl?: string | null
+          name: string
+          note?: string | null
+          principal: number
+          start_on: string
+          term_months: number
+        }
+        Update: {
+          annual_rate?: number | null
+          archived_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          interest_gl?: string | null
+          lender?: string | null
+          loan_gl?: string | null
+          name?: string
+          note?: string | null
+          principal?: number
+          start_on?: string
+          term_months?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_loans_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_loans_interest_gl_fkey"
+            columns: ["interest_gl"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_loans_loan_gl_fkey"
+            columns: ["loan_gl"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -30756,6 +31035,14 @@ export type Database = {
         Args: { _effective: string; _id: string }
         Returns: number
       }
+      fin_asset_depr_post: {
+        Args: { _asset: string; _period: string }
+        Returns: Json
+      }
+      fin_asset_save: {
+        Args: { _company: string; _d: Json; _id: string }
+        Returns: string
+      }
       fin_attach_file: {
         Args: {
           _mime: string
@@ -31340,6 +31627,10 @@ export type Database = {
       }
       fin_gl_next_no: { Args: { _company: string }; Returns: number }
       fin_gl_opening_draft: { Args: { _year: string }; Returns: string }
+      fin_gl_owned: {
+        Args: { _company: string; _gl: string }
+        Returns: boolean
+      }
       fin_gl_pending: { Args: { _company: string }; Returns: Json }
       fin_gl_queue: {
         Args: { _company: string }
@@ -31445,6 +31736,22 @@ export type Database = {
           _to: string
         }
         Returns: Json
+      }
+      fin_loan_pay: {
+        Args: {
+          _account: string
+          _interest: number
+          _key: string
+          _loan: string
+          _on: string
+          _principal: number
+          _ref: string
+        }
+        Returns: Json
+      }
+      fin_loan_save: {
+        Args: { _company: string; _d: Json; _id: string }
+        Returns: string
       }
       fin_log: {
         Args: {
