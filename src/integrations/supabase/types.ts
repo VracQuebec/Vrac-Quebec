@@ -30485,6 +30485,10 @@ export type Database = {
         Returns: string
       }
       pay_run_finalize: { Args: { _run: string }; Returns: undefined }
+      pay_year_slips: {
+        Args: { _company: string; _year: number }
+        Returns: Json
+      }
       platform_cleanup: { Args: never; Returns: Json }
       platform_has_capability: {
         Args: {
