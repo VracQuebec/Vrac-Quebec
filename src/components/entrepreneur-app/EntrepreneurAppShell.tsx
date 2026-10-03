@@ -56,7 +56,7 @@ const PRIMARY_TABS = [
 ] as const;
 
 const MORE_ITEMS = [
-  { to: "/entrepreneur/activites", label: "Voyages et services", hint: "Carnets, voyages, services et missions", icon: Ticket },
+  { to: "/entrepreneur/activites", label: "Coupons, voyages et services", hint: "Coupons et voyages · services et chantiers · suivi et relances", icon: Ticket },
   { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ClipboardList },
   { to: "/entrepreneur/flotte", label: "Ma flotte", hint: "Vos véhicules", icon: Truck },
   { to: "/entrepreneur/finances", label: "Finances", hint: "Obligations et calendrier", icon: Wallet },
@@ -69,7 +69,7 @@ const MORE_ITEMS = [
 
 const SIDEBAR_ITEMS = [
   ...PRIMARY_TABS,
-  { to: "/entrepreneur/activites", label: "Voyages et services", icon: Ticket },
+  { to: "/entrepreneur/activites", label: "Coupons et services", icon: Ticket },
   { to: "/entrepreneur/crm", label: "Mon CRM", icon: ClipboardList },
   { to: "/entrepreneur/flotte", label: "Ma flotte", icon: Truck },
   { to: "/entrepreneur/finances", label: "Finances", icon: Wallet },
