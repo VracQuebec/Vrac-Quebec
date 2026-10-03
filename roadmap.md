@@ -171,5 +171,5 @@
 - [x] Essais punch (manuel, correction, refus, lecture seule, position) et paie (droits) — faille corrigée : le rôle lecture pouvait calculer la paie
 - [x] Agenda (réponse invité) et cloisonnement TEST B vérifiés
 - [x] Paie → grand livre : paie finalisée comptabilisée une seule fois (salaires, charges employeur, retenues à remettre, nets à verser)
-- [ ] Paie : RL-1/T4
+- [x] Paie : sommaires annuels T4/RL-1 (préparation, non transmis)
 - [ ] Vitesse et confort des pages
