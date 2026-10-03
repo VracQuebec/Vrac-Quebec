@@ -15,7 +15,7 @@ export default function Profitability({ companyId }: { companyId: string }) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.rpc as any)("fin_project_profitability", { _company: companyId, _from: from, _to: to }).then(({ data, error }: any) => { if (!live) return; setErr(error?.message ?? null); setRows(error ? null : data.rows); });
     return () => { live = false; }; }, [companyId, from, to]);
-  const csv = () => rows && download(`rentabilite-${from}-${to}.csv`, toCsv([["Chantier", "Facturé HT", "Notes de crédit", "Encaissé", "Coûts connus HT", "Coûts estimés", "Coûts sans montant", "Marge sur coûts connus"], ...rows.map((r) => [r.name, r.billed_ht, r.credits, r.collected, r.costs_known, r.costs_estimated, r.costs_missing, r.margin_known])]));
+  const csv = () => rows && download(`rentabilite-${from}-${to}.csv`, toCsv([["Période", `${from} au ${to}`], ["Devise", "CAD"]], ["Chantier", "Facturé HT", "Notes de crédit", "Encaissé", "Coûts connus HT", "Coûts estimés", "Coûts sans montant", "Marge sur coûts connus"], rows.map((r) => [r.name, r.billed_ht, r.credits, r.collected, r.costs_known, r.costs_estimated, r.costs_missing, r.margin_known])));
   return <section className="space-y-3 text-sm" data-testid="profitability">
     <div className="flex flex-wrap items-end gap-2">
       <label className="text-xs">Du<Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" /></label>
