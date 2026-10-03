@@ -32201,6 +32201,10 @@ export type Database = {
         Returns: Json
       }
       fin_progress_summary: { Args: { _plan: string }; Returns: Json }
+      fin_project_profitability: {
+        Args: { _company: string; _from: string; _to: string }
+        Returns: Json
+      }
       fin_psp_ingest: { Args: { _account: string; _ev: Json }; Returns: Json }
       fin_psp_overview: { Args: { _company: string }; Returns: Json }
       fin_psp_sim_event: {
