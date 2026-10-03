@@ -192,3 +192,7 @@
 - [ ] App chauffeur native (Capacitor, localisation arrière-plan, file hors réseau)
 - [ ] Comparaison analyses de sols documentée (non confirmé, pas de pub)
 - [ ] Décisions de lancement maintenues en attente (JSC réels, Pro, Stripe réel, publication)
+
+- [x] Mailchimp + consentement : développé (case décochée, preuve, sync pending→subscribed, webhook retraits, plafond 7 j vérifié à l'envoi). En attente : secrets MAILCHIMP_API_KEY, MAILCHIMP_AUDIENCE_ID, MAILCHIMP_WEBHOOK_SECRET + identité légale de l'expéditeur.
+- [ ] App chauffeur native (Capacitor, localisation arrière-plan) — à faire.
+- [ ] Doc comparaison sols — à faire.
