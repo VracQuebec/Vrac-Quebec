@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
+import { useToast, toast as toastFn } from "@/hooks/use-toast";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const db = supabase as any;
@@ -404,10 +404,10 @@ function CodePicker({ companyId, cat, listNo, codes, vehicles, onClose, onPick }
   const [vid, setVid] = useState(vehicles[0]?.id);
   const [photo, setPhoto] = useState<string | undefined>(); const [up, setUp] = useState(false);
   const upload = async (f?: File) => {
-    if (!f) return; if (f.size > 8 * 1024 * 1024) { toast({ title: "Photo trop lourde (8 Mo max)", variant: "destructive" }); return; }
+    if (!f) return; if (f.size > 8 * 1024 * 1024) { toastFn({ title: "Photo trop lourde (8 Mo max)", variant: "destructive" }); return; }
     setUp(true); const path = `${companyId}/${uuid()}.${(f.name.split(".").pop() || "jpg").toLowerCase()}`;
     const { error } = await supabase.storage.from("rds-photos").upload(path, f, { contentType: f.type });
-    setUp(false); if (error) toast({ title: "Photo non envoyée — réessayez", description: error.message, variant: "destructive" }); else setPhoto(path);
+    setUp(false); if (error) toastFn({ title: "Photo non envoyée — réessayez", description: error.message, variant: "destructive" }); else setPhoto(path);
   };
   const opts = codes.filter((c) => c.cat_no === cat && c.lists.includes(listNo));
   const problem = code ? incoherence(code, details) : "Choisir un code";
@@ -559,6 +559,6 @@ function HistoryTab({ reports, defects, vName, codeOf, canManage, rpc, onCorrect
 function PhotoLink({ path }: { path: string }) {
   return <button type="button" className="text-xs underline" onClick={async () => {
     const { data, error } = await supabase.storage.from("rds-photos").createSignedUrl(path, 300);
-    if (error || !data) toast({ title: "Photo inaccessible", variant: "destructive" }); else window.open(data.signedUrl, "_blank", "noopener");
+    if (error || !data) toastFn({ title: "Photo inaccessible", variant: "destructive" }); else window.open(data.signedUrl, "_blank", "noopener");
   }}>Voir la photo</button>;
 }
