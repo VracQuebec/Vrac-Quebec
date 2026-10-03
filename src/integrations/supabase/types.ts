@@ -389,6 +389,956 @@ export type Database = {
         }
         Relationships: []
       }
+      asr_assets: {
+        Row: {
+          archived_at: string | null
+          asset_label: string | null
+          company_id: string
+          coverage_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          period_id: string
+          truck_id: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          asset_label?: string | null
+          company_id: string
+          coverage_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          period_id: string
+          truck_id?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          asset_label?: string | null
+          company_id?: string
+          coverage_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          period_id?: string
+          truck_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asr_assets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_assets_coverage_id_fkey"
+            columns: ["coverage_id"]
+            isOneToOne: false
+            referencedRelation: "asr_coverages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_assets_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "asr_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_assets_truck_id_fkey"
+            columns: ["truck_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asr_categories: {
+        Row: {
+          archived_at: string | null
+          company_id: string | null
+          id: string
+          label: string
+          sort: number
+        }
+        Insert: {
+          archived_at?: string | null
+          company_id?: string | null
+          id?: string
+          label: string
+          sort?: number
+        }
+        Update: {
+          archived_at?: string | null
+          company_id?: string | null
+          id?: string
+          label?: string
+          sort?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asr_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asr_coverages: {
+        Row: {
+          activities: string | null
+          archived_at: string | null
+          company_id: string
+          conditions: string | null
+          created_at: string
+          created_by: string | null
+          deductible: number | null
+          deductible_form: string | null
+          description: string | null
+          endorsements: string | null
+          exclusions: string | null
+          id: string
+          label: string
+          limit_amount: number | null
+          limit_basis: string | null
+          limit_text: string | null
+          period_id: string
+          source_doc_id: string | null
+          source_ref: string | null
+          state: string
+          sublimits: string | null
+          territory: string | null
+          updated_at: string
+        }
+        Insert: {
+          activities?: string | null
+          archived_at?: string | null
+          company_id: string
+          conditions?: string | null
+          created_at?: string
+          created_by?: string | null
+          deductible?: number | null
+          deductible_form?: string | null
+          description?: string | null
+          endorsements?: string | null
+          exclusions?: string | null
+          id?: string
+          label: string
+          limit_amount?: number | null
+          limit_basis?: string | null
+          limit_text?: string | null
+          period_id: string
+          source_doc_id?: string | null
+          source_ref?: string | null
+          state?: string
+          sublimits?: string | null
+          territory?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activities?: string | null
+          archived_at?: string | null
+          company_id?: string
+          conditions?: string | null
+          created_at?: string
+          created_by?: string | null
+          deductible?: number | null
+          deductible_form?: string | null
+          description?: string | null
+          endorsements?: string | null
+          exclusions?: string | null
+          id?: string
+          label?: string
+          limit_amount?: number | null
+          limit_basis?: string | null
+          limit_text?: string | null
+          period_id?: string
+          source_doc_id?: string | null
+          source_ref?: string | null
+          state?: string
+          sublimits?: string | null
+          territory?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asr_coverages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_coverages_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "asr_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asr_deliveries: {
+        Row: {
+          attempts: number
+          channel: string
+          company_id: string
+          created_at: string
+          due_date: string
+          id: string
+          last_error: string | null
+          obsolete_at: string | null
+          occurrence: string
+          period_id: string
+          read_at: string | null
+          state: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          channel: string
+          company_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          last_error?: string | null
+          obsolete_at?: string | null
+          occurrence: string
+          period_id: string
+          read_at?: string | null
+          state: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          channel?: string
+          company_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          last_error?: string | null
+          obsolete_at?: string | null
+          occurrence?: string
+          period_id?: string
+          read_at?: string | null
+          state?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asr_deliveries_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "asr_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asr_documents: {
+        Row: {
+          archived_at: string | null
+          company_id: string
+          created_at: string
+          doc_type: string
+          file_name: string
+          id: string
+          mime_type: string
+          period_id: string | null
+          policy_id: string | null
+          question_id: string | null
+          quote_id: string | null
+          size_bytes: number
+          storage_path: string
+          supersedes_id: string | null
+          title: string
+          uploaded_by: string | null
+          version: number
+        }
+        Insert: {
+          archived_at?: string | null
+          company_id: string
+          created_at?: string
+          doc_type: string
+          file_name: string
+          id?: string
+          mime_type: string
+          period_id?: string | null
+          policy_id?: string | null
+          question_id?: string | null
+          quote_id?: string | null
+          size_bytes: number
+          storage_path: string
+          supersedes_id?: string | null
+          title: string
+          uploaded_by?: string | null
+          version?: number
+        }
+        Update: {
+          archived_at?: string | null
+          company_id?: string
+          created_at?: string
+          doc_type?: string
+          file_name?: string
+          id?: string
+          mime_type?: string
+          period_id?: string | null
+          policy_id?: string | null
+          question_id?: string | null
+          quote_id?: string | null
+          size_bytes?: number
+          storage_path?: string
+          supersedes_id?: string | null
+          title?: string
+          uploaded_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asr_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_documents_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "asr_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_documents_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "asr_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_documents_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "asr_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asr_events: {
+        Row: {
+          action: string
+          actor: string | null
+          at: string
+          company_id: string
+          detail: Json | null
+          entity: string
+          entity_id: string | null
+          id: number
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          at?: string
+          company_id: string
+          detail?: Json | null
+          entity: string
+          entity_id?: string | null
+          id?: number
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          at?: string
+          company_id?: string
+          detail?: Json | null
+          entity?: string
+          entity_id?: string | null
+          id?: number
+        }
+        Relationships: []
+      }
+      asr_periods: {
+        Row: {
+          company_id: string
+          confirm_doc_id: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          contract_tz: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          effective_from: string | null
+          effective_time: string | null
+          expires_on: string | null
+          expires_time: string | null
+          fees: number | null
+          financing_fees: number | null
+          id: string
+          installments: string | null
+          notice_date: string | null
+          policy_id: string
+          premium: number | null
+          previous_id: string | null
+          renewal_terms: string | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspended_reason: string | null
+          taxes: number | null
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          confirm_doc_id?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          contract_tz?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          effective_from?: string | null
+          effective_time?: string | null
+          expires_on?: string | null
+          expires_time?: string | null
+          fees?: number | null
+          financing_fees?: number | null
+          id?: string
+          installments?: string | null
+          notice_date?: string | null
+          policy_id: string
+          premium?: number | null
+          previous_id?: string | null
+          renewal_terms?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
+          taxes?: number | null
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          confirm_doc_id?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          contract_tz?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          effective_from?: string | null
+          effective_time?: string | null
+          expires_on?: string | null
+          expires_time?: string | null
+          fees?: number | null
+          financing_fees?: number | null
+          id?: string
+          installments?: string | null
+          notice_date?: string | null
+          policy_id?: string
+          premium?: number | null
+          previous_id?: string | null
+          renewal_terms?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
+          taxes?: number | null
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asr_periods_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_periods_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "asr_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_periods_previous_id_fkey"
+            columns: ["previous_id"]
+            isOneToOne: false
+            referencedRelation: "asr_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asr_policies: {
+        Row: {
+          archived_at: string | null
+          broker_email: string | null
+          broker_name: string | null
+          broker_phone: string | null
+          category_id: string | null
+          claims_contact: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          insurer: string | null
+          named_insureds: string | null
+          notes: string | null
+          policy_number: string | null
+          responsible_user: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          broker_email?: string | null
+          broker_name?: string | null
+          broker_phone?: string | null
+          category_id?: string | null
+          claims_contact?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          insurer?: string | null
+          named_insureds?: string | null
+          notes?: string | null
+          policy_number?: string | null
+          responsible_user?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          broker_email?: string | null
+          broker_name?: string | null
+          broker_phone?: string | null
+          category_id?: string | null
+          claims_contact?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          insurer?: string | null
+          named_insureds?: string | null
+          notes?: string | null
+          policy_number?: string | null
+          responsible_user?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asr_policies_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "asr_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_policies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asr_questions: {
+        Row: {
+          answer: string | null
+          answer_by_name: string | null
+          answer_date: string | null
+          answer_doc_id: string | null
+          answer_source: string | null
+          answered_at: string | null
+          answered_by: string | null
+          asset: string | null
+          company_id: string
+          coverage_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          policy_id: string
+          question: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          answer?: string | null
+          answer_by_name?: string | null
+          answer_date?: string | null
+          answer_doc_id?: string | null
+          answer_source?: string | null
+          answered_at?: string | null
+          answered_by?: string | null
+          asset?: string | null
+          company_id: string
+          coverage_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          policy_id: string
+          question: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string | null
+          answer_by_name?: string | null
+          answer_date?: string | null
+          answer_doc_id?: string | null
+          answer_source?: string | null
+          answered_at?: string | null
+          answered_by?: string | null
+          asset?: string | null
+          company_id?: string
+          coverage_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          policy_id?: string
+          question?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asr_questions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_questions_coverage_id_fkey"
+            columns: ["coverage_id"]
+            isOneToOne: false
+            referencedRelation: "asr_coverages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_questions_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "asr_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asr_quotes: {
+        Row: {
+          archived_at: string | null
+          assets_activities: string | null
+          broker: string | null
+          company_id: string
+          conditions: string | null
+          cost_basis: string
+          created_at: string
+          created_by: string | null
+          criteria_eval: Json
+          currency: string
+          deductible: number | null
+          exclusions: string | null
+          financing_fees: number | null
+          id: string
+          installments: string | null
+          insurer: string | null
+          limit_amount: number | null
+          notes: string | null
+          period_from: string | null
+          period_to: string | null
+          renewal_id: string
+          territory: string | null
+          total: number | null
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          assets_activities?: string | null
+          broker?: string | null
+          company_id: string
+          conditions?: string | null
+          cost_basis?: string
+          created_at?: string
+          created_by?: string | null
+          criteria_eval?: Json
+          currency?: string
+          deductible?: number | null
+          exclusions?: string | null
+          financing_fees?: number | null
+          id?: string
+          installments?: string | null
+          insurer?: string | null
+          limit_amount?: number | null
+          notes?: string | null
+          period_from?: string | null
+          period_to?: string | null
+          renewal_id: string
+          territory?: string | null
+          total?: number | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          assets_activities?: string | null
+          broker?: string | null
+          company_id?: string
+          conditions?: string | null
+          cost_basis?: string
+          created_at?: string
+          created_by?: string | null
+          criteria_eval?: Json
+          currency?: string
+          deductible?: number | null
+          exclusions?: string | null
+          financing_fees?: number | null
+          id?: string
+          installments?: string | null
+          insurer?: string | null
+          limit_amount?: number | null
+          notes?: string | null
+          period_from?: string | null
+          period_to?: string | null
+          renewal_id?: string
+          territory?: string | null
+          total?: number | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asr_quotes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_quotes_renewal_id_fkey"
+            columns: ["renewal_id"]
+            isOneToOne: false
+            referencedRelation: "asr_renewals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asr_renewals: {
+        Row: {
+          agd_event_id: string | null
+          checklist: Json
+          chosen_quote_id: string | null
+          closed_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          criteria: Json
+          due_date: string | null
+          id: string
+          new_period_id: string | null
+          nonrenew_reason: string | null
+          period_id: string
+          responsible_user: string | null
+          stage: string
+          task_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agd_event_id?: string | null
+          checklist?: Json
+          chosen_quote_id?: string | null
+          closed_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          criteria?: Json
+          due_date?: string | null
+          id?: string
+          new_period_id?: string | null
+          nonrenew_reason?: string | null
+          period_id: string
+          responsible_user?: string | null
+          stage?: string
+          task_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agd_event_id?: string | null
+          checklist?: Json
+          chosen_quote_id?: string | null
+          closed_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          criteria?: Json
+          due_date?: string | null
+          id?: string
+          new_period_id?: string | null
+          nonrenew_reason?: string | null
+          period_id?: string
+          responsible_user?: string | null
+          stage?: string
+          task_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asr_renewals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_renewals_new_period_id_fkey"
+            columns: ["new_period_id"]
+            isOneToOne: false
+            referencedRelation: "asr_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asr_renewals_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: true
+            referencedRelation: "asr_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asr_settings: {
+        Row: {
+          company_id: string
+          reminder_hour: number
+          tz: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          reminder_hour?: number
+          tz?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          reminder_hour?: number
+          tz?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asr_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asr_support_access: {
+        Row: {
+          admin_id: string
+          company_id: string
+          expires_at: string
+          granted_at: string
+          id: string
+          reason: string
+        }
+        Insert: {
+          admin_id: string
+          company_id: string
+          expires_at?: string
+          granted_at?: string
+          id?: string
+          reason: string
+        }
+        Update: {
+          admin_id?: string
+          company_id?: string
+          expires_at?: string
+          granted_at?: string
+          id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asr_support_access_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asr_sweep_errors: {
+        Row: {
+          at: string
+          company_id: string | null
+          error: string
+          id: number
+          period_id: string | null
+          run_id: number | null
+        }
+        Insert: {
+          at?: string
+          company_id?: string | null
+          error: string
+          id?: number
+          period_id?: string | null
+          run_id?: number | null
+        }
+        Update: {
+          at?: string
+          company_id?: string | null
+          error?: string
+          id?: number
+          period_id?: string | null
+          run_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asr_sweep_errors_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "asr_sweep_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asr_sweep_runs: {
+        Row: {
+          created: number
+          errors: number
+          finished_at: string | null
+          id: number
+          renewals_opened: number
+          simulated_now: string | null
+          skipped_locked: boolean
+          started_at: string
+        }
+        Insert: {
+          created?: number
+          errors?: number
+          finished_at?: string | null
+          id?: number
+          renewals_opened?: number
+          simulated_now?: string | null
+          skipped_locked?: boolean
+          started_at?: string
+        }
+        Update: {
+          created?: number
+          errors?: number
+          finished_at?: string | null
+          id?: number
+          renewals_opened?: number
+          simulated_now?: string | null
+          skipped_locked?: boolean
+          started_at?: string
+        }
+        Relationships: []
+      }
       blacklist_entries: {
         Row: {
           active: boolean
@@ -28588,6 +29538,71 @@ export type Database = {
         Returns: undefined
       }
       ai_economy_stats: { Args: { _days?: number }; Returns: Json }
+      asr_admin_stats: { Args: never; Returns: Json }
+      asr_broker_task: {
+        Args: { _company: string; _subject: string }
+        Returns: string
+      }
+      asr_can_read: { Args: { _c: string }; Returns: boolean }
+      asr_can_write: { Args: { _c: string }; Returns: boolean }
+      asr_continuity: { Args: { _period: string }; Returns: string }
+      asr_driver_doc_ok: { Args: { _doc: string }; Returns: boolean }
+      asr_driver_proofs: {
+        Args: { _company: string }
+        Returns: {
+          claims_contact: string
+          doc_id: string
+          expires_on: string
+          insurer: string
+          mime_type: string
+          policy_number: string
+          storage_path: string
+          title: string
+          vehicles: string
+        }[]
+      }
+      asr_mark_read: { Args: { _delivery: string }; Returns: undefined }
+      asr_my_bell: {
+        Args: { _limit?: number }
+        Returns: {
+          company_id: string
+          created_at: string
+          delivery_id: string
+          due_date: string
+          insurer: string
+          occurrence: string
+          policy_id: string
+          read_at: string
+          title: string
+        }[]
+      }
+      asr_occurrences: {
+        Args: { _exp: string; _notice: string }
+        Returns: {
+          code: string
+          on_date: string
+        }[]
+      }
+      asr_open_renewal_internal: { Args: { _period: string }; Returns: string }
+      asr_period_suspend: {
+        Args: { _period: string; _reason: string }
+        Returns: undefined
+      }
+      asr_renewal_confirm: {
+        Args: { _f: Json; _kind: string; _proof: string; _renewal: string }
+        Returns: string
+      }
+      asr_renewal_nonrenew: {
+        Args: { _reason: string; _renewal: string }
+        Returns: undefined
+      }
+      asr_renewal_open: { Args: { _period: string }; Returns: string }
+      asr_role: { Args: { _c: string }; Returns: string }
+      asr_support_open: {
+        Args: { _company: string; _reason: string }
+        Returns: string
+      }
+      asr_sweep: { Args: { _now?: string }; Returns: Json }
       blog_increment_view: { Args: { _post_id: string }; Returns: undefined }
       blog_mesh_cancel: { Args: { _run_id: string }; Returns: undefined }
       blog_mesh_pause: { Args: { _run_id: string }; Returns: undefined }

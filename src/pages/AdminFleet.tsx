@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFleetTenant } from "@/lib/fleet/tenant";
 import { CompanySwitcher, SupportBanner } from "@/components/fleet/FleetTenantBar";
 import PageHeader from "@/components/layout/PageHeader";
+import InsuranceAdminStats from "@/components/insurance/InsuranceAdminStats";
 
 const TABS = [
   { key: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
@@ -243,6 +244,7 @@ export default function AdminFleet() {
 
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-5 space-y-5">
+        <InsuranceAdminStats />
         {/* Actions rapides */}
         <div className="flex flex-wrap gap-2">
           <Button size="sm" onClick={() => setVehicleDialog(true)}><Plus className="w-4 h-4 mr-1" /> Véhicule</Button>

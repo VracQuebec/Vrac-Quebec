@@ -1,3 +1,4 @@
+import { OCC_LABEL, daysBetween, torontoToday } from "@/lib/insurance/compare";
 // ============================================================
 // AVIS DE L'ESPACE ENTREPRENEUR
 // ------------------------------------------------------------
@@ -56,6 +57,17 @@ async function fetchObligationBell(): Promise<MktNotification[]> {
   }));
 }
 
+const ASR_PREFIX = "asr:";
+async function fetchInsuranceBell(): Promise<MktNotification[]> {
+  const { data, error } = await (supabase as any).rpc("asr_my_bell", { _limit: 30 });
+  if (error) return [];
+  return ((data ?? []) as any[]).map((r) => ({
+    id: ASR_PREFIX + r.delivery_id, user_id: null, company_id: r.company_id, audience: "assurances", event: "asr_reminder",
+    title: `Assurance — ${r.title}`, body: `${OCC_LABEL(r.occurrence)} · ${r.insurer ?? "assureur non renseigné"} · échéance ${r.due_date} (${daysBetween(torontoToday(), r.due_date)} j)`,
+    level: /^(retard|j0|continuite)/.test(r.occurrence) ? "urgent" : "info", request_id: null, link: `/entrepreneur/assurances/${r.policy_id}?onglet=renouvellement`, channels: ["app"], read_at: r.read_at, created_at: r.created_at,
+  }));
+}
+
 export function useEntrepreneurNotifications(enabled = true) {
   const [items, setItems] = useState<MktNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,9 +77,9 @@ export function useEntrepreneurNotifications(enabled = true) {
   const reload = useCallback(async () => {
     if (!enabled) return;
     try {
-      const [rows, fin, agd, obl] = await Promise.all([fetchNotifications(50), fetchFinanceBell(), fetchAgendaBell(), fetchObligationBell()]);
+      const [rows, fin, agd, obl, asr] = await Promise.all([fetchNotifications(50), fetchFinanceBell(), fetchAgendaBell(), fetchObligationBell(), fetchInsuranceBell()]);
       if (mounted.current) {
-        setItems([...rows, ...fin, ...agd, ...obl].sort((a, b) => b.created_at.localeCompare(a.created_at)));
+        setItems([...rows, ...fin, ...agd, ...obl, ...asr].sort((a, b) => b.created_at.localeCompare(a.created_at)));
         setError(null);
       }
     } catch (e) {
@@ -116,7 +128,8 @@ export function useEntrepreneurNotifications(enabled = true) {
       p.map((n) => (n.id === id && !n.read_at ? { ...n, read_at: new Date().toISOString() } : n)),
     );
     try {
-      if (id.startsWith(OBL_PREFIX)) await (supabase as any).rpc("obl_mark_read", { _delivery: id.slice(OBL_PREFIX.length) });
+      if (id.startsWith(ASR_PREFIX)) await (supabase as any).rpc("asr_mark_read", { _delivery: id.slice(ASR_PREFIX.length) });
+      else if (id.startsWith(OBL_PREFIX)) await (supabase as any).rpc("obl_mark_read", { _delivery: id.slice(OBL_PREFIX.length) });
       else if (id.startsWith(AGD_PREFIX)) await (supabase as any).rpc("agd_mark_read", { _delivery: id.slice(AGD_PREFIX.length) });
       else if (id.startsWith(FIN_PREFIX)) await (supabase as any).rpc("fin_reminder_mark_read", { _reminder: id.slice(FIN_PREFIX.length) });
       else await markNotificationRead(id);
