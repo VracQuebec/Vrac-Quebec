@@ -2,6 +2,10 @@ import { createRoot } from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async";
 import App from "./App.tsx";
 import "./index.css";
+import { supabase } from "@/integrations/supabase/client";
+import { startRdsOutbox } from "@/lib/fleet/rdsOutbox";
+
+startRdsOutbox(supabase);
 
 // Auto-reload once when a lazy chunk fails to load (usually after a redeploy
 // invalidates hashed asset filenames). Guarded by sessionStorage to avoid loops.

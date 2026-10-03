@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BookOpen, CheckCircle2, ClipboardCheck, History, Printer, Settings2, ShieldAlert, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { outboxAdd, outboxFlush, outboxGet } from "@/lib/fleet/rdsOutbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -584,21 +585,3 @@ function PhotoLink({ path }: { path: string }) {
   }}>Voir la photo</button>;
 }
 
-const OUTBOX = "vq.rds.outbox";
-export function outboxGet(): any[] { try { return JSON.parse(localStorage.getItem(OUTBOX) || "[]"); } catch { return []; } }
-function outboxAdd(p: any) { const q = outboxGet().filter((x) => x.client_key !== p.client_key); q.push(p); localStorage.setItem(OUTBOX, JSON.stringify(q)); }
-let flushing = false;
-export async function outboxFlush(db: any): Promise<{ sent: number; refused: string[] }> {
-  if (flushing || !navigator.onLine) return { sent: 0, refused: [] };
-  flushing = true; let sent = 0; const refused: string[] = [];
-  try {
-    for (const p of outboxGet()) {
-      const { error } = await db.rpc("rds_submit", { p: { ...p, offline: true } });
-      if (error && /fetch|network/i.test(error.message)) break; // réseau encore instable : on réessaiera
-      const left = outboxGet().filter((x) => x.client_key !== p.client_key);
-      if (error) { refused.push(error.message); localStorage.setItem(`${OUTBOX}.refused.${p.client_key}`, JSON.stringify(p)); } else sent++;
-      localStorage.setItem(OUTBOX, JSON.stringify(left));
-    }
-  } finally { flushing = false; }
-  return { sent, refused };
-}
