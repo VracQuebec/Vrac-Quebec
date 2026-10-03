@@ -23,8 +23,7 @@ import {
   LifeBuoy,
   Wallet,
   FileClock,
-  Ticket,
-} from "lucide-react";
+  Ticket,, ListChecks } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Coquille unique de l'espace entrepreneur :                         */
@@ -56,6 +55,7 @@ const PRIMARY_TABS = [
 ] as const;
 
 const MORE_ITEMS = [
+  { to: "/entrepreneur/taches", label: "Liste de tâches", hint: "Tâches de l'équipe, couleurs, attribution", icon: ListChecks },
   { to: "/entrepreneur/activites", label: "Coupons, voyages et services", hint: "Coupons et voyages · services et chantiers · suivi et relances", icon: Ticket },
   { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ClipboardList },
   { to: "/entrepreneur/flotte", label: "Ma flotte", hint: "Vos véhicules", icon: Truck },
@@ -69,6 +69,7 @@ const MORE_ITEMS = [
 
 const SIDEBAR_ITEMS = [
   ...PRIMARY_TABS,
+  { to: "/entrepreneur/taches", label: "Liste de tâches", icon: ListChecks },
   { to: "/entrepreneur/activites", label: "Coupons et services", icon: Ticket },
   { to: "/entrepreneur/crm", label: "Mon CRM", icon: ClipboardList },
   { to: "/entrepreneur/flotte", label: "Ma flotte", icon: Truck },
