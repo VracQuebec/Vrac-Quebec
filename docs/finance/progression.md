@@ -426,3 +426,5 @@ Périmètre : aucun plan FIN-12 séparé dans le projet; référence = prompts F
 - Budgets comparés au réel : déjà présents (Trésorerie → Budgets, FIN-05B).
 - Dossier de fin d’exercice : classeur Excel par exercice (résumé, balance, résultats, bilan, flux, âge fournisseurs) depuis les RPC existantes.
 - Taxes à remettre : fin_tax_returns/_events, fin_tax_period_compute (comptes TPS/TVQ associés, écritures validées), préparation figée refusée si comptes manquants/brouillons/chevauchement, statuts préparée→revue→déclarée hors app→payée hors app, annulation motivée. Jamais transmis. Paiement non comptabilisé automatiquement.
+
+- FIN-14 : régularisations avec contrepassation datée (0188) et rapprochement comptes clients/fournisseurs vs grand livre (0189, onglet « Clients et fournisseurs ») — livrés TEST, non essayés avec compte connecté.
