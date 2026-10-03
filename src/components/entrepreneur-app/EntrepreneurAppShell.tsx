@@ -54,20 +54,49 @@ const PRIMARY_TABS = [
   { to: "/entrepreneur/transports", label: "Transports", icon: Truck },
 ] as const;
 
-const MORE_ITEMS = [
-  { to: "/entrepreneur/taches", label: "Liste de tâches", hint: "Tâches de l'équipe, couleurs, attribution", icon: ListChecks },
-  { to: "/entrepreneur/agenda", label: "Agenda", hint: "Rendez-vous, chantiers, rappels, équipe", icon: CalendarDays },
-  { to: "/entrepreneur/punch", label: "Punch et heures", hint: "Entrée, sortie, pauses, heures pour la paie", icon: Clock },
-  { to: "/entrepreneur/activites", label: "Coupons, voyages et services", hint: "Coupons et voyages · services et chantiers · suivi et relances", icon: Ticket },
-  { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ClipboardList },
-  { to: "/entrepreneur/flotte", label: "Ma flotte", hint: "Vos véhicules", icon: Truck },
-  { to: "/entrepreneur/finances", label: "Finances", hint: "Obligations et calendrier", icon: Wallet },
-  { to: "/entrepreneur/notes-de-frais", label: "Mes notes de frais", hint: "Dépenses, avances, remboursements", icon: Wallet },
-  { to: "/entrepreneur/brouillons", label: "Reprendre mon travail", hint: "Vos brouillons", icon: FileClock },
-  { to: "/entrepreneur/compte", label: "Mon entreprise", hint: "Profil, camions, visibilité", icon: User },
-  { to: "/entrepreneur/notifications", label: "Notifications", hint: "Ce qui demande votre attention", icon: Bell },
-  { to: "/entrepreneur/demandes", label: "Toutes les demandes", hint: "Demandes de tous vos chantiers", icon: ClipboardList },
-] as const;
+interface MoreItem {
+  to: string;
+  label: string;
+  hint: string;
+  icon: typeof ListChecks;
+}
+
+const MORE_SECTIONS: { title: string; items: MoreItem[] }[] = [
+  {
+    title: "Équipe",
+    items: [
+      { to: "/entrepreneur/taches", label: "Liste de tâches", hint: "Tâches de l'équipe, couleurs, attribution", icon: ListChecks },
+      { to: "/entrepreneur/agenda", label: "Agenda", hint: "Rendez-vous, chantiers, rappels, équipe", icon: CalendarDays },
+      { to: "/entrepreneur/punch", label: "Punch et heures", hint: "Entrée, sortie, pauses, heures pour la paie", icon: Clock },
+    ],
+  },
+  {
+    title: "Opérations",
+    items: [
+      { to: "/entrepreneur/activites", label: "Coupons, voyages et services", hint: "Coupons et voyages · services et chantiers · suivi et relances", icon: Ticket },
+      { to: "/entrepreneur/demandes", label: "Toutes les demandes", hint: "Demandes de tous vos chantiers", icon: ClipboardList },
+      { to: "/entrepreneur/flotte", label: "Ma flotte", hint: "Vos véhicules", icon: Truck },
+    ],
+  },
+  {
+    title: "Gestion",
+    items: [
+      { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ClipboardList },
+      { to: "/entrepreneur/finances", label: "Finances", hint: "Obligations et calendrier", icon: Wallet },
+      { to: "/entrepreneur/notes-de-frais", label: "Mes notes de frais", hint: "Dépenses, avances, remboursements", icon: Wallet },
+    ],
+  },
+  {
+    title: "Compte",
+    items: [
+      { to: "/entrepreneur/brouillons", label: "Reprendre mon travail", hint: "Vos brouillons", icon: FileClock },
+      { to: "/entrepreneur/notifications", label: "Notifications", hint: "Ce qui demande votre attention", icon: Bell },
+      { to: "/entrepreneur/compte", label: "Mon entreprise", hint: "Profil, camions, visibilité", icon: User },
+    ],
+  },
+];
+
+const MORE_ITEMS: MoreItem[] = MORE_SECTIONS.flatMap((s) => s.items);
 
 const SIDEBAR_ITEMS = [
   ...PRIMARY_TABS,
@@ -295,22 +324,29 @@ export default function EntrepreneurAppShell({
           <SheetTitle className="sr-only">Plus d'options</SheetTitle>
           <div className="mx-auto mt-2 mb-4 h-1.5 w-10 rounded-full bg-border" />
           <nav className="space-y-1" aria-label="Sections secondaires">
-            {MORE_ITEMS.map(({ to, label, hint, icon: Icon }) => (
-              <Link
-                key={to}
-                to={to}
-                onClick={() => setMoreOpen(false)}
-                className="flex items-center gap-3 rounded-2xl px-3 py-3 min-h-14 font-body font-semibold transition-transform active:scale-[0.99] hover:bg-secondary"
-              >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Icon className="w-5 h-5" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate">{label}</span>
-                  <span className="block truncate font-body text-xs font-normal text-muted-foreground">{hint}</span>
-                </span>
-                <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
-              </Link>
+            {MORE_SECTIONS.map((section) => (
+              <div key={section.title}>
+                <p className="px-3 pb-1 pt-3 font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  {section.title}
+                </p>
+                {section.items.map(({ to, label, hint, icon: Icon }) => (
+                  <Link
+                    key={to}
+                    to={to}
+                    onClick={() => setMoreOpen(false)}
+                    className="flex items-center gap-3 rounded-2xl px-3 py-3 min-h-14 font-body font-semibold transition-transform active:scale-[0.99] hover:bg-secondary"
+                  >
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Icon className="w-5 h-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{label}</span>
+                      <span className="block truncate font-body text-xs font-normal text-muted-foreground">{hint}</span>
+                    </span>
+                    <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
+                  </Link>
+                ))}
+              </div>
             ))}
             <a
               href="tel:5819947717"

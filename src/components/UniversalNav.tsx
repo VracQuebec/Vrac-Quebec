@@ -94,26 +94,51 @@ export default function UniversalNav() {
 
   if (hidden) return null;
 
-  const adminLinks = [
-    { to: "/admin/centre-controle", label: "Centre de contrôle", icon: Activity },
-    { to: "/admin/volets", label: "Coupons, voyages et services", icon: Truck },
-    { to: "/admin/taches", label: "Listes de tâches", icon: ListChecks },
-    { to: "/admin/agenda", label: "Agendas des entreprises", icon: CalendarDays },
-    { to: "/admin/punch", label: "Punch et heures", icon: Clock },
-    { to: "/admin/conversations", label: "Conversations du site", icon: MessageCircle },
-    { to: "/admin", label: "Demandes (CRM)", icon: LayoutDashboard },
-    { to: "/admin/notifications", label: "Centre de notifications", icon: Bell },
-    { to: "/admin/demandes-acces", label: "Demandes d'accès", icon: Truck },
-    { to: "/admin/calendrier", label: "Calendrier", icon: CalendarDays },
-    { to: "/admin/flotte", label: "Gestion de la flotte", icon: Truck },
-    { to: "/admin/business-intelligence", label: "Business Intelligence", icon: BarChart3 },
-    { to: "/admin/blogue", label: "Blogue", icon: BookOpen },
-    { to: "/admin/liste-noire", label: "Liste noire", icon: Ban },
-    { to: "/admin/seo", label: "SEO", icon: MapPin },
-    { to: "/admin/donnees", label: "Données", icon: Database },
-    { to: "/admin/settings", label: "Paramètres", icon: Settings },
-    { to: "/admin/plateforme", label: "Paramètres plateforme", icon: Settings },
-    { to: "/admin/jsc", label: "Back office de l'entreprise", icon: Building2 },
+  const adminSections = [
+    {
+      title: "Opérations",
+      links: [
+        { to: "/admin/centre-controle", label: "Centre de contrôle", icon: Activity },
+        { to: "/admin/volets", label: "Coupons, voyages et services", icon: Truck },
+        { to: "/admin/calendrier", label: "Calendrier", icon: CalendarDays },
+        { to: "/admin/flotte", label: "Gestion de la flotte", icon: Truck },
+      ],
+    },
+    {
+      title: "Équipe",
+      links: [
+        { to: "/admin/taches", label: "Listes de tâches", icon: ListChecks },
+        { to: "/admin/agenda", label: "Agendas des entreprises", icon: CalendarDays },
+        { to: "/admin/punch", label: "Punch et heures", icon: Clock },
+        { to: "/admin/conversations", label: "Conversations du site", icon: MessageCircle },
+      ],
+    },
+    {
+      title: "Demandes et clients",
+      links: [
+        { to: "/admin", label: "Demandes (CRM)", icon: LayoutDashboard },
+        { to: "/admin/demandes-acces", label: "Demandes d'accès", icon: Truck },
+        { to: "/admin/liste-noire", label: "Liste noire", icon: Ban },
+      ],
+    },
+    {
+      title: "Contenu et visibilité",
+      links: [
+        { to: "/admin/blogue", label: "Blogue", icon: BookOpen },
+        { to: "/admin/seo", label: "SEO", icon: MapPin },
+      ],
+    },
+    {
+      title: "Pilotage",
+      links: [
+        { to: "/admin/notifications", label: "Centre de notifications", icon: Bell },
+        { to: "/admin/business-intelligence", label: "Business Intelligence", icon: BarChart3 },
+        { to: "/admin/donnees", label: "Données", icon: Database },
+        { to: "/admin/settings", label: "Paramètres", icon: Settings },
+        { to: "/admin/plateforme", label: "Paramètres plateforme", icon: Settings },
+        { to: "/admin/jsc", label: "Back office de l'entreprise", icon: Building2 },
+      ],
+    },
   ];
 
   if (isAdmin) {
@@ -155,17 +180,24 @@ export default function UniversalNav() {
                   <SheetTitle className="font-display text-base font-bold">Navigation CRM</SheetTitle>
                 </div>
                 <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-3">
-                  {adminLinks.map(({ to, label, icon: Icon }) => (
-                    <Button
-                      key={to}
-                      type="button"
-                      variant={path === to ? "secondary" : "ghost"}
-                      onClick={() => { setAdminMenuOpen(false); navigate(to); }}
-                      className="min-h-11 w-full justify-start gap-3 whitespace-normal text-left"
-                    >
-                      <Icon className="h-4 w-4 shrink-0" />
-                      <span>{label}</span>
-                    </Button>
+                  {adminSections.map((section) => (
+                    <div key={section.title}>
+                      <p className="px-3 pb-1 pt-3 font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                        {section.title}
+                      </p>
+                      {section.links.map(({ to, label, icon: Icon }) => (
+                        <Button
+                          key={to}
+                          type="button"
+                          variant={path === to ? "secondary" : "ghost"}
+                          onClick={() => { setAdminMenuOpen(false); navigate(to); }}
+                          className="min-h-11 w-full justify-start gap-3 whitespace-normal text-left"
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span>{label}</span>
+                        </Button>
+                      ))}
+                    </div>
                   ))}
                 </div>
                 <div className="border-t border-border p-3 pb-[max(.75rem,env(safe-area-inset-bottom))]">
