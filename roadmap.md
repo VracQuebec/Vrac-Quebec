@@ -197,3 +197,10 @@
 - [~] App chauffeur native : serveur prêt (drv_points_batch idempotent, heures constatation/réception), guide docs/chauffeur/app-native.md. En attente : compilation/signature hors Lovable (comptes Apple/Google payants), essais physiques.
 - [x] Comparaison sols documentée (docs/sols/comparaison-preliminaire.md) — publicité comparative en attente des données manquantes.
 - [x] Obligations et renouvellements (REQ, RPEVL, RCV, autres) : écran, carte du tableau de bord, cloche, agenda, rappels serveur. Courriel simulé (aucun envoi réel). Moteur d'assurances : inexistant, moteur commun créé.
+
+## ASSUR-01 — Assurances entreprise (TEST, non publié)
+- [x] Polices, périodes, garanties, biens de la flotte, documents versionnés privés, renouvellement, soumissions, questions, historique, rappels serveur.
+- [ ] Courriel/texto/push des rappels : désactivés pendant les essais (rappels dans l'application seulement).
+- [ ] Liaison chauffeur ↔ véhicule précis : aucune affectation n'existe; un chauffeur voit les preuves de tous les véhicules actifs de l'entreprise.
+- [ ] Recherche IA dans les documents : aucune capacité réutilisable; recherche classique livrée.
+- [ ] Réglage à l'écran du fuseau et de l'heure de rappel (9 h par défaut, modifiable en base seulement).
