@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
+import PayrollSettings from "./PayrollSettings";
+import { MISSING_LABELS } from "@/lib/payroll/engine";
 
 const db = supabase as any;
 const $ = (n: any) => Number(n || 0).toLocaleString("fr-CA", { style: "currency", currency: "CAD" });
@@ -63,7 +65,7 @@ export default function PayrollPanel({ companyId, canManage, from, to, members, 
     <section className="space-y-4">
       <p className="rounded-md border border-border bg-muted p-2 text-xs">
         Calcul estimatif {rates?.year}: RRQ, assurance-emploi (taux Québec), RQAP, impôt fédéral (abattement du Québec) et impôt du Québec, à partir des heures approuvées seulement.
-        {!rates?.validated && " Taux à valider avec Revenu Québec et l'ARC avant toute paie réelle."} Aucun dépôt ni versement n'est effectué.
+        {!rates?.validated && " Moteur non validé : la comparaison avec WebRAS (Québec) et T4127 (fédéral) reste à faire avant toute paie réelle."} Aucun dépôt ni versement n'est effectué.
       </p>
 
       {canManage && (
@@ -87,6 +89,7 @@ export default function PayrollPanel({ companyId, canManage, from, to, members, 
             })}
           </ul>
 
+          <PayrollSettings companyId={companyId} members={members} runs={runs} onChanged={load} />
           <div className="flex flex-wrap items-end gap-2">
             <span className="text-sm">Période {from} → {to}</span>
             <label className="text-xs">Date de paie<Input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} /></label>
@@ -114,11 +117,13 @@ export default function PayrollPanel({ companyId, canManage, from, to, members, 
                     <strong className="col-span-2 text-sm sm:col-span-4">{nm(s.user_id, s.full_name)}</strong>
                     <span>Heures rég. {s.reg_hours} × {$(s.rate)}</span><span>Heures suppl. {s.ot_hours}</span>
                     <span>Salaire {$(s.gross)}</span><span>Vacances {$(s.vacation)}</span>
+                    {Number(s.bonus) !== 0 && <span>Prime {$(s.bonus)}</span>}{Number(s.adjustments) !== 0 && <span>Correction {$(s.adjustments)}</span>}
                     <span>RRQ −{$(s.qpp)}</span><span>AE −{$(s.ei)}</span><span>RQAP −{$(s.qpip)}</span>
                     <span>Impôt fédéral −{$(s.fed_tax)}</span><span>Impôt Québec −{$(s.qc_tax)}</span>
                     <strong>Net {$(s.net)}</strong>
                     {s.employer?.ytd && <span className="col-span-2 text-muted-foreground sm:col-span-4">Cumul année : assurable {$(s.employer.ytd.ins)} · RRQ {$(s.employer.ytd.qpp)} · AE {$(s.employer.ytd.ei)} · RQAP {$(s.employer.ytd.qpip)}</span>}
-                    {canManage && <span className="col-span-2 text-muted-foreground sm:col-span-4">Employeur : RRQ {$(s.employer?.qpp)} · AE {$(s.employer?.ei)} · RQAP {$(s.employer?.qpip)} · FSS {s.employer?.fss == null ? "non calculé (paie antérieure)" : $(s.employer.fss)} · CNESST {s.employer?.cnesst == null ? "non calculé (paie antérieure)" : s.employer.cnesst_missing ? "à compléter" : $(s.employer.cnesst)}</span>}
+                    {canManage && <span className="col-span-2 text-muted-foreground sm:col-span-4">Employeur : RRQ {$(s.employer?.qpp)} · AE {$(s.employer?.ei)} · RQAP {$(s.employer?.qpip)} · FSS {s.employer?.fss == null ? "non calculé (paie antérieure)" : $(s.employer.fss)} · Normes {s.employer?.normes == null ? "—" : $(s.employer.normes)} · CNESST {s.employer?.cnesst == null ? "non calculé (paie antérieure)" : s.employer.cnesst_missing ? "à compléter" : $(s.employer.cnesst)}</span>}
+                    {canManage && (s.employer?.missing ?? []).length > 0 && <span className="col-span-2 text-destructive sm:col-span-4">Manquant : {(s.employer.missing as string[]).map((k) => MISSING_LABELS[k] ?? k).join(" · ")}</span>}
                     <Button size="sm" variant="outline" className="col-span-2 mt-1 justify-self-start sm:col-span-4" onClick={() => printStub(s, r, nm(s.user_id, s.full_name))}>Imprimer / PDF</Button>
                   </div>
                 ))}

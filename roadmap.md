@@ -185,3 +185,10 @@
 - [x] Ronde : photo du défaut (stockage privé par entreprise) et cloisonnement TEST B vérifiés
 - [x] Ronde : envoi automatique au retour du réseau (file sur l’appareil, sans doublon)
 - [ ] Ronde : écran verrouillé / arrière-plan — nécessite app native; photo exige réseau
+
+## Lot 2026-10-03 — paie, Mailchimp, app chauffeur, sols, décisions
+- [ ] Paie 2026 : paramètres versionnés, moteur marginal fédéral/Québec, charges patronales, primes/corrections, cumuls repris, comparatif WebRAS/T4127
+- [ ] Mailchimp + consentement promotions (preuve, double confirmation, désabonnement bidirectionnel)
+- [ ] App chauffeur native (Capacitor, localisation arrière-plan, file hors réseau)
+- [ ] Comparaison analyses de sols documentée (non confirmé, pas de pub)
+- [ ] Décisions de lancement maintenues en attente (JSC réels, Pro, Stripe réel, publication)
