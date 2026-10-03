@@ -56,7 +56,7 @@ export default function TripCounter() {
     const { error } = await supabase.rpc("cpn_trip_add", {
       _sub: id, _side: side, _kind: kind, _date: kind === "voyage" ? today() : f.date, _count: Number(f.total || 1),
       _ent_label: f.ent, _driver: f.driver, _truck: f.truck, _destination: f.dest,
-      _coupon: f.coupon ? Number(f.coupon) : undefined, _photo: path, _key: key,
+      _coupon: (f.coupon ? Number(f.coupon) : null) as number, _photo: (path ?? null) as string, _key: key,
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
