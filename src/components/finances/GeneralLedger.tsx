@@ -111,11 +111,14 @@ function Draft({ companyId, accs, byId, init, onClose, onDone }: { companyId: st
     const r = await G.saveDraft(companyId, { id: cur.id, rev: cur.rev, date: s.date, ref: s.ref, desc: s.desc, lines: parsed.map((l) => ({ gl: l.gl, debit: l.debit || 0, credit: l.credit || 0, memo: l.memo })), key: s.key });
     setCur({ id: r.id, rev: r.rev }); return r;
   };
+  const [acc, setAcc] = useState<{ on: string; key: string } | null>(null);
   const run = async (validateToo: boolean) => {
+    if (validateToo && acc && !(acc.on > s.date)) { setMsg("La date de contrepassation doit suivre la date comptable."); return; }
     setBusy(true); setMsg(null);
     try {
       const r = await save(); if (!r) return;
-      if (validateToo) { const v = await G.validate(r.id, r.rev); toast({ title: `Écriture n° ${v.entry_no} validée` }); }
+      if (validateToo && acc) { const v = await G.validateAccrual(r.id, r.rev, acc.on, acc.key); toast({ title: `Régularisation n° ${v.entry_no} validée`, description: `Contrepassation n° ${v.reversal_no} datée du ${acc.on}` }); }
+      else if (validateToo) { const v = await G.validate(r.id, r.rev); toast({ title: `Écriture n° ${v.entry_no} validée` }); }
       else toast({ title: "Brouillon enregistré" });
       sessionStorage.removeItem(store); onDone(); onClose();
     } catch (e: any) { setMsg(e?.message?.includes("Failed to fetch") ? "Erreur réseau : votre saisie est conservée, réessayez." : e?.message ?? String(e)); }
@@ -138,6 +141,11 @@ function Draft({ companyId, accs, byId, init, onClose, onDone }: { companyId: st
     </div>)}</div>
     <Button variant="outline" size="sm" onClick={() => setS({ ...s, lines: [...s.lines, { gl: "", debit: "", credit: "", memo: "" }] })}>Ajouter une ligne</Button>
     <p className={`text-sm ${b.ok ? "" : "text-destructive"}`}>Débits {fmtMoney(b.debit)} · Crédits {fmtMoney(b.credit)} · {b.ok ? "Équilibrée" : `Écart ${fmtMoney(b.gap)} — validation impossible`}</p>
+    <div className="rounded border border-border p-2 text-sm">
+      <label className="flex items-center gap-2"><input type="checkbox" checked={!!acc} onChange={(e) => setAcc(e.target.checked ? { on: "", key: newKey() } : null)} />Écriture de régularisation (contrepassée automatiquement à une date future)</label>
+      {acc && <label className="mt-2 block">Date de contrepassation *<Input type="date" value={acc.on} onChange={(e) => setAcc({ ...acc, on: e.target.value })} /></label>}
+      {acc && <p className="mt-1 text-xs text-muted-foreground">À la validation, l'écriture et sa contrepassation liée sont créées ensemble; rien n'est modifié dans les factures ni les paiements.</p>}
+    </div>
     {msg && <p role="alert" className="rounded bg-destructive/10 p-2 text-sm text-destructive">{msg}</p>}
     <div className="flex flex-wrap gap-2">
       <Button disabled={busy} variant="outline" onClick={() => run(false)}>Enregistrer le brouillon</Button>
