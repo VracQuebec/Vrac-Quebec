@@ -131,6 +131,11 @@ const OpsCenter = lazy(() => import("./pages/OpsCenter"));
 const AdminControlCenter = lazy(() => import("./pages/AdminControlCenter"));
 const AdminCoupons = lazy(() => import("./pages/AdminCoupons"));
 const AdminCouponPrint = lazy(() => import("./pages/AdminCouponPrint"));
+const TripCounter = lazy(() => import("./pages/TripCounter"));
+const AdminServices = lazy(() => import("./pages/AdminServices"));
+const DriverMission = lazy(() => import("./pages/DriverMission"));
+const AdminMissions = lazy(() => import("./pages/AdminMissions"));
+const AdminRelances = lazy(() => import("./pages/AdminRelances"));
 const AdminIaCenter = lazy(() => import("./pages/AdminIaCenter"));
 const AdminOrchestrator = lazy(() => import("./pages/AdminOrchestrator"));
 
@@ -314,6 +319,11 @@ const App = () => (
             <Route path="/admin/centre-controle" element={<AdminControlCenter />} />
             <Route path="/admin/coupons" element={<AdminCoupons />} />
             <Route path="/admin/coupons/:id/imprimer" element={<AdminCouponPrint />} />
+            <Route path="/compteur/:id" element={<TripCounter />} />
+            <Route path="/admin/services" element={<AdminServices />} />
+            <Route path="/chauffeur/mission" element={<DriverMission />} />
+            <Route path="/admin/missions" element={<AdminMissions />} />
+            <Route path="/admin/relances" element={<AdminRelances />} />
             <Route path="/admin/intelligence" element={<AdminIntelligence />} />
             <Route path="/admin/direction" element={<AdminDirection />} />
             <Route path="/admin/ia" element={<AdminIaCenter />} />

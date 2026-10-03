@@ -10,6 +10,7 @@ import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProv
 import { buildEntrepreneurRequests } from "@/lib/entrepreneur-app/requests";
 import { findChantierForSubmission } from "@/lib/parcours/chantiers";
 import AddToCrmButton from "@/components/entcrm/AddToCrmButton";
+import ServiceOffers from "@/components/ops/ServiceOffers";
 import TransportLifecyclePanel from "@/components/entrepreneur-app/TransportLifecyclePanel";
 
 const DetailLine = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
@@ -61,6 +62,17 @@ export default function EntrepreneurDemandeDetail() {
                     <AppCard><DompesDemandeList submissionId={request.submission.id} /></AppCard>
                   </section>
                   <LinkedTransportCard submissionId={request.submission.id} />
+                  <section>
+                    <SectionHeader title="Voyages et services" />
+                    <AppCard>
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        <Button asChild size="sm"><Link to={`/compteur/${request.submission.id}`}>Compter les voyages reçus</Link></Button>
+                        <Button asChild size="sm" variant="outline"><Link to={`/compteur/${request.submission.id}?cote=livre`}>Compter les voyages livrés</Link></Button>
+                        <Button asChild size="sm" variant="outline"><Link to="/chauffeur/mission">Mission chauffeur</Link></Button>
+                      </div>
+                      <ServiceOffers submissionId={request.submission.id} />
+                    </AppCard>
+                  </section>
                 </>
               ) : (
                 <>
