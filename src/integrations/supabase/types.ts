@@ -2661,6 +2661,74 @@ export type Database = {
         }
         Relationships: []
       }
+      ent_company_documents: {
+        Row: {
+          archived_at: string | null
+          category: string
+          company_id: string
+          created_at: string
+          expires_on: string | null
+          file_name: string
+          id: string
+          issued_on: string | null
+          issuer: string | null
+          mime_type: string
+          notes: string | null
+          reference: string | null
+          size_bytes: number
+          storage_path: string
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          category: string
+          company_id: string
+          created_at?: string
+          expires_on?: string | null
+          file_name: string
+          id?: string
+          issued_on?: string | null
+          issuer?: string | null
+          mime_type: string
+          notes?: string | null
+          reference?: string | null
+          size_bytes: number
+          storage_path: string
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          category?: string
+          company_id?: string
+          created_at?: string
+          expires_on?: string | null
+          file_name?: string
+          id?: string
+          issued_on?: string | null
+          issuer?: string | null
+          mime_type?: string
+          notes?: string | null
+          reference?: string | null
+          size_bytes?: number
+          storage_path?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ent_company_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ent_crm_clients: {
         Row: {
           address: string | null
