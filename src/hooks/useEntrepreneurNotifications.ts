@@ -7,6 +7,7 @@
 // ============================================================
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { STEP_LABEL } from "@/lib/obligations/status";
 import {
   fetchNotifications,
   markNotificationRead,
@@ -44,6 +45,17 @@ async function fetchAgendaBell(): Promise<MktNotification[]> {
   }));
 }
 
+const OBL_PREFIX = "obl:";
+async function fetchObligationBell(): Promise<MktNotification[]> {
+  const { data, error } = await (supabase as any).rpc("obl_my_bell", { _limit: 30 });
+  if (error) return [];
+  return ((data ?? []) as any[]).map((r) => ({
+    id: OBL_PREFIX + r.delivery_id, user_id: null, company_id: r.company_id, audience: "obligations", event: "obl_reminder",
+    title: `Obligation — ${r.title}`, body: `${STEP_LABEL(r.step)} · date limite ${r.due_date}`,
+    level: r.step.startsWith("retard") ? "urgent" : "info", request_id: null, link: "/entrepreneur/obligations", channels: ["app"], read_at: r.read_at, created_at: r.created_at,
+  }));
+}
+
 export function useEntrepreneurNotifications(enabled = true) {
   const [items, setItems] = useState<MktNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,9 +65,9 @@ export function useEntrepreneurNotifications(enabled = true) {
   const reload = useCallback(async () => {
     if (!enabled) return;
     try {
-      const [rows, fin, agd] = await Promise.all([fetchNotifications(50), fetchFinanceBell(), fetchAgendaBell()]);
+      const [rows, fin, agd, obl] = await Promise.all([fetchNotifications(50), fetchFinanceBell(), fetchAgendaBell(), fetchObligationBell()]);
       if (mounted.current) {
-        setItems([...rows, ...fin, ...agd].sort((a, b) => b.created_at.localeCompare(a.created_at)));
+        setItems([...rows, ...fin, ...agd, ...obl].sort((a, b) => b.created_at.localeCompare(a.created_at)));
         setError(null);
       }
     } catch (e) {
@@ -104,6 +116,7 @@ export function useEntrepreneurNotifications(enabled = true) {
       p.map((n) => (n.id === id && !n.read_at ? { ...n, read_at: new Date().toISOString() } : n)),
     );
     try {
+      if (id.startsWith(OBL_PREFIX)) await (supabase as any).rpc("obl_mark_read", { _delivery: id.slice(OBL_PREFIX.length) });
       if (id.startsWith(AGD_PREFIX)) await (supabase as any).rpc("agd_mark_read", { _delivery: id.slice(AGD_PREFIX.length) });
       else if (id.startsWith(FIN_PREFIX)) await (supabase as any).rpc("fin_reminder_mark_read", { _reminder: id.slice(FIN_PREFIX.length) });
       else await markNotificationRead(id);

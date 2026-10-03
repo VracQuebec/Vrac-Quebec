@@ -84,6 +84,7 @@ const MORE_SECTIONS: { title: string; items: MoreItem[] }[] = [
       { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ClipboardList },
       { to: "/entrepreneur/finances", label: "Finances", hint: "Obligations et calendrier", icon: Wallet },
       { to: "/entrepreneur/notes-de-frais", label: "Mes notes de frais", hint: "Dépenses, avances, remboursements", icon: Wallet },
+      { to: "/entrepreneur/obligations", label: "Obligations et renouvellements", hint: "Registre des entreprises, CTQ, échéances", icon: CalendarDays },
     ],
   },
   {
@@ -108,6 +109,7 @@ const SIDEBAR_ITEMS = [
   { to: "/entrepreneur/flotte", label: "Ma flotte", icon: Truck },
   { to: "/entrepreneur/finances", label: "Finances", icon: Wallet },
   { to: "/entrepreneur/notes-de-frais", label: "Mes notes de frais", icon: Wallet },
+  { to: "/entrepreneur/obligations", label: "Obligations", icon: CalendarDays },
   { to: "/entrepreneur/brouillons", label: "Reprendre mon travail", icon: FileClock },
   { to: "/entrepreneur/compte", label: "Mon entreprise", icon: User },
   { to: "/entrepreneur/notifications", label: "Notifications", icon: Bell },
