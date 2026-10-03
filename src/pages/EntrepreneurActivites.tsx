@@ -46,7 +46,7 @@ export default function EntrepreneurActivites() {
           <h2 className="flex items-center gap-2 font-display text-lg font-bold"><Ticket className="h-5 w-5 text-primary" /> Mes carnets de coupons</h2>
           {books.length === 0 && !loading ? <p className="text-sm text-muted-foreground">Aucun carnet attribué à votre entreprise.</p> : books.map((book) => (
             <div key={book.id} className="border-b border-border py-2 text-sm">
-              <p className="font-semibold">{book.book_number} · {book.status.replaceAll("_", " ")}</p>
+              <p className="font-semibold">{book.book_number} · {book.status.replace(/_/g, " ")}</p>
               <p className="text-muted-foreground">Coupons {book.first_coupon} à {book.last_coupon}{book.shipped_at ? ` · expédié le ${new Date(book.shipped_at).toLocaleDateString("fr-CA")}` : ""}</p>
             </div>
           ))}
@@ -73,7 +73,7 @@ export default function EntrepreneurActivites() {
           <h2 className="flex items-center gap-2 font-display text-lg font-bold"><ClipboardList className="h-5 w-5 text-primary" /> Services et analyses de sols</h2>
           {services.length === 0 && !loading ? <p className="text-sm text-muted-foreground">Aucune demande de service envoyée.</p> : services.map((service) => (
             <div key={service.id} className="border-b border-border py-2 text-sm">
-              <p className="font-semibold">{SERVICE_KINDS[service.kind as ServiceKind]?.label ?? service.kind} · {service.status.replaceAll("_", " ")}</p>
+              <p className="font-semibold">{SERVICE_KINDS[service.kind as ServiceKind]?.label ?? service.kind} · {service.status.replace(/_/g, " ")}</p>
               <p className="text-muted-foreground">{service.site_address || "Chantier non précisé"} · {new Date(service.created_at).toLocaleDateString("fr-CA")}</p>
             </div>
           ))}
