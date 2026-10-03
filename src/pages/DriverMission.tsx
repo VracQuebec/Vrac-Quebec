@@ -81,7 +81,7 @@ export default function DriverMission() {
               <div><Label>Camion</Label><Input value={f.truck} onChange={(e) => setF({ ...f, truck: e.target.value })} /></div>
             </div>
             <label className="flex items-start gap-2 text-sm">
-              <Checkbox checked={consent} onCheckedChange={(v) => setConsent(!!v)} className="mt-0.5" />
+              <Checkbox checked={consent} onCheckedChange={(v) => setConsent(!!v)} className="mt-0.5 h-4 w-4 shrink-0 self-start" />
               <span>J'active le suivi de ma position pour cette mission professionnelle seulement. Il s'arrête quand je termine la mission. Mes positions sont visibles par mon entrepreneur et l'équipe Vrac Québec.</span>
             </label>
             <p className="text-xs text-muted-foreground">Gardez cette page ouverte : le suivi s'interrompt si le téléphone est verrouillé.</p>
