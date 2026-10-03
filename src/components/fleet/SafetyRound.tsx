@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BookOpen, CheckCircle2, ClipboardCheck, History, Printer, Settings2, ShieldAlert, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { outboxAdd, outboxFlush, outboxGet } from "@/lib/fleet/rdsOutbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -104,6 +105,19 @@ export default function SafetyRound({ companyId, canManage = true }: { companyId
     setCats(c1.data ?? []); setCodes(c2.data ?? []); setStatus(s.data ?? []); setVehicles(v.data ?? []); setDefects(d.data ?? []); setReports(r.data ?? []);
   }, [companyId]);
   useEffect(() => { void load(); }, [load]);
+  const [pending, setPending] = useState(outboxGet().length);
+  useEffect(() => {
+    const flush = async () => {
+      const r = await outboxFlush(db);
+      setPending(outboxGet().length);
+      if (r.sent) { toast({ title: `${r.sent} ronde(s) hors ligne envoyée(s)` }); void load(); }
+      if (r.refused.length) toast({ title: "Ronde en attente refusée", description: r.refused.join(" · "), variant: "destructive" });
+    };
+    void flush();
+    window.addEventListener("online", flush);
+    const t = window.setInterval(() => { if (navigator.onLine && outboxGet().length) void flush(); }, 30000);
+    return () => { window.removeEventListener("online", flush); window.clearInterval(t); };
+  }, [db, load, toast]);
 
   const vName = (id: string) => { const v = vehicles.find((x) => x.id === id); return v ? (v.unit_number || v.name) : "—"; };
   const codeOf = (c: string) => codes.find((x) => x.code === c);
@@ -127,6 +141,7 @@ export default function SafetyRound({ companyId, canManage = true }: { companyId
         ))}
       </div>
       {err && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{err}</p>}
+      {pending > 0 && <p className="rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm">{pending} ronde(s) signée(s) hors ligne en attente — envoi automatique au retour du réseau.</p>}
 
       {tab === "bord" && (
         <div className="space-y-3">
@@ -301,14 +316,21 @@ function RoundDialog({ companyId, vehicle, parent, vehicles, cats, codes, onClos
     if (unanswered.length) { toast({ title: "Ronde incomplète", description: `À compléter : ${unanswered.map((c) => c.label).join(", ")}`, variant: "destructive" }); return; }
     if (bulkMissing.length) { toast({ title: "Équipements à vérifier", description: bulkMissing.join(", "), variant: "destructive" }); return; }
     setBusy(true);
-    const { error } = await db.rpc("rds_submit", { p: {
+    const payload = {
       company_id: companyId, vehicle_id: vehicle.id, client_key: st.client_key, list_no: listNo, performed_at: st.performed_at, place: st.place,
       odometer_km: st.odometer_km, operator_name: st.operator_name, inspector_name: st.inspector_name, inspector_role: st.inspector_role,
       unit_ids: st.unit_ids, declaration: st.declaration, signature: st.signature, no_defect: noDefect, parent_id: parent?.id ?? null, correction_reason: st.reason,
       offline: !navigator.onLine, checks: { categories: st.answers, equipements: st.bulk },
       defects: st.defects.map((d: DraftDefect) => ({ code: d.code, vehicle_id: d.vehicle_id, location: d.location, description: d.description, details: d.details, photo_path: d.photo_path, client_key: d.key })),
-    } });
+    };
+    const offline = !navigator.onLine;
+    const { error } = offline ? { error: { message: "offline" } as any } : await db.rpc("rds_submit", { p: payload });
     setBusy(false);
+    if (error && (offline || /fetch|network|offline/i.test(error.message))) {
+      outboxAdd(payload); localStorage.removeItem(draftKey);
+      toast({ title: "Hors ligne — ronde signée en attente", description: "Elle sera envoyée automatiquement dès le retour du réseau." });
+      onDone(); return;
+    }
     if (error) { toast({ title: "Non enregistré — votre saisie est conservée", description: error.message, variant: "destructive" }); return; }
     localStorage.removeItem(draftKey);
     toast({ title: noDefect ? "Ronde signée — aucune défectuosité" : `Ronde signée — ${st.defects.length} défaut(s) transmis` });
@@ -562,3 +584,4 @@ function PhotoLink({ path }: { path: string }) {
     if (error || !data) toastFn({ title: "Photo inaccessible", variant: "destructive" }); else window.open(data.signedUrl, "_blank", "noopener");
   }}>Voir la photo</button>;
 }
+
