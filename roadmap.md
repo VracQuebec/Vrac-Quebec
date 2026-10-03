@@ -173,3 +173,10 @@
 - [x] Paie → grand livre : paie finalisée comptabilisée une seule fois (salaires, charges employeur, retenues à remettre, nets à verser)
 - [x] Paie : sommaires annuels T4/RL-1 (préparation, non transmis)
 - [x] Vitesse : assistant et formulaire d’évacuation chargés à la demande sur l’accueil (autres pages déjà chargées à la demande)
+
+## MIS DE CÔTÉ — À RAPPELER À L'UTILISATEUR (demande du 3 oct. 2026)
+- [ ] Valider les taux de paie 2026 avec Revenu Québec et l'ARC (pay_rates validated=false)
+- [ ] Connecter un service d'envoi marketing (Mailchimp ou autre) + case de consentement aux promotions dans les inscriptions
+- [ ] Application mobile native pour le suivi des chauffeurs écran verrouillé
+- [ ] Comparaison avec les compétiteurs sur les analyses de sols à vérifier avant toute publicité
+- [ ] Décision : rattachement des 23 clients JSC réels; prix Entrepreneur Pro; compte Stripe réel; autorisation de publication
