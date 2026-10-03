@@ -1,5 +1,6 @@
 // Lots 3 et 4 — demandes de services complémentaires et analyses de sols.
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,10 +28,11 @@ const FLOW_SVC = ["nouvelle", "soumission", "confirmee", "refusee", "annulee"];
 const toLocal = (iso: string | null) => (iso ? new Date(new Date(iso).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "");
 
 export default function AdminServices() {
+  const [params] = useSearchParams();
   const { isReady, user } = useAuthReady();
   const { isAdmin, loading: rl } = useUserRoles(user, isReady);
   const [rows, setRows] = useState<Req[]>([]);
-  const [tab, setTab] = useState<"services" | "sols">("services");
+  const [tab, setTab] = useState<"services" | "sols">(params.get("volet") === "sols" ? "sols" : "services");
   const [open, setOpen] = useState<Req | null>(null);
   const [f, setF] = useState<Record<string, string | boolean>>({});
   const [busy, setBusy] = useState(false);

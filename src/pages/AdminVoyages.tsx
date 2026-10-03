@@ -24,9 +24,8 @@ export default function AdminVoyages() {
   }, [isAdmin]);
   if (!isReady || roleLoading) return <p className="p-8 text-muted-foreground">Chargement…</p>;
   if (!isAdmin) return <p className="p-8 text-muted-foreground">Accès réservé à l’équipe Vrac Québec.</p>;
-  const grouped = Object.values(rows.reduce<Record<string, { id: string; label: string; last: string; count: number }>>((all, row) => {
-    const item = all[row.submission_id] ?? { id: row.submission_id, label: row.entrepreneur_label || "Entrepreneur non précisé", last: row.trip_date, count: 0 };
-    item.count += row.voided_at ? 0 : 1;
+  const grouped = Object.values(rows.reduce<Record<string, { id: string; label: string; last: string }>>((all, row) => {
+    const item = all[row.submission_id] ?? { id: row.submission_id, label: row.entrepreneur_label || "Entrepreneur non précisé", last: row.trip_date };
     all[row.submission_id] = item;
     return all;
   }, {}));
