@@ -206,3 +206,5 @@
 - [ ] Réglage à l'écran du fuseau et de l'heure de rappel (9 h par défaut, modifiable en base seulement).
 
 - [ ] LOG-02 : compteurs réglementaires, journées limites, changements d'heure (bloqué : lot suivant). Fournisseur DCE certifié (bloqué : choix du fournisseur). Mode hors ligne du logbook non pris en charge.
+
+- [ ] Finances — lots restants FIN-11/13 compléments, FIN-14 régularisations, FIN-15 (fiscal, flux, âge, budgets, dossier), FIN-16 à FIN-23 (bloqué : à enchaîner dans les prochains passages; plan directeur à fournir).
