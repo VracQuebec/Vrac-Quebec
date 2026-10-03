@@ -1390,6 +1390,91 @@ export type Database = {
           },
         ]
       }
+      cpn_trips: {
+        Row: {
+          count: number
+          coupon_number: number | null
+          created_at: string
+          created_by: string
+          destination: string | null
+          driver_label: string | null
+          entrepreneur_id: string | null
+          entrepreneur_label: string | null
+          id: string
+          kind: string
+          occurred_at: string | null
+          photo_path: string | null
+          side: string
+          submission_id: string
+          trip_date: string
+          truck_label: string | null
+          void_reason: string | null
+          voided_at: string | null
+        }
+        Insert: {
+          count?: number
+          coupon_number?: number | null
+          created_at?: string
+          created_by?: string
+          destination?: string | null
+          driver_label?: string | null
+          entrepreneur_id?: string | null
+          entrepreneur_label?: string | null
+          id?: string
+          kind: string
+          occurred_at?: string | null
+          photo_path?: string | null
+          side: string
+          submission_id: string
+          trip_date?: string
+          truck_label?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+        }
+        Update: {
+          count?: number
+          coupon_number?: number | null
+          created_at?: string
+          created_by?: string
+          destination?: string | null
+          driver_label?: string | null
+          entrepreneur_id?: string | null
+          entrepreneur_label?: string | null
+          id?: string
+          kind?: string
+          occurred_at?: string | null
+          photo_path?: string | null
+          side?: string
+          submission_id?: string
+          trip_date?: string
+          truck_label?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cpn_trips_entrepreneur_id_fkey"
+            columns: ["entrepreneur_id"]
+            isOneToOne: false
+            referencedRelation: "entrepreneurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cpn_trips_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "cpn_trips_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_activities: {
         Row: {
           body: string | null
@@ -1993,6 +2078,102 @@ export type Database = {
             columns: ["carrier_id"]
             isOneToOne: false
             referencedRelation: "crm_carriers_v"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drv_missions: {
+        Row: {
+          consent_at: string
+          created_at: string
+          driver_label: string | null
+          ended_at: string | null
+          entrepreneur_id: string | null
+          id: string
+          started_at: string
+          submission_id: string | null
+          truck_label: string | null
+          user_id: string
+        }
+        Insert: {
+          consent_at: string
+          created_at?: string
+          driver_label?: string | null
+          ended_at?: string | null
+          entrepreneur_id?: string | null
+          id?: string
+          started_at?: string
+          submission_id?: string | null
+          truck_label?: string | null
+          user_id?: string
+        }
+        Update: {
+          consent_at?: string
+          created_at?: string
+          driver_label?: string | null
+          ended_at?: string | null
+          entrepreneur_id?: string | null
+          id?: string
+          started_at?: string
+          submission_id?: string | null
+          truck_label?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drv_missions_entrepreneur_id_fkey"
+            columns: ["entrepreneur_id"]
+            isOneToOne: false
+            referencedRelation: "entrepreneurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drv_missions_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "drv_missions_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drv_points: {
+        Row: {
+          accuracy: number | null
+          id: number
+          lat: number
+          lng: number
+          mission_id: string
+          recorded_at: string
+        }
+        Insert: {
+          accuracy?: number | null
+          id?: number
+          lat: number
+          lng: number
+          mission_id: string
+          recorded_at: string
+        }
+        Update: {
+          accuracy?: number | null
+          id?: number
+          lat?: number
+          lng?: number
+          mission_id?: string
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drv_points_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "drv_missions"
             referencedColumns: ["id"]
           },
         ]
@@ -24124,6 +24305,134 @@ export type Database = {
         }
         Relationships: []
       }
+      svc_request_events: {
+        Row: {
+          action: string
+          actor: string | null
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string | null
+          request_id: string
+          to_status: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          request_id: string
+          to_status?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          request_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "svc_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "svc_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      svc_requests: {
+        Row: {
+          access_ok: boolean
+          appointment_at: string | null
+          availability_ok: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          note: string | null
+          partner: string | null
+          quote_amount: number | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
+          result_summary: string | null
+          sampled_at: string | null
+          site_address: string | null
+          staff_note: string | null
+          status: string
+          submission_id: string | null
+          updated_at: string
+          zone_ok: boolean
+        }
+        Insert: {
+          access_ok?: boolean
+          appointment_at?: string | null
+          availability_ok?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          note?: string | null
+          partner?: string | null
+          quote_amount?: number | null
+          requester_email?: string | null
+          requester_name?: string | null
+          requester_phone?: string | null
+          result_summary?: string | null
+          sampled_at?: string | null
+          site_address?: string | null
+          staff_note?: string | null
+          status?: string
+          submission_id?: string | null
+          updated_at?: string
+          zone_ok?: boolean
+        }
+        Update: {
+          access_ok?: boolean
+          appointment_at?: string | null
+          availability_ok?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          partner?: string | null
+          quote_amount?: number | null
+          requester_email?: string | null
+          requester_name?: string | null
+          requester_phone?: string | null
+          result_summary?: string | null
+          sampled_at?: string | null
+          site_address?: string | null
+          staff_note?: string | null
+          status?: string
+          submission_id?: string | null
+          updated_at?: string
+          zone_ok?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "svc_requests_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "material_matching_candidates"
+            referencedColumns: ["submission_id"]
+          },
+          {
+            foreignKeyName: "svc_requests_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transport_dimension_rules: {
         Row: {
           applies_to: string
@@ -26654,6 +26963,8 @@ export type Database = {
         Args: { _count?: number; _ent: string; _sub: string; _type: string }
         Returns: string
       }
+      cpn_can_sub: { Args: { _sub: string }; Returns: boolean }
+      cpn_my_entrepreneur: { Args: never; Returns: string }
       cpn_new_book: {
         Args: {
           _actor: string
@@ -26670,6 +26981,28 @@ export type Database = {
           _type: string
         }
         Returns: string
+      }
+      cpn_photo_ok: { Args: { _name: string }; Returns: boolean }
+      cpn_trip_add: {
+        Args: {
+          _count: number
+          _coupon: number
+          _date: string
+          _destination: string
+          _driver: string
+          _ent_label: string
+          _key: string
+          _kind: string
+          _photo: string
+          _side: string
+          _sub: string
+          _truck: string
+        }
+        Returns: string
+      }
+      cpn_trip_void: {
+        Args: { _id: string; _reason: string }
+        Returns: undefined
       }
       crm_merge_entities: {
         Args: { _owner_type: string; _source_id: string; _target_id: string }
@@ -26812,6 +27145,26 @@ export type Database = {
           _step: number
         }
         Returns: Json
+      }
+      drv_mission_end: { Args: { _mission: string }; Returns: undefined }
+      drv_mission_point: {
+        Args: {
+          _acc: number
+          _at: string
+          _lat: number
+          _lng: number
+          _mission: string
+        }
+        Returns: undefined
+      }
+      drv_mission_start: {
+        Args: {
+          _consent: boolean
+          _driver: string
+          _sub: string
+          _truck: string
+        }
+        Returns: string
       }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
@@ -29896,6 +30249,26 @@ export type Database = {
       submission_belongs_to_current_user: {
         Args: { p_submission_id: string }
         Returns: boolean
+      }
+      svc_request_create: {
+        Args: { _key: string; _kind: string; _note: string; _sub: string }
+        Returns: string
+      }
+      svc_request_update: {
+        Args: {
+          _access: boolean
+          _appointment: string
+          _availability: boolean
+          _id: string
+          _partner: string
+          _quote: number
+          _result: string
+          _sampled: string
+          _staff_note: string
+          _status: string
+          _zone: boolean
+        }
+        Returns: undefined
       }
       trip_advance_status: {
         Args: {
