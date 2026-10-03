@@ -54,20 +54,42 @@ const PRIMARY_TABS = [
   { to: "/entrepreneur/transports", label: "Transports", icon: Truck },
 ] as const;
 
-const MORE_ITEMS = [
-  { to: "/entrepreneur/taches", label: "Liste de tâches", hint: "Tâches de l'équipe, couleurs, attribution", icon: ListChecks },
-  { to: "/entrepreneur/agenda", label: "Agenda", hint: "Rendez-vous, chantiers, rappels, équipe", icon: CalendarDays },
-  { to: "/entrepreneur/punch", label: "Punch et heures", hint: "Entrée, sortie, pauses, heures pour la paie", icon: Clock },
-  { to: "/entrepreneur/activites", label: "Coupons, voyages et services", hint: "Coupons et voyages · services et chantiers · suivi et relances", icon: Ticket },
-  { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ClipboardList },
-  { to: "/entrepreneur/flotte", label: "Ma flotte", hint: "Vos véhicules", icon: Truck },
-  { to: "/entrepreneur/finances", label: "Finances", hint: "Obligations et calendrier", icon: Wallet },
-  { to: "/entrepreneur/notes-de-frais", label: "Mes notes de frais", hint: "Dépenses, avances, remboursements", icon: Wallet },
-  { to: "/entrepreneur/brouillons", label: "Reprendre mon travail", hint: "Vos brouillons", icon: FileClock },
-  { to: "/entrepreneur/compte", label: "Mon entreprise", hint: "Profil, camions, visibilité", icon: User },
-  { to: "/entrepreneur/notifications", label: "Notifications", hint: "Ce qui demande votre attention", icon: Bell },
-  { to: "/entrepreneur/demandes", label: "Toutes les demandes", hint: "Demandes de tous vos chantiers", icon: ClipboardList },
+const MORE_SECTIONS = [
+  {
+    title: "Équipe",
+    items: [
+      { to: "/entrepreneur/taches", label: "Liste de tâches", hint: "Tâches de l'équipe, couleurs, attribution", icon: ListChecks },
+      { to: "/entrepreneur/agenda", label: "Agenda", hint: "Rendez-vous, chantiers, rappels, équipe", icon: CalendarDays },
+      { to: "/entrepreneur/punch", label: "Punch et heures", hint: "Entrée, sortie, pauses, heures pour la paie", icon: Clock },
+    ],
+  },
+  {
+    title: "Opérations",
+    items: [
+      { to: "/entrepreneur/activites", label: "Coupons, voyages et services", hint: "Coupons et voyages · services et chantiers · suivi et relances", icon: Ticket },
+      { to: "/entrepreneur/demandes", label: "Toutes les demandes", hint: "Demandes de tous vos chantiers", icon: ClipboardList },
+      { to: "/entrepreneur/flotte", label: "Ma flotte", hint: "Vos véhicules", icon: Truck },
+    ],
+  },
+  {
+    title: "Gestion",
+    items: [
+      { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ClipboardList },
+      { to: "/entrepreneur/finances", label: "Finances", hint: "Obligations et calendrier", icon: Wallet },
+      { to: "/entrepreneur/notes-de-frais", label: "Mes notes de frais", hint: "Dépenses, avances, remboursements", icon: Wallet },
+    ],
+  },
+  {
+    title: "Compte",
+    items: [
+      { to: "/entrepreneur/brouillons", label: "Reprendre mon travail", hint: "Vos brouillons", icon: FileClock },
+      { to: "/entrepreneur/notifications", label: "Notifications", hint: "Ce qui demande votre attention", icon: Bell },
+      { to: "/entrepreneur/compte", label: "Mon entreprise", hint: "Profil, camions, visibilité", icon: User },
+    ],
+  },
 ] as const;
+
+const MORE_ITEMS = MORE_SECTIONS.flatMap((s) => s.items);
 
 const SIDEBAR_ITEMS = [
   ...PRIMARY_TABS,
