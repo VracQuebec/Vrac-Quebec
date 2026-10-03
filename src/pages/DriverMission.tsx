@@ -54,7 +54,7 @@ export default function DriverMission() {
   const start = async () => {
     if (!consent || busy) return;
     setBusy(true);
-    const { data, error } = await supabase.rpc("drv_mission_start", { _sub: undefined, _driver: f.driver, _truck: f.truck, _consent: true });
+    const { data, error } = await supabase.rpc("drv_mission_start", { _sub: null as never, _driver: f.driver, _truck: f.truck, _consent: true });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     setMission(data as string); setPoints([]);

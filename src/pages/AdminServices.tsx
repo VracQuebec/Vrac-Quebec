@@ -51,8 +51,8 @@ export default function AdminServices() {
     setBusy(true);
     const { error } = await supabase.rpc("svc_request_update", {
       _id: open.id, _status: String(f.status), _availability: !!f.a, _zone: !!f.z, _access: !!f.c,
-      _quote: f.quote ? Number(f.quote) : undefined, _appointment: f.appt ? new Date(String(f.appt)).toISOString() : undefined,
-      _sampled: f.sampled ? new Date(String(f.sampled)).toISOString() : undefined, _partner: String(f.partner ?? ""),
+      _quote: f.quote ? Number(f.quote) : (null as never), _appointment: f.appt ? new Date(String(f.appt)).toISOString() : (null as never),
+      _sampled: f.sampled ? new Date(String(f.sampled)).toISOString() : (null as never), _partner: String(f.partner ?? ""),
       _result: String(f.result ?? ""), _staff_note: String(f.note ?? ""),
     });
     setBusy(false);
