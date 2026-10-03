@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const db = supabase as any;
 const BUCKET = "company-docs";
-const MAX = 20 * 1024 * 1024;
+const MAX = 100 * 1024 * 1024;
 const MIME: Record<string, string> = { pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp" };
 export const DOC_CATEGORIES: { id: string; label: string; ref: string; issuer: string }[] = [
   { id: "assurance", label: "Contrat d'assurance", ref: "Numéro de police", issuer: "Assureur" },
@@ -59,7 +59,7 @@ export default function CompanyDocuments({ companyId, canWrite }: { companyId: s
     if (!f) return;
     const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
     if (!MIME[ext]) return toast({ title: "Format non accepté", description: "PDF, JPG, PNG ou WEBP.", variant: "destructive" });
-    if (!f.size || f.size > MAX) return toast({ title: "Fichier vide ou trop lourd (20 Mo au maximum)", variant: "destructive" });
+    if (!f.size || f.size > MAX) return toast({ title: "Fichier vide ou trop lourd (100 Mo au maximum)", variant: "destructive" });
     setFile(f);
     // Pré-remplit avec ce que Vrac Québec détient déjà, sans écraser une saisie.
     setForm((p) => ({ ...p, title: p.title || f.name.replace(/\.[^.]+$/, ""), reference: p.reference || prefillRef(p.category) }));
@@ -125,7 +125,7 @@ export default function CompanyDocuments({ companyId, canWrite }: { companyId: s
           >
             <Upload className="h-6 w-6 text-primary" />
             {file ? <span className="break-all font-medium">{file.name} · {(file.size / 1048576).toFixed(1)} Mo</span>
-              : <span>Glissez votre fichier ici ou touchez pour choisir<br /><span className="text-xs text-muted-foreground">PDF, JPG, PNG ou WEBP · 20 Mo au maximum</span></span>}
+              : <span>Glissez votre fichier ici ou touchez pour choisir<br /><span className="text-xs text-muted-foreground">PDF, JPG, PNG ou WEBP · 100 Mo au maximum</span></span>}
             <input ref={pick} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => choose(e.target.files?.[0])} />
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
