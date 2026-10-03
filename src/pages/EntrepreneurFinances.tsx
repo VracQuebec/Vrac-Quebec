@@ -30,6 +30,7 @@ import RecurringInvoices from "@/components/finances/RecurringInvoices";
 import ClientAccounts from "@/components/finances/ClientAccounts";
 import PaymentProviderSim from "@/components/finances/PaymentProviderSim";
 import SupplierPurchases from "@/components/finances/SupplierPurchases";
+import SupplierAging from "@/components/finances/SupplierAging";
 import ExpenseReports from "@/components/finances/ExpenseReports";
 import BankReconciliation from "@/components/finances/BankReconciliation";
 import GeneralLedger from "@/components/finances/GeneralLedger";
@@ -180,7 +181,7 @@ function Finance({ companyId, companyName, tab, canWrite, canCorrect }: { compan
     {tab === "apayer" && <FinanceSearch key="occ" companyId={companyId} companyName={companyName} ctx="occ" rev={rev} canWrite={canWrite} canCorrect={canCorrect} add={add} onPayMany={onPayMany} onOpenPayment={setPayOpen} renderOcc={(o, pick) => <OccRow o={o} onOpen={setOcc} pick={pick} />} />}
     {tab === "reglements" && <FinanceSearch key="pay" companyId={companyId} companyName={companyName} ctx="pay" rev={rev} canWrite={canWrite} canCorrect={canCorrect} onOpenPayment={setPayOpen} renderOcc={(o) => <OccRow o={o} onOpen={setOcc} />} />}
     {tab === "factures" && <InvoicesTab companyId={companyId} companyName={companyName} canWrite={canWrite} />}
-    {tab === "achats" && <SupplierPurchases key={companyId} companyId={companyId} companyName={companyName} canWrite={canWrite} canCorrect={canCorrect} initialOcc={new URLSearchParams(window.location.search).get("occ")} />}
+    {tab === "achats" && <div className="space-y-3"><SupplierAging key={`ag-${companyId}`} companyId={companyId} /><SupplierPurchases key={companyId} companyId={companyId} companyName={companyName} canWrite={canWrite} canCorrect={canCorrect} initialOcc={new URLSearchParams(window.location.search).get("occ")} /></div>}
     {tab === "frais" && <ExpenseReports key={companyId} companyId={companyId} mine={!canWrite} canApprove={canWrite} canCorrect={canCorrect} initialCapture={new URLSearchParams(window.location.search).get("capture")} />}
     {tab === "tresorerie" && <Treasury companyId={companyId} companyName={companyName} canWrite={canWrite} cats={cats.filter((c) => !c.archived_at)} />}
     {tab === "rappels" && <Reminders companyId={companyId} companyName={companyName} canWrite={canWrite}
