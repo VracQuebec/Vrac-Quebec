@@ -585,10 +585,10 @@ function PhotoLink({ path }: { path: string }) {
 }
 
 const OUTBOX = "vq.rds.outbox";
-function outboxGet(): any[] { try { return JSON.parse(localStorage.getItem(OUTBOX) || "[]"); } catch { return []; } }
+export function outboxGet(): any[] { try { return JSON.parse(localStorage.getItem(OUTBOX) || "[]"); } catch { return []; } }
 function outboxAdd(p: any) { const q = outboxGet().filter((x) => x.client_key !== p.client_key); q.push(p); localStorage.setItem(OUTBOX, JSON.stringify(q)); }
 let flushing = false;
-async function outboxFlush(db: any): Promise<{ sent: number; refused: string[] }> {
+export async function outboxFlush(db: any): Promise<{ sent: number; refused: string[] }> {
   if (flushing || !navigator.onLine) return { sent: 0, refused: [] };
   flushing = true; let sent = 0; const refused: string[] = [];
   try {
