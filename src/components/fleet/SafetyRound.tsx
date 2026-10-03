@@ -488,15 +488,15 @@ function DefectsTab({ defects, codeOf, vName, canManage, rpc, vehicles, companyI
             </div></DialogContent>
         </Dialog>
       )}
-      {enRoute && <EnRouteDialog vehicles={vehicles} codes={codes} onClose={() => setEnRoute(false)} onPick={async (d: DraftDefect) => {
-        const { error } = await (supabase as any).rpc("rds_report_en_route", { p: { company_id: companyId, vehicle_id: d.vehicle_id, code: d.code, location: d.location, description: d.description, details: d.details, client_key: d.key } });
+      {enRoute && <EnRouteDialog companyId={companyId} vehicles={vehicles} codes={codes} onClose={() => setEnRoute(false)} onPick={async (d: DraftDefect) => {
+        const { error } = await (supabase as any).rpc("rds_report_en_route", { p: { company_id: companyId, vehicle_id: d.vehicle_id, code: d.code, location: d.location, description: d.description, details: d.details, photo_path: d.photo_path, client_key: d.key } });
         if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else { toast({ title: "Défaut signalé" }); setEnRoute(false); reload(); }
       }} />}
     </div>
   );
 }
 
-function EnRouteDialog({ vehicles, codes, onClose, onPick }: any) {
+function EnRouteDialog({ companyId, vehicles, codes, onClose, onPick }: any) {
   const [v, setV] = useState<any>(vehicles[0]); const [cat, setCat] = useState<number | null>(null);
   const list = v?.rds_list ?? 1;
   const catNos = Array.from(new Set(codes.filter((c: Code) => c.lists.includes(list)).map((c: Code) => c.cat_no))) as number[];
