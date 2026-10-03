@@ -430,3 +430,4 @@ Périmètre : aucun plan FIN-12 séparé dans le projet; référence = prompts F
 - FIN-14 : régularisations avec contrepassation datée (0188) et rapprochement comptes clients/fournisseurs vs grand livre (0189, onglet « Clients et fournisseurs ») — livrés TEST, non essayés avec compte connecté.
 - FIN-11/13 : virements entre comptes (banque, caisse, carte) marqués effectués et comptabilisés une seule fois (0190–0191); virement comptabilisé non modifiable.
 - FIN-16 : immobilisations (amortissement linéaire mensuel, une écriture par mois) et prêts (paiements capital/intérêts selon relevé, une écriture par paiement) — 0192, onglet « Prêts et immobilisations ».
+- FIN-17 : rentabilité par chantier (facturé/encaissé/coûts connus/estimés séparés, CSV) — 0193. Paie, amortissement et voyages pas encore répartis par chantier.
