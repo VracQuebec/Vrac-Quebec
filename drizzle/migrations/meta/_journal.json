@@ -1044,6 +1044,13 @@
       "when": 1790958972592,
       "tag": "0148_fin14_general_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1790990647333,
+      "tag": "0149_cpn01_coupon_books",
+      "breakpoints": true
     }
   ]
 }
