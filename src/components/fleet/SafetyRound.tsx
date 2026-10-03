@@ -140,6 +140,7 @@ export default function SafetyRound({ companyId, canManage = true }: { companyId
         ))}
       </div>
       {err && <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{err}</p>}
+      {pending > 0 && <p className="rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm">{pending} ronde(s) signée(s) hors ligne en attente — envoi automatique au retour du réseau.</p>}
 
       {tab === "bord" && (
         <div className="space-y-3">
