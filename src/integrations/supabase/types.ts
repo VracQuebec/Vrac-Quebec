@@ -7098,6 +7098,104 @@ export type Database = {
           },
         ]
       }
+      fin_gl_year_events: {
+        Row: {
+          action: string
+          actor: string | null
+          at: string
+          company_id: string
+          data: Json
+          id: string
+          reason: string | null
+          year_id: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          at?: string
+          company_id: string
+          data?: Json
+          id?: string
+          reason?: string | null
+          year_id: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          at?: string
+          company_id?: string
+          data?: Json
+          id?: string
+          reason?: string | null
+          year_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_gl_year_events_year_id_fkey"
+            columns: ["year_id"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_years"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_gl_years: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          end_date: string
+          id: string
+          label: string
+          opening_entry_id: string | null
+          start_date: string
+          status: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          id?: string
+          label: string
+          opening_entry_id?: string | null
+          start_date: string
+          status?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          label?: string
+          opening_entry_id?: string | null
+          start_date?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_gl_years_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_gl_years_opening_entry_id_fkey"
+            columns: ["opening_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fin_gl_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_invoice_receipts: {
         Row: {
           account_id: string | null
@@ -31109,6 +31207,7 @@ export type Database = {
         Returns: undefined
       }
       fin_gl_next_no: { Args: { _company: string }; Returns: number }
+      fin_gl_opening_draft: { Args: { _year: string }; Returns: string }
       fin_gl_pending: { Args: { _company: string }; Returns: Json }
       fin_gl_queue: {
         Args: { _company: string }
@@ -31141,8 +31240,24 @@ export type Database = {
         Returns: Record<string, unknown>
       }
       fin_gl_role_category: { Args: { _role: string }; Returns: string }
+      fin_gl_statements: {
+        Args: { _company: string; _from: string; _to: string }
+        Returns: Json
+      }
       fin_gl_sync: { Args: { _company: string }; Returns: Json }
       fin_gl_trial: { Args: { _company: string; _to: string }; Returns: Json }
+      fin_gl_year_close: {
+        Args: { _reason: string; _year: string }
+        Returns: Json
+      }
+      fin_gl_year_reopen: {
+        Args: { _reason: string; _year: string }
+        Returns: undefined
+      }
+      fin_gl_year_save: {
+        Args: { _company: string; _end: string; _label: string; _start: string }
+        Returns: string
+      }
       fin_invoice_balance: { Args: { _invoice: string }; Returns: Json }
       fin_invoice_from_quote: { Args: { _quote_id: string }; Returns: string }
       fin_invoice_issue: {
