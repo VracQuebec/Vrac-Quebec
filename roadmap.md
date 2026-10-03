@@ -183,4 +183,5 @@
 
 - [x] Ronde de sécurité (gestion de flotte) : référentiel, ronde téléphone, défauts, réparations, tableau de bord
 - [x] Ronde : photo du défaut (stockage privé par entreprise) et cloisonnement TEST B vérifiés
-- [ ] Ronde : envoi différé hors connexion complet (brouillon conservé sur l’appareil seulement) — nécessite app native pour écran verrouillé
+- [x] Ronde : envoi automatique au retour du réseau (file sur l’appareil, sans doublon)
+- [ ] Ronde : écran verrouillé / arrière-plan — nécessite app native; photo exige réseau
