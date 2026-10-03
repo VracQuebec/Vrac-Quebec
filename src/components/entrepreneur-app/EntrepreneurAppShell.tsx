@@ -86,6 +86,7 @@ const MORE_SECTIONS: { title: string; items: MoreItem[] }[] = [
       { to: "/entrepreneur/notes-de-frais", label: "Mes notes de frais", hint: "Dépenses, avances, remboursements", icon: Wallet },
       { to: "/entrepreneur/obligations", label: "Obligations et renouvellements", hint: "Registre des entreprises, CTQ, échéances", icon: CalendarDays },
       { to: "/entrepreneur/documents", label: "Documents de l’entreprise", hint: "Assurance, RPEVL, permis — glisser et consulter", icon: CalendarDays },
+      { to: "/entrepreneur/assurances", label: "Assurances entreprise", hint: "Polices, couvertures, renouvellements, soumissions", icon: CalendarDays },
     ],
   },
   {
