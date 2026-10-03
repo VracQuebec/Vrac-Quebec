@@ -37,6 +37,7 @@ export function FiscalYears({ companyId, canWrite, onOpenEntry }: { companyId: s
         <div className="flex flex-wrap items-center justify-between gap-2"><strong>{y.label} · {y.start_date} → {y.end_date}</strong>
           <span className={y.status === "closed" ? "font-semibold" : "text-muted-foreground"}>{y.status === "closed" ? "Fermé" : "Ouvert"}</span></div>
         <div className="mt-1 text-xs text-muted-foreground">Soldes d'ouverture : {y.opening_entry_id ? <button className="underline" onClick={() => onOpenEntry(y.opening_entry_id!)}>ouvrir l'écriture d'ouverture</button> : "À compléter"}</div>
+        <Button size="sm" variant="outline" className="mt-2" onClick={() => void yearEndFile(companyId, y).catch(err)}>Dossier de fin d'exercice (Excel)</Button>
         {canWrite && <div className="mt-2 flex flex-wrap gap-2">
           {y.status === "open" && <Button size="sm" variant="outline" onClick={async () => { const id = await call("fin_gl_opening_draft", { _year: y.id }, "Écriture d'ouverture prête"); if (id) onOpenEntry(id as string); }}>{y.opening_entry_id ? "Écriture d'ouverture" : "Saisir les soldes d'ouverture"}</Button>}
           {y.status === "open" && <Button size="sm" onClick={() => { const r = window.prompt("Motif ou note de clôture (facultatif)") ?? ""; void call("fin_gl_year_close", { _year: y.id, _reason: r }, "Exercice fermé"); }}>Clôturer</Button>}
