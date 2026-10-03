@@ -248,6 +248,7 @@ const App = () => (
             <Route path="/entrepreneur/agenda" element={<EntrepreneurAgenda />} />
             <Route path="/entrepreneur/punch" element={<EntrepreneurPunch />} />
             <Route path="/entrepreneur/obligations" element={<EntrepreneurObligations />} />
+            <Route path="/entrepreneur/documents" element={<EntrepreneurDocuments />} />
             <Route path="/entrepreneur/transports" element={<EntrepreneurTransports />} />
             <Route path="/entrepreneur/flotte" element={<EntrepreneurFlotte />} />
             <Route path="/entrepreneur/finances" element={<EntrepreneurFinances />} />
