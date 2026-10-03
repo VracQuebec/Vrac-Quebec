@@ -1,0 +1,2 @@
+ALTER TABLE public.fin_gl_years DROP CONSTRAINT fin_gl_years_opening_entry_id_fkey;
+ALTER TABLE public.fin_gl_years ADD CONSTRAINT fin_gl_years_opening_entry_id_fkey FOREIGN KEY (opening_entry_id) REFERENCES public.fin_gl_entries(id) ON DELETE SET NULL;

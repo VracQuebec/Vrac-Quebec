@@ -1282,6 +1282,13 @@
       "when": 1791016826127,
       "tag": "0182_fin14_exercices_cloture_etats",
       "breakpoints": true
+    },
+    {
+      "idx": 183,
+      "version": "7",
+      "when": 1791016937306,
+      "tag": "0183_fin14_ouverture_abandon",
+      "breakpoints": true
     }
   ]
 }
