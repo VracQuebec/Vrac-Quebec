@@ -170,5 +170,6 @@
 - [x] Assistant : alerte dans la cloche quand un visiteur demande une personne (courriel/texto préparés, non envoyés)
 - [x] Essais punch (manuel, correction, refus, lecture seule, position) et paie (droits) — faille corrigée : le rôle lecture pouvait calculer la paie
 - [x] Agenda (réponse invité) et cloisonnement TEST B vérifiés
-- [ ] Paie : RL-1/T4, lien grand livre
+- [x] Paie → grand livre : paie finalisée comptabilisée une seule fois (salaires, charges employeur, retenues à remettre, nets à verser)
+- [ ] Paie : RL-1/T4
 - [ ] Vitesse et confort des pages

@@ -31,7 +31,7 @@ export const SOURCE: Record<string, { l: string; tab: string; sous?: string }> =
   invoice: { l: "Facture client", tab: "factures" }, receipt: { l: "Encaissement client", tab: "factures", sous: "comptes" }, credit_note: { l: "Note de crédit client", tab: "factures" },
   bill: { l: "Facture fournisseur", tab: "achats" }, supplier_credit: { l: "Note de crédit fournisseur", tab: "achats" }, supplier_credit_refund: { l: "Remboursement de note de crédit fournisseur", tab: "achats" },
   payment: { l: "Règlement", tab: "reglements" }, refund: { l: "Remboursement de trop-payé", tab: "achats" }, exp_report: { l: "Note de frais", tab: "frais" }, restitution: { l: "Restitution d'avance", tab: "frais" },
-  payroll: { l: "Paie finalisée", tab: "grand-livre" },
+  payroll: { l: "Paie finalisée", tab: "comptabilite" },
 };
 export const sourceHref = (company: string, kind: string | null) => {
   const s = kind ? SOURCE[kind] : null; if (!s) return null;
