@@ -27177,6 +27177,7 @@ export type Database = {
         Returns: Json
       }
       agd_can_see: { Args: { _event: string }; Returns: boolean }
+      agd_is_attendee: { Args: { _event: string }; Returns: boolean }
       agd_mark_read: { Args: { _delivery: string }; Returns: undefined }
       agd_my_bell: {
         Args: { _limit?: number }

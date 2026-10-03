@@ -218,7 +218,7 @@ export default function AgendaBoard({ companyId, role }: { companyId: string; ro
               <Input aria-label="Titre" placeholder="Titre" value={edit.title ?? ""} onChange={(e) => setEdit({ ...edit, title: e.target.value })} />
               <Input aria-label="Lieu" placeholder="Lieu ou adresse" value={edit.location ?? ""} onChange={(e) => setEdit({ ...edit, location: e.target.value })} />
               <Textarea aria-label="Description" placeholder="Description" value={edit.description ?? ""} onChange={(e) => setEdit({ ...edit, description: e.target.value })} />
-              <label className="flex items-center gap-2 text-sm"><Checkbox checked={!!edit.all_day} onCheckedChange={(v) => setEdit({ ...edit, all_day: !!v })} />Toute la journée</label>
+              <label className="flex items-center gap-2 text-sm"><Checkbox className="h-5 w-5 shrink-0" checked={!!edit.all_day} onCheckedChange={(v) => setEdit({ ...edit, all_day: !!v })} />Toute la journée</label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <label className="text-sm">Début<Input type={edit.all_day ? "date" : "datetime-local"} value={edit.all_day ? dayKey(new Date(edit.start_at!)) : toLocal(new Date(edit.start_at!))}
                   onChange={(e) => { if (!e.target.value) return; const s = new Date(edit.all_day ? e.target.value + "T00:00" : e.target.value); const dur = new Date(edit.end_at!).getTime() - new Date(edit.start_at!).getTime(); setEdit({ ...edit, start_at: s.toISOString(), end_at: new Date(s.getTime() + Math.max(dur, 0)).toISOString() }); }} /></label>
@@ -254,11 +254,11 @@ export default function AgendaBoard({ companyId, role }: { companyId: string; ro
                   <select aria-label="Délai du rappel" className={sel} value={r.minutes} onChange={(e) => setEdit({ ...edit, reminders: edit.reminders!.map((x, j) => (j === i ? { ...x, minutes: Number(e.target.value) } : x)) })}>
                     {[[10, "10 min"], [30, "30 min"], [60, "1 h"], [120, "2 h"], [1440, "1 jour"], [2880, "2 jours"], [10080, "1 semaine"]].map(([v, l]) => <option key={v} value={v}>{l} avant</option>)}
                   </select>
-                  {Object.entries(CH).map(([k, l]) => <label key={k} className="flex items-center gap-1"><Checkbox checked={r.channels.includes(k)} onCheckedChange={(v) => setEdit({ ...edit, reminders: edit.reminders!.map((x, j) => (j === i ? { ...x, channels: v ? [...x.channels, k] : x.channels.filter((c) => c !== k) } : x)) })} />{l}</label>)}
+                  {Object.entries(CH).map(([k, l]) => <label key={k} className="flex items-center gap-1"><Checkbox className="h-5 w-5 shrink-0" checked={r.channels.includes(k)} onCheckedChange={(v) => setEdit({ ...edit, reminders: edit.reminders!.map((x, j) => (j === i ? { ...x, channels: v ? [...x.channels, k] : x.channels.filter((c) => c !== k) } : x)) })} />{l}</label>)}
                   <Button size="icon" variant="ghost" aria-label="Retirer le rappel" onClick={() => setEdit({ ...edit, reminders: edit.reminders!.filter((_, j) => j !== i) })}><Trash2 className="h-4 w-4" /></Button>
                 </div>)}
                 <Button size="sm" variant="outline" onClick={() => setEdit({ ...edit, reminders: [...(edit.reminders ?? []), { minutes: 1440, channels: ["app"] }] })}>Ajouter un rappel</Button>
-                {edit.client_id && <label className="flex items-center gap-2 text-sm"><Checkbox checked={!!edit.notify_client} onCheckedChange={(v) => setEdit({ ...edit, notify_client: !!v })} />Rappeler aussi le client (courriel/texto)</label>}
+                {edit.client_id && <label className="flex items-center gap-2 text-sm"><Checkbox className="h-5 w-5 shrink-0" checked={!!edit.notify_client} onCheckedChange={(v) => setEdit({ ...edit, notify_client: !!v })} />Rappeler aussi le client (courriel/texto)</label>}
                 <p className="text-xs text-muted-foreground">Les courriels et textos sont préparés en mode essai : aucun envoi réel tant que le service d'envoi n'est pas activé.</p>
               </fieldset>
             </fieldset>
