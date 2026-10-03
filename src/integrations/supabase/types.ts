@@ -20082,6 +20082,195 @@ export type Database = {
         }
         Relationships: []
       }
+      pay_employees: {
+        Row: {
+          active: boolean
+          company_id: string
+          fed_claim: number | null
+          hourly_rate: number
+          qc_claim: number | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          vacation_pct: number
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          fed_claim?: number | null
+          hourly_rate?: number
+          qc_claim?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+          vacation_pct?: number
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          fed_claim?: number | null
+          hourly_rate?: number
+          qc_claim?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          vacation_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pay_employees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pay_rates: {
+        Row: {
+          note: string | null
+          params: Json
+          updated_at: string
+          validated: boolean
+          year: number
+        }
+        Insert: {
+          note?: string | null
+          params: Json
+          updated_at?: string
+          validated?: boolean
+          year: number
+        }
+        Update: {
+          note?: string | null
+          params?: Json
+          updated_at?: string
+          validated?: boolean
+          year?: number
+        }
+        Relationships: []
+      }
+      pay_runs: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          finalized_at: string | null
+          finalized_by: string | null
+          id: string
+          pay_date: string
+          period_from: string
+          period_to: string
+          rate_year: number
+          status: string
+          totals: Json
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          finalized_at?: string | null
+          finalized_by?: string | null
+          id?: string
+          pay_date: string
+          period_from: string
+          period_to: string
+          rate_year: number
+          status?: string
+          totals?: Json
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          finalized_at?: string | null
+          finalized_by?: string | null
+          id?: string
+          pay_date?: string
+          period_from?: string
+          period_to?: string
+          rate_year?: number
+          status?: string
+          totals?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pay_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pay_stubs: {
+        Row: {
+          company_id: string
+          ei: number
+          employer: Json
+          fed_tax: number
+          full_name: string | null
+          gross: number
+          id: string
+          net: number
+          ot_hours: number
+          qc_tax: number
+          qpip: number
+          qpp: number
+          rate: number
+          reg_hours: number
+          run_id: string
+          user_id: string
+          vacation: number
+        }
+        Insert: {
+          company_id: string
+          ei: number
+          employer: Json
+          fed_tax: number
+          full_name?: string | null
+          gross: number
+          id?: string
+          net: number
+          ot_hours: number
+          qc_tax: number
+          qpip: number
+          qpp: number
+          rate: number
+          reg_hours: number
+          run_id: string
+          user_id: string
+          vacation: number
+        }
+        Update: {
+          company_id?: string
+          ei?: number
+          employer?: Json
+          fed_tax?: number
+          full_name?: string | null
+          gross?: number
+          id?: string
+          net?: number
+          ot_hours?: number
+          qc_tax?: number
+          qpip?: number
+          qpp?: number
+          rate?: number
+          reg_hours?: number
+          run_id?: string
+          user_id?: string
+          vacation?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pay_stubs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           charged_to_entrepreneur: number | null
@@ -30168,6 +30357,29 @@ export type Database = {
         Args: { _from: string; _to: string }
         Returns: Json
       }
+      pay_bracket_tax: { Args: { _br: Json; _inc: number }; Returns: number }
+      pay_employee_save: {
+        Args: {
+          _active: boolean
+          _company: string
+          _fed: number
+          _qc: number
+          _rate: number
+          _user: string
+          _vac: number
+        }
+        Returns: undefined
+      }
+      pay_run_compute: {
+        Args: {
+          _company: string
+          _from: string
+          _pay_date: string
+          _to: string
+        }
+        Returns: string
+      }
+      pay_run_finalize: { Args: { _run: string }; Returns: undefined }
       platform_cleanup: { Args: never; Returns: Json }
       platform_has_capability: {
         Args: {
