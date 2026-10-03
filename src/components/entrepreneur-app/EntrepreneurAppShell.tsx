@@ -94,9 +94,9 @@ const MORE_SECTIONS: { title: string; items: MoreItem[] }[] = [
       { to: "/entrepreneur/compte", label: "Mon entreprise", hint: "Profil, camions, visibilité", icon: User },
     ],
   },
-] as const;
+];
 
-const MORE_ITEMS = MORE_SECTIONS.flatMap((s) => s.items);
+const MORE_ITEMS: MoreItem[] = MORE_SECTIONS.flatMap((s) => s.items);
 
 const SIDEBAR_ITEMS = [
   ...PRIMARY_TABS,
