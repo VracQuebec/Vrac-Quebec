@@ -423,3 +423,5 @@ Périmètre : aucun plan FIN-12 séparé dans le projet; référence = prompts F
 ## FIN-15 — Âge des comptes fournisseurs (2026-10-03, TEST, non publié)
 - RPC fin_ap_aging (lecture seule, fin_can_read) réutilise fin_supplier_balances; tranches non échu/1–30/31–60/61–90/90+/échéance inconnue; disponibles séparés. Âge clients déjà présent (FIN-10).
 - Flux de trésorerie : RPC fin_gl_cash_flow (méthode directe sur comptes liés aux comptes financiers, écritures validées, virements internes exclus), onglet Comptabilité.
+- Budgets comparés au réel : déjà présents (Trésorerie → Budgets, FIN-05B).
+- Dossier de fin d’exercice : classeur Excel par exercice (résumé, balance, résultats, bilan, flux, âge fournisseurs) depuis les RPC existantes.
