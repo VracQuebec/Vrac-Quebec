@@ -101,7 +101,7 @@ export default function InsuranceBoard({ companyId, canWrite }: { companyId: str
             <Input aria-label="Rechercher" className="pl-8" placeholder="Titre, assureur, numéro, bien, garantie…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           {[["Catégorie", fCat, setFCat, cats.map((c) => [c.id, c.label])], ["Assureur", fIns, setFIns, insurers.map((i) => [i, i])], ["Responsable", fResp, setFResp, members.map((m) => [m.user_id, m.full_name || m.email])],
             ["Statut", fStat, setFStat, Object.entries(POLICY_STATUS).map(([v, s]) => [v, s.label])], ["Échéance", fDue, setFDue, [["30", "≤ 30 jours"], ["90", "≤ 3 mois"], ["180", "≤ 6 mois"]]]].map(([l, v, set, opts]: any) => (
-            <select key={l} aria-label={l} className="h-10 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-sm sm:flex-none" value={v} onChange={(e) => set(e.target.value)}>
+            <select key={l} aria-label={l} className="h-10 min-w-0 basis-[calc(50%-0.25rem)] grow rounded-md border border-border bg-background px-2 text-sm sm:basis-auto sm:grow-0" value={v} onChange={(e) => set(e.target.value)}>
               <option value="">{l} : toutes</option>{opts.map(([a, b]: any) => <option key={a} value={a}>{b}</option>)}
             </select>))}
           {canWrite && <Button onClick={() => setAdding(true)} className="w-full sm:w-auto"><Plus className="mr-1 h-4 w-4" />Ajouter une police</Button>}
