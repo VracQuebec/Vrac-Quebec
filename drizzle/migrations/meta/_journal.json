@@ -1135,6 +1135,13 @@
       "when": 1791000105423,
       "tag": "0161_payroll_write_requires_manager",
       "breakpoints": true
+    },
+    {
+      "idx": 162,
+      "version": "7",
+      "when": 1791003489664,
+      "tag": "0162_payroll_to_general_ledger",
+      "breakpoints": true
     }
   ]
 }
