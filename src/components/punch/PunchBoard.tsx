@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
+import PayrollPanel from "./PayrollPanel";
 import { Clock, Coffee, LogIn, LogOut, MapPin, Download } from "lucide-react";
 
 const db = supabase as any;
@@ -40,7 +41,7 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
   const [client, setClient] = useState("");
   const [consent, setConsent] = useState(false);
   const [now, setNow] = useState(Date.now());
-  const [tab, setTab] = useState<"moi" | "equipe" | "paie">("moi");
+  const [tab, setTab] = useState<"moi" | "equipe" | "paie" | "salaire">("moi");
   const [from, setFrom] = useState(ymd(monday()));
   const [to, setTo] = useState(ymd(new Date()));
   const [summary, setSummary] = useState<any[]>([]);
@@ -132,7 +133,7 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
   return (
     <div className="space-y-4">
       <div className="flex gap-2 overflow-x-auto">
-        {([["moi", "Mon punch"], ...(isMgr ? [["equipe", `Équipe (${pending.length})`]] : []), ["paie", "Heures pour la paie"]] as [typeof tab, string][]).map(([k, l]) => (
+        {([["moi", "Mon punch"], ...(isMgr ? [["equipe", `Équipe (${pending.length})`]] : []), ["paie", "Heures pour la paie"], ["salaire", "Paie"]] as [typeof tab, string][]).map(([k, l]) => (
           <Button key={k} size="sm" variant={tab === k ? "default" : "outline"} onClick={() => setTab(k)}>{l}</Button>
         ))}
       </div>
@@ -215,6 +216,8 @@ export default function PunchBoard({ companyId, role }: { companyId: string; rol
           </div>
         </section>
       )}
+
+      {tab === "salaire" && <PayrollPanel companyId={companyId} canManage={isMgr} from={from} to={to} members={members} me={me} />}
 
       {manual && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-background/80 p-2 sm:items-center" role="dialog" aria-label="Saisie manuelle">

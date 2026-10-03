@@ -1086,6 +1086,13 @@
       "when": 1790995972795,
       "tag": "0154_punch_lot_c1",
       "breakpoints": true
+    },
+    {
+      "idx": 155,
+      "version": "7",
+      "when": 1790996840577,
+      "tag": "0155_payroll_lot_c2",
+      "breakpoints": true
     }
   ]
 }
