@@ -242,6 +242,7 @@ const App = () => (
             <Route path="/entrepreneur/activites" element={<EntrepreneurActivites />} />
             <Route path="/entrepreneur/taches" element={<EntrepreneurTaches />} />
             <Route path="/entrepreneur/agenda" element={<EntrepreneurAgenda />} />
+            <Route path="/entrepreneur/punch" element={<EntrepreneurPunch />} />
             <Route path="/entrepreneur/transports" element={<EntrepreneurTransports />} />
             <Route path="/entrepreneur/flotte" element={<EntrepreneurFlotte />} />
             <Route path="/entrepreneur/finances" element={<EntrepreneurFinances />} />
@@ -331,6 +332,7 @@ const App = () => (
             <Route path="/admin/volets" element={<AdminVolets />} />
             <Route path="/admin/taches" element={<AdminTaches />} />
             <Route path="/admin/agenda" element={<AdminAgenda />} />
+            <Route path="/admin/punch" element={<AdminPunch />} />
             <Route path="/admin/volets/voyages" element={<AdminVoyages />} />
             <Route path="/admin/coupons/:id/imprimer" element={<AdminCouponPrint />} />
             <Route path="/compteur/:id" element={<TripCounter />} />

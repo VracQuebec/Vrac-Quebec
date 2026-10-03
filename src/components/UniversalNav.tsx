@@ -99,6 +99,7 @@ export default function UniversalNav() {
     { to: "/admin/volets", label: "Coupons, voyages et services", icon: Truck },
     { to: "/admin/taches", label: "Listes de tâches", icon: LayoutDashboard },
     { to: "/admin/agenda", label: "Agendas des entreprises", icon: CalendarDays },
+    { to: "/admin/punch", label: "Punch et heures", icon: CalendarDays },
     { to: "/admin", label: "Demandes (CRM)", icon: LayoutDashboard },
     { to: "/admin/notifications", label: "Centre de notifications", icon: Bell },
     { to: "/admin/demandes-acces", label: "Demandes d'accès", icon: Truck },
