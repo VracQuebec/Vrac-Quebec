@@ -419,3 +419,6 @@ Périmètre : aucun plan FIN-12 séparé dans le projet; référence = prompts F
 - FIN-15 partiel : état des résultats et bilan depuis les écritures validées (entreprise, période, devise, renvoi au grand livre, export CSV). Vérifié équilibré sur TEST A 2026.
 - Non réalisés dans ce passage (à faire) : régularisations guidées (charges à payer, produits reportés, créances douteuses), rapprochement clients/fournisseurs ↔ comptes comptables, FIN-11/13 compléments (cartes, petite caisse, marges, transit, frais/écarts, verrouillage du rapprochement), FIN-15 périodes fiscales/remises/flux de trésorerie/âge des comptes/budgets vs réel/dossier de fin d'exercice, FIN-16 à FIN-23.
 - Document « Vrac-Quebec_FINANCE_Plan-directeur.md » introuvable dans le projet.
+
+## FIN-15 — Âge des comptes fournisseurs (2026-10-03, TEST, non publié)
+- RPC fin_ap_aging (lecture seule, fin_can_read) réutilise fin_supplier_balances; tranches non échu/1–30/31–60/61–90/90+/échéance inconnue; disponibles séparés. Âge clients déjà présent (FIN-10).

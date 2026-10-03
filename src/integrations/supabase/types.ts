@@ -30576,6 +30576,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fin_ap_aging: { Args: { _company: string; _on: string }; Returns: Json }
       fin_ar_accounts: {
         Args: {
           _company: string
