@@ -428,3 +428,4 @@ Périmètre : aucun plan FIN-12 séparé dans le projet; référence = prompts F
 - Taxes à remettre : fin_tax_returns/_events, fin_tax_period_compute (comptes TPS/TVQ associés, écritures validées), préparation figée refusée si comptes manquants/brouillons/chevauchement, statuts préparée→revue→déclarée hors app→payée hors app, annulation motivée. Jamais transmis. Paiement non comptabilisé automatiquement.
 
 - FIN-14 : régularisations avec contrepassation datée (0188) et rapprochement comptes clients/fournisseurs vs grand livre (0189, onglet « Clients et fournisseurs ») — livrés TEST, non essayés avec compte connecté.
+- FIN-11/13 : virements entre comptes (banque, caisse, carte) marqués effectués et comptabilisés une seule fois (0190–0191); virement comptabilisé non modifiable.
