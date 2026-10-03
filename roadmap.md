@@ -147,3 +147,11 @@
 - [x] Paiements nets = versements − remboursements (reliquat non affecté exclu, prorata), détail + export alignés
 - [x] Lecture seule bloquée côté serveur (essai annulé ensuite)
 - [ ] Parcours navigateur mobile : non exécuté (connexion d'essai non approuvée) — essai manuel fourni
+
+## Volet « Coupons, services et relances » (à faire APRÈS les lots en cours — plan directeur § 19)
+- [ ] Lot 1 — Carnets de coupons triplicata numérotés (client dompe + entrepreneur), préparation d'envoi postal à l'inscription, renouvellements/pertes/expéditions (envoi réel par l'équipe ou un prestataire)
+- [ ] Lot 2 — Compteur numérique de voyages relié aux coupons (une seule activité, jamais de double compte; total quotidien conservé sans heures inventées)
+- [ ] Lot 3 — Services complémentaires (pépine avec opérateur, camions 10/12 roues, matériaux, préparation/finition) → demande CRM liée au chantier
+- [ ] Lot 4 — Analyses de sols (demande, soumission, rendez-vous, prélèvement, résultats), partenaire labo; aucun contaminé accepté
+- [ ] Lot 5 — Suivi chauffeurs par mission (activation explicite, arrêts horodatés = indices à confirmer); suivi écran verrouillé = application mobile native
+- [ ] Lot 6 — Relances commerciales (J0/J+3/J+10/J+21, mensuel client, 2 sem. entrepreneur, plafond 1 promo / 7 jours) — nécessite un service d'envoi marketing dédié
