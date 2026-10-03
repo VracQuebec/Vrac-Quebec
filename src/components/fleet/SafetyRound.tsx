@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
+import { useToast, toast as toastFn } from "@/hooks/use-toast";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const db = supabase as any;
@@ -24,7 +24,7 @@ type Code = { code: string; cat_no: number; severity: "mineur" | "majeur"; text:
 type VStatus = { vehicle_id: string; name: string; plate: string | null; list_no: number | null; pnbv_kg: number | null; last_report_id: string | null; last_at: string | null; valid_until: string | null; ronde_valide: boolean; majeures: number; mineures: number; mineures_echues: number; prochaine_echeance: string | null; a_valider: number };
 type Profile = { brakes?: "pneumatiques" | "hydrauliques" | "electriques"; coupling?: boolean; first_aid?: boolean; extinguisher?: boolean; bulk?: string[] };
 type Answer = { state?: "conforme" | "defaut" | "na"; reason?: string };
-type DraftDefect = { key: string; code: string; vehicle_id: string; location: string; description: string; details: Record<string, string> };
+type DraftDefect = { key: string; code: string; vehicle_id: string; location: string; description: string; details: Record<string, string>; photo_path?: string };
 
 const TZ = "America/Toronto";
 const fmt = (s?: string | null) => s ? new Date(s).toLocaleString("fr-CA", { timeZone: TZ, dateStyle: "medium", timeStyle: "short" }) : "—";
@@ -306,7 +306,7 @@ function RoundDialog({ companyId, vehicle, parent, vehicles, cats, codes, onClos
       odometer_km: st.odometer_km, operator_name: st.operator_name, inspector_name: st.inspector_name, inspector_role: st.inspector_role,
       unit_ids: st.unit_ids, declaration: st.declaration, signature: st.signature, no_defect: noDefect, parent_id: parent?.id ?? null, correction_reason: st.reason,
       offline: !navigator.onLine, checks: { categories: st.answers, equipements: st.bulk },
-      defects: st.defects.map((d: DraftDefect) => ({ code: d.code, vehicle_id: d.vehicle_id, location: d.location, description: d.description, details: d.details, client_key: d.key })),
+      defects: st.defects.map((d: DraftDefect) => ({ code: d.code, vehicle_id: d.vehicle_id, location: d.location, description: d.description, details: d.details, photo_path: d.photo_path, client_key: d.key })),
     } });
     setBusy(false);
     if (error) { toast({ title: "Non enregistré — votre saisie est conservée", description: error.message, variant: "destructive" }); return; }
@@ -390,18 +390,25 @@ function RoundDialog({ companyId, vehicle, parent, vehicles, cats, codes, onClos
             </Button>
           </div>
         </div>
-        {picking && <CodePicker cat={picking.cat} listNo={listNo} codes={codes} vehicles={[vehicle, ...vehicles.filter((v) => st.unit_ids.includes(v.id))]}
+        {picking && <CodePicker companyId={companyId} cat={picking.cat} listNo={listNo} codes={codes} vehicles={[vehicle, ...vehicles.filter((v) => st.unit_ids.includes(v.id))]}
           onClose={() => setPicking(null)} onPick={(d) => { set({ defects: [...st.defects, d] }); setPicking(null); }} />}
       </DialogContent>
     </Dialog>
   );
 }
 
-function CodePicker({ cat, listNo, codes, vehicles, onClose, onPick }: { cat: number; listNo: number; codes: Code[]; vehicles: any[]; onClose: () => void; onPick: (d: DraftDefect) => void }) {
+function CodePicker({ companyId, cat, listNo, codes, vehicles, onClose, onPick }: { companyId: string; cat: number; listNo: number; codes: Code[]; vehicles: any[]; onClose: () => void; onPick: (d: DraftDefect) => void }) {
   const [code, setCode] = useState<string>("");
   const [details, setDetails] = useState<Record<string, string>>({});
   const [location, setLocation] = useState(""); const [description, setDescription] = useState("");
   const [vid, setVid] = useState(vehicles[0]?.id);
+  const [photo, setPhoto] = useState<string | undefined>(); const [up, setUp] = useState(false);
+  const upload = async (f?: File) => {
+    if (!f) return; if (f.size > 8 * 1024 * 1024) { toastFn({ title: "Photo trop lourde (8 Mo max)", variant: "destructive" }); return; }
+    setUp(true); const path = `${companyId}/${uuid()}.${(f.name.split(".").pop() || "jpg").toLowerCase()}`;
+    const { error } = await supabase.storage.from("rds-photos").upload(path, f, { contentType: f.type });
+    setUp(false); if (error) toastFn({ title: "Photo non envoyée — réessayez", description: error.message, variant: "destructive" }); else setPhoto(path);
+  };
   const opts = codes.filter((c) => c.cat_no === cat && c.lists.includes(listNo));
   const problem = code ? incoherence(code, details) : "Choisir un code";
   return (
@@ -421,9 +428,11 @@ function CodePicker({ cat, listNo, codes, vehicles, onClose, onPick }: { cat: nu
             ) : <Input value={details[p.k] ?? ""} onChange={(e) => setDetails({ ...details, [p.k]: e.target.value })} />}</div>
           ))}
           {code && <><Input placeholder="Emplacement (ex. avant gauche)" value={location} onChange={(e) => setLocation(e.target.value)} />
-            <Textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} /></>}
+            <Textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+            <label className="block text-xs">Photo (facultative){photo ? " — jointe ✓" : up ? " — envoi…" : ""}
+              <Input type="file" accept="image/*" capture="environment" disabled={up} onChange={(e) => upload(e.target.files?.[0])} /></label></>}
           {code && problem && <p className="flex items-center gap-1 text-xs text-destructive"><AlertTriangle className="h-3.5 w-3.5" />{problem}</p>}
-          <Button className="w-full" disabled={!!problem} onClick={() => onPick({ key: uuid(), code, vehicle_id: vid, location, description, details })}>Ajouter</Button>
+          <Button className="w-full" disabled={!!problem || up} onClick={() => onPick({ key: uuid(), code, vehicle_id: vid, location, description, details, photo_path: photo })}>Ajouter</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -457,6 +466,7 @@ function DefectsTab({ defects, codeOf, vName, canManage, rpc, vehicles, companyI
               </div>
               <p className="mt-1 text-muted-foreground">{c?.text}</p>
               {d.location && <p className="text-xs">Emplacement : {d.location}</p>}
+              {d.photo_path && <PhotoLink path={d.photo_path} />}
               <p className="mt-1 text-xs text-muted-foreground">Premier constat : {fmt(d.found_at)} par {d.found_by_name || "—"}
                 {d.due_at && d.severity === "mineur" && <> · Échéance 48 h : <b className={overdue ? "text-destructive" : ""}>{fmt(d.due_at)}{overdue ? " (échue — reste une mineure)" : ""}</b></>}</p>
               {d.repaired_at && <p className="text-xs">Réparé le {fmt(d.repaired_at)} : {d.repair_notes}{d.repair_proof ? ` · Preuve : ${d.repair_proof}` : ""}</p>}
@@ -478,19 +488,19 @@ function DefectsTab({ defects, codeOf, vName, canManage, rpc, vehicles, companyI
             </div></DialogContent>
         </Dialog>
       )}
-      {enRoute && <EnRouteDialog vehicles={vehicles} codes={codes} onClose={() => setEnRoute(false)} onPick={async (d: DraftDefect) => {
-        const { error } = await (supabase as any).rpc("rds_report_en_route", { p: { company_id: companyId, vehicle_id: d.vehicle_id, code: d.code, location: d.location, description: d.description, details: d.details, client_key: d.key } });
+      {enRoute && <EnRouteDialog companyId={companyId} vehicles={vehicles} codes={codes} onClose={() => setEnRoute(false)} onPick={async (d: DraftDefect) => {
+        const { error } = await (supabase as any).rpc("rds_report_en_route", { p: { company_id: companyId, vehicle_id: d.vehicle_id, code: d.code, location: d.location, description: d.description, details: d.details, photo_path: d.photo_path, client_key: d.key } });
         if (error) toast({ title: "Refusé", description: error.message, variant: "destructive" }); else { toast({ title: "Défaut signalé" }); setEnRoute(false); reload(); }
       }} />}
     </div>
   );
 }
 
-function EnRouteDialog({ vehicles, codes, onClose, onPick }: any) {
+function EnRouteDialog({ companyId, vehicles, codes, onClose, onPick }: any) {
   const [v, setV] = useState<any>(vehicles[0]); const [cat, setCat] = useState<number | null>(null);
   const list = v?.rds_list ?? 1;
   const catNos = Array.from(new Set(codes.filter((c: Code) => c.lists.includes(list)).map((c: Code) => c.cat_no))) as number[];
-  if (cat != null && v) return <CodePicker cat={cat} listNo={list} codes={codes} vehicles={[v]} onClose={onClose} onPick={onPick} />;
+  if (cat != null && v) return <CodePicker companyId={companyId} cat={cat} listNo={list} codes={codes} vehicles={[v]} onClose={onClose} onPick={onPick} />;
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md"><DialogHeader><DialogTitle>Défaut constaté en route</DialogTitle></DialogHeader>
@@ -544,4 +554,11 @@ function HistoryTab({ reports, defects, vName, codeOf, canManage, rpc, onCorrect
       {rows.length === 0 && <p className="text-sm text-muted-foreground">Aucune ronde.</p>}
     </div>
   );
+}
+
+function PhotoLink({ path }: { path: string }) {
+  return <button type="button" className="text-xs underline" onClick={async () => {
+    const { data, error } = await supabase.storage.from("rds-photos").createSignedUrl(path, 300);
+    if (error || !data) toastFn({ title: "Photo inaccessible", variant: "destructive" }); else window.open(data.signedUrl, "_blank", "noopener");
+  }}>Voir la photo</button>;
 }
