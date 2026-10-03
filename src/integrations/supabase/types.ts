@@ -31357,6 +31357,7 @@ export type Database = {
         Args: { _company: string; _from: string; _to: string }
         Returns: Json
       }
+      fin_gl_subledger_check: { Args: { _company: string }; Returns: Json }
       fin_gl_sync: { Args: { _company: string }; Returns: Json }
       fin_gl_trial: { Args: { _company: string; _to: string }; Returns: Json }
       fin_gl_year_close: {
