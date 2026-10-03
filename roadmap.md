@@ -172,4 +172,4 @@
 - [x] Agenda (réponse invité) et cloisonnement TEST B vérifiés
 - [x] Paie → grand livre : paie finalisée comptabilisée une seule fois (salaires, charges employeur, retenues à remettre, nets à verser)
 - [x] Paie : sommaires annuels T4/RL-1 (préparation, non transmis)
-- [ ] Vitesse et confort des pages
+- [x] Vitesse : assistant et formulaire d’évacuation chargés à la demande sur l’accueil (autres pages déjà chargées à la demande)
