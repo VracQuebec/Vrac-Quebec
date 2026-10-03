@@ -29,7 +29,7 @@ export default function ServiceOffers({ submissionId, kinds }: { submissionId?: 
   const send = async () => {
     if (!open || busy) return;
     setBusy(true);
-    const { error } = await supabase.rpc("svc_request_create", { _kind: open, _sub: submissionId ?? undefined, _note: note, _key: key });
+    const { error } = await supabase.rpc("svc_request_create", { _kind: open, _sub: submissionId ?? (null as never), _note: note, _key: key });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Demande envoyée : l'équipe vérifie la disponibilité, la zone et l'accès avant de confirmer.");

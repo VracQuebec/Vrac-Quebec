@@ -63,8 +63,8 @@ export default function AdminCoupons() {
     if (!open || busy) return;
     setBusy(true);
     const { data, error } = await supabase.rpc("cpn_book_action", {
-      _id: open.id, _action: action, _note: form.note || undefined, _carrier: form.carrier || undefined,
-      _tracking: form.tracking || undefined, _address: form.address || undefined, _city: form.city || undefined, _postal: form.postal || undefined,
+      _id: open.id, _action: action, _note: form.note || (null as never), _carrier: form.carrier || (null as never),
+      _tracking: form.tracking || (null as never), _address: form.address || (null as never), _city: form.city || (null as never), _postal: form.postal || (null as never),
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
