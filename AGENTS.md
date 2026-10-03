@@ -14,3 +14,4 @@
 
 - Punch : pun_entries/pun_log, écritures par RPC seulement (pun_in/out/break/manual/decide); correction = nouvelle entrée + ancienne archivée; heures pour la paie via pun_summary — jamais de paie calculée hors de ce relevé approuvé.
 - Paie : pay_rates (taux par année, validated=false tant que non vérifiés), pay_employees, pay_runs/pay_stubs écrits seulement par pay_employee_save/pay_run_compute/pay_run_finalize; calcul serveur depuis les heures approuvées de pun_summary; paie finalisée immuable — aucun calcul de paie dans le navigateur.
+- Assistant du site : site_chat_sessions/site_chat_messages écrits seulement par la fonction site-assistant (visiteur, jeton secret, lecture via site_chat_poll) et site_chat_agent_action (agents = admin ou site_chat_agents); en mode « humain » l'IA ne répond jamais — une seule conversation, reprise sans perte.

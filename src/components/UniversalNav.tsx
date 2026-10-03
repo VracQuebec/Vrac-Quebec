@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Activity, ArrowLeft, BarChart3, Ban, Bell, BookOpen, Building2, CalendarDays, Clock, Database, Home, LayoutDashboard, ListChecks, LogOut, MapPin, Menu, Settings, Truck, X } from "lucide-react";
+import { Activity, ArrowLeft, BarChart3, Ban, Bell, BookOpen, Building2, CalendarDays, Clock, Database, Home, LayoutDashboard, ListChecks, LogOut, MapPin, Menu, MessageCircle, Settings, Truck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import NotificationBell from "@/components/notifications/NotificationBell";

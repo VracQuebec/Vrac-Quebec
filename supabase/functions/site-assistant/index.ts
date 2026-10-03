@@ -6,7 +6,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { clientIp, enforceIpQuota, GuardError } from "../_shared/public-guard.ts";
 
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-const MODEL = "google/gemini-3-flash-preview";
+const MODEL = "openai/gpt-6-astra";
 
 const PAGES: [string, string][] = [
   ["/soumission", "Obtenir une estimation / soumission de matériaux en vrac livrés"],
@@ -98,11 +98,11 @@ Deno.serve(async (req) => {
     let reply = "Désolé, je n'arrive pas à répondre pour le moment. Vous pouvez cliquer « Parler à une personne » ou appeler le 581-994-7717.";
     const key = Deno.env.get("LOVABLE_API_KEY");
     if (key) {
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const r = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
         method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: MODEL, messages }),
+        body: JSON.stringify({ model: MODEL, store: false, reasoning: { effort: "low" }, instructions: messages[0].content, input: messages.slice(1) }),
       });
-      if (r.ok) { const j = await r.json(); const c = j?.choices?.[0]?.message?.content; if (typeof c === "string" && c.trim()) reply = sanitize(c.trim()); }
+      if (r.ok) { const j = await r.json(); const c = typeof j?.output_text === "string" ? j.output_text : (j?.output ?? []).flatMap((o: any) => o?.content ?? []).filter((x: any) => x?.type === "output_text").map((x: any) => x.text).join("\n"); if (typeof c === "string" && c.trim()) reply = sanitize(c.trim()); }
       else console.error("site-assistant gateway", r.status, (await r.text().catch(() => "")).slice(0, 300));
     }
     // L'agent a pu prendre le contrôle pendant la génération : on n'écrit pas par-dessus lui.
