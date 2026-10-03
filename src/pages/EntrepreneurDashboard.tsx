@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Bell, CheckCircle2, ClipboardList, Map as MapIcon, Plus, Truck } from "lucide-react";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
+import ObligationsCard from "@/components/obligations/ObligationsCard";
 import InstallAppCard from "@/components/entrepreneur-app/InstallAppCard";
 import { EmptyState, ErrorState, LoadingSkeleton, SectionHeader, StatusBadge } from "@/components/entrepreneur-app/AppStates";
 import { AppCard, QuickActions } from "@/components/entrepreneur-app/ui";
@@ -66,6 +67,7 @@ export default function EntrepreneurDashboard() {
                 <div className="space-y-2">{attention.map((request) => <AppCard key={request.id} to={`/entrepreneur/demandes/${request.id}`} accent="amber"><p className="font-body text-[10px] font-semibold uppercase text-muted-foreground">{request.chantierLabel}</p><p className="font-display text-sm font-bold">{request.title}</p><p className="mt-1 font-body text-xs text-muted-foreground">{request.nextAction}</p></AppCard>)}{notifications.filter((item) => !item.read_at).slice(0, Math.max(0, 3 - attention.length)).map((item) => <AppCard key={item.id} to="/entrepreneur/notifications" accent="primary"><p className="font-display text-sm font-bold">{item.title}</p>{item.body ? <p className="mt-1 line-clamp-2 font-body text-xs text-muted-foreground">{item.body}</p> : null}</AppCard>)}</div>
               )}
             </section>
+            <ObligationsCard />
             <InstallAppCard />
           </aside>
         </div>

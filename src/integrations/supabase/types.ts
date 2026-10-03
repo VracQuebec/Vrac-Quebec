@@ -20208,6 +20208,252 @@ export type Database = {
         }
         Relationships: []
       }
+      obl_company_ids: {
+        Row: {
+          company_id: string
+          legal_form: string | null
+          neq: string | null
+          nir: string | null
+          rcv_ref: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          legal_form?: string | null
+          neq?: string | null
+          nir?: string | null
+          rcv_ref?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          legal_form?: string | null
+          neq?: string | null
+          nir?: string | null
+          rcv_ref?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obl_company_ids_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      obl_deliveries: {
+        Row: {
+          channel: string
+          company_id: string
+          created_at: string
+          due_date: string
+          id: string
+          item_id: string
+          period_year: number
+          read_at: string | null
+          state: string
+          step: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          company_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          item_id: string
+          period_year: number
+          read_at?: string | null
+          state: string
+          step: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          company_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          item_id?: string
+          period_year?: number
+          read_at?: string | null
+          state?: string
+          step?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obl_deliveries_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "obl_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      obl_events: {
+        Row: {
+          action: string
+          actor: string | null
+          at: string
+          company_id: string
+          detail: Json | null
+          id: number
+          item_id: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          at?: string
+          company_id: string
+          detail?: Json | null
+          id?: number
+          item_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          at?: string
+          company_id?: string
+          detail?: Json | null
+          id?: number
+          item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obl_events_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "obl_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      obl_items: {
+        Row: {
+          agd_event_id: string | null
+          amount: number | null
+          applicability: string
+          authority: string
+          combined_with_tax: boolean | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          done_at: string | null
+          done_by: string | null
+          done_on: string | null
+          due_confirmed: boolean
+          due_date: string | null
+          due_source: string | null
+          fin_ref: Json | null
+          id: string
+          joint_group: string | null
+          kind: string
+          late_weekly: boolean
+          paid_on: string | null
+          period_year: number
+          previous_id: string | null
+          profile_checked_at: string | null
+          proofs: Json
+          reminder_offsets: Json
+          responsible_user: string | null
+          rev: number
+          snooze_until: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          agd_event_id?: string | null
+          amount?: number | null
+          applicability?: string
+          authority: string
+          combined_with_tax?: boolean | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          done_on?: string | null
+          due_confirmed?: boolean
+          due_date?: string | null
+          due_source?: string | null
+          fin_ref?: Json | null
+          id?: string
+          joint_group?: string | null
+          kind: string
+          late_weekly?: boolean
+          paid_on?: string | null
+          period_year: number
+          previous_id?: string | null
+          profile_checked_at?: string | null
+          proofs?: Json
+          reminder_offsets?: Json
+          responsible_user?: string | null
+          rev?: number
+          snooze_until?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          agd_event_id?: string | null
+          amount?: number | null
+          applicability?: string
+          authority?: string
+          combined_with_tax?: boolean | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          done_on?: string | null
+          due_confirmed?: boolean
+          due_date?: string | null
+          due_source?: string | null
+          fin_ref?: Json | null
+          id?: string
+          joint_group?: string | null
+          kind?: string
+          late_weekly?: boolean
+          paid_on?: string | null
+          period_year?: number
+          previous_id?: string | null
+          profile_checked_at?: string | null
+          proofs?: Json
+          reminder_offsets?: Json
+          responsible_user?: string | null
+          rev?: number
+          snooze_until?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obl_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "obl_items_previous_id_fkey"
+            columns: ["previous_id"]
+            isOneToOne: false
+            referencedRelation: "obl_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parcours_preview_events: {
         Row: {
           created_at: string
@@ -31110,6 +31356,61 @@ export type Database = {
         Returns: number
       }
       norm_kind_releve: { Args: { _t: string }; Returns: boolean }
+      obl_ids_save: {
+        Args: {
+          _company: string
+          _form: string
+          _neq: string
+          _nir: string
+          _rcv: string
+        }
+        Returns: undefined
+      }
+      obl_item_action: {
+        Args: { _action: string; _id: string; _p?: Json }
+        Returns: undefined
+      }
+      obl_item_save: {
+        Args: { _company: string; _f: Json; _id: string; _rev: number }
+        Returns: string
+      }
+      obl_log: {
+        Args: {
+          _action: string
+          _company: string
+          _detail: Json
+          _item: string
+        }
+        Returns: undefined
+      }
+      obl_mark_read: { Args: { _delivery: string }; Returns: undefined }
+      obl_my_bell: {
+        Args: { _limit?: number }
+        Returns: {
+          company_id: string
+          created_at: string
+          delivery_id: string
+          due_date: string
+          item_id: string
+          read_at: string
+          step: string
+          title: string
+        }[]
+      }
+      obl_reminders_sweep: {
+        Args: { _company?: string; _today?: string }
+        Returns: number
+      }
+      obl_renew: {
+        Args: { _company: string; _from_year: number }
+        Returns: number
+      }
+      obl_seed: { Args: { _company: string; _year: number }; Returns: number }
+      obl_sweep_simulate: {
+        Args: { _company: string; _today: string }
+        Returns: number
+      }
+      obl_today: { Args: never; Returns: string }
       ops_dashboard_stats: { Args: never; Returns: Json }
       ops_planning_range: {
         Args: { _from: string; _to: string }

@@ -196,3 +196,4 @@
 - [x] Mailchimp + consentement : développé (case décochée, preuve, sync pending→subscribed, webhook retraits, plafond 7 j vérifié à l'envoi). En attente : secrets MAILCHIMP_API_KEY, MAILCHIMP_AUDIENCE_ID, MAILCHIMP_WEBHOOK_SECRET + identité légale de l'expéditeur.
 - [~] App chauffeur native : serveur prêt (drv_points_batch idempotent, heures constatation/réception), guide docs/chauffeur/app-native.md. En attente : compilation/signature hors Lovable (comptes Apple/Google payants), essais physiques.
 - [x] Comparaison sols documentée (docs/sols/comparaison-preliminaire.md) — publicité comparative en attente des données manquantes.
+- [x] Obligations et renouvellements (REQ, RPEVL, RCV, autres) : écran, carte du tableau de bord, cloche, agenda, rappels serveur. Courriel simulé (aucun envoi réel). Moteur d'assurances : inexistant, moteur commun créé.
