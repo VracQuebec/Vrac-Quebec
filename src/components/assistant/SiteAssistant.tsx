@@ -33,6 +33,7 @@ export default function SiteAssistant() {
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const last = useRef(0);
+  const lock = useRef(false);
   const box = useRef<HTMLDivElement>(null);
 
   const poll = useCallback(async (t = token) => {
@@ -52,11 +53,11 @@ export default function SiteAssistant() {
   useEffect(() => { box.current?.scrollTo({ top: box.current.scrollHeight, behavior: "smooth" }); }, [msgs, sending]);
 
   const send = async (t: string, extra: { audience?: string; wantHuman?: boolean } = {}) => {
-    if (sending || (!t.trim() && !extra.wantHuman)) return;
-    setSending(true); setErr(null);
+    if (lock.current || (!t.trim() && !extra.wantHuman)) return;
+    lock.current = true; setSending(true); setErr(null);
     if (t.trim()) setMsgs((m) => [...m, { id: -Date.now(), role: "visiteur", content: t.trim() }]);
     const { data, error } = await supabase.functions.invoke("site-assistant", { body: { token, text: t, page: window.location.pathname, ...extra } });
-    setSending(false);
+    setSending(false); lock.current = false;
     if (error || data?.error) { setErr(data?.error ?? "Erreur réseau. Votre message n'a pas été envoyé."); if (t.trim()) setText(t); setMsgs((m) => m.filter((x) => x.id > 0)); return; }
     setText("");
     if (data.token !== token) { localStorage.setItem(KEY, data.token); setToken(data.token); last.current = 0; setMsgs([]); }
