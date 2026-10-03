@@ -38,12 +38,14 @@ export default function EntrepreneurActivites() {
   }, []);
 
   return (
-    <EntrepreneurAppShell title="Voyages et services" backTo={null}>
-      <div className="mx-auto max-w-5xl space-y-7 px-4 py-6 sm:px-6">
+    <EntrepreneurAppShell title="Coupons, voyages et services" backTo={null}>
+      <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6">
         {loading || requestsLoading ? <p className="text-sm text-muted-foreground">Chargement…</p> : error ? <p role="alert" className="text-sm text-destructive">Certaines informations ne sont pas disponibles pour le moment.</p> : null}
 
+        <div className="space-y-6">
+        <h2 className="border-b border-border pb-2 font-display text-lg font-bold">Coupons et voyages</h2>
         <section className="space-y-3">
-          <h2 className="flex items-center gap-2 font-display text-lg font-bold"><Ticket className="h-5 w-5 text-primary" /> Mes carnets de coupons</h2>
+          <h3 className="flex items-center gap-2 font-display font-bold"><Ticket className="h-5 w-5 text-primary" /> Mes carnets de coupons</h3>
           {books.length === 0 && !loading ? <p className="text-sm text-muted-foreground">Aucun carnet attribué à votre entreprise.</p> : books.map((book) => (
             <div key={book.id} className="border-b border-border py-2 text-sm">
               <p className="font-semibold">{book.book_number} · {book.status.replace(/_/g, " ")}</p>
@@ -53,7 +55,7 @@ export default function EntrepreneurActivites() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="flex items-center gap-2 font-display text-lg font-bold"><Truck className="h-5 w-5 text-primary" /> Voyages par chantier</h2>
+          <h3 className="flex items-center gap-2 font-display font-bold"><Truck className="h-5 w-5 text-primary" /> Voyages par chantier</h3>
           <div className="grid gap-2 sm:grid-cols-2">
             {submissions.map((sub) => (
               <div key={sub.id} className="space-y-2 border-b border-border py-3 text-sm">
@@ -68,9 +70,12 @@ export default function EntrepreneurActivites() {
           </div>
           {submissions.length === 0 && !requestsLoading && <p className="text-sm text-muted-foreground">Aucun chantier associé à votre compte.</p>}
         </section>
+        </div>
 
+        <div className="space-y-6">
+        <h2 className="border-b border-border pb-2 font-display text-lg font-bold">Services et chantiers</h2>
         <section className="space-y-3">
-          <h2 className="flex items-center gap-2 font-display text-lg font-bold"><ClipboardList className="h-5 w-5 text-primary" /> Services et analyses de sols</h2>
+          <h3 className="flex items-center gap-2 font-display font-bold"><ClipboardList className="h-5 w-5 text-primary" /> Services et analyses de sols</h3>
           {services.length === 0 && !loading ? <p className="text-sm text-muted-foreground">Aucune demande de service envoyée.</p> : services.map((service) => (
             <div key={service.id} className="border-b border-border py-2 text-sm">
               <p className="font-semibold">{SERVICE_KINDS[service.kind as ServiceKind]?.label ?? service.kind} · {service.status.replace(/_/g, " ")}</p>
@@ -79,9 +84,12 @@ export default function EntrepreneurActivites() {
           ))}
           <Button asChild variant="outline" size="sm"><Link to="/entrepreneur/demandes">Demander un service pour un chantier</Link></Button>
         </section>
+        </div>
 
+        <div className="space-y-6">
+        <h2 className="border-b border-border pb-2 font-display text-lg font-bold">Suivi et relances</h2>
         <section className="space-y-3">
-          <h2 className="flex items-center gap-2 font-display text-lg font-bold"><MapPin className="h-5 w-5 text-primary" /> Missions des chauffeurs</h2>
+          <h3 className="flex items-center gap-2 font-display font-bold"><MapPin className="h-5 w-5 text-primary" /> Missions des chauffeurs</h3>
           {missions.slice(0, 5).map((mission) => (
             <p key={mission.id} className="border-b border-border py-2 text-sm">{mission.driver_label || "Chauffeur"} · {mission.truck_label || "Camion non précisé"} · {mission.ended_at ? "Terminée" : "En cours"} · {new Date(mission.started_at).toLocaleDateString("fr-CA")}</p>
           ))}
@@ -89,9 +97,10 @@ export default function EntrepreneurActivites() {
         </section>
 
         <section className="border-t border-border pt-5">
-          <h2 className="font-display text-lg font-bold">Relances</h2>
+          <h3 className="font-display font-bold">Relances</h3>
           <p className="mt-1 text-sm text-muted-foreground">Les campagnes promotionnelles ne sont pas activées. Les préférences d’envoi ne sont pas encore disponibles.</p>
         </section>
+        </div>
       </div>
     </EntrepreneurAppShell>
   );
