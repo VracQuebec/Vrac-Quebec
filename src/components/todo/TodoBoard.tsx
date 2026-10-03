@@ -166,7 +166,7 @@ export default function TodoBoard({ companyId, role }: { companyId: string; role
               const done = t.checklist.filter((i) => i.done).length;
               return (
                 <li key={t.id} className="flex items-start gap-3 rounded-md border border-border bg-card p-3" style={{ borderLeft: `6px solid hsl(${TASK_COLORS[t.color]?.hsl ?? TASK_COLORS.gris.hsl})` }}>
-                  <Checkbox aria-label={t.status === "fait" ? `Décocher ${t.title}` : `Cocher ${t.title}`} className="mt-1" checked={t.status === "fait"} disabled={!canTick}
+                  <Checkbox aria-label={t.status === "fait" ? `Décocher ${t.title}` : `Cocher ${t.title}`} className="mt-1 h-5 w-5 shrink-0" checked={t.status === "fait"} disabled={!canTick}
                     onCheckedChange={(v) => patch(t, { status: v ? "fait" : "a_faire" })} />
                   <div className="min-w-0 flex-1">
                     <p className={`break-words font-medium ${t.status === "fait" ? "text-muted-foreground line-through" : ""}`}>{t.title}</p>
