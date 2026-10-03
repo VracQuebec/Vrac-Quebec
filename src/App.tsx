@@ -141,6 +141,8 @@ const AdminVolets = lazy(() => import("./pages/AdminVolets"));
 const AdminTaches = lazy(() => import("./pages/AdminTaches"));
 const AdminAgenda = lazy(() => import("./pages/AdminAgenda"));
 const EntrepreneurAgenda = lazy(() => import("./pages/EntrepreneurAgenda"));
+const AdminPunch = lazy(() => import("./pages/AdminPunch"));
+const EntrepreneurPunch = lazy(() => import("./pages/EntrepreneurPunch"));
 const EntrepreneurTaches = lazy(() => import("./pages/EntrepreneurTaches"));
 const AdminVoyages = lazy(() => import("./pages/AdminVoyages"));
 const AdminIaCenter = lazy(() => import("./pages/AdminIaCenter"));
