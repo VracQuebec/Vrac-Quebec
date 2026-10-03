@@ -18162,6 +18162,66 @@ export type Database = {
           },
         ]
       }
+      mkt_consents: {
+        Row: {
+          accepted_at: string
+          consent_text: string
+          consent_version: string
+          created_at: string
+          email: string
+          entity: string
+          id: string
+          mc_attempts: number
+          mc_error: string | null
+          mc_last_sync_at: string | null
+          mc_status: string
+          scope: string
+          sender_snapshot: Json
+          source: string
+          user_id: string | null
+          withdrawn_at: string | null
+          withdrawn_source: string | null
+        }
+        Insert: {
+          accepted_at?: string
+          consent_text: string
+          consent_version: string
+          created_at?: string
+          email: string
+          entity?: string
+          id?: string
+          mc_attempts?: number
+          mc_error?: string | null
+          mc_last_sync_at?: string | null
+          mc_status?: string
+          scope?: string
+          sender_snapshot: Json
+          source: string
+          user_id?: string | null
+          withdrawn_at?: string | null
+          withdrawn_source?: string | null
+        }
+        Update: {
+          accepted_at?: string
+          consent_text?: string
+          consent_version?: string
+          created_at?: string
+          email?: string
+          entity?: string
+          id?: string
+          mc_attempts?: number
+          mc_error?: string | null
+          mc_last_sync_at?: string | null
+          mc_status?: string
+          scope?: string
+          sender_snapshot?: Json
+          source?: string
+          user_id?: string | null
+          withdrawn_at?: string | null
+          withdrawn_source?: string | null
+        }
+        Relationships: []
+      }
       mkt_deals: {
         Row: {
           breakdown: Json
@@ -19396,6 +19456,27 @@ export type Database = {
           },
         ]
       }
+      mkt_promo_sends: {
+        Row: {
+          campaign: string
+          email: string
+          id: string
+          sent_at: string
+        }
+        Insert: {
+          campaign: string
+          email: string
+          id?: string
+          sent_at?: string
+        }
+        Update: {
+          campaign?: string
+          email?: string
+          id?: string
+          sent_at?: string
+        }
+        Relationships: []
+      }
       mkt_quote_requests: {
         Row: {
           address: string | null
@@ -19679,6 +19760,39 @@ export type Database = {
           },
         ]
       }
+      mkt_sender_identity: {
+        Row: {
+          consent_text: string
+          consent_version: string
+          contact: string | null
+          id: boolean
+          legal_name: string | null
+          postal_address: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          consent_text?: string
+          consent_version?: string
+          contact?: string | null
+          id?: boolean
+          legal_name?: string | null
+          postal_address?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          consent_text?: string
+          consent_version?: string
+          contact?: string | null
+          id?: boolean
+          legal_name?: string | null
+          postal_address?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       mkt_service_categories: {
         Row: {
           archived_at: string | null
@@ -19853,6 +19967,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mkt_sync_log: {
+        Row: {
+          action: string
+          at: string
+          detail: string | null
+          direction: string
+          email: string | null
+          id: number
+          ok: boolean
+        }
+        Insert: {
+          action: string
+          at?: string
+          detail?: string | null
+          direction: string
+          email?: string | null
+          id?: number
+          ok: boolean
+        }
+        Update: {
+          action?: string
+          at?: string
+          detail?: string | null
+          direction?: string
+          email?: string | null
+          id?: number
+          ok?: boolean
+        }
+        Relationships: []
       }
       mkt_thread_participants: {
         Row: {
@@ -30700,6 +30844,14 @@ export type Database = {
         }[]
       }
       mkt_compute_commission: { Args: { _award_id: string }; Returns: string }
+      mkt_consent_record: {
+        Args: { _email: string; _source: string; _version: string }
+        Returns: undefined
+      }
+      mkt_consent_withdraw: {
+        Args: { _email: string; _source: string }
+        Returns: undefined
+      }
       mkt_contact_is_revealed: {
         Args: { _company_id: string; _request_id: string }
         Returns: boolean
@@ -30877,6 +31029,10 @@ export type Database = {
       mkt_partner_is_public: { Args: { _company_id: string }; Returns: boolean }
       mkt_partner_public: { Args: { _company_id: string }; Returns: Json }
       mkt_photo_object_is_public: { Args: { _name: string }; Returns: boolean }
+      mkt_promo_eligible: {
+        Args: { _at?: string; _email: string }
+        Returns: Json
+      }
       mkt_recipient_email: {
         Args: { _company_id: string; _user_id: string }
         Returns: string
@@ -30919,6 +31075,10 @@ export type Database = {
       }
       mkt_run_automations: { Args: never; Returns: Json }
       mkt_run_automations_manual: { Args: never; Returns: Json }
+      mkt_sender_save: {
+        Args: { _addr: string; _contact: string; _legal: string }
+        Returns: undefined
+      }
       mkt_set_commission_status: {
         Args: { _commission_id: string; _note?: string; _status: string }
         Returns: undefined

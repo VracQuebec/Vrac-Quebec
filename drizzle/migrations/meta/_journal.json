@@ -1191,6 +1191,13 @@
       "when": 1791010004828,
       "tag": "0169_paie_calc_fix_missing",
       "breakpoints": true
+    },
+    {
+      "idx": 170,
+      "version": "7",
+      "when": 1791010170266,
+      "tag": "0170_mkt_consentement_mailchimp",
+      "breakpoints": true
     }
   ]
 }
