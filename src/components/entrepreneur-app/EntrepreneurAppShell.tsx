@@ -317,22 +317,29 @@ export default function EntrepreneurAppShell({
           <SheetTitle className="sr-only">Plus d'options</SheetTitle>
           <div className="mx-auto mt-2 mb-4 h-1.5 w-10 rounded-full bg-border" />
           <nav className="space-y-1" aria-label="Sections secondaires">
-            {MORE_ITEMS.map(({ to, label, hint, icon: Icon }) => (
-              <Link
-                key={to}
-                to={to}
-                onClick={() => setMoreOpen(false)}
-                className="flex items-center gap-3 rounded-2xl px-3 py-3 min-h-14 font-body font-semibold transition-transform active:scale-[0.99] hover:bg-secondary"
-              >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Icon className="w-5 h-5" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate">{label}</span>
-                  <span className="block truncate font-body text-xs font-normal text-muted-foreground">{hint}</span>
-                </span>
-                <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
-              </Link>
+            {MORE_SECTIONS.map((section) => (
+              <div key={section.title}>
+                <p className="px-3 pb-1 pt-3 font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  {section.title}
+                </p>
+                {section.items.map(({ to, label, hint, icon: Icon }) => (
+                  <Link
+                    key={to}
+                    to={to}
+                    onClick={() => setMoreOpen(false)}
+                    className="flex items-center gap-3 rounded-2xl px-3 py-3 min-h-14 font-body font-semibold transition-transform active:scale-[0.99] hover:bg-secondary"
+                  >
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Icon className="w-5 h-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{label}</span>
+                      <span className="block truncate font-body text-xs font-normal text-muted-foreground">{hint}</span>
+                    </span>
+                    <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
+                  </Link>
+                ))}
+              </div>
             ))}
             <a
               href="tel:5819947717"
