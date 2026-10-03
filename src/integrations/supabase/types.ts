@@ -11027,6 +11027,110 @@ export type Database = {
         }
         Relationships: []
       }
+      fin_tax_return_events: {
+        Row: {
+          action: string
+          at: string
+          by_user: string | null
+          company_id: string
+          detail: Json | null
+          id: string
+          return_id: string
+        }
+        Insert: {
+          action: string
+          at?: string
+          by_user?: string | null
+          company_id: string
+          detail?: Json | null
+          id?: string
+          return_id: string
+        }
+        Update: {
+          action?: string
+          at?: string
+          by_user?: string | null
+          company_id?: string
+          detail?: Json | null
+          id?: string
+          return_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_tax_return_events_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "fin_tax_returns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_tax_returns: {
+        Row: {
+          cancel_reason: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          filed_on: string | null
+          filed_ref: string | null
+          gst_net: number
+          id: string
+          note: string | null
+          paid_on: string | null
+          paid_ref: string | null
+          period_from: string
+          period_to: string
+          qst_net: number
+          snapshot: Json
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cancel_reason?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          filed_on?: string | null
+          filed_ref?: string | null
+          gst_net: number
+          id?: string
+          note?: string | null
+          paid_on?: string | null
+          paid_ref?: string | null
+          period_from: string
+          period_to: string
+          qst_net: number
+          snapshot: Json
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cancel_reason?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          filed_on?: string | null
+          filed_ref?: string | null
+          gst_net?: number
+          id?: string
+          note?: string | null
+          paid_on?: string | null
+          paid_ref?: string | null
+          period_from?: string
+          period_to?: string
+          qst_net?: number
+          snapshot?: Json
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       fin_transfers: {
         Row: {
           amount: number
@@ -32171,7 +32275,31 @@ export type Database = {
         Args: { _lines: Json; _quote_id: string }
         Returns: Json
       }
+      fin_tax_period_compute: {
+        Args: { _company: string; _from: string; _to: string }
+        Returns: Json
+      }
       fin_tax_rate: { Args: { _on: string; _tax: string }; Returns: number }
+      fin_tax_return_prepare: {
+        Args: {
+          _company: string
+          _due: string
+          _from: string
+          _note: string
+          _to: string
+        }
+        Returns: string
+      }
+      fin_tax_return_step: {
+        Args: {
+          _action: string
+          _date: string
+          _id: string
+          _reason: string
+          _ref: string
+        }
+        Returns: undefined
+      }
       fin_validate_rule: { Args: { _r: Json }; Returns: undefined }
       fleet_can_access: { Args: { _company_id: string }; Returns: boolean }
       fleet_can_administer: { Args: { _company_id: string }; Returns: boolean }

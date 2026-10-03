@@ -425,3 +425,4 @@ Périmètre : aucun plan FIN-12 séparé dans le projet; référence = prompts F
 - Flux de trésorerie : RPC fin_gl_cash_flow (méthode directe sur comptes liés aux comptes financiers, écritures validées, virements internes exclus), onglet Comptabilité.
 - Budgets comparés au réel : déjà présents (Trésorerie → Budgets, FIN-05B).
 - Dossier de fin d’exercice : classeur Excel par exercice (résumé, balance, résultats, bilan, flux, âge fournisseurs) depuis les RPC existantes.
+- Taxes à remettre : fin_tax_returns/_events, fin_tax_period_compute (comptes TPS/TVQ associés, écritures validées), préparation figée refusée si comptes manquants/brouillons/chevauchement, statuts préparée→revue→déclarée hors app→payée hors app, annulation motivée. Jamais transmis. Paiement non comptabilisé automatiquement.

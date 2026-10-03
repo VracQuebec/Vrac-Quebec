@@ -209,7 +209,7 @@
 
 - [x] FIN-15 : flux de trésorerie (Comptabilité → Flux de trésorerie, écritures validées, virements internes exclus).
 - [x] FIN-15 : âge des comptes fournisseurs (Finances → Achats), lecture seule sur les soldes existants.
-- [ ] Finances — lots restants FIN-11/13 compléments, FIN-14 régularisations, FIN-15 (taxes à remettre), FIN-16 à FIN-23 (bloqué : à enchaîner dans les prochains passages; plan directeur à fournir).
+- [ ] Finances — lots restants FIN-11/13 compléments, FIN-14 régularisations, FIN-15 terminé sauf écriture comptable du paiement de taxes (consigné hors app), FIN-16 à FIN-23 (bloqué : à enchaîner dans les prochains passages; plan directeur à fournir).
 
 ## STRATÉGIE 2026 (vision reçue le 3 oct.) — voir mémoire « Stratégie produit 2026 »
 - [ ] Priorité 1 : consolider un parcours complet contrat → soumission → affectation → voyages → facture → résultat (en attente de confirmation)
