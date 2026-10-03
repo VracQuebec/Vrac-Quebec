@@ -164,3 +164,10 @@
 - [ ] Lot C — Punch (bureau/chantier, position au punch seulement avec consentement, pauses, corrections approuvées, heures supp., primes, coût par chantier, écriture comptable, retenues QC/fédérales + talons — taux à valider chaque année)
 - [ ] Lot D — Assistant IA de la page d'accueil (guide clients/entrepreneurs vers les bonnes pages)
 - [ ] Lot E — Prise de contrôle en direct de la conversation par un administrateur autorisé
+
+## Optimisation (après les 5 chantiers)
+- [x] Paie : cumuls annuels, montants personnels TD1/TP-1015.3, FSS, CNESST « à compléter », talon imprimable/PDF, refus des périodes qui chevauchent
+- [x] Assistant : alerte dans la cloche quand un visiteur demande une personne (courriel/texto préparés, non envoyés)
+- [ ] Essais manquants : agenda (cloche, réponses, employé terrain), punch (manuel, correction, refus, lecture seule, TEST B, position), paie (employé, lecture seule, TEST B)
+- [ ] Paie : RL-1/T4, lien grand livre
+- [ ] Vitesse et confort des pages
