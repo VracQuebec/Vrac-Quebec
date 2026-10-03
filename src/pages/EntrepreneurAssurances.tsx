@@ -27,6 +27,7 @@ export default function EntrepreneurAssurances() {
 
   return (
     <EntrepreneurAppShell title="Assurances entreprise" subtitle={companies.find((c) => c.id === companyId)?.name ?? ""} backTo={policyId ? "/entrepreneur/assurances" : null} allowCompanyMembers>
+      <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6">
       {companies.length > 1 && !policyId && (
         <select aria-label="Entreprise active" className="mb-4 h-10 w-full rounded-md border border-border bg-background px-2 text-sm sm:w-auto" value={companyId ?? ""} onChange={(e) => setCompanyId(e.target.value)}>
           {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -43,6 +44,7 @@ export default function EntrepreneurAssurances() {
         : !access!.read ? <p className="text-muted-foreground">Accès refusé pour cette entreprise.</p>
         : policyId ? <><Link to="/entrepreneur/assurances" className="mb-3 inline-block text-sm text-primary underline">← Toutes les polices</Link><PolicyDetail key={policyId} companyId={companyId} policyId={policyId} canWrite={access!.write} tab={sp.get("onglet") ?? undefined} /></>
         : <InsuranceBoard key={companyId} companyId={companyId} canWrite={access!.write} />}
+      </div>
     </EntrepreneurAppShell>
   );
 }
