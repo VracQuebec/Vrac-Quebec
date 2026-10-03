@@ -1240,6 +1240,13 @@
       "when": 1791013429360,
       "tag": "0176_asr_assurances_entreprise",
       "breakpoints": true
+    },
+    {
+      "idx": 177,
+      "version": "7",
+      "when": 1791013480205,
+      "tag": "0177_asr_guard_fix",
+      "breakpoints": true
     }
   ]
 }
