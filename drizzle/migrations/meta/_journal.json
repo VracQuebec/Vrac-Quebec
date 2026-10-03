@@ -1051,6 +1051,13 @@
       "when": 1790990647333,
       "tag": "0149_cpn01_coupon_books",
       "breakpoints": true
+    },
+    {
+      "idx": 150,
+      "version": "7",
+      "when": 1790991758512,
+      "tag": "0150_ops02_trips_services_tracking",
+      "breakpoints": true
     }
   ]
 }
