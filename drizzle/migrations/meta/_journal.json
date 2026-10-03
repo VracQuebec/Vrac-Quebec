@@ -1177,6 +1177,13 @@
       "when": 1791009840323,
       "tag": "0167_paie_2026_moteur_versionne",
       "breakpoints": true
+    },
+    {
+      "idx": 168,
+      "version": "7",
+      "when": 1791009952875,
+      "tag": "0168_paie_calc_fix_variable",
+      "breakpoints": true
     }
   ]
 }
