@@ -41,7 +41,7 @@ export default function SiteAssistant() {
     const { data } = await db.rpc("site_chat_poll", { _token: t, _after: last.current });
     if (!data) { localStorage.removeItem(KEY); setToken(null); return; }
     setMode(data.mode); setAgent(data.agent);
-    if (data.messages?.length) { last.current = data.messages[data.messages.length - 1].id; setMsgs((m) => [...m, ...data.messages]); }
+    if (data.messages?.length) { last.current = data.messages[data.messages.length - 1].id; setMsgs((m) => [...m, ...data.messages.filter((x: Msg) => !m.some((y) => y.id === x.id))]); }
   }, [token]);
 
   useEffect(() => { if (open && token && !last.current) poll(); }, [open, token, poll]);
