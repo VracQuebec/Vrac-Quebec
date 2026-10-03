@@ -149,6 +149,7 @@
 - [ ] Parcours navigateur mobile : non exécuté (connexion d'essai non approuvée) — essai manuel fourni
 
 ## Volet « Coupons, services et relances » (à faire APRÈS les lots en cours — plan directeur § 19)
+- [x] Accès regroupé aux six volets dans les espaces entrepreneur et super admin; actions de gestion réservées à l'équipe.
 - [x] Lot 1 — Carnets de coupons triplicata numérotés (client dompe + entrepreneur), préparation d'envoi postal à l'inscription, renouvellements/pertes/expéditions (envoi réel par l'équipe ou un prestataire) — livré (CPN-01)
 - [x] Lot 2 — Compteur numérique de voyages relié aux coupons (une seule activité, jamais de double compte; total quotidien conservé sans heures inventées)
 - [x] Lot 3 — Services complémentaires (pépine avec opérateur, camions 10/12 roues, matériaux, préparation/finition) → demande CRM liée au chantier
