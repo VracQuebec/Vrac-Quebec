@@ -1,5 +1,6 @@
 // GESTION DE LA FLOTTE — module interne (back-office Vrac Québec).
 // Réutilise : rôles admin existants, calendrier `calendar_events`, notifications CRM.
+import SafetyRound from "@/components/fleet/SafetyRound";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useListContext, useListScroll } from "@/lib/navigation/listContext";
@@ -41,6 +42,7 @@ const TABS = [
   { key: "entretien", label: "Entretien", icon: Wrench },
   { key: "reparations", label: "Réparations", icon: AlertTriangle },
   { key: "inspections", label: "Inspections", icon: ClipboardCheck },
+  { key: "ronde", label: "Ronde de sécurité", icon: ClipboardCheck },
   { key: "afaire", label: "À faire bientôt", icon: Bell },
   { key: "historique", label: "Historique", icon: History },
   { key: "depenses", label: "Dépenses", icon: DollarSign },
@@ -452,6 +454,7 @@ export default function AdminFleet() {
           </div>
         )}
 
+        {tab === "ronde" && tenant.companyId && <SafetyRound companyId={tenant.companyId} />}
         {tab === "inspections" && (
           <div className="rounded-xl border border-border bg-card divide-y divide-border">
             {inspections.map((i) => (

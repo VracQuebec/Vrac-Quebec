@@ -21146,6 +21146,362 @@ export type Database = {
         }
         Relationships: []
       }
+      rds_categories: {
+        Row: {
+          label: string
+          no: number
+          verify: string
+        }
+        Insert: {
+          label: string
+          no: number
+          verify?: string
+        }
+        Update: {
+          label?: string
+          no?: number
+          verify?: string
+        }
+        Relationships: []
+      }
+      rds_codes: {
+        Row: {
+          cat_no: number
+          code: string
+          lists: number[]
+          ord: number
+          severity: string
+          text: string
+        }
+        Insert: {
+          cat_no: number
+          code: string
+          lists: number[]
+          ord: number
+          severity: string
+          text: string
+        }
+        Update: {
+          cat_no?: number
+          code?: string
+          lists?: number[]
+          ord?: number
+          severity?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rds_codes_cat_no_fkey"
+            columns: ["cat_no"]
+            isOneToOne: false
+            referencedRelation: "rds_categories"
+            referencedColumns: ["no"]
+          },
+        ]
+      }
+      rds_countersigns: {
+        Row: {
+          company_id: string
+          id: string
+          name: string
+          report_id: string
+          signed_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          id?: string
+          name: string
+          report_id: string
+          signed_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          id?: string
+          name?: string
+          report_id?: string
+          signed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rds_countersigns_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "rds_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rds_defects: {
+        Row: {
+          client_key: string | null
+          code: string
+          company_id: string
+          created_at: string
+          description: string | null
+          details: Json
+          due_at: string | null
+          en_route: boolean
+          found_at: string
+          found_by: string
+          found_by_name: string | null
+          id: string
+          location: string | null
+          photo_path: string | null
+          repair_id: string | null
+          repair_notes: string | null
+          repair_proof: string | null
+          repaired_at: string | null
+          repaired_by: string | null
+          report_id: string | null
+          severity: string
+          status: string
+          validated_at: string | null
+          validated_by: string | null
+          vehicle_id: string
+        }
+        Insert: {
+          client_key?: string | null
+          code: string
+          company_id: string
+          created_at?: string
+          description?: string | null
+          details?: Json
+          due_at?: string | null
+          en_route?: boolean
+          found_at: string
+          found_by: string
+          found_by_name?: string | null
+          id?: string
+          location?: string | null
+          photo_path?: string | null
+          repair_id?: string | null
+          repair_notes?: string | null
+          repair_proof?: string | null
+          repaired_at?: string | null
+          repaired_by?: string | null
+          report_id?: string | null
+          severity: string
+          status?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          vehicle_id: string
+        }
+        Update: {
+          client_key?: string | null
+          code?: string
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          details?: Json
+          due_at?: string | null
+          en_route?: boolean
+          found_at?: string
+          found_by?: string
+          found_by_name?: string | null
+          id?: string
+          location?: string | null
+          photo_path?: string | null
+          repair_id?: string | null
+          repair_notes?: string | null
+          repair_proof?: string | null
+          repaired_at?: string | null
+          repaired_by?: string | null
+          report_id?: string | null
+          severity?: string
+          status?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rds_defects_code_fkey"
+            columns: ["code"]
+            isOneToOne: false
+            referencedRelation: "rds_codes"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "rds_defects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rds_defects_repair_id_fkey"
+            columns: ["repair_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_repairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rds_defects_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "rds_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rds_defects_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rds_events: {
+        Row: {
+          action: string
+          actor: string | null
+          at: string
+          company_id: string
+          defect_id: string | null
+          detail: Json
+          id: string
+          report_id: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          at?: string
+          company_id: string
+          defect_id?: string | null
+          detail?: Json
+          id?: string
+          report_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          at?: string
+          company_id?: string
+          defect_id?: string | null
+          detail?: Json
+          id?: string
+          report_id?: string | null
+        }
+        Relationships: []
+      }
+      rds_reports: {
+        Row: {
+          checks: Json
+          client_key: string | null
+          company_id: string
+          correction_reason: string | null
+          created_at: string
+          declaration: boolean
+          id: string
+          inspector_id: string
+          inspector_name: string
+          inspector_role: string | null
+          list_no: number
+          no_defect: boolean
+          odometer_km: number | null
+          operator_name: string
+          operator_signed_at: string | null
+          operator_signed_by: string | null
+          operator_signed_name: string | null
+          parent_id: string | null
+          performed_at: string
+          place: string
+          plate: string
+          signature: string
+          signed_at: string
+          status: string
+          transmitted_at: string
+          unit_ids: string[]
+          vehicle_id: string
+          version: number
+        }
+        Insert: {
+          checks?: Json
+          client_key?: string | null
+          company_id: string
+          correction_reason?: string | null
+          created_at?: string
+          declaration: boolean
+          id?: string
+          inspector_id: string
+          inspector_name: string
+          inspector_role?: string | null
+          list_no: number
+          no_defect: boolean
+          odometer_km?: number | null
+          operator_name: string
+          operator_signed_at?: string | null
+          operator_signed_by?: string | null
+          operator_signed_name?: string | null
+          parent_id?: string | null
+          performed_at: string
+          place: string
+          plate: string
+          signature: string
+          signed_at?: string
+          status?: string
+          transmitted_at?: string
+          unit_ids?: string[]
+          vehicle_id: string
+          version?: number
+        }
+        Update: {
+          checks?: Json
+          client_key?: string | null
+          company_id?: string
+          correction_reason?: string | null
+          created_at?: string
+          declaration?: boolean
+          id?: string
+          inspector_id?: string
+          inspector_name?: string
+          inspector_role?: string | null
+          list_no?: number
+          no_defect?: boolean
+          odometer_km?: number | null
+          operator_name?: string
+          operator_signed_at?: string | null
+          operator_signed_by?: string | null
+          operator_signed_name?: string | null
+          parent_id?: string | null
+          performed_at?: string
+          place?: string
+          plate?: string
+          signature?: string
+          signed_at?: string
+          status?: string
+          transmitted_at?: string
+          unit_ids?: string[]
+          vehicle_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rds_reports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rds_reports_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "rds_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rds_reports_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "trucks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       request_critical_fields: {
         Row: {
           field: string
@@ -26568,11 +26924,14 @@ export type Database = {
           odometer_km: number | null
           ops_status: string
           plate: string | null
+          pnbv_kg: number | null
           province: string | null
           purchase_date: string | null
           purchase_hours: number | null
           purchase_odometer_km: number | null
           purchase_price: number | null
+          rds_list: number | null
+          rds_profile: Json
           service_status: string
           transmission: string | null
           transmission_make: string | null
@@ -26624,11 +26983,14 @@ export type Database = {
           odometer_km?: number | null
           ops_status?: string
           plate?: string | null
+          pnbv_kg?: number | null
           province?: string | null
           purchase_date?: string | null
           purchase_hours?: number | null
           purchase_odometer_km?: number | null
           purchase_price?: number | null
+          rds_list?: number | null
+          rds_profile?: Json
           service_status?: string
           transmission?: string | null
           transmission_make?: string | null
@@ -26680,11 +27042,14 @@ export type Database = {
           odometer_km?: number | null
           ops_status?: string
           plate?: string | null
+          pnbv_kg?: number | null
           province?: string | null
           purchase_date?: string | null
           purchase_hours?: number | null
           purchase_odometer_km?: number | null
           purchase_price?: number | null
+          rds_list?: number | null
+          rds_profile?: Json
           service_status?: string
           transmission?: string | null
           transmission_make?: string | null
@@ -27600,6 +27965,17 @@ export type Database = {
       _haversine_km: {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
+      }
+      _rds_add_defect: {
+        Args: {
+          _company: string
+          _en_route: boolean
+          _found: string
+          _report: string
+          _vehicle: string
+          d: Json
+        }
+        Returns: string
       }
       access_requests_stats: { Args: never; Returns: Json }
       add_submission_site: {
@@ -30590,6 +30966,17 @@ export type Database = {
           work_min: number
         }[]
       }
+      rds_countersign: { Args: { _report: string }; Returns: undefined }
+      rds_fleet_status: { Args: { _company: string }; Returns: Json }
+      rds_my_name: { Args: never; Returns: string }
+      rds_operator_sign: { Args: { _report: string }; Returns: undefined }
+      rds_repair_done: {
+        Args: { _defect: string; _notes: string; _proof: string }
+        Returns: undefined
+      }
+      rds_repair_validate: { Args: { _defect: string }; Returns: undefined }
+      rds_report_en_route: { Args: { p: Json }; Returns: string }
+      rds_submit: { Args: { p: Json }; Returns: string }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {

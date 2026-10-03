@@ -15,6 +15,7 @@ import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppS
 import { ErrorState, LoadingSkeleton } from "@/components/entrepreneur-app/AppStates";
 import { Button } from "@/components/ui/button";
 import { VehicleDialog } from "@/components/fleet/FleetDialogs";
+import SafetyRound from "@/components/fleet/SafetyRound";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useListScroll } from "@/lib/navigation/listContext";
@@ -67,10 +68,19 @@ export default function EntrepreneurFlotte() {
   useListScroll(user && companyId ? { owner: user.id, company: companyId, list: "ma-flotte" } : null, !loading && vehicles.length > 0, open);
 
   const add = () => openFor("nouveau");
+  const onglet = sp.get("onglet") === "ronde" ? "ronde" : "vehicules";
+  const setOnglet = (o: string) => { const n = new URLSearchParams(sp); o === "ronde" ? n.set("onglet", o) : n.delete("onglet"); setSp(n, { replace: true }); };
 
   return (
     <EntrepreneurAppShell title="Ma flotte" subtitle="Vos véhicules" backTo={null}>
       <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:py-8">
+        {companyId && !denied && (
+          <div className="mb-4 flex gap-2">
+            <Button size="sm" variant={onglet === "vehicules" ? "default" : "outline"} onClick={() => setOnglet("vehicules")}>Véhicules</Button>
+            <Button size="sm" variant={onglet === "ronde" ? "default" : "outline"} onClick={() => setOnglet("ronde")}>Ronde de sécurité</Button>
+          </div>
+        )}
+        {onglet === "ronde" && companyId && !denied ? <SafetyRound companyId={companyId} /> : (<>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <p className="font-body text-sm text-muted-foreground">
             {loading ? "Chargement…" : denied ? "" : `${vehicles.length} véhicule${vehicles.length !== 1 ? "s" : ""}`}
@@ -133,6 +143,7 @@ export default function EntrepreneurFlotte() {
             })}
           </ul>
         )}
+        </>)}
       </div>
       <VehicleDialog open={open} onOpenChange={setOpen} vehicle={editing} onSaved={load} />
     </EntrepreneurAppShell>
