@@ -20713,6 +20713,143 @@ export type Database = {
         }
         Relationships: []
       }
+      pun_entries: {
+        Row: {
+          archived_at: string | null
+          client_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          end_acc: number | null
+          end_lat: number | null
+          end_lng: number | null
+          ended_at: string | null
+          geo_consent: boolean
+          id: string
+          kind: string
+          note: string | null
+          place_type: string
+          site_label: string | null
+          source: string
+          start_acc: number | null
+          start_lat: number | null
+          start_lng: number | null
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          end_acc?: number | null
+          end_lat?: number | null
+          end_lng?: number | null
+          ended_at?: string | null
+          geo_consent?: boolean
+          id?: string
+          kind?: string
+          note?: string | null
+          place_type?: string
+          site_label?: string | null
+          source?: string
+          start_acc?: number | null
+          start_lat?: number | null
+          start_lng?: number | null
+          started_at: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          end_acc?: number | null
+          end_lat?: number | null
+          end_lng?: number | null
+          ended_at?: string | null
+          geo_consent?: boolean
+          id?: string
+          kind?: string
+          note?: string | null
+          place_type?: string
+          site_label?: string | null
+          source?: string
+          start_acc?: number | null
+          start_lat?: number | null
+          start_lng?: number | null
+          started_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pun_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pun_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pun_log: {
+        Row: {
+          action: string
+          actor: string | null
+          company_id: string
+          created_at: string
+          detail: Json
+          entry_id: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          company_id: string
+          created_at?: string
+          detail?: Json
+          entry_id: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          company_id?: string
+          created_at?: string
+          detail?: Json
+          entry_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pun_log_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "pun_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       qualification_confirmations: {
         Row: {
           category: string
@@ -30065,6 +30202,72 @@ export type Database = {
       platform_subscription_covers: {
         Args: { _company_id: string; _environment?: string }
         Returns: boolean
+      }
+      pun_break: {
+        Args: { _company: string; _start: boolean }
+        Returns: string
+      }
+      pun_decide: {
+        Args: {
+          _approve: boolean
+          _company: string
+          _ids: string[]
+          _reason: string
+        }
+        Returns: number
+      }
+      pun_in: {
+        Args: {
+          _acc: number
+          _client: string
+          _company: string
+          _consent: boolean
+          _lat: number
+          _lng: number
+          _note: string
+          _place: string
+          _site: string
+        }
+        Returns: string
+      }
+      pun_manual: {
+        Args: {
+          _client: string
+          _company: string
+          _end: string
+          _kind: string
+          _place: string
+          _reason: string
+          _replace?: string
+          _site: string
+          _start: string
+          _user: string
+        }
+        Returns: string
+      }
+      pun_out: {
+        Args: { _acc: number; _company: string; _lat: number; _lng: number }
+        Returns: string
+      }
+      pun_summary: {
+        Args: {
+          _company: string
+          _from: string
+          _ot_hours?: number
+          _to: string
+        }
+        Returns: {
+          approved_min: number
+          break_min: number
+          full_name: string
+          net_min: number
+          overtime_min: number
+          pending_min: number
+          regular_min: number
+          user_id: string
+          week: string
+          work_min: number
+        }[]
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }

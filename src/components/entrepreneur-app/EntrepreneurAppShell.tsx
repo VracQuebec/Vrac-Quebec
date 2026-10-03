@@ -23,7 +23,7 @@ import {
   LifeBuoy,
   Wallet,
   FileClock,
-  Ticket, ListChecks, CalendarDays } from "lucide-react";
+  Ticket, ListChecks, CalendarDays, Clock } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Coquille unique de l'espace entrepreneur :                         */
@@ -57,6 +57,7 @@ const PRIMARY_TABS = [
 const MORE_ITEMS = [
   { to: "/entrepreneur/taches", label: "Liste de tâches", hint: "Tâches de l'équipe, couleurs, attribution", icon: ListChecks },
   { to: "/entrepreneur/agenda", label: "Agenda", hint: "Rendez-vous, chantiers, rappels, équipe", icon: CalendarDays },
+  { to: "/entrepreneur/punch", label: "Punch et heures", hint: "Entrée, sortie, pauses, heures pour la paie", icon: Clock },
   { to: "/entrepreneur/activites", label: "Coupons, voyages et services", hint: "Coupons et voyages · services et chantiers · suivi et relances", icon: Ticket },
   { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ClipboardList },
   { to: "/entrepreneur/flotte", label: "Ma flotte", hint: "Vos véhicules", icon: Truck },
@@ -72,6 +73,7 @@ const SIDEBAR_ITEMS = [
   ...PRIMARY_TABS,
   { to: "/entrepreneur/taches", label: "Liste de tâches", icon: ListChecks },
   { to: "/entrepreneur/agenda", label: "Agenda", icon: CalendarDays },
+  { to: "/entrepreneur/punch", label: "Punch et heures", icon: Clock },
   { to: "/entrepreneur/activites", label: "Coupons et services", icon: Ticket },
   { to: "/entrepreneur/crm", label: "Mon CRM", icon: ClipboardList },
   { to: "/entrepreneur/flotte", label: "Ma flotte", icon: Truck },
