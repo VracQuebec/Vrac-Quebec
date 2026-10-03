@@ -142,6 +142,7 @@ const AdminTaches = lazy(() => import("./pages/AdminTaches"));
 const AdminAgenda = lazy(() => import("./pages/AdminAgenda"));
 const EntrepreneurAgenda = lazy(() => import("./pages/EntrepreneurAgenda"));
 const AdminPunch = lazy(() => import("./pages/AdminPunch"));
+const AdminConversations = lazy(() => import("./pages/AdminConversations"));
 const EntrepreneurPunch = lazy(() => import("./pages/EntrepreneurPunch"));
 const EntrepreneurTaches = lazy(() => import("./pages/EntrepreneurTaches"));
 const AdminVoyages = lazy(() => import("./pages/AdminVoyages"));
@@ -335,6 +336,7 @@ const App = () => (
             <Route path="/admin/taches" element={<AdminTaches />} />
             <Route path="/admin/agenda" element={<AdminAgenda />} />
             <Route path="/admin/punch" element={<AdminPunch />} />
+            <Route path="/admin/conversations" element={<AdminConversations />} />
             <Route path="/admin/volets/voyages" element={<AdminVoyages />} />
             <Route path="/admin/coupons/:id/imprimer" element={<AdminCouponPrint />} />
             <Route path="/compteur/:id" element={<TripCounter />} />
