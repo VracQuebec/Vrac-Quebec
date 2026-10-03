@@ -189,10 +189,10 @@
 ## Lot 2026-10-03 — paie, Mailchimp, app chauffeur, sols, décisions
 - [ ] Paie 2026 : paramètres versionnés, moteur marginal fédéral/Québec, charges patronales, primes/corrections, cumuls repris, comparatif WebRAS/T4127
 - [ ] Mailchimp + consentement promotions (preuve, double confirmation, désabonnement bidirectionnel)
-- [ ] App chauffeur native (Capacitor, localisation arrière-plan, file hors réseau)
+- [~] App chauffeur native : serveur prêt (drv_points_batch idempotent, heures constatation/réception), guide docs/chauffeur/app-native.md. En attente : compilation/signature hors Lovable (comptes Apple/Google payants), essais physiques.
 - [ ] Comparaison analyses de sols documentée (non confirmé, pas de pub)
 - [ ] Décisions de lancement maintenues en attente (JSC réels, Pro, Stripe réel, publication)
 
 - [x] Mailchimp + consentement : développé (case décochée, preuve, sync pending→subscribed, webhook retraits, plafond 7 j vérifié à l'envoi). En attente : secrets MAILCHIMP_API_KEY, MAILCHIMP_AUDIENCE_ID, MAILCHIMP_WEBHOOK_SECRET + identité légale de l'expéditeur.
-- [ ] App chauffeur native (Capacitor, localisation arrière-plan) — à faire.
-- [ ] Doc comparaison sols — à faire.
+- [~] App chauffeur native : serveur prêt (drv_points_batch idempotent, heures constatation/réception), guide docs/chauffeur/app-native.md. En attente : compilation/signature hors Lovable (comptes Apple/Google payants), essais physiques.
+- [x] Comparaison sols documentée (docs/sols/comparaison-preliminaire.md) — publicité comparative en attente des données manquantes.
