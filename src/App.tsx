@@ -145,6 +145,7 @@ const AdminPunch = lazy(() => import("./pages/AdminPunch"));
 const AdminConversations = lazy(() => import("./pages/AdminConversations"));
 const EntrepreneurPunch = lazy(() => import("./pages/EntrepreneurPunch"));
 const EntrepreneurObligations = lazy(() => import("./pages/EntrepreneurObligations"));
+const EntrepreneurDocuments = lazy(() => import("./pages/EntrepreneurDocuments"));
 const EntrepreneurTaches = lazy(() => import("./pages/EntrepreneurTaches"));
 const AdminVoyages = lazy(() => import("./pages/AdminVoyages"));
 const AdminIaCenter = lazy(() => import("./pages/AdminIaCenter"));
