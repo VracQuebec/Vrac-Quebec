@@ -1352,6 +1352,13 @@
       "when": 1791019528952,
       "tag": "0192_fin16_loans_assets",
       "breakpoints": true
+    },
+    {
+      "idx": 193,
+      "version": "7",
+      "when": 1791021122576,
+      "tag": "0193_fin17_profitability",
+      "breakpoints": true
     }
   ]
 }
