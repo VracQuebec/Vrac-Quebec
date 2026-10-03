@@ -78,6 +78,7 @@ export default function EntrepreneurFlotte() {
           <div className="mb-4 flex gap-2">
             <Button size="sm" variant={onglet === "vehicules" ? "default" : "outline"} onClick={() => setOnglet("vehicules")}>Véhicules</Button>
             <Button size="sm" variant={onglet === "ronde" ? "default" : "outline"} onClick={() => setOnglet("ronde")}>Ronde de sécurité</Button>
+            <Button size="sm" variant="outline" asChild><a href="/entrepreneur/assurances">Assurances</a></Button>
           </div>
         )}
         {onglet === "ronde" && companyId && !denied ? <SafetyRound companyId={companyId} /> : (<>
