@@ -207,5 +207,6 @@
 
 - [ ] LOG-02 : compteurs réglementaires, journées limites, changements d'heure (bloqué : lot suivant). Fournisseur DCE certifié (bloqué : choix du fournisseur). Mode hors ligne du logbook non pris en charge.
 
+- [x] FIN-15 : flux de trésorerie (Comptabilité → Flux de trésorerie, écritures validées, virements internes exclus).
 - [x] FIN-15 : âge des comptes fournisseurs (Finances → Achats), lecture seule sur les soldes existants.
-- [ ] Finances — lots restants FIN-11/13 compléments, FIN-14 régularisations, FIN-15 (fiscal, flux, budgets, dossier), FIN-16 à FIN-23 (bloqué : à enchaîner dans les prochains passages; plan directeur à fournir).
+- [ ] Finances — lots restants FIN-11/13 compléments, FIN-14 régularisations, FIN-15 (fiscal, budgets, dossier), FIN-16 à FIN-23 (bloqué : à enchaîner dans les prochains passages; plan directeur à fournir).
