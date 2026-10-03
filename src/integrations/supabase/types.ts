@@ -2392,27 +2392,39 @@ export type Database = {
       drv_points: {
         Row: {
           accuracy: number | null
+          client_id: string | null
           id: number
+          kind: string
           lat: number
           lng: number
           mission_id: string
+          received_at: string
           recorded_at: string
+          source: string
         }
         Insert: {
           accuracy?: number | null
+          client_id?: string | null
           id?: number
+          kind?: string
           lat: number
           lng: number
           mission_id: string
+          received_at?: string
           recorded_at: string
+          source?: string
         }
         Update: {
           accuracy?: number | null
+          client_id?: string | null
           id?: number
+          kind?: string
           lat?: number
           lng?: number
           mission_id?: string
+          received_at?: string
           recorded_at?: string
+          source?: string
         }
         Relationships: [
           {
@@ -28516,6 +28528,10 @@ export type Database = {
           _truck: string
         }
         Returns: string
+      }
+      drv_points_batch: {
+        Args: { _mission: string; _points: Json; _source?: string }
+        Returns: Json
       }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
