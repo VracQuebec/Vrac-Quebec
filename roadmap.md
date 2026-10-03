@@ -157,3 +157,10 @@
 - [x] Lot 4 — Analyses de sols (demande, soumission, rendez-vous, prélèvement, résultats), partenaire labo; aucun contaminé accepté
 - [x] Lot 5 — Suivi chauffeurs par mission (activation explicite, arrêts horodatés = indices à confirmer); suivi écran verrouillé = application mobile native
 - [x] Lot 6 — Relances commerciales (J0/J+3/J+10/J+21, mensuel client, 2 sem. entrepreneur, plafond 1 promo / 7 jours) — nécessite un service d'envoi marketing dédié
+
+## Outils d'équipe (après CRM, facturation, comptabilité, dépenses)
+- [x] Lot A — Liste de tâches (entrepreneur + super admin) : couleurs, priorités, cochable/décochable, liste de contrôle, attribution aux employés, liens client/chantier du CRM, droits par échelon
+- [ ] Lot B — Agenda complet (couleurs, attribution, transfert, invitations, rappels courriel/texto/application préparés sans envoi réel, lien CRM)
+- [ ] Lot C — Punch (bureau/chantier, position au punch seulement avec consentement, pauses, corrections approuvées, heures supp., primes, coût par chantier, écriture comptable, retenues QC/fédérales + talons — taux à valider chaque année)
+- [ ] Lot D — Assistant IA de la page d'accueil (guide clients/entrepreneurs vers les bonnes pages)
+- [ ] Lot E — Prise de contrôle en direct de la conversation par un administrateur autorisé
