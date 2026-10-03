@@ -118,7 +118,7 @@ export default function PayrollPanel({ companyId, canManage, from, to, members, 
                     <span>Impôt fédéral −{$(s.fed_tax)}</span><span>Impôt Québec −{$(s.qc_tax)}</span>
                     <strong>Net {$(s.net)}</strong>
                     {s.employer?.ytd && <span className="col-span-2 text-muted-foreground sm:col-span-4">Cumul année : assurable {$(s.employer.ytd.ins)} · RRQ {$(s.employer.ytd.qpp)} · AE {$(s.employer.ytd.ei)} · RQAP {$(s.employer.ytd.qpip)}</span>}
-                    {canManage && <span className="col-span-2 text-muted-foreground sm:col-span-4">Employeur : RRQ {$(s.employer?.qpp)} · AE {$(s.employer?.ei)} · RQAP {$(s.employer?.qpip)} · FSS {$(s.employer?.fss)} · CNESST {s.employer?.cnesst_missing ? "à compléter" : $(s.employer?.cnesst)}</span>}
+                    {canManage && <span className="col-span-2 text-muted-foreground sm:col-span-4">Employeur : RRQ {$(s.employer?.qpp)} · AE {$(s.employer?.ei)} · RQAP {$(s.employer?.qpip)} · FSS {s.employer?.fss == null ? "non calculé (paie antérieure)" : $(s.employer.fss)} · CNESST {s.employer?.cnesst == null ? "non calculé (paie antérieure)" : s.employer.cnesst_missing ? "à compléter" : $(s.employer.cnesst)}</span>}
                     <Button size="sm" variant="outline" className="col-span-2 mt-1 justify-self-start sm:col-span-4" onClick={() => printStub(s, r, nm(s.user_id, s.full_name))}>Imprimer / PDF</Button>
                   </div>
                 ))}
