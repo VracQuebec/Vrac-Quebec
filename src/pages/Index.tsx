@@ -1,19 +1,19 @@
-import { useRef, useState } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import Questionnaire from "@/components/Questionnaire";
 import heroBanner from "@/assets/hero-banner-clean.webp";
 import heroBannerMobile from "@/assets/hero-banner-mobile-clean.webp";
 import TransportBanner from "@/components/TransportBanner";
 import IntentChoice, { type IntentKey } from "@/components/home/IntentChoice";
-import ParcoursForm from "@/components/parcours/ParcoursForm";
 import DompeShowcase from "@/components/home/DompeShowcase";
 import HowItWorks from "@/components/home/HowItWorks";
 import WhyVracQuebec from "@/components/home/WhyVracQuebec";
 import CircularEconomy from "@/components/home/CircularEconomy";
 import IntentSelector from "@/components/home/IntentSelector";
 import LogoVracQuebec from "@/components/LogoVracQuebec";
-import SiteAssistant from "@/components/assistant/SiteAssistant";
 import { trackEvent } from "@/lib/analytics/ga4";
+const ParcoursForm = lazy(() => import("@/components/parcours/ParcoursForm"));
+const SiteAssistant = lazy(() => import("@/components/assistant/SiteAssistant"));
 import { ArrowDown, ClipboardList, HardHat, Sparkles } from "lucide-react";
 
 const Index = () => {
@@ -168,7 +168,7 @@ const Index = () => {
             )}
             {intent === "sortir" && (
               <div className="mt-14 sm:mt-16">
-                <ParcoursForm variant="evacuation" />
+                <Suspense fallback={<p className="text-muted-foreground">Chargement…</p>}><ParcoursForm variant="evacuation" /></Suspense>
               </div>
             )}
           </div>
@@ -339,7 +339,7 @@ const Index = () => {
           </nav>
         </div>
       </main>
-      <SiteAssistant />
+      <Suspense fallback={null}><SiteAssistant /></Suspense>
 
       {/* Floating mobile contact bar.
           pointer-events-none on the wrapper + pointer-events-auto on each link
