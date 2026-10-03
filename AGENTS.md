@@ -11,3 +11,5 @@
 - OPS-02 navigation: group coupons/trips, services/soil, and missions/follow-ups by category in entrepreneur and admin spaces; keep management actions admin-only and scoped by data-access policies to avoid exposing internal controls.
 - Liste de tâches : ent_crm_tasks est la seule source (couleur, priorité, statut, liste de contrôle); trigger ent_crm_tasks_todo_guard limite un employé non gestionnaire à l’avancement de SA tâche et fixe done_at/done_by — aucune deuxième table de tâches.
 - Agenda : agd_events/agd_attendees/agd_event_log/agd_deliveries par entreprise (distinct de calendar_events admin); récurrence = agd_occurrences (miroir src/lib/agenda/occurrences.ts); rappels générés par agd_reminders_sweep appelé dans crm_notifications_sweep, unicité (événement, occurrence, délai, destinataire, canal), courriel/texto « simule » — aucun envoi réel; cloche via agd_my_bell.
+
+- Punch : pun_entries/pun_log, écritures par RPC seulement (pun_in/out/break/manual/decide); correction = nouvelle entrée + ancienne archivée; heures pour la paie via pun_summary — jamais de paie calculée hors de ce relevé approuvé.
