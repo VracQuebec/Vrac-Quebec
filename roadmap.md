@@ -169,6 +169,6 @@
 - [x] Paie : cumuls annuels, montants personnels TD1/TP-1015.3, FSS, CNESST « à compléter », talon imprimable/PDF, refus des périodes qui chevauchent
 - [x] Assistant : alerte dans la cloche quand un visiteur demande une personne (courriel/texto préparés, non envoyés)
 - [x] Essais punch (manuel, correction, refus, lecture seule, position) et paie (droits) — faille corrigée : le rôle lecture pouvait calculer la paie
-- [ ] Essais restants : réponse d’un invité à l’agenda, autre entreprise TEST B avec un vrai propriétaire, affichage des nouveautés paie sur écran
+- [ ] Essais restants : réponse d’un invité à l’agenda, autre entreprise TEST B avec un vrai propriétaire, (paie à l’écran vérifiée 390/1280)
 - [ ] Paie : RL-1/T4, lien grand livre
 - [ ] Vitesse et confort des pages
