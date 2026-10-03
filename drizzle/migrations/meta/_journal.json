@@ -1100,6 +1100,13 @@
       "when": 1790996961972,
       "tag": "0156_payroll_compute_fix",
       "breakpoints": true
+    },
+    {
+      "idx": 157,
+      "version": "7",
+      "when": 1790998200209,
+      "tag": "0157_site_assistant_live",
+      "breakpoints": true
     }
   ]
 }

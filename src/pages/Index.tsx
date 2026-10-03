@@ -12,6 +12,7 @@ import WhyVracQuebec from "@/components/home/WhyVracQuebec";
 import CircularEconomy from "@/components/home/CircularEconomy";
 import IntentSelector from "@/components/home/IntentSelector";
 import LogoVracQuebec from "@/components/LogoVracQuebec";
+import SiteAssistant from "@/components/assistant/SiteAssistant";
 import { trackEvent } from "@/lib/analytics/ga4";
 import { ArrowDown, ClipboardList, HardHat, Sparkles } from "lucide-react";
 
@@ -338,6 +339,7 @@ const Index = () => {
           </nav>
         </div>
       </main>
+      <SiteAssistant />
 
       {/* Floating mobile contact bar.
           pointer-events-none on the wrapper + pointer-events-auto on each link

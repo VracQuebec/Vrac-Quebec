@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Activity, ArrowLeft, BarChart3, Ban, Bell, BookOpen, Building2, CalendarDays, Clock, Database, Home, LayoutDashboard, ListChecks, LogOut, MapPin, Menu, Settings, Truck, X } from "lucide-react";
+import { Activity, ArrowLeft, BarChart3, Ban, Bell, BookOpen, Building2, CalendarDays, Clock, Database, Home, LayoutDashboard, ListChecks, LogOut, MapPin, Menu, MessageCircle, Settings, Truck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import NotificationBell from "@/components/notifications/NotificationBell";
@@ -100,6 +100,7 @@ export default function UniversalNav() {
     { to: "/admin/taches", label: "Listes de tâches", icon: ListChecks },
     { to: "/admin/agenda", label: "Agendas des entreprises", icon: CalendarDays },
     { to: "/admin/punch", label: "Punch et heures", icon: Clock },
+    { to: "/admin/conversations", label: "Conversations du site", icon: MessageCircle },
     { to: "/admin", label: "Demandes (CRM)", icon: LayoutDashboard },
     { to: "/admin/notifications", label: "Centre de notifications", icon: Bell },
     { to: "/admin/demandes-acces", label: "Demandes d'accès", icon: Truck },

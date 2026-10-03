@@ -23774,6 +23774,110 @@ export type Database = {
         }
         Relationships: []
       }
+      site_chat_agents: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      site_chat_messages: {
+        Row: {
+          author: string | null
+          content: string
+          created_at: string
+          id: number
+          links: Json | null
+          role: string
+          session_id: string
+        }
+        Insert: {
+          author?: string | null
+          content: string
+          created_at?: string
+          id?: never
+          links?: Json | null
+          role: string
+          session_id: string
+        }
+        Update: {
+          author?: string | null
+          content?: string
+          created_at?: string
+          id?: never
+          links?: Json | null
+          role?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "site_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_chat_sessions: {
+        Row: {
+          agent_id: string | null
+          agent_name: string | null
+          audience: string
+          contact: string | null
+          created_at: string
+          id: string
+          last_at: string
+          mode: string
+          msg_count: number
+          page: string | null
+          token: string
+          user_id: string | null
+          wants_human: boolean
+        }
+        Insert: {
+          agent_id?: string | null
+          agent_name?: string | null
+          audience?: string
+          contact?: string | null
+          created_at?: string
+          id?: string
+          last_at?: string
+          mode?: string
+          msg_count?: number
+          page?: string | null
+          token?: string
+          user_id?: string | null
+          wants_human?: boolean
+        }
+        Update: {
+          agent_id?: string | null
+          agent_name?: string | null
+          audience?: string
+          contact?: string | null
+          created_at?: string
+          id?: string
+          last_at?: string
+          mode?: string
+          msg_count?: number
+          page?: string | null
+          token?: string
+          user_id?: string | null
+          wants_human?: boolean
+        }
+        Relationships: []
+      }
       strategic_reports: {
         Row: {
           created_at: string
@@ -30959,6 +31063,15 @@ export type Database = {
       set_my_network_visibility: {
         Args: { _visible: boolean }
         Returns: boolean
+      }
+      site_chat_agent_action: {
+        Args: { _action: string; _session: string; _text?: string }
+        Returns: undefined
+      }
+      site_chat_can_agent: { Args: never; Returns: boolean }
+      site_chat_poll: {
+        Args: { _after?: number; _token: string }
+        Returns: Json
       }
       submission_belongs_to_current_user: {
         Args: { p_submission_id: string }
