@@ -8,9 +8,10 @@ import { toast } from "@/hooks/use-toast";
 import * as G from "@/lib/finances/ledger";
 import { accounts as loadFinAccounts } from "@/lib/finances/treasuryApi";
 import { fmtDate, fmtMoney, todayIn } from "@/lib/finances/period";
+import { FiscalYears, Statements } from "./LedgerYears";
 
 const sel = "h-10 w-full rounded-md border border-input bg-background px-2 text-sm";
-type Sub = "journal" | "livre" | "balance" | "plan";
+type Sub = "journal" | "livre" | "balance" | "plan" | "exercices" | "etats";
 const err = (e: any) => toast({ title: "Action refusée", description: e?.message ?? String(e), variant: "destructive" });
 const newKey = () => crypto.randomUUID();
 const ym = () => todayIn().slice(0, 8) + "01";
@@ -22,16 +23,19 @@ export default function GeneralLedger({ companyId, canWrite, canCorrect }: { com
   const [accs, setAccs] = useState<G.GlAccount[]>([]);
   const [rev, setRev] = useState(0);
   const [open, setOpen] = useState<string | null>(null);
+  const [preset, setPreset] = useState<{ acc: string; from: string; to: string } | null>(null);
   const reload = useCallback(() => setRev((r) => r + 1), []);
   useEffect(() => { G.accounts(companyId).then(setAccs).catch(err); }, [companyId, rev]);
   const byId = useMemo(() => new Map(accs.map((a) => [a.id, a])), [accs]);
   const go = (s: Sub) => { setSub(s); const q = new URLSearchParams(window.location.search); q.set("sous", s); window.history.replaceState(window.history.state, "", `${window.location.pathname}?${q}`); };
   return <div className="space-y-4">
     <div className="rounded-md border border-border bg-secondary/40 p-3 text-xs">Les <strong>comptes comptables</strong> (plan de comptes) sont distincts des <strong>comptes financiers</strong> banque/caisse. Chaque opération est comptabilisée une seule fois; un relevé bancaire ou un rapprochement ne crée jamais d'écriture. Une écriture validée ne se modifie pas : on la contrepasse avec un motif.</div>
-    <div role="tablist" className="flex flex-wrap gap-2">{([["journal", "Journal"], ["livre", "Grand livre"], ["balance", "Balance de vérification"], ["plan", "Plan de comptes et associations"]] as const).map(([v, l]) =>
+    <div role="tablist" className="flex flex-wrap gap-2">{([["journal", "Journal"], ["livre", "Grand livre"], ["balance", "Balance de vérification"], ["plan", "Plan de comptes et associations"], ["exercices", "Exercices et clôture"], ["etats", "États financiers"]] as const).map(([v, l]) =>
       <Button key={v} role="tab" aria-selected={sub === v} size="sm" variant={sub === v ? "default" : "outline"} onClick={() => go(v)}>{l}</Button>)}</div>
     {sub === "journal" && <Journal companyId={companyId} accs={accs} byId={byId} canWrite={canWrite} rev={rev} reload={reload} onOpen={setOpen} />}
-    {sub === "livre" && <Ledger companyId={companyId} accs={accs} onOpen={setOpen} />}
+    {sub === "livre" && <Ledger key={preset ? preset.acc + preset.from + preset.to : "l"} companyId={companyId} accs={accs} onOpen={setOpen} preset={preset} />}
+    {sub === "exercices" && <FiscalYears companyId={companyId} canWrite={canWrite} onOpenEntry={setOpen} />}
+    {sub === "etats" && <Statements companyId={companyId} onOpenAccount={(acc, from, to) => { setPreset({ acc, from, to }); go("livre"); }} />}
     {sub === "balance" && <Trial companyId={companyId} />}
     {sub === "plan" && <Plan companyId={companyId} accs={accs} canWrite={canWrite} reload={reload} />}
     {open && <EntryDialog id={open} companyId={companyId} byId={byId} canCorrect={canCorrect} onClose={() => setOpen(null)} onOpen={setOpen} onChange={reload} />}
@@ -173,8 +177,8 @@ function EntryDialog({ id, companyId, byId, canCorrect, onClose, onOpen, onChang
 }
 
 /* ---------------- Grand livre ---------------- */
-function Ledger({ companyId, accs, onOpen }: { companyId: string; accs: G.GlAccount[]; onOpen: (id: string) => void }) {
-  const [acc, setAcc] = useState(""); const [from, setFrom] = useState(ym()); const [to, setTo] = useState(todayIn());
+function Ledger({ companyId, accs, onOpen, preset }: { companyId: string; accs: G.GlAccount[]; onOpen: (id: string) => void; preset?: { acc: string; from: string; to: string } | null }) {
+  const [acc, setAcc] = useState(preset?.acc ?? ""); const [from, setFrom] = useState(preset?.from ?? ym()); const [to, setTo] = useState(preset?.to ?? todayIn());
   const [d, setD] = useState<Awaited<ReturnType<typeof G.ledger>> | null>(null);
   useEffect(() => { if (!acc || !from || !to) return; setD(null); G.ledger(companyId, acc, from, to).then(setD).catch(err); }, [companyId, acc, from, to]);
   return <div className="space-y-3">
