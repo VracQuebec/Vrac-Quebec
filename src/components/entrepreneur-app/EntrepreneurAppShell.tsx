@@ -54,7 +54,14 @@ const PRIMARY_TABS = [
   { to: "/entrepreneur/transports", label: "Transports", icon: Truck },
 ] as const;
 
-const MORE_SECTIONS = [
+interface MoreItem {
+  to: string;
+  label: string;
+  hint: string;
+  icon: typeof ListChecks;
+}
+
+const MORE_SECTIONS: { title: string; items: MoreItem[] }[] = [
   {
     title: "Équipe",
     items: [
