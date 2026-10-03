@@ -31165,6 +31165,10 @@ export type Database = {
         }
         Returns: string
       }
+      fin_gl_cash_flow: {
+        Args: { _company: string; _from: string; _to: string }
+        Returns: Json
+      }
       fin_gl_check_lines: {
         Args: { _company: string; _lines: Json }
         Returns: undefined
