@@ -97,6 +97,7 @@ export default function UniversalNav() {
   const adminLinks = [
     { to: "/admin/centre-controle", label: "Centre de contrôle", icon: Activity },
     { to: "/admin/volets", label: "Coupons, voyages et services", icon: Truck },
+    { to: "/admin/taches", label: "Listes de tâches", icon: LayoutDashboard },
     { to: "/admin", label: "Demandes (CRM)", icon: LayoutDashboard },
     { to: "/admin/notifications", label: "Centre de notifications", icon: Bell },
     { to: "/admin/demandes-acces", label: "Demandes d'accès", icon: Truck },
