@@ -127,6 +127,47 @@ export default function PayrollPanel({ companyId, canManage, from, to, members, 
           </div>
         );
       })}
+      <YearSlips companyId={companyId} canManage={canManage} />
     </section>
+  );
+}
+
+function YearSlips({ companyId, canManage }: { companyId: string; canManage: boolean }) {
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [rows, setRows] = useState<any[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    setRows(null); setErr(null);
+    db.rpc("pay_year_slips", { _company: companyId, _year: year }).then(({ data, error }: any) => error ? setErr(error.message) : setRows(data ?? []));
+  }, [companyId, year]);
+  const print = (s: any) => {
+    const w = window.open("", "_blank", "width=720,height=900");
+    if (!w) return toast({ title: "Fenêtre bloquée", description: "Autorise les fenêtres pour imprimer.", variant: "destructive" });
+    const row = (c: string, l: string, v: any) => `<tr><td>${esc(c)}</td><td>${esc(l)}</td><td style="text-align:right">${esc($(v))}</td></tr>`;
+    w.document.write(`<!doctype html><html lang="fr"><head><title>Sommaire ${year} ${esc(s.name)}</title><style>body{font-family:system-ui,sans-serif;padding:24px;max-width:640px;margin:auto}table{width:100%;border-collapse:collapse}td{padding:4px;border-bottom:1px solid #ddd}</style></head><body>
+<h1 style="font-size:18px">Sommaire annuel ${year} — ${esc(s.name)}</h1><p style="color:#b00">Document de préparation : ce n'est pas un feuillet officiel T4 ou RL-1 et rien n'est transmis.</p>
+<h2 style="font-size:15px">T4 (fédéral)</h2><table>${row("14", "Revenus d'emploi", s.income)}${row("17", "Cotisations RRQ", s.qpp)}${row("18", "Cotisations AE", s.ei)}${row("55", "Cotisations RPAP (RQAP)", s.qpip)}${row("22", "Impôt fédéral retenu", s.fed_tax)}</table>
+<h2 style="font-size:15px">RL-1 (Québec)</h2><table>${row("A", "Revenus d'emploi", s.income)}${row("B", "Cotisations RRQ", s.qpp)}${row("C", "Cotisations AE", s.ei)}${row("H", "Cotisations RQAP", s.qpip)}${row("E", "Impôt du Québec retenu", s.qc_tax)}</table>
+<p style="font-size:11px;color:#666">${s.runs} paie(s) finalisée(s). Taux à valider avec Revenu Québec et l'ARC.</p><script>window.onload=()=>window.print()</script></body></html>`);
+    w.document.close();
+  };
+  return (
+    <div className="space-y-2 border-t border-border pt-4">
+      <div className="flex flex-wrap items-end gap-2">
+        <h3 className="font-semibold">{canManage ? "Sommaires annuels T4 / RL-1" : "Mon sommaire annuel"}</h3>
+        <label className="text-xs">Année<Input className="w-24" type="number" value={year} onChange={(e) => setYear(Number(e.target.value) || year)} /></label>
+      </div>
+      <p className="text-xs text-muted-foreground">Préparation à partir des paies finalisées seulement. Ce ne sont pas des feuillets officiels et rien n'est transmis aux gouvernements.</p>
+      {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
+      {rows && !rows.length && <p className="text-sm text-muted-foreground">Aucune paie finalisée en {year}.</p>}
+      {rows?.map((s) => (
+        <div key={s.user_id} className="grid grid-cols-2 gap-x-3 gap-y-0.5 rounded bg-muted/50 p-2 text-xs sm:grid-cols-4">
+          <strong className="col-span-2 text-sm sm:col-span-4">{s.name || "Employé"} · {s.runs} paie(s)</strong>
+          <span>Revenus {$(s.income)}</span><span>RRQ {$(s.qpp)}</span><span>AE {$(s.ei)}</span><span>RQAP {$(s.qpip)}</span>
+          <span>Impôt fédéral {$(s.fed_tax)}</span><span>Impôt Québec {$(s.qc_tax)}</span>
+          <Button size="sm" variant="outline" className="col-span-2 mt-1 justify-self-start sm:col-span-4" onClick={() => print(s)}>Imprimer / PDF</Button>
+        </div>
+      ))}
+    </div>
   );
 }
