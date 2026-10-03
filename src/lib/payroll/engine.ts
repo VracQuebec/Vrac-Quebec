@@ -27,13 +27,13 @@ export function payCalc(p: PayParams, i: PayInput) {
   const q1r = p.qpp_rate, q1max = (p.qpp_max_pensionable - p.qpp_exempt) * p.qpp_rate;
   const enh = (p.qpp_rate - p.qpp_base_rate) / p.qpp_rate;
   const q1reg = r2(Math.max(reg - p.qpp_exempt / np, 0) * q1r);
-  const q1 = Math.max(Math.min(r2(Math.max(t - p.qpp_exempt / np, 0) * q1r), q1max - (y.qpp1 ?? 0)), 0);
-  const q2 = Math.max(Math.min(r2(Math.max(Math.min(yins + t, p.qpp2_ceiling) - Math.max(yins, p.qpp_max_pensionable), 0) * p.qpp2_rate), p.qpp2_max - (y.qpp2 ?? 0)), 0);
-  const ei = Math.max(Math.min(r2(t * p.ei_rate), r2(p.ei_max_insurable * p.ei_rate) - (y.ei ?? 0)), 0);
+  const q1 = r2(Math.max(Math.min(r2(Math.max(t - p.qpp_exempt / np, 0) * q1r), q1max - (y.qpp1 ?? 0)), 0));
+  const q2 = r2(Math.max(Math.min(r2(Math.max(Math.min(yins + t, p.qpp2_ceiling) - Math.max(yins, p.qpp_max_pensionable), 0) * p.qpp2_rate), p.qpp2_max - (y.qpp2 ?? 0)), 0));
+  const ei = r2(Math.max(Math.min(r2(t * p.ei_rate), r2(p.ei_max_insurable * p.ei_rate) - (y.ei ?? 0)), 0));
   const eireg = r2(reg * p.ei_rate);
-  const qp = Math.max(Math.min(r2(t * p.qpip_rate), r2(p.qpip_max * p.qpip_rate) - (y.qpip ?? 0)), 0);
+  const qp = r2(Math.max(Math.min(r2(t * p.qpip_rate), r2(p.qpip_max * p.qpip_rate) - (y.qpip ?? 0)), 0));
   const qpreg = r2(reg * p.qpip_rate);
-  const qper = Math.max(Math.min(r2(t * p.qpip_employer_rate), r2(p.qpip_max * p.qpip_employer_rate) - (y.qpip_er ?? 0)), 0);
+  const qper = r2(Math.max(Math.min(r2(t * p.qpip_employer_rate), r2(p.qpip_max * p.qpip_employer_rate) - (y.qpip_er ?? 0)), 0));
 
   const a = Math.max(np * (reg - q1reg * enh), 0);
   const b = p.fed_bpa;
