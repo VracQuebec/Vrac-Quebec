@@ -47,6 +47,252 @@ export type Database = {
         }
         Relationships: []
       }
+      agd_attendees: {
+        Row: {
+          company_id: string
+          created_at: string
+          email: string | null
+          event_id: string
+          id: string
+          name: string | null
+          phone: string | null
+          response: string
+          user_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          email?: string | null
+          event_id: string
+          id?: string
+          name?: string | null
+          phone?: string | null
+          response?: string
+          user_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          email?: string | null
+          event_id?: string
+          id?: string
+          name?: string | null
+          phone?: string | null
+          response?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agd_attendees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agd_attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "agd_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agd_deliveries: {
+        Row: {
+          channel: string
+          company_id: string
+          created_at: string
+          event_id: string
+          id: string
+          minutes: number
+          occurrence_at: string
+          read_at: string | null
+          recipient: string
+          state: string
+          user_id: string | null
+        }
+        Insert: {
+          channel: string
+          company_id: string
+          created_at?: string
+          event_id: string
+          id?: string
+          minutes: number
+          occurrence_at: string
+          read_at?: string | null
+          recipient: string
+          state: string
+          user_id?: string | null
+        }
+        Update: {
+          channel?: string
+          company_id?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          minutes?: number
+          occurrence_at?: string
+          read_at?: string | null
+          recipient?: string
+          state?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agd_deliveries_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "agd_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agd_event_log: {
+        Row: {
+          action: string
+          actor: string | null
+          company_id: string
+          created_at: string
+          detail: Json
+          event_id: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          company_id: string
+          created_at?: string
+          detail?: Json
+          event_id: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          company_id?: string
+          created_at?: string
+          detail?: Json
+          event_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agd_event_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "agd_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agd_events: {
+        Row: {
+          all_day: boolean
+          archived_at: string | null
+          category: string
+          client_id: string | null
+          color: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_at: string
+          id: string
+          location: string | null
+          notify_client: boolean
+          owner_user_id: string | null
+          project_id: string | null
+          recurrence: string
+          recurrence_until: string | null
+          reminders: Json
+          start_at: string
+          status: string
+          task_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          all_day?: boolean
+          archived_at?: string | null
+          category?: string
+          client_id?: string | null
+          color?: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_at: string
+          id?: string
+          location?: string | null
+          notify_client?: boolean
+          owner_user_id?: string | null
+          project_id?: string | null
+          recurrence?: string
+          recurrence_until?: string | null
+          reminders?: Json
+          start_at: string
+          status?: string
+          task_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          all_day?: boolean
+          archived_at?: string | null
+          category?: string
+          client_id?: string | null
+          color?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_at?: string
+          id?: string
+          location?: string | null
+          notify_client?: boolean
+          owner_user_id?: string | null
+          project_id?: string | null
+          recurrence?: string
+          recurrence_until?: string | null
+          reminders?: Json
+          start_at?: string
+          status?: string
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agd_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agd_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agd_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agd_events_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "ent_crm_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_cache: {
         Row: {
           cache_key: string
@@ -26929,6 +27175,35 @@ export type Database = {
       add_submission_site: {
         Args: { p_site_id: string; p_submission_id: string }
         Returns: Json
+      }
+      agd_can_see: { Args: { _event: string }; Returns: boolean }
+      agd_is_attendee: { Args: { _event: string }; Returns: boolean }
+      agd_mark_read: { Args: { _delivery: string }; Returns: undefined }
+      agd_my_bell: {
+        Args: { _limit?: number }
+        Returns: {
+          company_id: string
+          created_at: string
+          delivery_id: string
+          event_id: string
+          location: string
+          read_at: string
+          start_at: string
+          title: string
+        }[]
+      }
+      agd_occurrences: {
+        Args: {
+          _e: Database["public"]["Tables"]["agd_events"]["Row"]
+          _from: string
+          _to: string
+        }
+        Returns: string[]
+      }
+      agd_reminders_sweep: { Args: never; Returns: number }
+      agd_respond: {
+        Args: { _event: string; _response: string }
+        Returns: undefined
       }
       ai_cache_hit: {
         Args: { _credits: number; _key: string }

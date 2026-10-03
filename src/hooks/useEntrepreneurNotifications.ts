@@ -32,6 +32,18 @@ async function fetchFinanceBell(): Promise<MktNotification[]> {
   }));
 }
 
+const AGD_PREFIX = "agd:";
+async function fetchAgendaBell(): Promise<MktNotification[]> {
+  const { data, error } = await (supabase as any).rpc("agd_my_bell", { _limit: 30 });
+  if (error) return [];
+  return ((data ?? []) as any[]).map((r) => ({
+    id: AGD_PREFIX + r.delivery_id, user_id: null, company_id: r.company_id, audience: "agenda", event: "agd_reminder",
+    title: `Rappel d'agenda — ${r.title}`,
+    body: `${new Date(r.start_at).toLocaleString("fr-CA", { dateStyle: "medium", timeStyle: "short" })}${r.location ? " · " + r.location : ""}`,
+    level: "info", request_id: null, link: "/entrepreneur/agenda", channels: ["app"], read_at: r.read_at, created_at: r.created_at,
+  }));
+}
+
 export function useEntrepreneurNotifications(enabled = true) {
   const [items, setItems] = useState<MktNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,9 +53,9 @@ export function useEntrepreneurNotifications(enabled = true) {
   const reload = useCallback(async () => {
     if (!enabled) return;
     try {
-      const [rows, fin] = await Promise.all([fetchNotifications(50), fetchFinanceBell()]);
+      const [rows, fin, agd] = await Promise.all([fetchNotifications(50), fetchFinanceBell(), fetchAgendaBell()]);
       if (mounted.current) {
-        setItems([...rows, ...fin].sort((a, b) => b.created_at.localeCompare(a.created_at)));
+        setItems([...rows, ...fin, ...agd].sort((a, b) => b.created_at.localeCompare(a.created_at)));
         setError(null);
       }
     } catch (e) {
@@ -92,7 +104,8 @@ export function useEntrepreneurNotifications(enabled = true) {
       p.map((n) => (n.id === id && !n.read_at ? { ...n, read_at: new Date().toISOString() } : n)),
     );
     try {
-      if (id.startsWith(FIN_PREFIX)) await (supabase as any).rpc("fin_reminder_mark_read", { _reminder: id.slice(FIN_PREFIX.length) });
+      if (id.startsWith(AGD_PREFIX)) await (supabase as any).rpc("agd_mark_read", { _delivery: id.slice(AGD_PREFIX.length) });
+      else if (id.startsWith(FIN_PREFIX)) await (supabase as any).rpc("fin_reminder_mark_read", { _reminder: id.slice(FIN_PREFIX.length) });
       else await markNotificationRead(id);
     } catch {
       void reload();
