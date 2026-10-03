@@ -1198,6 +1198,13 @@
       "when": 1791010170266,
       "tag": "0170_mkt_consentement_mailchimp",
       "breakpoints": true
+    },
+    {
+      "idx": 171,
+      "version": "7",
+      "when": 1791011351676,
+      "tag": "0171_drv_points_natif",
+      "breakpoints": true
     }
   ]
 }
