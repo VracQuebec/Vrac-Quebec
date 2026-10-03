@@ -31269,6 +31269,10 @@ export type Database = {
         }
         Returns: string
       }
+      fin_gl_accrual_validate: {
+        Args: { _id: string; _key: string; _rev: number; _reverse_on: string }
+        Returns: Json
+      }
       fin_gl_cash_flow: {
         Args: { _company: string; _from: string; _to: string }
         Returns: Json
