@@ -3276,46 +3276,70 @@ export type Database = {
       }
       ent_crm_tasks: {
         Row: {
+          archived_at: string | null
           assignee_user_id: string | null
+          checklist: Json
           client_id: string | null
+          color: string
           company_id: string
           created_at: string
           created_by: string | null
+          description: string | null
           done_at: string | null
+          done_by: string | null
           due_at: string | null
           id: string
           lead_id: string | null
+          priority: string
           project_id: string | null
           result: string | null
+          status: string
           title: string
+          updated_at: string
         }
         Insert: {
+          archived_at?: string | null
           assignee_user_id?: string | null
+          checklist?: Json
           client_id?: string | null
+          color?: string
           company_id: string
           created_at?: string
           created_by?: string | null
+          description?: string | null
           done_at?: string | null
+          done_by?: string | null
           due_at?: string | null
           id?: string
           lead_id?: string | null
+          priority?: string
           project_id?: string | null
           result?: string | null
+          status?: string
           title: string
+          updated_at?: string
         }
         Update: {
+          archived_at?: string | null
           assignee_user_id?: string | null
+          checklist?: Json
           client_id?: string | null
+          color?: string
           company_id?: string
           created_at?: string
           created_by?: string | null
+          description?: string | null
           done_at?: string | null
+          done_by?: string | null
           due_at?: string | null
           id?: string
           lead_id?: string | null
+          priority?: string
           project_id?: string | null
           result?: string | null
+          status?: string
           title?: string
+          updated_at?: string
         }
         Relationships: [
           {
