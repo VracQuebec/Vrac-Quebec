@@ -1233,6 +1233,13 @@
       "when": 1791012481728,
       "tag": "0175_company_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 176,
+      "version": "7",
+      "when": 1791013429360,
+      "tag": "0176_asr_assurances_entreprise",
+      "breakpoints": true
     }
   ]
 }
