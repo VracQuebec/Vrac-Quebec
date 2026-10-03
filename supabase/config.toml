@@ -55,3 +55,6 @@ verify_jwt = false
 
 [functions.entcrm-quote-file]
 verify_jwt = false
+
+[functions.mailchimp-webhook]
+verify_jwt = false

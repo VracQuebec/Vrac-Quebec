@@ -8,6 +8,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import PageHeader from "@/components/layout/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import MailchimpAdmin from "@/components/marketing/MailchimpAdmin";
 import { nextStep, PROMO_GAP_DAYS, type Profile } from "@/lib/ops/cadence";
 
 type Row = { name: string; email: string | null; p: Profile };
@@ -48,6 +49,7 @@ export default function AdminRelances() {
           Aucun courriel promotionnel ne part pour l'instant : il faut le consentement de la personne et le compte Mailchimp connecté.
           La colonne « si consentement » montre ce qui serait envoyé.
         </CardContent></Card>
+        <MailchimpAdmin />
         {!rows ? <Loader2 className="h-4 w-4 animate-spin" /> : due.map((r, i) => (
           <Card key={i}><CardContent className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
             <div className="min-w-0"><p className="font-semibold">{r.name}</p><p className="text-xs text-muted-foreground">{r.p.audience === "client" ? "Client dompe" : "Entrepreneur"} · inscrit le {new Date(r.p.signedUpAt).toLocaleDateString("fr-CA")}</p></div>
