@@ -30970,6 +30970,7 @@ export type Database = {
       rds_fleet_status: { Args: { _company: string }; Returns: Json }
       rds_my_name: { Args: never; Returns: string }
       rds_operator_sign: { Args: { _report: string }; Returns: undefined }
+      rds_photo_ok: { Args: { _name: string }; Returns: boolean }
       rds_repair_done: {
         Args: { _defect: string; _notes: string; _proof: string }
         Returns: undefined
