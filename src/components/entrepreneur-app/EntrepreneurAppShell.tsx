@@ -23,7 +23,7 @@ import {
   LifeBuoy,
   Wallet,
   FileClock,
-  Ticket,, ListChecks } from "lucide-react";
+  Ticket, ListChecks } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Coquille unique de l'espace entrepreneur :                         */
