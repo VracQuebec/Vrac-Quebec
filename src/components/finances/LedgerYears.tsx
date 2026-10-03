@@ -92,3 +92,29 @@ export function Statements({ companyId, onOpenAccount }: { companyId: string; on
     </section>
   </div>;
 }
+
+/** FIN-15 — Dossier de fin d'exercice : classeur Excel regroupant les rapports serveur existants (aucun recalcul). */
+async function yearEndFile(companyId: string, y: Year) {
+  const XLSX = await import("xlsx");
+  const call = async (fn: string, args: object) => { const { data, error } = await db.rpc(fn, args); if (error) throw error; return data; };
+  const [st, tb, cf, ap] = await Promise.all([
+    call("fin_gl_statements", { _company: companyId, _from: y.start_date, _to: y.end_date }),
+    call("fin_gl_trial", { _company: companyId, _to: y.end_date }),
+    call("fin_gl_cash_flow", { _company: companyId, _from: y.start_date, _to: y.end_date }),
+    call("fin_ap_aging", { _company: companyId, _on: y.end_date }),
+  ]);
+  const n = (v: unknown) => (v == null ? "À compléter" : Number(v));
+  const wb = XLSX.utils.book_new();
+  const add = (name: string, rows: unknown[][]) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), name);
+  add("Résumé", [["Entreprise", st.company], ["Exercice", y.label], ["Période", `${y.start_date} au ${y.end_date}`], ["Statut", y.status === "closed" ? "Fermé" : "Ouvert (provisoire)"], ["Devise", st.currency],
+    ["Écritures en brouillon dans la période", st.drafts_in_period], ["Soldes d'ouverture", y.opening_entry_id ? "Saisis" : "À compléter"], ["Préparé le", new Date().toISOString()],
+    ["Note", "Document de travail non transmis à aucune autorité; calculé depuis les écritures validées seulement."]]);
+  add("Balance", [["Compte", "Nom", "Catégorie", "Débit", "Crédit", "Solde"], ...(tb as any[]).map((r) => [r.number, r.name, r.category, n(r.debit), n(r.credit), n(r.balance)])]);
+  add("Résultats", [["Compte", "Nom", "Catégorie", "Montant"], ...st.income.map((r: Row) => [r.number, r.name, r.category, n(r.amount)])]);
+  add("Bilan", [["Compte", "Nom", "Catégorie", "Montant"], ...st.balance.map((r: Row) => [r.number, r.name, r.category, n(r.amount)]), [], ["Résultat cumulé", "", "", n(st.result_cumul)]]);
+  add("Flux de trésorerie", [["Ouverture", n(cf.opening)], ["Variation nette", n(cf.net_change)], ["Clôture", n(cf.closing)], [], ["Compte", "Nom", "Catégorie", "Entrées", "Sorties", "Net"],
+    ...cf.rows.map((r: any) => [r.number, r.name, r.category, n(r.inflow), n(r.outflow), n(r.net)])]);
+  add("Âge fournisseurs", [["Fournisseur", "Reste", "Non échu", "1-30", "31-60", "61-90", "90+", "Échéance inconnue", "Disponibles"],
+    ...ap.rows.map((r: any) => [r.name, n(r.rest), n(r.not_due), n(r.b1_30), n(r.b31_60), n(r.b61_90), n(r.b90), n(r.unknown), n(r.available)])]);
+  XLSX.writeFile(wb, `dossier-fin-exercice-${y.label}.xlsx`);
+}
