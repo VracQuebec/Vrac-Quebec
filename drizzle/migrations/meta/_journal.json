@@ -1254,6 +1254,13 @@
       "when": 1791014339947,
       "tag": "0178_asr_role_membre_dabord",
       "breakpoints": true
+    },
+    {
+      "idx": 179,
+      "version": "7",
+      "when": 1791014373827,
+      "tag": "0179_asr_confirm_tache_fait",
+      "breakpoints": true
     }
   ]
 }
