@@ -7,3 +7,4 @@
 - Adresses de test réservées (@*.invalid, .test, .example, example.com) : jamais d'envoi de courriel (garde dans send-transactional-email et process-email-queue) ni d'envoi téléphone (trigger sur crm_notifications).
 - Règles Finances : src/lib/finances/AGENTS.md ; brouillons : src/lib/drafts/AGENTS.md.
 - CPN-01 : carnets de coupons = cpn_books/cpn_book_events, créés seulement par cpn_new_book (déclencheurs sur submissions request_type='remblai' et entrepreneurs, un carnet « inscription » unique), modifiés seulement par cpn_book_action (admin, journalisé) — l'envoi postal réel reste manuel.
+- OPS-02 : voyages = cpn_trips (côtés « recu »/« livre » jamais additionnés, src/lib/ops/trips.ts), services/analyses = svc_requests (confirmation serveur exige disponibilité+zone+accès), missions chauffeurs = drv_missions/drv_points (consentement explicite, écritures par RPC seulement), relances = moteur pur src/lib/ops/cadence.ts sans envoi.
