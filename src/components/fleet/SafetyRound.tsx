@@ -500,7 +500,7 @@ function EnRouteDialog({ vehicles, codes, onClose, onPick }: any) {
   const [v, setV] = useState<any>(vehicles[0]); const [cat, setCat] = useState<number | null>(null);
   const list = v?.rds_list ?? 1;
   const catNos = Array.from(new Set(codes.filter((c: Code) => c.lists.includes(list)).map((c: Code) => c.cat_no))) as number[];
-  if (cat != null && v) return <CodePicker cat={cat} listNo={list} codes={codes} vehicles={[v]} onClose={onClose} onPick={onPick} />;
+  if (cat != null && v) return <CodePicker companyId={companyId} cat={cat} listNo={list} codes={codes} vehicles={[v]} onClose={onClose} onPick={onPick} />;
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md"><DialogHeader><DialogTitle>Défaut constaté en route</DialogTitle></DialogHeader>
