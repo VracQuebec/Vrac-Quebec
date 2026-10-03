@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useCompanyRole } from "@/components/todo/useCompanyRole";
 import { CATEGORIES, DUTY, catLabel, dayBounds, daySegments, dutyLabel, fmtLocal, newClientId, tzOffsetMin, zonedToUtc } from "@/lib/logbook/day";
 
 type Ctx = { company_id: string | null; company_name?: string; role?: string; enabled?: boolean; manager?: boolean };
@@ -38,18 +39,25 @@ export default function EntrepreneurLogbook() {
   const tab = sp.get("onglet") ?? "journal";
   const setTab = (t: string) => { const n = new URLSearchParams(sp); n.set("onglet", t); setSp(n, { replace: true }); };
 
-  useEffect(() => { void supabase.rpc("log_my_context").then(({ data, error }) => error ? setErr(error.message) : setCtx(data as Ctx)); }, [user?.id]);
+  const { companies, companyId, setCompanyId, ready } = useCompanyRole();
+  // Changement d'entreprise : on vide tout le contexte précédent avant de recharger.
+  useEffect(() => {
+    setCtx(null); setErr(null);
+    if (!companyId) return;
+    void supabase.rpc("log_context", { p_company: companyId }).then(({ data, error }) => error ? setErr(error.message) : setCtx(data as Ctx));
+  }, [user?.id, companyId]);
 
   const tabs = [["journal", "Mon logbook"], ...(ctx?.manager ? [["chauffeurs", "Logbooks des chauffeurs"]] : []), ["profil", "Profil réglementaire"], ["qualif", "Qualification du mode"], ...(ctx?.manager ? [["vehicules", "Véhicules et DCE"]] : [])];
 
   return (
-    <EntrepreneurAppShell title="Logbook et heures de conduite" subtitle="Gestion de flotte" backTo="/entrepreneur/flotte">
+    <EntrepreneurAppShell title="Logbook et heures de conduite" subtitle="Gestion de flotte" backTo="/entrepreneur/flotte" allowCompanyMembers>
       <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-5">
         <div className="rounded-md border border-border bg-muted p-3 text-sm">
           <strong>Prototype privé LOG-01 — non certifié.</strong> Ce journal n'est pas un DCE et ne remplace pas un registre réglementaire. <strong>DCE non connecté.</strong> Aucun compteur d'heures ni verdict « autorisé à conduire » dans ce lot.
         </div>
+        {companies.length > 1 && <select aria-label="Entreprise active" className={sel + " sm:w-auto"} value={companyId ?? ""} onChange={(e) => setCompanyId(e.target.value)}>{companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
         {err && <p className="text-destructive">{err}</p>}
-        {!ctx ? <p className="text-muted-foreground">Chargement…</p> : !ctx.company_id ? <p>Aucune entreprise rattachée à ce compte.</p>
+        {ready && !companyId ? <p>Aucune entreprise rattachée à ce compte.</p> : !ctx ? <p className="text-muted-foreground">Chargement…</p> : !ctx.company_id ? <p>Aucune entreprise rattachée à ce compte.</p>
           : !ctx.enabled ? <p className="rounded-md border border-border p-4">Le logbook n'est pas activé pour {ctx.company_name}. Il est réservé aux entreprises autorisées pour les essais par l'administration Vrac Québec.</p>
           : user && <div key={ctx.company_id} className="space-y-4">
             <nav className="flex flex-wrap gap-2">{tabs.map(([v, l]) => <Button key={v} size="sm" variant={tab === v ? "default" : "outline"} onClick={() => setTab(v)}>{l}</Button>)}</nav>

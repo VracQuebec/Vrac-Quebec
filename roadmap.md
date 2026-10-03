@@ -204,3 +204,5 @@
 - [ ] Liaison chauffeur ↔ véhicule précis : aucune affectation n'existe; un chauffeur voit les preuves de tous les véhicules actifs de l'entreprise.
 - [ ] Recherche IA dans les documents : aucune capacité réutilisable; recherche classique livrée.
 - [ ] Réglage à l'écran du fuseau et de l'heure de rappel (9 h par défaut, modifiable en base seulement).
+
+- [ ] LOG-02 : compteurs réglementaires, journées limites, changements d'heure (bloqué : lot suivant). Fournisseur DCE certifié (bloqué : choix du fournisseur). Mode hors ligne du logbook non pris en charge.

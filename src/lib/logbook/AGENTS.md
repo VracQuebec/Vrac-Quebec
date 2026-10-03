@@ -1,0 +1,1 @@
+- Logbook (LOG-01, prototype non certifié) : log_* écrits seulement par RPC log_* (journal figé par trigger, correction = nouvelle version liée, proposition du gestionnaire acceptée/refusée par le chauffeur seul, anti-doublon par client_request_id); accès limité aux entreprises de log_trial_companies; aucun DCE connecté — tout fournisseur certifié passera par log_dce_devices.

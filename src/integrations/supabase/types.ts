@@ -32560,6 +32560,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      log_context: { Args: { p_company: string }; Returns: Json }
       log_correct_event: {
         Args: {
           p: Json
