@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PromoConsent, { useSender, recordPromoConsent } from "@/components/marketing/PromoConsent";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -21,6 +22,8 @@ const getFunctionError = async (response: Response) => {
 
 const EntrepreneurSignup = () => {
   const [email, setEmail] = useState("");
+  const [promo, setPromo] = useState(false);
+  const sender = useSender();
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
@@ -48,6 +51,7 @@ const EntrepreneurSignup = () => {
 
       const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
       if (loginError) throw loginError;
+      if (promo && sender) { const pe = await recordPromoConsent(email, "inscription_entrepreneur", sender.consent_version); if (pe) toast({ title: "Consentement non enregistré", description: pe, variant: "destructive" }); }
 
       try { localStorage.setItem("vq_stay_logged_in", "1"); } catch { /* ignore storage errors */ }
       toast({
@@ -100,6 +104,7 @@ const EntrepreneurSignup = () => {
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} required minLength={8} />
               <p className="text-[11px] text-muted-foreground mt-1 font-body">Minimum 8 caractères.</p>
             </div>
+            <PromoConsent checked={promo} onChange={setPromo} sender={sender} />
             <button type="submit" disabled={loading}
               className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2">
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
