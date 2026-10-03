@@ -33,7 +33,7 @@ export default function PayrollPanel({ companyId, canManage, from, to, members, 
   const [rates, setRates] = useState<any>(null);
   const [payDate, setPayDate] = useState(to);
   const [busy, setBusy] = useState(false);
-  const [edit, setEdit] = useState<Record<string, { rate: string; vac: string }>>({});
+  const [edit, setEdit] = useState<Record<string, { rate: string; vac: string; fed: string; qc: string }>>({});
 
   const load = useCallback(async () => {
     const [{ data: e }, { data: r }, { data: s }, { data: rt }] = await Promise.all([
