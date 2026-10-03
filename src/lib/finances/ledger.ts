@@ -21,6 +21,8 @@ export const ROLES: { v: string; l: string; cat: Cat }[] = [
   { v: "gst_recoverable", l: "TPS à recouvrer", cat: "actif" }, { v: "qst_recoverable", l: "TVQ à recouvrer", cat: "actif" },
   { v: "obligation_expense", l: "Dépenses réglées sans facture fournisseur", cat: "depenses" }, { v: "supplier_advance", l: "Trop-payés et avances aux fournisseurs", cat: "actif" },
   { v: "employee_payable", l: "Remboursements dus aux employés", cat: "passif" }, { v: "employee_advance", l: "Avances aux employés", cat: "actif" },
+  { v: "wages_expense", l: "Salaires et vacances (paie)", cat: "depenses" }, { v: "payroll_tax_expense", l: "Charges sociales de l'employeur (paie)", cat: "depenses" },
+  { v: "source_deductions", l: "Retenues à la source à remettre (paie)", cat: "passif" }, { v: "wages_payable", l: "Salaires nets à verser (paie)", cat: "passif" },
 ];
 export const ROLE_LABEL = Object.fromEntries(ROLES.map((r) => [r.v, r.l])) as Record<string, string>;
 
@@ -29,6 +31,7 @@ export const SOURCE: Record<string, { l: string; tab: string; sous?: string }> =
   invoice: { l: "Facture client", tab: "factures" }, receipt: { l: "Encaissement client", tab: "factures", sous: "comptes" }, credit_note: { l: "Note de crédit client", tab: "factures" },
   bill: { l: "Facture fournisseur", tab: "achats" }, supplier_credit: { l: "Note de crédit fournisseur", tab: "achats" }, supplier_credit_refund: { l: "Remboursement de note de crédit fournisseur", tab: "achats" },
   payment: { l: "Règlement", tab: "reglements" }, refund: { l: "Remboursement de trop-payé", tab: "achats" }, exp_report: { l: "Note de frais", tab: "frais" }, restitution: { l: "Restitution d'avance", tab: "frais" },
+  payroll: { l: "Paie finalisée", tab: "grand-livre" },
 };
 export const sourceHref = (company: string, kind: string | null) => {
   const s = kind ? SOURCE[kind] : null; if (!s) return null;
