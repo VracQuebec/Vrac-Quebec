@@ -20082,6 +20082,45 @@ export type Database = {
         }
         Relationships: []
       }
+      pay_adjustments: {
+        Row: {
+          amount: number
+          applied_run_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          reason: string
+          source_run_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          applied_run_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          reason: string
+          source_run_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          applied_run_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          reason?: string
+          source_run_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pay_employees: {
         Row: {
           active: boolean
@@ -20093,6 +20132,9 @@ export type Database = {
           updated_by: string | null
           user_id: string
           vacation_pct: number
+          ytd_opening: Json | null
+          ytd_reason: string | null
+          ytd_year: number | null
         }
         Insert: {
           active?: boolean
@@ -20104,6 +20146,9 @@ export type Database = {
           updated_by?: string | null
           user_id: string
           vacation_pct?: number
+          ytd_opening?: Json | null
+          ytd_reason?: string | null
+          ytd_year?: number | null
         }
         Update: {
           active?: boolean
@@ -20115,6 +20160,9 @@ export type Database = {
           updated_by?: string | null
           user_id?: string
           vacation_pct?: number
+          ytd_opening?: Json | null
+          ytd_reason?: string | null
+          ytd_year?: number | null
         }
         Relationships: [
           {
@@ -20126,24 +20174,69 @@ export type Database = {
           },
         ]
       }
+      pay_employer_settings: {
+        Row: {
+          ccq_applicable: boolean | null
+          cnesst_rate_per_100: number | null
+          company_id: string
+          fdrcmo_training: number | null
+          normes_exempt: boolean
+          notes: string | null
+          sector: string
+          total_payroll: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ccq_applicable?: boolean | null
+          cnesst_rate_per_100?: number | null
+          company_id: string
+          fdrcmo_training?: number | null
+          normes_exempt?: boolean
+          notes?: string | null
+          sector?: string
+          total_payroll?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ccq_applicable?: boolean | null
+          cnesst_rate_per_100?: number | null
+          company_id?: string
+          fdrcmo_training?: number | null
+          normes_exempt?: boolean
+          notes?: string | null
+          sector?: string
+          total_payroll?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       pay_rates: {
         Row: {
+          effective_from: string | null
           note: string | null
           params: Json
+          sources: Json
           updated_at: string
           validated: boolean
           year: number
         }
         Insert: {
+          effective_from?: string | null
           note?: string | null
           params: Json
+          sources?: Json
           updated_at?: string
           validated?: boolean
           year: number
         }
         Update: {
+          effective_from?: string | null
           note?: string | null
           params?: Json
+          sources?: Json
           updated_at?: string
           validated?: boolean
           year?: number
@@ -20205,6 +20298,9 @@ export type Database = {
       }
       pay_stubs: {
         Row: {
+          adjustments: number
+          bonus: number
+          calc: Json | null
           company_id: string
           ei: number
           employer: Json
@@ -20224,6 +20320,9 @@ export type Database = {
           vacation: number
         }
         Insert: {
+          adjustments?: number
+          bonus?: number
+          calc?: Json | null
           company_id: string
           ei: number
           employer: Json
@@ -20243,6 +20342,9 @@ export type Database = {
           vacation: number
         }
         Update: {
+          adjustments?: number
+          bonus?: number
+          calc?: Json | null
           company_id?: string
           ei?: number
           employer?: Json
@@ -30837,7 +30939,19 @@ export type Database = {
         Args: { _from: string; _to: string }
         Returns: Json
       }
+      pay_adjustment_add: {
+        Args: {
+          _amount: number
+          _company: string
+          _kind: string
+          _reason: string
+          _source_run?: string
+          _user: string
+        }
+        Returns: string
+      }
       pay_bracket_tax: { Args: { _br: Json; _inc: number }; Returns: number }
+      pay_calc: { Args: { i: Json; p: Json }; Returns: Json }
       pay_can_manage: { Args: { _company: string }; Returns: boolean }
       pay_employee_save: {
         Args: {
@@ -30849,6 +30963,20 @@ export type Database = {
           _user: string
           _vac: number
         }
+        Returns: undefined
+      }
+      pay_employee_ytd_set: {
+        Args: {
+          _company: string
+          _reason: string
+          _user: string
+          _year: number
+          _ytd: Json
+        }
+        Returns: undefined
+      }
+      pay_employer_settings_save: {
+        Args: { _company: string; s: Json }
         Returns: undefined
       }
       pay_run_compute: {
