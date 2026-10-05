@@ -107,11 +107,14 @@ const SIDEBAR_ITEMS = [
   { to: "/entrepreneur/agenda", label: "Agenda", icon: CalendarDays },
   { to: "/entrepreneur/punch", label: "Punch et heures", icon: Clock },
   { to: "/entrepreneur/activites", label: "Coupons et services", icon: Ticket },
+  { to: "/entrepreneur/demandes", label: "Toutes les demandes", icon: ClipboardList },
   { to: "/entrepreneur/crm", label: "Mon CRM", icon: ClipboardList },
   { to: "/entrepreneur/flotte", label: "Ma flotte", icon: Truck },
   { to: "/entrepreneur/finances", label: "Finances", icon: Wallet },
   { to: "/entrepreneur/notes-de-frais", label: "Mes notes de frais", icon: Wallet },
   { to: "/entrepreneur/obligations", label: "Obligations", icon: CalendarDays },
+  { to: "/entrepreneur/documents", label: "Documents", icon: CalendarDays },
+  { to: "/entrepreneur/assurances", label: "Assurances", icon: CalendarDays },
   { to: "/entrepreneur/brouillons", label: "Reprendre mon travail", icon: FileClock },
   { to: "/entrepreneur/compte", label: "Mon entreprise", icon: User },
   { to: "/entrepreneur/notifications", label: "Notifications", icon: Bell },
@@ -192,9 +195,10 @@ export default function EntrepreneurAppShell({
               <NavLink
                 key={to}
                 to={to}
+                aria-current={active ? "page" : undefined}
                 className={`flex items-center gap-3 rounded-md px-3.5 py-3 min-h-11 font-body text-sm transition-colors ${
                   active
-                    ? "bg-primary text-primary-foreground font-semibold"
+                    ? "bg-primary text-primary-foreground font-bold shadow-sm"
                     : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 }`}
               >
@@ -296,8 +300,9 @@ export default function EntrepreneurAppShell({
               <NavLink
                 key={to}
                 to={to}
-                className={`flex flex-col items-center justify-center gap-0.5 min-h-[3.5rem] py-1.5 text-[10px] font-display transition-colors ${
-                  active ? "text-primary font-bold" : "text-muted-foreground"
+                aria-current={active ? "page" : undefined}
+                className={`relative flex flex-col items-center justify-center gap-0.5 min-h-[3.5rem] py-1.5 text-[10px] font-display transition-colors ${
+                  active ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground"
                 }`}
               >
                 <Icon className="w-6 h-6" strokeWidth={active ? 2.4 : 1.8} />
@@ -308,8 +313,9 @@ export default function EntrepreneurAppShell({
           <button
             onClick={() => setMoreOpen(true)}
             aria-label="Plus d'options"
+            aria-current={moreActive ? "page" : undefined}
             className={`flex flex-col items-center justify-center gap-0.5 min-h-[3.5rem] py-1.5 text-[10px] font-display transition-colors ${
-              moreActive ? "text-primary font-bold" : "text-muted-foreground"
+              moreActive ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground"
             }`}
           >
             <Menu className="w-6 h-6" strokeWidth={moreActive ? 2.4 : 1.8} />
@@ -333,23 +339,27 @@ export default function EntrepreneurAppShell({
                 <p className="px-3 pb-1 pt-3 font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">
                   {section.title}
                 </p>
-                {section.items.map(({ to, label, hint, icon: Icon }) => (
-                  <Link
-                    key={to}
-                    to={to}
-                    onClick={() => setMoreOpen(false)}
-                    className="flex items-center gap-3 rounded-2xl px-3 py-3 min-h-14 font-body font-semibold transition-transform active:scale-[0.99] hover:bg-secondary"
-                  >
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Icon className="w-5 h-5" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate">{label}</span>
-                      <span className="block truncate font-body text-xs font-normal text-muted-foreground">{hint}</span>
-                    </span>
-                    <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
-                  </Link>
-                ))}
+                {section.items.map(({ to, label, hint, icon: Icon }) => {
+                  const active = isActive(location.pathname, to);
+                  return (
+                    <Link
+                      key={to}
+                      to={to}
+                      onClick={() => setMoreOpen(false)}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex items-center gap-3 rounded-2xl px-3 py-3 min-h-14 font-body font-semibold transition-transform active:scale-[0.99] ${active ? "bg-primary text-primary-foreground" : "hover:bg-secondary"}`}
+                    >
+                      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${active ? "bg-primary-foreground/15 text-primary-foreground" : "bg-primary/10 text-primary"}`}>
+                        <Icon className="w-5 h-5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{label}</span>
+                        <span className={`block truncate font-body text-xs font-normal ${active ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{hint}</span>
+                      </span>
+                      <ChevronRight className={`w-4 h-4 shrink-0 ${active ? "text-primary-foreground" : "text-muted-foreground"}`} />
+                    </Link>
+                  );
+                })}
               </div>
             ))}
             <a
