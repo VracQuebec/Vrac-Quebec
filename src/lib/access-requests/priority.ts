@@ -29,8 +29,13 @@ export function sortByPriority<T extends { id: string; created_at: string }>(row
 }
 
 /** Correspondance vers la priorité de notification existante. */
+// Priorité explicite de l'administrateur → niveau de notification existant.
+// Non définie (null) = le niveau d'origine de la notification est conservé.
 export const toNotificationPriority = (p: AccessPriority | null | undefined) =>
-  p === "urgente" ? "urgente" : p === "prioritaire" ? "importante" : null;
+  p === "urgente" ? "urgente" : p === "prioritaire" ? "importante" : p === "normale" ? "normale" : null;
+
+/** Fiche d'une demande d'accès dans « Demandes d'accès aux dompes ». */
+export const accessRequestUrl = (id: string) => `/admin/demandes-acces?demande=${id}`;
 
 export async function fetchAccessPriorities(ids?: string[]): Promise<Record<string, AccessPriority | null>> {
   let q = supabase.from("request_followups").select("entity_id, priority").eq("entity_type", "transport_request");

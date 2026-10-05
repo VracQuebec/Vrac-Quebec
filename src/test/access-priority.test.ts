@@ -13,7 +13,7 @@ describe("priorité des demandes d'accès", () => {
   it("n'invente jamais d'urgence : sans valeur = non définie", () => {
     expect(priorityLabel(null)).toBe("Priorité non définie");
     expect(toNotificationPriority(null)).toBeNull();
-    expect(toNotificationPriority("normale")).toBeNull();
+    expect(toNotificationPriority("normale")).toBe("normale");
     expect(toNotificationPriority("urgente")).toBe("urgente");
     expect(toNotificationPriority("prioritaire")).toBe("importante");
   });
