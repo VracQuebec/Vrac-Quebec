@@ -824,7 +824,7 @@ const Admin = () => {
               </DropdownMenuContent>
             </DropdownMenu>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild><Button className="md:hidden" variant="outline" size="icon" aria-label="Plus d'actions"><MoreHorizontal /></Button></DropdownMenuTrigger>
+              <DropdownMenuTrigger asChild><Button className="md:hidden" variant="outline"><MoreHorizontal /> Plus</Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-72">
                 <DropdownMenuLabel>Administration</DropdownMenuLabel>
                 <DropdownMenuItem onSelect={() => setTab("billing")}><Download /> Facturation et paiements</DropdownMenuItem>
