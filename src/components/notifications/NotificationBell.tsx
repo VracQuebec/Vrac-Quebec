@@ -104,6 +104,7 @@ const NotificationBell = ({ className = "" }: { className?: string }) => {
                key={group.key}
                n={group.latest}
                activityCount={group.items.length}
+                activities={group.items}
               onRead={read}
               onChange={change}
               onNavigate={() => setOpen(false)}

@@ -149,7 +149,7 @@ export default function AdminNotifications() {
             </div>
           )}
            {visible.map((group) => (
-             <NotificationItem key={group.key} n={group.latest} activityCount={group.items.length} onRead={read} onChange={change} />
+             <NotificationItem key={group.key} n={group.latest} activityCount={group.items.length} activities={group.items} onRead={read} onChange={change} />
           ))}
         </div>
       </main>

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { Check, CircleDot, ExternalLink, X } from "lucide-react";
+import { useState } from "react";
+import { Check, ChevronDown, CircleDot, ExternalLink, X } from "lucide-react";
 import {
   DISPLAY_CATEGORY_ICONS, DISPLAY_CATEGORY_LABELS, displayCategory, formatWhen, isOverdue,
   type CrmNotification, type NotifStatus,
@@ -13,10 +14,12 @@ interface Props {
   onNavigate?: () => void;
   compact?: boolean;
   activityCount?: number;
+  activities?: CrmNotification[];
 }
 
 /** Ligne de notification compacte : contexte complet + action directe vers l'élément. */
-const NotificationItem = ({ n, onRead, onChange, onNavigate, compact, activityCount = 1 }: Props) => {
+const NotificationItem = ({ n, onRead, onChange, onNavigate, compact, activityCount = 1, activities = [] }: Props) => {
+  const [expanded, setExpanded] = useState(false);
   const unread = n.status === "unread";
   const late = isOverdue(n);
   const done = n.status === "done" || n.status === "archived";
@@ -128,8 +131,35 @@ const NotificationItem = ({ n, onRead, onChange, onNavigate, compact, activityCo
               </Button>
             )}
           </div>
+          {activities.length > 1 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-expanded={expanded}
+              onClick={() => setExpanded((value) => !value)}
+              className="mt-2 min-h-11 w-full justify-between px-2 text-xs"
+            >
+              Voir les {activities.length} activités
+              <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`} />
+            </Button>
+          )}
         </div>
       </div>
+      {expanded && (
+        <div className="mt-3 space-y-2 border-t border-border pt-3">
+          {activities.slice(1).map((activity) => (
+            <NotificationItem
+              key={activity.id}
+              n={activity}
+              onRead={onRead}
+              onChange={onChange}
+              onNavigate={onNavigate}
+              compact
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
