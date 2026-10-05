@@ -34,8 +34,19 @@ function parentPath(pathname: string) {
   return "/" + parts.slice(0, -1).join("/");
 }
 
-const isAdminSectionActive = (pathname: string, target: string) =>
-  target === "/admin" ? pathname === target : pathname === target || pathname.startsWith(`${target}/`);
+const ADMIN_SECTION_ROUTES: Record<string, string[]> = {
+  "/admin/volets": ["/admin/coupons", "/admin/services", "/admin/missions", "/admin/relances", "/admin/logbook"],
+  "/admin/business-intelligence": ["/admin/intelligence", "/admin/direction", "/admin/ia", "/admin/orchestrateur"],
+  "/admin/settings": ["/admin/integrations-google", "/admin/configuration-soumissions", "/admin/capacites-transport"],
+};
+
+const isPathWithin = (pathname: string, target: string) =>
+  pathname === target || pathname.startsWith(`${target}/`);
+
+const isAdminSectionActive = (pathname: string, target: string) => {
+  if (target === "/admin") return pathname === target || isPathWithin(pathname, "/admin/crm");
+  return isPathWithin(pathname, target) || (ADMIN_SECTION_ROUTES[target] ?? []).some((route) => isPathWithin(pathname, route));
+};
 
 export default function UniversalNav() {
   const location = useLocation();
