@@ -130,7 +130,7 @@ export type NotifFilter =
 export const FILTER_LABELS: Record<NotifFilter, string> = {
   all: "Toutes",
   unread: "Non lues",
-  todo: "À faire",
+  todo: "À traiter",
   urgent: "Urgentes",
   today: "Aujourd'hui",
   overdue: "En retard",
