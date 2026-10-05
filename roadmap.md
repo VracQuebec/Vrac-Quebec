@@ -214,3 +214,11 @@
 ## STRATÉGIE 2026 (vision reçue le 3 oct.) — voir mémoire « Stratégie produit 2026 »
 - [ ] Priorité 1 : consolider un parcours complet contrat → soumission → affectation → voyages → facture → résultat (en attente de confirmation)
 - [ ] Priorités 2 à 6 : fournisseurs/matching coût total; disponibilités/dispatch; mobile/preuves; rentabilité/atelier/conformité; intégrations/provinces
+
+## QUALITÉ UI/PWA — adaptation mobile, tablette et ordinateur
+- [x] Audit statique initial : navigation, fenêtres, tableaux, éléments flottants, formulaires et PWA.
+- [x] Relevé visuel public initial sur 320, 360, 390, 430, 768, 1280 et 1920 px, sans soumission de formulaire.
+- [ ] Fiabiliser l’installation PWA et produire les variantes d’icône à partir du logo officiel existant.
+- [ ] Corriger les chevauchements, troncatures importantes et débordements des composants communs et des écrans prioritaires.
+- [ ] Valider les parcours entrepreneur connectés sur mobile, tablette et ordinateur, sans créer ni modifier de donnée métier.
+- [ ] Produire le rapport final avant/après; conserver TEST seulement et ne rien publier.
