@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { buildEntrepreneurRequests } from "@/lib/entrepreneur-app/requests";
 import { findChantierForSubmission } from "@/lib/parcours/chantiers";
+import SubmissionProvenance from "@/components/entrepreneur-app/SubmissionProvenance";
+import { possibleDuplicates } from "@/lib/parcours/besoin";
 import AddToCrmButton from "@/components/entcrm/AddToCrmButton";
 import ServiceOffers from "@/components/ops/ServiceOffers";
 import TransportLifecyclePanel from "@/components/entrepreneur-app/TransportLifecyclePanel";
@@ -44,16 +46,17 @@ export default function EntrepreneurDemandeDetail() {
               <AppCard accent={request.filter === "pending" ? "amber" : "primary"}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-body text-xs text-muted-foreground">{request.kind === "transport" ? "Transport" : "Demande de matériau"}</p>
+                    <p className="font-body text-xs text-muted-foreground">{request.natureLabel}</p>
                     <h2 className="mt-1 font-display text-xl font-bold sm:text-2xl">{request.title}</h2>
                     <p className="mt-1 font-body text-sm text-muted-foreground">{request.place}</p>
                   </div>
                   <StatusBadge label={request.statusLabel} tone={request.tone} />
                 </div>
+                {request.submission && <div className="mt-3"><SubmissionProvenance s={request.submission} duplicates={possibleDuplicates(submissions).get(request.submission.id) ?? []} /></div>}
                 <p className="mt-4 border-t border-border pt-3 font-display text-sm font-semibold text-primary">{request.nextAction}</p>
               </AppCard>
 
-              {chantier && <Link to={`/entrepreneur/chantiers/${encodeURIComponent(chantier.key)}`} className="inline-flex items-center gap-1 font-display text-sm font-semibold text-primary">Ouvrir le chantier <MapPin className="h-4 w-4" /></Link>}
+              {chantier && <Link to={`/entrepreneur/chantiers/${encodeURIComponent(chantier.key)}`} className="inline-flex items-center gap-1 font-display text-sm font-semibold text-primary">Ouvrir le dossier du lieu <MapPin className="h-4 w-4" /></Link>}
 
               {request.submission ? (
                 <>
@@ -92,18 +95,20 @@ export default function EntrepreneurDemandeDetail() {
               <SectionHeader title="Résumé du dossier" />
               <AppCard>
                 <dl>
-                  <DetailLine icon={<ClipboardList className="h-4 w-4" />} label="Type" value={request.kind === "transport" ? "Transport en vrac" : "Demande de matériau"} />
+                  <DetailLine icon={<ClipboardList className="h-4 w-4" />} label="Type" value={request.natureLabel} />
                   <DetailLine icon={<Package className="h-4 w-4" />} label="Besoin" value={request.title} />
                   <DetailLine icon={<MapPin className="h-4 w-4" />} label="Chantier" value={request.place} />
                   <DetailLine icon={<Truck className="h-4 w-4" />} label="Quantité / voyages" value={request.quantity || "À confirmer"} />
                   <DetailLine icon={<CalendarDays className="h-4 w-4" />} label="Créée le" value={request.date ? new Date(request.date).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" }) : "À confirmer"} />
                 </dl>
               </AppCard>
-              <Button asChild className="h-12 w-full font-display font-bold">
-                <Link to={request.kind === "transport" ? "/demande-transport" : "/entrepreneur/carte"}>
-                  {request.kind === "transport" ? "Nouvelle demande de transport" : "Trouver une dompe"}
-                </Link>
-              </Button>
+              {(request.kind === "transport" || request.dumpSearch) && (
+                <Button asChild className="h-12 w-full font-display font-bold">
+                  <Link to={request.kind === "transport" ? "/acces-dompe" : "/entrepreneur/carte"}>
+                    {request.kind === "transport" ? "Nouvelle demande d'accès à une dompe" : "Trouver une dompe"}
+                  </Link>
+                </Button>
+              )}
               {(request.submission?.id || request.transport?.id) && (
                 <AddToCrmButton sourceType={request.submission ? "submission" : "transport_request"} sourceId={String(request.submission?.id ?? request.transport?.id)} />
               )}
