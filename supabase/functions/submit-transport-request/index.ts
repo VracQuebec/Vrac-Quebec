@@ -33,6 +33,8 @@ type Payload = {
   dump_submission_id?: string | null;
   origin_submission_id?: string | null;
   origin_stage?: string | null;
+  request_kind?: string | null;
+  transport_mode?: string | null;
   dump_name?: string | null;
   distance_km?: number | null;
   travel_time_minutes?: number | null;
@@ -90,6 +92,8 @@ function validate(p: Partial<Payload>): { ok: true; data: Payload } | { ok: fals
       dump_submission_id: typeof p.dump_submission_id === "string" ? p.dump_submission_id : null,
       origin_submission_id: typeof p.origin_submission_id === "string" ? p.origin_submission_id : null,
       origin_stage: sanitize(p.origin_stage, 60) ?? "transport_request",
+      request_kind: p.request_kind === "transport" ? "transport" : "dump_access",
+      transport_mode: p.transport_mode === "own_trucks" || p.transport_mode === "requested" ? p.transport_mode : null,
       dump_name: sanitize(p.dump_name, 200),
       distance_km: typeof p.distance_km === "number" ? p.distance_km : null,
       travel_time_minutes: typeof p.travel_time_minutes === "number" ? Math.round(p.travel_time_minutes) : null,
@@ -363,6 +367,8 @@ Deno.serve(async (req) => {
         dump_submission_id: data.dump_submission_id,
         origin_submission_id: data.origin_submission_id,
         origin_stage: data.origin_stage ?? "transport_request",
+        request_kind: data.request_kind ?? "dump_access",
+        transport_mode: data.transport_mode ?? null,
         dump_name: data.dump_name,
         distance_km: data.distance_km,
         travel_time_minutes: data.travel_time_minutes,

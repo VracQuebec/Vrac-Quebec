@@ -38,6 +38,8 @@ export interface TransportSubmitPayload {
   /** Demande (submission) d'origine à laquelle cette demande est rattachée. */
   origin_submission_id?: string | null;
   origin_stage?: string | null;
+  request_kind?: "dump_access" | "transport" | null;
+  transport_mode?: "own_trucks" | "requested" | null;
   distance_km?: number | null;
   travel_time_minutes?: number | null;
   truck_type?: string | null;
