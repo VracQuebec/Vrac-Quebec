@@ -100,10 +100,24 @@ const AdminTransportRequests = () => {
     return () => { void supabase.removeChannel(channel); };
   }, [isAdmin]);
 
+  // Historique de la fiche : journal existant de la demande + changements de
+  // priorité déjà journalisés par le suivi (request_followup_events). Lecture seule.
+  const loadHistory = async (id: string) => {
+    const [{ data }, { data: ev }] = await Promise.all([
+      supabase.from("transport_request_history").select("*").eq("request_id", id).order("created_at", { ascending: true }),
+      supabase.from("request_followup_events").select("id, detail, actor_email, created_at").eq("entity_type", "transport_request").eq("entity_id", id).order("created_at", { ascending: true }),
+    ]);
+    const prio: HistoryEntry[] = (ev ?? []).flatMap((e) => {
+      const p = (e.detail as { priority?: { avant: unknown; apres: unknown } } | null)?.priority;
+      return p ? [{ id: `fu-${e.id}`, field_key: "priority", old_value: p.avant, new_value: p.apres, user_email: e.actor_email, created_at: e.created_at }] : [];
+    });
+    const merged = [...((data as unknown as HistoryEntry[]) ?? []), ...prio].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    setHistory(merged);
+  };
+
   const openDetail = async (request: AccessRequest) => {
     setSelected(request);
-    const { data } = await supabase.from("transport_request_history").select("*").eq("request_id", request.id).order("created_at", { ascending: true });
-    setHistory((data as unknown as HistoryEntry[]) ?? []);
+    await loadHistory(request.id);
   };
 
   useEffect(() => {
@@ -128,6 +142,7 @@ const AdminTransportRequests = () => {
     try {
       await setAccessPriority(selected.id, selected.created_at, priority);
       setPriorities((m) => ({ ...m, [selected.id]: priority }));
+      void loadHistory(selected.id);
       toast({ title: "Priorité mise à jour", description: priorityLabel(priority) });
     } catch (e) {
       toast({ title: "Erreur", description: (e as { message?: string })?.message ?? "Échec", variant: "destructive" });
@@ -196,19 +211,41 @@ const AdminTransportRequests = () => {
       </header>
 
       <main className="container mx-auto px-3 py-4 sm:px-6">
-        <section aria-label="Résumé" className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-9">
-          <Summary label="Nouvelles" value={counts.nouvelle ?? 0} emphasized />
-          <Summary label="Urgentes" value={urgentCount} urgent />
-          <Summary label="À intervenir" value={intervention} />
-          <Summary label="En analyse" value={counts.en_analyse ?? 0} />
-          <Summary label="Infos requises" value={counts.informations_requises ?? 0} />
+        {/* Mobile : rangée compacte, le reste sous « Voir les statistiques » */}
+        <section aria-label="Résumé rapide" className="mb-3 grid grid-cols-3 gap-2 md:hidden">
+          <Summary label="À traiter" value={intervention} emphasized />
           <Summary label="Acceptées" value={counts.acceptee ?? 0} />
-          <Summary label="Refusées" value={counts.refusee ?? 0} />
           <Summary label="Terminées" value={counts.terminee ?? 0} />
-          <Summary label="Annulées" value={counts.annulee ?? 0} />
         </section>
+        <details className="mb-4 rounded-md border border-border bg-card md:hidden">
+          <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-semibold">Voir les statistiques</summary>
+          <div className="space-y-3 border-t border-border p-3">
+            <div className="grid grid-cols-2 gap-2">
+              <Summary label="Nouvelles" value={counts.nouvelle ?? 0} />
+              <Summary label="Urgentes" value={urgentCount} urgent />
+              <Summary label="En analyse" value={counts.en_analyse ?? 0} />
+              <Summary label="Infos requises" value={counts.informations_requises ?? 0} />
+              <Summary label="Refusées" value={counts.refusee ?? 0} />
+              <Summary label="Annulées" value={counts.annulee ?? 0} />
+            </div>
+            <AccessRequestStats />
+          </div>
+        </details>
 
-        <AccessRequestStats />
+        <div className="hidden md:block">
+          <section aria-label="Résumé" className="mb-4 grid grid-cols-4 gap-2 xl:grid-cols-9">
+            <Summary label="Nouvelles" value={counts.nouvelle ?? 0} emphasized />
+            <Summary label="Urgentes" value={urgentCount} urgent />
+            <Summary label="À intervenir" value={intervention} />
+            <Summary label="En analyse" value={counts.en_analyse ?? 0} />
+            <Summary label="Infos requises" value={counts.informations_requises ?? 0} />
+            <Summary label="Acceptées" value={counts.acceptee ?? 0} />
+            <Summary label="Refusées" value={counts.refusee ?? 0} />
+            <Summary label="Terminées" value={counts.terminee ?? 0} />
+            <Summary label="Annulées" value={counts.annulee ?? 0} />
+          </section>
+          <AccessRequestStats />
+        </div>
 
         <section className="mb-4 space-y-3 border-y border-border py-3">
           <div className="md:hidden">
@@ -319,7 +356,7 @@ function RequestDetail({ request: r, priority, onPriority, history, onStatus, on
       <section><SectionTitle number="3" title="Chantier" /><p className="flex items-start gap-2 text-sm"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"/><span className="break-words">{r.site_address}</span></p>{r.site_city && <p className="mt-1 text-sm text-muted-foreground">{r.site_city}</p>}{r.site_latitude != null && r.site_longitude != null && <Button asChild variant="link" size="sm" className="px-0"><a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${r.site_latitude},${r.site_longitude}`}>Ouvrir la localisation</a></Button>}</section>
       <section><SectionTitle number="4" title="Besoin" /><InfoGrid items={[["Matériau", r.material_other || r.material_type], ["Quantité", quantity(r)], ["Camion", r.truck_type || "—"], ["Voyages", r.estimated_trips?.toString() || "—"], ["Date souhaitée", formatDate(r.desired_date)], ["Heure", r.desired_time || "—"]]} />{r.client_notes && <p className="mt-3 whitespace-pre-line rounded-md bg-muted/40 p-3 text-sm text-muted-foreground">{r.client_notes}</p>}</section>
       <section><SectionTitle number="5" title="Dompe" /><InfoGrid items={[["Dompe demandée", r.dump_name || "À confirmer"], ["Distance", r.distance_km != null ? `${r.distance_km} km` : "Distance à confirmer"], ["Temps estimé", r.travel_time_minutes != null ? `${r.travel_time_minutes} min` : "—"], ["Accès", statusLabel(r.status)], ["Compatibilité", "Non renseignée"]]} />{alternatives.length > 0 && <div className="mt-3"><p className="mb-1 text-xs font-semibold text-muted-foreground">Alternatives enregistrées</p>{alternatives.map((d, index) => <p key={index} className="text-sm">{String(d.name ?? d.dump_name ?? "Dompe")}</p>)}</div>}</section>
-      <section><SectionTitle number="6" title="Historique" /><ol className="relative ml-2 space-y-4 border-l border-border pl-5"><li><span className="absolute -left-1.5 h-3 w-3 rounded-full border-2 border-background bg-muted-foreground"/><p className="text-sm font-semibold">Demande créée</p><p className="text-xs text-muted-foreground">{formatDateTime(r.created_at)}</p></li>{history.map((h) => <li key={h.id} className="relative"><span className="absolute -left-[1.6rem] top-1 h-3 w-3 rounded-full border-2 border-background bg-primary"/><p className="text-sm font-semibold">{FIELD_LABELS[h.field_key] || h.field_key}</p><p className="text-xs text-muted-foreground">{formatHistoryVal(h.field_key, h.old_value)} → {formatHistoryVal(h.field_key, h.new_value)}</p><p className="text-xs text-muted-foreground">{formatDateTime(h.created_at)}{h.user_email ? ` · ${h.user_email}` : ""}</p></li>)}</ol></section>
+      <section><SectionTitle number="6" title="Historique" /><ol className="relative ml-2 space-y-4 border-l border-border pl-5"><li><span className="absolute -left-1.5 h-3 w-3 rounded-full border-2 border-background bg-muted-foreground"/><p className="text-sm font-semibold">Demande créée</p><p className="text-xs text-muted-foreground">{formatDateTime(r.created_at)}</p></li>{history.map((h) => <li key={h.id} className="relative"><span className="absolute -left-[1.6rem] top-1 h-3 w-3 rounded-full border-2 border-background bg-primary"/><p className="text-sm font-semibold">{FIELD_LABELS[h.field_key] || h.field_key}</p><p className="text-xs text-muted-foreground">{formatHistoryVal(h.field_key, h.old_value)} → {formatHistoryVal(h.field_key, h.new_value)}</p><p className="text-xs text-muted-foreground">{formatDateTime(h.created_at)}{h.user_email ? ` · par ${h.user_email}` : ""}</p></li>)}</ol></section>
       <section><SectionTitle number="7" title="Traitement" /><div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-2"><Button onClick={() => onStatus("acceptee")}><Check />Accepter</Button><Button variant="outline" onClick={() => onStatus("en_analyse")}><Clock />Mettre en analyse</Button><Button variant="outline" onClick={() => onStatus("informations_requises")}><AlertCircle />Demander des informations</Button><Button variant="destructive" onClick={() => onStatus("refusee")}><XCircle />Refuser</Button></div><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" className="mt-2 w-full"><CircleEllipsis />Plus<ChevronDown /></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-64"><DropdownMenuItem onSelect={() => onStatus("terminee")}>Marquer terminée</DropdownMenuItem><DropdownMenuItem onSelect={() => onStatus("annulee")}>Marquer annulée</DropdownMenuItem><DropdownMenuItem onSelect={() => onOwnerContacted(!r.owner_contacted)}>{r.owner_contacted ? "Annuler le contact propriétaire" : "Propriétaire contacté"}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></section>
       <section><label htmlFor="internal-notes" className="mb-1 block text-xs font-bold text-muted-foreground">Notes internes</label><textarea id="internal-notes" defaultValue={r.internal_notes || ""} onBlur={(e) => void onNotes(e.target.value)} rows={4} className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-base sm:text-sm" placeholder="Ajouter une note…" /></section>
     </div>
@@ -344,7 +381,7 @@ const quantity = (r: AccessRequest) => r.quantity != null ? `${r.quantity} ${r.q
 const formatDate = (value: string | null) => value ? new Date(value.includes("T") ? value : `${value}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "short", year: "numeric" }) : "À confirmer";
 const formatDateTime = (value: string) => new Date(value).toLocaleString("fr-CA", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const FIELD_LABELS: Record<string, string> = { priority: "Priorité modifiée", created: "Demande créée", status: "Statut modifié", internal_notes: "Note interne", owner_contacted: "Propriétaire contacté", owner_contacted_at: "Date de contact du propriétaire", assigned_dispatcher: "Responsable assigné", driver_id: "Chauffeur assigné", truck_id: "Camion assigné", desired_date: "Date souhaitée", desired_time: "Heure souhaitée", dump_name: "Dompe sélectionnée" };
-const formatHistoryVal = (field: string, value: unknown) => field === "status" ? statusLabel(formatVal(value)) : field === "owner_contacted" ? (formatVal(value) === "true" ? "Oui" : "Non") : formatVal(value);
+const formatHistoryVal = (field: string, value: unknown) => field === "priority" ? (value ? ACCESS_PRIORITIES.find((p) => p.value === value)?.label ?? formatVal(value) : "Non définie") : field === "status" ? statusLabel(formatVal(value)) : field === "owner_contacted" ? (formatVal(value) === "true" ? "Oui" : "Non") : formatVal(value);
 const formatVal = (value: unknown) => value == null ? "—" : typeof value === "string" ? value.replace(/^"|"$/g, "") : JSON.stringify(value);
 
 export default AdminTransportRequests;
