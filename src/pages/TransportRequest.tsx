@@ -1085,7 +1085,7 @@ const TransportRequest = () => {
                           }`}
                         >
                           <div className="flex items-center gap-3.5">
-                            <div className={`relative flex-shrink-0 w-[88px] h-[88px] rounded-xl overflow-hidden ring-1 transition-all duration-300 ${active ? "ring-2 ring-primary" : "ring-border"}`}>
+                            <div className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl ring-1 transition-all duration-300 min-[380px]:h-[88px] min-[380px]:w-[88px] ${active ? "ring-2 ring-primary" : "ring-border"}`}>
                               <img
                                 src={MATERIAL_IMAGES[st.id] || group.image}
                                 alt={`Remblai — ${st.label}`}
@@ -1364,7 +1364,7 @@ const TransportRequest = () => {
             </h1>
             <p className="text-muted-foreground text-sm mb-5">Estimation approximative acceptée.</p>
 
-            <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="grid grid-cols-1 gap-2 mb-4 min-[360px]:grid-cols-3">
               {(["tonnes", "verges", "inconnu"] as const).map((u) => (
                 <button
                   key={u}
@@ -1438,8 +1438,8 @@ const TransportRequest = () => {
                         isSelected ? "border-primary bg-primary/5 shadow-md" : "border-border bg-card hover:border-primary/40"
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-3 mb-2">
-                        <div className="flex items-center gap-2">
+                       <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
+                         <div className="flex min-w-0 items-center gap-2">
                           <span className="text-2xl">{rank.emoji}</span>
                           <div>
                             <div className="font-display font-bold text-base">
@@ -1450,7 +1450,7 @@ const TransportRequest = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
+                         <div className="ml-auto text-right">
                           {d.road_distance ? (
                             <>
                               <div className="font-display font-bold text-lg text-primary">{d.distance_km} km</div>

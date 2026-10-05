@@ -496,13 +496,13 @@ const Entrepreneur = () => {
               </DialogHeader>
               <div className="space-y-3">
                 <span
-                  className="inline-flex items-center gap-1.5 text-xs font-body px-2.5 py-1 rounded-full bg-secondary"
+                  className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 font-body text-xs leading-snug"
                 >
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: availabilityBadge(detail).color }} />
                   {availabilityBadge(detail).label}
                   {detail.availability_note ? ` — ${detail.availability_note}` : ""}
                 </span>
-                <span className="ml-2 text-[11px] font-body text-muted-foreground">
+                <span className="mt-1 block text-[11px] font-body text-muted-foreground sm:ml-2 sm:mt-0 sm:inline">
                   {freshnessLabel(detail.freshness, detail.availability_updated_at)}
                 </span>
                 <div className="flex flex-wrap gap-1.5">
@@ -556,9 +556,9 @@ const Entrepreneur = () => {
 };
 
 const Row = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex items-start justify-between gap-4 px-3 py-2.5">
+  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] items-start gap-4 px-3 py-2.5">
     <dt className="text-muted-foreground">{label}</dt>
-    <dd className="text-right text-foreground">{value}</dd>
+    <dd className="break-words text-right text-foreground">{value}</dd>
   </div>
 );
 

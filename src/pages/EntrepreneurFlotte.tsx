@@ -130,9 +130,9 @@ export default function EntrepreneurFlotte() {
                   </div>
                   <dl className="space-y-1 font-body text-sm">
                     {rows.filter(([, val]) => val).map(([k, val]) => (
-                      <div key={k} className="flex justify-between gap-3">
+                      <div key={k} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-3">
                         <dt className="text-muted-foreground">{k}</dt>
-                        <dd className="text-right text-foreground">{val}</dd>
+                        <dd className="break-words text-right text-foreground">{val}</dd>
                       </div>
                     ))}
                   </dl>

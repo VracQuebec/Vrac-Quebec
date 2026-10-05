@@ -90,8 +90,8 @@ export const StatusBadge = ({ label, tone }: { label: string; tone: "pending" | 
     neutral: "bg-secondary text-muted-foreground",
   };
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-display font-semibold ${tones[tone]}`}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+    <span className={`inline-flex max-w-full flex-wrap items-center justify-center gap-1.5 rounded-full px-2.5 py-1 text-center text-[11px] font-display font-semibold leading-snug ${tones[tone]}`}>
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
       {label}
     </span>
   );

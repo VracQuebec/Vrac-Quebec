@@ -184,8 +184,8 @@ export const ChantierContextBar = ({
     </span>
     <div className="min-w-0 flex-1">
       <p className="font-body text-[10px] uppercase tracking-[0.16em] text-primary">Chantier en cours</p>
-      <p className="truncate font-display text-sm font-bold">{label}</p>
-      {detail && <p className="truncate font-body text-xs text-muted-foreground">{detail}</p>}
+      <p className="line-clamp-2 font-display text-sm font-bold leading-snug">{label}</p>
+      {detail && <p className="line-clamp-2 font-body text-xs leading-snug text-muted-foreground">{detail}</p>}
     </div>
     {to && (
       <Link to={to} aria-label="Ouvrir le chantier" className="flex h-10 w-10 items-center justify-center rounded-xl hover:bg-primary/10">
@@ -215,13 +215,13 @@ export const ChantierCard = ({
   badge?: { label: string; tone: "pending" | "active" | "done" | "refused" | "neutral" };
 }) => (
   <AppCard to={to}>
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3 min-[400px]:flex-nowrap">
       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
         <HardHat className="h-6 w-6" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-display text-base font-bold">{label}</p>
-        <p className="truncate font-body text-xs text-muted-foreground">{detail}</p>
+        <p className="line-clamp-2 font-display text-base font-bold leading-snug">{label}</p>
+        <p className="line-clamp-2 font-body text-xs leading-snug text-muted-foreground">{detail}</p>
       </div>
       {badge && <StatusBadge label={badge.label} tone={badge.tone} />}
       <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -252,7 +252,7 @@ export const RequestCard = ({
   badge: { label: string; tone: "pending" | "active" | "done" | "refused" | "neutral" };
 }) => (
   <AppCard to={to}>
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3 min-[400px]:flex-nowrap">
       <span
         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
           kind === "acces" ? "bg-primary/10 text-primary" : "bg-secondary text-foreground"
@@ -261,18 +261,18 @@ export const RequestCard = ({
         {kind === "acces" ? <Truck className="h-5 w-5" /> : <ClipboardList className="h-5 w-5" />}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-display text-sm font-bold">{title}</p>
-        <p className="flex items-center gap-1 truncate font-body text-xs text-muted-foreground">
+        <p className="line-clamp-2 font-display text-sm font-bold leading-snug">{title}</p>
+        <p className="flex items-start gap-1 font-body text-xs leading-snug text-muted-foreground">
           <MapPin className="h-3 w-3 shrink-0" /> {place}
         </p>
       </div>
-      <StatusBadge label={badge.label} tone={badge.tone} />
+      <span className="max-[399px]:ml-[3.25rem]"><StatusBadge label={badge.label} tone={badge.tone} /></span>
     </div>
     <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-3">
       <div className="min-w-0">
-        <p className="truncate font-body text-xs text-muted-foreground">{footer}</p>
-        <p className="truncate font-display text-xs font-semibold text-primary">{nextAction}</p>
-        {extra && <p className="truncate font-body text-xs text-muted-foreground">{extra}</p>}
+        <p className="font-body text-xs leading-snug text-muted-foreground">{footer}</p>
+        <p className="font-display text-xs font-semibold leading-snug text-primary">{nextAction}</p>
+        {extra && <p className="font-body text-xs leading-snug text-muted-foreground">{extra}</p>}
       </div>
       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
     </div>
@@ -313,7 +313,7 @@ export const SiteCard = ({
     }`}
   >
     <button type="button" onClick={onOpen} className="w-full text-left">
-      <div className="flex items-center gap-3 p-4">
+      <div className="flex flex-wrap items-center gap-3 p-4 min-[400px]:flex-nowrap">
         <span
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
           style={{ background: `${accentColor}22`, color: accentColor }}
@@ -321,10 +321,10 @@ export const SiteCard = ({
           <MapPin className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-sm font-bold">{title}</p>
-          <p className="truncate font-body text-xs text-muted-foreground">{sector}</p>
+          <p className="line-clamp-2 font-display text-sm font-bold leading-snug">{title}</p>
+          <p className="line-clamp-2 font-body text-xs leading-snug text-muted-foreground">{sector}</p>
         </div>
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary px-2.5 py-1 font-body text-[11px]">
+        <span className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-full bg-secondary px-2.5 py-1 font-body text-[11px] leading-snug min-[400px]:shrink-0">
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: availability.color }} />
           {availability.label}
         </span>
@@ -339,7 +339,7 @@ export const SiteCard = ({
         </div>
       )}
     </button>
-    <div className="flex items-center gap-2 px-4 pb-4">
+    <div className="card-actions px-4 pb-4 min-[421px]:flex-nowrap">
       <button
         type="button"
         onClick={onDetail}
