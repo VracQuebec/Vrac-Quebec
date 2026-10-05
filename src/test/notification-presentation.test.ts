@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { createElement } from "react";
 import NotificationItem from "@/components/notifications/NotificationItem";
 import { displayCategory, groupNotifications, sortNotifications, type CrmNotification } from "@/lib/notifications/api";
 
@@ -13,11 +14,11 @@ const notification = (overrides: Partial<CrmNotification>): CrmNotification => (
 });
 
 describe("présentation du centre de notifications", () => {
-  const renderItem = (item: CrmNotification) => render(
-    <MemoryRouter>
-      <NotificationItem n={item} onRead={() => undefined} onChange={() => undefined} />
-    </MemoryRouter>,
-  );
+  const renderItem = (item: CrmNotification) => render(createElement(
+    MemoryRouter,
+    null,
+    createElement(NotificationItem, { n: item, onRead: () => undefined, onChange: () => undefined }),
+  ));
 
   it("classe les notifications avec les références existantes", () => {
     expect(displayCategory(notification({ type: "transport_request_new", entity_type: "transport_request" }))).toBe("dompes");
