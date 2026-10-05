@@ -1421,7 +1421,7 @@ function AnalyticsTab() {
         <p className="text-sm text-muted-foreground">Aucune page.</p>
       ) : (
         <div className="rounded-lg border border-border bg-card overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-muted/50 text-xs text-muted-foreground">
               <tr>
                 <th className="text-left p-3">Page</th>
@@ -1756,7 +1756,7 @@ function PagesTab() {
         <p className="text-sm text-muted-foreground">Aucune page.</p>
       ) : (
         <div className="rounded-lg border border-border bg-card overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[920px] text-sm">
             <thead className="bg-muted text-muted-foreground text-xs uppercase tracking-wider">
               <tr>
                 <th className="text-left px-3 py-2 font-semibold">Page</th>
@@ -2339,7 +2339,7 @@ function CompetitorsTab() {
       {loading ? <p className="text-sm text-muted-foreground">Chargement…</p> : (
         <div className="border border-border rounded-lg overflow-hidden bg-card">
           <div className="table-scroll">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[560px] text-sm">
             <thead className="bg-secondary text-xs uppercase text-muted-foreground">
               <tr><th className="p-2 text-left">Domaine</th><th className="p-2 text-right">Pages</th><th className="p-2 text-left">Dernier crawl</th><th className="p-2"></th></tr>
             </thead>
@@ -2370,7 +2370,7 @@ function CompetitorsTab() {
           <h3 className="text-sm font-display font-bold uppercase tracking-wide text-muted-foreground mb-3">Écarts détectés — combinaisons chez les concurrents qui vous manquent</h3>
           <div className="border border-border rounded-lg overflow-hidden bg-card">
             <div className="table-scroll">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[480px] text-sm">
               <thead className="bg-secondary text-xs uppercase text-muted-foreground">
                 <tr><th className="p-2 text-left">Ville</th><th className="p-2 text-left">Matériau</th><th className="p-2 text-right">Concurrents</th></tr>
               </thead>
@@ -2926,7 +2926,7 @@ function ProductionTab() {
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
         <div className="border border-border rounded-lg bg-card overflow-hidden">
           <div className="table-scroll">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[560px] text-sm">
             <thead className="bg-secondary/50 text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 text-left">P</th>

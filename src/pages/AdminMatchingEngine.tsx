@@ -360,7 +360,7 @@ export default function AdminMatchingEngine() {
               ))}
             </div>
             <div className="overflow-x-auto rounded-lg border border-border">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[560px] text-sm">
                 <thead className="bg-muted/40 text-left">
                   <tr><th className="p-2">Demande de remblai</th><th className="p-2">Ville</th><th className="p-2">Catégorie</th><th className="p-2">Distance</th></tr>
                 </thead>

@@ -480,7 +480,7 @@ const RemblaiForm = ({ data, onChange, onSubmit, loading, variant = "recherche" 
           />
         </label>
         {data.photos && data.photos.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 mt-2">
+          <div className="grid grid-cols-2 gap-2 mt-2 sm:grid-cols-3">
             {data.photos.map((url, i) => (
               <div key={url} className="relative">
                 <img src={url} alt="" className="w-full h-20 object-cover rounded" />

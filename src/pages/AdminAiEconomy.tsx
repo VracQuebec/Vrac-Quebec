@@ -182,7 +182,7 @@ export default function AdminAiEconomy() {
         <CardHeader><CardTitle className="text-base">50 derniers appels</CardTitle></CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[680px] text-sm">
               <thead className="bg-muted/40">
                 <tr>
                   <th className="text-left p-3">Fonction</th>
