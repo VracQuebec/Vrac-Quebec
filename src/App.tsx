@@ -289,6 +289,7 @@ const App = () => (
             <Route path="/admin/liste-noire" element={<AdminBlacklist />} />
             <Route path="/admin/seo" element={<AdminSeoManager />} />
             <Route path="/demande-transport" element={<TransportRequest />} />
+            <Route path="/acces-dompe" element={<TransportRequest />} />
             <Route path="/portail/client" element={<ClientPortal />} />
             <Route path="/portail/compte" element={<ClientAccountPortal />} />
             <Route path="/portail/chauffeur" element={<DriverPortal />} />

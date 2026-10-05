@@ -29,6 +29,8 @@ import {
   toActiveChantier,
 } from "@/lib/entrepreneur-app/chantier-context";
 import { buildHandoff, saveHandoff } from "@/lib/parcours/handoff";
+import SubmissionProvenance, { transportKindLabel } from "@/components/entrepreneur-app/SubmissionProvenance";
+import { needDirection, needsDumpSearch, possibleDuplicates } from "@/lib/parcours/besoin";
 import { Plus, Map as MapIcon, Truck, Scale, MapPin, CalendarDays, Package } from "lucide-react";
 
 const toneFor = (status: string | null): "pending" | "active" | "done" | "refused" | "neutral" => {
@@ -58,15 +60,14 @@ const labelFor = (status: string | null): string => {
 const dt = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString("fr-CA", { dateStyle: "medium", timeStyle: "short" }) : null;
 
-const norm = (v: string | null | undefined) =>
-  (v ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
 type TabId = "apercu" | "demandes" | "sites" | "transports" | "activite";
 
 export default function EntrepreneurChantierDetail() {
   const { key } = useParams<{ key: string }>();
   const decoded = key ? decodeURIComponent(key) : "";
-  const { loading, error, chantiers, accessRequests, refresh } = useEntrepreneurData();
+  const { loading, error, chantiers, accessRequests, submissions, refresh } = useEntrepreneurData();
+  const duplicates = useMemo(() => possibleDuplicates(submissions), [submissions]);
   const chantier = useMemo(() => chantiers.find((c) => c.key === decoded), [chantiers, decoded]);
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabId>("apercu");
@@ -79,9 +80,10 @@ export default function EntrepreneurChantierDetail() {
     if (active) saveActiveChantier(active);
   }, [active]);
 
+  const dumpSearch = chantier ? chantier.submissions.some((s) => needsDumpSearch(needDirection(s))) : false;
   const goNewRequest = () => {
-    if (!active) return navigate("/demande-transport");
-    navigate("/demande-transport", { state: { vqPrefill: prefillFromChantier(active) } });
+    if (!active) return navigate("/acces-dompe");
+    navigate("/acces-dompe", { state: { vqPrefill: prefillFromChantier(active) } });
   };
 
   const goComparateur = () => {
@@ -111,20 +113,12 @@ export default function EntrepreneurChantierDetail() {
     return { label: "En traitement", tone: "pending" as const };
   }, [chantier]);
 
-  // Transports déjà enregistrés rattachés à ce chantier (rapprochement par lieu).
+  // Seul le lien explicite (demande d'origine) associe un transport : jamais la ville ni l'adresse.
   const transports = useMemo(() => {
     if (!chantier) return [];
-    const city = norm(chantier.city);
-    const addr = norm(chantier.address);
-    return accessRequests.filter((r) => {
-      const rCity = norm(r.site_city as string | null);
-      const rAddr = norm(r.site_address as string | null);
-      if (addr && rAddr && rAddr === addr) return true;
-      const sameCity = Boolean(city) && rCity === city;
-      const cityIsUnique = chantiers.filter((item) => norm(item.city) === city).length === 1;
-      return sameCity && cityIsUnique;
-    });
-  }, [chantier, accessRequests, chantiers]);
+    const ids = new Set(chantier.submissions.map((s) => s.id));
+    return accessRequests.filter((r) => r.origin_submission_id && ids.has(String(r.origin_submission_id)));
+  }, [chantier, accessRequests]);
 
   const sites = useMemo(
     () => (chantier ? chantier.submissions.filter((s) => s.selectedSiteLabel) : []),
@@ -181,16 +175,17 @@ export default function EntrepreneurChantierDetail() {
     if (!chantier) return null;
     const waiting = chantier.submissions.find((s) => s.selectedSiteId && !s.siteValidatedAt);
     if (waiting) return "Un site attend votre validation.";
-    if (sites.length === 0) return "Choisissez une dompe pour ce chantier.";
-    if (transports.length === 0) return "Demandez un transport vers le site choisi.";
+    if (!dumpSearch) return chantier.submissions.some((s) => needDirection(s) === "a_preciser") ? "Préciser le besoin : recevoir, évacuer ou acheter." : "Suivre la demande.";
+    if (sites.length === 0) return "Choisissez une dompe pour ces matériaux à évacuer.";
+    if (transports.length === 0) return "Envoyez une demande d'accès à la dompe choisie.";
     return "Suivez vos transports en cours.";
-  }, [chantier, sites.length, transports.length]);
+  }, [chantier, sites.length, transports.length, dumpSearch]);
 
   const tabs = [
     { id: "apercu", label: "Aperçu" },
     { id: "demandes", label: "Demandes", count: chantier?.submissions.length ?? 0 },
     { id: "sites", label: "Dompe", count: sites.length },
-    { id: "transports", label: "Transports", count: transports.length },
+    { id: "transports", label: "Accès / transport", count: transports.length },
     { id: "activite", label: "Activité" },
   ];
 
@@ -210,6 +205,9 @@ export default function EntrepreneurChantierDetail() {
           badge={{ label: labelFor(s.status), tone: toneFor(s.status) }}
         />
       ))}
+      {chantier.submissions.map((s) => (
+        <AppCard key={`prov-${s.id}`}><SubmissionProvenance s={s} duplicates={duplicates.get(s.id) ?? []} /></AppCard>
+      ))}
     </div>
   );
 
@@ -217,9 +215,9 @@ export default function EntrepreneurChantierDetail() {
     sites.length === 0 ? (
       <EmptyState
         title="Aucune dompe choisie"
-        message="Ouvrez la carte pour choisir une dompe pour ce chantier."
-        actionLabel="Trouver une dompe"
-        actionTo="/entrepreneur/carte"
+        message={dumpSearch ? "Ouvrez la carte pour choisir une dompe." : "Cette demande n'est pas une évacuation : aucune dompe n'est recherchée."}
+        actionLabel={dumpSearch ? "Trouver une dompe" : undefined}
+        actionTo={dumpSearch ? "/entrepreneur/carte" : undefined}
       />
     ) : (
       <div className="space-y-2.5">
@@ -247,10 +245,10 @@ export default function EntrepreneurChantierDetail() {
   const sectionTransports =
     transports.length === 0 ? (
       <EmptyState
-        title="Aucun transport pour ce chantier"
-        message="Après avoir choisi une dompe, demandez un transport en quelques secondes."
-        actionLabel="Demander un transport"
-        actionTo="/demande-transport"
+        title="Aucune demande d'accès ni transport lié"
+        message="Seules les demandes explicitement liées à cette demande apparaissent ici."
+        actionLabel={dumpSearch ? "Demander l'accès à une dompe" : undefined}
+        actionTo={dumpSearch ? "/acces-dompe" : undefined}
       />
     ) : (
       <div className="space-y-2.5">
@@ -262,7 +260,7 @@ export default function EntrepreneurChantierDetail() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-display text-sm font-bold">
-                  Transport{r.request_number ? ` #${r.request_number}` : ""}
+                  {transportKindLabel(r)}{r.request_number ? ` #${r.request_number}` : ""}
                 </p>
                 <p className="truncate font-body text-xs text-muted-foreground">
                   {(r.material_type as string | null) ?? "Matériau à confirmer"}
@@ -292,6 +290,7 @@ export default function EntrepreneurChantierDetail() {
           </div>
           <StatusBadge label={globalStatus.label} tone={globalStatus.tone} />
         </div>
+        <div className="mt-3">{chantier.submissions[0] && <SubmissionProvenance s={chantier.submissions[0]} duplicates={duplicates.get(chantier.submissions[0].id) ?? []} />}</div>
         {nextStep && (
           <p className="mt-3 border-t border-border/60 pt-3 font-display text-xs font-semibold text-primary">
             Prochaine étape : {nextStep}
@@ -344,8 +343,8 @@ export default function EntrepreneurChantierDetail() {
           <ErrorState onRetry={refresh} />
         ) : !chantier ? (
           <EmptyState
-            title="Chantier introuvable"
-            message="Ce chantier ne correspond à aucune de vos demandes actuelles."
+            title="Dossier introuvable"
+            message="Les anciens regroupements par ville ou lieu approximatif ont été retirés : chaque demande a maintenant son propre dossier."
             actionLabel="Voir mes chantiers"
             actionTo="/entrepreneur/chantiers"
           />
@@ -354,10 +353,14 @@ export default function EntrepreneurChantierDetail() {
             {/* Action principale toujours visible, au-dessus des onglets. */}
             <QuickActions
               actions={[
-                { label: "Trouver une dompe", icon: MapIcon, to: "/entrepreneur/carte", primary: true },
-                { label: "Nouvelle demande", icon: Plus, onClick: goNewRequest },
-                { label: "Comparer", icon: Scale, onClick: goComparateur },
-                { label: "Transports", icon: Truck, onClick: () => setTab("transports") },
+                ...(dumpSearch
+                  ? [
+                      { label: "Trouver une dompe", icon: MapIcon, to: "/entrepreneur/carte", primary: true },
+                      { label: "Comparer", icon: Scale, onClick: goComparateur },
+                      { label: "Demande d'accès", icon: Plus, onClick: goNewRequest },
+                    ]
+                  : [{ label: "Voir la demande", icon: Plus, onClick: () => setTab("demandes"), primary: true }]),
+                { label: "Accès et transports", icon: Truck, onClick: () => setTab("transports") },
               ]}
             />
 
