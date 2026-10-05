@@ -218,7 +218,7 @@
 ## QUALITÉ UI/PWA — adaptation mobile, tablette et ordinateur
 - [x] Audit statique initial : navigation, fenêtres, tableaux, éléments flottants, formulaires et PWA.
 - [x] Relevé visuel public initial sur 320, 360, 390, 430, 768, 1280 et 1920 px, sans soumission de formulaire.
-- [ ] Fiabiliser l’installation PWA et produire les variantes d’icône à partir du logo officiel existant.
-- [ ] Corriger les chevauchements, troncatures importantes et débordements des composants communs et des écrans prioritaires.
-- [ ] Valider les parcours entrepreneur connectés sur mobile, tablette et ordinateur, sans créer ni modifier de donnée métier.
-- [ ] Produire le rapport final avant/après; conserver TEST seulement et ne rien publier.
+- [x] Fiabiliser l’installation PWA et produire les variantes d’icône à partir du logo officiel existant.
+- [x] Corriger les chevauchements, troncatures importantes et débordements des composants communs et des écrans prioritaires.
+- [x] Valider les parcours entrepreneur connectés sur mobile, tablette et ordinateur, sans créer ni modifier de donnée métier.
+- [x] Produire le rapport final avant/après; conserver TEST seulement et ne rien publier.

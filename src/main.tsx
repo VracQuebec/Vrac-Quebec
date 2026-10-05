@@ -7,6 +7,14 @@ import { startRdsOutbox } from "@/lib/fleet/rdsOutbox";
 
 startRdsOutbox(supabase);
 
+// Le service worker existant sert aussi de point d'installation PWA.
+// Il ne met aucune page en cache et ne change donc aucun comportement métier.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    void navigator.serviceWorker.register("/push-sw.js", { scope: "/" }).catch(() => undefined);
+  });
+}
+
 // Auto-reload once when a lazy chunk fails to load (usually after a redeploy
 // invalidates hashed asset filenames). Guarded by sessionStorage to avoid loops.
 const CHUNK_RELOAD_KEY = "__chunk_reload_attempted__";
@@ -35,7 +43,9 @@ window.addEventListener("unhandledrejection", (e) => {
   maybeReloadOnChunkError(msg);
 });
 
-createRoot(document.getElementById("root")!).render(
+const root = document.getElementById("root");
+if (!root) throw new Error("Élément racine introuvable");
+createRoot(root).render(
   <HelmetProvider>
     <App />
   </HelmetProvider>

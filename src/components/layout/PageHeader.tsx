@@ -65,9 +65,9 @@ export default function PageHeader({
           )}
           {icon && <span className="shrink-0 text-primary">{icon}</span>}
           <div className="min-w-0">
-            <h1 className="truncate font-display text-base font-bold sm:text-xl">{title}</h1>
+            <h1 className="break-words font-display text-base font-bold leading-tight sm:text-xl">{title}</h1>
             {subtitle && (
-              <div className="truncate font-body text-xs text-muted-foreground">{subtitle}</div>
+              <div className="break-words font-body text-xs leading-snug text-muted-foreground">{subtitle}</div>
             )}
           </div>
           {badge}

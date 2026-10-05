@@ -397,7 +397,7 @@ const EditRow = ({
     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">{icon}</span>
     <span className="min-w-0 flex-1">
       <span className="block font-display text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
-      <span className="block truncate font-body text-sm">{value}</span>
+      <span className="block break-words font-body text-sm leading-snug">{value}</span>
     </span>
     <Pencil className="h-4 w-4 shrink-0 text-muted-foreground" />
   </button>
@@ -411,7 +411,7 @@ const NavRow = ({ to, icon, label, hint }: { to: string; icon: React.ReactNode; 
     <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</span>
     <span className="min-w-0 flex-1">
       <span className="block font-body font-semibold text-foreground">{label}</span>
-      <span className="block truncate font-body text-xs text-muted-foreground">{hint}</span>
+      <span className="block font-body text-xs leading-snug text-muted-foreground">{hint}</span>
     </span>
     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
   </Link>

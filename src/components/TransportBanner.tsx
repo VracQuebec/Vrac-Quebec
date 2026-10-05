@@ -34,7 +34,7 @@ const TickerContent = () => (
 );
 
 const TransportBanner = () => (
-  <div className="w-full bg-[#1F2937] border-b border-primary/70 py-1.5 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-700">
+  <div className="w-full overflow-hidden border-b border-primary/70 bg-foreground py-1.5 animate-in fade-in slide-in-from-top-1 duration-700">
     <div className="group relative flex overflow-hidden">
       <div className="flex shrink-0 animate-marquee group-hover:[animation-play-state:paused] motion-reduce:animate-none">
         <TickerContent />

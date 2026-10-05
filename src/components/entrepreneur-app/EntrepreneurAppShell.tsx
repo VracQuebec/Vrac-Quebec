@@ -241,10 +241,10 @@ export default function EntrepreneurAppShell({
             )}
             <div className="min-w-0 flex-1 text-center lg:text-left">
               {title && (
-                <h1 className="truncate font-display text-base font-bold sm:text-lg">{title}</h1>
+                <h1 className="break-words font-display text-base font-bold leading-tight sm:text-lg">{title}</h1>
               )}
               {subtitle && (
-                <p className="truncate font-body text-xs text-muted-foreground">{subtitle}</p>
+                <p className="break-words font-body text-xs leading-snug text-muted-foreground">{subtitle}</p>
               )}
             </div>
             {headerActions}
@@ -353,8 +353,8 @@ export default function EntrepreneurAppShell({
                         <Icon className="w-5 h-5" />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate">{label}</span>
-                        <span className={`block truncate font-body text-xs font-normal ${active ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{hint}</span>
+                        <span className="block leading-snug">{label}</span>
+                        <span className={`block text-wrap font-body text-xs font-normal leading-snug ${active ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{hint}</span>
                       </span>
                       <ChevronRight className={`w-4 h-4 shrink-0 ${active ? "text-primary-foreground" : "text-muted-foreground"}`} />
                     </Link>
@@ -372,7 +372,7 @@ export default function EntrepreneurAppShell({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate">Aide</span>
-                <span className="block truncate font-body text-xs font-normal text-muted-foreground">
+                <span className="block text-wrap font-body text-xs font-normal leading-snug text-muted-foreground">
                   Parler à quelqu'un : 581-994-7717
                 </span>
               </span>

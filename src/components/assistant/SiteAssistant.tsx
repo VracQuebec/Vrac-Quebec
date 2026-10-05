@@ -71,7 +71,7 @@ export default function SiteAssistant() {
     <>
       {!open && (
         <button onClick={() => setOpen(true)} aria-label="Ouvrir l'assistant Vrac Québec"
-          className="fixed bottom-28 right-3 z-[60] flex items-center gap-2 rounded-full bg-primary px-4 py-3 font-display text-sm font-semibold text-primary-foreground shadow-xl md:bottom-6 md:right-6">
+          className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-3 z-[60] flex h-11 w-11 items-center justify-center rounded-full bg-primary p-0 font-display text-sm font-semibold text-primary-foreground shadow-xl sm:w-auto sm:px-4 md:bottom-6 md:right-6">
           <MessageCircle className="h-5 w-5" /> <span className="hidden sm:inline">Besoin d'aide?</span>
         </button>
       )}

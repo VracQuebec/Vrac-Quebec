@@ -427,7 +427,7 @@ export default function EntrepreneurComparateur() {
               Secteur {r.postal_prefix || "—"}
             </p>
           </div>
-          <span className={`shrink-0 rounded-full border px-2.5 py-1 font-body text-[11px] font-bold ${meta.cls}`}>
+          <span className={`max-w-full rounded-full border px-2.5 py-1 text-center font-body text-[11px] font-bold leading-snug ${meta.cls}`}>
             {meta.dot} {meta.label}
           </span>
         </div>
@@ -629,20 +629,20 @@ export default function EntrepreneurComparateur() {
 
           <div className="space-y-1.5">
             <Label htmlFor="cmp-qty">Quantité à évacuer</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 min-[360px]:flex-row">
               <Input
                 id="cmp-qty"
                 inputMode="decimal"
                 value={quantityValue}
                 placeholder="Ex. 25"
                 onChange={(e) => setQuantityValue(e.target.value)}
-                className="h-12 flex-1 text-base"
+                className="h-12 min-w-0 flex-1 text-base"
               />
               <select
                 aria-label="Unité de quantité"
                 value={quantityUnit}
                 onChange={(e) => setQuantityUnit(e.target.value)}
-                className="h-12 rounded-md border border-input bg-background px-3 font-body text-base"
+                className="h-12 w-full rounded-md border border-input bg-background px-3 font-body text-base min-[360px]:w-auto"
               >
                 {QUANTITY_UNIT_OPTIONS.map((u) => (
                   <option key={u.value} value={u.value}>{u.label}</option>
@@ -694,7 +694,7 @@ export default function EntrepreneurComparateur() {
 
         {selection && (
           <section className="mt-6 rounded-2xl border-2 border-primary bg-primary/5 p-4 sm:p-5">
-            <p className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-foreground">
+            <p className="flex flex-wrap items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-foreground">
               <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden />
               {persisted ? "Votre demande est enregistrée" : "Site sélectionné"}
             </p>

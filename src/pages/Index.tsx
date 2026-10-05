@@ -345,34 +345,32 @@ const Index = () => {
           pointer-events-none on the wrapper + pointer-events-auto on each link
           ensures only the buttons themselves capture taps — the surrounding gaps
           let the user interact with the questionnaire underneath. */}
-      <div className="md:hidden fixed bottom-2 left-2 right-2 z-50 flex flex-col gap-1.5 pointer-events-none">
-        <div className="grid grid-cols-3 gap-1.5">
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 px-2 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md md:hidden">
+        <div className="no-scrollbar pointer-events-auto flex gap-1.5 overflow-x-auto">
           <a
             href="tel:5819947717"
-            className="pointer-events-auto flex flex-col items-center justify-center px-2 py-1.5 rounded-full bg-primary text-primary-foreground font-display font-semibold text-[11px] leading-tight shadow-lg"
+            className="flex min-h-11 min-w-[6.5rem] shrink-0 flex-col items-center justify-center rounded-full bg-primary px-3 py-1.5 font-display text-[11px] font-semibold leading-tight text-primary-foreground shadow-lg"
           >
             <span>📞 Appeler</span>
             <span className="text-[9px] opacity-90">Québec / Lévis</span>
           </a>
           <a
             href="sms:15819947717?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
-            className="pointer-events-auto flex flex-col items-center justify-center px-2 py-1.5 rounded-full bg-foreground text-background font-display font-semibold text-[11px] leading-tight shadow-lg"
+            className="flex min-h-11 min-w-[6.5rem] shrink-0 flex-col items-center justify-center rounded-full bg-foreground px-3 py-1.5 font-display text-[11px] font-semibold leading-tight text-background shadow-lg"
           >
             <span>💬 Texto</span>
             <span className="text-[9px] opacity-80">Réponse rapide</span>
           </a>
           <a
             href="#questionnaire"
-            className="pointer-events-auto flex flex-col items-center justify-center px-2 py-1.5 rounded-full bg-primary text-primary-foreground font-display font-semibold text-[11px] leading-tight shadow-lg"
+            className="flex min-h-11 min-w-[6.5rem] shrink-0 flex-col items-center justify-center rounded-full bg-primary px-3 py-1.5 font-display text-[11px] font-semibold leading-tight text-primary-foreground shadow-lg"
           >
             <span>📝 Demande</span>
             <span className="text-[9px] opacity-90">En 60 secondes</span>
           </a>
-        </div>
-        <div className="grid grid-cols-2 gap-1.5">
         <a
           href="tel:8195923495"
-          className="pointer-events-auto flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-card border border-border text-foreground font-display font-semibold text-[11px] shadow-lg"
+          className="flex min-h-11 min-w-[11rem] shrink-0 items-center justify-center gap-1 rounded-full border border-border bg-card px-3 py-2 font-display text-[11px] font-semibold text-foreground shadow-lg"
         >
           📞 Répartition · 819-592-3495
         </a>
@@ -380,7 +378,7 @@ const Index = () => {
           href="https://wa.me/15819947717?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
           target="_blank"
           rel="noopener noreferrer"
-          className="pointer-events-auto flex items-center justify-center gap-1 px-2 py-2 rounded-full bg-[#25D366] text-white font-display font-semibold text-xs shadow-lg"
+          className="flex min-h-11 min-w-[7rem] shrink-0 items-center justify-center gap-1 rounded-full bg-primary px-3 py-2 font-display text-xs font-semibold text-primary-foreground shadow-lg"
         >
           🟢 WhatsApp
         </a>
@@ -388,7 +386,7 @@ const Index = () => {
       </div>
 
       {/* Footer */}
-      <footer className="py-8 pb-20 md:pb-8 border-t border-border">
+      <footer className="border-t border-border py-8 pb-24 md:pb-8">
         <div className="container mx-auto px-6 flex flex-col items-center gap-5 text-sm text-muted-foreground font-body">
           <div className="flex items-center justify-between w-full flex-wrap gap-2">
             <span>© 2026 VracQuébec. Tous droits réservés.</span>

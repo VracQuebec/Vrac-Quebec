@@ -16,3 +16,4 @@
 - Obligations et renouvellements : obl_* écrits seulement par RPC obl_*; obl_reminders_sweep dans crm_notifications_sweep envoie seulement le dernier seuil atteint (unicité par obligation/période/échéance/rappel/destinataire/canal); échéances miroir dans agd_events, cloche obl_my_bell — moteur commun réutilisable.
 - Assurances entreprise (ASSUR-01) : tables asr_*, lecture via asr_can_read (chauffeur/mécanicien exclus, preuves via asr_driver_proofs), confirmation/non-renouvellement/suspension par RPC seulement; super admin non membre = accès au contenu seulement après asr_support_open (motif, 4 h, journalisé); rappels asr_sweep dans crm_notifications_sweep (unicité entreprise/période/occurrence/destinataire/canal) — pas de nouvelle tâche planifiée.
 - Logbook : src/lib/logbook/AGENTS.md ; Chantiers, accès dompe et transport : src/lib/parcours/AGENTS.md.
+- PWA : `push-sw.js` unique, enregistré au chargement, sans cache métier.
