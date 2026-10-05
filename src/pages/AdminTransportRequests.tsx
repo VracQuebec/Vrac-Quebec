@@ -211,19 +211,41 @@ const AdminTransportRequests = () => {
       </header>
 
       <main className="container mx-auto px-3 py-4 sm:px-6">
-        <section aria-label="Résumé" className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-9">
-          <Summary label="Nouvelles" value={counts.nouvelle ?? 0} emphasized />
-          <Summary label="Urgentes" value={urgentCount} urgent />
-          <Summary label="À intervenir" value={intervention} />
-          <Summary label="En analyse" value={counts.en_analyse ?? 0} />
-          <Summary label="Infos requises" value={counts.informations_requises ?? 0} />
+        {/* Mobile : rangée compacte, le reste sous « Voir les statistiques » */}
+        <section aria-label="Résumé rapide" className="mb-3 grid grid-cols-3 gap-2 md:hidden">
+          <Summary label="À traiter" value={intervention} emphasized />
           <Summary label="Acceptées" value={counts.acceptee ?? 0} />
-          <Summary label="Refusées" value={counts.refusee ?? 0} />
           <Summary label="Terminées" value={counts.terminee ?? 0} />
-          <Summary label="Annulées" value={counts.annulee ?? 0} />
         </section>
+        <details className="mb-4 rounded-md border border-border bg-card md:hidden">
+          <summary className="flex min-h-11 cursor-pointer items-center px-3 text-sm font-semibold">Voir les statistiques</summary>
+          <div className="space-y-3 border-t border-border p-3">
+            <div className="grid grid-cols-2 gap-2">
+              <Summary label="Nouvelles" value={counts.nouvelle ?? 0} />
+              <Summary label="Urgentes" value={urgentCount} urgent />
+              <Summary label="En analyse" value={counts.en_analyse ?? 0} />
+              <Summary label="Infos requises" value={counts.informations_requises ?? 0} />
+              <Summary label="Refusées" value={counts.refusee ?? 0} />
+              <Summary label="Annulées" value={counts.annulee ?? 0} />
+            </div>
+            <AccessRequestStats />
+          </div>
+        </details>
 
-        <AccessRequestStats />
+        <div className="hidden md:block">
+          <section aria-label="Résumé" className="mb-4 grid grid-cols-4 gap-2 xl:grid-cols-9">
+            <Summary label="Nouvelles" value={counts.nouvelle ?? 0} emphasized />
+            <Summary label="Urgentes" value={urgentCount} urgent />
+            <Summary label="À intervenir" value={intervention} />
+            <Summary label="En analyse" value={counts.en_analyse ?? 0} />
+            <Summary label="Infos requises" value={counts.informations_requises ?? 0} />
+            <Summary label="Acceptées" value={counts.acceptee ?? 0} />
+            <Summary label="Refusées" value={counts.refusee ?? 0} />
+            <Summary label="Terminées" value={counts.terminee ?? 0} />
+            <Summary label="Annulées" value={counts.annulee ?? 0} />
+          </section>
+          <AccessRequestStats />
+        </div>
 
         <section className="mb-4 space-y-3 border-y border-border py-3">
           <div className="md:hidden">
