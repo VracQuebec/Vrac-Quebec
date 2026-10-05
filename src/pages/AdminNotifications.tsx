@@ -29,7 +29,7 @@ import {
 } from "@/lib/notifications/push";
 import { Button } from "@/components/ui/button";
 
-const FILTERS: NotifFilter[] = ["all", "urgent", "todo", "unread", "done"];
+const FILTERS: NotifFilter[] = ["urgent", "todo", "unread", "info", "all", "done"];
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as NotifCategory[];
 const DISPLAY_CATEGORIES = Object.keys(DISPLAY_CATEGORY_LABELS) as NotificationDisplayCategory[];
 
@@ -100,27 +100,22 @@ export default function AdminNotifications() {
 
         <PushPanel />
 
-        <div className="flex gap-1 overflow-x-auto pb-1.5 mb-1.5 -mx-3 px-3 sm:mx-0 sm:px-0">
+        <div className="mb-2 grid grid-cols-3 gap-1 sm:grid-cols-6" role="tablist" aria-label="Filtre d'attention">
           {FILTERS.map((f) => (
-             <Button key={f} type="button" size="sm" variant={filter === f ? "default" : "secondary"} onClick={() => setFilter(f)}
-               className="shrink-0 min-h-11 text-xs">
+             <Button key={f} type="button" role="tab" aria-selected={filter === f} size="sm" variant={filter === f ? "default" : "secondary"} onClick={() => setFilter(f)}
+               className="min-h-11 min-w-0 px-1 text-xs">
               {FILTER_LABELS[f]}
              </Button>
           ))}
         </div>
 
-        <div className="flex gap-1 overflow-x-auto pb-1.5 mb-2 -mx-3 px-3 sm:mx-0 sm:px-0">
-           <Button type="button" size="sm" variant={category === "all" ? "outline" : "ghost"} onClick={() => setCategory("all")}
-             className="shrink-0 min-h-11 text-xs">
-            Toutes catégories
-           </Button>
-           {DISPLAY_CATEGORIES.map((c) => (
-             <Button type="button" size="sm" variant={category === c ? "outline" : "ghost"} key={c} onClick={() => setCategory(c)}
-               className="shrink-0 min-h-11 text-xs">
-               {DISPLAY_CATEGORY_ICONS[c]} {DISPLAY_CATEGORY_LABELS[c]}
-             </Button>
-          ))}
-        </div>
+        <label className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+          Catégorie
+          <select aria-label="Catégorie" value={category} onChange={(e) => setCategory(e.target.value as NotificationDisplayCategory | "all")} className="h-11 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm text-foreground sm:max-w-xs">
+            <option value="all">Toutes les catégories</option>
+            {DISPLAY_CATEGORIES.map((c) => <option key={c} value={c}>{DISPLAY_CATEGORY_ICONS[c]} {DISPLAY_CATEGORY_LABELS[c]}</option>)}
+          </select>
+        </label>
 
          <Button
            type="button"

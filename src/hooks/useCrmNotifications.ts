@@ -44,6 +44,8 @@ export function useCrmNotifications(enabled = true) {
       channel = supabase
         .channel(`crm-notifications-live-${Math.random().toString(36).slice(2)}`)
         .on("postgres_changes", { event: "*", schema: "public", table: "crm_notifications" }, () => reload())
+        // La priorité explicite d'une demande d'accès change le classement affiché.
+        .on("postgres_changes", { event: "*", schema: "public", table: "request_followups" }, () => reload())
         .subscribe();
     } catch (e) {
       // Le temps réel est un confort : son échec ne doit jamais casser l'écran.

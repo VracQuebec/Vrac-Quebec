@@ -93,7 +93,7 @@ const NotificationItem = ({ n, onRead, onChange, onNavigate, compact, activityCo
                 onClick={() => { onRead(n.id); onNavigate?.(); }}
                 className="inline-flex min-h-11 items-center justify-center gap-1 rounded-md bg-primary px-3 py-2 text-xs font-display font-bold text-primary-foreground min-[390px]:col-span-2 sm:flex-none"
               >
-                Ouvrir <ExternalLink className="w-3 h-3" />
+                {n.entity_type === "transport_request" ? "Voir la demande" : "Ouvrir"} <ExternalLink className="w-3 h-3" />
               </Link>
             )}
             {!done && (
