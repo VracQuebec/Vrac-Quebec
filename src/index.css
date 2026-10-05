@@ -225,9 +225,10 @@ body,
     max-width: 100%;
   }
 
-  /* Les mots très longs (courriels, URL, numéros) ne cassent pas la mise en page */
+  /* Les textes longs passent à la ligne sans réduire un mot à une lettre par ligne. */
   h1, h2, h3, h4, h5, h6, p, li, td, th, dd, dt, label, span, a {
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 
   /* Champs de formulaire : jamais de zoom automatique sur iOS (min 16px) */
@@ -244,6 +245,11 @@ body,
   /* Tableaux : le défilement horizontal reste dans le tableau */
   table {
     width: 100%;
+  }
+
+  th,
+  td {
+    vertical-align: top;
   }
 }
 
