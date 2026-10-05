@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import NotificationItem from "@/components/notifications/NotificationItem";
 import { displayCategory, groupNotifications, sortNotifications, type CrmNotification } from "@/lib/notifications/api";
 
 const notification = (overrides: Partial<CrmNotification>): CrmNotification => ({
@@ -10,6 +13,12 @@ const notification = (overrides: Partial<CrmNotification>): CrmNotification => (
 });
 
 describe("présentation du centre de notifications", () => {
+  const renderItem = (item: CrmNotification) => render(
+    <MemoryRouter>
+      <NotificationItem n={item} onRead={() => undefined} onChange={() => undefined} />
+    </MemoryRouter>,
+  );
+
   it("classe les notifications avec les références existantes", () => {
     expect(displayCategory(notification({ type: "transport_request_new", entity_type: "transport_request" }))).toBe("dompes");
     expect(displayCategory(notification({ title: "Besoin de remblai" }))).toBe("remblai");
@@ -36,5 +45,18 @@ describe("présentation du centre de notifications", () => {
       notification({ id: "urgent", priority: "urgente", status: "read" }),
     ]);
     expect(sorted.map((item) => item.id)).toEqual(["urgent", "important", "todo", "unread", "recent", "info"]);
+  });
+
+  it.each([
+    ["normale en retard", "normale", "2020-01-01T00:00:00Z", false, false, true],
+    ["prioritaire en retard", "importante", "2020-01-01T00:00:00Z", true, false, true],
+    ["urgente en retard", "urgente", "2020-01-01T00:00:00Z", false, true, true],
+    ["prioritaire non en retard", "importante", null, true, false, false],
+    ["urgente non en retard", "urgente", null, false, true, false],
+  ] as const)("affiche séparément la priorité et le traitement : %s", (_label, priority, dueAt, important, urgent, todo) => {
+    renderItem(notification({ priority, due_at: dueAt, status: "read" }));
+    expect(screen.queryByText("PRIORITAIRE") !== null).toBe(important);
+    expect(screen.queryByText("URGENT") !== null).toBe(urgent);
+    expect(screen.queryByText("À traiter") !== null).toBe(todo);
   });
 });
