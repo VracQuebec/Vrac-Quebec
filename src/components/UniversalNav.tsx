@@ -34,6 +34,9 @@ function parentPath(pathname: string) {
   return "/" + parts.slice(0, -1).join("/");
 }
 
+const isAdminSectionActive = (pathname: string, target: string) =>
+  target === "/admin" ? pathname === target : pathname === target || pathname.startsWith(`${target}/`);
+
 export default function UniversalNav() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -185,18 +188,22 @@ export default function UniversalNav() {
                       <p className="px-3 pb-1 pt-3 font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">
                         {section.title}
                       </p>
-                      {section.links.map(({ to, label, icon: Icon }) => (
-                        <Button
-                          key={to}
-                          type="button"
-                          variant={path === to ? "secondary" : "ghost"}
-                          onClick={() => { setAdminMenuOpen(false); navigate(to); }}
-                          className="min-h-11 w-full justify-start gap-3 whitespace-normal text-left"
-                        >
-                          <Icon className="h-4 w-4 shrink-0" />
-                          <span>{label}</span>
-                        </Button>
-                      ))}
+                      {section.links.map(({ to, label, icon: Icon }) => {
+                        const active = isAdminSectionActive(path, to);
+                        return (
+                          <Button
+                            key={to}
+                            type="button"
+                            variant={active ? "default" : "ghost"}
+                            aria-current={active ? "page" : undefined}
+                            onClick={() => { setAdminMenuOpen(false); navigate(to); }}
+                            className="min-h-11 w-full justify-start gap-3 whitespace-normal text-left"
+                          >
+                            <Icon className="h-4 w-4 shrink-0" />
+                            <span>{label}</span>
+                          </Button>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>
