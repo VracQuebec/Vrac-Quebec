@@ -131,7 +131,7 @@ export function ExpenseDialog({ open, onOpenChange, vehicles, vehicleId, record,
         <DialogHeader><DialogTitle>{record ? "Modifier la dépense" : "Ajouter une dépense"}</DialogTitle></DialogHeader>
         {dd.active && <DraftStatusBar {...dd.barProps} onDiscard={() => { dd.discard(); onOpenChange(false); }} discardConfirm="Abandonner cette préparation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." />}
         {dd.lostFiles.length > 0 && <p role="status" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Photos non enregistrées — à joindre de nouveau : {dd.lostFiles.join(", ")}</p>}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <VehiclePicker vehicles={vehicles} value={f.vehicle_id ?? ""} locked={!!vehicleId && !record}
             onChange={(v) => setF({ ...f, vehicle_id: v })} />
           <Field label="Date"><Input type="date" value={f.spent_on ?? ""} onChange={(e) => setF({ ...f, spent_on: e.target.value })} /></Field>
@@ -150,7 +150,7 @@ export function ExpenseDialog({ open, onOpenChange, vehicles, vehicleId, record,
             <Input value={f.description ?? ""} onChange={(e) => setF({ ...f, description: e.target.value })} />
           </Field>
 
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <button type="button" onClick={() => setMore(!more)} className="text-sm font-body text-primary">
               {more ? "− Masquer les options avancées" : "+ Options avancées"}
             </button>
@@ -165,7 +165,7 @@ export function ExpenseDialog({ open, onOpenChange, vehicles, vehicleId, record,
               <Field label="Notes" wide><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
             </>
           )}
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             {record
               ? <FleetDocuments ownerType="fleet_expense" ownerId={record.id} label="Photos de la facture" />
               : <PendingPhotos files={photos} onChange={setPhotos} label="Photo de la facture (jointe à l'enregistrement)" />}
@@ -236,11 +236,11 @@ export function WorkItemDialog({ open, onOpenChange, vehicles, vehicleId, record
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
         <DialogHeader><DialogTitle>{record ? "Modifier le travail" : "Ajouter un travail à faire"}</DialogTitle></DialogHeader>
         {dd.active && <DraftStatusBar {...dd.barProps} onDiscard={() => { dd.discard(); onOpenChange(false); }} discardConfirm="Abandonner cette préparation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." />}
         {dd.lostFiles.length > 0 && <p role="status" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Photos non enregistrées — à joindre de nouveau : {dd.lostFiles.join(", ")}</p>}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <VehiclePicker vehicles={vehicles} value={f.vehicle_id ?? ""} locked={!!vehicleId && !record}
             onChange={(v) => setF({ ...f, vehicle_id: v })} />
           <Field label="Priorité">
@@ -315,7 +315,7 @@ export function ReadingDialog({ open, onOpenChange, vehicle, onSaved }: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader><DialogTitle>Relevé de compteur</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Kilométrage"><Input inputMode="numeric" value={km} onChange={(e) => setKm(e.target.value)} /></Field>
           {usesEngineHours(vehicle) && (
             <Field label="Heures moteur"><Input inputMode="numeric" value={hours} onChange={(e) => setHours(e.target.value)} /></Field>

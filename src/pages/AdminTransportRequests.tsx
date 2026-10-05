@@ -166,8 +166,60 @@ const AdminTransportRequests = () => {
         ) : filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">Aucune demande.</p>
         ) : (
-          <div className="overflow-x-auto bg-card rounded-lg border border-border">
-            <table className="w-full text-sm">
+          <>
+            <div className="grid gap-3 md:hidden">
+              {filtered.map((r) => (
+                <article
+                  key={r.id}
+                  onClick={() => openDetail(r)}
+                  className="min-w-0 cursor-pointer rounded-lg border border-border bg-card p-4 transition-colors hover:bg-muted/30"
+                >
+                  <div className="mb-3 flex min-w-0 flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-xs text-muted-foreground">Demande</div>
+                      <div className="font-display font-bold break-words">{r.request_number}</div>
+                    </div>
+                    <span
+                      className="max-w-full rounded-full px-2 py-1 text-xs font-display font-bold text-primary-foreground"
+                      style={{ background: statusMeta(r.status).color }}
+                    >
+                      {statusMeta(r.status).label}
+                    </span>
+                  </div>
+                  <dl className="grid min-w-0 gap-3 text-sm">
+                    <div className="min-w-0">
+                      <dt className="text-xs font-semibold uppercase text-muted-foreground">Client</dt>
+                      <dd className="font-display font-semibold break-words">{r.client_name}</dd>
+                      {r.client_company && <dd className="text-xs text-muted-foreground break-words">{r.client_company}</dd>}
+                      <dd className="text-xs text-muted-foreground break-words">{r.client_phone}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-xs font-semibold uppercase text-muted-foreground">Chantier</dt>
+                      <dd className="break-words">{r.site_address}</dd>
+                    </div>
+                    <div className="grid min-w-0 grid-cols-1 gap-3 min-[360px]:grid-cols-2">
+                      <div className="min-w-0">
+                        <dt className="text-xs font-semibold uppercase text-muted-foreground">Matériau</dt>
+                        <dd className="capitalize break-words">{r.material_type}{r.quantity ? ` — ${r.quantity} ${r.quantity_unit || ""}` : ""}</dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-xs font-semibold uppercase text-muted-foreground">Dompe</dt>
+                        <dd className="break-words">{r.dump_name || "—"}</dd>
+                        {r.distance_km ? <dd className="text-xs text-muted-foreground">{r.distance_km} km</dd> : null}
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-xs font-semibold uppercase text-muted-foreground">Créée</dt>
+                      <dd>{new Date(r.created_at).toLocaleString("fr-CA", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-3 border-t border-border pt-3 text-sm font-semibold text-primary">Voir et traiter</div>
+                </article>
+              ))}
+            </div>
+
+            <div className="table-scroll hidden rounded-lg border border-border bg-card md:block">
+            <table className="w-full min-w-[860px] text-sm">
               <thead className="text-xs uppercase text-muted-foreground bg-muted/50">
                 <tr>
                   <th className="text-left px-3 py-2">N°</th>
@@ -193,7 +245,7 @@ const AdminTransportRequests = () => {
                     <td className="px-3 py-2 text-xs">{r.dump_name || "—"}{r.distance_km ? <div className="text-muted-foreground">{r.distance_km} km</div> : null}</td>
                     <td className="px-3 py-2">
                       <span
-                        className="inline-block px-2 py-0.5 rounded-full text-[10px] font-display font-bold text-white"
+                        className="inline-block px-2 py-0.5 rounded-full text-[10px] font-display font-bold text-primary-foreground"
                         style={{ background: statusMeta(r.status).color }}
                       >
                         {statusMeta(r.status).label}
@@ -206,7 +258,8 @@ const AdminTransportRequests = () => {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </main>
 
@@ -216,14 +269,14 @@ const AdminTransportRequests = () => {
           <div className="flex-1 bg-black/50" />
           <aside
             onClick={(e) => e.stopPropagation()}
-            className="w-full sm:w-[520px] bg-background border-l border-border h-full overflow-y-auto"
+            className="safe-x safe-bottom w-full sm:w-[520px] max-w-full bg-background border-l border-border h-full overflow-y-auto overscroll-contain"
           >
             <div className="p-4 border-b border-border flex items-center justify-between sticky top-0 bg-background z-10">
               <div>
                 <div className="text-xs text-muted-foreground">Demande</div>
                 <div className="font-display font-bold text-lg">{selected.request_number}</div>
               </div>
-              <button onClick={() => setSelected(null)} className="p-1.5 rounded hover:bg-muted"><X className="w-4 h-4" /></button>
+              <button aria-label="Fermer" onClick={() => setSelected(null)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded hover:bg-muted"><X className="w-4 h-4" /></button>
             </div>
 
             <div className="p-4 space-y-4">
@@ -286,7 +339,7 @@ const AdminTransportRequests = () => {
                 )}
               </section>
 
-              <section className="bg-card rounded-lg border border-border p-3 grid grid-cols-2 gap-2 text-sm">
+              <section className="bg-card rounded-lg border border-border p-3 grid grid-cols-1 min-[390px]:grid-cols-2 gap-2 text-sm">
                 <div><b>Matériau :</b> {selected.material_type}</div>
                 <div><b>Sous-type :</b> {selected.material_other || "—"}</div>
                 <div><b>Quantité :</b> {selected.quantity ? `${selected.quantity} ${selected.quantity_unit}` : "—"}</div>

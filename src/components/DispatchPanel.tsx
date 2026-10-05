@@ -211,7 +211,7 @@ const DispatchPanel = ({ sub, list, entrepreneurs, leadStatuses, onClose, onSele
         </div>
 
         {/* Type + Priority */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="block text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-1.5">Type de demande</label>
             <select
@@ -265,7 +265,7 @@ const DispatchPanel = ({ sub, list, entrepreneurs, leadStatuses, onClose, onSele
         </div>
 
         {/* Trips + Budget */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide font-display font-bold text-muted-foreground mb-1.5">
               <Truck className="w-3 h-3" /> Nombre de voyages

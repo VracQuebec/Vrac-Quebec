@@ -1070,7 +1070,7 @@ const StatusBadgePicker = ({
         {s.label} <ChevronDown className="w-3 h-3" />
       </button>
       {open && (
-        <div className="absolute z-30 left-0 mt-1 bg-card border border-border rounded-lg shadow-lg p-1 min-w-[180px] max-h-72 overflow-auto">
+        <div className="absolute left-0 z-30 mt-1 max-h-72 min-w-[180px] max-w-[calc(100vw-1.5rem)] overflow-auto rounded-lg border border-border bg-card p-1 shadow-lg">
           {statuses.filter((x) => x.enabled || x.value === status).map((x) => (
             <button
               key={x.id}
@@ -1113,7 +1113,7 @@ const TypeBadgePicker = ({
         {t.label} <ChevronDown className="w-3 h-3" />
       </button>
       {open && (
-        <div className="absolute z-30 left-0 mt-1 bg-card border border-border rounded-lg shadow-lg p-1 min-w-[180px]">
+        <div className="absolute left-0 z-30 mt-1 min-w-[180px] max-w-[calc(100vw-1.5rem)] overflow-x-hidden rounded-lg border border-border bg-card p-1 shadow-lg">
           {REQUEST_TYPES.map((x) => (
             <button
               key={x.value}

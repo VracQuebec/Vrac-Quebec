@@ -141,11 +141,11 @@ function TplDialog({ initial, companyId, canCost, mats, onClose, onSaved }: any)
       {stale && <div role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Cette fiche a été modifiée ailleurs depuis votre préparation. L'état actuel est affiché; votre saisie est conservée à part.<div className="mt-1 flex gap-2"><Button size="sm" variant="outline" onClick={() => { setTpl((x: any) => ({ ...x, ...stale })); setStale(null); }}>Appliquer ma saisie préparée</Button><Button size="sm" variant="ghost" onClick={() => setStale(null)}>Garder l'état actuel</Button></div></div>}
       <Input placeholder="Nom" value={tpl.name} onChange={(e) => setTpl({ ...tpl, name: e.target.value })} />
       <select className={sel} value={tpl.trade} onChange={(e) => setTpl({ ...tpl, trade: e.target.value })}>{Object.entries(TRADES).map(([k, t]) => <option key={k} value={k}>{t.l}</option>)}</select>
-      {(tpl.lines as QLine[]).map((l, i) => <div key={i} className="grid grid-cols-[6rem_1fr_6rem_2rem] gap-1">
+      {(tpl.lines as QLine[]).map((l, i) => <div key={i} className="grid grid-cols-2 gap-1 sm:grid-cols-[6rem_1fr_6rem_2.75rem]">
         <Input placeholder="Section" value={l.section ?? ""} onChange={(e) => { const lines = [...tpl.lines]; lines[i] = { ...l, section: e.target.value }; setTpl({ ...tpl, lines }); }} />
-        <Input placeholder="Ligne" value={l.desc} onChange={(e) => { const lines = [...tpl.lines]; lines[i] = { ...l, desc: e.target.value }; setTpl({ ...tpl, lines }); }} />
-        <select className={sel} value={l.unit} onChange={(e) => { const lines = [...tpl.lines]; lines[i] = { ...l, unit: e.target.value }; setTpl({ ...tpl, lines }); }}>{UNITS.map((u) => <option key={u.v} value={u.v}>{u.l}</option>)}</select>
-        <Button size="sm" variant="ghost" aria-label="Retirer la ligne" onClick={() => setTpl({ ...tpl, lines: tpl.lines.filter((_: any, j: number) => j !== i) })}>×</Button></div>)}
+        <select className={`${sel} min-w-0 sm:order-3`} value={l.unit} onChange={(e) => { const lines = [...tpl.lines]; lines[i] = { ...l, unit: e.target.value }; setTpl({ ...tpl, lines }); }}>{UNITS.map((u) => <option key={u.v} value={u.v}>{u.l}</option>)}</select>
+        <Input className="col-span-2 sm:order-2 sm:col-span-1" placeholder="Ligne" value={l.desc} onChange={(e) => { const lines = [...tpl.lines]; lines[i] = { ...l, desc: e.target.value }; setTpl({ ...tpl, lines }); }} />
+        <Button className="sm:order-4" size="sm" variant="ghost" aria-label="Retirer la ligne" onClick={() => setTpl({ ...tpl, lines: tpl.lines.filter((_: any, j: number) => j !== i) })}>×</Button></div>)}
       <Button size="sm" variant="outline" onClick={() => setTpl({ ...tpl, lines: [...tpl.lines, { desc: "", qty: null, unit: "unite", price: null }] })}>+ Ligne</Button>
       <Textarea placeholder="Inclusions" value={tpl.inclusions ?? ""} onChange={(e) => setTpl({ ...tpl, inclusions: e.target.value })} />
       <Textarea placeholder="Exclusions" value={tpl.exclusions ?? ""} onChange={(e) => setTpl({ ...tpl, exclusions: e.target.value })} />

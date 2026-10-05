@@ -180,7 +180,7 @@ const SortableRow = ({ status, onChange, onDelete }: RowProps) => {
           style={{ backgroundColor: status.color }}
         />
         {pickerOpen && (
-          <div className="absolute z-10 mt-2 left-0 bg-card border border-border rounded-xl p-2 shadow-lg w-[208px] grid grid-cols-6 gap-1.5">
+          <div className="absolute left-0 z-10 mt-2 grid w-[min(208px,calc(100vw-2rem))] grid-cols-6 gap-1.5 rounded-xl border border-border bg-card p-2 shadow-lg">
             {PRESET_COLORS.map((c) => (
               <button
                 key={c}
