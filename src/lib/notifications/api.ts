@@ -6,7 +6,7 @@
 // livraison, facture, événement) et fournissent un lien direct.
 // ============================================================
 import { supabase } from "@/integrations/supabase/client";
-import { fetchAccessPriorities, toNotificationPriority } from "@/lib/access-requests/priority";
+import { accessRequestUrl, fetchAccessPriorities, toNotificationPriority } from "@/lib/access-requests/priority";
 
 export type NotifStatus = "unread" | "read" | "in_progress" | "done" | "archived";
 export type NotifPriority = "urgente" | "importante" | "normale" | "information";
