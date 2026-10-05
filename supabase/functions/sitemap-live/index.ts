@@ -21,13 +21,29 @@ Deno.serve(async () => {
     { loc: `${BASE}/livraison`, priority: "0.8", changefreq: "weekly" },
   ];
 
-  const { data: pages } = await supabase
+  // PostgREST plafonne chaque réponse à 1 000 lignes : on pagine pour tout couvrir.
+  async function all<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
+    const out: T[] = [];
+    for (let from = 0; from < 200000; from += 1000) {
+      const { data, error } = await build(from, from + 999);
+      if (error) throw error;
+      out.push(...(data ?? []));
+      if (!data || data.length < 1000) break;
+    }
+    return out;
+  }
+  const seen = new Set<string>();
+
+  const pages = await all((f, t) => supabase
     .from("seo_pages")
     .select("slug, updated_at, last_generated_at")
     .eq("status", "published")
+    .eq("noindex", false)
     .order("slug")
-    .range(0, 9999);
-  for (const p of pages ?? []) {
+    .range(f, t));
+  for (const p of pages) {
+    if (seen.has((p as { slug: string }).slug)) continue;
+    seen.add((p as { slug: string }).slug);
     const ts = String((p as { updated_at?: string | null }).updated_at ?? (p as { last_generated_at?: string | null }).last_generated_at ?? "");
     urls.push({
       loc: `${BASE}/${(p as { slug: string }).slug}`,
@@ -37,14 +53,15 @@ Deno.serve(async () => {
     });
   }
 
-  const { data: posts } = await supabase
+  const posts = await all((f, t) => supabase
     .from("blog_posts")
     .select("slug, updated_at, published_at")
     .eq("status", "published")
     .eq("noindex", false)
     .lte("published_at", new Date().toISOString())
-    .range(0, 9999);
-  for (const p of posts ?? []) {
+    .order("slug")
+    .range(f, t));
+  for (const p of posts) {
     const ts = String((p as { updated_at?: string | null }).updated_at ?? (p as { published_at?: string | null }).published_at ?? "");
     urls.push({
       loc: `${BASE}/blog/${(p as { slug: string }).slug}`,
