@@ -100,10 +100,24 @@ const AdminTransportRequests = () => {
     return () => { void supabase.removeChannel(channel); };
   }, [isAdmin]);
 
+  // Historique de la fiche : journal existant de la demande + changements de
+  // priorité déjà journalisés par le suivi (request_followup_events). Lecture seule.
+  const loadHistory = async (id: string) => {
+    const [{ data }, { data: ev }] = await Promise.all([
+      supabase.from("transport_request_history").select("*").eq("request_id", id).order("created_at", { ascending: true }),
+      supabase.from("request_followup_events").select("id, detail, actor_email, created_at").eq("entity_type", "transport_request").eq("entity_id", id).order("created_at", { ascending: true }),
+    ]);
+    const prio: HistoryEntry[] = (ev ?? []).flatMap((e) => {
+      const p = (e.detail as { priority?: { avant: unknown; apres: unknown } } | null)?.priority;
+      return p ? [{ id: `fu-${e.id}`, field_key: "priority", old_value: p.avant, new_value: p.apres, user_email: e.actor_email, created_at: e.created_at }] : [];
+    });
+    const merged = [...((data as unknown as HistoryEntry[]) ?? []), ...prio].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    setHistory(merged);
+  };
+
   const openDetail = async (request: AccessRequest) => {
     setSelected(request);
-    const { data } = await supabase.from("transport_request_history").select("*").eq("request_id", request.id).order("created_at", { ascending: true });
-    setHistory((data as unknown as HistoryEntry[]) ?? []);
+    await loadHistory(request.id);
   };
 
   useEffect(() => {
@@ -128,6 +142,7 @@ const AdminTransportRequests = () => {
     try {
       await setAccessPriority(selected.id, selected.created_at, priority);
       setPriorities((m) => ({ ...m, [selected.id]: priority }));
+      void loadHistory(selected.id);
       toast({ title: "Priorité mise à jour", description: priorityLabel(priority) });
     } catch (e) {
       toast({ title: "Erreur", description: (e as { message?: string })?.message ?? "Échec", variant: "destructive" });
@@ -344,7 +359,7 @@ const quantity = (r: AccessRequest) => r.quantity != null ? `${r.quantity} ${r.q
 const formatDate = (value: string | null) => value ? new Date(value.includes("T") ? value : `${value}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "short", year: "numeric" }) : "À confirmer";
 const formatDateTime = (value: string) => new Date(value).toLocaleString("fr-CA", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const FIELD_LABELS: Record<string, string> = { priority: "Priorité modifiée", created: "Demande créée", status: "Statut modifié", internal_notes: "Note interne", owner_contacted: "Propriétaire contacté", owner_contacted_at: "Date de contact du propriétaire", assigned_dispatcher: "Responsable assigné", driver_id: "Chauffeur assigné", truck_id: "Camion assigné", desired_date: "Date souhaitée", desired_time: "Heure souhaitée", dump_name: "Dompe sélectionnée" };
-const formatHistoryVal = (field: string, value: unknown) => field === "status" ? statusLabel(formatVal(value)) : field === "owner_contacted" ? (formatVal(value) === "true" ? "Oui" : "Non") : formatVal(value);
+const formatHistoryVal = (field: string, value: unknown) => field === "priority" ? (value ? ACCESS_PRIORITIES.find((p) => p.value === value)?.label ?? formatVal(value) : "Non définie") : field === "status" ? statusLabel(formatVal(value)) : field === "owner_contacted" ? (formatVal(value) === "true" ? "Oui" : "Non") : formatVal(value);
 const formatVal = (value: unknown) => value == null ? "—" : typeof value === "string" ? value.replace(/^"|"$/g, "") : JSON.stringify(value);
 
 export default AdminTransportRequests;
