@@ -32,6 +32,13 @@ describe("priorité des demandes d'accès", () => {
     const s = sortNotifications([n({ id: "recent", created_at: "2026-10-05T12:00:00Z" }), n({ id: "urg", priority: "urgente", status: "read", created_at: "2026-01-01T00:00:00Z" })]);
     expect(s[0].id).toBe("urg");
   });
+  it("une prioritaire passe avant une normale en retard", () => {
+    const s = sortNotifications([
+      n({ id: "late", priority: "normale", status: "read", due_at: "2020-01-01T00:00:00Z" }),
+      n({ id: "priority", priority: "importante", status: "read" }),
+    ]);
+    expect(s.map((item) => item.id)).toEqual(["priority", "late"]);
+  });
   it("regroupement : toutes les activités restent présentes", () => {
     const g = groupNotifications([n({ id: "a" }), n({ id: "b", status: "read" }), n({ id: "c" })]);
     expect(g).toHaveLength(1);

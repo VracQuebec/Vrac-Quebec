@@ -168,15 +168,16 @@ export function matchesFilter(n: CrmNotification, filter: NotifFilter) {
   }
 }
 
-/** Hiérarchie visuelle : urgent → à traiter → non lu → récent → information. */
+/** Hiérarchie visuelle : urgent → prioritaire → à traiter → non lu → récent → information. */
 export function sortNotifications(rows: CrmNotification[]) {
   return [...rows].sort((a, b) => {
     const rank = (n: CrmNotification) => {
       if (isOpen(n) && n.priority === "urgente") return 0;
-      if (n.status === "in_progress" || isOverdue(n) || n.priority === "importante") return 1;
-      if (n.status === "unread") return 2;
-      if (n.priority === "information") return 4;
-      return 3;
+      if (isOpen(n) && n.priority === "importante") return 1;
+      if (n.status === "in_progress" || isOverdue(n)) return 2;
+      if (n.status === "unread") return 3;
+      if (n.priority === "information") return 5;
+      return 4;
     };
     const ra = rank(a);
     const rb = rank(b);

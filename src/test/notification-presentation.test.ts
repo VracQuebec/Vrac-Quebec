@@ -26,13 +26,15 @@ describe("présentation du centre de notifications", () => {
     expect(groups.find((group) => group.key.endsWith(":same"))?.items).toHaveLength(2);
   });
 
-  it("place urgent, à traiter, non lu, récent puis information", () => {
+  it("place urgent, prioritaire, à traiter, non lu, récent puis information", () => {
     const sorted = sortNotifications([
       notification({ id: "info", priority: "information", status: "read" }),
+      notification({ id: "recent", priority: "normale", status: "read" }),
       notification({ id: "unread", priority: "normale", status: "unread" }),
-      notification({ id: "todo", priority: "importante", status: "read" }),
+      notification({ id: "todo", priority: "normale", status: "read", due_at: "2020-01-01T00:00:00Z" }),
+      notification({ id: "important", priority: "importante", status: "read" }),
       notification({ id: "urgent", priority: "urgente", status: "read" }),
     ]);
-    expect(sorted.map((item) => item.id)).toEqual(["urgent", "todo", "unread", "info"]);
+    expect(sorted.map((item) => item.id)).toEqual(["urgent", "important", "todo", "unread", "recent", "info"]);
   });
 });
