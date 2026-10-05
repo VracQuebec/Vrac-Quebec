@@ -13,6 +13,7 @@
 // ============================================================
 import { supabase } from "@/integrations/supabase/client";
 import type { RpcClient } from "@/lib/parcours/validation";
+import { isApproximateLocation } from "@/lib/parcours/besoin";
 import { loadMySubmissions, type MySubmission, type MySubmissionsResult } from "@/lib/parcours/mes-demandes";
 
 export interface Chantier {
@@ -20,6 +21,8 @@ export interface Chantier {
   key: string;
   /** Origine de la clé de regroupement, pour transparence/tests. */
   groupedBy: "place_id" | "address" | "city" | "single";
+  /** true seulement avec un rattachement explicite à un projet de l'entreprise (aucun aujourd'hui). */
+  projectLinked: boolean;
   label: string;
   city: string | null;
   address: string | null;
@@ -53,51 +56,32 @@ const norm = (v: string | null | undefined): string =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
-/** Clé de regroupement fiable, ou null si aucune n'existe. */
+/**
+ * Aucune fusion sans lien explicite : ni ville, ni centre de ville, ni
+ * identifiant Google approximatif, ni même une adresse identique ne
+ * prouvent qu'il s'agit du même projet. Chaque demande reste séparée.
+ */
 export const groupingKey = (
   s: MySubmission,
-): { key: string; groupedBy: Chantier["groupedBy"] } => {
-  if (s.placeId) return { key: `p:${s.placeId}`, groupedBy: "place_id" };
-  const addr = norm(s.address);
-  const city = norm(s.city);
-  // Adresse suffisamment précise (numéro civique + rue) ET ville connue.
-  if (addr.length >= 8 && /\d/.test(addr) && city) {
-    return { key: `a:${addr}|${city}`, groupedBy: "address" };
-  }
-  // Aucune adresse précise : les demandes du même lieu normalisé (ville)
-  // se retrouvent dans un seul chantier calculé plutôt que dupliquées.
-  if (!addr && city) return { key: `c:${city}`, groupedBy: "city" };
-  return { key: `s:${s.id}`, groupedBy: "single" };
-};
+): { key: string; groupedBy: Chantier["groupedBy"] } => ({ key: `s:${s.id}`, groupedBy: "single" });
 
-export const buildChantiers = (submissions: MySubmission[]): Chantier[] => {
-  const map = new Map<string, Chantier>();
-  for (const s of submissions) {
-    const { key, groupedBy } = groupingKey(s);
-    const existing = map.get(key);
-    if (existing) {
-      existing.submissions.push(s);
-      if (s.material && !existing.materials.includes(s.material)) existing.materials.push(s.material);
-      existing.city = existing.city ?? s.city;
-      existing.address = existing.address ?? s.address;
-      if (s.createdAt && (!existing.lastActivity || s.createdAt > existing.lastActivity)) {
-        existing.lastActivity = s.createdAt;
-      }
-      continue;
-    }
-    map.set(key, {
-      key,
-      groupedBy,
-      label: s.city || s.address || "Chantier — adresse à confirmer",
-      city: s.city,
-      address: s.address,
-      materials: s.material ? [s.material] : [],
-      lastActivity: s.createdAt,
-      submissions: [s],
-    });
-  }
-  return [...map.values()].sort((a, b) => (b.lastActivity ?? "").localeCompare(a.lastActivity ?? ""));
-};
+export const buildChantiers = (submissions: MySubmission[]): Chantier[] =>
+  submissions
+    .map<Chantier>((s) => {
+      const precise = !isApproximateLocation(s) ? s.address : null;
+      return {
+        key: groupingKey(s).key,
+        groupedBy: "single",
+        projectLinked: false,
+        label: precise || (s.city ? `${s.city} — lieu à préciser` : "Lieu à préciser"),
+        city: s.city,
+        address: s.address,
+        materials: s.material ? [s.material] : [],
+        lastActivity: s.createdAt,
+        submissions: [s],
+      };
+    })
+    .sort((a, b) => (b.lastActivity ?? "").localeCompare(a.lastActivity ?? ""));
 
 const CLOSED_STATUSES = new Set(["terminee", "annulee", "refusee"]);
 const ACTIVE_STATUSES = new Set(["acceptee", "planifiee", "en_cours"]);
@@ -124,22 +108,12 @@ export const summarizeChantier = (chantier: Chantier): ChantierSummary => {
 export const findChantierForSubmission = (chantiers: Chantier[], submissionId: string) =>
   chantiers.find((chantier) => chantier.submissions.some((submission) => submission.id === submissionId)) ?? null;
 
-const normalized = (value: unknown) => norm(typeof value === "string" ? value : null);
 
-/**
- * Rapprochement prudent d'un transport avec un chantier existant.
- * Une ville seule n'est utilisée que lorsqu'elle désigne un chantier unique.
- */
+/** Un transport n'est associé que par son lien explicite à la demande d'origine. */
 export const findChantierForTransport = (chantiers: Chantier[], transport: Record<string, unknown>) => {
-  const address = normalized(transport.site_address);
-  if (address) {
-    const exact = chantiers.filter((chantier) => normalized(chantier.address) === address);
-    if (exact.length === 1) return exact[0];
-  }
-  const city = normalized(transport.site_city);
-  if (!city) return null;
-  const sameCity = chantiers.filter((chantier) => normalized(chantier.city) === city);
-  return sameCity.length === 1 ? sameCity[0] : null;
+  const origin = transport.origin_submission_id ? String(transport.origin_submission_id) : null;
+  if (!origin) return null;
+  return findChantierForSubmission(chantiers, origin);
 };
 
 /** Charge les chantiers de l'utilisateur connecté (vue calculée, lecture seule). */
