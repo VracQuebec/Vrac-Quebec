@@ -2,6 +2,8 @@ import type { MySubmission } from "@/lib/parcours/mes-demandes";
 import type { AccessRequestRow } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { statusBucket, statusMeta } from "@/lib/access-requests/status";
 import { lifecycleMeta } from "@/lib/entrepreneur-app/lifecycle";
+import { NEED_LABELS, needDirection, needsDumpSearch } from "@/lib/parcours/sens-besoin";
+import { transportKindLabel } from "@/components/entrepreneur-app/SubmissionProvenance";
 import {
   findChantierForSubmission,
   findChantierForTransport,
@@ -26,6 +28,10 @@ export interface EntrepreneurRequestView {
   nextAction: string;
   chantierKey: string | null;
   chantierLabel: string;
+  /** Libellé du sens du besoin ou de la nature de la demande d'accès. */
+  natureLabel: string;
+  /** true seulement pour une évacuation déclarée. */
+  dumpSearch: boolean;
   submission?: MySubmission;
   transport?: AccessRequestRow;
 }
@@ -50,6 +56,7 @@ export function buildEntrepreneurRequests(
     const waitingSite = Boolean(submission.selectedSiteId && !submission.siteValidatedAt);
     const state = submissionState(submission.status, waitingSite);
     const chantier = findChantierForSubmission(chantiers, submission.id);
+    const need = needDirection(submission);
     return {
       id: `s-${submission.id}`,
       sourceId: submission.id,
@@ -62,9 +69,11 @@ export function buildEntrepreneurRequests(
       statusLabel: state.label,
       tone: state.tone,
       filter: state.filter,
-      nextAction: waitingSite ? "Suivre la décision des dompes" : state.filter === "done" || state.filter === "cancelled" ? "Consulter le dossier" : "Suivre le dossier",
+      nextAction: waitingSite ? "Suivre la décision des dompes" : need === "a_preciser" ? "Préciser le besoin (recevoir, évacuer ou acheter)" : state.filter === "done" || state.filter === "cancelled" ? "Consulter le dossier" : "Suivre le dossier",
       chantierKey: chantier?.key ?? null,
       chantierLabel: chantier?.label ?? submission.location ?? "Chantier à confirmer",
+      natureLabel: NEED_LABELS[need],
+      dumpSearch: needsDumpSearch(need),
       submission,
     };
   });
@@ -90,9 +99,11 @@ export function buildEntrepreneurRequests(
       statusLabel: transport.lifecycle_status === "revalidation_requise" && life ? life.label : meta.label,
       tone: life ? life.tone : cancelled ? "refused" : bucket === "completed" ? "done" : bucket === "accepted" ? "active" : "pending",
       filter,
-      nextAction: filter === "pending" ? "En traitement par notre équipe" : filter === "active" ? "Suivre le transport" : "Consulter le dossier",
+      nextAction: filter === "pending" ? "Demande envoyée — accès non encore accordé" : filter === "active" ? "Suivre le transport" : "Consulter le dossier",
       chantierKey: chantier?.key ?? null,
       chantierLabel: chantier?.label ?? place,
+      natureLabel: transportKindLabel(transport),
+      dumpSearch: false,
       transport,
     };
   });

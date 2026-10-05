@@ -1,3 +1,4 @@
+import { isMapLink, parseCoordinates } from "@/lib/parcours/sens-besoin";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { rankDumps, dumpRoleLabel } from "@/lib/entrepreneur/dump-ranking";
 import { BULK_TRUCK_TYPES } from "@/lib/trucks/catalog";
@@ -645,7 +646,15 @@ const TransportRequest = () => {
     }
   };
 
+  // Distinction accès à la dompe / transport : l'entrepreneur peut utiliser ses propres camions.
+  const [transportMode, setTransportMode] = useState<"own_trucks" | "requested" | null>(null);
+  const [locationNote, setLocationNote] = useState<string | null>(null);
+
   const submitRequest = async () => {
+    if (!transportMode) {
+      toast({ title: "Précisez le transport", description: "Indiquez si vous utilisez vos propres camions ou si vous avez besoin d'un transport.", variant: "destructive" });
+      return;
+    }
     if (!selectedDump || !coords) return;
     if (fromEntrepreneurRef.current && !user) {
       toast({ title: "Connexion requise", description: "Connectez-vous pour envoyer votre demande.", variant: "destructive" });
@@ -691,7 +700,7 @@ const TransportRequest = () => {
       travel_time_minutes: selectedDump.road_distance ? (selectedDump.duration_minutes ?? null) : null,
       // Le libellé sert à l'affichage CRM ; le code sert au recalcul serveur.
       truck_type: selectedRate?.label ?? (truckType || null),
-      truck_rate_code: selectedRate && Number(trips) > 0 ? selectedRate.code : null,
+      truck_rate_code: transportMode === "requested" && selectedRate && Number(trips) > 0 ? selectedRate.code : null,
       estimated_trips: trips ? Number(trips) : null,
       desired_date: desiredDate || null,
       desired_time: desiredTime || null,
@@ -713,6 +722,8 @@ const TransportRequest = () => {
       // Rattachement explicite à la demande existante (source de vérité DB).
       origin_submission_id: submissionIdRef.current,
       origin_stage: "transport_request",
+      request_kind: "dump_access",
+      transport_mode: transportMode,
     });
 
       if (result.status === "rejected") {
@@ -1288,9 +1299,28 @@ const TransportRequest = () => {
             </label>
             <GooglePlaceAutocomplete
               value={address}
-              onChange={setAddress}
+              onChange={(v) => {
+                setAddress(v);
+                const pt = parseCoordinates(v);
+                if (pt) {
+                  setCoords(pt);
+                  setLocationNote("Point lu depuis le lien ou les coordonnées collées — vérifiez qu'il correspond au terrain.");
+                } else if (isMapLink(v)) {
+                  setCoords(null);
+                  setLocationNote("Ce lien ne contient pas de position lisible. Indiquez une adresse précise, collez des coordonnées (ex. 46.8123, -71.2145) ou utilisez votre position sur le terrain.");
+                }
+              }}
               onSelect={(d) => {
-                if (d.lat && d.lng) setCoords({ lat: d.lat, lng: d.lng });
+                // Un résultat sans rue ni numéro (ville, région) n'est jamais utilisé comme point du chantier.
+                const types = (d.components ?? []).flatMap((c) => c.types ?? []);
+                const precise = types.includes("route") || types.includes("street_number") || types.includes("premise");
+                if (!precise) {
+                  setCoords(null);
+                  setLocationNote("Lieu trop général (ville ou secteur). Indiquez une adresse précise ou un point confirmé.");
+                } else {
+                  setLocationNote(null);
+                  if (d.lat && d.lng) setCoords({ lat: d.lat, lng: d.lng });
+                }
                 setCity(d.formattedAddress.split(",").slice(-3, -2)[0]?.trim() || "");
               }}
               placeholder="123 rue Principale, Québec"
@@ -1315,6 +1345,9 @@ const TransportRequest = () => {
               </button>
             </div>
 
+            {locationNote && (
+              <p className="text-xs text-destructive mt-3 font-body" role="status">{locationNote}</p>
+            )}
             {coords && (
               <p className="text-xs text-primary mt-3 font-body">
                 ✅ Coordonnées confirmées ({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)})
@@ -1483,11 +1516,23 @@ const TransportRequest = () => {
         {step === 5 && selectedDump && coords && (
           <section className="animate-in fade-in duration-300">
             <h1 className="font-display font-bold text-2xl sm:text-3xl mb-2">
-              ✅ Confirmation de votre demande d'accès
+              ✅ Demande d'accès à une dompe
             </h1>
-            <p className="text-muted-foreground text-sm mb-5">
-              L'assistant a déjà fait le travail — il ne vous reste qu'à confirmer votre demande d'accès à la dompe choisie.
+            <p className="text-muted-foreground text-sm mb-3">
+              Vous demandez l'accès à la dompe choisie. L'envoi n'accorde pas encore l'accès : la dompe doit l'approuver. Aucun transport n'est commandé sauf si vous le demandez ci-dessous.
             </p>
+            <fieldset className="mb-5 rounded-2xl border border-border bg-card p-4" data-testid="transport-mode">
+              <legend className="px-1 font-display text-sm font-bold">Transport des matériaux</legend>
+              {([
+                ["own_trucks", "J'utilise mes propres camions"],
+                ["requested", "J'ai besoin d'un transport"],
+              ] as const).map(([v, l]) => (
+                <label key={v} className="mt-2 flex min-h-11 items-center gap-3 font-body text-sm">
+                  <input type="radio" name="transport_mode" checked={transportMode === v} onChange={() => setTransportMode(v)} className="h-5 w-5 accent-primary" />
+                  {l}
+                </label>
+              ))}
+            </fieldset>
 
             {/* Full summary card */}
             <div className="bg-card rounded-2xl border-2 border-primary/30 p-4 sm:p-5 mb-5 shadow-md">

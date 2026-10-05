@@ -23,74 +23,30 @@ describe("Mes chantiers", () => {
     expect(buildChantiers([])).toEqual([]);
   });
 
-  it("B — un seul chantier", () => {
+  it("B — une demande = un dossier", () => {
     const c = buildChantiers([S("1")]);
     expect(c).toHaveLength(1);
-    expect(c[0].city).toBe("Sainte-Foy");
+    expect(c[0].projectLinked).toBe(false);
   });
 
-  it("C — plusieurs chantiers séparés", () => {
-    const c = buildChantiers([S("1"), S("2", { address: "999 boulevard Laurier", place_id: null })]);
+  it("deux projets dans la même ville restent séparés", () => {
+    expect(buildChantiers([S("1", { address: null }), S("2", { address: null })])).toHaveLength(2);
+  });
+
+  it("même place_id approximatif (centre de ville) : aucune fusion", () => {
+    const c = buildChantiers([S("1", { place_id: "VILLE" }), S("2", { place_id: "VILLE" })]);
     expect(c).toHaveLength(2);
   });
 
-  it("D — regroupement fiable par place_id", () => {
-    const c = buildChantiers([S("1", { place_id: "PL1" }), S("2", { place_id: "PL1", address: "123 rue Principale bureau 2" })]);
-    expect(c).toHaveLength(1);
-    expect(c[0].groupedBy).toBe("place_id");
-    expect(c[0].submissions).toHaveLength(2);
+  it("même adresse exacte : aucune fusion sans lien explicite", () => {
+    expect(buildChantiers([S("1"), S("2")])).toHaveLength(2);
+    expect(groupingKey(S("42"))).toEqual({ key: "s:42", groupedBy: "single" });
   });
 
-  it("D bis — regroupement par adresse normalisée + ville", () => {
-    const c = buildChantiers([S("1"), S("2", { address: "123 Rue  Principale" })]);
-    expect(c).toHaveLength(1);
-    expect(c[0].groupedBy).toBe("address");
-  });
-
-  it("E — même ville mais adresses différentes : aucune fusion", () => {
-    const c = buildChantiers([S("1"), S("2", { address: "77 avenue des Érables" })]);
-    expect(c).toHaveLength(2);
-  });
-
-  it("E bis — place_id différents : aucune fusion malgré la même adresse texte", () => {
-    const c = buildChantiers([S("1", { place_id: "A" }), S("2", { place_id: "B" })]);
-    expect(c).toHaveLength(2);
-  });
-
-  it("K — aucune donnée inventée sans adresse", () => {
+  it("terrain sans adresse civique : lieu à préciser, rien d'inventé", () => {
     const c = buildChantiers([S("1", { city: null, address: null, formatted_address: null, materials: [] })]);
-    expect(c[0].address).toBeNull();
-    expect(c[0].city).toBeNull();
+    expect(c[0].label).toBe("Lieu à préciser");
     expect(c[0].materials).toEqual([]);
-    expect(c[0].groupedBy).toBe("single");
-  });
-
-  it("sans adresse : regroupement par ville normalisée (pas de doublons)", () => {
-    expect(groupingKey(S("42", { address: null, formatted_address: null }))).toEqual({
-      key: "c:sainte foy",
-      groupedBy: "city",
-    });
-    const c = buildChantiers([
-      S("1", { address: null, formatted_address: null }),
-      S("2", { address: null, formatted_address: null }),
-    ]);
-    expect(c).toHaveLength(1);
-    expect(c[0].submissions).toHaveLength(2);
-  });
-
-  it("clé individuelle si aucune clé fiable (aucune clé artificielle)", () => {
-    expect(groupingKey(S("43", { address: null, formatted_address: null, city: null }))).toEqual({
-      key: "s:43",
-      groupedBy: "single",
-    });
-  });
-
-  it("dernière activité = date la plus récente", () => {
-    const c = buildChantiers([
-      S("1", { place_id: "P", created_at: "2026-08-01T00:00:00.000Z" }),
-      S("2", { place_id: "P", created_at: "2026-08-12T00:00:00.000Z" }),
-    ]);
-    expect(c[0].lastActivity).toBe("2026-08-12T00:00:00.000Z");
   });
 
   it("H/I — seules les demandes retournées par la base sont visibles", async () => {

@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, LoadingSkeleton } from "@/components/entreprene
 import { ChantierCard } from "@/components/entrepreneur-app/ui";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { Search } from "lucide-react";
+import { NEED_LABELS, needDirection } from "@/lib/parcours/sens-besoin";
 
 const FILTERS = [
   { key: "all", label: "Tous" },
@@ -66,6 +67,9 @@ export default function EntrepreneurChantiers() {
           ))}
         </div>
 
+        <p className="rounded-xl border border-border bg-card p-3 font-body text-xs text-muted-foreground">
+          Chaque demande visible par votre compte a son propre dossier. Aucune n'est regroupée par ville ni présentée comme un projet confirmé de l'entreprise sans rattachement explicite.
+        </p>
         {loading ? (
           <LoadingSkeleton lines={3} />
         ) : error ? (
@@ -90,9 +94,9 @@ export default function EntrepreneurChantiers() {
                   key={c.key}
                   to={`/entrepreneur/chantiers/${encodeURIComponent(c.key)}`}
                   label={c.label}
-                  detail={`${c.submissions.length} demande${c.submissions.length > 1 ? "s" : ""}${
-                    c.materials.length > 0 ? ` · ${c.materials.slice(0, 2).join(", ")}` : ""
-                  }${c.lastActivity ? ` · ${new Date(c.lastActivity).toLocaleDateString("fr-CA")}` : ""}`}
+                  detail={`${NEED_LABELS[needDirection(c.submissions[0])]}${
+                    c.submissions[0]?.number ? ` · #${c.submissions[0].number}` : ""
+                  }${c.materials.length > 0 ? ` · ${c.materials.slice(0, 2).join(", ")}` : ""}${c.lastActivity ? ` · ${new Date(c.lastActivity).toLocaleDateString("fr-CA")}` : ""}`}
                   badge={{ label: encours ? "En cours" : "Terminé", tone: encours ? "active" : "done" }}
                 />
               );

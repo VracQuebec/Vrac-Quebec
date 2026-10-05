@@ -37,6 +37,15 @@ export interface MySubmission {
   selectionUpdatedAt: string | null;
   siteAvailabilityStatus: string | null;
   siteAvailabilityUpdatedAt: string | null;
+  /** Métadonnées (get_my_submission_meta) — absentes = inconnues. */
+  parcoursDirection?: string | null;
+  deliverOrRemove?: string | null;
+  visibilityReason?: string | null;
+  locationType?: string | null;
+  geocodingStatus?: string | null;
+  creationOrigin?: string | null;
+  leadSource?: string | null;
+  sharedTimestampCount?: number | null;
 }
 
 export type MySubmissionsResult =
@@ -104,8 +113,26 @@ export const loadMySubmissions = async (
     return { state: "error", message: error.message || "Lecture impossible." };
   }
   const rows = Array.isArray(data) ? data : [];
-  return {
-    state: "ok",
-    submissions: rows.map(mapMySubmission).filter((s): s is MySubmission => s !== null),
-  };
+  const submissions = rows.map(mapMySubmission).filter((s): s is MySubmission => s !== null);
+  // Métadonnées facultatives : un échec n'empêche pas l'affichage (champs « à confirmer »).
+  try {
+    const meta = await client.rpc("get_my_submission_meta", {});
+    const list = Array.isArray(meta?.data) ? (meta.data as Record<string, unknown>[]) : [];
+    const byId = new Map(list.map((m) => [String(m.id), m]));
+    for (const sub of submissions) {
+      const m = byId.get(sub.id);
+      if (!m) continue;
+      sub.parcoursDirection = str(m.parcours_direction);
+      sub.deliverOrRemove = str(m.deliver_or_remove);
+      sub.visibilityReason = str(m.visibility_reason);
+      sub.locationType = str(m.location_type);
+      sub.geocodingStatus = str(m.geocoding_status);
+      sub.creationOrigin = str(m.creation_origin);
+      sub.leadSource = str(m.lead_source);
+      sub.sharedTimestampCount = num(m.shared_timestamp_count);
+    }
+  } catch {
+    /* métadonnées indisponibles */
+  }
+  return { state: "ok", submissions };
 };

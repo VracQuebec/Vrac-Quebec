@@ -55,7 +55,7 @@ export function EntrepreneurDataProvider({ children }: { children: ReactNode }) 
         supabase
           .from("transport_requests")
           .select(
-            "id, request_number, status, material_type, site_city, site_address, estimated_trips, truck_type, truck_rate_per_trip, transport_subtotal, transport_total, created_at, desired_date, updated_at, lifecycle_status, current_version, loading_point, access_conditions",
+            "id, request_number, status, material_type, site_city, site_address, estimated_trips, truck_type, truck_rate_per_trip, transport_subtotal, transport_total, created_at, desired_date, updated_at, lifecycle_status, current_version, loading_point, access_conditions, origin_submission_id, request_kind, transport_mode",
           )
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),

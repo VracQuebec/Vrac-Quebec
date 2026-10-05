@@ -7,6 +7,7 @@
 // Persistance : sessionStorage (comme le handoff du parcours).
 // ============================================================
 import type { Chantier } from "@/lib/parcours/chantiers";
+import { reliableCoords } from "@/lib/parcours/sens-besoin";
 
 export const ACTIVE_CHANTIER_KEY = "vq_chantier_actif_v1";
 
@@ -32,10 +33,8 @@ export const toActiveChantier = (c: Chantier): ActiveChantier => {
     material: last?.material ?? null,
     quantity: last?.quantity ?? null,
     submissionId: last?.id ?? null,
-    coords:
-      last && last.latitude != null && last.longitude != null
-        ? { lat: last.latitude, lng: last.longitude }
-        : null,
+    // Jamais un centre de ville approximatif : le point doit être confirmé.
+    coords: last ? reliableCoords(last) : null,
   };
 };
 
@@ -62,6 +61,6 @@ export const loadActiveChantier = (): ActiveChantier | null => {
 /** Préremplissage transmis au formulaire de demande (`applyPrefill`). */
 export const prefillFromChantier = (c: ActiveChantier): Record<string, unknown> => ({
   submissionId: c.submissionId,
-  address: c.address ?? c.city ?? "",
+  address: c.coords ? c.address ?? "" : "",
   coords: c.coords,
 });
