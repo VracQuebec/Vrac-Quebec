@@ -34,14 +34,17 @@ export default function ZoneCityIndex() {
         return;
       }
       setCity(c as SeoCity);
-      const [{ data: m }, { data: nb }] = await Promise.all([
+      const [{ data: m }, { data: nb }, { data: real }] = await Promise.all([
         supabase.from("seo_materials").select("*").eq("active", true).order("sort_order"),
         (c as SeoCity).neighbors?.length
           ? supabase.from("seo_cities").select("*").in("slug", (c as SeoCity).neighbors).eq("active", true)
           : Promise.resolve({ data: [] as SeoCity[] } as { data: SeoCity[] }),
+        supabase.from("seo_pages").select("material_slug").eq("city_slug", citySlug).eq("status", "published").eq("noindex", false).not("material_slug", "is", null),
       ]);
       if (cancelled) return;
-      setMaterials((m ?? []) as SeoMaterial[]);
+      // Ne lier que les matériaux qui ont une vraie page SEO (jamais les pages de secours).
+      const realSet = new Set((real ?? []).map((r) => r.material_slug as string));
+      setMaterials(((m ?? []) as SeoMaterial[]).filter((x) => realSet.has(x.slug)));
       setNeighbors((nb ?? []) as SeoCity[]);
       setLoading(false);
     })();
