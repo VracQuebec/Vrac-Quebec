@@ -6,7 +6,7 @@
 // livraison, facture, événement) et fournissent un lien direct.
 // ============================================================
 import { supabase } from "@/integrations/supabase/client";
-import { fetchAccessPriorities, toNotificationPriority } from "@/lib/access-requests/priority";
+import { accessRequestUrl, fetchAccessPriorities, toNotificationPriority } from "@/lib/access-requests/priority";
 
 export type NotifStatus = "unread" | "read" | "in_progress" | "done" | "archived";
 export type NotifPriority = "urgente" | "importante" | "normale" | "information";
@@ -206,10 +206,13 @@ export async function applyAccessPriorities(rows: CrmNotification[]): Promise<Cr
   if (!ids.length) return rows;
   const map = await fetchAccessPriorities(ids);
   return rows.map((n) => {
-    const ap = n.entity_type === "transport_request" && n.entity_id ? map[n.entity_id] : null;
-    if (!ap) return n;
+    if (n.entity_type !== "transport_request" || !n.entity_id) return n;
+    // « Voir la demande » ouvre toujours la fiche de la demande d'accès (jamais le Centre de contrôle).
+    const linked = n.action_url ? { ...n, action_url: accessRequestUrl(n.entity_id) } : n;
+    const ap = map[n.entity_id];
+    if (!ap) return linked;
     const mapped = toNotificationPriority(ap);
-    return { ...n, priority: (mapped ?? n.priority) as NotifPriority, meta: { ...(n.meta ?? {}), access_priority: ap } };
+    return { ...linked, priority: (mapped ?? n.priority) as NotifPriority, meta: { ...(n.meta ?? {}), access_priority: ap } };
   });
 }
 
