@@ -46,8 +46,14 @@ import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Database as DatabaseIcon } from "lucide-react";
 import { Search, CalendarClock } from "lucide-react";
 import TodayPanel from "@/components/crm/TodayPanel";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
-import { Activity, AlertTriangle as AlertTriangleCC } from "lucide-react";
+import { Activity, AlertTriangle as AlertTriangleCC, SlidersHorizontal, Wrench, Gauge, MoreHorizontal, RefreshCw } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import DompesApprobationPanel from "@/components/admin/DompesApprobationPanel";
 import {
@@ -212,7 +218,7 @@ const Admin = () => {
   const [showNewLead, setShowNewLead] = useState(false);
   // Sur téléphone, les actions secondaires sont regroupées sous un bouton
   // « Toutes les actions » : rien n'est retiré, tout reste accessible.
-  const [actionsOpen, setActionsOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const filterSource = __lc.v.filterSource; const setFilterSource = __lc.field("filterSource");
   const showArchivedOnMap = __lc.v.showArchivedOnMap; const setShowArchivedOnMap = __lc.field("showArchivedOnMap");
   const tab = __lc.v.tab; const setTab = __lc.field("tab");
@@ -667,6 +673,52 @@ const Admin = () => {
   const pageItems = clientMode
     ? filtered.slice((page - 1) * LEADS_PAGE_SIZE, page * LEADS_PAGE_SIZE)
     : serverRows;
+  const activeFilters = [
+    filterStatus !== "all" && `Statut : ${findStatus(leadStatuses, filterStatus)?.label ?? filterStatus}`,
+    filterType !== "all" && `Type : ${requestTypeMeta(filterType).label}`,
+    filterSource !== "all" && `Source : ${LEAD_SOURCES.find((s) => s.value === filterSource)?.label ?? filterSource}`,
+    filterTrips !== "all" && `Voyage : ${filterTrips}`,
+    filterPriority !== "all" && `Priorité : ${LEAD_PRIORITIES.find((p) => p.value === filterPriority)?.label ?? filterPriority}`,
+    filterMaterial !== "all" && `Matériau : ${MATERIAL_TYPES.find((m) => m.id === filterMaterial)?.label ?? filterMaterial}`,
+    filterAssigned !== "all" && `Entrepreneur : ${filterAssigned === "none" ? "Non assigné" : entrepreneursList.find((e) => e.user_id === filterAssigned)?.email ?? filterAssigned}`,
+    filterDateFrom && `Depuis : ${filterDateFrom}`,
+    filterDateTo && `Jusqu’au : ${filterDateTo}`,
+  ].filter(Boolean) as string[];
+  const clearFilters = () => {
+    setFilterStatus("all"); setFilterType("all"); setFilterSource("all"); setFilterTrips("all");
+    setFilterPriority("all"); setFilterMaterial("all"); setFilterAssigned("all");
+    setFilterDateFrom(""); setFilterDateTo("");
+  };
+  const filterFields = (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <select aria-label="Statut" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-body">
+        <option value="all">Tous les statuts</option>{leadStatuses.map((s) => <option key={s.id} value={s.value}>{s.label}</option>)}
+      </select>
+      <select aria-label="Type" value={filterType} onChange={(e) => setFilterType(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-body">
+        <option value="all">Tous les types</option>{REQUEST_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+      </select>
+      <select aria-label="Source" value={filterSource} onChange={(e) => setFilterSource(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-body">
+        <option value="all">Toutes les sources</option>{LEAD_SOURCES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+      </select>
+      <select aria-label="Voyage" value={filterTrips} onChange={(e) => setFilterTrips(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-body">
+        <option value="all">Tous les voyages</option><option value="1-5">1 à 5 voyages</option><option value="5-10">5 à 10 voyages</option><option value="10-25">10 à 25 voyages</option><option value="25-50">25 à 50 voyages</option><option value="50-100">50 à 100 voyages</option><option value="100+">100+ voyages</option>
+      </select>
+      <select aria-label="Priorité" value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-body">
+        <option value="all">Toutes les priorités</option>{LEAD_PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+      </select>
+      <select aria-label="Matériau" value={filterMaterial} onChange={(e) => setFilterMaterial(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-body">
+        <option value="all">Tous les matériaux</option>{MATERIAL_TYPES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+      </select>
+      <select aria-label="Entrepreneur" value={filterAssigned} onChange={(e) => setFilterAssigned(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-body">
+        <option value="all">Tous les entrepreneurs</option><option value="none">— Non assigné —</option>{entrepreneursList.map((e) => <option key={e.user_id} value={e.user_id}>{e.email}</option>)}
+      </select>
+      <label className="grid gap-1 text-xs text-muted-foreground"><span>Date de début</span><input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm text-foreground font-body" /></label>
+      <label className="grid gap-1 text-xs text-muted-foreground"><span>Date de fin</span><input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm text-foreground font-body" /></label>
+      <select aria-label="Tri" value={sort} onChange={(e) => setSort(e.target.value as LeadSort)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-semibold font-body">
+        {SORT_GROUPS.map((g) => <optgroup key={g.group} label={g.group}>{g.options.map((o) => <option key={o.value} value={o.value}>{`Trier : ${o.label}`}</option>)}</optgroup>)}
+      </select>
+    </div>
+  );
 
   if (!authReady || !user || roleLoading) {
     return <FullPageState title="Connexion en cours" message="Votre session est en vérification, la page va s’ouvrir automatiquement." />;
