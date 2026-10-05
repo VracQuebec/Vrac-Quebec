@@ -17,3 +17,4 @@
 - Assurances entreprise (ASSUR-01) : tables asr_*, lecture via asr_can_read (chauffeur/mécanicien exclus, preuves via asr_driver_proofs), confirmation/non-renouvellement/suspension par RPC seulement; super admin non membre = accès au contenu seulement après asr_support_open (motif, 4 h, journalisé); rappels asr_sweep dans crm_notifications_sweep (unicité entreprise/période/occurrence/destinataire/canal) — pas de nouvelle tâche planifiée.
 - Logbook : src/lib/logbook/AGENTS.md ; Chantiers, accès dompe et transport : src/lib/parcours/AGENTS.md.
 - PWA : `push-sw.js` unique, enregistré au chargement, sans cache métier.
+- Pages SEO locales : seules les fiches seo_pages publiées sont indexables et liées (maillage local dérivé au rendu par src/lib/seo/localMesh.ts); les pages « matériau + ville » de secours sont toujours en noindex et jamais liées — évite le contenu de masse sans fiche réelle.
