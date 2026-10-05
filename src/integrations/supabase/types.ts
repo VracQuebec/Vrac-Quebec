@@ -28429,6 +28429,7 @@ export type Database = {
           owner_contacted_at: string | null
           quantity: number | null
           quantity_unit: string | null
+          request_kind: string | null
           request_number: string | null
           site_address: string
           site_city: string | null
@@ -28437,6 +28438,7 @@ export type Database = {
           source: string
           status: Database["public"]["Enums"]["transport_request_status"]
           trailer_type: string | null
+          transport_mode: string | null
           transport_subtotal: number | null
           transport_total: number | null
           transport_tps_amount: number | null
@@ -28491,6 +28493,7 @@ export type Database = {
           owner_contacted_at?: string | null
           quantity?: number | null
           quantity_unit?: string | null
+          request_kind?: string | null
           request_number?: string | null
           site_address: string
           site_city?: string | null
@@ -28499,6 +28502,7 @@ export type Database = {
           source?: string
           status?: Database["public"]["Enums"]["transport_request_status"]
           trailer_type?: string | null
+          transport_mode?: string | null
           transport_subtotal?: number | null
           transport_total?: number | null
           transport_tps_amount?: number | null
@@ -28553,6 +28557,7 @@ export type Database = {
           owner_contacted_at?: string | null
           quantity?: number | null
           quantity_unit?: string | null
+          request_kind?: string | null
           request_number?: string | null
           site_address?: string
           site_city?: string | null
@@ -28561,6 +28566,7 @@ export type Database = {
           source?: string
           status?: Database["public"]["Enums"]["transport_request_status"]
           trailer_type?: string | null
+          transport_mode?: string | null
           transport_subtotal?: number | null
           transport_total?: number | null
           transport_tps_amount?: number | null
@@ -32716,6 +32722,20 @@ export type Database = {
           submission_number: number
           tonnage: string
           truck_types_allowed: string[]
+        }[]
+      }
+      get_my_submission_meta: {
+        Args: never
+        Returns: {
+          creation_origin: string
+          deliver_or_remove: string
+          geocoding_status: string
+          id: string
+          lead_source: string
+          location_type: string
+          parcours_direction: string
+          shared_timestamp_count: number
+          visibility_reason: string
         }[]
       }
       get_my_submissions: {
