@@ -241,10 +241,10 @@ export default function EntrepreneurAppShell({
             )}
             <div className="min-w-0 flex-1 text-center lg:text-left">
               {title && (
-                <h1 className="line-clamp-2 font-display text-base font-bold leading-tight sm:text-lg">{title}</h1>
+                <h1 className="break-words font-display text-base font-bold leading-tight sm:text-lg">{title}</h1>
               )}
               {subtitle && (
-                <p className="line-clamp-2 font-body text-xs leading-snug text-muted-foreground">{subtitle}</p>
+                <p className="break-words font-body text-xs leading-snug text-muted-foreground">{subtitle}</p>
               )}
             </div>
             {headerActions}

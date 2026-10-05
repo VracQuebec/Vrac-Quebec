@@ -184,8 +184,8 @@ export const ChantierContextBar = ({
     </span>
     <div className="min-w-0 flex-1">
       <p className="font-body text-[10px] uppercase tracking-[0.16em] text-primary">Chantier en cours</p>
-      <p className="line-clamp-2 font-display text-sm font-bold leading-snug">{label}</p>
-      {detail && <p className="line-clamp-2 font-body text-xs leading-snug text-muted-foreground">{detail}</p>}
+      <p className="break-words font-display text-sm font-bold leading-snug">{label}</p>
+      {detail && <p className="break-words font-body text-xs leading-snug text-muted-foreground">{detail}</p>}
     </div>
     {to && (
       <Link to={to} aria-label="Ouvrir le chantier" className="flex h-10 w-10 items-center justify-center rounded-xl hover:bg-primary/10">
@@ -220,8 +220,8 @@ export const ChantierCard = ({
         <HardHat className="h-6 w-6" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 font-display text-base font-bold leading-snug">{label}</p>
-        <p className="line-clamp-2 font-body text-xs leading-snug text-muted-foreground">{detail}</p>
+        <p className="break-words font-display text-base font-bold leading-snug">{label}</p>
+        <p className="break-words font-body text-xs leading-snug text-muted-foreground">{detail}</p>
       </div>
       {badge && <StatusBadge label={badge.label} tone={badge.tone} />}
       <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -261,7 +261,7 @@ export const RequestCard = ({
         {kind === "acces" ? <Truck className="h-5 w-5" /> : <ClipboardList className="h-5 w-5" />}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 font-display text-sm font-bold leading-snug">{title}</p>
+        <p className="break-words font-display text-sm font-bold leading-snug">{title}</p>
         <p className="flex items-start gap-1 font-body text-xs leading-snug text-muted-foreground">
           <MapPin className="h-3 w-3 shrink-0" /> {place}
         </p>
@@ -321,8 +321,8 @@ export const SiteCard = ({
           <MapPin className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 font-display text-sm font-bold leading-snug">{title}</p>
-          <p className="line-clamp-2 font-body text-xs leading-snug text-muted-foreground">{sector}</p>
+          <p className="break-words font-display text-sm font-bold leading-snug">{title}</p>
+          <p className="break-words font-body text-xs leading-snug text-muted-foreground">{sector}</p>
         </div>
         <span className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-full bg-secondary px-2.5 py-1 font-body text-[11px] leading-snug min-[400px]:shrink-0">
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: availability.color }} />
