@@ -480,6 +480,8 @@ function MaterialCityFallback({
       <Helmet>
         <title>{title}</title>
         <meta name="description" content={description} />
+        {/* Page de secours générée sans fiche SEO réelle : jamais indexable. */}
+        <meta name="robots" content="noindex, follow" />
         <link rel="canonical" href={url} />
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
