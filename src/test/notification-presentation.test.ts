@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { createElement } from "react";
+import NotificationItem from "@/components/notifications/NotificationItem";
 import { displayCategory, groupNotifications, sortNotifications, type CrmNotification } from "@/lib/notifications/api";
 
 const notification = (overrides: Partial<CrmNotification>): CrmNotification => ({
@@ -10,6 +14,12 @@ const notification = (overrides: Partial<CrmNotification>): CrmNotification => (
 });
 
 describe("présentation du centre de notifications", () => {
+  const renderItem = (item: CrmNotification) => render(createElement(
+    MemoryRouter,
+    null,
+    createElement(NotificationItem, { n: item, onRead: () => undefined, onChange: () => undefined }),
+  ));
+
   it("classe les notifications avec les références existantes", () => {
     expect(displayCategory(notification({ type: "transport_request_new", entity_type: "transport_request" }))).toBe("dompes");
     expect(displayCategory(notification({ title: "Besoin de remblai" }))).toBe("remblai");
@@ -26,13 +36,28 @@ describe("présentation du centre de notifications", () => {
     expect(groups.find((group) => group.key.endsWith(":same"))?.items).toHaveLength(2);
   });
 
-  it("place urgent, à traiter, non lu, récent puis information", () => {
+  it("place urgent, prioritaire, à traiter, non lu, récent puis information", () => {
     const sorted = sortNotifications([
       notification({ id: "info", priority: "information", status: "read" }),
+      notification({ id: "recent", priority: "normale", status: "read" }),
       notification({ id: "unread", priority: "normale", status: "unread" }),
-      notification({ id: "todo", priority: "importante", status: "read" }),
+      notification({ id: "todo", priority: "normale", status: "read", due_at: "2020-01-01T00:00:00Z" }),
+      notification({ id: "important", priority: "importante", status: "read" }),
       notification({ id: "urgent", priority: "urgente", status: "read" }),
     ]);
-    expect(sorted.map((item) => item.id)).toEqual(["urgent", "todo", "unread", "info"]);
+    expect(sorted.map((item) => item.id)).toEqual(["urgent", "important", "todo", "unread", "recent", "info"]);
+  });
+
+  it.each([
+    ["normale en retard", "normale", "2020-01-01T00:00:00Z", false, false, true],
+    ["prioritaire en retard", "importante", "2020-01-01T00:00:00Z", true, false, true],
+    ["urgente en retard", "urgente", "2020-01-01T00:00:00Z", false, true, true],
+    ["prioritaire non en retard", "importante", null, true, false, false],
+    ["urgente non en retard", "urgente", null, false, true, false],
+  ] as const)("affiche séparément la priorité et le traitement : %s", (_label, priority, dueAt, important, urgent, todo) => {
+    renderItem(notification({ priority, due_at: dueAt, status: "read" }));
+    expect(screen.queryByText("PRIORITAIRE") !== null).toBe(important);
+    expect(screen.queryByText("URGENT") !== null).toBe(urgent);
+    expect(screen.queryByText("À traiter") !== null).toBe(todo);
   });
 });

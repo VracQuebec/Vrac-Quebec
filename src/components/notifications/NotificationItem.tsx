@@ -25,7 +25,8 @@ const NotificationItem = ({ n, onRead, onChange, onNavigate, compact, activityCo
   const done = n.status === "done" || n.status === "archived";
   const category = displayCategory(n);
   const urgent = !done && n.priority === "urgente";
-  const actionable = !done && (n.status === "in_progress" || n.priority === "importante" || late);
+  const important = !done && n.priority === "importante";
+  const actionable = !done && (n.status === "in_progress" || late);
 
   return (
     <div
@@ -42,7 +43,8 @@ const NotificationItem = ({ n, onRead, onChange, onNavigate, compact, activityCo
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap leading-tight">
             {urgent && <span className="rounded bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground">URGENT</span>}
-            {actionable && !urgent && <span className="rounded bg-foreground px-1.5 py-0.5 text-[10px] font-bold text-background">À traiter</span>}
+            {important && <span className="rounded bg-attention px-1.5 py-0.5 text-[10px] font-bold text-background">PRIORITAIRE</span>}
+            {actionable && <span className="rounded bg-foreground px-1.5 py-0.5 text-[10px] font-bold text-background">À traiter</span>}
             <span className="text-[10px] uppercase font-display font-bold text-muted-foreground">
               {DISPLAY_CATEGORY_LABELS[category]}
             </span>
