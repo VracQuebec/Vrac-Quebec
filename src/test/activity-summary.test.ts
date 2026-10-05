@@ -45,14 +45,14 @@ describe("Résumé d'activité — compteurs réels", () => {
     expect(res.state === "ok" && res.summary.demandes).toBe(3);
   });
 
-  it("C — plusieurs demandes sur un même chantier : cohérent avec Mes chantiers", async () => {
+  it("C — même place_id : aucune fusion, cohérent avec Mes chantiers", async () => {
     const rows = [
       sub({ id: "a", place_id: "P1", city: "Québec" }),
       sub({ id: "b", place_id: "P1", city: "Québec" }),
       sub({ id: "c", place_id: "P2", city: "Lévis" }),
     ];
     const res = await loadActivitySummary(client(rows));
-    expect(res.state === "ok" && res.summary.chantiers).toBe(2);
+    expect(res.state === "ok" && res.summary.chantiers).toBe(3);
     expect(res.state === "ok" && res.summary.chantiers).toBe(buildChantiers(mapped(rows)).length);
   });
 
@@ -105,7 +105,7 @@ describe("Résumé d'activité — compteurs réels", () => {
       from: () => ({ select: () => ({ not: async () => ({ data: [], error: null }) }) }),
     } as unknown as ActivityClient;
     await loadActivitySummary(c);
-    expect(seen).toEqual([{}]);
+    expect(seen).toEqual([{}, {}]); // demandes + métadonnées, sans identifiant client
   });
 
   it("I — erreur de chargement : jamais transformée en zéro", async () => {
@@ -120,13 +120,13 @@ describe("Résumé d'activité — compteurs réels", () => {
     expect(res.state === "ok" && res.summary.demandes).toBe(1);
   });
 
-  it("J — deux lectures successives : résultat identique, une seule RPC par lecture", async () => {
+  it("J — deux lectures successives : résultat identique, lecture + métadonnées seulement", async () => {
     rpcCalls = 0;
     const rows = [sub({ id: "a", selected_site_id: "x", place_id: "P" })];
     const a = await loadActivitySummary(client(rows));
     const b = await loadActivitySummary(client(rows));
     expect(a).toEqual(b);
-    expect(rpcCalls).toBe(2);
+    expect(rpcCalls).toBe(4);
   });
 
   it("K — cohérence globale : demandes ≥ chantiers et ≥ sites recommandés", async () => {

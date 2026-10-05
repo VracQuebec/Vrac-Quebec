@@ -34,10 +34,9 @@ describe("Carte du réseau — V1", () => {
     expect(r.totals.demandes).toBe(2);
   });
 
-  it("D — plusieurs demandes sur un même chantier", () => {
+  it("D — même place_id : aucune fusion sans lien explicite", () => {
     const r = buildReseau([S("a", { place_id: "p1" }), S("b", { place_id: "p1" })], new Set());
-    expect(r.chantiers).toHaveLength(1);
-    expect(r.chantiers[0].demandes).toHaveLength(2);
+    expect(r.chantiers).toHaveLength(2);
   });
 
   it("E — site réellement sélectionné", () => {
@@ -125,7 +124,7 @@ describe("Carte du réseau — V1", () => {
     const d = r.chantiers[0].demandes[0];
     expect(d.material).toBeNull();
     expect(d.location).toBeNull();
-    expect(r.chantiers[0].label).toBe("Chantier — adresse à confirmer");
+    expect(r.chantiers[0].label).toBe("Lieu à préciser");
   });
 
   it("P — unauthorized propagé", async () => {
