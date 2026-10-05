@@ -14,6 +14,38 @@ import {
   type SeoCity,
   type SeoMaterial,
 } from "@/lib/seo/manager";
+import { childLinks, pillarGroups, type LocalPageRef } from "@/lib/seo/localMesh";
+
+function LocalMeshBlock({ page, pages, cityName }: { page: SeoPage; pages: LocalPageRef[]; cityName?: string }) {
+  if (!pages.length || !cityName) return null;
+  const isPillar = !page.service_slug && !page.material_slug;
+  const item = (p: LocalPageRef) => (
+    <li key={p.slug}>
+      <Link to={`/${p.slug}`} className="text-sm font-body text-primary hover:underline">{p.title}</Link>
+    </li>
+  );
+  if (isPillar) {
+    const g = pillarGroups(pages);
+    if (!g.services.length && !g.materials.length) return null;
+    return (
+      <section className="container mx-auto px-4 sm:px-6 pb-10">
+        <h2 className="text-xl md:text-2xl font-display font-bold text-foreground mb-4">Nos pages pour {cityName}</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {g.services.length > 0 && (<div><h3 className="font-display font-semibold text-foreground mb-2">Services</h3><ul className="space-y-1.5">{g.services.map(item)}</ul></div>)}
+          {g.materials.length > 0 && (<div><h3 className="font-display font-semibold text-foreground mb-2">Matériaux</h3><ul className="space-y-1.5">{g.materials.map(item)}</ul></div>)}
+        </div>
+      </section>
+    );
+  }
+  const links = childLinks(page, pages);
+  if (!links.length) return null;
+  return (
+    <section className="container mx-auto px-4 sm:px-6 pb-10">
+      <h2 className="text-xl md:text-2xl font-display font-bold text-foreground mb-3">Voir aussi à {cityName}</h2>
+      <ul className="space-y-1.5">{links.map(item)}</ul>
+    </section>
+  );
+}
 
 const SITE = "https://vracquebec.ca";
 
@@ -46,6 +78,7 @@ export default function SeoLandingPage() {
   const [cities, setCities] = useState<SeoCity[]>([]);
   const [materials, setMaterials] = useState<SeoMaterial[]>([]);
   const [relatedPosts, setRelatedPosts] = useState<Array<{ slug: string; title: string; excerpt: string | null; cover_image_url: string | null }>>([]);
+  const [localPages, setLocalPages] = useState<LocalPageRef[]>([]);
 
   const cityMap = useMemo(
     () => Object.fromEntries(cities.map((c) => [c.slug, c])) as Record<string, SeoCity>,
@@ -78,6 +111,13 @@ export default function SeoLandingPage() {
       if (citySlugForCount) {
         const { data: cnt } = await supabase.rpc("count_active_dumps_by_city", { _city_slug: citySlugForCount });
         if (!cancelled) setDumpCount(typeof cnt === "number" ? cnt : 0);
+        const { data: lp } = await supabase
+          .from("seo_pages")
+          .select("slug, title, service_slug, material_slug")
+          .eq("city_slug", citySlugForCount)
+          .eq("status", "published")
+          .eq("noindex", false);
+        if (!cancelled) setLocalPages((lp ?? []) as LocalPageRef[]);
       }
       // Load related blog posts via mesh table (blog_seo_links), fallback to legacy tags
       if (p) {
@@ -322,6 +362,8 @@ export default function SeoLandingPage() {
       )}
 
       <InternalLinksBlock links={internalLinks} />
+
+      <LocalMeshBlock page={page} pages={localPages} cityName={city?.name} />
 
       {relatedPosts.length > 0 && (
         <section className="container mx-auto px-4 sm:px-6 pb-10 border-t border-border pt-8">
