@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Bell, BellRing, CheckCheck, Loader2, Send, Smartphone } from "lucide-react";
+import { Bell, BellRing, CheckCheck, ChevronDown, Loader2, Send, Settings2, Smartphone } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import FullPageState from "@/components/FullPageState";
@@ -19,16 +19,19 @@ import NotificationItem from "@/components/notifications/NotificationItem";
 import { useCrmNotifications } from "@/hooks/useCrmNotifications";
 import { toast } from "@/hooks/use-toast";
 import {
-  CATEGORY_ICONS, CATEGORY_LABELS, FILTER_LABELS, fetchSettings, matchesFilter,
-  saveSettings, type NotifCategory, type NotifFilter, type NotificationSettings,
+  CATEGORY_ICONS, CATEGORY_LABELS, DISPLAY_CATEGORY_ICONS, DISPLAY_CATEGORY_LABELS, FILTER_LABELS,
+  displayCategory, fetchSettings, groupNotifications, matchesFilter, saveSettings,
+  type NotificationDisplayCategory, type NotifCategory, type NotifFilter, type NotificationSettings,
 } from "@/lib/notifications/api";
 import {
   disablePush, enablePush, getPushState, isIos, isStandalone, sendTestPush,
   updatePushCategories, type PushState,
 } from "@/lib/notifications/push";
+import { Button } from "@/components/ui/button";
 
-const FILTERS: NotifFilter[] = ["todo", "urgent", "today", "overdue", "unread", "done", "all"];
+const FILTERS: NotifFilter[] = ["all", "urgent", "todo", "unread", "done"];
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as NotifCategory[];
+const DISPLAY_CATEGORIES = Object.keys(DISPLAY_CATEGORY_LABELS) as NotificationDisplayCategory[];
 
 const DELAY_FIELDS: { key: string; label: string; suffix: string }[] = [
   { key: "lead_untreated_hours", label: "Lead non traité après", suffix: "heures" },
@@ -45,7 +48,7 @@ export default function AdminNotifications() {
 
   const { items, stats, loading, error, read, change, readAll } = useCrmNotifications(allowed);
   const [filter, setFilter] = useState<NotifFilter>("todo");
-  const [category, setCategory] = useState<NotifCategory | "all">("all");
+  const [category, setCategory] = useState<NotificationDisplayCategory | "all">("all");
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
@@ -54,7 +57,7 @@ export default function AdminNotifications() {
   }, [isReady, roleLoading, user, isAdmin, navigate]);
 
   const visible = useMemo(
-    () => items.filter((n) => matchesFilter(n, filter) && (category === "all" || n.category === category)),
+    () => groupNotifications(items.filter((n) => matchesFilter(n, filter) && (category === "all" || displayCategory(n) === category))),
     [items, filter, category],
   );
 
@@ -74,59 +77,60 @@ export default function AdminNotifications() {
           <h1 className="min-w-0 font-display font-bold text-base inline-flex items-center gap-1.5 sm:text-lg">
             <Bell className="w-4 h-4 text-primary" /> Notifications
           </h1>
-          <button
+           <Button
+             type="button"
+             variant="ghost"
+             size="sm"
             onClick={readAll}
             disabled={stats.unread === 0}
             className="inline-flex min-h-11 shrink-0 items-center gap-1 px-2 text-xs font-display font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
-          >
+           >
             <CheckCheck className="w-3.5 h-3.5" /> Tout lire
-          </button>
+           </Button>
         </div>
       </header>
 
       <main className="container mx-auto max-w-4xl px-3 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
-        <div className="flex flex-wrap items-center gap-1.5 mb-3">
-          <KpiBadge icon="🔴" label="urgentes" value={stats.urgent} alert />
-          <KpiBadge icon="⏰" label="en retard" value={stats.overdue} alert />
-          <KpiBadge icon="📋" label="à traiter" value={stats.total} />
-          <KpiBadge icon="📅" label="aujourd'hui" value={stats.today} />
-          <KpiBadge icon="✉️" label="non lues" value={stats.unread} />
+         <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+           <KpiBadge label="Urgentes" value={stats.urgent} alert />
+           <KpiBadge label="À traiter" value={stats.total} />
+           <KpiBadge label="Non lues" value={stats.unread} />
+           <KpiBadge label="En retard" value={stats.overdue} alert />
         </div>
 
         <PushPanel />
 
         <div className="flex gap-1 overflow-x-auto pb-1.5 mb-1.5 -mx-3 px-3 sm:mx-0 sm:px-0">
           {FILTERS.map((f) => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`shrink-0 min-h-11 px-3 py-2 rounded-full text-xs font-display font-bold ${
-                filter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
+             <Button key={f} type="button" size="sm" variant={filter === f ? "default" : "secondary"} onClick={() => setFilter(f)}
+               className="shrink-0 min-h-11 text-xs">
               {FILTER_LABELS[f]}
-            </button>
+             </Button>
           ))}
         </div>
 
         <div className="flex gap-1 overflow-x-auto pb-1.5 mb-2 -mx-3 px-3 sm:mx-0 sm:px-0">
-          <button onClick={() => setCategory("all")}
-            className={`shrink-0 min-h-11 px-3 py-2 rounded-full text-xs font-display font-semibold ${
-              category === "all" ? "bg-foreground text-background" : "bg-secondary text-foreground"}`}>
+           <Button type="button" size="sm" variant={category === "all" ? "outline" : "ghost"} onClick={() => setCategory("all")}
+             className="shrink-0 min-h-11 text-xs">
             Toutes catégories
-          </button>
-          {CATEGORIES.map((c) => (
-            <button key={c} onClick={() => setCategory(c)}
-              className={`shrink-0 min-h-11 px-3 py-2 rounded-full text-xs font-display font-semibold ${
-                category === c ? "bg-foreground text-background" : "bg-secondary text-foreground"}`}>
-              {CATEGORY_ICONS[c]} {CATEGORY_LABELS[c]}
-              {stats.byCategory[c] > 0 && <span className="ml-1 opacity-70">({stats.byCategory[c]})</span>}
-            </button>
+           </Button>
+           {DISPLAY_CATEGORIES.map((c) => (
+             <Button type="button" size="sm" variant={category === c ? "outline" : "ghost"} key={c} onClick={() => setCategory(c)}
+               className="shrink-0 min-h-11 text-xs">
+               {DISPLAY_CATEGORY_ICONS[c]} {DISPLAY_CATEGORY_LABELS[c]}
+             </Button>
           ))}
         </div>
 
-        <button
+         <Button
+           type="button"
+           variant="ghost"
+           size="sm"
           onClick={() => setShowSettings((v) => !v)}
-          className="mb-2 min-h-11 px-1 text-xs font-display font-bold text-primary"
+           className="mb-2 min-h-11 px-2 text-xs"
         >
-          {showSettings ? "Masquer les réglages" : "Réglages des alertes et délais"}
-        </button>
+           <Settings2 className="h-4 w-4" /> Réglages des alertes <ChevronDown className={`h-4 w-4 transition-transform ${showSettings ? "rotate-180" : ""}`} />
+         </Button>
         {showSettings && <SettingsPanel />}
 
         {error && (
@@ -144,8 +148,8 @@ export default function AdminNotifications() {
               <p className="text-xs text-muted-foreground font-body">Aucune notification ne correspond à ce filtre.</p>
             </div>
           )}
-          {visible.map((n) => (
-            <NotificationItem key={n.id} n={n} onRead={read} onChange={change} />
+           {visible.map((group) => (
+             <NotificationItem key={group.key} n={group.latest} activityCount={group.items.length} onRead={read} onChange={change} />
           ))}
         </div>
       </main>
@@ -153,15 +157,15 @@ export default function AdminNotifications() {
   );
 }
 
-const KpiBadge = ({ icon, label, value, alert }: { icon: string; label: string; value: number; alert?: boolean }) => (
-  <span
-    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-display font-bold ${
+const KpiBadge = ({ label, value, alert }: { label: string; value: number; alert?: boolean }) => (
+  <div
+    className={`rounded-lg border px-3 py-3 font-display ${
       alert && value > 0 ? "border-destructive/40 bg-destructive/5 text-destructive" : "border-border bg-card text-foreground"
     }`}
   >
-    <span aria-hidden>{icon}</span>
-    {value} <span className="font-semibold text-muted-foreground">{label}</span>
-  </span>
+    <strong className="block text-xl leading-none">{value}</strong>
+    <span className="mt-1 block text-xs font-semibold text-muted-foreground">{label}</span>
+  </div>
 );
 
 /* ------------------ PUSH iPHONE ------------------ */

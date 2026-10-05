@@ -11,7 +11,10 @@ export type NotifStatus = "unread" | "read" | "in_progress" | "done" | "archived
 export type NotifPriority = "urgente" | "importante" | "normale" | "information";
 export type NotifCategory =
   | "lead" | "relance" | "soumission" | "livraison"
-  | "paiement" | "facturation" | "calendrier" | "site" | "alerte";
+  | "paiement" | "facturation" | "calendrier" | "site" | "alerte" | "flotte";
+
+export type NotificationDisplayCategory =
+  | "vrac" | "remblai" | "dompes" | "transport" | "soumissions" | "systeme";
 
 export interface CrmNotification {
   id: string;
@@ -47,12 +50,66 @@ export const CATEGORY_LABELS: Record<NotifCategory, string> = {
   calendrier: "Calendrier",
   site: "Dompes / sites",
   alerte: "Alertes importantes",
+  flotte: "Flotte",
 };
 
 export const CATEGORY_ICONS: Record<NotifCategory, string> = {
   lead: "👥", relance: "💬", soumission: "📄", livraison: "🚚",
   paiement: "💰", facturation: "🧾", calendrier: "📅", site: "📍", alerte: "⚠️",
+  flotte: "🛠️",
 };
+
+export const DISPLAY_CATEGORY_LABELS: Record<NotificationDisplayCategory, string> = {
+  vrac: "Vrac",
+  remblai: "Remblai",
+  dompes: "Dompes",
+  transport: "Transport",
+  soumissions: "Soumissions",
+  systeme: "Système",
+};
+
+export const DISPLAY_CATEGORY_ICONS: Record<NotificationDisplayCategory, string> = {
+  vrac: "◫",
+  remblai: "↧",
+  dompes: "⌖",
+  transport: "⇢",
+  soumissions: "◇",
+  systeme: "⚙",
+};
+
+/** Catégorie de présentation dérivée uniquement des références déjà enregistrées. */
+export function displayCategory(n: CrmNotification): NotificationDisplayCategory {
+  const haystack = [n.type, n.entity_type, n.action_url, n.title, n.body]
+    .filter(Boolean).join(" ").toLocaleLowerCase("fr-CA");
+  if (/dompe|dump|site_access|transport_request/.test(haystack)) return "dompes";
+  if (/remblai|fill/.test(haystack)) return "remblai";
+  if (/transport|voyage|trip|livraison|delivery|dispatch/.test(haystack)) return "transport";
+  if (/soumission|quote/.test(haystack) || n.category === "soumission") return "soumissions";
+  if (/vrac|mat[eé]riau|lead|submission|jsc_request/.test(haystack) || n.category === "lead") return "vrac";
+  return "systeme";
+}
+
+export interface NotificationGroup {
+  key: string;
+  latest: CrmNotification;
+  items: CrmNotification[];
+  unread: number;
+}
+
+/** Regroupe seulement les notifications qui référencent explicitement la même entité. */
+export function groupNotifications(rows: CrmNotification[]): NotificationGroup[] {
+  const groups = new Map<string, CrmNotification[]>();
+  sortNotifications(rows).forEach((n) => {
+    const key = n.entity_type && n.entity_id ? `${n.entity_type}:${n.entity_id}` : `notification:${n.id}`;
+    groups.set(key, [...(groups.get(key) ?? []), n]);
+  });
+  return Array.from(groups, ([key, items]) => ({
+    key,
+    latest: items[0],
+    items,
+    unread: items.filter((n) => n.status === "unread").length,
+  }));
+}
 
 export const PRIORITY_LABELS: Record<NotifPriority, string> = {
   urgente: "Urgente", importante: "Importante", normale: "Normale", information: "Information",
@@ -108,18 +165,20 @@ export function matchesFilter(n: CrmNotification, filter: NotifFilter) {
   }
 }
 
-/** Tri intelligent : urgent → en retard → aujourd'hui → nouveau → normal. */
+/** Hiérarchie visuelle : urgent → à traiter → non lu → récent → information. */
 export function sortNotifications(rows: CrmNotification[]) {
   return [...rows].sort((a, b) => {
-    const oa = isOverdue(a) ? 0 : 1;
-    const ob = isOverdue(b) ? 0 : 1;
-    if (PRIORITY_RANK[a.priority] !== PRIORITY_RANK[b.priority]) {
-      return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
-    }
-    if (oa !== ob) return oa - ob;
-    const ta = isToday(a) ? 0 : 1;
-    const tb = isToday(b) ? 0 : 1;
-    if (ta !== tb) return ta - tb;
+    const rank = (n: CrmNotification) => {
+      if (isOpen(n) && n.priority === "urgente") return 0;
+      if (n.status === "in_progress" || isOverdue(n) || n.priority === "importante") return 1;
+      if (n.status === "unread") return 2;
+      if (n.priority === "information") return 4;
+      return 3;
+    };
+    const ra = rank(a);
+    const rb = rank(b);
+    if (ra !== rb) return ra - rb;
+    if (PRIORITY_RANK[a.priority] !== PRIORITY_RANK[b.priority]) return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 }
