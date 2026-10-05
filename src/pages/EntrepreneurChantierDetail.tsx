@@ -30,7 +30,7 @@ import {
 } from "@/lib/entrepreneur-app/chantier-context";
 import { buildHandoff, saveHandoff } from "@/lib/parcours/handoff";
 import SubmissionProvenance, { transportKindLabel } from "@/components/entrepreneur-app/SubmissionProvenance";
-import { needDirection, needsDumpSearch, possibleDuplicates } from "@/lib/parcours/besoin";
+import { needDirection, needsDumpSearch, possibleDuplicates } from "@/lib/parcours/sens-besoin";
 import { Plus, Map as MapIcon, Truck, Scale, MapPin, CalendarDays, Package } from "lucide-react";
 
 const toneFor = (status: string | null): "pending" | "active" | "done" | "refused" | "neutral" => {

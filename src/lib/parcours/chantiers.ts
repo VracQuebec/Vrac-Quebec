@@ -10,7 +10,7 @@
 // ============================================================
 import { supabase } from "@/integrations/supabase/client";
 import type { RpcClient } from "@/lib/parcours/validation";
-import { isApproximateLocation } from "@/lib/parcours/besoin";
+import { isApproximateLocation } from "@/lib/parcours/sens-besoin";
 import { loadMySubmissions, type MySubmission, type MySubmissionsResult } from "@/lib/parcours/mes-demandes";
 
 export interface Chantier {

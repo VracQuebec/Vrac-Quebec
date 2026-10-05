@@ -1,4 +1,4 @@
-import { isMapLink, parseCoordinates } from "@/lib/parcours/besoin";
+import { isMapLink, parseCoordinates } from "@/lib/parcours/sens-besoin";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { rankDumps, dumpRoleLabel } from "@/lib/entrepreneur/dump-ranking";
 import { BULK_TRUCK_TYPES } from "@/lib/trucks/catalog";

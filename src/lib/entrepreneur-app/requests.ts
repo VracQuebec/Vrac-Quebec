@@ -2,7 +2,7 @@ import type { MySubmission } from "@/lib/parcours/mes-demandes";
 import type { AccessRequestRow } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { statusBucket, statusMeta } from "@/lib/access-requests/status";
 import { lifecycleMeta } from "@/lib/entrepreneur-app/lifecycle";
-import { NEED_LABELS, needDirection, needsDumpSearch } from "@/lib/parcours/besoin";
+import { NEED_LABELS, needDirection, needsDumpSearch } from "@/lib/parcours/sens-besoin";
 import { transportKindLabel } from "@/components/entrepreneur-app/SubmissionProvenance";
 import {
   findChantierForSubmission,

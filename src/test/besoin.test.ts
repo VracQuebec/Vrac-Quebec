@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { needDirection, needsDumpSearch, isApproximateLocation, originDateNote, possibleDuplicates, parseCoordinates, reliableCoords, visibilityLabel } from "@/lib/parcours/besoin";
+import { needDirection, needsDumpSearch, isApproximateLocation, originDateNote, possibleDuplicates, parseCoordinates, reliableCoords, visibilityLabel } from "@/lib/parcours/sens-besoin";
 import { mapMySubmission, type MySubmission } from "@/lib/parcours/mes-demandes";
 
 const S = (id: string, extra: Partial<MySubmission> = {}, row: Record<string, unknown> = {}): MySubmission => ({

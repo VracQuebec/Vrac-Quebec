@@ -8,7 +8,7 @@ import {
   originDateNote,
   originLabel,
   visibilityLabel,
-} from "@/lib/parcours/besoin";
+} from "@/lib/parcours/sens-besoin";
 
 const Line = ({ icon, children, warn }: { icon: React.ReactNode; children: React.ReactNode; warn?: boolean }) => (
   <p className={`flex items-start gap-2 font-body text-xs ${warn ? "text-destructive" : "text-muted-foreground"}`}>

@@ -8,7 +8,7 @@ import { EmptyState, ErrorState, LoadingSkeleton } from "@/components/entreprene
 import { ChantierCard } from "@/components/entrepreneur-app/ui";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { Search } from "lucide-react";
-import { NEED_LABELS, needDirection } from "@/lib/parcours/besoin";
+import { NEED_LABELS, needDirection } from "@/lib/parcours/sens-besoin";
 
 const FILTERS = [
   { key: "all", label: "Tous" },

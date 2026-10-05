@@ -10,7 +10,7 @@ import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProv
 import { buildEntrepreneurRequests } from "@/lib/entrepreneur-app/requests";
 import { findChantierForSubmission } from "@/lib/parcours/chantiers";
 import SubmissionProvenance from "@/components/entrepreneur-app/SubmissionProvenance";
-import { possibleDuplicates } from "@/lib/parcours/besoin";
+import { possibleDuplicates } from "@/lib/parcours/sens-besoin";
 import AddToCrmButton from "@/components/entcrm/AddToCrmButton";
 import ServiceOffers from "@/components/ops/ServiceOffers";
 import TransportLifecyclePanel from "@/components/entrepreneur-app/TransportLifecyclePanel";

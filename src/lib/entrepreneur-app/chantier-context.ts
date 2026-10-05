@@ -7,7 +7,7 @@
 // Persistance : sessionStorage (comme le handoff du parcours).
 // ============================================================
 import type { Chantier } from "@/lib/parcours/chantiers";
-import { reliableCoords } from "@/lib/parcours/besoin";
+import { reliableCoords } from "@/lib/parcours/sens-besoin";
 
 export const ACTIVE_CHANTIER_KEY = "vq_chantier_actif_v1";
 
