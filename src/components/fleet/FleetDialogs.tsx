@@ -159,7 +159,7 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
         <DialogHeader><DialogTitle>{vehicle ? "Modifier le véhicule" : "Ajouter un véhicule"}</DialogTitle></DialogHeader>
         {dd.active && <DraftStatusBar {...dd.barProps} onDiscard={() => { dd.discard(); onOpenChange(false); }} discardConfirm="Abandonner cette préparation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." />}
         {dd.lostFiles.length > 0 && <p role="status" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Photos non enregistrées — à joindre de nouveau : {dd.lostFiles.join(", ")}</p>}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Nom / identifiant *"><Input value={f.name ?? ""} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
           <Field label="Numéro d'unité"><Input value={f.unit_number ?? ""} onChange={(e) => setF({ ...f, unit_number: e.target.value })} /></Field>
           <Field label="Catégorie d'unité *">
@@ -196,7 +196,7 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
           <Field label="Province"><Input value={f.province ?? ""} onChange={(e) => setF({ ...f, province: e.target.value })} /></Field>
           <Field label="Couleur"><Input value={f.color ?? ""} onChange={(e) => setF({ ...f, color: e.target.value })} /></Field>
 
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <button type="button" onClick={() => setSection(section === "config" ? null : "config")}
               className="text-sm font-body text-primary">{section === "config" ? "− Configuration" : "+ Configuration"}</button>
           </div>
@@ -212,7 +212,7 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
             </>
           )}
 
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <button type="button" onClick={() => setSection(section === "meca" ? null : "meca")}
               className="text-sm font-body text-primary">{section === "meca" ? "− Identification mécanique" : "+ Identification mécanique"}</button>
           </div>
@@ -232,7 +232,7 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
             </>
           )}
 
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <button type="button" onClick={() => setSection(section === "achat" ? null : "achat")}
               className="text-sm font-body text-primary">{section === "achat" ? "− Acquisition" : "+ Acquisition"}</button>
           </div>
@@ -245,16 +245,16 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
               <Field label="Vendeur"><Input value={f.vendor ?? ""} onChange={(e) => setF({ ...f, vendor: e.target.value })} /></Field>
               <Field label="Garantie"><Input value={f.warranty ?? ""} onChange={(e) => setF({ ...f, warranty: e.target.value })} /></Field>
               <Field label="Valeur actuelle"><Input inputMode="decimal" value={f.current_value ?? ""} onChange={(e) => setF({ ...f, current_value: e.target.value })} /></Field>
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <Field label="Notes d'acquisition"><Textarea rows={2} value={f.acquisition_notes ?? ""} onChange={(e) => setF({ ...f, acquisition_notes: e.target.value })} /></Field>
               </div>
             </>
           )}
 
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <Field label="Notes"><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
           </div>
-          {vehicle && <div className="col-span-2"><FleetDocuments ownerType="fleet_vehicle" ownerId={vehicle.id} /></div>}
+          {vehicle && <div className="sm:col-span-2"><FleetDocuments ownerType="fleet_vehicle" ownerId={vehicle.id} /></div>}
         </div>
         <DialogFooter>
           {vehicle && (
@@ -362,8 +362,8 @@ export function MaintenanceDialog({ open, onOpenChange, vehicles, vehicleId, rec
         <DialogHeader><DialogTitle>{record ? "Modifier l'entretien" : "Ajouter un entretien"}</DialogTitle></DialogHeader>
         {dd.active && <DraftStatusBar {...dd.barProps} onDiscard={() => { dd.discard(); onOpenChange(false); }} discardConfirm="Abandonner cette préparation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." />}
         {dd.lostFiles.length > 0 && <p role="status" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Photos non enregistrées — à joindre de nouveau : {dd.lostFiles.join(", ")}</p>}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
             <Field label="Véhicule *">
               <Select value={f.vehicle_id} onValueChange={(v) => setF({ ...f, vehicle_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Choisir" /></SelectTrigger>
@@ -375,7 +375,7 @@ export function MaintenanceDialog({ open, onOpenChange, vehicles, vehicleId, rec
           <Field label="Type d'entretien"><Input value={f.maintenance_type ?? ""} onChange={(e) => setF({ ...f, maintenance_type: e.target.value })} /></Field>
           <Field label="Kilométrage"><Input inputMode="numeric" value={f.odometer_km ?? ""} onChange={(e) => setF({ ...f, odometer_km: e.target.value })} /></Field>
           <Field label="Heures moteur"><Input inputMode="numeric" value={f.engine_hours ?? ""} onChange={(e) => setF({ ...f, engine_hours: e.target.value })} /></Field>
-          <div className="col-span-2"><Field label="Travail effectué"><Textarea rows={2} value={f.work_done ?? ""} onChange={(e) => setF({ ...f, work_done: e.target.value })} /></Field></div>
+          <div className="sm:col-span-2"><Field label="Travail effectué"><Textarea rows={2} value={f.work_done ?? ""} onChange={(e) => setF({ ...f, work_done: e.target.value })} /></Field></div>
           <Field label="Pièces remplacées"><Input value={f.parts_summary ?? ""} onChange={(e) => setF({ ...f, parts_summary: e.target.value })} /></Field>
           <Field label="Garage / fournisseur"><Input value={f.supplier ?? ""} onChange={(e) => setF({ ...f, supplier: e.target.value })} /></Field>
           <Field label="Coût ($)"><Input inputMode="decimal" value={f.cost ?? ""} onChange={(e) => setF({ ...f, cost: e.target.value })} /></Field>
@@ -383,13 +383,13 @@ export function MaintenanceDialog({ open, onOpenChange, vehicles, vehicleId, rec
           <Field label="Prochaine date (calendrier)"><Input type="date" value={f.next_due_date ?? ""} onChange={(e) => setF({ ...f, next_due_date: e.target.value })} /></Field>
           <Field label="Prochain kilométrage"><Input inputMode="numeric" value={f.next_due_km ?? ""} onChange={(e) => setF({ ...f, next_due_km: e.target.value })} /></Field>
           <Field label="Prochaines heures moteur"><Input inputMode="numeric" value={f.next_due_hours ?? ""} onChange={(e) => setF({ ...f, next_due_hours: e.target.value })} /></Field>
-          <div className="col-span-2 text-xs font-body text-muted-foreground">Rappel : alerte déclenchée avant l'échéance</div>
+          <div className="sm:col-span-2 text-xs font-body text-muted-foreground">Rappel : alerte déclenchée avant l'échéance</div>
           <Field label="Jours d'avance"><Input inputMode="numeric" value={f.alert_days_before ?? ""} onChange={(e) => setF({ ...f, alert_days_before: e.target.value })} /></Field>
           <Field label="Marge (km)"><Input inputMode="numeric" value={f.alert_km_margin ?? ""} onChange={(e) => setF({ ...f, alert_km_margin: e.target.value })} /></Field>
           <Field label="Marge (heures)"><Input inputMode="numeric" value={f.alert_hours_margin ?? ""} onChange={(e) => setF({ ...f, alert_hours_margin: e.target.value })} /></Field>
-          <div className="col-span-2"><Field label="Facture / document (lien)"><Input value={f.document_url ?? ""} onChange={(e) => setF({ ...f, document_url: e.target.value })} /></Field></div>
-          <div className="col-span-2"><Field label="Notes"><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
-          <div className="col-span-2">
+          <div className="sm:col-span-2"><Field label="Facture / document (lien)"><Input value={f.document_url ?? ""} onChange={(e) => setF({ ...f, document_url: e.target.value })} /></Field></div>
+          <div className="sm:col-span-2"><Field label="Notes"><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
+          <div className="sm:col-span-2">
             {record
               ? <FleetDocuments ownerType="fleet_maintenance" ownerId={record.id} label="Factures et documents" />
               : <PendingPhotos files={photos} onChange={setPhotos} label="Photos / facture (jointes à l'enregistrement)" />}
@@ -492,8 +492,8 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
         <DialogHeader><DialogTitle>{record ? "Modifier la réparation" : "Ajouter une réparation"}</DialogTitle></DialogHeader>
         {dd.active && <DraftStatusBar {...dd.barProps} onDiscard={() => { dd.discard(); onOpenChange(false); }} discardConfirm="Abandonner cette préparation ? Les saisies non enregistrées seront effacées; rien d'enregistré n'est modifié." />}
         {dd.lostFiles.length > 0 && <p role="status" className="rounded-md border border-amber-500/50 bg-amber-500/10 p-2 text-xs">Photos non enregistrées — à joindre de nouveau : {dd.lostFiles.join(", ")}</p>}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
             <Field label="Véhicule *">
               <Select value={f.vehicle_id} onValueChange={(v) => setF({ ...f, vehicle_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Choisir" /></SelectTrigger>
@@ -501,7 +501,7 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
               </Select>
             </Field>
           </div>
-          <div className="col-span-2"><Field label="Problème *"><Input value={f.problem ?? ""} onChange={(e) => setF({ ...f, problem: e.target.value })} /></Field></div>
+          <div className="sm:col-span-2"><Field label="Problème *"><Input value={f.problem ?? ""} onChange={(e) => setF({ ...f, problem: e.target.value })} /></Field></div>
           <Field label="Date signalée"><Input type="date" value={f.reported_on ?? ""} onChange={(e) => setF({ ...f, reported_on: e.target.value })} /></Field>
           <Field label="Kilométrage"><Input inputMode="numeric" value={f.odometer_km ?? ""} onChange={(e) => setF({ ...f, odometer_km: e.target.value })} /></Field>
           <Field label="Priorité">
@@ -522,9 +522,9 @@ export function RepairDialog({ open, onOpenChange, vehicles, vehicleId, record, 
           <Field label="Coût réel ($)"><Input inputMode="decimal" value={f.cost_actual ?? ""} onChange={(e) => setF({ ...f, cost_actual: e.target.value })} /></Field>
           <Field label="Pièces utilisées"><Input value={f.parts_summary ?? ""} onChange={(e) => setF({ ...f, parts_summary: e.target.value })} /></Field>
           <Field label="Garage / fournisseur"><Input value={f.supplier ?? ""} onChange={(e) => setF({ ...f, supplier: e.target.value })} /></Field>
-          <div className="col-span-2"><Field label="Description"><Textarea rows={2} value={f.description ?? ""} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field></div>
-          <div className="col-span-2"><Field label="Notes"><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
-          <div className="col-span-2">
+          <div className="sm:col-span-2"><Field label="Description"><Textarea rows={2} value={f.description ?? ""} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field></div>
+          <div className="sm:col-span-2"><Field label="Notes"><Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
+          <div className="sm:col-span-2">
             {record
               ? <FleetDocuments ownerType="fleet_repair" ownerId={record.id} label="Factures et documents" />
               : <PendingPhotos files={photos} onChange={setPhotos} label="Photos / facture (jointes à l'enregistrement)" />}
@@ -651,7 +651,7 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
               <SelectContent>{vehicles.map((v) => <SelectItem key={v.id} value={v.id}>{vehicleLabel(v)}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Chauffeur">
               <Select value={driver} onValueChange={setDriver}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -663,7 +663,7 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
             </Field>
             <Field label="Date"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Kilométrage"><Input inputMode="numeric" value={km} onChange={(e) => setKm(e.target.value)} /></Field>
             {usesEngineHours(current) && (
               <Field label="Heures moteur"><Input inputMode="numeric" value={hours} onChange={(e) => setHours(e.target.value)} /></Field>
@@ -672,15 +672,15 @@ export function InspectionDialog({ open, onOpenChange, vehicles, drivers, vehicl
 
           <div className="space-y-2">
             {points.map((p) => (
-              <div key={p.key} className="flex items-center justify-between gap-2">
+              <div key={p.key} className="flex flex-col items-stretch gap-2 min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between">
                 <span className="text-sm font-body">{p.label}</span>
-                <div className="flex gap-1">
+                <div className="grid grid-cols-3 gap-1">
                   {(["ok", "surveiller", "probleme"] as CheckValue[]).map((v) => (
                     <button
                       key={v}
                       type="button" aria-pressed={checks[p.key] === v}
                       onClick={() => setChecks({ ...checks, [p.key]: v })}
-                      className={`px-3 py-2 rounded-lg text-xs font-display font-semibold min-w-[64px] ${tone(v, checks[p.key] === v)}`}
+                      className={`min-h-11 min-w-0 px-2 py-2 rounded-lg text-xs font-display font-semibold ${tone(v, checks[p.key] === v)}`}
                     >
                       {CHECK_LABELS[v]}
                     </button>

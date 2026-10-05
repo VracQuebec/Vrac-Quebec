@@ -101,7 +101,7 @@ export default function AdminData() {
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
         ) : (
           <div className="overflow-x-auto bg-card rounded-lg border border-border">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[640px] text-sm">
               <thead className="bg-secondary">
                 <tr>{cols[tab].map((c) => <th key={c.key} className="text-left px-3 py-2 font-display font-bold text-xs uppercase">{c.label}</th>)}</tr>
               </thead>

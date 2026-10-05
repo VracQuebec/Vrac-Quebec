@@ -257,7 +257,7 @@ const NewLeadModal = ({ open, onClose, onCreated }: Props) => {
               placeholder="Adresse *"
               className={inputClass}
             />
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Input placeholder="Ville" value={city} onChange={(e) => setCity(e.target.value)} />
               <Input placeholder="Province" value={province} onChange={(e) => setProvince(e.target.value)} />
               <Input placeholder="Code postal" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} />

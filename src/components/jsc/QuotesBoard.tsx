@@ -198,31 +198,31 @@ export default function QuotesBoard() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <div className="relative min-w-[220px] flex-1">
+        <div className="relative min-w-0 flex-1 basis-full sm:min-w-[220px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder="Client, numéro, ville, notes…" value={search}
             onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[170px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les statuts</SelectItem>
             {QUOTE_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={material} onValueChange={setMaterial}>
-          <SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[190px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les matériaux</SelectItem>
             {materials.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Input type="date" className="w-[150px]" value={from} onChange={(e) => setFrom(e.target.value)} />
-        <Input type="date" className="w-[150px]" value={to} onChange={(e) => setTo(e.target.value)} />
+        <Input type="date" className="w-full sm:w-[150px]" value={from} onChange={(e) => setFrom(e.target.value)} />
+        <Input type="date" className="w-full sm:w-[150px]" value={to} onChange={(e) => setTo(e.target.value)} />
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               {["Numéro", "Date", "Client", "Matériau", "Quantité", "Estimation", "Statut", ""].map((h) => (

@@ -261,6 +261,12 @@ body,
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+  /* Une table dense doit déclencher un défilement contrôlé plutôt que
+     compresser ses colonnes jusqu'à rendre les mots verticaux. */
+  .table-scroll > table,
+  .overflow-x-auto > table {
+    min-width: max(100%, 40rem);
+  }
   /* Barre d'onglets défilante propre */
   .tabs-scroll {
     display: flex;

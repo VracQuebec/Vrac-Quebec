@@ -196,7 +196,7 @@ function CrmTable(props: {
 
   return (
     <div className="overflow-x-auto bg-card rounded-lg border border-border">
-      <table className="w-full text-sm">
+      <table className="w-full min-w-[760px] text-sm">
         <thead className="bg-secondary">
           <tr>
             <th className="w-8"></th>

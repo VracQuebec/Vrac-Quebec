@@ -497,7 +497,7 @@ export default function AdminFleet() {
               </select>
             </div>
             <div className="rounded-xl border border-border bg-card overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[760px] text-sm">
                 <thead className="bg-secondary/50">
                   <tr className="text-left text-xs font-display uppercase text-muted-foreground">
                     <th className="p-3">Véhicule</th><th className="p-3">Travail</th><th className="p-3">Date</th>

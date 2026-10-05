@@ -76,13 +76,13 @@ export default function DispatchDrawer({ delivery, deliveries, refs, companyId, 
     : `https://www.google.com/maps?q=${encodeURIComponent(delivery.delivery_address ?? delivery.city ?? "")}`;
 
   return (
-    <div className="fixed right-0 top-0 z-50 h-screen w-[440px] max-w-[96vw] bg-card border-l border-border shadow-2xl flex flex-col">
+    <div className="safe-top safe-bottom fixed right-0 top-0 z-50 flex h-dvh w-full max-w-full flex-col border-l border-border bg-card shadow-2xl sm:w-[440px]">
       <div className="px-4 py-3 border-b border-border flex items-center gap-2">
         <div className="flex-1 min-w-0">
           <div className="text-[11px] text-muted-foreground">{delivery.delivery_number ?? "Livraison"}</div>
           <div className="font-display font-bold truncate">{client?.name ?? "Client"}</div>
         </div>
-        <button onClick={onClose} className="p-1.5 rounded-md hover:bg-secondary"><X className="w-4 h-4" /></button>
+        <button aria-label="Fermer" onClick={onClose} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md hover:bg-secondary"><X className="w-4 h-4" /></button>
       </div>
       <div className="px-4 py-1.5 text-[11px] font-display font-bold uppercase text-white" style={{ background: st.color }}>{st.label}</div>
 
@@ -142,7 +142,7 @@ export default function DispatchDrawer({ delivery, deliveries, refs, companyId, 
           <Button size="sm" onClick={applySuggestion}>Appliquer la suggestion</Button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className={label}>Date planifiée</label>
             <input type="date" value={delivery.scheduled_date ?? ""} onChange={(e) => onUpdate(delivery.id, { scheduled_date: e.target.value || null })} className={input} />
@@ -178,7 +178,7 @@ export default function DispatchDrawer({ delivery, deliveries, refs, companyId, 
               {OPS_PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
           </div>
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <label className={label}>Lieu de chargement (confidentiel)</label>
             <select value={delivery.pickup_location_id ?? ""} onChange={(e) => onUpdate(delivery.id, { pickup_location_id: e.target.value || null })} className={input}>
               <option value="">— Aucun —</option>
