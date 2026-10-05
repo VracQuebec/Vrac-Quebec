@@ -1,0 +1,10 @@
+DROP POLICY IF EXISTS "r" ON public.pay_rates;
+CREATE POLICY "r" ON public.pay_rates FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "lecture" ON public.fin_tax_rates;
+CREATE POLICY "lecture" ON public.fin_tax_rates FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "rds_cat_read" ON public.rds_categories;
+CREATE POLICY "rds_cat_read" ON public.rds_categories FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "rds_codes_read" ON public.rds_codes;
+CREATE POLICY "rds_codes_read" ON public.rds_codes FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "mkt_sender_read" ON public.mkt_sender_identity;
+CREATE POLICY "mkt_sender_read" ON public.mkt_sender_identity FOR SELECT TO anon, authenticated USING (legal_name IS NOT NULL AND length(trim(legal_name)) > 0);
