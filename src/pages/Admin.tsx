@@ -46,8 +46,14 @@ import NewLeadModal, { LEAD_SOURCES } from "@/components/NewLeadModal";
 import { Database as DatabaseIcon } from "lucide-react";
 import { Search, CalendarClock } from "lucide-react";
 import TodayPanel from "@/components/crm/TodayPanel";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
-import { Activity, AlertTriangle as AlertTriangleCC } from "lucide-react";
+import { Activity, AlertTriangle as AlertTriangleCC, SlidersHorizontal, Wrench, Gauge, MoreHorizontal, RefreshCw } from "lucide-react";
 import TransportBanner from "@/components/TransportBanner";
 import DompesApprobationPanel from "@/components/admin/DompesApprobationPanel";
 import {
@@ -210,9 +216,8 @@ const Admin = () => {
   const [rechecking, setRechecking] = useState<{ done: number; total: number } | null>(null);
   const [showStatusManager, setShowStatusManager] = useState(false);
   const [showNewLead, setShowNewLead] = useState(false);
-  // Sur téléphone, les actions secondaires sont regroupées sous un bouton
-  // « Toutes les actions » : rien n'est retiré, tout reste accessible.
-  const [actionsOpen, setActionsOpen] = useState(false);
+  // Sur téléphone, les filtres sont regroupés dans un panneau dédié.
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const filterSource = __lc.v.filterSource; const setFilterSource = __lc.field("filterSource");
   const showArchivedOnMap = __lc.v.showArchivedOnMap; const setShowArchivedOnMap = __lc.field("showArchivedOnMap");
   const tab = __lc.v.tab; const setTab = __lc.field("tab");
@@ -667,6 +672,52 @@ const Admin = () => {
   const pageItems = clientMode
     ? filtered.slice((page - 1) * LEADS_PAGE_SIZE, page * LEADS_PAGE_SIZE)
     : serverRows;
+  const activeFilters = [
+    filterStatus !== "all" && `Statut : ${findStatus(leadStatuses, filterStatus)?.label ?? filterStatus}`,
+    filterType !== "all" && `Type : ${requestTypeMeta(filterType).label}`,
+    filterSource !== "all" && `Source : ${LEAD_SOURCES.find((s) => s.value === filterSource)?.label ?? filterSource}`,
+    filterTrips !== "all" && `Voyage : ${filterTrips}`,
+    filterPriority !== "all" && `Priorité : ${LEAD_PRIORITIES.find((p) => p.value === filterPriority)?.label ?? filterPriority}`,
+    filterMaterial !== "all" && `Matériau : ${MATERIAL_TYPES.find((m) => m.id === filterMaterial)?.label ?? filterMaterial}`,
+    filterAssigned !== "all" && `Entrepreneur : ${filterAssigned === "none" ? "Non assigné" : entrepreneursList.find((e) => e.user_id === filterAssigned)?.email ?? filterAssigned}`,
+    filterDateFrom && `Depuis : ${filterDateFrom}`,
+    filterDateTo && `Jusqu’au : ${filterDateTo}`,
+  ].filter(Boolean) as string[];
+  const clearFilters = () => {
+    setFilterStatus("all"); setFilterType("all"); setFilterSource("all"); setFilterTrips("all");
+    setFilterPriority("all"); setFilterMaterial("all"); setFilterAssigned("all");
+    setFilterDateFrom(""); setFilterDateTo("");
+  };
+  const filterFields = (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <select aria-label="Statut" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-body">
+        <option value="all">Tous les statuts</option>{leadStatuses.map((s) => <option key={s.id} value={s.value}>{s.label}</option>)}
+      </select>
+      <select aria-label="Type" value={filterType} onChange={(e) => setFilterType(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-body">
+        <option value="all">Tous les types</option>{REQUEST_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+      </select>
+      <select aria-label="Source" value={filterSource} onChange={(e) => setFilterSource(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-body">
+        <option value="all">Toutes les sources</option>{LEAD_SOURCES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+      </select>
+      <select aria-label="Voyage" value={filterTrips} onChange={(e) => setFilterTrips(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-body">
+        <option value="all">Tous les voyages</option><option value="1-5">1 à 5 voyages</option><option value="5-10">5 à 10 voyages</option><option value="10-25">10 à 25 voyages</option><option value="25-50">25 à 50 voyages</option><option value="50-100">50 à 100 voyages</option><option value="100+">100+ voyages</option>
+      </select>
+      <select aria-label="Priorité" value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-body">
+        <option value="all">Toutes les priorités</option>{LEAD_PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+      </select>
+      <select aria-label="Matériau" value={filterMaterial} onChange={(e) => setFilterMaterial(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-body">
+        <option value="all">Tous les matériaux</option>{MATERIAL_TYPES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+      </select>
+      <select aria-label="Entrepreneur" value={filterAssigned} onChange={(e) => setFilterAssigned(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-body">
+        <option value="all">Tous les entrepreneurs</option><option value="none">— Non assigné —</option>{entrepreneursList.map((e) => <option key={e.user_id} value={e.user_id}>{e.email}</option>)}
+      </select>
+      <label className="grid gap-1 text-xs text-muted-foreground"><span>Date de début</span><input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm text-foreground font-body" /></label>
+      <label className="grid gap-1 text-xs text-muted-foreground"><span>Date de fin</span><input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm text-foreground font-body" /></label>
+      <select aria-label="Tri" value={sort} onChange={(e) => setSort(e.target.value as LeadSort)} className="h-10 min-w-0 rounded-md border border-border bg-card px-3 text-sm font-semibold font-body">
+        {SORT_GROUPS.map((g) => <optgroup key={g.group} label={g.group}>{g.options.map((o) => <option key={o.value} value={o.value}>{`Trier : ${o.label}`}</option>)}</optgroup>)}
+      </select>
+    </div>
+  );
 
   if (!authReady || !user || roleLoading) {
     return <FullPageState title="Connexion en cours" message="Votre session est en vérification, la page va s’ouvrir automatiquement." />;
@@ -688,23 +739,37 @@ const Admin = () => {
 
       <main className="container mx-auto px-4 sm:px-6 py-8">
         
-        <div className="flex flex-wrap gap-2 mb-5">
-          <button onClick={() => setTab("leads")}
-            className={`px-4 py-2 rounded-lg text-sm font-display font-semibold ${tab === "leads" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
-            Demandes (CRM)
-          </button>
-          <button onClick={() => setTab("billing")}
-            className={`px-4 py-2 rounded-lg text-sm font-display font-semibold ${tab === "billing" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
-            Facturation
-          </button>
-          <button onClick={() => setTab("entrepreneurs")}
-            className={`px-4 py-2 rounded-lg text-sm font-display font-semibold ${tab === "entrepreneurs" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
-            Entrepreneurs
-          </button>
-          <button onClick={() => setShowUsers(true)}
-            className="px-4 py-2 rounded-lg text-sm font-display font-semibold bg-secondary text-foreground">
-            Comptes et approbations
-          </button>
+        <div className="mb-5 flex flex-wrap items-center gap-2 border-b border-border pb-4">
+          <Button variant={tab === "leads" ? "default" : "outline"} onClick={() => setTab("leads")}>
+            <List /> Demandes CRM
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button className="hidden md:inline-flex" variant="outline"><Settings /> Administration <ChevronDown /></Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-72">
+              <DropdownMenuLabel>Gestion courante</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => setTab("billing")}><Download /> Facturation et paiements</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setTab("entrepreneurs")}><Users /> Entrepreneurs</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setShowUsers(true)}><Users /> Comptes et approbations</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild><Link to="/admin/plateforme"><Settings /> Paramètres de la plateforme</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/admin/jsc"><Building2 /> Back office de l'entreprise</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/admin/configuration-soumissions"><Settings /> Configuration des soumissions</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/admin/finances"><Settings /> Finances</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/admin/crm"><Users /> CRM unifié</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/admin/operations"><Truck /> Opérations</Link></DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setShowStatusManager(true)}><Settings /> Statuts</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button className="hidden md:inline-flex" variant="outline"><Gauge /> Pilotage <ChevronDown /></Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-72">
+              <DropdownMenuItem asChild><Link to="/admin/centre-controle"><AlertTriangleCC /> Centre de contrôle</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/admin/centre-operations"><Truck /> Centre des opérations</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/admin/intelligence"><TrendingUp /> Intelligence d'affaires</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/admin/direction"><TrendingUp /> Direction</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/admin/supervision"><Activity /> Supervision</Link></DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {tab === "entrepreneurs" ? (
@@ -716,136 +781,75 @@ const Admin = () => {
           </>
         ) : (
         <>
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-          <div className="flex flex-wrap items-center gap-3">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
             <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
               Demandes ({filtered.length})
             </h1>
-            {REQUEST_TYPES.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => setFilterType(filterType === t.value ? "all" : t.value)}
-                title={`Afficher uniquement les demandes ${t.label}`}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-display font-bold border transition-all ${filterType === t.value ? t.color : "bg-card text-muted-foreground border-border hover:border-foreground/30"}`}
-              >
-                {t.label} : {filtered.filter((s) => normalizeRequestType(s.request_type) === t.value).length}
-              </button>
-            ))}
+            <p className="mt-1 text-sm text-muted-foreground">Recherchez, filtrez et traitez les demandes reçues.</p>
           </div>
-          <div className="grid w-full grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center [&>*]:justify-center sm:[&>*]:justify-start">
-            <div className="flex bg-secondary rounded-lg p-0.5">
-              <button onClick={() => setView("list")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-display font-semibold ${view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
+          <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
+            <div className="flex max-w-full overflow-x-auto rounded-lg bg-secondary p-0.5">
+              <button onClick={() => setView("list")} className={`flex min-h-10 shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-display font-semibold ${view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
                 <List className="w-4 h-4" /> Liste
               </button>
-              <button onClick={() => setView("map")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-display font-semibold ${view === "map" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
+              <button onClick={() => setView("map")} className={`flex min-h-10 shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-display font-semibold ${view === "map" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
                 <Map className="w-4 h-4" /> Carte
               </button>
-              <button onClick={() => setView("today")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-display font-semibold ${view === "today" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
+              <button onClick={() => setView("today")} className={`flex min-h-10 shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-display font-semibold ${view === "today" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
                 <CalendarClock className="w-4 h-4" /> Aujourd'hui
               </button>
             </div>
-
-            <button
-              onClick={() => setShowNewLead(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90"
-            >
+            <Button onClick={() => setShowNewLead(true)}>
               <Plus className="w-4 h-4" /> Ajouter un Lead
-            </button>
-            <p className="sm:hidden col-span-full text-[11px] font-display font-bold uppercase tracking-wide text-muted-foreground">Maintenance</p>
-            <button
-              type="button"
-              onClick={() => setActionsOpen((v) => !v)}
-              aria-expanded={actionsOpen}
-              className="sm:hidden flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold"
-            >
-              <Settings className="w-4 h-4" /> {actionsOpen ? "Masquer les actions" : "Toutes les actions"}
-            </button>
-            <div className={`${actionsOpen ? "grid" : "hidden"} grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:!contents [&>*]:justify-center`}>
-            <button
-              onClick={geocodeMissing}
-              disabled={!!geocoding}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-sm font-display font-semibold hover:opacity-90 disabled:opacity-60"
-            >
-              <MapPin className="w-4 h-4" />
-              {geocoding
-                ? `Géocodage ${geocoding.done}/${geocoding.total}…`
-                : "Géocoder adresses"}
-            </button>
-            <button
-              onClick={recheckAllAddresses}
-              disabled={!!rechecking || !!geocoding}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90 disabled:opacity-60"
-              title="Re-vérifie toutes les adresses et corrige celles mal positionnées (>250 m d'écart)"
-            >
-              <MapPin className="w-4 h-4" />
-              {rechecking
-                ? `Vérification ${rechecking.done}/${rechecking.total}…`
-                : "Re-vérifier adresses"}
-            </button>
-            <p className="sm:hidden col-span-full mt-2 text-[11px] font-display font-bold uppercase tracking-wide text-muted-foreground">Import et export</p>
-            <button onClick={exportCSVAdmin} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground text-background text-sm font-display font-semibold hover:opacity-90">
-              <Download className="w-4 h-4" /> CSV admin
-            </button>
-            <button onClick={exportCSVEntrepreneur} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
-              <Download className="w-4 h-4" /> CSV entrepreneur
-            </button>
-            <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm font-display font-semibold hover:opacity-90">
-              <Upload className="w-4 h-4" /> Importer CSV
-            </button>
-            <button onClick={() => setShowSheetImport(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-display font-semibold hover:opacity-90">
-              <Upload className="w-4 h-4" /> Importer Google Sheet
-            </button>
-            <button onClick={() => setShowExcelImport(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 text-white text-sm font-display font-semibold hover:opacity-90">
-              <Upload className="w-4 h-4" /> Importer Excel (.xlsx)
-            </button>
-            <p className="sm:hidden col-span-full mt-2 text-[11px] font-display font-bold uppercase tracking-wide text-muted-foreground">Navigation</p>
-            <Link to="/admin/donnees" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
-              <DatabaseIcon className="w-4 h-4" /> Données importées
-            </Link>
-            <Link to="/admin/crm" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90">
-              <Users className="w-4 h-4" /> CRM unifié
-            </Link>
-            <Link to="/admin/operations" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90">
-              <Truck className="w-4 h-4" /> Opérations
-            </Link>
-            <Link to="/admin/plateforme" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
-              <Settings className="w-4 h-4" /> Paramètres plateforme
-            </Link>
-            <Link to="/admin/jsc" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
-              <Building2 className="w-4 h-4" /> Back office de l'entreprise
-            </Link>
-            <Link to="/admin/configuration-soumissions" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
-              <Settings className="w-4 h-4" /> Configuration des soumissions
-            </Link>
-            <Link to="/admin/finances" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
-              <Settings className="w-4 h-4" /> Finances (assistance)
-            </Link>
-            <Link to="/admin/centre-controle" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-sm font-display font-semibold hover:opacity-90">
-              <AlertTriangleCC className="w-4 h-4" /> Centre de contrôle
-            </Link>
-            <Link to="/admin/centre-operations" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground text-background text-sm font-display font-semibold hover:opacity-90">
-              <Truck className="w-4 h-4" /> Centre des Opérations
-            </Link>
-            <Link to="/admin/intelligence" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90">
-              <TrendingUp className="w-4 h-4" /> Intelligence d'affaires
-            </Link>
-            <Link to="/admin/direction" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:opacity-90">
-              <TrendingUp className="w-4 h-4" /> Direction
-            </Link>
-            <Link to="/admin/supervision" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
-              <Activity className="w-4 h-4" /> Supervision
-            </Link>
-            <button onClick={fetchSubmissions} className="text-sm text-primary hover:underline font-body">Actualiser</button>
-            <button onClick={() => setShowStatusManager(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground border border-border text-sm font-display font-semibold hover:opacity-90">
-              <Settings className="w-4 h-4" /> Statuts
-            </button>
-            </div>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><Button variant="outline"><Wrench /> Outils <ChevronDown /></Button></DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                <DropdownMenuLabel>Importation</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => setShowImport(true)}><Upload /> Importer CSV</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setShowSheetImport(true)}><Upload /> Importer Google Sheets</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setShowExcelImport(true)}><Upload /> Importer Excel</DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/donnees"><DatabaseIcon /> Données importées</Link></DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Exportation</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={exportCSVAdmin}><Download /> Exporter CSV administrateur</DropdownMenuItem>
+                <DropdownMenuItem onSelect={exportCSVEntrepreneur}><Download /> Exporter CSV entrepreneur</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Adresses</DropdownMenuLabel>
+                <DropdownMenuItem disabled={!!geocoding} onSelect={geocodeMissing}><MapPin /> {geocoding ? `Géocodage ${geocoding.done}/${geocoding.total}…` : "Géocoder les adresses"}</DropdownMenuItem>
+                <DropdownMenuItem disabled={!!rechecking || !!geocoding} onSelect={recheckAllAddresses}><MapPin /> {rechecking ? `Vérification ${rechecking.done}/${rechecking.total}…` : "Re-vérifier les adresses"}</DropdownMenuItem>
+                <DropdownMenuItem onSelect={fetchSubmissions}><RefreshCw /> Actualiser la liste</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><Button className="md:hidden" variant="outline"><MoreHorizontal /> Plus</Button></DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                <DropdownMenuLabel>Administration</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => setTab("billing")}><Download /> Facturation et paiements</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setTab("entrepreneurs")}><Users /> Entrepreneurs</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setShowUsers(true)}><Users /> Comptes et approbations</DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/plateforme"><Settings /> Paramètres de la plateforme</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/jsc"><Building2 /> Back office de l'entreprise</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/configuration-soumissions"><Settings /> Configuration des soumissions</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/finances"><Settings /> Finances</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/crm"><Users /> CRM unifié</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/operations"><Truck /> Opérations</Link></DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setShowStatusManager(true)}><Settings /> Statuts</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Pilotage</DropdownMenuLabel>
+                <DropdownMenuItem asChild><Link to="/admin/centre-controle"><AlertTriangleCC /> Centre de contrôle</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/centre-operations"><Truck /> Centre des opérations</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/intelligence"><TrendingUp /> Intelligence d'affaires</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/direction"><TrendingUp /> Direction</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/supervision"><Activity /> Supervision</Link></DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
-        <div className="mb-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap [&>select]:w-full sm:[&>select]:w-auto">
-          <div className="relative col-span-full min-w-0 max-w-full sm:max-w-md sm:flex-1 sm:min-w-[220px]">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="relative min-w-0 flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <input
               type="text"
@@ -865,63 +869,23 @@ const Admin = () => {
               </button>
             )}
           </div>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
-            <option value="all">Tous statuts</option>
-            {leadStatuses.map((s) => <option key={s.id} value={s.value}>{s.label}</option>)}
-          </select>
-          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
-            <option value="all">Tous types</option>
-            {REQUEST_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-          <select value={filterSource} onChange={(e) => setFilterSource(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
-            <option value="all">Toutes sources</option>
-            {LEAD_SOURCES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
-          <select value={filterTrips} onChange={(e) => setFilterTrips(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
-            <option value="all">Tous voyages</option>
-            <option value="1-5">1 à 5 voyages</option>
-            <option value="5-10">5 à 10 voyages</option>
-            <option value="10-25">10 à 25 voyages</option>
-            <option value="25-50">25 à 50 voyages</option>
-            <option value="50-100">50 à 100 voyages</option>
-            <option value="100+">100+ voyages</option>
-          </select>
-          <select
-            aria-label="Trier les leads"
-            value={sort}
-            onChange={(e) => setSort(e.target.value as LeadSort)}
-            className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body font-semibold max-w-full min-w-0 max-h-[60vh]"
-          >
-            {SORT_GROUPS.map((g) => (
-              <optgroup key={g.group} label={g.group}>
-                {g.options.map((o) => (
-                  <option key={o.value} value={o.value}>{`Trier : ${o.label}`}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
-            <option value="all">Toutes priorités</option>
-            {LEAD_PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-          </select>
-          <select value={filterMaterial} onChange={(e) => setFilterMaterial(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
-            <option value="all">Tous matériaux</option>
-            {MATERIAL_TYPES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-          </select>
-          <select value={filterAssigned} onChange={(e) => setFilterAssigned(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-border bg-card font-body max-w-full min-w-0">
-            <option value="all">Tous entrepreneurs</option>
-            <option value="none">— Non assigné —</option>
-            {entrepreneursList.map((e) => <option key={e.user_id} value={e.user_id}>{e.email}</option>)}
-          </select>
-          <label className="flex items-center gap-1 text-xs text-muted-foreground">
-            Du
-            <input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="px-2 py-1 text-xs rounded-lg border border-border bg-card font-body" />
-          </label>
-          <label className="flex items-center gap-1 text-xs text-muted-foreground">
-            Au
-            <input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="px-2 py-1 text-xs rounded-lg border border-border bg-card font-body" />
-          </label>
+          <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <SheetTrigger asChild><Button variant="outline" className="md:hidden"><SlidersHorizontal /> Filtres{activeFilters.length ? ` (${activeFilters.length})` : ""}</Button></SheetTrigger>
+            <SheetContent side="right">
+              <SheetHeader><SheetTitle>Filtres des demandes</SheetTitle></SheetHeader>
+              <div className="mt-4">{filterFields}</div>
+              <div className="mt-auto grid gap-2 pt-4"><Button variant="outline" onClick={clearFilters} disabled={!activeFilters.length}>Effacer les filtres</Button><Button onClick={() => setFiltersOpen(false)}>Afficher les résultats</Button></div>
+            </SheetContent>
+          </Sheet>
         </div>
+        <div className="mb-4 hidden rounded-lg border border-border bg-card p-3 md:block">{filterFields}</div>
+        {activeFilters.length > 0 && (
+          <div className="mb-5 flex flex-wrap items-center gap-2" aria-label={`${activeFilters.length} filtres actifs`}>
+            <span className="text-xs font-semibold text-muted-foreground">Filtres ({activeFilters.length})</span>
+            {activeFilters.map((label) => <span key={label} className="max-w-full rounded-full bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">{label}</span>)}
+            <Button variant="ghost" size="sm" onClick={clearFilters}>Effacer</Button>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
