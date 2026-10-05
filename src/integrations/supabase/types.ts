@@ -24076,6 +24076,7 @@ export type Database = {
           is_test: boolean
           next_action: string | null
           next_reminder_at: string | null
+          priority: string | null
           received_at: string
           reminder_fired_at: string | null
           reminder_reason: string | null
@@ -24099,6 +24100,7 @@ export type Database = {
           is_test?: boolean
           next_action?: string | null
           next_reminder_at?: string | null
+          priority?: string | null
           received_at?: string
           reminder_fired_at?: string | null
           reminder_reason?: string | null
@@ -24122,6 +24124,7 @@ export type Database = {
           is_test?: boolean
           next_action?: string | null
           next_reminder_at?: string | null
+          priority?: string | null
           received_at?: string
           reminder_fired_at?: string | null
           reminder_reason?: string | null
