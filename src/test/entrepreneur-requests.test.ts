@@ -39,27 +39,18 @@ describe("dossiers entrepreneur", () => {
     expect(request.submission?.selectedSiteAddress).toBeNull();
   });
 
-  it("contextualise une demande dans son chantier calculé", () => {
-    const submissions = [submission({ address: "12 rue Test", city: "Lévis" })];
-    const chantiers = buildChantiers(submissions);
-    const [request] = buildEntrepreneurRequests(submissions, [], chantiers);
-    expect(request.chantierKey).toBe(chantiers[0].key);
-    expect(request.chantierLabel).toBe("Lévis");
-  });
-
-  it("ne rattache pas un transport par ville lorsque plusieurs chantiers sont possibles", () => {
-    const chantiers = buildChantiers([
-      submission({ id: "one", placeId: "place-one", city: "Lévis" }),
-      submission({ id: "two", placeId: "place-two", city: "Lévis" }),
-    ]);
-    expect(findChantierForTransport(chantiers, { site_city: "Lévis" })).toBeNull();
-  });
-
-  it("rattache un transport à une adresse exacte unique", () => {
+  it("associe un transport seulement par son lien explicite", () => {
     const chantiers = buildChantiers([
       submission({ id: "one", address: "12 rue Test", city: "Lévis" }),
-      submission({ id: "two", address: "18 rue Nord", city: "Lévis" }),
+      submission({ id: "two", address: "12 rue Test", city: "Lévis" }),
     ]);
-    expect(findChantierForTransport(chantiers, { site_address: "12 rue Test", site_city: "Lévis" })?.submissions[0].id).toBe("one");
+    expect(findChantierForTransport(chantiers, { site_address: "12 rue Test", site_city: "Lévis" })).toBeNull();
+    expect(findChantierForTransport(chantiers, { origin_submission_id: "two" })?.submissions[0].id).toBe("two");
+  });
+
+  it("demande d'accès avec ses propres camions : ni accès accordé ni transport commandé", () => {
+    const [r] = buildEntrepreneurRequests([], [{ id: "t1", status: "nouvelle", created_at: null, request_kind: "dump_access", transport_mode: "own_trucks" }]);
+    expect(r.natureLabel).toBe("Demande d'accès à une dompe · vos propres camions");
+    expect(r.nextAction).toBe("Demande envoyée — accès non encore accordé");
   });
 });
