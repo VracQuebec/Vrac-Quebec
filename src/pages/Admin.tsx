@@ -216,8 +216,7 @@ const Admin = () => {
   const [rechecking, setRechecking] = useState<{ done: number; total: number } | null>(null);
   const [showStatusManager, setShowStatusManager] = useState(false);
   const [showNewLead, setShowNewLead] = useState(false);
-  // Sur téléphone, les actions secondaires sont regroupées sous un bouton
-  // « Toutes les actions » : rien n'est retiré, tout reste accessible.
+  // Sur téléphone, les filtres sont regroupés dans un panneau dédié.
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filterSource = __lc.v.filterSource; const setFilterSource = __lc.field("filterSource");
   const showArchivedOnMap = __lc.v.showArchivedOnMap; const setShowArchivedOnMap = __lc.field("showArchivedOnMap");
