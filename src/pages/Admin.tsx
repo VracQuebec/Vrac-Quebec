@@ -745,7 +745,7 @@ const Admin = () => {
             <List /> Demandes CRM
           </Button>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button variant="outline"><Settings /> Administration <ChevronDown /></Button></DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild><Button className="hidden md:inline-flex" variant="outline"><Settings /> Administration <ChevronDown /></Button></DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-72">
               <DropdownMenuLabel>Gestion courante</DropdownMenuLabel>
               <DropdownMenuItem onSelect={() => setTab("billing")}><Download /> Facturation et paiements</DropdownMenuItem>
@@ -762,7 +762,7 @@ const Admin = () => {
             </DropdownMenuContent>
           </DropdownMenu>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button variant="outline"><Gauge /> Pilotage <ChevronDown /></Button></DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild><Button className="hidden md:inline-flex" variant="outline"><Gauge /> Pilotage <ChevronDown /></Button></DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-72">
               <DropdownMenuItem asChild><Link to="/admin/centre-controle"><AlertTriangleCC /> Centre de contrôle</Link></DropdownMenuItem>
               <DropdownMenuItem asChild><Link to="/admin/centre-operations"><Truck /> Centre des opérations</Link></DropdownMenuItem>
@@ -825,9 +825,25 @@ const Admin = () => {
             </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button className="md:hidden" variant="outline" size="icon" aria-label="Plus d'actions"><MoreHorizontal /></Button></DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuItem asChild><Link to="/admin/plateforme"><Settings /> Administration</Link></DropdownMenuItem>
-                <DropdownMenuItem asChild><Link to="/admin/centre-operations"><Gauge /> Pilotage</Link></DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-72">
+                <DropdownMenuLabel>Administration</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => setTab("billing")}><Download /> Facturation et paiements</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setTab("entrepreneurs")}><Users /> Entrepreneurs</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setShowUsers(true)}><Users /> Comptes et approbations</DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/plateforme"><Settings /> Paramètres de la plateforme</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/jsc"><Building2 /> Back office de l'entreprise</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/configuration-soumissions"><Settings /> Configuration des soumissions</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/finances"><Settings /> Finances</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/crm"><Users /> CRM unifié</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/operations"><Truck /> Opérations</Link></DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setShowStatusManager(true)}><Settings /> Statuts</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Pilotage</DropdownMenuLabel>
+                <DropdownMenuItem asChild><Link to="/admin/centre-controle"><AlertTriangleCC /> Centre de contrôle</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/centre-operations"><Truck /> Centre des opérations</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/intelligence"><TrendingUp /> Intelligence d'affaires</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/direction"><TrendingUp /> Direction</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/admin/supervision"><Activity /> Supervision</Link></DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
