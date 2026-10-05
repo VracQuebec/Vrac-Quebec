@@ -1,0 +1,2 @@
+- Chantiers entrepreneur : une demande = un dossier; aucune fusion ni association de transport sans lien explicite (origin_submission_id), le sens du besoin vient de parcours_direction/deliver_or_remove (src/lib/parcours/sens-besoin.ts) — une ville, un place_id approximatif ou une adresse identique ne prouvent pas un même projet.
+- Demande d'accès à une dompe ≠ transport : transport_requests.request_kind/transport_mode (propres camions ou transport demandé); l'envoi n'accorde pas l'accès — évite de présenter un accès ou un transport comme acquis.
