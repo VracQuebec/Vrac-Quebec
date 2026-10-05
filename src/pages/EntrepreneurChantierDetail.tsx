@@ -286,7 +286,7 @@ export default function EntrepreneurChantierDetail() {
           <div className="min-w-0 flex-1">
             <p className="truncate font-display text-base font-bold">{chantier.label}</p>
             <p className="truncate font-body text-xs text-muted-foreground">
-              {chantier.submissions.length} demande{chantier.submissions.length > 1 ? "s" : ""}
+              Demande du compte · non rattachée à un projet de l'entreprise
               {chantier.materials.length > 0 && ` · ${chantier.materials.slice(0, 2).join(", ")}`}
             </p>
           </div>
