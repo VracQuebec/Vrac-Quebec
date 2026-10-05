@@ -97,7 +97,9 @@ describe("Mes demandes — espace entrepreneur", () => {
     await loadLinkedTransportRequest(A, c);
     expect(c.calls.map((x) => x.fn)).toEqual([
       "get_my_submissions",
+      "get_my_submission_meta",
       "get_my_submissions",
+      "get_my_submission_meta",
       "get_submission_transport_request",
     ]);
   });
