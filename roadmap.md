@@ -222,3 +222,10 @@
 - [x] Corriger les chevauchements, troncatures importantes et débordements des composants communs et des écrans prioritaires.
 - [x] Valider les parcours entrepreneur connectés sur mobile, tablette et ordinateur, sans créer ni modifier de donnée métier.
 - [x] Produire le rapport final avant/après; conserver TEST seulement et ne rien publier.
+
+## QUALITÉ UI — audit responsive global après essai iPhone
+- [ ] Auditer les 142 routes, 62 fichiers de tableaux, menus, fenêtres et formulaires à 320, 360, 390, 430, 768, 1024, 1280 et 1920 px.
+- [ ] Corriger en priorité « Demandes d'accès aux dompes » avec une présentation mobile lisible, sans toucher aux données ni aux actions.
+- [ ] Corriger tous les problèmes critiques et majeurs de lisibilité, débordement, superposition et accessibilité des actions.
+- [ ] Revalider les écrans corrigés et les parcours principaux sans soumettre de formulaire ni modifier de donnée.
+- [ ] Produire le rapport final chiffré; conserver TEST seulement et ne rien publier.
