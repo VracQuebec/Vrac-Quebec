@@ -4,12 +4,9 @@
 // enregistrées et retournées par la RPC sécurisée `get_my_submissions`.
 // Lecture seule : aucune écriture, aucune création, aucune donnée inventée.
 //
-// Règle de regroupement (uniquement des clés fiables) :
-//   1. `place_id` Google (identifiant de lieu normalisé)  → clé « p:… »
-//   2. sinon adresse normalisée + ville                   → clé « a:… »
-//   3. sinon AUCUN regroupement : la demande reste seule  → clé « s:<id> »
-// Aucune clé artificielle (ville seule, proximité GPS…) n'est utilisée :
-// deux chantiers distincts d'une même ville ne doivent jamais fusionner.
+// Règle : aucune fusion sans lien explicite à un projet. Chaque demande
+// reste un dossier séparé (clé « s:<id> »); ville, place_id approximatif
+// et adresse identique ne suffisent jamais.
 // ============================================================
 import { supabase } from "@/integrations/supabase/client";
 import type { RpcClient } from "@/lib/parcours/validation";
@@ -48,13 +45,6 @@ export type ChantiersResult =
   | { state: "unauthorized" }
   | { state: "error"; message: string };
 
-const norm = (v: string | null | undefined): string =>
-  (v ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
 
 /**
  * Aucune fusion sans lien explicite : ni ville, ni centre de ville, ni
