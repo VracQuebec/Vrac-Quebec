@@ -107,7 +107,7 @@ const AdminTransportRequests = () => {
   };
 
   useEffect(() => {
-    const requestedId = searchParams.get("id") ?? searchParams.get("request");
+    const requestedId = searchParams.get("id") ?? searchParams.get("request") ?? searchParams.get("demande");
     const match = requestedId ? rows.find((row) => row.id === requestedId) : undefined;
     if (match && selected?.id !== match.id) void openDetail(match);
   }, [rows, searchParams]);
