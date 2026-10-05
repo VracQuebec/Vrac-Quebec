@@ -6,6 +6,7 @@
 // livraison, facture, événement) et fournissent un lien direct.
 // ============================================================
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAccessPriorities, toNotificationPriority } from "@/lib/access-requests/priority";
 
 export type NotifStatus = "unread" | "read" | "in_progress" | "done" | "archived";
 export type NotifPriority = "urgente" | "importante" | "normale" | "information";
@@ -124,7 +125,7 @@ const PRIORITY_RANK: Record<NotifPriority, number> = {
 };
 
 export type NotifFilter =
-  | "all" | "unread" | "todo" | "urgent" | "today" | "overdue" | "done";
+  | "all" | "unread" | "todo" | "urgent" | "today" | "overdue" | "done" | "info";
 
 export const FILTER_LABELS: Record<NotifFilter, string> = {
   all: "Toutes",
@@ -134,6 +135,7 @@ export const FILTER_LABELS: Record<NotifFilter, string> = {
   today: "Aujourd'hui",
   overdue: "En retard",
   done: "Terminées",
+  info: "Informations",
 };
 
 const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
@@ -160,6 +162,7 @@ export function matchesFilter(n: CrmNotification, filter: NotifFilter) {
     case "urgent": return isOpen(n) && n.priority === "urgente";
     case "today": return isToday(n) || isOverdue(n);
     case "overdue": return isOverdue(n);
+    case "info": return isOpen(n) && n.priority === "information";
     case "done": return n.status === "done" || n.status === "archived";
     default: return true;
   }
@@ -190,7 +193,24 @@ export async function fetchNotifications(limit = 200): Promise<CrmNotification[]
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
-  return (data ?? []) as unknown as CrmNotification[];
+  return applyAccessPriorities((data ?? []) as unknown as CrmNotification[]);
+}
+
+/**
+ * Une notification de demande d'accès reflète la priorité explicite fixée
+ * par l'administrateur (request_followups.priority). Rien n'est réécrit en
+ * base : seule la présentation est ajustée; sans priorité, celle d'origine reste.
+ */
+export async function applyAccessPriorities(rows: CrmNotification[]): Promise<CrmNotification[]> {
+  const ids = [...new Set(rows.filter((n) => n.entity_type === "transport_request" && n.entity_id).map((n) => n.entity_id!))];
+  if (!ids.length) return rows;
+  const map = await fetchAccessPriorities(ids);
+  return rows.map((n) => {
+    const ap = n.entity_type === "transport_request" && n.entity_id ? map[n.entity_id] : null;
+    if (!ap) return n;
+    const mapped = toNotificationPriority(ap);
+    return { ...n, priority: (mapped ?? n.priority) as NotifPriority, meta: { ...(n.meta ?? {}), access_priority: ap } };
+  });
 }
 
 export async function markRead(id: string) {
