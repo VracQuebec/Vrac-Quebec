@@ -74,7 +74,7 @@ const QuoteEmail = ({
 
           <Hr style={hr} />
           <Text style={footer}>
-            Une question ? 581-994-7717 ou 819-592-3495<br />
+            Une question ? 819-592-3495<br />
             Vrac Québec — vracquebec.ca
           </Text>
         </Section>

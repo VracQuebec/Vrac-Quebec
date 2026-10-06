@@ -41,7 +41,7 @@ ${PAGES.map(([p, d]) => `${p} — ${d}`).join("\n")}
 - Ne donne jamais de prix, de délai garanti, de nom de transporteur ni de fournisseur : le calcul se fait dans le parcours de soumission.
 - Aucun sol contaminé n'est accepté. Une « dompe » est une demande de remblai.
 - Ne demande jamais une information que le système peut calculer (camion, nombre de voyages, distance).
-- Téléphone Québec/Lévis : 581-994-7717. Répartition : 819-592-3495.
+- Téléphone public unique Vrac Québec : 819-592-3495.
 - Si la personne veut parler à quelqu'un, est frustrée, ou si tu ne sais pas, propose le bouton « Parler à une personne ».
 - N'invente rien. Ne promets aucune action que tu ne peux pas faire.`;
 
@@ -77,14 +77,14 @@ Deno.serve(async (req) => {
       if (error) throw error;
       session = data;
     }
-    if (session.msg_count >= 80) return json({ token: session.token, error: "Conversation trop longue : appelez-nous au 581-994-7717." }, 429);
+    if (session.msg_count >= 80) return json({ token: session.token, error: "Conversation trop longue : appelez-nous au 819-592-3495." }, 429);
 
     if (text) await sb.from("site_chat_messages").insert({ session_id: session.id, role: "visiteur", content: text });
     const patch: Record<string, unknown> = { last_at: new Date().toISOString(), msg_count: session.msg_count + 1 };
     if (audience) patch.audience = audience;
     if (wantHuman && session.mode === "ia") {
       patch.wants_human = true;
-      await sb.from("site_chat_messages").insert({ session_id: session.id, role: "systeme", content: "Un membre de l'équipe Vrac Québec est avisé et va se joindre à la conversation dès que possible. Pour une urgence : 581-994-7717." });
+      await sb.from("site_chat_messages").insert({ session_id: session.id, role: "systeme", content: "Un membre de l'équipe Vrac Québec est avisé et va se joindre à la conversation dès que possible. Pour une urgence : 819-592-3495." });
     }
     await sb.from("site_chat_sessions").update(patch).eq("id", session.id);
 
@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
     const messages = [{ role: "system", content: SYSTEM + (page ? `\nPage actuelle du visiteur : ${page}` : "") },
       ...(hist ?? []).reverse().filter((m: any) => m.role !== "systeme").map((m: any) => ({ role: m.role === "visiteur" ? "user" : "assistant", content: m.content }))];
 
-    let reply = "Désolé, je n'arrive pas à répondre pour le moment. Vous pouvez cliquer « Parler à une personne » ou appeler le 581-994-7717.";
+    let reply = "Désolé, je n'arrive pas à répondre pour le moment. Vous pouvez cliquer « Parler à une personne » ou appeler le 819-592-3495.";
     const key = Deno.env.get("LOVABLE_API_KEY");
     if (key) {
       const r = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
@@ -112,6 +112,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     if (e instanceof GuardError) return json({ error: e.message }, e.status);
     console.error("site-assistant", e instanceof Error ? e.message : e);
-    return json({ error: "Erreur temporaire. Réessayez ou appelez le 581-994-7717." }, 500);
+    return json({ error: "Erreur temporaire. Réessayez ou appelez le 819-592-3495." }, 500);
   }
 });

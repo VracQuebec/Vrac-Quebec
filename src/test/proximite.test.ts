@@ -132,7 +132,7 @@ describe("contrat de proximité", () => {
         // champs privés volontairement injectés : ils doivent être ignorés
         address: "123 rue Privée, app. 4",
         postal_code: "G1A 1A1",
-        phone: "581-994-7717",
+        phone: "418-555-0100",
         email: "prive@example.com",
         user_id: "uuid-prive",
       } as PublicLocalisation,

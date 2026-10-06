@@ -518,8 +518,8 @@ export function ctaDestinations(page: Pick<EditablePage, "city_slug">, ref: SeoR
   const list: CtaDestination[] = [
     { href: "#soumission", label: "Formulaire de demande de cette page" },
     { href: "/soumission", label: "Assistant de soumission" },
-    { href: "tel:+15819947717", label: "Appel téléphonique 581-994-7717" },
-    { href: "https://wa.me/15819947717", label: "WhatsApp 581-994-7717" },
+    { href: "tel:+18195923495", label: "Appel téléphonique 819-592-3495" },
+    { href: "https://wa.me/18195923495", label: "WhatsApp 819-592-3495" },
     { href: "/calculateur", label: "Calculateur de matériaux" },
     { href: "/materiaux", label: "Catalogue de matériaux" },
     { href: "/remblai", label: "Page remblai" },

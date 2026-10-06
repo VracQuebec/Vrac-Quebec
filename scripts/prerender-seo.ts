@@ -19,6 +19,7 @@
 
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "fs";
 import { dirname, resolve } from "path";
+import { normalizePublicSeoPage } from "../src/lib/public-phone";
 
 const SITE = "https://vracquebec.ca";
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://kenduhxscnynugpvktin.supabase.co";
@@ -161,7 +162,7 @@ function seoPageHead(page: SeoPage, city?: SeoCity, material?: SeoMaterial) {
       areaServed: city
         ? { "@type": "City", name: city.name, addressRegion: "QC", addressCountry: "CA" }
         : { "@type": "AdministrativeArea", name: "Québec" },
-      provider: { "@type": "Organization", name: "Vrac Québec", url: SITE, telephone: "+1-581-994-7717" },
+      provider: { "@type": "Organization", name: "Vrac Québec", url: SITE, telephone: "+1-819-592-3495" },
     },
     {
       "@context": "https://schema.org",
@@ -208,7 +209,7 @@ function seoPageBody(page: SeoPage, city?: SeoCity) {
         ${page.intro ? `<p class="mt-4 text-base md:text-lg text-muted-foreground font-body max-w-2xl">${esc(page.intro)}</p>` : ""}
         <p class="mt-6 flex flex-wrap gap-3">
           <a href="#soumission" class="inline-flex px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold">Obtenir une soumission gratuite</a>
-          <a href="tel:+15819947717" class="inline-flex px-6 py-3 rounded-lg border border-border font-display font-bold">581-994-7717</a>
+          <a href="tel:+18195923495" class="inline-flex px-6 py-3 rounded-lg border border-border font-display font-bold">819-592-3495</a>
         </p>
       </header>
       <article class="container mx-auto px-4 sm:px-6 pb-10 prose prose-neutral max-w-3xl">
@@ -484,7 +485,7 @@ function ctaBlock(citySuffix = "") {
   return `
       <p class="mt-6 flex flex-wrap gap-3">
         <a href="/soumission" class="inline-flex px-6 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold">Obtenir une soumission gratuite${citySuffix}</a>
-        <a href="tel:+15819947717" class="inline-flex px-6 py-3 rounded-lg border border-border font-display font-bold">581-994-7717</a>
+        <a href="tel:+18195923495" class="inline-flex px-6 py-3 rounded-lg border border-border font-display font-bold">819-592-3495</a>
       </p>`;
 }
 
@@ -685,7 +686,8 @@ export async function prerenderSeo(distDir: string) {
   const written: string[] = [];
   const skipped: string[] = [];
 
-  for (const page of pages) {
+  for (const storedPage of pages) {
+    const page = normalizePublicSeoPage(storedPage);
     // Aucun contenu réel -> pas de pré-rendu (on n'invente rien, le SPA prend le relais).
     if (textLength(page.content_html || "") < 300) {
       skipped.push(page.slug);

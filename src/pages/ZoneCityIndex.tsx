@@ -79,7 +79,7 @@ export default function ZoneCityIndex() {
     name: `Livraison de matériaux en vrac à ${city.name}`,
     serviceType: "Livraison de terre, gravier, pierre concassée et remblai",
     areaServed: { "@type": "City", name: city.name, addressRegion: "QC", addressCountry: "CA" },
-    provider: { "@type": "Organization", name: "Vrac Québec", url: SITE, telephone: "+1-581-994-7717" },
+    provider: { "@type": "Organization", name: "Vrac Québec", url: SITE, telephone: "+1-819-592-3495" },
     url,
   };
 

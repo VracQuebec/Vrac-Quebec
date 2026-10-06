@@ -255,7 +255,7 @@ const EntrepreneurCompte = () => {
             </section>
 
             <p className="px-1 font-body text-xs text-muted-foreground">
-              Une information ne peut pas être corrigée ici ? Appelez le 581-994-7717.
+              Une information ne peut pas être corrigée ici ? Appelez le 819-592-3495.
             </p>
 
             <button

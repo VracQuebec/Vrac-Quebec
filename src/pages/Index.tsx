@@ -348,14 +348,14 @@ const Index = () => {
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 px-2 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md md:hidden">
         <div className="no-scrollbar pointer-events-auto flex gap-1.5 overflow-x-auto">
           <a
-            href="tel:5819947717"
+            href="tel:+18195923495"
             className="flex min-h-11 min-w-[6.5rem] shrink-0 flex-col items-center justify-center rounded-full bg-primary px-3 py-1.5 font-display text-[11px] font-semibold leading-tight text-primary-foreground shadow-lg"
           >
             <span>📞 Appeler</span>
             <span className="text-[9px] opacity-90">Québec / Lévis</span>
           </a>
           <a
-            href="sms:15819947717?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
+            href="sms:18195923495?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
             className="flex min-h-11 min-w-[6.5rem] shrink-0 flex-col items-center justify-center rounded-full bg-foreground px-3 py-1.5 font-display text-[11px] font-semibold leading-tight text-background shadow-lg"
           >
             <span>💬 Texto</span>
@@ -369,13 +369,13 @@ const Index = () => {
             <span className="text-[9px] opacity-90">En 60 secondes</span>
           </a>
         <a
-          href="tel:8195923495"
+          href="tel:+18195923495"
           className="flex min-h-11 min-w-[11rem] shrink-0 items-center justify-center gap-1 rounded-full border border-border bg-card px-3 py-2 font-display text-[11px] font-semibold text-foreground shadow-lg"
         >
           📞 Répartition · 819-592-3495
         </a>
         <a
-          href="https://wa.me/15819947717?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
+          href="https://wa.me/18195923495?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
           target="_blank"
           rel="noopener noreferrer"
           className="flex min-h-11 min-w-[7rem] shrink-0 items-center justify-center gap-1 rounded-full bg-primary px-3 py-2 font-display text-xs font-semibold text-primary-foreground shadow-lg"
