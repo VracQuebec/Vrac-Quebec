@@ -5,6 +5,7 @@
 // chronologie, contexte de chantier.
 // Présentation uniquement : aucune logique métier ici.
 // ============================================================
+import { Button } from "@/components/ui/button";
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -39,15 +40,15 @@ export const AppCard = ({
   children: ReactNode;
 }) => {
   const accents: Record<string, string> = {
-    amber: "border-l-4 border-l-amber-500",
-    primary: "border-l-4 border-l-primary",
-    destructive: "border-l-4 border-l-destructive",
+    amber: "border-l-2 border-l-attention",
+    primary: "border-l-2 border-l-primary",
+    destructive: "border-l-2 border-l-destructive",
   };
-  const base = `block w-full text-left rounded-2xl border border-border bg-card p-4 transition-transform active:scale-[0.99] ${
+  const base = `block w-full text-left rounded-lg border border-border bg-card p-3 transition-colors hover:border-primary/30 ${
     accent ? accents[accent] : ""
   } ${className}`;
   if (to) return <Link to={to} className={base}>{children}</Link>;
-  if (onClick) return <button type="button" onClick={onClick} className={base}>{children}</button>;
+  if (onClick) return <Button variant="ghost" type="button" onClick={onClick} className={`${base} h-auto whitespace-normal hover:bg-secondary hover:text-foreground`}>{children}</Button>;
   return <div className={base}>{children}</div>;
 };
 
@@ -62,47 +63,17 @@ export interface QuickAction {
   primary?: boolean;
 }
 
-/* Une seule action dominante : la principale occupe toute la largeur,
-   les secondaires se partagent la ligne suivante. */
-export const QuickActions = ({ actions }: { actions: QuickAction[] }) => {
-  const primary = actions.find((a) => a.primary);
-  const rest = actions.filter((a) => a !== primary);
-
-  const render = (a: QuickAction, cls: string, inner: ReactNode) =>
-    a.to ? (
-      <Link key={a.label} to={a.to} className={cls}>{inner}</Link>
-    ) : (
-      <button key={a.label} type="button" onClick={a.onClick} className={cls}>{inner}</button>
-    );
-
-  return (
-    <div className="space-y-2.5">
-      {primary &&
-        render(
-          primary,
-          "flex min-h-[3.5rem] w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 font-display text-[15px] font-bold text-primary-foreground shadow-md shadow-primary/25 transition-transform duration-150 active:scale-[0.98]",
-          <>
-            <primary.icon className="h-5 w-5" />
-            {primary.label}
-          </>,
-        )}
-      {rest.length > 0 && (
-        <div className={`grid gap-2.5 ${rest.length >= 4 ? "grid-cols-2 sm:grid-cols-4" : rest.length === 3 ? "grid-cols-3" : rest.length === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
-          {rest.map((a) =>
-            render(
-              a,
-              "flex min-h-[3.5rem] flex-col items-center justify-center gap-1 rounded-2xl border border-border bg-card px-2 py-2 text-center transition-transform duration-150 active:scale-[0.97]",
-              <>
-                <a.icon className="h-5 w-5 text-primary" />
-                <span className="font-display text-[11px] font-semibold leading-tight">{a.label}</span>
-              </>,
-            ),
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
+/** Compact shortcuts: primary is an accent, never a full-width green block. */
+export const QuickActions = ({ actions }: { actions: QuickAction[] }) => (
+  <div className={`grid gap-1 ${actions.length === 4 ? "grid-cols-4" : "grid-cols-2 sm:grid-cols-4"}`}>
+    {actions.map(action => {
+      const Icon = action.icon;
+      const content = <><Icon className={`!h-5 !w-5 ${action.primary ? "text-primary" : "text-muted-foreground"}`} /><span className="text-wrap font-body text-xs leading-tight">{action.label}</span></>;
+      const cls = "h-auto min-h-16 min-w-0 flex-col gap-2 whitespace-normal rounded-lg px-1 py-2 text-foreground hover:bg-secondary hover:text-foreground";
+      return action.to ? <Button key={action.label} asChild variant="ghost" className={cls}><Link to={action.to}>{content}</Link></Button> : <Button key={action.label} variant="ghost" onClick={action.onClick} className={cls}>{content}</Button>;
+    })}
+  </div>
+);
 
 /* ---------------------------------------------------------- */
 /*  BottomSheet — feuille glissante générique                 */
@@ -119,7 +90,7 @@ export const BottomSheet = ({
   children: ReactNode;
 }) => (
   <Sheet open={open} onOpenChange={onOpenChange}>
-    <SheetContent side="bottom" className="max-h-[88vh] overflow-y-auto rounded-t-3xl px-4 pb-8" aria-describedby={undefined}>
+    <SheetContent side="bottom" className="ent-sheet rounded-t-lg px-4" aria-describedby={undefined}>
       <div className="mx-auto mt-1 mb-3 h-1.5 w-10 rounded-full bg-border" />
       <SheetTitle className="mb-4 font-display text-lg font-bold">{title}</SheetTitle>
       {children}
@@ -145,21 +116,21 @@ export const FilterSheet = ({
     <div className="space-y-5">{children}</div>
     <div className="mt-6 flex gap-2">
       {activeCount > 0 && (
-        <button
+        <Button variant="ghost"
           type="button"
           onClick={onReset}
-          className="inline-flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-border font-body text-sm"
+          className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-border font-body text-sm"
         >
           <X className="h-4 w-4" /> Réinitialiser
-        </button>
+        </Button>
       )}
-      <button
+      <Button variant="ghost"
         type="button"
         onClick={() => onOpenChange(false)}
-        className="min-h-12 flex-1 rounded-2xl bg-primary font-display text-sm font-bold text-primary-foreground"
+        className="min-h-11 flex-1 rounded-lg bg-primary font-display text-sm font-bold text-primary-foreground"
       >
         Voir les résultats
-      </button>
+      </Button>
     </div>
   </BottomSheet>
 );
@@ -178,8 +149,8 @@ export const ChantierContextBar = ({
   to?: string;
   onClear?: () => void;
 }) => (
-  <div className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-3">
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+  <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-card p-3">
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary">
       <HardHat className="h-5 w-5" />
     </span>
     <div className="min-w-0 flex-1">
@@ -188,14 +159,14 @@ export const ChantierContextBar = ({
       {detail && <p className="break-words font-body text-xs leading-snug text-muted-foreground">{detail}</p>}
     </div>
     {to && (
-      <Link to={to} aria-label="Ouvrir le chantier" className="flex h-10 w-10 items-center justify-center rounded-xl hover:bg-primary/10">
+      <Link to={to} aria-label="Ouvrir le chantier" className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-primary/10">
         <ChevronRight className="h-5 w-5 text-primary" />
       </Link>
     )}
     {onClear && (
-      <button type="button" onClick={onClear} aria-label="Quitter ce chantier" className="flex h-10 w-10 items-center justify-center rounded-xl hover:bg-primary/10">
+      <Button variant="ghost" type="button" onClick={onClear} aria-label="Quitter ce chantier" className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-primary/10">
         <X className="h-4 w-4 text-muted-foreground" />
-      </button>
+      </Button>
     )}
   </div>
 );
@@ -214,17 +185,14 @@ export const ChantierCard = ({
   detail: string;
   badge?: { label: string; tone: "pending" | "active" | "done" | "refused" | "neutral" };
 }) => (
-  <AppCard to={to}>
-    <div className="flex flex-wrap items-center gap-3 min-[400px]:flex-nowrap">
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-        <HardHat className="h-6 w-6" />
-      </span>
+  <AppCard to={to} className="p-3 sm:p-4">
+    <div className="flex items-center gap-3">
       <div className="min-w-0 flex-1">
-        <p className="break-words font-display text-base font-bold leading-snug">{label}</p>
-        <p className="break-words font-body text-xs leading-snug text-muted-foreground">{detail}</p>
+        <p className="break-words font-display text-sm font-semibold leading-snug">{label}</p>
+        <p className="mt-1 break-words font-body text-xs leading-relaxed text-muted-foreground">{detail}</p>
+        {badge && <div className="mt-2"><StatusBadge label={badge.label} tone={badge.tone} /></div>}
       </div>
-      {badge && <StatusBadge label={badge.label} tone={badge.tone} />}
-      <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
     </div>
   </AppCard>
 );
@@ -252,9 +220,9 @@ export const RequestCard = ({
   badge: { label: string; tone: "pending" | "active" | "done" | "refused" | "neutral" };
 }) => (
   <AppCard to={to}>
-    <div className="flex flex-wrap items-center gap-3 min-[400px]:flex-nowrap">
+    <div className="flex items-start gap-3">
       <span
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${
           kind === "acces" ? "bg-primary/10 text-primary" : "bg-secondary text-foreground"
         }`}
       >
@@ -266,11 +234,11 @@ export const RequestCard = ({
           <MapPin className="h-3 w-3 shrink-0" /> {place}
         </p>
       </div>
-      <span className="max-[399px]:ml-[3.25rem]"><StatusBadge label={badge.label} tone={badge.tone} /></span>
+      
     </div>
-    <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-3">
+    <div className="mt-2 flex items-center justify-between gap-2 pt-1">
       <div className="min-w-0">
-        <p className="font-body text-xs leading-snug text-muted-foreground">{footer}</p>
+        <div className="mb-1"><StatusBadge label={badge.label} tone={badge.tone} /></div><p className="font-body text-xs leading-snug text-muted-foreground">{footer}</p>
         <p className="font-display text-xs font-semibold leading-snug text-primary">{nextAction}</p>
         {extra && <p className="font-body text-xs leading-snug text-muted-foreground">{extra}</p>}
       </div>
@@ -308,14 +276,14 @@ export const SiteCard = ({
   requestDisabled?: boolean;
 }) => (
   <article
-    className={`overflow-hidden rounded-2xl border bg-card transition-all ${
-      selected ? "border-primary/60 shadow-[0_8px_24px_-16px_rgba(0,0,0,0.35)]" : "border-border/70"
+    className={`overflow-hidden rounded-lg border bg-card transition-all ${
+      selected ? "border-primary/60 " : "border-border/70"
     }`}
   >
-    <button type="button" onClick={onOpen} className="w-full text-left">
+    <Button variant="ghost" type="button" onClick={onOpen} className="block h-auto w-full whitespace-normal p-0 text-left hover:bg-secondary hover:text-foreground">
       <div className="flex flex-wrap items-center gap-3 p-4 min-[400px]:flex-nowrap">
         <span
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md"
           style={{ background: `${accentColor}22`, color: accentColor }}
         >
           <MapPin className="h-5 w-5" />
@@ -338,23 +306,23 @@ export const SiteCard = ({
           ))}
         </div>
       )}
-    </button>
+    </Button>
     <div className="card-actions px-4 pb-4 min-[421px]:flex-nowrap">
-      <button
+      <Button variant="ghost"
         type="button"
         onClick={onDetail}
-        className="min-h-11 flex-1 rounded-xl border border-border bg-background font-body text-xs"
+        className="min-h-11 flex-1 rounded-md border border-border bg-background font-body text-xs"
       >
         Voir la fiche
-      </button>
-      <button
+      </Button>
+      <Button variant="ghost"
         type="button"
         onClick={requestDisabled ? undefined : onRequest}
         disabled={requestDisabled}
-        className="min-h-11 flex-1 rounded-xl bg-primary font-display text-xs font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+        className="min-h-11 flex-1 rounded-md bg-secondary font-display text-xs font-semibold text-primary hover:bg-secondary hover:text-primary disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
       >
         {requestLabel}
-      </button>
+      </Button>
     </div>
   </article>
 );
@@ -375,9 +343,9 @@ export const Timeline = ({ events }: { events: TimelineEvent[] }) => (
       <li key={e.id} className="flex gap-3 pb-5 last:pb-0">
         <div className="flex flex-col items-center">
           {e.done ? (
-            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            <CheckCircle2 className="h-5 w-5 text-success" />
           ) : (
-            <Circle className="h-5 w-5 text-amber-500" />
+            <Circle className="h-5 w-5 text-attention" />
           )}
           {i < events.length - 1 && <span className="mt-1 w-px flex-1 bg-border" />}
         </div>
@@ -417,15 +385,15 @@ export const AppTabs = ({
     {tabs.map((t) => {
       const activeTab = t.id === value;
       return (
-        <button
+        <Button variant="ghost"
           key={t.id}
           role="tab"
           type="button"
           aria-selected={activeTab}
           onClick={() => onChange(t.id)}
-          className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-2xl px-4 font-display text-sm font-semibold transition-colors duration-150 ${
+          className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-4 font-display text-sm font-semibold transition-colors duration-150 ${
             activeTab
-              ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+              ? "bg-secondary text-primary"
               : "border border-border bg-card text-muted-foreground"
           }`}
         >
@@ -439,7 +407,7 @@ export const AppTabs = ({
               {t.count}
             </span>
           )}
-        </button>
+        </Button>
       );
     })}
   </div>

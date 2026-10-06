@@ -349,7 +349,7 @@ const Entrepreneur = () => {
         )}
 
         {/* Recherche : l'outil principal de l'écran */}
-        <section className="sticky top-[57px] z-20 -mx-4 bg-background/95 px-4 py-2 backdrop-blur-xl sm:mx-0 sm:rounded-2xl sm:px-2">
+        <section className="ent-sticky -mx-4 bg-background px-4 py-2 sm:mx-0 sm:rounded-lg sm:px-2">
           <div className="flex items-center gap-2">
             <div className="relative min-w-0 flex-1">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
