@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Renforcer une seule composition lumineuse de l’accueil : parcours visuel fonctionnel, activité réelle et action compacte; carte intouchable.
+- [x] Vérifier six formats, quatre raccourcis, Nouvelle demande non soumise, détail chantier, zones sécuritaires simulées et vert exact; 29 tests réussis, carte identique, aucune publication. Les requêtes non autorisées par le garde de lecture seule ont été bloquées; iPhone et clavier physiques restent à confirmer.
+
 - [x] Appliquer une seule signature industrielle à l’accueil : repères fonctionnels, entreprise affirmée, raccourcis monochromes et liste de chantiers.
 - [x] Vérifier six formats dont quatre iPhone, zones sécuritaires simulées, navigation, défilement et hauteur réduite avec champ focalisé; 29 tests réussis, carte strictement identique, aucun changement métier ni publication. Clavier et iPhone physiques à confirmer par l’utilisateur.
 
