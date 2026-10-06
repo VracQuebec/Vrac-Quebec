@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Direction artistique exclusivement accueil : composition visuelle affirmée, raccourcis et activité réelle; carte et fonctions inchangées.
+- [x] Vérifier avant/après, six formats, zones iPhone simulées, Plus et liens vers demandes/dossiers; 34 tests réussis, carte identique, TEST sans publication.
+
 - [x] Auditer et appliquer la finition ciblée de l’accueil mobile selon l’ordre demandé, carte intouchable.
 - [x] Finition visuelle en TEST avec #7DD520 inchangé, salutation courte, action compacte, raccourcis puis chantiers.
 - [x] Vérifier six formats : accueil, chantiers, dompes, recherche, filtres, transports, Plus et zones sécuritaires simulées; 34 tests réussis, sans écriture ni publication.
