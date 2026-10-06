@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Auditer puis transformer exclusivement l’accueil en cockpit mobile lumineux : signature de terrain, activité réelle intégrée, accès indépendants et chantiers prioritaires.
+- [ ] Vérifier les formats iPhone, safe areas simulées, liens, vert exact et intégrité de la carte; montrer le résultat réel en TEST sans publication ni écriture métier.
+
 - [x] Renforcer une seule composition lumineuse de l’accueil : parcours visuel fonctionnel, activité réelle et action compacte; carte intouchable.
 - [x] Vérifier six formats, quatre raccourcis, Nouvelle demande non soumise, détail chantier, zones sécuritaires simulées et vert exact; 29 tests réussis, carte identique, aucune publication. Les requêtes non autorisées par le garde de lecture seule ont été bloquées; iPhone et clavier physiques restent à confirmer.
 
