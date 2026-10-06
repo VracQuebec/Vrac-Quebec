@@ -44,7 +44,7 @@ export const AppCard = ({
     primary: "border-l-2 border-l-primary",
     destructive: "border-l-2 border-l-destructive",
   };
-  const base = `block w-full text-left rounded-lg border border-border bg-card p-3 transition-colors hover:border-primary/30 ${
+  const base = `block w-full text-left rounded-md bg-card p-3 transition-colors duration-150 hover:bg-secondary/30 motion-reduce:transition-none ${
     accent ? accents[accent] : ""
   } ${className}`;
   if (to) return <Link to={to} className={base}>{children}</Link>;
@@ -68,7 +68,7 @@ export const QuickActions = ({ actions }: { actions: QuickAction[] }) => (
   <div className={`grid gap-1 ${actions.length === 4 ? "grid-cols-4" : "grid-cols-2 sm:grid-cols-4"}`}>
     {actions.map(action => {
       const Icon = action.icon;
-      const content = <><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary/55"><Icon strokeWidth={1.6} className={`!h-[19px] !w-[19px] ${action.primary ? "text-primary" : "text-foreground/75"}`} /></span><span className="text-wrap font-body text-[11px] font-medium leading-tight">{action.label}</span></>;
+      const content = <><span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${action.primary ? "bg-primary text-primary-foreground" : "bg-secondary/30 text-foreground/75"}`}><Icon strokeWidth={1.6} className="!h-[19px] !w-[19px]" /></span><span className="text-wrap font-body text-[11px] font-medium leading-tight">{action.label}</span></>;
       const cls = "h-16 min-h-16 min-w-0 flex-col gap-1.5 whitespace-normal rounded-lg px-1 py-1 text-foreground transition-[background-color,transform] duration-150 hover:bg-secondary/50 hover:text-foreground active:scale-[0.97] active:bg-secondary/70 motion-reduce:transform-none motion-reduce:transition-none";
       return action.to ? <Button key={action.label} asChild variant="ghost" className={cls}><Link to={action.to}>{content}</Link></Button> : <Button key={action.label} variant="ghost" onClick={action.onClick} className={cls}>{content}</Button>;
     })}
@@ -198,7 +198,7 @@ export const ChantierCard = ({
         {city && <p className="mt-0.5 font-body text-xs text-muted-foreground">{city}</p>}
         {material && <p className="mt-1 break-words font-body text-xs leading-relaxed text-muted-foreground">{material}</p>}
         <p className="mt-1 break-words font-body text-[11px] leading-relaxed text-muted-foreground">{detail}</p>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">{badge && <StatusBadge label={badge.label} tone={badge.tone} />}{metadata && <p className="font-body text-[11px] text-muted-foreground">{metadata}</p>}</div>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">{badge && <StatusBadge label={badge.label} tone={badge.tone} signature={badge.tone === "active" || badge.tone === "pending"} />}{metadata && <p className="font-body text-[11px] text-muted-foreground">{metadata}</p>}</div>
       </div>
       <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.6} />
     </div>

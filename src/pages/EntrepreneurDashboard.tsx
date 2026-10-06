@@ -4,7 +4,7 @@ import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppS
 import { Button } from "@/components/ui/button";
 
 import { EmptyState, ErrorState, LoadingSkeleton, SectionHeader, StatusBadge } from "@/components/entrepreneur-app/AppStates";
-import { AppCard, QuickActions } from "@/components/entrepreneur-app/ui";
+import { QuickActions } from "@/components/entrepreneur-app/ui";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
 
@@ -33,7 +33,7 @@ export default function EntrepreneurDashboard() {
       <div className="mx-auto w-full max-w-4xl px-4 py-4 sm:px-6 lg:py-6">
         <header className="mb-3">
           <p className="mb-1 font-body text-sm text-muted-foreground">Bonjour,</p>
-          <h1 className="break-words font-display text-xl font-semibold leading-snug sm:text-2xl">{company}</h1>
+          <h1 className="break-words font-display text-xl font-semibold leading-snug">{company}</h1>
         </header>
 
         <QuickActions actions={[
@@ -44,8 +44,8 @@ export default function EntrepreneurDashboard() {
         ]} />
 
         <section className="mt-4">
-          <div className="mb-1 flex items-center justify-between gap-2"><h2 className="font-display text-base font-semibold">Activité récente</h2><Button asChild variant="ghost" className="min-h-11 gap-1.5 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"><Link to="/entrepreneur/chantiers">Tout voir <ArrowRight className="!h-3.5 !w-3.5" /></Link></Button></div>
-          {loading ? <LoadingSkeleton lines={3} /> : error ? <ErrorState onRetry={refresh} /> : recentChantiers.length === 0 ? <EmptyState title="Aucun chantier" message="Votre premier chantier apparaîtra ici dès votre demande." actionLabel="Nouvelle demande" actionTo="/demande-transport" /> : (
+           <div className="mb-1 flex items-center justify-between gap-2"><h2 className="font-body text-xs font-semibold uppercase">Mes chantiers</h2><Button asChild variant="ghost" className="min-h-11 gap-1.5 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"><Link to="/entrepreneur/chantiers">Tout voir <ArrowRight className="!h-3.5 !w-3.5" /></Link></Button></div>
+           {loading ? <LoadingSkeleton lines={3} compact /> : error ? <ErrorState onRetry={refresh} compact /> : recentChantiers.length === 0 ? <EmptyState compact title="Aucun chantier" message="Votre premier chantier apparaîtra ici dès votre demande." actionLabel="Nouvelle demande" actionTo="/demande-transport" /> : (
             <div className="divide-y divide-border/35">
               {recentChantiers.map(chantier => {
                 const summary = summarizeChantier(chantier);
@@ -55,8 +55,8 @@ export default function EntrepreneurDashboard() {
                     <p className="break-words font-display text-sm font-semibold leading-snug">{chantier.label}</p>
                     {chantier.city && chantier.label !== `${chantier.city} — lieu à préciser` && <p className="mt-0.5 font-body text-xs leading-snug text-muted-foreground">{chantier.city}</p>}
                     {(summary.material || summary.quantity) && <p className="mt-1 font-body text-xs leading-relaxed text-muted-foreground">{[summary.material, summary.quantity].filter(Boolean).join(" · ")}</p>}
-                    <div className="mt-1.5 flex items-center justify-between gap-3"><StatusBadge label={summary.statusLabel} tone={summary.tone} /><ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" strokeWidth={1.6} /></div>
-                    <p className="mt-0.5 font-body text-[10px] leading-relaxed text-muted-foreground">{[reference ? `Demande #${reference}` : null, relativeDate(summary.lastActivity)].filter(Boolean).join(" · ")}</p>
+                    <div className="mt-1.5 flex items-center justify-between gap-3"><StatusBadge label={summary.statusLabel} tone={summary.tone} signature={summary.tone === "active" || summary.tone === "pending"} /><ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" strokeWidth={1.6} /></div>
+                    <p className="mt-0.5 font-body text-[11px] leading-relaxed text-muted-foreground">{[reference ? `Demande #${reference}` : null, relativeDate(summary.lastActivity)].filter(Boolean).join(" · ")}</p>
                   </div>
                 </Link>;
               })}
@@ -68,9 +68,9 @@ export default function EntrepreneurDashboard() {
           </div>
         </section>
 
-        {attention.length > 0 && <section className="mt-3 border-t border-border/40 pt-4">
+        {attention.length > 0 && <section className="mt-3 pt-2">
           <SectionHeader title="À faire" />
-          <div className="space-y-2">{attention.map(request => <AppCard key={request.id} to={`/entrepreneur/demandes/${request.id}`} accent="amber"><p className="font-display text-sm font-semibold">{request.title}</p><p className="mt-1 font-body text-xs text-muted-foreground">{request.nextAction}</p></AppCard>)}</div>
+          <div className="divide-y divide-border/35">{attention.map(request => <Link key={request.id} to={`/entrepreneur/demandes/${request.id}`} className="flex min-h-11 items-center gap-3 py-3 transition-colors hover:bg-secondary/30 active:bg-secondary/50"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-attention" /><div className="min-w-0 flex-1"><p className="font-display text-sm font-semibold">{request.title}</p><p className="mt-1 font-body text-xs text-muted-foreground">{request.nextAction}</p></div><ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.6} /></Link>)}</div>
         </section>}
       </div>
     </EntrepreneurAppShell>
