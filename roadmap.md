@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Appliquer une seule signature industrielle à l’accueil : repères fonctionnels, entreprise affirmée, raccourcis monochromes et liste de chantiers.
+- [ ] Vérifier plusieurs formats iPhone, zones sécuritaires simulées, navigation, défilement et carte strictement identique; aucun changement métier ni publication.
+
 - [x] Direction artistique exclusivement accueil : composition visuelle affirmée, raccourcis et activité réelle; carte et fonctions inchangées.
 - [x] Vérifier avant/après, six formats, zones iPhone simulées, Plus et liens vers demandes/dossiers; 34 tests réussis, carte identique, TEST sans publication.
 
