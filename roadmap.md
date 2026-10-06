@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Dernière passe exclusivement accueil : entreprise dominante sans bloc noir, action verte, activité hiérarchisée, accès natifs et chantiers scannables; audit du vert sans toucher aux espaces exclus.
+- [ ] Vérifier l’accueil réel 393 × 852 et plusieurs formats, safe areas simulées, liens et défilement; fournir les captures consultables, sans publication ni écriture métier.
+
 - [x] Finaliser l’accueil mobile : action prioritaire, accès natifs, activité secondaire et liste de chantiers; aucune décoration ni modification métier.
 - [x] Vérifier visuellement six formats, safe areas simulées 59/34 px, quatre liens, Nouvelle demande non soumise, détail chantier, Plus, défilement et focus en hauteur réduite; 29 tests réussis, #7DD520 exact, carte/navigation/sources métier identiques. Captures réelles en TEST sans publication; conservation soumise au jugement visuel utilisateur, iPhone/clavier physiques non disponibles.
 
