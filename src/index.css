@@ -442,25 +442,10 @@ body,
 .ent-chip[aria-pressed="true"] { background: hsl(var(--primary)); color: hsl(var(--foreground)); }
 .ent-chip:hover { background: hsl(var(--secondary)); color: hsl(var(--foreground)); }
 .ent-chip[aria-pressed="true"]:hover { background: hsl(var(--primary)); }
-/* Home-only terrain signature; no route geometry, progress or business state. */
+/* Home-only presentation; shared shell owns navigation and safe areas. */
 .ent-home { letter-spacing: 0; }
-.ent-home-welcome { background: hsl(var(--secondary) / .28); }
-.ent-cockpit-count { position: relative; }
-.ent-cockpit-count::after { content: ""; display: block; width: 1.5rem; height: 4px; margin-top: 5px; background: hsl(var(--brand)); }
-.ent-terrain { position: absolute; pointer-events: none; right: 0; top: 4px; width: 88px; height: 152px; }
-.ent-terrain-track { position: absolute; top: 20px; left: 16px; width: 52px; height: 102px; border: 2px solid hsl(var(--border)); border-left: 0; border-radius: 0 18px 18px 0; }
-.ent-terrain-track::before { content: ""; position: absolute; width: 30px; height: 48px; left: -8px; top: 29px; border-left: 2px solid hsl(var(--brand)); border-bottom: 2px solid hsl(var(--brand)); border-radius: 0 0 0 12px; }
-.ent-terrain-node { position: absolute; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 8px; color: hsl(var(--foreground)); }
-.ent-terrain-node svg { width: 18px; height: 18px; }
-.ent-terrain-site { top: 3px; left: 0; border-color: hsl(var(--brand)); background: hsl(var(--brand)); }
-.ent-terrain-material { top: 57px; right: 4px; }
-.ent-terrain-destination { bottom: 11px; left: 0; }
-.ent-terrain-tick { position: absolute; right: 12px; bottom: 6px; width: 18px; height: 4px; background: hsl(var(--brand)); transform: rotate(-45deg); }
 .ent-home-create:hover { background: hsl(var(--brand)); }
-.ent-home-access { border-bottom: 2px solid hsl(var(--border) / .6); }
-.ent-home-access:hover { border-color: hsl(var(--brand)); }
-.ent-site-marker { clip-path: polygon(0 0, 75% 0, 100% 25%, 100% 100%, 0 100%); }
-.ent-site-status > span { font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.ent-site-status > span { font-size: 10px; font-weight: 500; }
 .ent-site-status > span > span { width: 7px; height: 7px; }
 @media (min-width: 1024px) { .ent-main { padding-bottom: 2rem; } }
 @media (prefers-reduced-motion: reduce) {
