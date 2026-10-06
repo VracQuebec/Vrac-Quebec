@@ -34,3 +34,18 @@ La présentation conditionnelle de l’accueil réutilise les libellés et état
 Les dimensions iPhone et les zones sécuritaires ont été simulées dans Chromium, pas vérifiées dans Safari sur un iPhone physique en PWA installée. Les interactions clavier système et Dynamic Island réelles restent à confirmer sur appareil. Les fenêtres métier Finances et flotte n’ont pas été ouvertes avec enregistrement de données; leur logique et leurs autorisations sont conservées. La navigation de tous les modules secondaires n’a pas fait l’objet d’une validation fonctionnelle exhaustive.
 
 Rien publié.
+
+## Passe de finition — 6 octobre 2026
+
+Analyse ciblée : header à 57 px hors zone système, espaces et séparations de l’accueil encore appuyés, menu Plus uniforme, carte Google sans clustering. La structure et les parcours existants sont conservés.
+
+- Header ramené à 49 px hors safe area (−8 px); logo non agrandi, zones tactiles de 44 px conservées, alignement des icônes affiné.
+- Raccourcis toujours à 64 px : icônes fines, support neutre discret, labels courts et retour tactile bref, mouvement réduit respecté.
+- Activité récente allégée : adresse/libellé existant, ville seulement si renseignée et non redondante, matériau/quantité existants, statut puis référence/date; aucune valeur inventée ni donnée de plus sur le dossier.
+- Menu Plus : Travail / Entreprise / Compte, sections séparées discrètement; Brouillons, Ma flotte et installation restent accessibles. Préférences mène à la page compte existante.
+- Carte entrepreneur uniquement : ajout de MarkerClusterer, regroupements neutres avec nombre réel et mention « dompes », décomposition au zoom. Source, filtrage, coordonnées, marqueurs individuels, sélection et carte admin inchangés. Nettoyage des groupes au changement de filtre et à la sortie.
+- Fermeture des feuilles entrepreneur protégée par la safe area haute et maintenue au-dessus du contenu défilant.
+
+Validation : accueil et carte sur 360×740, 393×852, 430×932, 768×1024, 1440×900 et 852×393 sans débordement horizontal; header 49 px, navigation basse 57 px, cibles 44 px. Zones simulées haut 59 px / bas 34 px : contenu dégagé (bas 731,75 px, navigation 761 px). Menu Plus défilant et fermeture accessible; filtre ouvert; marqueur individuel ouvrant sa fiche; clusters divisés après clic/zoom. Aucune erreur JavaScript observée. 32 tests existants réussis; compilation « build OK ».
+
+Les contrôles navigateur bloquent les écritures : aucun enregistrement effectué. Aucun backend, CRM, permission, authentification, flotte, SEO ou sitemap modifié. La nouvelle dépendance est strictement cartographique côté interface. La première capture carte prise trop tôt était blanche : validation reprise en attendant le rendu Google et confirmée visuellement. Les zones iPhone restent simulées dans Chromium; la finition et le clavier système doivent être confirmés par l’utilisateur sur son iPhone réel. Aucun test d’enregistrement dans les fenêtres métier. Rien publié.
