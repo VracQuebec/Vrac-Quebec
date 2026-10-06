@@ -31,7 +31,7 @@ export default function EntrepreneurDashboard() {
   const openRequests = requests.filter(r => r.filter === "active" || r.filter === "pending").length;
   const dayStats = [
     activeSites > 0 && { value: activeSites, label: activeSites > 1 ? "chantiers actifs" : "chantier actif", to: "/entrepreneur/chantiers" },
-    openRequests > 0 && { value: openRequests, label: openRequests > 1 ? "demandes en cours" : "demande en cours", to: "/entrepreneur/demandes" },
+    openRequests > 0 && { value: openRequests, label: openRequests > 1 ? "demandes" : "demande", to: "/entrepreneur/demandes" },
     attention.length > 0 && { value: attention.length, label: attention.length > 1 ? "actions requises" : "action requise", to: "/entrepreneur/demandes", accent: true },
   ].filter(Boolean) as { value: number; label: string; to: string; accent?: boolean }[];
   const todayLabel = new Date().toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long" });
