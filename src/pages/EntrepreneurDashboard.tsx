@@ -26,7 +26,7 @@ export default function EntrepreneurDashboard() {
   const requests = buildEntrepreneurRequests(submissions, accessRequests, chantiers);
   const company = profile?.company || profile?.contact_name || profile?.name || "votre entreprise";
   const recentChantiers = [...chantiers].sort((a, b) => (b.lastActivity ?? "").localeCompare(a.lastActivity ?? "")).slice(0, 4);
-  const attention = requests.filter((request) => request.nextAction === "Préciser le besoin (recevoir, évacuer ou acheter)").slice(0, 3);
+  const attention = requests.filter((request) => request.filter !== "done" && request.filter !== "cancelled" && request.nextAction === "Préciser le besoin (recevoir, évacuer ou acheter)").slice(0, 3);
 
   return (
     <EntrepreneurAppShell title="Accueil" backTo={null}>
@@ -53,7 +53,7 @@ export default function EntrepreneurDashboard() {
                 return <Link key={chantier.key} to={`/entrepreneur/chantiers/${encodeURIComponent(chantier.key)}`} className="flex items-center gap-3 py-4 transition-colors hover:bg-secondary/40">
                   <div className="min-w-0 flex-1">
                     <p className="break-words font-display text-sm font-semibold leading-snug">{chantier.label}</p>
-                    <p className="mt-1 font-body text-xs leading-relaxed text-muted-foreground">{summary.material || "Matériau à confirmer"} · {summary.quantity || "Quantité à confirmer"}</p>
+                    {(summary.material || summary.quantity) && <p className="mt-1 font-body text-xs leading-relaxed text-muted-foreground">{[summary.material, summary.quantity].filter(Boolean).join(" · ")}</p>}
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[11px] text-muted-foreground"><StatusBadge label={summary.statusLabel} tone={summary.tone} /><span>{relativeDate(summary.lastActivity)}</span>{reference && <span>#{reference}</span>}</div>
                   </div>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />

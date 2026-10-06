@@ -123,16 +123,16 @@ export default function EntrepreneurFlotte() {
                 ["Enregistré", createdLabel(v).replace(/^Enregistré le /, "")],
               ];
               return (
-                <li key={v.id} className="rounded-2xl border border-border bg-card p-4">
+                <li key={v.id} className="rounded-lg border border-border bg-card p-4">
                   <div className="mb-3 flex items-start justify-between gap-2">
                     <h3 className="font-display text-base font-bold text-foreground">{categoryLabel(v.category)}</h3>
                     <span className={`rounded-full border px-2 py-0.5 font-body text-xs ${TONE_CLASS[ops.tone]}`}>{ops.label}</span>
                   </div>
                   <dl className="space-y-1 font-body text-sm">
                     {rows.filter(([, val]) => val).map(([k, val]) => (
-                      <div key={k} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-3">
+                      <div key={k} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-3 max-[360px]:grid-cols-1 max-[360px]:gap-0">
                         <dt className="text-muted-foreground">{k}</dt>
-                        <dd className="break-words text-right text-foreground">{val}</dd>
+                        <dd className="break-words text-right text-foreground max-[360px]:text-left">{val}</dd>
                       </div>
                     ))}
                   </dl>

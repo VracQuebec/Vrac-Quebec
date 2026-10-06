@@ -280,7 +280,7 @@ export const SiteCard = ({
       selected ? "border-primary/60 " : "border-border/70"
     }`}
   >
-    <Button variant="ghost" type="button" onClick={onOpen} className="w-full text-left">
+    <Button variant="ghost" type="button" onClick={onOpen} className="block h-auto w-full whitespace-normal p-0 text-left hover:bg-secondary hover:text-foreground">
       <div className="flex flex-wrap items-center gap-3 p-4 min-[400px]:flex-nowrap">
         <span
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md"
@@ -319,7 +319,7 @@ export const SiteCard = ({
         type="button"
         onClick={requestDisabled ? undefined : onRequest}
         disabled={requestDisabled}
-        className="min-h-11 flex-1 rounded-md bg-primary font-display text-xs font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+        className="min-h-11 flex-1 rounded-md bg-secondary font-display text-xs font-semibold text-primary hover:bg-secondary hover:text-primary disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
       >
         {requestLabel}
       </Button>
