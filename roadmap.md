@@ -1,7 +1,7 @@
 # Roadmap
 
-- [ ] Finaliser l’accueil mobile : action prioritaire, accès natifs, activité secondaire et liste de chantiers; aucune décoration ni modification métier.
-- [ ] Vérifier visuellement les formats iPhone, safe areas, liens, défilement, vert exact et empreintes protégées; montrer l’accueil réel en TEST sans publier.
+- [x] Finaliser l’accueil mobile : action prioritaire, accès natifs, activité secondaire et liste de chantiers; aucune décoration ni modification métier.
+- [x] Vérifier visuellement six formats, safe areas simulées 59/34 px, quatre liens, Nouvelle demande non soumise, détail chantier, Plus, défilement et focus en hauteur réduite; 29 tests réussis, #7DD520 exact, carte/navigation/sources métier identiques. Captures réelles en TEST sans publication; conservation soumise au jugement visuel utilisateur, iPhone/clavier physiques non disponibles.
 
 - [x] Auditer puis transformer exclusivement l’accueil en cockpit mobile lumineux : signature de terrain, activité réelle intégrée, accès indépendants et chantiers prioritaires.
 - [x] Vérifier six formats, safe areas simulées 59/34 px, quatre liens, Nouvelle demande sans soumission, détail chantier et Plus; 29 tests réussis, #7DD520 exact, empreintes carte/navigation/sources métier identiques, aucune écriture métier ni publication. Captures réelles iPhone; clavier iOS et appareil physique restent à confirmer. Le nombre de marqueurs n’a pas été revérifié dans cette session.
