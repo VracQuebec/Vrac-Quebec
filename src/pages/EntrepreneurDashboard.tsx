@@ -23,7 +23,7 @@ export default function EntrepreneurDashboard() {
   const { loading, error, submissions, accessRequests, chantiers, refresh } = useEntrepreneurData();
 
   const requests = buildEntrepreneurRequests(submissions, accessRequests, chantiers);
-  const company = profile?.company || profile?.contact_name || profile?.name || "votre entreprise";
+  const company = profile?.company || profile?.contact_name || profile?.name;
   const recentChantiers = [...chantiers].sort((a, b) => (b.lastActivity ?? "").localeCompare(a.lastActivity ?? "")).slice(0, 4);
   const attention = requests.filter((request) => request.filter !== "done" && request.filter !== "cancelled" && request.nextAction === "Préciser le besoin (recevoir, évacuer ou acheter)").slice(0, 3);
 
@@ -42,11 +42,11 @@ export default function EntrepreneurDashboard() {
       <div className="ent-home mx-auto w-full max-w-4xl pb-4">
         <section aria-label="Accueil" className="px-5 pb-6 pt-5 sm:px-8 sm:pt-7">
           <p className="font-body text-sm font-medium text-muted-foreground">Bonjour,</p>
-          <h1 className="mt-1 max-w-full break-words font-display text-[32px] font-extrabold uppercase leading-[1.15] sm:text-4xl">{company}</h1>
+          <h1 className="mt-1 max-w-full break-words font-display text-[32px] font-extrabold uppercase leading-[1.15] sm:text-4xl">{company || <span aria-label="Identité de l’entreprise en chargement" className="inline-block h-9 w-48 max-w-full rounded bg-muted" />}</h1>
           <p className="mt-3 font-body text-[11px] font-medium text-muted-foreground">Aujourd’hui · {today}</p>
         </section>
 
-        {!loading && !error && <section aria-label="Activité" className="relative overflow-hidden bg-foreground px-5 pb-7 pt-5 text-background sm:px-8">
+        {!loading && !error && <section aria-label="Activité" className="relative overflow-hidden bg-foreground px-5 pb-5 pt-4 text-background sm:px-8">
           <div className="flex items-center gap-4">
             <h2 className="font-body text-[10px] font-bold uppercase text-background/60">Activité</h2>
             <div aria-hidden className="relative h-3 flex-1 border-b border-background/15">
@@ -56,16 +56,16 @@ export default function EntrepreneurDashboard() {
               <span className="absolute -bottom-0.5 right-0 h-1 w-1 bg-primary" />
             </div>
           </div>
-          <div className="mt-5 grid grid-cols-3 gap-3">
+          <div className="mt-4 grid grid-cols-3 gap-3">
             {activity.map(stat => <Button asChild variant="ghost" key={stat.label} className="h-auto min-w-0 items-start justify-start rounded-none p-0 text-background hover:bg-transparent hover:text-background"><Link to={stat.to} aria-label={`${stat.value} ${stat.label}`} className="flex flex-col">
               <span className="flex items-start gap-1.5 font-display text-[52px] font-extrabold leading-none tabular-nums sm:text-[64px]">{pad(stat.value)}{stat.accent && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden />}</span>
-              <span className="mt-3 font-body text-[11px] font-medium text-background/70">{stat.label}</span>
+              <span className="mt-2 font-body text-[11px] font-medium text-background/70">{stat.label}</span>
             </Link></Button>)}
           </div>
         </section>}
 
-        <div className="px-5 pt-5 sm:px-8">
-          <Button asChild className="ent-home-create h-[52px] w-full justify-start gap-3 rounded-lg bg-primary px-4 font-display text-sm font-bold text-foreground shadow-none hover:bg-primary active:scale-[0.98] motion-reduce:transform-none"><Link to="/demande-transport"><Plus className="!h-5 !w-5" strokeWidth={2.3} />Nouvelle demande<ArrowRight className="ml-auto !h-4 !w-4" strokeWidth={2} /></Link></Button>
+        <div className="px-5 pt-3 sm:px-8">
+          <Button asChild variant="ghost" className="ent-home-create h-11 w-auto max-w-full justify-start rounded-lg p-0 font-display text-sm font-semibold text-foreground shadow-none hover:bg-transparent hover:text-foreground active:scale-[0.98] motion-reduce:transform-none"><Link to="/demande-transport"><span className="flex h-[38px] max-w-full items-center gap-2 rounded-lg bg-primary px-3"><Plus className="!h-4 !w-4" strokeWidth={2.3} />Nouvelle demande<ArrowRight className="ml-4 !h-4 !w-4" strokeWidth={2} /></span></Link></Button>
         </div>
 
         <nav aria-label="Accès rapides" className="grid grid-cols-4 gap-1 px-4 pb-1 pt-4 sm:px-7">
