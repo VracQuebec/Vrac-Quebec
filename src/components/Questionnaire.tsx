@@ -317,13 +317,13 @@ const Questionnaire = ({
           <p className="text-sm text-muted-foreground mb-4">Passez en priorité 👇</p>
           <div className="grid grid-cols-1 gap-3">
             <a
-              href="tel:8195923495"
+              href="tel:+18195923495"
               className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 transition-opacity"
             >
               📞 Appeler — 819-592-3495
             </a>
             <a
-              href="tel:8195923495"
+              href="tel:+18195923495"
               className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 transition-opacity"
             >
               📞 Appeler — 819-592-3495

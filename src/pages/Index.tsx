@@ -348,7 +348,7 @@ const Index = () => {
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 px-2 pb-[max(.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md md:hidden">
         <div className="no-scrollbar pointer-events-auto flex gap-1.5 overflow-x-auto">
           <a
-            href="tel:8195923495"
+            href="tel:+18195923495"
             className="flex min-h-11 min-w-[6.5rem] shrink-0 flex-col items-center justify-center rounded-full bg-primary px-3 py-1.5 font-display text-[11px] font-semibold leading-tight text-primary-foreground shadow-lg"
           >
             <span>📞 Appeler</span>
@@ -369,7 +369,7 @@ const Index = () => {
             <span className="text-[9px] opacity-90">En 60 secondes</span>
           </a>
         <a
-          href="tel:8195923495"
+          href="tel:+18195923495"
           className="flex min-h-11 min-w-[11rem] shrink-0 items-center justify-center gap-1 rounded-full border border-border bg-card px-3 py-2 font-display text-[11px] font-semibold text-foreground shadow-lg"
         >
           📞 Répartition · 819-592-3495

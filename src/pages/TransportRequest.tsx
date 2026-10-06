@@ -1420,7 +1420,7 @@ const TransportRequest = () => {
             ) : dumps.length === 0 ? (
               <div className="p-6 bg-card border border-border rounded-lg text-center">
                 <p className="text-sm font-semibold mb-2">Aucune dompe en attente de livraison ne correspond actuellement à votre recherche.</p>
-                <a href="tel:8195923495" className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
+                <a href="tel:+18195923495" className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
                   <Phone className="w-4 h-4" /> 819-592-3495
                 </a>
               </div>
@@ -1876,7 +1876,7 @@ const ConfirmationView = ({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
-        <a href="tel:8195923495" className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
+        <a href="tel:+18195923495" className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm">
           <Phone className="w-4 h-4" /> Appeler maintenant
         </a>
         <a
