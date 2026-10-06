@@ -9,7 +9,7 @@ import { formatMoney } from "@/lib/vrac/estimate";
 import type { PublicQuote } from "@/lib/jsc/engine";
 import type { SubmitAction, SubmitResult } from "@/lib/vrac/submit";
 
-const PHONE = "581-994-7717";
+const PHONE = "819-592-3495";
 
 /** Camion recommandé, sans jamais exposer d'information interne. */
 function truckLabel(quote: PublicQuote): string {

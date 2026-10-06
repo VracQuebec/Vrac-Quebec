@@ -317,10 +317,10 @@ const Questionnaire = ({
           <p className="text-sm text-muted-foreground mb-4">Passez en priorité 👇</p>
           <div className="grid grid-cols-1 gap-3">
             <a
-              href="tel:5819947717"
+              href="tel:8195923495"
               className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-sm hover:opacity-90 transition-opacity"
             >
-              📞 Appeler — 581-994-7717
+              📞 Appeler — 819-592-3495
             </a>
             <a
               href="tel:8195923495"
@@ -329,13 +329,13 @@ const Questionnaire = ({
               📞 Appeler — 819-592-3495
             </a>
             <a
-              href="sms:15819947717?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
+              href="sms:18195923495?body=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
               className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 border-foreground text-foreground font-display font-semibold text-sm hover:bg-foreground/5 transition-colors"
             >
               💬 Envoyer un texto
             </a>
             <a
-              href="https://wa.me/15819947717?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
+              href="https://wa.me/18195923495?text=Bonjour%2C%20j%27aimerais%20avoir%20une%20soumission%20pour%20du%20mat%C3%A9riel%20en%20vrac."
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-[#25D366] text-white font-display font-semibold text-sm hover:opacity-90 transition-opacity"

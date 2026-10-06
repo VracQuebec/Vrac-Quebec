@@ -207,7 +207,7 @@ export default function SeoLandingPage() {
       "@type": "Organization",
       name: "Vrac Québec",
       url: SITE,
-      telephone: "+1-581-994-7717",
+      telephone: "+1-819-592-3495",
     },
   };
   const jsonLdBreadcrumb = {
@@ -293,14 +293,14 @@ export default function SeoLandingPage() {
             <Truck className="w-4 h-4" /> Obtenir une soumission gratuite
           </a>
           <a
-            href="tel:+15819947717"
+            href="tel:+18195923495"
             onClick={() => logSeoEvent(page.slug, "phone_click")}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-border bg-card text-foreground font-display font-bold hover:border-primary transition-colors"
           >
-            <Phone className="w-4 h-4" /> 581-994-7717
+            <Phone className="w-4 h-4" /> 819-592-3495
           </a>
           <a
-            href="https://wa.me/15819947717"
+            href="https://wa.me/18195923495"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => logSeoEvent(page.slug, "whatsapp_click")}

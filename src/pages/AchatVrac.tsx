@@ -415,7 +415,7 @@ function Recap({ draft, loading, error, manualReview, blockedReason, onFix }: {
             <br />
             {blockedReason ?? "Une information essentielle est manquante."}
             <br />
-            Corrigez cette information pour obtenir votre prix instantané, ou appelez-nous au 581-994-7717.
+            Corrigez cette information pour obtenir votre prix instantané, ou appelez-nous au 819-592-3495.
           </Notice>
           {onFix && (
             <Button onClick={onFix} className="w-full sm:w-auto">
