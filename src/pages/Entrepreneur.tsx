@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MarkerClusterer, SuperClusterAlgorithm } from "@googlemaps/markerclusterer";
+import { Button } from "@/components/ui/button";
 import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { supabase } from "@/integrations/supabase/client";
 import { getEligibleEntrepreneurDumpSites, crmDompeNumber } from "@/lib/entrepreneur/dompes";
@@ -13,7 +13,7 @@ import {
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
-import { ChantierContextBar, FilterSheet, SiteCard } from "@/components/entrepreneur-app/ui";
+import { BottomSheet, ChantierContextBar, FilterSheet, SiteCard } from "@/components/entrepreneur-app/ui";
 import {
   loadActiveChantier,
   prefillFromChantier,
@@ -106,7 +106,6 @@ const Entrepreneur = () => {
   const mapRef = useRef<google.maps.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Record<string, google.maps.Marker>>({});
-  const clustererRef = useRef<MarkerClusterer | null>(null);
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const navigate = useNavigate();
   const { user, isReady: authReady } = useAuthReady();
@@ -120,6 +119,7 @@ const Entrepreneur = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [detail, setDetail] = useState<EntLead | null>(null);
+  const [preview, setPreview] = useState<EntLead | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [globalView, setGlobalView] = useState(false);
   const [sortMode, setSortMode] = useState<"compatibility" | "availability">("compatibility");
@@ -236,68 +236,52 @@ const Entrepreneur = () => {
       }
       const map = mapRef.current;
       if (!map) return;
-      clustererRef.current?.clearMarkers();
-      clustererRef.current?.setMap(null);
       Object.values(markersRef.current).forEach((m) => m.setMap(null));
       markersRef.current = {};
 
       const bounds = new g.maps.LatLngBounds();
+      const tokens = getComputedStyle(containerRef.current.closest(".entrepreneur-workspace") ?? containerRef.current);
+      const brand = `hsl(${tokens.getPropertyValue("--primary").trim()})`;
+      const ink = `hsl(${tokens.getPropertyValue("--foreground").trim()})`;
+      const surface = `hsl(${tokens.getPropertyValue("--card").trim()})`;
+      const coincident = new Map<string, number>();
       geo.forEach((l) => {
         const av = availMeta(l.availability_status);
         const color = l.availability_status === "unavailable"
           ? "#9ca3af"
           : l.availability_status === "limited"
             ? "#ca8a04"
-            : MARKER_COLOR;
+            : brand;
         const label = dompeLabel(l);
         const fontSize = label.length <= 3 ? 12 : label.length <= 5 ? 10 : 9;
         const width = Math.max(30, 12 + label.length * 7);
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="30" viewBox="0 0 ${width} 30"><rect x="1" y="1" width="${width - 2}" height="28" rx="14" fill="${color}" stroke="white" stroke-width="3"/><text x="${width / 2}" y="15" dominant-baseline="central" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="800" font-size="${fontSize}" fill="white">${label.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text></svg>`;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="30" viewBox="0 0 ${width} 30"><rect x="1" y="1" width="${width - 2}" height="28" rx="8" fill="${color}" stroke="${surface}" stroke-width="2"/><text x="${width / 2}" y="15" dominant-baseline="central" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="600" font-size="${fontSize}" fill="${ink}">${label.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text></svg>`;
         const url = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
         if (l.latitude === null || l.longitude === null) return;
         const pos = { lat: l.latitude, lng: l.longitude };
+        // Offset the icon anchor only; the stored/map position never changes.
+        const positionKey = `${pos.lat},${pos.lng}`;
+        const duplicateIndex = coincident.get(positionKey) ?? 0;
+        coincident.set(positionKey, duplicateIndex + 1);
+        const angle = duplicateIndex * 2.399963229728653;
+        const radius = duplicateIndex === 0 ? 0 : Math.min(48, 14 * Math.sqrt(duplicateIndex));
         const m = new g.maps.Marker({
+          map,
           position: pos,
           opacity: l.availability_status === "unavailable" ? 0.6 : 1,
-          title: `${av.dot} ${av.label}`,
+          title: `Dompe #${label} — ${av.label}`,
           icon: {
             url,
             scaledSize: new g.maps.Size(width, 30),
-            anchor: new g.maps.Point(width / 2, 15),
+            anchor: new g.maps.Point(width / 2 - Math.cos(angle) * radius, 15 - Math.sin(angle) * radius),
           },
         });
         m.addListener("click", () => {
           setSelectedId(l.id);
-          setDetail(l);
+          setPreview(l);
         });
         markersRef.current[l.id] = m;
         bounds.extend(pos);
-      });
-      const tokens = getComputedStyle(containerRef.current.closest(".entrepreneur-workspace") ?? containerRef.current);
-      const surface = `hsl(${tokens.getPropertyValue("--card").trim()})`;
-      const ink = `hsl(${tokens.getPropertyValue("--foreground").trim()})`;
-      const outline = `hsl(${tokens.getPropertyValue("--border").trim()})`;
-      clustererRef.current = new MarkerClusterer({
-        map,
-        markers: Object.values(markersRef.current),
-        algorithm: new SuperClusterAlgorithm({ radius: 110, maxZoom: 20 }),
-        renderer: {
-          render: ({ count, position }) => {
-            const text = `${count} dompes`;
-            const width = Math.max(54, String(count).length * 8 + 24);
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="44"><rect x="1" y="1" width="${width - 2}" height="42" rx="12" fill="${surface}" stroke="${outline}" stroke-width="2"/><text x="${width / 2}" y="18" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="${ink}">${count}</text><text x="${width / 2}" y="32" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="${ink}">dompes</text></svg>`;
-            return new g.maps.Marker({
-              position,
-              title: `${text} — zoomer`,
-              zIndex: g.maps.Marker.MAX_ZINDEX + count,
-              icon: {
-                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-                scaledSize: new g.maps.Size(width, 44),
-                anchor: new g.maps.Point(width / 2, 22),
-              },
-            });
-          },
-        },
       });
       if (Object.keys(markersRef.current).length > 0) {
         if (activeChantier?.coords && !globalView) {
@@ -313,9 +297,6 @@ const Entrepreneur = () => {
 
     return () => {
       cancelled = true;
-      clustererRef.current?.clearMarkers();
-      clustererRef.current?.setMap(null);
-      clustererRef.current = null;
       Object.values(markersRef.current).forEach((marker) => marker.setMap(null));
       markersRef.current = {};
     };
@@ -387,6 +368,17 @@ const Entrepreneur = () => {
           </section>
         )}
 
+        <section aria-label="Résultats des dompes" className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h1 className="font-body text-xs font-semibold uppercase">Dompes à proximité</h1>
+            <p className="font-body text-xs text-muted-foreground" aria-live="polite">{loading ? "Chargement…" : `${filteredLeads.length} résultat${filteredLeads.length > 1 ? "s" : ""}`}</p>
+          </div>
+          <div className="flex gap-1 overflow-x-auto [scrollbar-width:none]" aria-label="Matériaux des dompes">
+            <Button variant="ghost" aria-pressed={activeFilters.size === 0} onClick={() => setActiveFilters(new Set())} className={`min-h-11 shrink-0 rounded-none border-b-2 px-3 font-body text-xs ${activeFilters.size === 0 ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}>Tous</Button>
+            {MATERIAL_LEGEND.filter(k => leads.some(l => leadMaterialKeys(l).includes(k))).map(k => <Button key={k} variant="ghost" aria-pressed={activeFilters.has(k)} onClick={() => toggleFilter(k)} className={`min-h-11 shrink-0 rounded-none border-b-2 px-3 font-body text-xs ${activeFilters.has(k) ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}>{MATERIAL_COLORS[k].label}</Button>)}
+          </div>
+        </section>
+
         {/* Recherche : l'outil principal de l'écran */}
         <section className="ent-sticky -mx-4 bg-background px-4 py-2 sm:mx-0 sm:rounded-lg sm:px-2">
           <div className="flex items-center gap-2">
@@ -397,13 +389,13 @@ const Entrepreneur = () => {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Secteur, matériau, numéro de dompe…"
                 aria-label="Rechercher une dompe"
-                className="h-12 w-full rounded-2xl border border-border bg-card pl-11 pr-3 font-body text-sm outline-none focus:border-primary"
+                className="h-11 w-full rounded-md border border-border/50 bg-card pl-11 pr-3 font-body text-sm outline-none focus:border-primary"
               />
             </div>
-            <button
+            <Button variant="ghost"
               onClick={() => setShowFilters(true)}
               aria-label="Filtrer les dompes"
-              className="relative inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card"
+              className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-border/50 bg-card p-0"
             >
               <SlidersHorizontal className="h-5 w-5" />
               {activeCount > 0 && (
@@ -411,7 +403,7 @@ const Entrepreneur = () => {
                   {activeCount}
                 </span>
               )}
-            </button>
+            </Button>
           </div>
         </section>
 
@@ -463,7 +455,7 @@ const Entrepreneur = () => {
         ) : (
           <section className={`grid gap-4 ${expanded ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-5"}`}>
             {/* Carte */}
-            <div className={`${expanded ? "" : "lg:col-span-3"} relative isolate min-w-0 rounded-2xl border border-border/70 bg-card overflow-hidden`}>
+             <div className={`${expanded ? "" : "lg:col-span-3"} relative isolate min-w-0 rounded-lg bg-card overflow-hidden`}>
               <div
                 ref={containerRef}
                 style={{ height: expanded ? "78vh" : "64vh", minHeight: 320, maxHeight: 900, width: "100%" }}
@@ -525,6 +517,16 @@ const Entrepreneur = () => {
         )}
       </div>
 
+      <BottomSheet open={!!preview} onOpenChange={open => { if (!open) setPreview(null); }} title={preview ? `Dompe #${dompeLabel(preview)}` : "Dompe"}>
+        {preview && <div className="space-y-3 font-body text-xs">
+          {preview.postal_prefix && <p className="text-muted-foreground">Secteur {preview.postal_prefix}</p>}
+          <p>{leadMaterialKeys(preview).map(k => MATERIAL_COLORS[k].label).join(" · ")}</p>
+          <p className="text-muted-foreground">{availabilityBadge(preview).label}</p>
+          {(preview.tonnage || preview.quantity) && <p className="text-muted-foreground">{preview.tonnage || preview.quantity}</p>}
+          <Button className="min-h-11 gap-2 text-xs" onClick={() => { setDetail(preview); setPreview(null); }}>Consulter les détails</Button>
+        </div>}
+      </BottomSheet>
+
       {/* Fiche complète */}
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
         <DialogContent className="max-w-lg">
@@ -564,7 +566,6 @@ const Entrepreneur = () => {
                     label="Machinerie sur place"
                     value={detail.machinery_available ? (detail.machinery_description || "Oui") : "Non"}
                   />
-                  <Row label="Temps de réponse moyen" value="Moins de 30 minutes" />
                 </dl>
                 <div className="rounded-xl bg-secondary/50 border border-border/60 p-3 text-xs text-muted-foreground font-body flex gap-2">
                   <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
