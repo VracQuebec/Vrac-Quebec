@@ -98,7 +98,10 @@ export default function EntrepreneurFinances({ admin = false }: { admin?: boolea
           : role === undefined ? <p className="text-muted-foreground">Vérification des droits…</p>
           : !canRead ? <p className="text-muted-foreground">Votre rôle dans « {company?.name} » ne donne pas accès aux finances.</p>
           : <>
-            <nav className="mb-4 flex gap-1 overflow-x-auto border-b border-border" aria-label="Sections Finances">
+            {!admin && <div className="mb-4 sm:hidden"><select aria-label="Section Finances" className="h-11 w-full rounded-md border border-input bg-card px-3 font-body text-sm" value={tab} onChange={event => go(event.target.value as Tab)}>
+              {TABS.map(item => <option key={item.v} value={item.v}>{item.l}</option>)}
+            </select></div>}
+            <nav className={`${admin ? "flex" : "hidden sm:flex"} mb-4 gap-1 overflow-x-auto border-b border-border`} aria-label="Sections Finances">
               {TABS.map((t) => <button key={t.v} onClick={() => go(t.v)} className={`whitespace-nowrap px-3 py-2 text-sm font-display font-semibold ${tab === t.v ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}>{t.l}</button>)}
             </nav>
             {!canWrite && <p className="mb-3 rounded-md bg-secondary p-2 text-xs">Accès en lecture seule.</p>}

@@ -7,6 +7,7 @@ import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppS
 import { EmptyState, ErrorState, LoadingSkeleton } from "@/components/entrepreneur-app/AppStates";
 import { ChantierCard } from "@/components/entrepreneur-app/ui";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
+import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { NEED_LABELS, needDirection } from "@/lib/parcours/sens-besoin";
 
@@ -49,25 +50,25 @@ export default function EntrepreneurChantiers() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Rechercher un lieu ou une ville…"
-            className="h-12 w-full rounded-2xl border border-border bg-card pl-11 pr-4 font-body text-sm outline-none focus:border-primary"
+            className="h-12 w-full rounded-md border border-border bg-card pl-11 pr-4 font-body text-sm outline-none focus:border-primary"
             aria-label="Rechercher un chantier"
           />
         </div>
         <div className="flex gap-2">
           {FILTERS.map((f) => (
-            <button
+            <Button variant="ghost"
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`min-h-10 flex-1 rounded-xl px-3 font-display text-sm font-semibold transition-colors ${
-                filter === f.key ? "bg-primary text-primary-foreground" : "border border-border bg-card text-muted-foreground"
+              className={`h-11 flex-1 rounded-md px-3 font-display text-sm font-semibold transition-colors ${
+                filter === f.key ? "bg-secondary text-primary hover:bg-secondary hover:text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               }`}
             >
               {f.label}
-            </button>
+            </Button>
           ))}
         </div>
 
-        <p className="rounded-xl border border-border bg-card p-3 font-body text-xs text-muted-foreground">
+        <p className="border-l-2 border-border pl-3 font-body text-xs leading-relaxed text-muted-foreground">
           Chaque demande visible par votre compte a son propre dossier. Aucune n'est regroupée par ville ni présentée comme un projet confirmé de l'entreprise sans rattachement explicite.
         </p>
         {loading ? (
