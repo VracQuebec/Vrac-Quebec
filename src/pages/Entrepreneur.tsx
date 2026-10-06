@@ -529,7 +529,7 @@ const Entrepreneur = () => {
 
       {/* Fiche complète */}
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="entrepreneur-workspace max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] overflow-y-auto">
           {detail && (
             <>
               <DialogHeader>
