@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Composition finale accueil uniquement : identité, activité charbon ouverte, CTA, accès natifs, chantiers et actions réelles; contrôler petits/grands écrans puis fournir deux captures iPhone réelles, sans publication.
+
 - [x] Dernière passe exclusivement accueil : entreprise dominante sans bloc noir, action verte, activité hiérarchisée, accès natifs et chantiers scannables; audit du vert : token exact #7DD520 utilisé sur l’accueil/navigation, couleurs fonctionnelles et espaces exclus conservés. Anciens codes trouvés dans les composants JSC/admin/cartes exclus : non modifiés conformément au périmètre.
 - [x] Vérifier l’accueil réel 393 × 852 et six formats, safe areas simulées 59/34 px, destinations des quatre accès, ouverture Nouvelle demande sans soumission, détail chantier, Plus et défilement; 29 tests réussis, build OK, empreintes protégées identiques. Captures consultables v3 fournies sans publication ni écriture métier; validation esthétique laissée à l’utilisateur, clavier iOS/appareil physiques non disponibles.
 
