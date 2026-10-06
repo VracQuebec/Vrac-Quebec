@@ -30,8 +30,8 @@ export default function EntrepreneurDashboard() {
 
   return (
     <EntrepreneurAppShell title="Accueil" backTo={null}>
-      <div className="mx-auto w-full max-w-4xl px-4 py-5 sm:px-6 lg:py-8">
-        <header className="mb-4">
+      <div className="mx-auto w-full max-w-4xl px-4 py-4 sm:px-6 lg:py-6">
+        <header className="mb-3">
           <p className="mb-1 font-body text-sm text-muted-foreground">Bonjour,</p>
           <h1 className="break-words font-display text-xl font-semibold leading-snug sm:text-2xl">{company}</h1>
         </header>
@@ -43,31 +43,32 @@ export default function EntrepreneurDashboard() {
           { label: "Matériaux", icon: Layers, to: "/acheter-materiaux" },
         ]} />
 
-        <section className="mt-6 border-t border-border pt-5">
-          <SectionHeader title="Activité récente" action={<Button asChild variant="link" className="min-h-11 px-0 text-xs"><Link to="/entrepreneur/chantiers">Tout voir <ArrowRight /></Link></Button>} />
+        <section className="mt-4">
+          <div className="mb-1 flex items-center justify-between gap-2"><h2 className="font-display text-base font-semibold">Activité récente</h2><Button asChild variant="ghost" className="min-h-11 gap-1.5 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"><Link to="/entrepreneur/chantiers">Tout voir <ArrowRight className="!h-3.5 !w-3.5" /></Link></Button></div>
           {loading ? <LoadingSkeleton lines={3} /> : error ? <ErrorState onRetry={refresh} /> : recentChantiers.length === 0 ? <EmptyState title="Aucun chantier" message="Votre premier chantier apparaîtra ici dès votre demande." actionLabel="Nouvelle demande" actionTo="/demande-transport" /> : (
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border/35">
               {recentChantiers.map(chantier => {
                 const summary = summarizeChantier(chantier);
                 const reference = chantier.submissions[0]?.number;
-                return <Link key={chantier.key} to={`/entrepreneur/chantiers/${encodeURIComponent(chantier.key)}`} className="flex items-center gap-3 py-4 transition-colors hover:bg-secondary/40">
+                return <Link key={chantier.key} to={`/entrepreneur/chantiers/${encodeURIComponent(chantier.key)}`} className="block rounded-md py-3 transition-colors duration-150 hover:bg-secondary/30 active:bg-secondary/50 motion-reduce:transition-none">
                   <div className="min-w-0 flex-1">
                     <p className="break-words font-display text-sm font-semibold leading-snug">{chantier.label}</p>
+                    {chantier.city && chantier.label !== `${chantier.city} — lieu à préciser` && <p className="mt-0.5 font-body text-xs leading-snug text-muted-foreground">{chantier.city}</p>}
                     {(summary.material || summary.quantity) && <p className="mt-1 font-body text-xs leading-relaxed text-muted-foreground">{[summary.material, summary.quantity].filter(Boolean).join(" · ")}</p>}
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[11px] text-muted-foreground"><StatusBadge label={summary.statusLabel} tone={summary.tone} /><span>{relativeDate(summary.lastActivity)}</span>{reference && <span>#{reference}</span>}</div>
+                    <div className="mt-1.5 flex items-center justify-between gap-3"><StatusBadge label={summary.statusLabel} tone={summary.tone} /><ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" strokeWidth={1.6} /></div>
+                    <p className="mt-0.5 font-body text-[10px] leading-relaxed text-muted-foreground">{[reference ? `Demande #${reference}` : null, relativeDate(summary.lastActivity)].filter(Boolean).join(" · ")}</p>
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </Link>;
               })}
             </div>
           )}
-          <div className="mt-2 flex flex-wrap gap-x-5 border-t border-border pt-2">
-            <Button asChild variant="link" className="min-h-11 px-0 text-xs"><Link to="/entrepreneur/chantiers">Mes chantiers <ArrowRight /></Link></Button>
-            <Button asChild variant="link" className="min-h-11 px-0 text-xs"><Link to="/entrepreneur/demandes">Mes demandes <ArrowRight /></Link></Button>
+          <div className="mt-1 flex flex-wrap gap-x-5">
+            <Button asChild variant="ghost" className="min-h-11 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"><Link to="/entrepreneur/chantiers">Mes chantiers <ArrowRight className="!h-3.5 !w-3.5" /></Link></Button>
+            <Button asChild variant="ghost" className="min-h-11 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"><Link to="/entrepreneur/demandes">Mes demandes <ArrowRight className="!h-3.5 !w-3.5" /></Link></Button>
           </div>
         </section>
 
-        {attention.length > 0 && <section className="mt-5 border-t border-border pt-5">
+        {attention.length > 0 && <section className="mt-3 border-t border-border/40 pt-4">
           <SectionHeader title="À faire" />
           <div className="space-y-2">{attention.map(request => <AppCard key={request.id} to={`/entrepreneur/demandes/${request.id}`} accent="amber"><p className="font-display text-sm font-semibold">{request.title}</p><p className="mt-1 font-body text-xs text-muted-foreground">{request.nextAction}</p></AppCard>)}</div>
         </section>}

@@ -25,7 +25,7 @@ import {
   LifeBuoy,
   Wallet,
   FileClock,
-  Ticket, ListChecks, CalendarDays, Clock } from "lucide-react";
+  Ticket, ListChecks, CalendarDays, Clock, ContactRound, ReceiptText, Files, ShieldCheck, SlidersHorizontal } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Coquille unique de l'espace entrepreneur :                         */
@@ -65,7 +65,7 @@ interface MoreItem {
 
 const MORE_SECTIONS: { title: string; items: MoreItem[] }[] = [
   {
-    title: "Travail et équipe",
+    title: "Travail",
     items: [
       { to: "/entrepreneur/taches", label: "Liste de tâches", hint: "Tâches de l'équipe, couleurs, attribution", icon: ListChecks },
       { to: "/entrepreneur/agenda", label: "Agenda", hint: "Rendez-vous, chantiers, rappels, équipe", icon: CalendarDays },
@@ -74,24 +74,24 @@ const MORE_SECTIONS: { title: string; items: MoreItem[] }[] = [
     ],
   },
   {
-    title: "Gestion",
+    title: "Entreprise",
     items: [
       { to: "/entrepreneur/demandes", label: "Toutes les demandes", hint: "Demandes de tous vos chantiers", icon: ClipboardList },
-      { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ClipboardList },
+      { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ContactRound },
       { to: "/entrepreneur/finances", label: "Finances", hint: "Obligations et calendrier", icon: Wallet },
-      { to: "/entrepreneur/notes-de-frais", label: "Mes notes de frais", hint: "Dépenses, avances, remboursements", icon: Wallet },
+      { to: "/entrepreneur/notes-de-frais", label: "Notes de frais", hint: "Dépenses, avances, remboursements", icon: ReceiptText },
       { to: "/entrepreneur/obligations", label: "Obligations et renouvellements", hint: "Registre des entreprises, CTQ, échéances", icon: CalendarDays },
-      { to: "/entrepreneur/documents", label: "Documents de l’entreprise", hint: "Assurance, RPEVL, permis — glisser et consulter", icon: CalendarDays },
+      { to: "/entrepreneur/documents", label: "Documents", hint: "Assurance, RPEVL, permis — glisser et consulter", icon: Files },
+      { to: "/entrepreneur/assurances", label: "Assurances", hint: "Polices, couvertures, renouvellements, soumissions", icon: ShieldCheck },
       { to: "/entrepreneur/brouillons", label: "Brouillons", hint: "", icon: FileClock },
-      { to: "/entrepreneur/assurances", label: "Assurances entreprise", hint: "Polices, couvertures, renouvellements, soumissions", icon: CalendarDays },
+      { to: "/entrepreneur/flotte", label: "Ma flotte", hint: "Vos véhicules", icon: Truck },
     ],
   },
   {
-    title: "Mon entreprise et compte",
+    title: "Compte",
     items: [
       { to: "/entrepreneur/notifications", label: "Notifications", hint: "Ce qui demande votre attention", icon: Bell },
-      { to: "/entrepreneur/compte", label: "Profil et visibilité", hint: "Profil, camions, visibilité", icon: User },
-      { to: "/entrepreneur/flotte", label: "Ma flotte", hint: "Vos véhicules", icon: Truck },
+      { to: "/entrepreneur/compte", label: "Préférences", hint: "Profil, camions, visibilité", icon: SlidersHorizontal },
     ],
   },
 ];
@@ -198,22 +198,22 @@ export default function EntrepreneurAppShell({
       </aside>
 
       <div className="flex min-h-dvh flex-col lg:pl-60">
-        <header ref={headerRef} className="ent-header sticky top-0 z-30 w-full border-b border-border bg-card">
-          <div className="flex min-h-14 items-center gap-1 px-4 sm:px-6">
+        <header ref={headerRef} className="ent-header sticky top-0 z-30 w-full border-b border-border/50 bg-card">
+          <div className="flex min-h-12 items-center gap-0.5 px-4 sm:px-6">
             {backTarget ? <Button asChild variant="ghost" size="icon" className="h-11 w-11 shrink-0 hover:bg-secondary hover:text-foreground"><Link to={backTarget} aria-label={backLabel}><ArrowLeft /></Link></Button> :
-              <Link to="/entrepreneur" className="flex min-h-11 shrink-0 items-center gap-1.5 font-display text-sm font-bold lg:hidden"><Truck className="h-4 w-4 text-primary" /><span>Vrac<span className="text-primary">Québec</span></span></Link>}
-            <div className="min-w-0 flex-1 px-2 py-2 lg:px-0">
+              <Link to="/entrepreneur" className="flex min-h-11 shrink-0 items-center gap-2 font-display text-sm font-bold lg:hidden"><Truck className="h-4 w-4 text-primary" strokeWidth={1.7} /><span>Vrac<span className="text-primary">Québec</span></span></Link>}
+            <div className="min-w-0 flex-1 px-2 py-1 lg:px-0">
               {!isHome && title && <h1 className="break-words font-display text-sm font-semibold leading-snug sm:text-base">{title}</h1>}
               {!isHome && subtitle && <p className="break-words font-body text-xs leading-snug text-muted-foreground">{subtitle}</p>}
               {isHome && <span className="hidden font-body text-sm text-muted-foreground lg:inline">Accueil</span>}
             </div>
             <div className="flex shrink-0 items-center gap-1">{headerActions}</div>
             <Button asChild variant="ghost" size="icon" className="relative h-11 w-11 shrink-0 hover:bg-secondary hover:text-foreground">
-              <Link to="/entrepreneur/notifications" aria-label={`Notifications${badge ? ` (${badge} non lues)` : ""}`}><Bell />
+              <Link to="/entrepreneur/notifications" aria-label={`Notifications${badge ? ` (${badge} non lues)` : ""}`}><Bell className="!h-[18px] !w-[18px]" strokeWidth={1.7} />
                 {badge > 0 && <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-secondary px-1 font-body text-[9px] font-semibold text-foreground">{badge > 99 ? "99+" : badge}</span>}
               </Link>
             </Button>
-            <Button asChild variant="ghost" size="icon" className="h-11 w-11 shrink-0 hover:bg-secondary hover:text-foreground"><Link to="/entrepreneur/compte" aria-label="Mon entreprise"><User /></Link></Button>
+            <Button asChild variant="ghost" size="icon" className="h-11 w-11 shrink-0 hover:bg-secondary hover:text-foreground"><Link to="/entrepreneur/compte" aria-label="Mon entreprise"><User className="!h-[18px] !w-[18px]" strokeWidth={1.7} /></Link></Button>
           </div>
         </header>
         <main className="ent-main min-w-0 flex-1">{children}</main>
@@ -235,21 +235,23 @@ export default function EntrepreneurAppShell({
 
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent side="bottom" className="ent-sheet gap-0 rounded-t-lg px-4" aria-describedby={undefined}>
-          <SheetTitle className="mb-3 pr-12 font-display text-base font-semibold">Plus</SheetTitle>
-          <nav aria-label="Sections secondaires">
-            {MORE_SECTIONS.map(section => <div key={section.title} className="mb-3">
-              <p className="px-2 py-2 font-body text-[11px] font-medium uppercase text-muted-foreground">{section.title}</p>
+          <SheetTitle className="mb-2 pr-12 font-display text-base font-semibold">Plus</SheetTitle>
+          <nav aria-label="Sections secondaires" className="divide-y divide-border/40">
+            {MORE_SECTIONS.map(section => <div key={section.title} className="py-2 first:pt-0">
+              <p className="px-2 pb-1 pt-2 font-body text-[10px] font-semibold uppercase text-muted-foreground">{section.title}</p>
               {section.items.map(({ to, label, icon: Icon }) => {
                 const active = isActive(location.pathname, to);
-                return <Button key={to} asChild variant="ghost" className={`h-auto min-h-11 w-full justify-start gap-3 whitespace-normal px-2 py-2 text-left font-body text-sm hover:bg-secondary hover:text-foreground ${active ? "bg-secondary text-primary" : "text-foreground"}`}>
-                  <Link to={to} onClick={() => setMoreOpen(false)} aria-current={active ? "page" : undefined}><Icon className="shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1">{label}</span><ChevronRight className="text-muted-foreground" /></Link>
+                return <Button key={to} asChild variant="ghost" className={`h-auto min-h-11 w-full justify-start gap-3 whitespace-normal px-2 py-2 text-left font-body text-[13px] hover:bg-secondary hover:text-foreground active:bg-secondary motion-reduce:transition-none ${active ? "bg-secondary text-primary" : "text-foreground"}`}>
+                  <Link to={to} onClick={() => setMoreOpen(false)} aria-current={active ? "page" : undefined}><Icon className="shrink-0 text-muted-foreground" strokeWidth={1.6} /><span className="min-w-0 flex-1">{label}</span><ChevronRight className="!h-3.5 !w-3.5 text-muted-foreground/60" strokeWidth={1.6} /></Link>
                 </Button>;
               })}
+              {section.title === "Compte" && <>
+                <Button asChild variant="ghost" className="min-h-11 w-full justify-start gap-3 px-2 font-body text-[13px] hover:bg-secondary hover:text-foreground"><a href="tel:5819947717" onClick={() => setMoreOpen(false)}><LifeBuoy className="text-muted-foreground" strokeWidth={1.6} /><span>Aide</span></a></Button>
+                <Button variant="ghost" onClick={handleLogout} className="min-h-11 w-full justify-start gap-3 px-2 font-body text-[13px] text-muted-foreground hover:bg-secondary hover:text-foreground"><LogOut strokeWidth={1.6} />Déconnexion</Button>
+              </>}
             </div>)}
-            <Button asChild variant="ghost" className="min-h-11 w-full justify-start gap-3 px-2 hover:bg-secondary hover:text-foreground"><a href="tel:5819947717" onClick={() => setMoreOpen(false)}><LifeBuoy /><span>Aide · 581-994-7717</span></a></Button>
           </nav>
-          <div className="mt-3 border-t border-border pt-2"><Button variant="ghost" onClick={handleLogout} className="min-h-11 w-full justify-start px-2 text-muted-foreground hover:bg-secondary hover:text-foreground"><LogOut />Déconnexion</Button></div>
-          <div className="mt-3"><InstallAppCard /></div>
+          <div className="mt-1 border-t border-border/40 pt-2"><InstallAppCard /></div>
         </SheetContent>
       </Sheet>
     </div>

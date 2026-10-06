@@ -68,8 +68,8 @@ export const QuickActions = ({ actions }: { actions: QuickAction[] }) => (
   <div className={`grid gap-1 ${actions.length === 4 ? "grid-cols-4" : "grid-cols-2 sm:grid-cols-4"}`}>
     {actions.map(action => {
       const Icon = action.icon;
-      const content = <><Icon className={`!h-5 !w-5 ${action.primary ? "text-primary" : "text-muted-foreground"}`} /><span className="text-wrap font-body text-xs leading-tight">{action.label}</span></>;
-      const cls = "h-auto min-h-16 min-w-0 flex-col gap-2 whitespace-normal rounded-lg px-1 py-2 text-foreground hover:bg-secondary hover:text-foreground";
+      const content = <><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary/55"><Icon strokeWidth={1.6} className={`!h-[19px] !w-[19px] ${action.primary ? "text-primary" : "text-foreground/75"}`} /></span><span className="text-wrap font-body text-[11px] font-medium leading-tight">{action.label}</span></>;
+      const cls = "h-16 min-h-16 min-w-0 flex-col gap-1.5 whitespace-normal rounded-lg px-1 py-1 text-foreground transition-[background-color,transform] duration-150 hover:bg-secondary/50 hover:text-foreground active:scale-[0.97] active:bg-secondary/70 motion-reduce:transform-none motion-reduce:transition-none";
       return action.to ? <Button key={action.label} asChild variant="ghost" className={cls}><Link to={action.to}>{content}</Link></Button> : <Button key={action.label} variant="ghost" onClick={action.onClick} className={cls}>{content}</Button>;
     })}
   </div>
