@@ -22,4 +22,5 @@
 - Brand colors use one HSL token and presentation-only route scoping preserves excluded admin/fleet palettes; functional and tenant-configured colors remain independent.
 - Public category colors normalize known legacy brand values at display time through the shared helper; no stored colors are rewritten.
 - Compact address labels retain full accessible names, tooltips and detail links so source information stays available.
+- Home art direction stays local to EntrepreneurDashboard; reusing authorized summaries and existing links isolates visual composition from shared pages and map behavior.
 <!-- LOVABLE:END -->
