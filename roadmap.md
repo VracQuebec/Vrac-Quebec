@@ -16,3 +16,6 @@
 - [x] Valider « Liste compacte », restaurer hsl(89 74% 48%) et alléger les listes uniquement en TEST.
 - [x] Vérifier la direction finale sur six formats, les zones sécuritaires simulées, les filtres, les dossiers et le menu Plus; 32 tests réussis, sans écriture ni publication.
 - [ ] Confirmer le fond cartographique complet : marqueurs et clusters fonctionnent, mais les tuiles Google restent partiellement chargées dans le navigateur de contrôle.
+- [ ] Auditer l’accueil, la carte et le regroupement actuel pour la passe UX ciblée.
+- [ ] Réordonner l’accueil avec résumé réel et actions existantes; rétablir les marqueurs individuels et une fiche compacte sans changement métier, uniquement en TEST.
+- [ ] Vérifier les formats mobiles, les superpositions, les filtres et la navigation; conserver #7DD520 et ne pas publier.
