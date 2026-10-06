@@ -7,6 +7,7 @@ import { useUserRoles } from "@/hooks/useUserRole";
 import { useEntrepreneurNotifications } from "@/hooks/useEntrepreneurNotifications";
 import { Button } from "@/components/ui/button";
 import FullPageState from "@/components/FullPageState";
+import InstallAppCard from "@/components/entrepreneur-app/InstallAppCard";
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -248,6 +249,7 @@ export default function EntrepreneurAppShell({
             <Button asChild variant="ghost" className="min-h-11 w-full justify-start gap-3 px-2 hover:bg-secondary hover:text-foreground"><a href="tel:5819947717" onClick={() => setMoreOpen(false)}><LifeBuoy /><span>Aide · 581-994-7717</span></a></Button>
           </nav>
           <div className="mt-3 border-t border-border pt-2"><Button variant="ghost" onClick={handleLogout} className="min-h-11 w-full justify-start px-2 text-muted-foreground hover:bg-secondary hover:text-foreground"><LogOut />Déconnexion</Button></div>
+          <div className="mt-3"><InstallAppCard /></div>
         </SheetContent>
       </Sheet>
     </div>

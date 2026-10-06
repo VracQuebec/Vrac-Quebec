@@ -26,7 +26,7 @@ export default function EntrepreneurDashboard() {
   const requests = buildEntrepreneurRequests(submissions, accessRequests, chantiers);
   const company = profile?.company || profile?.contact_name || profile?.name || "votre entreprise";
   const recentChantiers = [...chantiers].sort((a, b) => (b.lastActivity ?? "").localeCompare(a.lastActivity ?? "")).slice(0, 4);
-  const attention = requests.filter((request) => request.filter === "pending" && request.submission?.selectedSiteId).slice(0, 3);
+  const attention = requests.filter((request) => request.nextAction === "Préciser le besoin (recevoir, évacuer ou acheter)").slice(0, 3);
 
   return (
     <EntrepreneurAppShell title="Accueil" backTo={null}>
