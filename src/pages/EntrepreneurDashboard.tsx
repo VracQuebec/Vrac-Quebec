@@ -27,33 +27,60 @@ export default function EntrepreneurDashboard() {
   const recentChantiers = [...chantiers].sort((a, b) => (b.lastActivity ?? "").localeCompare(a.lastActivity ?? "")).slice(0, 4);
   const attention = requests.filter((request) => request.filter !== "done" && request.filter !== "cancelled" && request.nextAction === "Préciser le besoin (recevoir, évacuer ou acheter)").slice(0, 3);
 
+  const activeSites = chantiers.filter(c => summarizeChantier(c).active).length;
+  const openRequests = requests.filter(r => r.filter === "active" || r.filter === "pending").length;
+  const dayStats = [
+    activeSites > 0 && { value: activeSites, label: activeSites > 1 ? "chantiers actifs" : "chantier actif", to: "/entrepreneur/chantiers" },
+    openRequests > 0 && { value: openRequests, label: openRequests > 1 ? "demandes" : "demande", to: "/entrepreneur/demandes" },
+    attention.length > 0 && { value: attention.length, label: attention.length > 1 ? "actions requises" : "action requise", to: "/entrepreneur/demandes", accent: true },
+  ].filter(Boolean) as { value: number; label: string; to: string; accent?: boolean }[];
+  const todayLabel = new Date().toLocaleDateString("fr-CA", { weekday: "long", day: "numeric", month: "long" });
+
   return (
     <EntrepreneurAppShell title="Accueil" backTo={null}>
       <div className="mx-auto w-full max-w-4xl px-4 py-4 sm:px-6 lg:py-6">
-        <header className="mb-5">
-          <h1 className="break-words font-body text-sm font-medium leading-snug"><span className="font-normal text-muted-foreground">Bonjour, </span>{company}</h1>
-          <Button asChild className="mt-5 h-12 w-fit max-w-full gap-3 rounded-lg py-1.5 pl-1.5 pr-4 font-body text-sm font-semibold shadow-none transition-transform duration-150 active:scale-[0.97] motion-reduce:transform-none"><Link to="/demande-transport"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-foreground text-primary"><Plus className="!h-5 !w-5" strokeWidth={1.8} /></span>Nouvelle demande</Link></Button>
+        <header className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-body text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{todayLabel}</p>
+            <h1 className="mt-1 break-words font-display text-xl font-semibold leading-tight tracking-tight">Bonjour, {company}</h1>
+          </div>
+          <Button asChild className="h-11 shrink-0 gap-2 rounded-full pl-1.5 pr-4 font-body text-sm font-semibold shadow-none transition-transform duration-150 active:scale-[0.96] motion-reduce:transform-none"><Link to="/demande-transport" aria-label="Nouvelle demande"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-primary"><Plus className="!h-4 !w-4" strokeWidth={2.2} /></span>Demande</Link></Button>
         </header>
 
-        <section aria-label="Accès rapides" className="grid grid-cols-2 gap-2">
+        {!loading && !error && <section aria-label="État du jour" className="mt-5 border-y border-border/40 py-3">
+          {dayStats.length === 0 ? <p className="flex items-center gap-2 font-body text-xs text-muted-foreground"><span className="h-1.5 w-1.5 rounded-full bg-primary" />Tout est à jour · aucune action requise</p> : (
+            <div className="grid divide-x divide-border/40" style={{ gridTemplateColumns: `repeat(${dayStats.length}, minmax(0, 1fr))` }}>
+              {dayStats.map(stat => <Link key={stat.label} to={stat.to} className="min-w-0 px-3 first:pl-0 transition-opacity duration-150 active:opacity-60">
+                <p className={`font-display text-2xl font-semibold leading-none tabular-nums ${stat.accent ? "text-foreground" : ""}`}>{stat.value}{stat.accent && <span className="ml-1 inline-block h-1.5 w-1.5 -translate-y-3 rounded-full bg-attention" />}</p>
+                <p className="mt-1.5 truncate font-body text-[11px] text-muted-foreground">{stat.label}</p>
+              </Link>)}
+            </div>
+          )}
+        </section>}
+
+        <nav aria-label="Accès rapides" className="mt-6 grid grid-cols-4 gap-2">
           {[
             { label: "Dompes", icon: MapIcon, to: "/entrepreneur/carte" },
             { label: "Transport", icon: Truck, to: "/entrepreneur/transports" },
             { label: "Demandes", icon: ClipboardList, to: "/entrepreneur/demandes" },
             { label: "Matériaux", icon: Layers, to: "/acheter-materiaux" },
-          ].map(({ label, icon: Icon, to }) => <Button key={label} asChild variant="ghost" className="h-14 min-w-0 justify-start gap-3 rounded-lg bg-secondary/40 px-3 font-body text-xs font-medium text-foreground transition-[background-color,transform] duration-150 hover:bg-secondary/65 active:scale-[0.97] active:bg-secondary motion-reduce:transform-none motion-reduce:transition-none"><Link to={to}><Icon className="!h-5 !w-5 shrink-0" strokeWidth={1.6} /><span>{label}</span><ArrowRight className="!h-3 !w-3 ml-auto shrink-0 text-muted-foreground/60" strokeWidth={1.6} /></Link></Button>)}
-        </section>
+          ].map(({ label, icon: Icon, to }) => <Link key={label} to={to} className="group flex min-w-0 flex-col items-center gap-2 rounded-lg py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-foreground text-primary transition-transform duration-150 group-active:scale-[0.92] motion-reduce:transform-none"><Icon className="h-6 w-6" strokeWidth={1.7} /></span>
+            <span className="truncate font-body text-[11px] font-medium">{label}</span>
+          </Link>)}
+        </nav>
 
-        <section className="mt-6">
-           <div className="mb-1 flex items-center justify-between gap-2"><h2 className="font-display text-base font-semibold">Mes chantiers</h2><Button asChild variant="ghost" className="min-h-11 gap-1.5 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"><Link to="/entrepreneur/chantiers">Tout voir <ArrowRight className="!h-3.5 !w-3.5" /></Link></Button></div>
+        <section className="mt-8">
+           <div className="mb-1 flex items-center justify-between gap-2"><h2 className="font-body text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Mes chantiers</h2><Button asChild variant="ghost" className="min-h-11 gap-1.5 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"><Link to="/entrepreneur/chantiers">Tout voir <ArrowRight className="!h-3.5 !w-3.5" /></Link></Button></div>
            {loading ? <LoadingSkeleton lines={3} compact /> : error ? <ErrorState onRetry={refresh} compact /> : recentChantiers.length === 0 ? <EmptyState compact title="Aucun chantier" message="Votre premier chantier apparaîtra ici dès votre demande." actionLabel="Nouvelle demande" actionTo="/demande-transport" /> : (
-            <div className="space-y-1">
+            <div className="divide-y divide-border/35">
               {recentChantiers.map(chantier => {
                 const summary = summarizeChantier(chantier);
                 const reference = chantier.submissions[0]?.number;
                 const quantity = summary.quantity?.replace(/\btonnes?\b/g, "t");
                 const measuredQuantity = quantity && /^\d/.test(quantity) ? quantity : null;
-                return <Link key={chantier.key} to={`/entrepreneur/chantiers/${encodeURIComponent(chantier.key)}`} aria-label={[chantier.label, chantier.city, summary.material, summary.quantity, summary.statusLabel, relativeDate(summary.lastActivity)].filter(Boolean).join(" · ")} className="group flex items-start gap-3 rounded-lg py-4 transition-colors duration-150 hover:bg-secondary/30 active:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none">
+                return <Link key={chantier.key} to={`/entrepreneur/chantiers/${encodeURIComponent(chantier.key)}`} aria-label={[chantier.label, chantier.city, summary.material, summary.quantity, summary.statusLabel, relativeDate(summary.lastActivity)].filter(Boolean).join(" · ")} className="group relative flex items-start gap-3 py-3.5 pl-3 transition-colors duration-150 hover:bg-secondary/30 active:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none">
+                  <span aria-hidden className={`absolute left-0 top-4 h-8 w-[3px] rounded-full ${summary.tone === "active" || summary.tone === "pending" ? "bg-primary" : "bg-border"}`} />
                   <div className="min-w-0 flex-1">
                     <p className="break-words font-display text-sm font-semibold leading-snug" title={chantier.label}>{chantier.label.split(",")[0]}</p>
                     {(summary.material || quantity) && <p className="mt-1 font-body text-xs text-muted-foreground">{[summary.material, !measuredQuantity ? quantity : null].filter(Boolean).join(" · ")}</p>}
