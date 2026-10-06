@@ -413,7 +413,7 @@ body,
 .ent-main { padding: 0 var(--ent-safe-right) calc(max(var(--ent-bottom-h), calc(3.5rem + var(--ent-safe-bottom))) + 1rem) var(--ent-safe-left); }
 .ent-bottom { padding: 0 var(--ent-safe-right) var(--ent-safe-bottom) var(--ent-safe-left); }
 .ent-create { bottom: calc(var(--ent-bottom-h) + .75rem); }
-.ent-sticky { position: sticky; top: var(--ent-header-h); z-index: 20; }
+.ent-sticky { position: sticky; top: max(var(--ent-header-h), calc(3.5rem + var(--ent-safe-top))); z-index: 20; }
 .ent-sheet {
   max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 1rem);
   overflow-y: auto;
