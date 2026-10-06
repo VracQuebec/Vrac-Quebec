@@ -442,6 +442,31 @@ body,
 .ent-chip[aria-pressed="true"] { background: hsl(var(--primary)); color: hsl(var(--foreground)); }
 .ent-chip:hover { background: hsl(var(--secondary)); color: hsl(var(--foreground)); }
 .ent-chip[aria-pressed="true"]:hover { background: hsl(var(--primary)); }
+/* Home-only survey rail: actual activity destinations form the signature. */
+.ent-home { letter-spacing: 0; }
+.ent-home-survey { position: relative; padding-bottom: 2px; }
+.ent-home-survey::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  border-bottom: 1px solid hsl(var(--foreground) / .22);
+  border-right: 1px solid hsl(var(--foreground) / .22);
+}
+.ent-home-survey-node {
+  position: absolute;
+  bottom: -5px;
+  left: 1px;
+  width: 7px;
+  height: 7px;
+  transform: rotate(45deg);
+  z-index: 1;
+  outline: 3px solid hsl(var(--card));
+}
+.ent-home-survey a:hover .ent-home-survey-node { transform: rotate(45deg) scale(1.2); }
 @media (min-width: 1024px) { .ent-main { padding-bottom: 2rem; } }
 @media (prefers-reduced-motion: reduce) {
   .entrepreneur-workspace *, .ent-sheet[data-state], .ent-sheet * { animation: none !important; transition: none !important; }
