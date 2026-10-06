@@ -280,12 +280,12 @@ const Entrepreneur = () => {
       clustererRef.current = new MarkerClusterer({
         map,
         markers: Object.values(markersRef.current),
-        algorithm: new SuperClusterAlgorithm({ radius: 70, maxZoom: 20 }),
+        algorithm: new SuperClusterAlgorithm({ radius: 110, maxZoom: 20 }),
         renderer: {
           render: ({ count, position }) => {
             const text = `${count} dompes`;
-            const width = Math.max(80, text.length * 7 + 24);
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="44"><rect x="1" y="1" width="${width - 2}" height="42" rx="21" fill="${surface}" stroke="${outline}" stroke-width="2"/><text x="${width / 2}" y="22" dominant-baseline="central" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="${ink}">${text}</text></svg>`;
+            const width = Math.max(54, String(count).length * 8 + 24);
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="44"><rect x="1" y="1" width="${width - 2}" height="42" rx="12" fill="${surface}" stroke="${outline}" stroke-width="2"/><text x="${width / 2}" y="18" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="${ink}">${count}</text><text x="${width / 2}" y="32" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="${ink}">dompes</text></svg>`;
             return new g.maps.Marker({
               position,
               title: `${text} — zoomer`,
