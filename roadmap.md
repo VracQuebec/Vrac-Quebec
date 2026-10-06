@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Micro-finition de la base finale validée : identité compacte, tracé subtil, hiérarchie chantier; CTA et structure inchangés. Vérifier données réelles, badges dynamiques, 393 × 852/petit écran/défilement, empreintes protégées; fournir captures réelles sans publication.
+
 - [x] Composition finale accueil uniquement : identité, activité charbon ouverte, CTA, accès natifs, chantiers et actions existantes. Cinq formats sans débordement, 29 tests réussis, build OK, couleur #7DD520 exacte, fichiers protégés inchangés; safe areas 59/34 px simulées. Deux captures réelles v4 fournies sans publication. L’aperçu disponible affiche le libellé de repli « VOTRE ENTREPRISE », pas « COTE COURTAGE »; identité non substituée artificiellement. Appareil/clavier iOS physiques non vérifiés.
 
 - [x] Dernière passe exclusivement accueil : entreprise dominante sans bloc noir, action verte, activité hiérarchisée, accès natifs et chantiers scannables; audit du vert : token exact #7DD520 utilisé sur l’accueil/navigation, couleurs fonctionnelles et espaces exclus conservés. Anciens codes trouvés dans les composants JSC/admin/cartes exclus : non modifiés conformément au périmètre.
