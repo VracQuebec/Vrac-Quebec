@@ -137,7 +137,7 @@ export default function EntrepreneurAppShell({
     observer.observe(bottom);
     measure();
     return () => observer.disconnect();
-  }, [authReady, user, roleLoading]);
+  });
 
   const isHome = location.pathname === "/entrepreneur";
   const backTarget = backTo === undefined ? (isHome ? null : "/entrepreneur") : backTo;
