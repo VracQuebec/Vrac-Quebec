@@ -40,7 +40,7 @@ export default function EntrepreneurDashboard() {
   return (
     <EntrepreneurAppShell title="Accueil" backTo={null}>
       <div className="ent-home mx-auto w-full max-w-4xl pb-4">
-        <section aria-label="Accueil" className="px-5 pb-6 pt-6 sm:px-8 sm:pt-9">
+        <section aria-label="Accueil" className="px-5 pb-6 pt-5 sm:px-8 sm:pt-7">
           <p className="font-body text-sm font-medium text-muted-foreground">Bonjour,</p>
           <h1 className="mt-1 max-w-full break-words font-display text-[32px] font-extrabold uppercase leading-[1.15] sm:text-4xl">{company}</h1>
           <p className="mt-3 font-body text-[11px] font-medium text-muted-foreground">Aujourd’hui · {today}</p>
@@ -50,8 +50,10 @@ export default function EntrepreneurDashboard() {
           <div className="flex items-center gap-4">
             <h2 className="font-body text-[10px] font-bold uppercase text-background/60">Activité</h2>
             <div aria-hidden className="relative h-3 flex-1 border-b border-background/15">
-              <span className="absolute bottom-0 right-8 h-3 w-7 border-r border-t border-background/25" />
-              <span className="absolute -bottom-1 right-0 h-2 w-2 bg-primary" />
+              <span className="absolute -bottom-0.5 left-0 h-1 w-1 bg-background/30" />
+              <span className="absolute -bottom-0.5 left-1/3 h-1 w-1 rotate-45 border border-background/30" />
+              <span className="absolute bottom-0 right-8 h-3 w-7 border-r border-t border-background/20" />
+              <span className="absolute -bottom-0.5 right-0 h-1 w-1 bg-primary" />
             </div>
           </div>
           <div className="mt-5 grid grid-cols-3 gap-3">
@@ -94,11 +96,11 @@ export default function EntrepreneurDashboard() {
                   return <Link key={chantier.key} to={`/entrepreneur/chantiers/${encodeURIComponent(chantier.key)}`} aria-label={[chantier.label, chantier.city, summary.material, summary.quantity, summary.statusLabel, relativeDate(summary.lastActivity)].filter(Boolean).join(" · ")} className="group flex items-start gap-3 py-4 transition-colors duration-150 active:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none">
                     <span className="relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary/50 text-foreground"><HardHat className="h-5 w-5" strokeWidth={1.9} aria-hidden />{live && <span className="absolute bottom-0 left-3 h-0.5 w-4 bg-primary" aria-hidden />}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="break-words font-display text-[15px] font-bold leading-snug" title={chantier.label}>{chantier.label.split(",")[0]}</p>
-                    <p className="mt-1 font-body text-xs text-muted-foreground">{summary.material}{summary.material && quantity && <span className="px-1.5">·</span>}<span className="tabular-nums">{quantity}</span></p>
+                    <p className="break-words font-display text-[16px] font-bold leading-snug" title={chantier.label}>{chantier.label.split(",")[0]}</p>
+                    <p className="mt-1 break-words font-body text-xs leading-relaxed text-muted-foreground">{summary.material}{summary.material && quantity && <span className="px-1.5">·</span>}<span className="tabular-nums">{quantity}</span></p>
                     <div className="mt-2 flex items-center justify-between gap-2">
                       <span className="ent-site-status uppercase"><StatusBadge label={summary.statusLabel} tone={summary.tone} signature={live} /></span>
-                      {reference && <span className="shrink-0 font-body text-[10px] font-medium tabular-nums text-muted-foreground">#{reference}</span>}
+                      {reference && <span className="shrink-0 font-body text-[10px] font-normal tabular-nums text-muted-foreground">#{reference}</span>}
                     </div>
                   </div>
                    <ChevronRight className="mt-2 h-3.5 w-3.5 shrink-0 text-muted-foreground/60 transition-transform duration-150 group-hover:translate-x-0.5 motion-reduce:transform-none" strokeWidth={1.8} />

@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Micro-finition de la base finale validée : identité compacte, tracé subtil, hiérarchie chantier; CTA et structure inchangés. Compte réel COTE COURTAGE : 2 chantiers, 2 demandes, 1 action; badge réel vérifié et disparition à zéro confirmée par réponses vides temporaires uniquement dans le navigateur. Formats 393 × 852, 360 × 740, 320 × 667 et desktop sans débordement, défilement validé, 29 tests réussis, build OK et empreintes de tous les autres fichiers src/supabase identiques. Captures réelles v5 fournies en TEST sans publication; safe areas simulées, appareil/clavier iOS physiques non disponibles.
+
 - [x] Composition finale accueil uniquement : identité, activité charbon ouverte, CTA, accès natifs, chantiers et actions existantes. Cinq formats sans débordement, 29 tests réussis, build OK, couleur #7DD520 exacte, fichiers protégés inchangés; safe areas 59/34 px simulées. Deux captures réelles v4 fournies sans publication. L’aperçu disponible affiche le libellé de repli « VOTRE ENTREPRISE », pas « COTE COURTAGE »; identité non substituée artificiellement. Appareil/clavier iOS physiques non vérifiés.
 
 - [x] Dernière passe exclusivement accueil : entreprise dominante sans bloc noir, action verte, activité hiérarchisée, accès natifs et chantiers scannables; audit du vert : token exact #7DD520 utilisé sur l’accueil/navigation, couleurs fonctionnelles et espaces exclus conservés. Anciens codes trouvés dans les composants JSC/admin/cartes exclus : non modifiés conformément au périmètre.
