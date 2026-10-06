@@ -19,4 +19,7 @@
 - PWA : `push-sw.js` unique, enregistré au chargement, sans cache métier.
 <!-- LOVABLE:BEGIN -->
 - Entrepreneur UI uses the existing shell to own safe areas and measured header/navigation heights; one owner prevents duplicate offsets without changing backend behavior.
+- Brand colors use one HSL token and presentation-only route scoping preserves excluded admin/fleet palettes; functional and tenant-configured colors remain independent.
+- Public category colors normalize known legacy brand values at display time through the shared helper; no stored colors are rewritten.
+- Compact address labels retain full accessible names, tooltips and detail links so source information stays available.
 <!-- LOVABLE:END -->

@@ -1,3 +1,4 @@
+import { displayBrandColor } from "@/lib/brand-color";
 import { Link } from "react-router-dom";
 import { Clock, Eye } from "lucide-react";
 import type { BlogPostWithRelations } from "@/lib/blog/types";
@@ -31,7 +32,7 @@ export default function PostCard({ post, variant = "default" }: Props) {
         {cat && (
           <span
             className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider font-display font-bold text-white shadow"
-            style={{ backgroundColor: cat.color || "#7ED321" }}
+            style={{ backgroundColor: displayBrandColor(cat.color) }}
           >
             {cat.name}
           </span>

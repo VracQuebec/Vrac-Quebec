@@ -1,3 +1,4 @@
+import { displayBrandColor } from "@/lib/brand-color";
 import { useParams, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
@@ -50,7 +51,7 @@ export default function BlogCategory() {
       <header className="container mx-auto px-4 sm:px-6 pt-8 pb-6">
         <div
           className="inline-block px-3 py-1 rounded-full text-white text-xs uppercase font-display font-bold tracking-widest mb-4"
-          style={{ backgroundColor: category?.color || "#7ED321" }}
+          style={{ backgroundColor: displayBrandColor(category?.color) }}
         >
           Catégorie
         </div>

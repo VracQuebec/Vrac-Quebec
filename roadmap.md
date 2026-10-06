@@ -19,7 +19,7 @@
 - [x] Auditer l’accueil, la carte et le regroupement actuel pour la passe UX ciblée.
 - [x] Réordonner l’accueil avec résumé réel et actions existantes; rétablir les marqueurs individuels et une fiche compacte sans changement métier, uniquement en TEST.
 - [x] Vérifier six formats mobiles/tablette/ordinateur, les filtres, les fiches et la navigation; 469 marqueurs sans cluster, #7DD520 exact et 32 tests réussis, sans publication ni écriture.
-- [ ] Auditer les écrans et les verts pour la dernière direction produit mobile; conserver intégralement la carte validée.
-- [ ] Harmoniser la marque avec un token unique #7DD520, sans changer les couleurs fonctionnelles ni les espaces exclus.
-- [ ] Affiner l’accueil, les listes et l’entourage de la carte en direction mobile visuelle, sans modifier les fonctions.
-- [ ] Vérifier formats, safe areas simulées, navigation, filtres, recherche et menu Plus sans écriture ni publication.
+- [x] Auditer les écrans et les verts pour la dernière direction produit mobile; conserver intégralement la carte validée.
+- [x] Harmoniser la marque avec un token unique #7DD520, sans changer les couleurs fonctionnelles ni les espaces exclus; icônes bitmap existantes conservées.
+- [x] Affiner l’accueil, les listes et l’entourage de la carte en direction mobile visuelle, sans modifier les fonctions.
+- [x] Vérifier six formats, safe areas simulées, navigation, filtres, recherche et menu Plus sans écriture ni publication; 469 marqueurs individuels et 34 tests réussis.

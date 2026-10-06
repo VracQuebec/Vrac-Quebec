@@ -1,3 +1,4 @@
+import { displayBrandColor } from "@/lib/brand-color";
 import { useEffect, useState } from "react";
 import { useParams, Navigate, Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -160,7 +161,7 @@ export default function BlogPost() {
           <Link
             to={`/blog/categorie/${cat.slug}`}
             className="inline-block px-3 py-1 rounded-full text-white text-xs uppercase font-display font-bold tracking-widest mb-4"
-            style={{ backgroundColor: cat.color || "#7ED321" }}
+            style={{ backgroundColor: displayBrandColor(cat.color) }}
           >
             {cat.name}
           </Link>

@@ -1,3 +1,4 @@
+import { brandColor } from "@/lib/brand-color";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Calculator, Boxes, Ruler, Truck, DollarSign } from "lucide-react";
@@ -7,7 +8,7 @@ import Breadcrumbs from "@/components/blog/Breadcrumbs";
 import { SITE_URL } from "@/lib/blog/utils";
 
 const TOOLS = [
-  { slug: "tonnage", title: "Calculateur de tonnage", desc: "Convertissez volume en tonnes selon le matériau.", icon: Calculator, color: "#7ED321" },
+  { slug: "tonnage", title: "Calculateur de tonnage", desc: "Convertissez volume en tonnes selon le matériau.", icon: Calculator, color: brandColor },
   { slug: "verges-cubes", title: "Calculateur de verges cubes", desc: "Passez des dimensions en verges cubes (yd³).", icon: Boxes, color: "#8B5CF6" },
   { slug: "volume", title: "Calculateur de volume", desc: "Volume en m³ à partir de longueur, largeur, profondeur.", icon: Ruler, color: "#10B981" },
   { slug: "voyages-camion", title: "Calculateur de voyages de camion", desc: "Nombre de voyages selon capacité et matériau.", icon: Truck, color: "#F59E0B" },

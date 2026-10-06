@@ -51,19 +51,17 @@ export default function EntrepreneurChantiers() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Rechercher un lieu ou une ville…"
-            className="h-11 w-full rounded-md border border-border/40 bg-secondary/35 pl-11 pr-4 font-body text-sm outline-none focus:border-primary"
+            className="h-11 w-full rounded-lg border border-transparent bg-secondary/45 pl-11 pr-4 font-body text-sm outline-none focus:border-primary"
             aria-label="Rechercher un chantier"
           />
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-2">
           {FILTERS.map((f) => (
             <Button variant="ghost"
               key={f.key}
               onClick={() => setFilter(f.key)}
               aria-pressed={filter === f.key}
-              className={`h-11 rounded-none border-b-2 px-1 font-body text-xs font-medium transition-colors ${
-                filter === f.key ? "border-primary text-foreground hover:bg-secondary/30 hover:text-foreground" : "border-transparent text-muted-foreground hover:bg-secondary/30 hover:text-foreground"
-              }`}
+              className="ent-chip"
             >
               {f.label}
             </Button>

@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, useLayoutEffect, lazy, Suspense } from "react";
 import { Helmet } from "react-helmet-async";
 import Index from "./pages/Index";
 import SessionKeeper from "./components/SessionKeeper";
@@ -13,6 +13,17 @@ import UniversalNav from "./components/UniversalNav";
 import { trackPageView } from "./lib/analytics/ga4";
 import { useAdminNotifications } from "./hooks/useAdminNotifications";
 import { EntrepreneurDataProvider } from "./lib/entrepreneur-app/EntrepreneurDataProvider";
+
+/** Presentation-only boundary: excluded spaces keep their existing palette. */
+function BrandPaletteScope() {
+  const { pathname } = useLocation();
+  useLayoutEffect(() => {
+    const scope = /^\/(admin|ops)(\/|$)/.test(pathname) ? "legacy" : /^\/entrepreneur\/flotte(\/|$)/.test(pathname) ? "fleet" : "brand";
+    document.documentElement.dataset.brandScope = scope;
+    return () => { delete document.documentElement.dataset.brandScope; };
+  }, [pathname]);
+  return null;
+}
 
 function AdminNotificationsMount() {
   useAdminNotifications();
@@ -212,6 +223,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <BrandPaletteScope />
           <ScrollToTop />
           <PrivateNoIndex />
           <Ga4RouteTracker />
