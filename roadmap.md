@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Compacter Nouvelle demande (visuel −25–30 %, cible tactile 44 px, largeur non pleine), réduire ACTIVITÉ, identité réelle et logo +10–15 % sur l’accueil seulement; vérifier capture réelle 393 × 852, premier chantier visible, petit écran, carte et fichiers protégés inchangés; TEST sans publication.
+
 - [x] Micro-finition de la base finale validée : identité compacte, tracé subtil, hiérarchie chantier; CTA et structure inchangés. Compte réel COTE COURTAGE : 2 chantiers, 2 demandes, 1 action; badge réel vérifié et disparition à zéro confirmée par réponses vides temporaires uniquement dans le navigateur. Formats 393 × 852, 360 × 740, 320 × 667 et desktop sans débordement, défilement validé, 29 tests réussis, build OK et empreintes de tous les autres fichiers src/supabase identiques. Captures réelles v5 fournies en TEST sans publication; safe areas simulées, appareil/clavier iOS physiques non disponibles.
 
 - [x] Composition finale accueil uniquement : identité, activité charbon ouverte, CTA, accès natifs, chantiers et actions existantes. Cinq formats sans débordement, 29 tests réussis, build OK, couleur #7DD520 exacte, fichiers protégés inchangés; safe areas 59/34 px simulées. Deux captures réelles v4 fournies sans publication. L’aperçu disponible affiche le libellé de repli « VOTRE ENTREPRISE », pas « COTE COURTAGE »; identité non substituée artificiellement. Appareil/clavier iOS physiques non vérifiés.
