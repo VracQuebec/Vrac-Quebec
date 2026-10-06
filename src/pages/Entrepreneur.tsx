@@ -371,7 +371,7 @@ const Entrepreneur = () => {
         <section aria-label="Résultats des dompes" className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h1 className="flex items-center gap-2 font-display text-lg font-semibold"><MapPin className="h-5 w-5 text-primary" strokeWidth={1.6} />Dompes</h1>
-            <p className="font-body text-xs text-muted-foreground" aria-live="polite">{loading ? "Chargement…" : `${filteredLeads.length} disponible${filteredLeads.length > 1 ? "s" : ""}`}</p>
+            <p className="font-body text-xs text-muted-foreground" aria-live="polite">{loading ? "Chargement…" : `${filteredLeads.length} résultat${filteredLeads.length > 1 ? "s" : ""}`}</p>
           </div>
           <div className="flex gap-2 overflow-x-auto [scrollbar-width:none]" aria-label="Matériaux des dompes">
             <Button variant="ghost" aria-pressed={activeFilters.size === 0} onClick={() => setActiveFilters(new Set())} className="ent-chip shrink-0">Tous</Button>

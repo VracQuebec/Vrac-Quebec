@@ -1,3 +1,4 @@
+import { displayBrandColor } from "@/lib/brand-color";
 import { Link } from "react-router-dom";
 import type { BlogCategory } from "@/lib/blog/types";
 
@@ -27,7 +28,7 @@ export default function CategoryPills({ categories, activeSlug }: Props) {
                 ? "text-white border-transparent"
                 : "bg-card text-foreground border-border hover:border-foreground/40"
             }`}
-            style={active ? { backgroundColor: c.color || "#7ED321" } : undefined}
+            style={active ? { backgroundColor: displayBrandColor(c.color) } : undefined}
           >
             {c.name}
           </Link>
