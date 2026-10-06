@@ -12,3 +12,6 @@
 - [x] Améliorer le regroupement visuel des marqueurs des dompes sans toucher aux données ou coordonnées.
 - [x] Vérifier les six tailles précédentes, les zones sécuritaires simulées, les feuilles et la carte; rester en TEST.
 - [ ] Confirmer la finition sur iPhone physique en PWA et le clavier système; nécessite un appareil utilisateur.
+- [ ] Auditer la direction visuelle finale et comparer le vert historique à la surcharge actuelle.
+- [ ] Valider une direction d’application mobile sobre, puis restaurer le vert historique et alléger les listes uniquement en TEST.
+- [ ] Vérifier la direction finale sur mobiles, tablette et ordinateur, sans écriture de données ni publication.
