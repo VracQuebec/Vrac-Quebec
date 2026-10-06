@@ -191,14 +191,15 @@ export const ChantierCard = ({
   metadata?: string | null;
   badge?: { label: string; tone: "pending" | "active" | "done" | "refused" | "neutral" };
 }) => (
-  <Link to={to} className="block py-4 text-left transition-colors duration-150 hover:bg-secondary/30 active:bg-secondary/50 motion-reduce:transition-none">
+  <Link to={to} aria-label={label} className="block py-3 text-left transition-colors duration-150 hover:bg-secondary/30 active:bg-secondary/50 motion-reduce:transition-none">
     <div className="flex items-center gap-3">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center self-start rounded-md bg-secondary/45"><HardHat className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.6} /></span>
       <div className="min-w-0 flex-1">
-        <p className="break-words font-display text-sm font-semibold leading-snug">{label}</p>
+        <p className="break-words font-display text-sm font-semibold leading-snug" title={label}>{label.split(",")[0]}</p>
         {city && <p className="mt-0.5 font-body text-xs text-muted-foreground">{city}</p>}
         {material && <p className="mt-1 break-words font-body text-xs leading-relaxed text-muted-foreground">{material}</p>}
-        <p className="mt-1 break-words font-body text-[11px] leading-relaxed text-muted-foreground">{detail}</p>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">{badge && <StatusBadge label={badge.label} tone={badge.tone} signature={badge.tone === "active" || badge.tone === "pending"} />}{metadata && <p className="font-body text-[11px] text-muted-foreground">{metadata}</p>}</div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1"><p className="break-words font-body text-[11px] leading-relaxed text-muted-foreground">{detail}</p>{badge && <StatusBadge label={badge.label} tone={badge.tone} signature={badge.tone === "active" || badge.tone === "pending"} />}</div>
+        {metadata && <p className="mt-1 font-body text-[11px] text-muted-foreground">{metadata}</p>}
       </div>
       <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.6} />
     </div>

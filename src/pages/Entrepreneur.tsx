@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import {
   Loader2, Phone, ShieldCheck,
-  Maximize2, Minimize2, Search, SlidersHorizontal,
+   Maximize2, Minimize2, Search, SlidersHorizontal, MapPin,
 } from "lucide-react";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -348,8 +348,8 @@ const Entrepreneur = () => {
   );
 
   return (
-    <EntrepreneurAppShell title="Trouver une dompe" backTo={null}>
-      <div className="w-full min-w-0 px-4 sm:px-6 py-5 space-y-5">
+    <EntrepreneurAppShell backTo={null}>
+      <div className="w-full min-w-0 px-4 sm:px-6 py-3 space-y-3">
         {/* Contexte : le chantier suit l'entrepreneur */}
         {activeChantier && (
           <ChantierContextBar
@@ -370,17 +370,17 @@ const Entrepreneur = () => {
 
         <section aria-label="Résultats des dompes" className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h1 className="font-body text-xs font-semibold uppercase">Dompes à proximité</h1>
-            <p className="font-body text-xs text-muted-foreground" aria-live="polite">{loading ? "Chargement…" : `${filteredLeads.length} résultat${filteredLeads.length > 1 ? "s" : ""}`}</p>
+            <h1 className="flex items-center gap-2 font-display text-lg font-semibold"><MapPin className="h-5 w-5 text-primary" strokeWidth={1.6} />Dompes</h1>
+            <p className="font-body text-xs text-muted-foreground" aria-live="polite">{loading ? "Chargement…" : `${filteredLeads.length} disponible${filteredLeads.length > 1 ? "s" : ""}`}</p>
           </div>
-          <div className="flex gap-1 overflow-x-auto [scrollbar-width:none]" aria-label="Matériaux des dompes">
-            <Button variant="ghost" aria-pressed={activeFilters.size === 0} onClick={() => setActiveFilters(new Set())} className={`min-h-11 shrink-0 rounded-none border-b-2 px-3 font-body text-xs ${activeFilters.size === 0 ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}>Tous</Button>
-            {MATERIAL_LEGEND.filter(k => leads.some(l => leadMaterialKeys(l).includes(k))).map(k => <Button key={k} variant="ghost" aria-pressed={activeFilters.has(k)} onClick={() => toggleFilter(k)} className={`min-h-11 shrink-0 rounded-none border-b-2 px-3 font-body text-xs ${activeFilters.has(k) ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}>{MATERIAL_COLORS[k].label}</Button>)}
+          <div className="flex gap-2 overflow-x-auto [scrollbar-width:none]" aria-label="Matériaux des dompes">
+            <Button variant="ghost" aria-pressed={activeFilters.size === 0} onClick={() => setActiveFilters(new Set())} className="ent-chip shrink-0">Tous</Button>
+            {MATERIAL_LEGEND.filter(k => leads.some(l => leadMaterialKeys(l).includes(k))).map(k => <Button key={k} variant="ghost" aria-pressed={activeFilters.has(k)} onClick={() => toggleFilter(k)} className="ent-chip shrink-0">{MATERIAL_COLORS[k].label}</Button>)}
           </div>
         </section>
 
         {/* Recherche : l'outil principal de l'écran */}
-        <section className="ent-sticky -mx-4 bg-background px-4 py-2 sm:mx-0 sm:rounded-lg sm:px-2">
+        <section className="ent-sticky -mx-4 bg-background px-4 py-1 sm:mx-0 sm:px-0">
           <div className="flex items-center gap-2">
             <div className="relative min-w-0 flex-1">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -389,13 +389,13 @@ const Entrepreneur = () => {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Secteur, matériau, numéro de dompe…"
                 aria-label="Rechercher une dompe"
-                className="h-11 w-full rounded-md border border-border/50 bg-card pl-11 pr-3 font-body text-sm outline-none focus:border-primary"
+                className="h-11 w-full rounded-lg border border-transparent bg-secondary/45 pl-11 pr-3 font-body text-sm outline-none placeholder:text-muted-foreground/75 focus:border-primary"
               />
             </div>
             <Button variant="ghost"
               onClick={() => setShowFilters(true)}
               aria-label="Filtrer les dompes"
-              className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-border/50 bg-card p-0"
+               className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-secondary/45 p-0"
             >
               <SlidersHorizontal className="h-5 w-5" />
               {activeCount > 0 && (
