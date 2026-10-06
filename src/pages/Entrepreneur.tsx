@@ -30,7 +30,6 @@ import {
   type MaterialColorKey,
 } from "@/lib/material-colors";
 
-const MARKER_COLOR = MATERIAL_COLORS.remblai.color; // green markers for all dump points
 const PHONE_PRIMARY = "5819947717";
 
 interface EntLead {
@@ -267,6 +266,7 @@ const Entrepreneur = () => {
         const radius = duplicateIndex === 0 ? 0 : Math.min(48, 14 * Math.sqrt(duplicateIndex));
         const m = new g.maps.Marker({
           map,
+          optimized: false,
           position: pos,
           opacity: l.availability_status === "unavailable" ? 0.6 : 1,
           title: `Dompe #${label} — ${av.label}`,

@@ -3,7 +3,7 @@ import { ArrowRight, ChevronRight, ClipboardList, HardHat, Layers, Map as MapIco
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import { Button } from "@/components/ui/button";
 
-import { EmptyState, ErrorState, LoadingSkeleton, SectionHeader, StatusBadge } from "@/components/entrepreneur-app/AppStates";
+import { EmptyState, ErrorState, LoadingSkeleton, StatusBadge } from "@/components/entrepreneur-app/AppStates";
 import { QuickActions } from "@/components/entrepreneur-app/ui";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { useEntrepreneurProfile } from "@/hooks/useEntrepreneurProfile";
