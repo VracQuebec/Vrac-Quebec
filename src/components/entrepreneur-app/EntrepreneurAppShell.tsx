@@ -198,7 +198,7 @@ export default function EntrepreneurAppShell({
       </aside>
 
       <div className="flex min-h-dvh flex-col lg:pl-60">
-        <header ref={headerRef} className="ent-header sticky top-0 z-30 w-full border-b border-border/50 bg-card">
+        <header ref={headerRef} className="ent-header sticky top-0 z-30 w-full border-b border-border/25 bg-card">
           <div className="flex min-h-12 items-center gap-0.5 px-4 sm:px-6">
             {backTarget ? <Button asChild variant="ghost" size="icon" className="h-11 w-11 shrink-0 hover:bg-secondary hover:text-foreground"><Link to={backTarget} aria-label={backLabel}><ArrowLeft /></Link></Button> :
               <Link to="/entrepreneur" className="flex min-h-11 shrink-0 items-center gap-2 font-display text-sm font-bold lg:hidden"><Truck className="h-4 w-4 text-primary" strokeWidth={1.7} /><span>Vrac<span className="text-primary">Québec</span></span></Link>}
@@ -219,24 +219,24 @@ export default function EntrepreneurAppShell({
         <main className="ent-main min-w-0 flex-1">{children}</main>
       </div>
 
-      {showFab && <Button asChild variant="secondary" size="icon" className="ent-create fixed right-4 z-40 h-11 w-11 rounded-lg border border-border text-primary lg:hidden"><Link to="/demande-transport" aria-label="Nouvelle demande"><Plus /></Link></Button>}
+      {showFab && <Button asChild variant="default" size="icon" className="ent-create fixed right-4 z-40 h-11 w-11 rounded-lg text-primary-foreground lg:hidden"><Link to="/demande-transport" aria-label="Nouvelle demande" title="Nouvelle demande"><Plus /></Link></Button>}
 
-      <nav ref={bottomRef} className="ent-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card lg:hidden" aria-label="Navigation principale">
+      <nav ref={bottomRef} className="ent-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border/30 bg-card lg:hidden" aria-label="Navigation principale">
         <div className="grid grid-cols-5">
           {PRIMARY_TABS.map(({ to, label, icon: Icon, ...rest }) => {
             const active = isActive(location.pathname, to, "end" in rest ? rest.end : undefined);
-            return <Button key={to} asChild variant="ghost" className={`relative h-14 min-w-0 flex-col gap-1 rounded-none px-1 py-2 font-body text-[10px] hover:bg-secondary hover:text-foreground ${active ? "font-semibold text-primary" : "text-muted-foreground"}`}>
-              <NavLink to={to} aria-current={active ? "page" : undefined}><Icon className="!h-5 !w-5" strokeWidth={active ? 2.2 : 1.8} /><span>{label}</span></NavLink>
+            return <Button key={to} asChild variant="ghost" className={`relative h-14 min-w-0 flex-col gap-1 rounded-none px-1 py-2 font-body text-[10px] hover:bg-secondary/30 hover:text-foreground ${active ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+              <NavLink to={to} aria-current={active ? "page" : undefined}><Icon className={`!h-5 !w-5 ${active ? "text-primary" : ""}`} strokeWidth={1.8} /><span>{label}</span></NavLink>
             </Button>;
           })}
-          <Button variant="ghost" onClick={() => setMoreOpen(true)} aria-label="Plus d'options" aria-current={moreActive ? "page" : undefined} className={`h-14 min-w-0 flex-col gap-1 rounded-none px-1 py-2 font-body text-[10px] hover:bg-secondary hover:text-foreground ${moreActive ? "font-semibold text-primary" : "text-muted-foreground"}`}><Menu className="!h-5 !w-5" /><span>Plus</span></Button>
+          <Button variant="ghost" onClick={() => setMoreOpen(true)} aria-label="Plus d'options" aria-current={moreActive ? "page" : undefined} className={`h-14 min-w-0 flex-col gap-1 rounded-none px-1 py-2 font-body text-[10px] hover:bg-secondary/30 hover:text-foreground ${moreActive ? "font-semibold text-foreground" : "text-muted-foreground"}`}><Menu className={`!h-5 !w-5 ${moreActive ? "text-primary" : ""}`} strokeWidth={1.8} /><span>Plus</span></Button>
         </div>
       </nav>
 
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent side="bottom" className="ent-sheet gap-0 rounded-t-lg px-4" aria-describedby={undefined}>
           <SheetTitle className="mb-2 pr-12 font-display text-base font-semibold">Plus</SheetTitle>
-          <nav aria-label="Sections secondaires" className="divide-y divide-border/40">
+          <nav aria-label="Sections secondaires">
             {MORE_SECTIONS.map(section => <div key={section.title} className="py-2 first:pt-0">
               <p className="px-2 pb-1 pt-2 font-body text-[10px] font-semibold uppercase text-muted-foreground">{section.title}</p>
               {section.items.map(({ to, label, icon: Icon }) => {
