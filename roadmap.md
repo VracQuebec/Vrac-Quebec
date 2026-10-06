@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Corriger les sources éditoriales enregistrées du téléphone public et les fonctions actives; préserver toutes les coordonnées privées et ne pas publier le site.
+- [ ] Vérifier les sources, liens d’appel, WhatsApp, Schema.org et pages locales réelles; remettre les nombres exacts et limites.
+
 - [x] Audit téléphones publics : 42 occurrences anciennes dans 17 fichiers; 2 084 pages SEO lues (2 014 affectées), 238 articles, 188 villes, 17 matériaux SEO, 10 services et 6 matériaux catalogue. Quatre contacts fictifs identifiés dans les pages locales.
 - [x] Contacts publics uniformisés vers 819-592-3495 en TEST : textes/liens fixes, aide entrepreneur, modèles courriel/assistant/SEO et pré-rendu. Contenus SEO normalisés uniquement à l’affichage, aucune donnée enregistrée ni CRM réécrite. Fonctions serveur non déployées puisque la base est partagée avec le site publié.
 - [x] Vérification : zéro ancien numéro littéral dans les sources actives et zéro variante dans le rendu des 2 084 pages SEO; 2 792 liens de contenu SEO normalisés. Six pages réelles contrôlées, 60 tests réussis, build OK. Historique/contenus stockés et site publié restent volontairement inchangés; aucune publication.
