@@ -49,7 +49,7 @@ export default function EntrepreneurDashboard() {
 
         {!loading && !error && <section aria-label="État du jour" className="mt-5 border-y border-border/40 py-3">
           {dayStats.length === 0 ? <p className="flex items-center gap-2 font-body text-xs text-muted-foreground"><span className="h-1.5 w-1.5 rounded-full bg-primary" />Tout est à jour · aucune action requise</p> : (
-            <div className="grid grid-cols-3 divide-x divide-border/40">
+            <div className="grid divide-x divide-border/40" style={{ gridTemplateColumns: `repeat(${dayStats.length}, minmax(0, 1fr))` }}>
               {dayStats.map(stat => <Link key={stat.label} to={stat.to} className="min-w-0 px-3 first:pl-0 transition-opacity duration-150 active:opacity-60">
                 <p className={`font-display text-2xl font-semibold leading-none tabular-nums ${stat.accent ? "text-foreground" : ""}`}>{stat.value}{stat.accent && <span className="ml-1 inline-block h-1.5 w-1.5 -translate-y-3 rounded-full bg-attention" />}</p>
                 <p className="mt-1.5 truncate font-body text-[11px] text-muted-foreground">{stat.label}</p>
