@@ -201,7 +201,7 @@ export default function EntrepreneurAppShell({
         <header ref={headerRef} className="ent-header sticky top-0 z-30 w-full border-b border-border/25 bg-card">
           <div className="flex min-h-12 items-center gap-0.5 px-4 sm:px-6">
             {backTarget ? <Button asChild variant="ghost" size="icon" className="h-11 w-11 shrink-0 hover:bg-secondary hover:text-foreground"><Link to={backTarget} aria-label={backLabel}><ArrowLeft /></Link></Button> :
-              <Link to="/entrepreneur" className="flex min-h-11 shrink-0 items-center gap-2 font-display text-sm font-bold lg:hidden"><Truck className="h-4 w-4 text-primary" strokeWidth={1.7} /><span>Vrac<span className="text-primary">Québec</span></span></Link>}
+              <Link to="/entrepreneur" className={`flex min-h-11 shrink-0 items-center gap-2 font-display font-bold lg:hidden ${isHome ? "text-base" : "text-sm"}`}><Truck className={`${isHome ? "h-[18px] w-[18px]" : "h-4 w-4"} text-primary`} strokeWidth={1.7} /><span>Vrac<span className="text-primary">Québec</span></span></Link>}
             <div className="min-w-0 flex-1 px-2 py-1 lg:px-0">
               {!isHome && title && <h1 className="break-words font-display text-sm font-semibold leading-snug sm:text-base">{title}</h1>}
               {!isHome && subtitle && <p className="break-words font-body text-xs leading-snug text-muted-foreground">{subtitle}</p>}
