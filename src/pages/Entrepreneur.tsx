@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MarkerClusterer, SuperClusterAlgorithm } from "@googlemaps/markerclusterer";
 import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { supabase } from "@/integrations/supabase/client";
 import { getEligibleEntrepreneurDumpSites, crmDompeNumber } from "@/lib/entrepreneur/dompes";
@@ -105,6 +106,7 @@ const Entrepreneur = () => {
   const mapRef = useRef<google.maps.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Record<string, google.maps.Marker>>({});
+  const clustererRef = useRef<MarkerClusterer | null>(null);
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const navigate = useNavigate();
   const { user, isReady: authReady } = useAuthReady();
@@ -232,6 +234,10 @@ const Entrepreneur = () => {
         });
         infoRef.current = new g.maps.InfoWindow();
       }
+      const map = mapRef.current;
+      if (!map) return;
+      clustererRef.current?.clearMarkers();
+      clustererRef.current?.setMap(null);
       Object.values(markersRef.current).forEach((m) => m.setMap(null));
       markersRef.current = {};
 
@@ -248,9 +254,9 @@ const Entrepreneur = () => {
         const width = Math.max(30, 12 + label.length * 7);
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="30" viewBox="0 0 ${width} 30"><rect x="1" y="1" width="${width - 2}" height="28" rx="14" fill="${color}" stroke="white" stroke-width="3"/><text x="${width / 2}" y="15" dominant-baseline="central" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="800" font-size="${fontSize}" fill="white">${label.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text></svg>`;
         const url = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-        const pos = { lat: l.latitude!, lng: l.longitude! };
+        if (l.latitude === null || l.longitude === null) return;
+        const pos = { lat: l.latitude, lng: l.longitude };
         const m = new g.maps.Marker({
-          map: mapRef.current!,
           position: pos,
           opacity: l.availability_status === "unavailable" ? 0.6 : 1,
           title: `${av.dot} ${av.label}`,
@@ -267,19 +273,52 @@ const Entrepreneur = () => {
         markersRef.current[l.id] = m;
         bounds.extend(pos);
       });
+      const tokens = getComputedStyle(containerRef.current.closest(".entrepreneur-workspace") ?? containerRef.current);
+      const surface = `hsl(${tokens.getPropertyValue("--card").trim()})`;
+      const ink = `hsl(${tokens.getPropertyValue("--foreground").trim()})`;
+      const outline = `hsl(${tokens.getPropertyValue("--border").trim()})`;
+      clustererRef.current = new MarkerClusterer({
+        map,
+        markers: Object.values(markersRef.current),
+        algorithm: new SuperClusterAlgorithm({ radius: 70, maxZoom: 20 }),
+        renderer: {
+          render: ({ count, position }) => {
+            const text = `${count} dompes`;
+            const width = Math.max(80, text.length * 7 + 24);
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="44"><rect x="1" y="1" width="${width - 2}" height="42" rx="21" fill="${surface}" stroke="${outline}" stroke-width="2"/><text x="${width / 2}" y="22" dominant-baseline="central" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="${ink}">${text}</text></svg>`;
+            return new g.maps.Marker({
+              position,
+              title: `${text} — zoomer`,
+              zIndex: g.maps.Marker.MAX_ZINDEX + count,
+              icon: {
+                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+                scaledSize: new g.maps.Size(width, 44),
+                anchor: new g.maps.Point(width / 2, 22),
+              },
+            });
+          },
+        },
+      });
       if (Object.keys(markersRef.current).length > 0) {
         if (activeChantier?.coords && !globalView) {
-          mapRef.current!.setCenter(activeChantier.coords);
-          mapRef.current!.setZoom(10);
+          map.setCenter(activeChantier.coords);
+          map.setZoom(10);
         } else {
-          mapRef.current!.fitBounds(bounds, 40);
+          map.fitBounds(bounds, 40);
         }
       }
     }).catch((e) => {
       console.error("Google Maps load error:", e);
     });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      clustererRef.current?.clearMarkers();
+      clustererRef.current?.setMap(null);
+      clustererRef.current = null;
+      Object.values(markersRef.current).forEach((marker) => marker.setMap(null));
+      markersRef.current = {};
+    };
   }, [filteredLeads, activeChantier, globalView]);
 
   const focusLead = (l: EntLead) => {
