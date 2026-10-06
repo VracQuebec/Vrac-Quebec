@@ -1,5 +1,5 @@
 // ============================================================
-// MES CHANTIERS — liste en cartes, filtres simples.
+// MES CHANTIERS — liste ouverte, filtres simples.
 // Données : vue calculée partagée (aucune écriture).
 // ============================================================
 import { useMemo, useState } from "react";
@@ -10,6 +10,7 @@ import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProv
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { NEED_LABELS, needDirection } from "@/lib/parcours/sens-besoin";
+import { summarizeChantier } from "@/lib/parcours/chantiers";
 
 const FILTERS = [
   { key: "all", label: "Tous" },
@@ -42,7 +43,7 @@ export default function EntrepreneurChantiers() {
 
   return (
     <EntrepreneurAppShell title="Chantiers" backTo={null} showFab>
-      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-5 space-y-4">
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-4 space-y-3">
         {/* Recherche + filtres */}
         <div className="relative">
           <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -50,17 +51,18 @@ export default function EntrepreneurChantiers() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Rechercher un lieu ou une ville…"
-            className="h-12 w-full rounded-md border border-border bg-card pl-11 pr-4 font-body text-sm outline-none focus:border-primary"
+            className="h-11 w-full rounded-md border border-border/40 bg-secondary/35 pl-11 pr-4 font-body text-sm outline-none focus:border-primary"
             aria-label="Rechercher un chantier"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-4">
           {FILTERS.map((f) => (
             <Button variant="ghost"
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`h-11 flex-1 rounded-md px-3 font-display text-sm font-semibold transition-colors ${
-                filter === f.key ? "bg-secondary text-primary hover:bg-secondary hover:text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              aria-pressed={filter === f.key}
+              className={`h-11 rounded-none border-b-2 px-1 font-body text-xs font-medium transition-colors ${
+                filter === f.key ? "border-primary text-foreground hover:bg-secondary/30 hover:text-foreground" : "border-transparent text-muted-foreground hover:bg-secondary/30 hover:text-foreground"
               }`}
             >
               {f.label}
@@ -68,15 +70,13 @@ export default function EntrepreneurChantiers() {
           ))}
         </div>
 
-        <p className="border-l-2 border-border pl-3 font-body text-xs leading-relaxed text-muted-foreground">
-          Chaque demande visible par votre compte a son propre dossier. Aucune n'est regroupée par ville ni présentée comme un projet confirmé de l'entreprise sans rattachement explicite.
-        </p>
         {loading ? (
-          <LoadingSkeleton lines={3} />
+          <LoadingSkeleton lines={3} compact />
         ) : error ? (
-          <ErrorState onRetry={refresh} />
+          <ErrorState onRetry={refresh} compact />
         ) : visible.length === 0 ? (
           <EmptyState
+            compact
             title={chantiers.length === 0 ? "Aucun chantier pour l'instant" : "Aucun résultat"}
             message={
               chantiers.length === 0
@@ -87,17 +87,19 @@ export default function EntrepreneurChantiers() {
             actionTo={chantiers.length === 0 ? "/demande-transport" : undefined}
           />
         ) : (
-          <div className="space-y-2.5">
+          <div className="divide-y divide-border/35">
             {visible.map((c) => {
               const encours = c.submissions.some((s) => !isDone(s.status));
+              const summary = summarizeChantier(c);
               return (
                 <ChantierCard
                   key={c.key}
                   to={`/entrepreneur/chantiers/${encodeURIComponent(c.key)}`}
                   label={c.label}
-                  detail={`${NEED_LABELS[needDirection(c.submissions[0])]}${
-                    c.submissions[0]?.number ? ` · #${c.submissions[0].number}` : ""
-                  }${c.materials.length > 0 ? ` · ${c.materials.slice(0, 2).join(", ")}` : ""}${c.lastActivity ? ` · ${new Date(c.lastActivity).toLocaleDateString("fr-CA")}` : ""}`}
+                  city={c.city && c.label !== `${c.city} — lieu à préciser` ? c.city : null}
+                  material={[summary.material, summary.quantity].filter(Boolean).join(" · ")}
+                  detail={NEED_LABELS[needDirection(c.submissions[0])]}
+                  metadata={[c.submissions[0]?.number ? `Demande #${c.submissions[0].number}` : null, c.lastActivity ? new Date(c.lastActivity).toLocaleDateString("fr-CA", { day: "numeric", month: "short" }) : null].filter(Boolean).join(" · ")}
                   badge={{ label: encours ? "En cours" : "Terminé", tone: encours ? "active" : "done" }}
                 />
               );

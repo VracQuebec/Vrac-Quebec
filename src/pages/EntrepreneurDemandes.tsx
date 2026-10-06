@@ -43,7 +43,7 @@ export default function EntrepreneurDemandes() {
           <aside className="space-y-4 lg:sticky lg:top-[calc(var(--ent-header-h)+1rem)] lg:self-start">
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Chercher un dossier" aria-label="Chercher un dossier" className="h-12 w-full rounded-md border border-border bg-card pl-10 pr-3 font-body text-sm outline-none focus:border-primary" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Chercher un dossier" aria-label="Chercher un dossier" className="h-11 w-full rounded-md border border-border/40 bg-secondary/35 pl-10 pr-3 font-body text-sm outline-none focus:border-primary" />
             </div>
             <div className="lg:hidden">
               <AppTabs tabs={FILTERS.map((item) => ({ id: item.key, label: item.label, count: requests.filter((request) => requestMatchesFilter(request, item.key)).length }))} value={filter} onChange={(id) => chooseFilter(id as RequestFilter)} />
@@ -54,14 +54,14 @@ export default function EntrepreneurDemandes() {
                 return <Button variant="ghost" key={item.key} type="button" onClick={() => chooseFilter(item.key)} className={`flex h-auto min-h-11 w-full items-center justify-between rounded-none border-b border-border px-4 text-left font-display text-sm font-semibold last:border-0 ${filter === item.key ? "bg-secondary text-primary hover:bg-secondary hover:text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}><span>{item.label}</span><span>{count}</span></Button>;
               })}
             </nav>
-            <a href="/entrepreneur/chantiers" className="hidden font-display text-sm font-semibold text-primary lg:inline-flex">Voir les regroupements par chantier</a>
+             <a href="/entrepreneur/chantiers" className="hidden font-body text-xs font-medium text-foreground lg:inline-flex">Voir les regroupements par chantier</a>
           </aside>
 
           <section className="min-w-0">
-            {loading ? <LoadingSkeleton lines={4} /> : error ? <ErrorState onRetry={refresh} /> : visible.length === 0 ? (
-              <EmptyState title={requests.length === 0 ? "Aucune demande pour l'instant" : "Aucun dossier dans ce filtre"} message={requests.length === 0 ? "Créez votre première demande : son dossier apparaîtra ici." : "Essayez un autre filtre ou une autre recherche."} actionLabel={requests.length === 0 ? "Nouvelle demande" : undefined} actionTo={requests.length === 0 ? "/demande-transport" : undefined} />
+            {loading ? <LoadingSkeleton lines={4} compact /> : error ? <ErrorState onRetry={refresh} compact /> : visible.length === 0 ? (
+              <EmptyState compact title={requests.length === 0 ? "Aucune demande pour l'instant" : "Aucun dossier dans ce filtre"} message={requests.length === 0 ? "Créez votre première demande : son dossier apparaîtra ici." : "Essayez un autre filtre ou une autre recherche."} actionLabel={requests.length === 0 ? "Nouvelle demande" : undefined} actionTo={requests.length === 0 ? "/demande-transport" : undefined} />
             ) : (
-              <div className="grid gap-3 xl:grid-cols-2">
+              <div className="divide-y divide-border/35">
                 {visible.map((request) => (
                   <RequestCard key={request.id} to={`/entrepreneur/demandes/${request.id}`} kind={request.kind === "transport" ? "acces" : "materiau"} title={`Chantier — ${request.chantierLabel}`} place={`${request.kind === "transport" ? "Transport" : "Demande de matériau"} · ${request.title}`} footer={`${request.quantity || "Quantité à confirmer"}${request.date ? ` · ${new Date(request.date).toLocaleDateString("fr-CA")}` : ""}`} nextAction="Voir le dossier" badge={{ label: request.statusLabel, tone: request.tone }} />
                 ))}
