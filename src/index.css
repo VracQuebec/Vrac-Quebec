@@ -436,8 +436,8 @@ body,
 /* Excluded administration routes retain their pre-pass palette, including portals. */
 :root[data-brand-scope="legacy"] { --primary: 89 74% 48%; --accent: 89 74% 48%; --ring: 89 74% 48%; --shadow-glow: 0 0 30px -5px hsl(89 74% 48% / .2); }
 :root.dark[data-brand-scope="legacy"] { --primary: 89 74% 50%; --accent: 89 74% 50%; --ring: 89 74% 50%; }
-:root[data-brand-scope="fleet"] { --ring: 89 74% 48%; }
-:root.dark[data-brand-scope="fleet"] { --ring: 89 74% 50%; }
+:root[data-brand-scope="fleet"] { --accent: 89 74% 48%; --ring: 89 74% 48%; --shadow-glow: 0 0 30px -5px hsl(89 74% 48% / .2); }
+:root.dark[data-brand-scope="fleet"] { --accent: 89 74% 50%; --ring: 89 74% 50%; }
 .ent-chip { height: 2.75rem; min-width: 2.75rem; border-radius: .5rem; padding: 0 .875rem; background: hsl(var(--secondary) / .45); color: hsl(var(--muted-foreground)); font-family: 'DM Sans', sans-serif; font-size: .75rem; font-weight: 500; }
 .ent-chip[aria-pressed="true"] { background: hsl(var(--primary)); color: hsl(var(--foreground)); }
 .ent-chip:hover { background: hsl(var(--secondary)); color: hsl(var(--foreground)); }
