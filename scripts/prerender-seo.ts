@@ -19,7 +19,6 @@
 
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "fs";
 import { dirname, resolve } from "path";
-import { normalizePublicSeoPage } from "../src/lib/public-phone";
 
 const SITE = "https://vracquebec.ca";
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://kenduhxscnynugpvktin.supabase.co";
@@ -686,8 +685,7 @@ export async function prerenderSeo(distDir: string) {
   const written: string[] = [];
   const skipped: string[] = [];
 
-  for (const storedPage of pages) {
-    const page = normalizePublicSeoPage(storedPage);
+  for (const page of pages) {
     // Aucun contenu réel -> pas de pré-rendu (on n'invente rien, le SPA prend le relais).
     if (textLength(page.content_html || "") < 300) {
       skipped.push(page.slug);
