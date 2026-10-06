@@ -27,16 +27,16 @@ export default function EntrepreneurTransports() {
   );
 
   return (
-    <EntrepreneurAppShell title="Transports" subtitle="Planification et suivi" backTo={null}>
+    <EntrepreneurAppShell title="Transports" subtitle="Suivi" backTo={null}>
       <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:py-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="font-body text-sm text-muted-foreground">{active.length} dossier{active.length !== 1 ? "s" : ""} en cours</p>
           </div>
-          <Button asChild className="h-11 font-display font-bold"><Link to="/demande-transport"><Plus className="mr-2 h-4 w-4" />Demander un transport</Link></Button>
+          <Button asChild className="h-11 font-display font-bold"><Link to="/demande-transport"><Plus className="mr-2 h-4 w-4" />Nouveau transport</Link></Button>
         </div>
         {loading ? <LoadingSkeleton lines={3} /> : error ? <ErrorState onRetry={refresh} /> : transports.length === 0 ? (
-          <EmptyState title="Aucun transport demandé" message="Besoin d’un camion pour votre chantier?" actionLabel="Demander un transport" actionTo="/demande-transport" />
+          <EmptyState title="Aucun transport demandé" message="Besoin d’un camion pour votre chantier?" actionLabel="Nouveau transport" actionTo="/demande-transport" />
         ) : (
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
             <section><SectionHeader title="En cours" />{active.length ? <div className="grid gap-3 xl:grid-cols-2">{active.map(render)}</div> : <p className="rounded-lg border border-dashed border-border p-5 font-body text-sm text-muted-foreground">Aucun transport actif.</p>}</section>

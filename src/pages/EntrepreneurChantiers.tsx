@@ -50,7 +50,7 @@ export default function EntrepreneurChantiers() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un lieu ou une ville…"
+            placeholder="Rechercher…"
             className="h-11 w-full rounded-lg border border-transparent bg-secondary/45 pl-11 pr-4 font-body text-sm outline-none focus:border-primary"
             aria-label="Rechercher un chantier"
           />

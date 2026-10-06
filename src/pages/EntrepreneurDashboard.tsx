@@ -74,9 +74,9 @@ export default function EntrepreneurDashboard() {
         <section className="mt-5">
           <h2 className="mb-2 font-body text-xs font-semibold uppercase">Accès rapide</h2>
           <QuickActions actions={[
-            { label: "Demande", icon: Plus, to: "/demande-transport", primary: true },
-            { label: "Dompes", icon: MapIcon, to: "/entrepreneur/carte" },
-            { label: "Transport", icon: Truck, to: "/demande-transport" },
+            { label: "Dompe", icon: MapIcon, to: "/entrepreneur/carte" },
+            { label: "Transport", icon: Truck, to: "/entrepreneur/transports", primary: true },
+            { label: "Demandes", icon: ClipboardList, to: "/entrepreneur/demandes" },
             { label: "Matériaux", icon: Layers, to: "/acheter-materiaux" },
           ]} />
         </section>
