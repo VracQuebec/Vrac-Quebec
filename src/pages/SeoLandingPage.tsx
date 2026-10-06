@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import InternalLinksBlock, { type InternalLink } from "@/components/seo/InternalLinksBlock";
 import { logSeoEvent, logSeoViewOnce } from "@/lib/seo/tracking";
 import { sanitizeHtml } from "@/lib/blog/utils";
-import { normalizePublicSeoPage } from "@/lib/public-phone";
 import {
   matchMaterialCitySlug,
   RESERVED_TOP_LEVEL_SLUGS,
@@ -105,7 +104,7 @@ export default function SeoLandingPage() {
       ]);
       if (cancelled) return;
       const p = (pageRes.data ?? null) as unknown as SeoPage | null;
-      setPage(p ? normalizePublicSeoPage(p) : null);
+      setPage(p);
       setCities((citiesRes.data ?? []) as SeoCity[]);
       setMaterials((materialsRes.data ?? []) as SeoMaterial[]);
       const citySlugForCount = p?.city_slug;
