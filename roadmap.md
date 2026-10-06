@@ -1,8 +1,8 @@
 # Roadmap
 
-- [ ] Auditer et choisir la finition ciblée de l’accueil mobile (salutation, action, raccourcis, chantiers), carte intouchable.
-- [ ] Appliquer uniquement la finition visuelle approuvée en TEST avec #7DD520 inchangé.
-- [ ] Vérifier accueil, chantiers, dompes, recherche, filtres, transports, Plus et zones sécuritaires sans écriture ni publication.
+- [x] Auditer et appliquer la finition ciblée de l’accueil mobile selon l’ordre demandé, carte intouchable.
+- [x] Finition visuelle en TEST avec #7DD520 inchangé, salutation courte, action compacte, raccourcis puis chantiers.
+- [x] Vérifier six formats : accueil, chantiers, dompes, recherche, filtres, transports, Plus et zones sécuritaires simulées; 34 tests réussis, sans écriture ni publication.
 
 - [x] Auditer l’architecture actuelle des demandes d’accès aux dompes et des notifications.
 - [x] Réorganiser le centre des demandes d’accès sans modifier les données ni les règles.
