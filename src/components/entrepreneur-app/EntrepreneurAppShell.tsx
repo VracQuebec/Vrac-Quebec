@@ -1,10 +1,11 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRoles } from "@/hooks/useUserRole";
 import { useEntrepreneurNotifications } from "@/hooks/useEntrepreneurNotifications";
+import { Button } from "@/components/ui/button";
 import FullPageState from "@/components/FullPageState";
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -51,7 +52,7 @@ const PRIMARY_TABS = [
   { to: "/entrepreneur", label: "Accueil", icon: Home, end: true },
   { to: "/entrepreneur/chantiers", label: "Chantiers", icon: ClipboardList },
   { to: "/entrepreneur/carte", label: "Dompes", icon: MapIcon },
-  { to: "/entrepreneur/transports", label: "Transports", icon: Truck },
+  { to: "/entrepreneur/transports", label: "Transport", icon: Truck },
 ] as const;
 
 interface MoreItem {
@@ -63,62 +64,38 @@ interface MoreItem {
 
 const MORE_SECTIONS: { title: string; items: MoreItem[] }[] = [
   {
-    title: "Équipe",
+    title: "Travail et équipe",
     items: [
       { to: "/entrepreneur/taches", label: "Liste de tâches", hint: "Tâches de l'équipe, couleurs, attribution", icon: ListChecks },
       { to: "/entrepreneur/agenda", label: "Agenda", hint: "Rendez-vous, chantiers, rappels, équipe", icon: CalendarDays },
       { to: "/entrepreneur/punch", label: "Punch et heures", hint: "Entrée, sortie, pauses, heures pour la paie", icon: Clock },
-    ],
-  },
-  {
-    title: "Opérations",
-    items: [
-      { to: "/entrepreneur/activites", label: "Coupons, voyages et services", hint: "Coupons et voyages · services et chantiers · suivi et relances", icon: Ticket },
-      { to: "/entrepreneur/demandes", label: "Toutes les demandes", hint: "Demandes de tous vos chantiers", icon: ClipboardList },
-      { to: "/entrepreneur/flotte", label: "Ma flotte", hint: "Vos véhicules", icon: Truck },
+      { to: "/entrepreneur/activites", label: "Coupons, voyages et services", hint: "", icon: Ticket },
     ],
   },
   {
     title: "Gestion",
     items: [
+      { to: "/entrepreneur/demandes", label: "Toutes les demandes", hint: "Demandes de tous vos chantiers", icon: ClipboardList },
       { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ClipboardList },
       { to: "/entrepreneur/finances", label: "Finances", hint: "Obligations et calendrier", icon: Wallet },
       { to: "/entrepreneur/notes-de-frais", label: "Mes notes de frais", hint: "Dépenses, avances, remboursements", icon: Wallet },
       { to: "/entrepreneur/obligations", label: "Obligations et renouvellements", hint: "Registre des entreprises, CTQ, échéances", icon: CalendarDays },
       { to: "/entrepreneur/documents", label: "Documents de l’entreprise", hint: "Assurance, RPEVL, permis — glisser et consulter", icon: CalendarDays },
+      { to: "/entrepreneur/brouillons", label: "Brouillons", hint: "", icon: FileClock },
       { to: "/entrepreneur/assurances", label: "Assurances entreprise", hint: "Polices, couvertures, renouvellements, soumissions", icon: CalendarDays },
     ],
   },
   {
-    title: "Compte",
+    title: "Mon entreprise et compte",
     items: [
-      { to: "/entrepreneur/brouillons", label: "Reprendre mon travail", hint: "Vos brouillons", icon: FileClock },
       { to: "/entrepreneur/notifications", label: "Notifications", hint: "Ce qui demande votre attention", icon: Bell },
-      { to: "/entrepreneur/compte", label: "Mon entreprise", hint: "Profil, camions, visibilité", icon: User },
+      { to: "/entrepreneur/compte", label: "Profil et visibilité", hint: "Profil, camions, visibilité", icon: User },
+      { to: "/entrepreneur/flotte", label: "Ma flotte", hint: "Vos véhicules", icon: Truck },
     ],
   },
 ];
 
 const MORE_ITEMS: MoreItem[] = MORE_SECTIONS.flatMap((s) => s.items);
-
-const SIDEBAR_ITEMS = [
-  ...PRIMARY_TABS,
-  { to: "/entrepreneur/taches", label: "Liste de tâches", icon: ListChecks },
-  { to: "/entrepreneur/agenda", label: "Agenda", icon: CalendarDays },
-  { to: "/entrepreneur/punch", label: "Punch et heures", icon: Clock },
-  { to: "/entrepreneur/activites", label: "Coupons et services", icon: Ticket },
-  { to: "/entrepreneur/demandes", label: "Toutes les demandes", icon: ClipboardList },
-  { to: "/entrepreneur/crm", label: "Mon CRM", icon: ClipboardList },
-  { to: "/entrepreneur/flotte", label: "Ma flotte", icon: Truck },
-  { to: "/entrepreneur/finances", label: "Finances", icon: Wallet },
-  { to: "/entrepreneur/notes-de-frais", label: "Mes notes de frais", icon: Wallet },
-  { to: "/entrepreneur/obligations", label: "Obligations", icon: CalendarDays },
-  { to: "/entrepreneur/documents", label: "Documents", icon: CalendarDays },
-  { to: "/entrepreneur/assurances", label: "Assurances", icon: CalendarDays },
-  { to: "/entrepreneur/brouillons", label: "Reprendre mon travail", icon: FileClock },
-  { to: "/entrepreneur/compte", label: "Mon entreprise", icon: User },
-  { to: "/entrepreneur/notifications", label: "Notifications", icon: Bell },
-] as const;
 
 const isActive = (pathname: string, to: string, end?: boolean) =>
   end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`);
@@ -139,6 +116,27 @@ export default function EntrepreneurAppShell({
   const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
   const { unread: unreadCount } = useEntrepreneurNotifications(true);
   const [moreOpen, setMoreOpen] = useState(false);
+
+  const shellRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const bottomRef = useRef<HTMLElement>(null);
+
+  // Heights include safe areas and wrapped context; all inner sticky bars share them.
+  useLayoutEffect(() => {
+    const shell = shellRef.current;
+    const header = headerRef.current;
+    const bottom = bottomRef.current;
+    if (!shell || !header || !bottom) return;
+    const measure = () => {
+      shell.style.setProperty("--ent-header-h", `${header.getBoundingClientRect().height}px`);
+      shell.style.setProperty("--ent-bottom-h", `${bottom.getBoundingClientRect().height}px`);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    observer.observe(bottom);
+    measure();
+    return () => observer.disconnect();
+  }, [authReady, user, roleLoading]);
 
   const isHome = location.pathname === "/entrepreneur";
   const backTarget = backTo === undefined ? (isHome ? null : "/entrepreneur") : backTo;
@@ -162,9 +160,7 @@ export default function EntrepreneurAppShell({
       <div className="min-h-screen flex items-center justify-center p-6 text-center">
         <div>
           <p className="text-muted-foreground mb-4">Accès réservé aux entrepreneurs autorisés.</p>
-          <button onClick={handleLogout} className="text-primary underline">
-            Se déconnecter
-          </button>
+          <Button variant="link" onClick={handleLogout}>Se déconnecter</Button>
         </div>
       </div>
     );
@@ -173,219 +169,85 @@ export default function EntrepreneurAppShell({
   const badge = unreadCount;
   const moreActive = MORE_ITEMS.some((i) => isActive(location.pathname, i.to));
 
+  const navigationLink = (item: { to: string; label: string; icon: typeof Home; end?: boolean }) => {
+    const active = isActive(location.pathname, item.to, item.end);
+    const Icon = item.icon;
+    return <Button key={item.to} asChild variant="ghost" className={`h-auto min-h-11 w-full justify-start gap-3 whitespace-normal px-3 py-2 text-left font-body text-sm hover:bg-secondary hover:text-foreground ${active ? "bg-secondary font-semibold text-primary" : "text-muted-foreground"}`}>
+      <NavLink to={item.to} aria-current={active ? "page" : undefined}><Icon className="h-4 w-4 shrink-0" /><span>{item.label}</span></NavLink>
+    </Button>;
+  };
+
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background">
-      {/* ---------- Barre latérale (tablette paysage / ordinateur) ---------- */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 z-30 w-64 flex-col border-r border-border bg-card">
-        <Link to="/entrepreneur" className="block px-5 py-5">
-          <span className="flex items-center gap-2">
-            <Truck className="w-6 h-6 shrink-0 text-primary" />
-            <span className="font-display font-bold text-lg text-foreground whitespace-nowrap">
-              Vrac<span className="text-primary">Québec</span>
-            </span>
-          </span>
-          <span className="mt-1.5 ml-8 inline-block rounded px-2 py-0.5 text-[10px] bg-primary/10 text-primary font-display font-semibold">
-            Entrepreneur
-          </span>
+    <div ref={shellRef} className="entrepreneur-workspace min-h-dvh w-full max-w-full bg-background">
+      <aside className="ent-sidebar fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-card lg:flex">
+        <Link to="/entrepreneur" className="flex shrink-0 items-center gap-2 px-5 py-5 font-display text-lg font-bold">
+          <Truck className="h-5 w-5 text-primary" /><span>Vrac<span className="text-primary">Québec</span></span>
         </Link>
-        <nav className="flex-1 px-3 space-y-1" aria-label="Navigation principale">
-          {SIDEBAR_ITEMS.map(({ to, label, icon: Icon, ...rest }) => {
-            const active = isActive(location.pathname, to, "end" in rest ? rest.end : undefined);
-            return (
-              <NavLink
-                key={to}
-                to={to}
-                aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-md px-3.5 py-3 min-h-11 font-body text-sm transition-colors ${
-                  active
-                    ? "bg-primary text-primary-foreground font-bold shadow-sm"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                }`}
-              >
-                <Icon className="w-5 h-5 shrink-0" />
-                {label}
-              </NavLink>
-            );
-          })}
+        <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-4" aria-label="Navigation principale">
+          <div className="mb-4">{PRIMARY_TABS.map(navigationLink)}</div>
+          {MORE_SECTIONS.map(section => <div key={section.title} className="mb-3">
+            <p className="px-3 py-2 font-body text-[11px] font-medium uppercase text-muted-foreground">{section.title}</p>
+            {section.items.map(navigationLink)}
+          </div>)}
+          <Button asChild variant="ghost" className="min-h-11 w-full justify-start gap-3 hover:bg-secondary hover:text-foreground"><a href="tel:5819947717"><LifeBuoy />Aide</a></Button>
         </nav>
-        <div className="px-3 py-4 border-t border-border space-y-1">
-          <button
-            onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-md px-3.5 py-3 min-h-11 font-body text-sm text-muted-foreground hover:bg-secondary"
-          >
-            <LogOut className="w-5 h-5" /> Déconnexion
-          </button>
+        <div className="shrink-0 border-t border-border p-3">
+          <Button variant="ghost" onClick={handleLogout} className="min-h-11 w-full justify-start text-muted-foreground hover:bg-secondary hover:text-foreground"><LogOut />Déconnexion</Button>
         </div>
       </aside>
 
-      {/* ---------- Colonne principale ---------- */}
-      <div className="flex min-h-screen flex-col lg:pl-64">
-        {/* En-tête unique */}
-        <header className="sticky top-0 z-20 w-full border-b border-border bg-card/95 backdrop-blur-md safe-x">
-          <div className="flex items-center gap-2 px-3 sm:px-6 py-3">
-            {backTarget ? (
-              <Link
-                to={backTarget}
-                aria-label={backLabel}
-                className="-ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl hover:bg-secondary"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Link>
-            ) : (
-              <span className="lg:hidden flex items-center gap-1.5 -ml-1 px-1">
-                <Truck className="w-5 h-5 text-primary" />
-                <span className="font-display font-bold text-foreground">
-                  Vrac<span className="text-primary">Québec</span>
-                </span>
-              </span>
-            )}
-            <div className="min-w-0 flex-1 text-center lg:text-left">
-              {title && (
-                <h1 className="break-words font-display text-base font-bold leading-tight sm:text-lg">{title}</h1>
-              )}
-              {subtitle && (
-                <p className="break-words font-body text-xs leading-snug text-muted-foreground">{subtitle}</p>
-              )}
+      <div className="flex min-h-dvh flex-col lg:pl-60">
+        <header ref={headerRef} className="ent-header sticky top-0 z-30 w-full border-b border-border bg-card">
+          <div className="flex min-h-14 items-center gap-1 px-4 sm:px-6">
+            {backTarget ? <Button asChild variant="ghost" size="icon" className="h-11 w-11 shrink-0 hover:bg-secondary hover:text-foreground"><Link to={backTarget} aria-label={backLabel}><ArrowLeft /></Link></Button> :
+              <Link to="/entrepreneur" className="flex min-h-11 shrink-0 items-center gap-1.5 font-display text-sm font-bold lg:hidden"><Truck className="h-4 w-4 text-primary" /><span>Vrac<span className="text-primary">Québec</span></span></Link>}
+            <div className="min-w-0 flex-1 px-2 py-2 lg:px-0">
+              {!isHome && title && <h1 className="break-words font-display text-sm font-semibold leading-snug sm:text-base">{title}</h1>}
+              {!isHome && subtitle && <p className="break-words font-body text-xs leading-snug text-muted-foreground">{subtitle}</p>}
+              {isHome && <span className="hidden font-body text-sm text-muted-foreground lg:inline">Accueil</span>}
             </div>
-            {headerActions}
-            <Link
-              to="/entrepreneur/notifications"
-              aria-label={`Notifications${badge ? ` (${badge} non lues)` : ""}`}
-              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl hover:bg-secondary"
-            >
-              <Bell className={`h-5 w-5 ${unreadCount > 0 ? "text-primary" : "text-foreground"}`} />
-              {badge > 0 && (
-                <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-display font-bold flex items-center justify-center">
-                  {badge > 99 ? "99+" : badge}
-                </span>
-              )}
-            </Link>
-            <Link
-              to="/entrepreneur/compte"
-              aria-label="Mon entreprise"
-              className="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
-            >
-              <User className="h-5 w-5" />
-            </Link>
+            <div className="flex shrink-0 items-center gap-1">{headerActions}</div>
+            <Button asChild variant="ghost" size="icon" className="relative h-11 w-11 shrink-0 hover:bg-secondary hover:text-foreground">
+              <Link to="/entrepreneur/notifications" aria-label={`Notifications${badge ? ` (${badge} non lues)` : ""}`}><Bell />
+                {badge > 0 && <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-secondary px-1 font-body text-[9px] font-semibold text-foreground">{badge > 99 ? "99+" : badge}</span>}
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="icon" className="h-11 w-11 shrink-0 hover:bg-secondary hover:text-foreground"><Link to="/entrepreneur/compte" aria-label="Mon entreprise"><User /></Link></Button>
           </div>
         </header>
-
-        <main className="flex-1 w-full min-w-0 pb-28 lg:pb-10 animate-in fade-in duration-150">
-          {children}
-        </main>
+        <main className="ent-main min-w-0 flex-1">{children}</main>
       </div>
 
-      {/* ---------- Bouton d'action flottant (compact, jamais couvrant) ---------- */}
-      {showFab && (
-        <Link
-          to="/demande-transport"
-          aria-label="Nouvelle demande"
-          className="fixed z-40 lg:hidden right-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 active:scale-95 transition-transform"
-          style={{ bottom: "calc(4.25rem + env(safe-area-inset-bottom, 0px) + 0.5rem)" }}
-        >
-          <Plus className="w-6 h-6" />
-        </Link>
-      )}
+      {showFab && <Button asChild variant="secondary" size="icon" className="ent-create fixed right-4 z-40 h-11 w-11 rounded-lg border border-border text-primary lg:hidden"><Link to="/demande-transport" aria-label="Nouvelle demande"><Plus /></Link></Button>}
 
-      {/* ---------- Barre de navigation inférieure (mobile / tablette portrait) ---------- */}
-      <nav
-        className="fixed bottom-0 inset-x-0 z-40 lg:hidden border-t border-border bg-card/95 backdrop-blur-md"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-        aria-label="Navigation principale"
-      >
+      <nav ref={bottomRef} className="ent-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card lg:hidden" aria-label="Navigation principale">
         <div className="grid grid-cols-5">
           {PRIMARY_TABS.map(({ to, label, icon: Icon, ...rest }) => {
             const active = isActive(location.pathname, to, "end" in rest ? rest.end : undefined);
-            return (
-              <NavLink
-                key={to}
-                to={to}
-                aria-current={active ? "page" : undefined}
-                className={`relative flex flex-col items-center justify-center gap-0.5 min-h-[3.5rem] py-1.5 text-[10px] font-display transition-colors ${
-                  active ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground"
-                }`}
-              >
-                <Icon className="w-6 h-6" strokeWidth={active ? 2.4 : 1.8} />
-                {label}
-              </NavLink>
-            );
+            return <Button key={to} asChild variant="ghost" className={`relative h-14 min-w-0 flex-col gap-1 rounded-none px-1 py-2 font-body text-[10px] hover:bg-secondary hover:text-foreground ${active ? "font-semibold text-primary" : "text-muted-foreground"}`}>
+              <NavLink to={to} aria-current={active ? "page" : undefined}><Icon className="!h-5 !w-5" strokeWidth={active ? 2.2 : 1.8} /><span>{label}</span></NavLink>
+            </Button>;
           })}
-          <button
-            onClick={() => setMoreOpen(true)}
-            aria-label="Plus d'options"
-            aria-current={moreActive ? "page" : undefined}
-            className={`flex flex-col items-center justify-center gap-0.5 min-h-[3.5rem] py-1.5 text-[10px] font-display transition-colors ${
-              moreActive ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground"
-            }`}
-          >
-            <Menu className="w-6 h-6" strokeWidth={moreActive ? 2.4 : 1.8} />
-            Plus
-          </button>
+          <Button variant="ghost" onClick={() => setMoreOpen(true)} aria-label="Plus d'options" aria-current={moreActive ? "page" : undefined} className={`h-14 min-w-0 flex-col gap-1 rounded-none px-1 py-2 font-body text-[10px] hover:bg-secondary hover:text-foreground ${moreActive ? "font-semibold text-primary" : "text-muted-foreground"}`}><Menu className="!h-5 !w-5" /><span>Plus</span></Button>
         </div>
       </nav>
 
-      {/* ---------- Feuille « Plus » ---------- */}
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent
-          side="bottom"
-          className="max-h-[88vh] overflow-y-auto rounded-t-3xl px-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
-          aria-describedby={undefined}
-        >
-          <SheetTitle className="sr-only">Plus d'options</SheetTitle>
-          <div className="mx-auto mt-2 mb-4 h-1.5 w-10 rounded-full bg-border" />
-          <nav className="space-y-1" aria-label="Sections secondaires">
-            {MORE_SECTIONS.map((section) => (
-              <div key={section.title}>
-                <p className="px-3 pb-1 pt-3 font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  {section.title}
-                </p>
-                {section.items.map(({ to, label, hint, icon: Icon }) => {
-                  const active = isActive(location.pathname, to);
-                  return (
-                    <Link
-                      key={to}
-                      to={to}
-                      onClick={() => setMoreOpen(false)}
-                      aria-current={active ? "page" : undefined}
-                      className={`flex items-center gap-3 rounded-2xl px-3 py-3 min-h-14 font-body font-semibold transition-transform active:scale-[0.99] ${active ? "bg-primary text-primary-foreground" : "hover:bg-secondary"}`}
-                    >
-                      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${active ? "bg-primary-foreground/15 text-primary-foreground" : "bg-primary/10 text-primary"}`}>
-                        <Icon className="w-5 h-5" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block leading-snug">{label}</span>
-                        <span className={`block text-wrap font-body text-xs font-normal leading-snug ${active ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{hint}</span>
-                      </span>
-                      <ChevronRight className={`w-4 h-4 shrink-0 ${active ? "text-primary-foreground" : "text-muted-foreground"}`} />
-                    </Link>
-                  );
-                })}
-              </div>
-            ))}
-            <a
-              href="tel:5819947717"
-              onClick={() => setMoreOpen(false)}
-              className="flex items-center gap-3 rounded-2xl px-3 py-3 min-h-14 font-body font-semibold transition-transform active:scale-[0.99] hover:bg-secondary"
-            >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <LifeBuoy className="w-5 h-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">Aide</span>
-                <span className="block text-wrap font-body text-xs font-normal leading-snug text-muted-foreground">
-                  Parler à quelqu'un : 581-994-7717
-                </span>
-              </span>
-              <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
-            </a>
+        <SheetContent side="bottom" className="ent-sheet gap-0 rounded-t-lg px-4" aria-describedby={undefined}>
+          <SheetTitle className="mb-3 pr-12 font-display text-base font-semibold">Plus</SheetTitle>
+          <nav aria-label="Sections secondaires">
+            {MORE_SECTIONS.map(section => <div key={section.title} className="mb-3">
+              <p className="px-2 py-2 font-body text-[11px] font-medium uppercase text-muted-foreground">{section.title}</p>
+              {section.items.map(({ to, label, icon: Icon }) => {
+                const active = isActive(location.pathname, to);
+                return <Button key={to} asChild variant="ghost" className={`h-auto min-h-11 w-full justify-start gap-3 whitespace-normal px-2 py-2 text-left font-body text-sm hover:bg-secondary hover:text-foreground ${active ? "bg-secondary text-primary" : "text-foreground"}`}>
+                  <Link to={to} onClick={() => setMoreOpen(false)} aria-current={active ? "page" : undefined}><Icon className="shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1">{label}</span><ChevronRight className="text-muted-foreground" /></Link>
+                </Button>;
+              })}
+            </div>)}
+            <Button asChild variant="ghost" className="min-h-11 w-full justify-start gap-3 px-2 hover:bg-secondary hover:text-foreground"><a href="tel:5819947717" onClick={() => setMoreOpen(false)}><LifeBuoy /><span>Aide · 581-994-7717</span></a></Button>
           </nav>
-          <div className="my-3 h-px bg-border" />
-          <button
-            onClick={handleLogout}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border px-4 py-3.5 min-h-12 font-body text-sm text-muted-foreground transition-transform active:scale-[0.99] hover:bg-secondary"
-          >
-            <LogOut className="w-4 h-4" /> Déconnexion
-          </button>
+          <div className="mt-3 border-t border-border pt-2"><Button variant="ghost" onClick={handleLogout} className="min-h-11 w-full justify-start px-2 text-muted-foreground hover:bg-secondary hover:text-foreground"><LogOut />Déconnexion</Button></div>
         </SheetContent>
       </Sheet>
     </div>
