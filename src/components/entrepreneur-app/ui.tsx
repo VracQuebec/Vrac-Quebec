@@ -69,7 +69,7 @@ export const QuickActions = ({ actions }: { actions: QuickAction[] }) => (
     {actions.map(action => {
       const Icon = action.icon;
       const content = <><span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${action.primary ? "bg-primary text-primary-foreground" : "bg-secondary/30 text-foreground/75"}`}><Icon strokeWidth={1.6} className="!h-[19px] !w-[19px]" /></span><span className="text-wrap font-body text-[11px] font-medium leading-tight">{action.label}</span></>;
-      const cls = "h-16 min-h-16 min-w-0 flex-col gap-1.5 whitespace-normal rounded-lg px-1 py-1 text-foreground transition-[background-color,transform] duration-150 hover:bg-secondary/50 hover:text-foreground active:scale-[0.97] active:bg-secondary/70 motion-reduce:transform-none motion-reduce:transition-none";
+      const cls = "h-14 min-h-14 min-w-0 flex-col gap-1.5 whitespace-normal rounded-lg px-1 py-1 text-foreground transition-[background-color,transform] duration-150 hover:bg-secondary/50 hover:text-foreground active:scale-[0.97] active:bg-secondary/70 motion-reduce:transform-none motion-reduce:transition-none";
       return action.to ? <Button key={action.label} asChild variant="ghost" className={cls}><Link to={action.to}>{content}</Link></Button> : <Button key={action.label} variant="ghost" onClick={action.onClick} className={cls}>{content}</Button>;
     })}
   </div>
