@@ -402,7 +402,7 @@ body,
   --ent-safe-bottom: env(safe-area-inset-bottom, 0px);
   --ent-safe-left: env(safe-area-inset-left, 0px);
   --ent-safe-right: env(safe-area-inset-right, 0px);
-  --ent-header-h: calc(3.5rem + var(--ent-safe-top));
+  --ent-header-h: calc(3rem + var(--ent-safe-top));
   --ent-bottom-h: calc(3.5rem + var(--ent-safe-bottom));
   --primary: 89 74% 32%;
   --radius: .5rem;
@@ -413,7 +413,7 @@ body,
 .ent-main { padding: 0 var(--ent-safe-right) calc(max(var(--ent-bottom-h), calc(3.5rem + var(--ent-safe-bottom))) + 1rem) var(--ent-safe-left); }
 .ent-bottom { padding: 0 var(--ent-safe-right) var(--ent-safe-bottom) var(--ent-safe-left); }
 .ent-create { bottom: calc(var(--ent-bottom-h) + .75rem); }
-.ent-sticky { position: sticky; top: max(var(--ent-header-h), calc(3.5rem + var(--ent-safe-top))); z-index: 20; }
+.ent-sticky { position: sticky; top: max(var(--ent-header-h), calc(3rem + var(--ent-safe-top))); z-index: 20; }
 .ent-sheet {
   max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 1rem);
   overflow-y: auto;
@@ -426,7 +426,7 @@ body,
 }
 .dark .ent-sheet { --primary: 89 74% 50%; }
 .ent-sheet[data-state] { animation-duration: 160ms; }
-.ent-sheet > button:last-child { position: fixed; top: .5rem; background: hsl(var(--card)); }
+.ent-sheet > button:last-child { position: fixed; top: max(.5rem, env(safe-area-inset-top, 0px)); z-index: 1; background: hsl(var(--card)); }
 .entrepreneur-workspace a:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
 @media (min-width: 1024px) { .ent-main { padding-bottom: 2rem; } }
 @media (prefers-reduced-motion: reduce) {
