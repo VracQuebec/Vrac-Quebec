@@ -177,8 +177,8 @@ export function VehicleNotesButton({ vehicleId, vehicleNotes }: { vehicleId: str
       setNotes(out);
       const ids = [...new Set(out.map((n) => n.by).filter(Boolean))] as string[];
       if (ids.length) {
-        const { data } = await supabase.from("profiles").select("id, full_name, email").in("id", ids);
-        setNames(Object.fromEntries((data ?? []).map((p: { id: string; full_name?: string | null; email?: string | null }) => [p.id, p.full_name || p.email || ""])));
+        const { data } = await (supabase.from("jsc_company_members") as any).select("user_id, full_name, email").in("user_id", ids);
+        setNames(Object.fromEntries(((data ?? []) as { user_id: string; full_name: string | null; email: string | null }[]).map((p) => [p.user_id, p.full_name || p.email || ""])));
       }
     })();
   }, [open, vehicleId]);
