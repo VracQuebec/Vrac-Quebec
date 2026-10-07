@@ -498,7 +498,8 @@ const Entrepreneur = () => {
                       key={l.id}
                       title={`Dompe #${dompeLabel(l)}`}
                       sector={`Secteur ${l.postal_prefix || "—"}${l.quantity ? ` · ${l.quantity}` : ""}`}
-                      availability={{ label: av.label, color: av.color }}
+                      availability={{ label: l.availability_status ? availMeta(l.availability_status).label : "Disponibilité à confirmer", color: av.color }}
+                      freshness={freshnessLabel(l.freshness, l.availability_updated_at)}
                       tags={keys.map((k) => MATERIAL_COLORS[k].label)}
                       accentColor={MATERIAL_COLORS[keys[0] ?? "remblai"].color}
                       selected={selectedId === l.id}

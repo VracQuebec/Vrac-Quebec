@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ClipboardList, MapPin, Ticket, Truck } from "lucide-react";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SERVICE_KINDS, type ServiceKind } from "@/components/ops/ServiceOffers";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -13,6 +14,9 @@ type Service = Database["public"]["Tables"]["svc_requests"]["Row"];
 type Mission = Database["public"]["Tables"]["drv_missions"]["Row"];
 
 export default function EntrepreneurActivites() {
+  const [params, setParams] = useSearchParams();
+  const requestedView = params.get("vue");
+  const view = requestedView === "coupons" || requestedView === "services" ? requestedView : "voyages";
   const { submissions, loading: requestsLoading } = useEntrepreneurData();
   const [books, setBooks] = useState<Book[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -38,12 +42,17 @@ export default function EntrepreneurActivites() {
   }, []);
 
   return (
-    <EntrepreneurAppShell title="Coupons, voyages et services" backTo={null}>
+    <EntrepreneurAppShell title={view === "coupons" ? "Coupons" : view === "services" ? "Services des chantiers" : "Voyages"} backTo={null}>
       <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6">
         {loading || requestsLoading ? <p className="text-sm text-muted-foreground">Chargement…</p> : error ? <p role="alert" className="text-sm text-destructive">Certaines informations ne sont pas disponibles pour le moment.</p> : null}
 
-        <div className="space-y-6">
-        <h2 className="border-b border-border pb-2 font-display text-lg font-bold">Coupons et voyages</h2>
+        <Tabs value={view} onValueChange={value => { const next = new URLSearchParams(params); next.set("vue", value); setParams(next); }}>
+        <TabsList className="grid h-11 w-full grid-cols-3">
+          <TabsTrigger value="voyages">Voyages</TabsTrigger>
+          <TabsTrigger value="coupons">Coupons</TabsTrigger>
+          <TabsTrigger value="services">Services</TabsTrigger>
+        </TabsList>
+        <TabsContent value="coupons" className="mt-6 space-y-6">
         <section className="space-y-3">
           <h3 className="flex items-center gap-2 font-display font-bold"><Ticket className="h-5 w-5 text-primary" /> Mes carnets de coupons</h3>
           {books.length === 0 && !loading ? <p className="text-sm text-muted-foreground">Aucun carnet attribué à votre entreprise.</p> : books.map((book) => (
@@ -53,7 +62,8 @@ export default function EntrepreneurActivites() {
             </div>
           ))}
         </section>
-
+        </TabsContent>
+        <TabsContent value="voyages" className="mt-6 space-y-6">
         <section className="space-y-3">
           <h3 className="flex items-center gap-2 font-display font-bold"><Truck className="h-5 w-5 text-primary" /> Voyages par chantier</h3>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -70,10 +80,9 @@ export default function EntrepreneurActivites() {
           </div>
           {submissions.length === 0 && !requestsLoading && <p className="text-sm text-muted-foreground">Aucun chantier associé à votre compte.</p>}
         </section>
-        </div>
+        </TabsContent>
 
-        <div className="space-y-6">
-        <h2 className="border-b border-border pb-2 font-display text-lg font-bold">Services et chantiers</h2>
+        <TabsContent value="services" className="mt-6 space-y-6">
         <section className="space-y-3">
           <h3 className="flex items-center gap-2 font-display font-bold"><ClipboardList className="h-5 w-5 text-primary" /> Services et analyses de sols</h3>
           {services.length === 0 && !loading ? <p className="text-sm text-muted-foreground">Aucune demande de service envoyée.</p> : services.map((service) => (
@@ -84,7 +93,8 @@ export default function EntrepreneurActivites() {
           ))}
           <Button asChild variant="outline" size="sm"><Link to="/entrepreneur/demandes">Demander un service pour un chantier</Link></Button>
         </section>
-        </div>
+        </TabsContent>
+        </Tabs>
 
         <div className="space-y-6">
         <h2 className="border-b border-border pb-2 font-display text-lg font-bold">Suivi et relances</h2>

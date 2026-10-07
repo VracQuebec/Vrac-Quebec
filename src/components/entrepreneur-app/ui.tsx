@@ -263,6 +263,7 @@ export const SiteCard = ({
   title,
   sector,
   availability,
+  freshness,
   tags,
   accentColor,
   selected,
@@ -275,6 +276,7 @@ export const SiteCard = ({
   title: string;
   sector: string;
   availability: { label: string; color: string };
+  freshness?: string;
   tags: string[];
   accentColor: string;
   selected?: boolean;
@@ -306,6 +308,7 @@ export const SiteCard = ({
           {availability.label}
         </span>
       </div>
+      {freshness && <p className="px-4 pb-3 font-body text-[11px] text-muted-foreground">{freshness}</p>}
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1 px-4 pb-3">
           {tags.slice(0, 3).map((t) => (
