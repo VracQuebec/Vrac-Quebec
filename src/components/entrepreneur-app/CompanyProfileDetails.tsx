@@ -20,6 +20,18 @@ export const professionalProfileIsComplete = (partner: MarketplacePartner | null
   && partner.city?.trim(),
 );
 
+/** Éléments publics manquants, dérivés uniquement des champs existants (aucune erreur affichée). */
+export const missingProfileItems = (
+  partner: Pick<MarketplacePartner, "logo_url" | "description"> | null,
+  servicesCount: number,
+  territoriesCount: number,
+) => [
+  !partner?.logo_url?.trim() && "Logo",
+  !partner?.description?.trim() && "Description",
+  servicesCount === 0 && "Services",
+  territoriesCount === 0 && "Territoires",
+].filter(Boolean) as string[];
+
 /** Lecture seule : aucune fiche ni entreprise n'est créée lors de la consultation. */
 export default function CompanyProfileDetails({
   userId,
@@ -91,9 +103,11 @@ export default function CompanyProfileDetails({
           <h2 id="professional-profile-title" className="mt-1 break-words font-display text-xl font-extrabold">{companyName}</h2>
           <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin className="mt-0.5 h-4 w-4 shrink-0" />{location}</p>
           <span className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-            {complete ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <CircleAlert className="h-4 w-4" />}
-            {complete ? "Profil complet" : "Profil à compléter"}
+            {complete && !missing.length ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <CircleAlert className="h-4 w-4" />}
+            {complete && !missing.length ? "Profil complet" : "Profil à compléter"}
           </span>
+          {missing.length > 0 && <p className="mt-1 text-xs text-muted-foreground">À ajouter : {missing.join(" · ")}</p>}
+          {!(partner?.logo_url || company?.logo_url) && <p className="mt-1 text-xs text-muted-foreground">Logo à ajouter</p>}
         </div>
       </header>
 
