@@ -25,6 +25,7 @@ export type ServiceProgram = Database["public"]["Tables"]["fleet_service_program
 
 /** Une unité n'est pas forcément un camion : véhicules ET équipements. */
 export const UNIT_CATEGORIES = [
+  { value: "camion_6_roues", label: "Camion 6 roues", kind: "vehicule" },
   { value: "camion_10_roues", label: "Camion 10 roues", kind: "vehicule" },
   { value: "camion_12_roues", label: "Camion 12 roues", kind: "vehicule" },
   { value: "semi_dompeur", label: "Semi-dompeur", kind: "vehicule" },
@@ -42,8 +43,29 @@ export const UNIT_CATEGORIES = [
   { value: "autre_equipement", label: "Autre équipement", kind: "equipement" },
 ] as const;
 
+/** Catégories ajoutées par les entrepreneurs (partagées, table fleet_unit_categories_custom). */
+let customCats: { value: string; label: string }[] = [];
+export const loadCustomCategories = async () => {
+  const { data } = await supabase.from("fleet_unit_categories_custom").select("value,label").order("label");
+  customCats = data ?? [];
+  return customCats;
+};
+export const slugCategory = (label: string) =>
+  "x_" + label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 50);
+export const addCustomCategory = async (label: string) => {
+  const clean = label.trim().replace(/\s+/g, " ");
+  if (clean.length < 2 || clean.length > 60) throw new Error("Nom d'équipement : 2 à 60 caractères.");
+  const existing = [...UNIT_CATEGORIES, ...customCats].find((c) => c.label.toLowerCase() === clean.toLowerCase());
+  if (existing) return existing.value;
+  const value = slugCategory(clean);
+  const { error } = await supabase.from("fleet_unit_categories_custom").insert({ value, label: clean });
+  if (error && !/duplicate|unique/i.test(error.message)) throw error;
+  await loadCustomCategories();
+  return customCats.find((c) => c.label.toLowerCase() === clean.toLowerCase())?.value ?? value;
+};
+
 export const categoryLabel = (v?: string | null) =>
-  UNIT_CATEGORIES.find((c) => c.value === v)?.label ?? "Unité";
+  UNIT_CATEGORIES.find((c) => c.value === v)?.label ?? customCats.find((c) => c.value === v)?.label ?? "Unité";
 
 export const categoryKind = (v?: string | null) =>
   UNIT_CATEGORIES.find((c) => c.value === v)?.kind ?? "vehicule";
