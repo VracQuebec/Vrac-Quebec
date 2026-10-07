@@ -27,8 +27,8 @@ import {
   type ProfilReseau,
 } from "@/lib/parcours/profil";
 import {
-  Building2, Phone, User as UserIcon, MapPin, ShieldCheck, Bell, Truck,
-  ChevronRight, LogOut, Eye, EyeOff, Pencil, Lock, Globe,
+  Building2, User as UserIcon, MapPin, ShieldCheck, Bell,
+  ChevronRight, LogOut, Eye, EyeOff, Pencil,
 } from "lucide-react";
 
 type SheetKey = "contact" | "adresse" | "camions" | null;
@@ -99,7 +99,6 @@ const EntrepreneurCompte = () => {
   const accountName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : typeof user?.user_metadata?.name === "string" ? user.user_metadata.name : null;
   const roleLabels: Record<string, string> = { admin: "Administrateur", entrepreneur: "Entrepreneur", proprietaire: "Propriétaire", transporteur: "Transporteur", user: "Utilisateur" };
   const loc = profil?.publicLocalisation;
-  const initials = (e?.company || e?.contact_name || "?").trim().slice(0, 2).toUpperCase();
   const region = [loc?.city, loc?.region].filter(Boolean).join(" · ");
 
   return (
@@ -111,44 +110,7 @@ const EntrepreneurCompte = () => {
           <ErrorState message="Votre fiche entreprise n'a pas pu être chargée." onRetry={load} />
         ) : (
           <>
-            {/* ---------- Identité ---------- */}
-            <section className="py-2">
-              <div className="flex items-center gap-4">
-                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary font-display text-xl font-extrabold text-primary-foreground">
-                  {initials}
-                </span>
-                <div className="min-w-0">
-                  <h2 className="break-words font-display text-xl font-extrabold">
-                    {companyName || "Nom de l’entreprise · À compléter"}
-                  </h2>
-                  <p className="truncate font-body text-sm text-muted-foreground">
-                    {region || "Localisation · À compléter"}
-                  </p>
-                  <span
-                    className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-display text-[11px] font-semibold ${
-                      profil.networkOptIn
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                        : "bg-secondary text-muted-foreground"
-                    }`}
-                  >
-                    {profil.networkOptIn ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                    {profil.networkOptIn ? "Profil public actif" : "Profil masqué"}
-                  </span>
-                </div>
-              </div>
-              {(profil.demandes != null || profil.chantiers != null) && (
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <div className="rounded-2xl bg-background/60 py-3 text-center">
-                    <p className="font-display text-xl font-bold">{profil.demandes ?? "—"}</p>
-                    <p className="font-body text-[11px] text-muted-foreground">Demandes</p>
-                  </div>
-                  <div className="rounded-2xl bg-background/60 py-3 text-center">
-                    <p className="font-display text-xl font-bold">{profil.chantiers ?? "—"}</p>
-                    <p className="font-body text-[11px] text-muted-foreground">Chantiers</p>
-                  </div>
-                </div>
-              )}
-            </section>
+            {user && <CompanyProfileDetails userId={user.id} fallbackName={companyName} fallbackLocation={region} />}
 
             <section id="mon-compte" aria-label="Mon compte" className="scroll-mt-20">
               <SectionHeader title={<span className="flex items-center gap-2"><UserIcon className="h-4 w-4 text-muted-foreground" />Mon compte</span>} />
@@ -184,64 +146,10 @@ const EntrepreneurCompte = () => {
                 />
                 <EditRow icon={<MapPin className="h-5 w-5" />} label="Ville" value={loc?.city || "À compléter"} onEdit={() => openSheet("adresse")} />
               </div>
-              {user && <div className="mt-4"><CompanyProfileDetails userId={user.id} /></div>}
-            </section>
-
-            {/* ---------- PUBLIC ---------- */}
-            <section>
-              <SectionHeader
-                title={
-                  <span className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-primary" /> Profil public
-                  </span>
-                }
-              />
-              <p className="-mt-2 mb-3 font-body text-xs text-muted-foreground">Visible dans l'annuaire du réseau.</p>
-              <div className="space-y-2">
-                <EditRow
-                  icon={<Building2 className="h-5 w-5" />}
-                  label="Nom de l'entreprise"
-                  value={companyName || "À compléter"}
-                  onEdit={() => openSheet("contact")}
-                />
-                <EditRow
-                  icon={<Truck className="h-5 w-5" />}
-                  label="Camions"
-                  value={
-                    e.truck_types.length > 0 || e.truck_count
-                      ? [e.truck_types.join(", "), e.truck_count && `${e.truck_count} camion(s)`]
-                          .filter(Boolean)
-                          .join(" · ")
-                      : "À compléter"
-                  }
-                  onEdit={() => openSheet("camions")}
-                />
-              </div>
-
-              {/* Aperçu du profil public — uniquement des données existantes */}
-              <div className="mt-3 rounded-3xl border border-primary/30 bg-primary/5 p-4">
-                <p className="font-display text-[10px] uppercase tracking-[0.16em] text-primary">
-                  Aperçu du profil public
-                </p>
-                <p className="mt-1.5 font-display text-base font-bold">{companyName || "À compléter"}</p>
-                <p className="font-body text-xs text-muted-foreground">
-                  {region || "Localisation non renseignée"}
-                </p>
-                {e.truck_types.length > 0 && (
-                  <ul className="mt-2 flex flex-wrap gap-1.5">
-                    {e.truck_types.map((t) => (
-                      <li key={t} className="rounded-full bg-primary/10 px-2 py-0.5 font-body text-[11px] text-primary">
-                        {t}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
             </section>
 
             <section>
-              <SectionHeader title="Visibilité" />
+              <SectionHeader title="Réseau Vrac Québec" />
               <div className="flex items-center gap-3 rounded-md border border-border bg-card p-4">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Eye className="h-5 w-5" />
