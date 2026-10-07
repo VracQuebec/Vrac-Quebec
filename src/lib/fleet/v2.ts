@@ -1,4 +1,3 @@
-import { getActiveCompanyId } from "./tenant";
 // ============================================================
 // GESTION DE LA FLOTTE V2 — extensions (multi-entreprise)
 // ------------------------------------------------------------
@@ -11,7 +10,7 @@ import { getActiveCompanyId } from "./tenant";
 import { supabase } from "@/integrations/supabase/client";
 import { TRUCK_TYPE_LABELS } from "@/lib/calendar-utils";
 import type { Database } from "@/integrations/supabase/types";
-import { scoped, withCompany } from "./tenant";
+import { getActiveCompanyId, scoped, withCompany } from "./tenant";
 import {
   PRIORITY_RANK, type Inspection, type Maintenance, type Repair, type Vehicle,
 } from "./api";
