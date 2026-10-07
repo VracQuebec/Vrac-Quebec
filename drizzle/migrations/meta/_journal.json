@@ -1422,6 +1422,13 @@
       "when": 1791404015859,
       "tag": "0202_crm_documents_folders",
       "breakpoints": true
+    },
+    {
+      "idx": 203,
+      "version": "7",
+      "when": 1791406031250,
+      "tag": "0203_shared_catalog",
+      "breakpoints": true
     }
   ]
 }
