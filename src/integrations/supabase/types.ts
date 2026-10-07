@@ -12221,24 +12221,30 @@ export type Database = {
       }
       fleet_unit_categories_custom: {
         Row: {
+          company_id: string | null
           created_at: string
           created_by: string | null
           id: string
           label: string
+          status: string
           value: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           label: string
+          status?: string
           value: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           label?: string
+          status?: string
           value?: string
         }
         Relationships: []
@@ -26669,6 +26675,51 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_catalog_items: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          kind: string
+          name: string
+          payload: Json
+          proposed_by: string | null
+          reason: string | null
+          source_company_id: string
+          source_id: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          kind: string
+          name: string
+          payload?: Json
+          proposed_by?: string | null
+          reason?: string | null
+          source_company_id: string
+          source_id?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          payload?: Json
+          proposed_by?: string | null
+          reason?: string | null
+          source_company_id?: string
+          source_id?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       site_chat_agents: {
         Row: {
           added_by: string | null
@@ -30657,6 +30708,23 @@ export type Database = {
         }[]
       }
       blog_slugify: { Args: { input: string }; Returns: string }
+      catalog_adopt: {
+        Args: { _company: string; _id: string }
+        Returns: string
+      }
+      catalog_decide: {
+        Args: {
+          _approve: boolean
+          _id: string
+          _name?: string
+          _reason?: string
+        }
+        Returns: undefined
+      }
+      catalog_propose: {
+        Args: { _company: string; _kind: string; _source: string }
+        Returns: string
+      }
       count_active_dumps_by_city: {
         Args: { _city_slug: string }
         Returns: number
