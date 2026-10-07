@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, Camera, Loader2, MapPin, ShieldCheck, Star } from "lucide-react";
+import { ArrowLeft, Building2, Camera, Loader2, MapPin, ShieldCheck, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -113,7 +113,7 @@ export default function FicheEntrepreneur() {
     <main className="mx-auto max-w-5xl px-4 py-8">
       <Helmet>
         <title>{`${partner.name} — ${partner.city ?? "Québec"} | Vrac Québec`}</title>
-        <meta name="description" content={(partner.description || `${partner.name}, entreprise partenaire vérifiée du réseau Vrac Québec.`).slice(0, 155)} />
+        <meta name="description" content={(partner.description || `${partner.name}, entreprise partenaire du réseau Vrac Québec.`).slice(0, 155)} />
         <link rel="canonical" href={`${SITE}/trouver-un-entrepreneur/fiche/${partner.company_id}`} />
         {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
       </Helmet>
@@ -123,13 +123,16 @@ export default function FicheEntrepreneur() {
       </Button>
 
       <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="flex items-center gap-2 text-3xl font-bold">
+        <div className="min-w-0 flex-1">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-secondary">
+            {partner.logo_url ? <img src={partner.logo_url} alt={`Logo de ${partner.name}`} className="h-full w-full object-contain" /> : <Building2 className="h-7 w-7 text-muted-foreground" aria-hidden />}
+          </div>
+          <h1 className="flex flex-wrap items-center gap-2 break-words font-display text-3xl font-bold">
             {partner.name}
             {partner.is_verified && <ShieldCheck className="h-6 w-6 text-primary" aria-label="Entreprise vérifiée" />}
           </h1>
           <p className="mt-1 flex items-center gap-1 text-muted-foreground">
-            <MapPin className="h-4 w-4" /> {[partner.city, partner.region].filter(Boolean).join(", ") || "Québec"}
+            <MapPin className="h-4 w-4 shrink-0" /> {[partner.city, partner.region].filter(Boolean).join(", ") || "À compléter"}
             {partner.founded_year ? ` · En affaires depuis ${partner.founded_year}` : ""}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -180,10 +183,15 @@ export default function FicheEntrepreneur() {
 
       {partner.territories.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-xl font-semibold">Territoires desservis</h2>
+          <h2 className="text-xl font-semibold">Secteurs desservis</h2>
           <p className="mt-2 text-sm text-muted-foreground">{partner.territories.join(" · ")}</p>
         </section>
       )}
+
+      {partner.is_verified && <section className="mt-8">
+        <h2 className="text-xl font-semibold">Vérifications</h2>
+        <p className="mt-2 flex items-center gap-2 text-sm"><ShieldCheck className="h-4 w-4 text-primary" />Entreprise vérifiée dans le réseau</p>
+      </section>}
 
       <section className="mt-10" aria-label="Avis clients">
         <h2 className="text-xl font-semibold">Avis clients ({partner.reviews_count})</h2>

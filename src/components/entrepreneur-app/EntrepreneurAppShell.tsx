@@ -25,7 +25,7 @@ import {
   LifeBuoy,
   Wallet,
   FileClock,
-  Ticket, ListChecks, CalendarDays, Clock, ContactRound, ReceiptText, Files, ShieldCheck, SlidersHorizontal } from "lucide-react";
+  Ticket, ListChecks, CalendarDays, Clock, ContactRound, ReceiptText, Files, ShieldCheck, SlidersHorizontal, Building2, Layers } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Coquille unique de l'espace entrepreneur :                         */
@@ -65,41 +65,63 @@ interface MoreItem {
 
 const MORE_SECTIONS: { title: string; items: MoreItem[] }[] = [
   {
-    title: "Travail",
+    title: "Opérations",
     items: [
-      { to: "/entrepreneur/taches", label: "Liste de tâches", hint: "Tâches de l'équipe, couleurs, attribution", icon: ListChecks },
-      { to: "/entrepreneur/agenda", label: "Agenda", hint: "Rendez-vous, chantiers, rappels, équipe", icon: CalendarDays },
-      { to: "/entrepreneur/punch", label: "Punch et heures", hint: "Entrée, sortie, pauses, heures pour la paie", icon: Clock },
-      { to: "/entrepreneur/activites", label: "Coupons, voyages et services", hint: "", icon: Ticket },
+      { to: "/entrepreneur/chantiers", label: "Chantiers", hint: "", icon: ClipboardList },
+      { to: "/entrepreneur/demandes", label: "Demandes", hint: "", icon: ClipboardList },
+      { to: "/entrepreneur/carte", label: "Dompes", hint: "", icon: MapIcon },
+      { to: "/entrepreneur/transports", label: "Transport", hint: "", icon: Truck },
+      { to: "/acheter-materiaux", label: "Matériaux", hint: "", icon: Layers },
+      { to: "/entrepreneur/activites?vue=voyages", label: "Voyages", hint: "", icon: Truck },
+      { to: "/entrepreneur/activites?vue=services", label: "Services", hint: "", icon: ClipboardList },
     ],
   },
   {
-    title: "Entreprise",
+    title: "Planification",
     items: [
-      { to: "/entrepreneur/demandes", label: "Toutes les demandes", hint: "Demandes de tous vos chantiers", icon: ClipboardList },
-      { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ContactRound },
-      { to: "/entrepreneur/finances", label: "Finances", hint: "Obligations et calendrier", icon: Wallet },
-      { to: "/entrepreneur/notes-de-frais", label: "Notes de frais", hint: "Dépenses, avances, remboursements", icon: ReceiptText },
-      { to: "/entrepreneur/obligations", label: "Obligations et renouvellements", hint: "Registre des entreprises, CTQ, échéances", icon: CalendarDays },
+      { to: "/entrepreneur/agenda", label: "Agenda", hint: "Rendez-vous, chantiers, rappels, équipe", icon: CalendarDays },
+      { to: "/entrepreneur/taches", label: "Tâches", hint: "", icon: ListChecks },
+      { to: "/entrepreneur/punch", label: "Punch et heures", hint: "Entrée, sortie, pauses, heures pour la paie", icon: Clock },
+    ],
+  },
+  {
+    title: "Mon entreprise",
+    items: [
+      { to: "/entrepreneur/compte", label: "Mon entreprise", hint: "", icon: Building2 },
+      { to: "/entrepreneur/crm", label: "CRM", hint: "Vos leads, clients, soumissions", icon: ContactRound },
       { to: "/entrepreneur/documents", label: "Documents", hint: "Assurance, RPEVL, permis — glisser et consulter", icon: Files },
       { to: "/entrepreneur/assurances", label: "Assurances", hint: "Polices, couvertures, renouvellements, soumissions", icon: ShieldCheck },
-      { to: "/entrepreneur/brouillons", label: "Brouillons", hint: "", icon: FileClock },
+      { to: "/entrepreneur/obligations", label: "Obligations", hint: "", icon: CalendarDays },
+      { to: "/entrepreneur/finances", label: "Finances", hint: "Obligations et calendrier", icon: Wallet },
+      { to: "/entrepreneur/notes-de-frais", label: "Notes de frais", hint: "Dépenses, avances, remboursements", icon: ReceiptText },
+    ],
+  },
+  {
+    title: "Mes ressources",
+    items: [
       { to: "/entrepreneur/flotte", label: "Ma flotte", hint: "Vos véhicules", icon: Truck },
+      { to: "/entrepreneur/activites?vue=coupons", label: "Coupons", hint: "", icon: Ticket },
+      { to: "/entrepreneur/brouillons", label: "Brouillons", hint: "", icon: FileClock },
     ],
   },
   {
     title: "Compte",
     items: [
+      { to: "/entrepreneur/compte#mon-compte", label: "Mon compte", hint: "", icon: User },
       { to: "/entrepreneur/notifications", label: "Notifications", hint: "Ce qui demande votre attention", icon: Bell },
-      { to: "/entrepreneur/compte", label: "Préférences", hint: "Profil, camions, visibilité", icon: SlidersHorizontal },
+      { to: "/entrepreneur/compte#preferences", label: "Préférences", hint: "", icon: SlidersHorizontal },
     ],
   },
 ];
 
 const MORE_ITEMS: MoreItem[] = MORE_SECTIONS.flatMap((s) => s.items);
 
-const isActive = (pathname: string, to: string, end?: boolean) =>
-  end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`);
+const isActive = (current: string, to: string, end?: boolean) => {
+  const [path, query] = to.split("?");
+  if (query || to.includes("#")) return current === to;
+  const pathname = current.split(/[?#]/)[0];
+  return end ? pathname === path : pathname === path || pathname.startsWith(`${path}/`);
+};
 
 export default function EntrepreneurAppShell({
   title,
@@ -168,10 +190,11 @@ export default function EntrepreneurAppShell({
   }
 
   const badge = unreadCount;
-  const moreActive = MORE_ITEMS.some((i) => isActive(location.pathname, i.to));
+  const currentLocation = `${location.pathname}${location.search}${location.hash}`;
+  const moreActive = MORE_ITEMS.some((i) => isActive(currentLocation, i.to)) && !PRIMARY_TABS.some(i => isActive(currentLocation, i.to, "end" in i ? i.end : undefined));
 
   const navigationLink = (item: { to: string; label: string; icon: typeof Home; end?: boolean }) => {
-    const active = isActive(location.pathname, item.to, item.end);
+    const active = isActive(currentLocation, item.to, item.end);
     const Icon = item.icon;
     return <Button key={item.to} asChild variant="ghost" className={`h-auto min-h-11 w-full justify-start gap-3 whitespace-normal px-3 py-2 text-left font-body text-sm hover:bg-secondary hover:text-foreground ${active ? "bg-secondary font-semibold text-primary" : "text-muted-foreground"}`}>
       <NavLink to={item.to} aria-current={active ? "page" : undefined}><Icon className="h-4 w-4 shrink-0" /><span>{item.label}</span></NavLink>
@@ -185,7 +208,7 @@ export default function EntrepreneurAppShell({
           <Truck className="h-5 w-5 text-primary" /><span>Vrac<span className="text-primary">Québec</span></span>
         </Link>
         <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-4" aria-label="Navigation principale">
-          <div className="mb-4">{PRIMARY_TABS.map(navigationLink)}</div>
+          <div className="mb-4">{navigationLink(PRIMARY_TABS[0])}</div>
           {MORE_SECTIONS.map(section => <div key={section.title} className="mb-3">
             <p className="px-3 py-2 font-body text-[11px] font-medium uppercase text-muted-foreground">{section.title}</p>
             {section.items.map(navigationLink)}
@@ -240,7 +263,7 @@ export default function EntrepreneurAppShell({
             {MORE_SECTIONS.map(section => <div key={section.title} className="py-2 first:pt-0">
               <p className="px-2 pb-1 pt-2 font-body text-[10px] font-semibold uppercase text-muted-foreground">{section.title}</p>
               {section.items.map(({ to, label, icon: Icon }) => {
-                const active = isActive(location.pathname, to);
+                const active = isActive(currentLocation, to);
                 return <Button key={to} asChild variant="ghost" className={`h-auto min-h-11 w-full justify-start gap-3 whitespace-normal px-2 py-2 text-left font-body text-[13px] hover:bg-secondary hover:text-foreground active:bg-secondary motion-reduce:transition-none ${active ? "bg-secondary text-primary" : "text-foreground"}`}>
                   <Link to={to} onClick={() => setMoreOpen(false)} aria-current={active ? "page" : undefined}><Icon className="shrink-0 text-muted-foreground" strokeWidth={1.6} /><span className="min-w-0 flex-1">{label}</span><ChevronRight className="!h-3.5 !w-3.5 text-muted-foreground/60" strokeWidth={1.6} /></Link>
                 </Button>;

@@ -87,8 +87,8 @@ export default function EntrepreneurChantiers() {
         ) : (
           <div className="divide-y divide-border/35">
             {visible.map((c) => {
-              const encours = c.submissions.some((s) => !isDone(s.status));
               const summary = summarizeChantier(c);
+              const direction = needDirection(c.submissions[0]);
               return (
                 <ChantierCard
                   key={c.key}
@@ -96,9 +96,9 @@ export default function EntrepreneurChantiers() {
                   label={c.label}
                   city={c.city && c.label !== `${c.city} — lieu à préciser` ? c.city : null}
                   material={[summary.material, summary.quantity].filter(Boolean).join(" · ")}
-                  detail={NEED_LABELS[needDirection(c.submissions[0])]}
+                   detail={direction === "a_preciser" && summary.material && summary.quantity ? "Sens à préciser : recevoir, évacuer ou acheter" : NEED_LABELS[direction]}
                   metadata={[c.submissions[0]?.number ? `Demande #${c.submissions[0].number}` : null, c.lastActivity ? new Date(c.lastActivity).toLocaleDateString("fr-CA", { day: "numeric", month: "short" }) : null].filter(Boolean).join(" · ")}
-                  badge={{ label: encours ? "En cours" : "Terminé", tone: encours ? "active" : "done" }}
+                   badge={{ label: summary.statusLabel, tone: summary.tone }}
                 />
               );
             })}

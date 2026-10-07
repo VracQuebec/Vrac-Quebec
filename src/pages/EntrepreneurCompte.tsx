@@ -9,6 +9,10 @@ import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
+import CompanyProfileDetails from "@/components/entrepreneur-app/CompanyProfileDetails";
+import { Button } from "@/components/ui/button";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useUserRoles } from "@/hooks/useUserRole";
 import { LoadingSkeleton, SectionHeader, ErrorState } from "@/components/entrepreneur-app/AppStates";
 import { BottomSheet } from "@/components/entrepreneur-app/ui";
 import { Switch } from "@/components/ui/switch";
@@ -30,6 +34,8 @@ import {
 type SheetKey = "contact" | "adresse" | "camions" | null;
 
 const EntrepreneurCompte = () => {
+  const { user, isReady } = useAuthReady();
+  const { roles, loading: rolesLoading } = useUserRoles(user, isReady);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [profil, setProfil] = useState<ProfilReseau | null>(null);
@@ -89,12 +95,15 @@ const EntrepreneurCompte = () => {
   };
 
   const e = profil?.edits;
+  const companyName = e?.company && !/^entreprise de\s+.*@/i.test(e.company) ? e.company : null;
+  const accountName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : typeof user?.user_metadata?.name === "string" ? user.user_metadata.name : null;
+  const roleLabels: Record<string, string> = { admin: "Administrateur", entrepreneur: "Entrepreneur", proprietaire: "Propriétaire", transporteur: "Transporteur", user: "Utilisateur" };
   const loc = profil?.publicLocalisation;
   const initials = (e?.company || e?.contact_name || "?").trim().slice(0, 2).toUpperCase();
   const region = [loc?.city, loc?.region].filter(Boolean).join(" · ");
 
   return (
-    <EntrepreneurAppShell title="Mon entreprise" subtitle="Profil, camions et visibilité" backTo="/entrepreneur">
+    <EntrepreneurAppShell title="Mon entreprise" backTo="/entrepreneur">
       <div className="mx-auto w-full min-w-0 max-w-2xl px-4 py-5 sm:px-6 space-y-6">
         {loading ? (
           <LoadingSkeleton lines={3} />
@@ -103,17 +112,17 @@ const EntrepreneurCompte = () => {
         ) : (
           <>
             {/* ---------- Identité ---------- */}
-            <section className="rounded-3xl border border-border/70 bg-gradient-to-br from-primary/10 via-card to-card p-5">
+            <section className="py-2">
               <div className="flex items-center gap-4">
                 <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary font-display text-xl font-extrabold text-primary-foreground">
                   {initials}
                 </span>
                 <div className="min-w-0">
-                  <h2 className="truncate font-display text-lg font-extrabold">
-                    {e.company || "Votre entreprise"}
+                  <h2 className="break-words font-display text-xl font-extrabold">
+                    {companyName || "Nom de l’entreprise · À compléter"}
                   </h2>
                   <p className="truncate font-body text-sm text-muted-foreground">
-                    {region || "Localisation non renseignée"}
+                    {region || "Localisation · À compléter"}
                   </p>
                   <span
                     className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-display text-[11px] font-semibold ${
@@ -141,20 +150,29 @@ const EntrepreneurCompte = () => {
               )}
             </section>
 
-            {/* ---------- PRIVÉ ---------- */}
+            <section id="mon-compte" aria-label="Mon compte" className="scroll-mt-20">
+              <SectionHeader title={<span className="flex items-center gap-2"><UserIcon className="h-4 w-4 text-muted-foreground" />Mon compte</span>} />
+              <dl className="space-y-3 text-sm">
+                <div><dt className="text-xs text-muted-foreground">Nom de l’utilisateur</dt><dd className="mt-1 break-words">{accountName || "À compléter"}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">Courriel</dt><dd className="mt-1 break-words">{user?.email || "À compléter"}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">Rôle</dt><dd className="mt-1">{rolesLoading ? "Chargement…" : roles.map(role => roleLabels[role] || role).join(" · ") || "À compléter"}</dd></div>
+              </dl>
+            </section>
+
+            {/* ---------- ENTREPRISE ---------- */}
             <section>
               <SectionHeader
                 title={
                   <span className="flex items-center gap-2">
-                    <Lock className="h-4 w-4 text-muted-foreground" /> Informations privées
+                    <Building2 className="h-4 w-4 text-muted-foreground" /> Mon entreprise
                   </span>
                 }
               />
-              <p className="-mt-2 mb-3 font-body text-xs text-muted-foreground">Visible uniquement par vous.</p>
               <div className="space-y-2">
+                <EditRow icon={<Building2 className="h-5 w-5" />} label="Nom de l’entreprise" value={companyName || "À compléter"} onEdit={() => openSheet("contact")} />
                 <EditRow
                   icon={<UserIcon className="h-5 w-5" />}
-                  label="Coordonnées"
+                   label="Personne-ressource · téléphone professionnel"
                   value={[e.contact_name, e.phone].filter(Boolean).join(" · ") || "À compléter"}
                   onEdit={() => openSheet("contact")}
                 />
@@ -164,7 +182,9 @@ const EntrepreneurCompte = () => {
                   value={e.address || "À compléter"}
                   onEdit={() => openSheet("adresse")}
                 />
+                <EditRow icon={<MapPin className="h-5 w-5" />} label="Ville" value={loc?.city || "À compléter"} onEdit={() => openSheet("adresse")} />
               </div>
+              {user && <div className="mt-4"><CompanyProfileDetails userId={user.id} /></div>}
             </section>
 
             {/* ---------- PUBLIC ---------- */}
@@ -181,7 +201,7 @@ const EntrepreneurCompte = () => {
                 <EditRow
                   icon={<Building2 className="h-5 w-5" />}
                   label="Nom de l'entreprise"
-                  value={e.company || "À compléter"}
+                  value={companyName || "À compléter"}
                   onEdit={() => openSheet("contact")}
                 />
                 <EditRow
@@ -203,7 +223,7 @@ const EntrepreneurCompte = () => {
                 <p className="font-display text-[10px] uppercase tracking-[0.16em] text-primary">
                   Aperçu du profil public
                 </p>
-                <p className="mt-1.5 font-display text-base font-bold">{e.company || "Nom à compléter"}</p>
+                <p className="mt-1.5 font-display text-base font-bold">{companyName || "À compléter"}</p>
                 <p className="font-body text-xs text-muted-foreground">
                   {region || "Localisation non renseignée"}
                 </p>
@@ -241,7 +261,7 @@ const EntrepreneurCompte = () => {
             </section>
 
             {/* ---------- Confidentialité & préférences ---------- */}
-            <section>
+            <section id="preferences" className="scroll-mt-20">
               <SectionHeader title="Confidentialité et préférences" />
               <p className="mb-3 flex items-start gap-2 rounded-2xl bg-secondary/60 p-3 font-body text-xs text-muted-foreground">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -258,12 +278,12 @@ const EntrepreneurCompte = () => {
               Une information ne peut pas être corrigée ici ? Appelez le 819-592-3495.
             </p>
 
-            <button
+            <Button variant="ghost"
               onClick={logout}
               className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card font-body text-sm text-muted-foreground transition-transform active:scale-[0.99]"
             >
               <LogOut className="h-4 w-4" /> Déconnexion
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -320,7 +340,7 @@ const EntrepreneurCompte = () => {
                     {TRUCK_TYPE_OPTIONS.map((t) => {
                       const on = form.truck_types.includes(t);
                       return (
-                        <button
+                        <Button variant="ghost"
                           key={t}
                           type="button"
                           onClick={() =>
@@ -336,7 +356,7 @@ const EntrepreneurCompte = () => {
                           }`}
                         >
                           {t}
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -353,21 +373,21 @@ const EntrepreneurCompte = () => {
             )}
 
             <div className="flex gap-2 pt-2">
-              <button
+              <Button variant="outline"
                 type="button"
                 onClick={() => setSheet(null)}
                 className="min-h-12 flex-1 rounded-2xl border border-border font-body text-sm"
               >
                 Annuler
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => void save()}
                 disabled={saving}
                 className="min-h-12 flex-1 rounded-2xl bg-primary font-display text-sm font-bold text-primary-foreground disabled:opacity-60"
               >
                 {saving ? "Enregistrement…" : "Enregistrer"}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -389,10 +409,10 @@ const Field = ({ label, error, children }: { label: string; error?: string; chil
 const EditRow = ({
   icon, label, value, onEdit,
 }: { icon: React.ReactNode; label: string; value: string; onEdit: () => void }) => (
-  <button
+  <Button variant="ghost"
     type="button"
     onClick={onEdit}
-    className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left transition-transform active:scale-[0.99]"
+    className="flex h-auto min-h-14 w-full items-center gap-3 whitespace-normal rounded-lg border-b border-border/30 px-2 py-3 text-left transition-transform active:scale-[0.99]"
   >
     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">{icon}</span>
     <span className="min-w-0 flex-1">
@@ -400,7 +420,7 @@ const EditRow = ({
       <span className="block break-words font-body text-sm leading-snug">{value}</span>
     </span>
     <Pencil className="h-4 w-4 shrink-0 text-muted-foreground" />
-  </button>
+  </Button>
 );
 
 const NavRow = ({ to, icon, label, hint }: { to: string; icon: React.ReactNode; label: string; hint: string }) => (
