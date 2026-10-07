@@ -76,7 +76,9 @@ export const usesEngineHours = (v?: Vehicle | null) =>
 
 export const ADMIN_STATUS = [
   { value: "actif", label: "Actif" },
+  { value: "immatricule", label: "Immatriculé" },
   { value: "inactif", label: "Inactif" },
+  { value: "remise", label: "Remisé / au rancard" },
   { value: "vendu", label: "Vendu" },
   { value: "archive", label: "Archivé" },
 ] as const;
