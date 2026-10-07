@@ -5,6 +5,7 @@
 // cumuler plusieurs rôles, services, territoires et clientèles.
 // L'isolation des données est appliquée par la base (RLS).
 // ============================================================
+import TerritoryPicker from "@/components/marketplace/TerritoryPicker";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
