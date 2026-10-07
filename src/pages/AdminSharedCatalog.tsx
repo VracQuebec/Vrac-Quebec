@@ -3,15 +3,20 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Navigate } from "react-router-dom";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useUserRoles } from "@/hooks/useUserRole";
 import { listCatalog, decide, KIND_LABEL, type CatalogItem } from "@/lib/catalog";
 
 export default function AdminSharedCatalog() {
   const { toast } = useToast();
+  const { user, isReady } = useAuthReady();
+  const { isAdmin, loading } = useUserRoles(user, isReady);
   const [items, setItems] = useState<CatalogItem[] | null>(null);
   const [names, setNames] = useState<Record<string, string>>({});
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const load = useCallback(() => listCatalog().then(setItems).catch(() => setItems([])), []);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (isAdmin) load(); }, [load, isAdmin]);
 
   const act = async (i: CatalogItem, ok: boolean) => {
     try { await decide(i.id, ok, names[i.id], reasons[i.id]); toast({ title: ok ? "Approuvé — disponible pour tous" : "Refusé" }); load(); }
@@ -20,6 +25,8 @@ export default function AdminSharedCatalog() {
   const pending = (items ?? []).filter((i) => i.status === "proposed");
   const done = (items ?? []).filter((i) => i.status !== "proposed");
 
+  if (!isReady || loading) return <p className="p-4 text-sm">Chargement…</p>;
+  if (!isAdmin) return <Navigate to="/login" replace />;
   return <main className="mx-auto max-w-3xl p-4 space-y-4">
     <h1 className="text-xl font-bold">Catalogue commun — propositions</h1>
     <p className="text-sm text-muted-foreground">Fournisseurs, catégories de dépenses et équipements créés par les entrepreneurs. Ils restent privés à leur entreprise tant que vous ne les approuvez pas.</p>
