@@ -36,6 +36,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const AdminData = lazy(() => import("./pages/AdminData"));
 const AdminCalendar = lazy(() => import("./pages/AdminCalendar"));
 const AdminFleet = lazy(() => import("./pages/AdminFleet"));
+const AdminSharedCatalog = lazy(() => import("./pages/AdminSharedCatalog"));
 const AdminFleetVehicle = lazy(() => import("./pages/AdminFleetVehicle"));
 const AdminMarketplaceCategories = lazy(() => import("./pages/AdminMarketplaceCategories"));
 const AdminMarketplaceMatching = lazy(() => import("./pages/AdminMarketplaceMatching"));
@@ -243,6 +244,7 @@ const App = () => (
             <Route path="/admin/donnees" element={<AdminData />} />
             <Route path="/admin/calendrier" element={<AdminCalendar />} />
             <Route path="/admin/flotte" element={<AdminFleet />} />
+            <Route path="/admin/catalogue-commun" element={<AdminSharedCatalog />} />
             <Route path="/admin/flotte/vehicule/:id" element={<AdminFleetVehicle />} />
             <Route path="/admin/marche/categories" element={<AdminMarketplaceCategories />} />
             <Route path="/admin/marche/jumelage" element={<AdminMarketplaceMatching />} />

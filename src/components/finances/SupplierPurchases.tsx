@@ -12,6 +12,7 @@ import { fmtDate, fmtMoney } from "@/lib/finances/period";
 import { PaymentDialog, type PayTarget } from "@/components/finances/Settlements";
 import PurchaseOrders from "@/components/finances/PurchaseOrders";
 import DocumentCaptures from "@/components/finances/DocumentCaptures";
+import SharedCatalogPanel from "@/components/finances/SharedCatalogPanel";
 import * as Cap from "@/lib/finances/captures";
 import CsvPurchaseImport from "@/components/finances/CsvPurchaseImport";
 import SupplierBalances from "@/components/finances/SupplierBalances";
@@ -28,14 +29,16 @@ export default function SupplierPurchases({ companyId, companyName, canWrite, ca
   const loadSups = useCallback(() => { P.suppliers(companyId).then(setSups).catch(() => setSups(null)); }, [companyId]);
   useEffect(() => { loadSups(); }, [loadSups, rev]);
   const back = () => { setView({ k: "list" }); setRev((r) => r + 1); };
-  const [tab, setTab] = useState<"bills" | "orders" | "docs">("bills");
+  const [tab, setTab] = useState<"bills" | "orders" | "docs" | "catalog">("bills");
   return <div className="space-y-3" data-testid="fin12a">
     <div className="flex flex-wrap gap-2" role="tablist" aria-label="Achats">
       <Button size="sm" role="tab" aria-selected={tab === "bills"} variant={tab === "bills" ? "default" : "outline"} onClick={() => { setTab("bills"); back(); }}>Factures et crédits</Button>
       <Button size="sm" role="tab" aria-selected={tab === "docs"} variant={tab === "docs" ? "default" : "outline"} onClick={() => setTab("docs")}>Reçus et documents</Button>
       <Button size="sm" role="tab" aria-selected={tab === "orders"} variant={tab === "orders" ? "default" : "outline"} onClick={() => setTab("orders")}>Commandes</Button>
+      <Button size="sm" role="tab" aria-selected={tab === "catalog"} variant={tab === "catalog" ? "default" : "outline"} onClick={() => setTab("catalog")}>Catalogue commun</Button>
     </div>
-    {tab === "docs" ? <DocumentCaptures key={companyId} companyId={companyId} sups={sups} canWrite={canWrite} onOpenBill={(id) => { setTab("bills"); setView({ k: "bill", id }); }} onOpenCredit={(id) => { setTab("bills"); setView({ k: "credit", id }); }} />
+    {tab === "catalog" ? <SharedCatalogPanel key={companyId} companyId={companyId} canWrite={canWrite} onChanged={() => setRev((r) => r + 1)} />
+    : tab === "docs" ? <DocumentCaptures key={companyId} companyId={companyId} sups={sups} canWrite={canWrite} onOpenBill={(id) => { setTab("bills"); setView({ k: "bill", id }); }} onOpenCredit={(id) => { setTab("bills"); setView({ k: "credit", id }); }} />
     : tab === "orders" ? <PurchaseOrders key={companyId} companyId={companyId} sups={sups} canWrite={canWrite} canCorrect={canCorrect} onOpenBill={(id) => { setTab("bills"); setView({ k: "bill", id }); }} /> : <>
     <p className="text-xs text-muted-foreground">Factures et notes de crédit fournisseurs : un brouillon n'a aucun effet financier; la confirmation d'une facture crée ou remplace exactement une échéance « À payer »; un crédit réduit le solde d'une facture sans être un encaissement. Lecture des reçus : onglet « Reçus et documents ». Import CSV : bouton « Importer un CSV » (brouillons seulement).</p>
     {view.k === "csv" && <CsvPurchaseImport key={companyId} companyId={companyId} sups={sups} onOpenBill={(id) => setView({ k: "bill", id })} onOpenCredit={(id) => setView({ k: "credit", id })} onClose={back} />}
