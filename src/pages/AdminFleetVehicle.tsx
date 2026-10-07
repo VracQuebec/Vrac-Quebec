@@ -25,6 +25,7 @@ import { useFleetTenant } from "@/lib/fleet/tenant";
 import { SupportBanner } from "@/components/fleet/FleetTenantBar";
 import PageHeader from "@/components/layout/PageHeader";
 import FleetDocuments from "@/components/fleet/FleetDocuments";
+import { VehiclePhotosButton, VehicleNotesButton } from "@/components/fleet/VehicleMediaNotes";
 import CompleteDialog from "@/components/fleet/CompleteDialog";
 import { Input } from "@/components/ui/input";
 import { setStatus, type CrmNotification } from "@/lib/notifications/api";
@@ -231,6 +232,8 @@ export default function AdminFleetVehicle() {
 
       <main className="max-w-5xl mx-auto px-3 sm:px-6 py-5 space-y-4">
         <div className="flex flex-wrap gap-2">
+          {id && <VehiclePhotosButton vehicleId={id} />}
+          {id && <VehicleNotesButton vehicleId={id} vehicleNotes={vehicle?.notes as string | null} />}
           <Button size="sm" variant="outline" onClick={() => setMaintDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Entretien</Button>
           <Button size="sm" variant="outline" onClick={() => setRepairDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Réparation</Button>
           <Button size="sm" variant="outline" onClick={() => setInspDialog({ open: true })}><Plus className="w-4 h-4 mr-1" /> Inspection</Button>

@@ -2768,6 +2768,7 @@ export type Database = {
         Row: {
           created_at: string
           expires_at: string | null
+          folders: string[]
           id: string
           kind: string
           mime_type: string | null
@@ -2782,6 +2783,7 @@ export type Database = {
         Insert: {
           created_at?: string
           expires_at?: string | null
+          folders?: string[]
           id?: string
           kind: string
           mime_type?: string | null
@@ -2796,6 +2798,7 @@ export type Database = {
         Update: {
           created_at?: string
           expires_at?: string | null
+          folders?: string[]
           id?: string
           kind?: string
           mime_type?: string | null
