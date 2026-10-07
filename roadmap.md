@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Phase 4 : profil professionnel entreprise — séparer compte/entreprise, consolider la fiche privée et l’aperçu public existant, afficher la flotte privée sans exposer de véhicule publiquement faute de champ de visibilité, puis valider sécurité et formats.
+
 - [x] Phase 3 : centre de suivi des demandes — liste hiérarchisée, filtre Confirmées fondé sur les états existants, fiche mobile avec informations, suivi dérivé, liens et actions existants; aucune nouvelle donnée ni relation.
 - [x] Phase 3 : validation complète — 38 tests ciblés réussis; liste et fiche vérifiées sans écriture sur 320×667, 393×852 et 1440×1000, sans débordement; états sans chantier/dompe/transport/voyage/service explicites. Deux sessions A/B réelles n’avaient aucune demande disponible : isolation de ces parcours non exécutable sans donnée artificielle. Build OK, aucune publication.
 
