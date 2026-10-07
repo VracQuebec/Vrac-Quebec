@@ -12216,6 +12216,30 @@ export type Database = {
           },
         ]
       }
+      fleet_unit_categories_custom: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          value?: string
+        }
+        Relationships: []
+      }
       fleet_work_items: {
         Row: {
           check_key: string | null
