@@ -15,6 +15,7 @@ import AddToCrmButton from "@/components/entcrm/AddToCrmButton";
 import TransportLifecyclePanel from "@/components/entrepreneur-app/TransportLifecyclePanel";
 import { deriveJourneyStage } from "@/lib/parcours/submission-display";
 import { mapLinkedTransport } from "@/lib/parcours/validation";
+import { buildDemandeParcours, isTransportLinked } from "@/lib/parcours/demande-parcours";
 
 const DetailLine = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
   <div className="flex gap-3 border-b border-border py-3 last:border-0">
@@ -36,7 +37,7 @@ export default function EntrepreneurDemandeDetail() {
       ? findChantierForTransport(chantiers, request.transport)
       : null;
   const linkedTransport = request?.submission
-    ? accessRequests.find((item) => String(item.origin_submission_id ?? "") === request.submission?.id)
+    ? accessRequests.find((item) => isTransportLinked(item as { origin_submission_id?: unknown; dump_submission_id?: unknown }, request.submission!.id))
     : null;
   const linkedTrips = request?.submission ? trips.filter((trip) => trip.submission_id === request.submission?.id && !trip.voided_at) : [];
   const tracking = request ? buildRequestTracking(request, linkedTransport, linkedTrips) : [];
@@ -78,6 +79,20 @@ export default function EntrepreneurDemandeDetail() {
                   <DetailLine icon={<CalendarDays className="h-4 w-4" />} label="Date" value={request.date ? new Date(request.date).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" }) : "À compléter"} />
                 </dl>
               </section>
+
+              {request.submission && (
+                <section>
+                  <SectionHeader title="Parcours de la demande" />
+                  <dl className="divide-y divide-border">
+                    {buildDemandeParcours(request.submission, linkedTransport, linkedTrips, journey?.label ?? null).map((line) => (
+                      <div key={line.label} className="flex min-h-10 items-center justify-between gap-3 py-2">
+                        <dt className="shrink-0 font-body text-xs font-semibold text-muted-foreground">{line.label}</dt>
+                        <dd className={`min-w-0 break-words text-right font-display text-sm ${line.known ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{line.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              )}
 
               <section>
                 <SectionHeader title="Suivi de la demande" />
