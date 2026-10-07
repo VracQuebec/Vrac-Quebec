@@ -25,7 +25,7 @@ import {
   LifeBuoy,
   Wallet,
   FileClock,
-  Ticket, ListChecks, CalendarDays, Clock, ContactRound, ReceiptText, Files, ShieldCheck, SlidersHorizontal, Building2, Layers } from "lucide-react";
+  Ticket, ListChecks, CalendarDays, Clock, ContactRound, ReceiptText, Files, ShieldCheck, SlidersHorizontal, Building2, Layers, ChevronDown } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Coquille unique de l'espace entrepreneur :                         */
@@ -139,6 +139,13 @@ export default function EntrepreneurAppShell({
   const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
   const { unread: unreadCount } = useEntrepreneurNotifications(true);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [openSections, setOpenSections] = useState<string[]>(["Opérations"]);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const here = `${location.pathname}${location.search}${location.hash}`;
+    const current = MORE_SECTIONS.find(sec => sec.items.some(i => isActive(here, i.to)))?.title;
+    setOpenSections(current && current !== "Opérations" ? ["Opérations", current] : ["Opérations"]);
+  }, [moreOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shellRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
