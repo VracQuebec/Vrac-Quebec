@@ -12,6 +12,7 @@ const FILTERS: { key: RequestFilter; label: string }[] = [
   { key: "all", label: "Toutes" },
   { key: "active", label: "En cours" },
   { key: "pending", label: "En attente" },
+  { key: "confirmed", label: "Confirmées" },
   { key: "done", label: "Terminées" },
   { key: "cancelled", label: "Annulées" },
 ];
@@ -26,7 +27,7 @@ export default function EntrepreneurDemandes() {
   const visible = requests.filter((request) => {
     if (!requestMatchesFilter(request, filter)) return false;
     const needle = query.trim().toLowerCase();
-    return !needle || `${request.title} ${request.chantierLabel} ${request.place} ${request.sourceId}`.toLowerCase().includes(needle);
+    return !needle || `${request.reference} ${request.typeLabel} ${request.title} ${request.chantierLabel} ${request.city} ${request.place} ${request.sourceId}`.toLowerCase().includes(needle);
   });
 
   const chooseFilter = (next: RequestFilter) => {
@@ -63,7 +64,7 @@ export default function EntrepreneurDemandes() {
             ) : (
               <div className="divide-y divide-border/35">
                 {visible.map((request) => (
-                  <RequestCard key={request.id} to={`/entrepreneur/demandes/${request.id}`} kind={request.kind === "transport" ? "acces" : "materiau"} title={`Chantier — ${request.chantierLabel}`} place={`${request.kind === "transport" ? "Transport" : "Demande de matériau"} · ${request.title}`} footer={`${request.quantity || "Quantité à confirmer"}${request.date ? ` · ${new Date(request.date).toLocaleDateString("fr-CA")}` : ""}`} nextAction="Voir le dossier" badge={{ label: request.statusLabel, tone: request.tone }} />
+                  <RequestCard key={request.id} to={`/entrepreneur/demandes/${request.id}`} kind={request.kind === "transport" ? "acces" : "materiau"} reference={request.reference} typeLabel={request.typeLabel} title={request.chantierLabel} city={request.city} place={request.place} subject={request.subjectLabel} footer={`${request.quantity || "Quantité à compléter"} · ${request.date ? new Date(request.date).toLocaleDateString("fr-CA") : "Date à compléter"}`} nextAction={request.nextAction} badge={{ label: request.statusLabel, tone: request.tone }} />
                 ))}
               </div>
             )}

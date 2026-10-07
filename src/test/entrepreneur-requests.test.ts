@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildEntrepreneurRequests, requestMatchesFilter } from "@/lib/entrepreneur-app/requests";
+import { buildEntrepreneurRequests, buildRequestTracking, requestMatchesFilter } from "@/lib/entrepreneur-app/requests";
 import { buildChantiers, findChantierForTransport } from "@/lib/parcours/chantiers";
 import type { MySubmission } from "@/lib/parcours/mes-demandes";
 
@@ -29,6 +29,30 @@ describe("dossiers entrepreneur", () => {
     expect(requests.find((item) => item.sourceId === "done")?.filter).toBe("done");
     expect(requests.find((item) => item.sourceId === "cancelled")?.filter).toBe("cancelled");
     expect(requests.filter((item) => requestMatchesFilter(item, "done"))).toHaveLength(1);
+  });
+
+  it("filtre Confirmées uniquement depuis des statuts ou liens existants", () => {
+    const requests = buildEntrepreneurRequests([
+      submission({ id: "accepted", status: "acceptee" }),
+      submission({ id: "waiting", status: "nouvelle" }),
+      submission({ id: "site", status: "nouvelle", siteValidatedAt: "2026-09-21T10:00:00Z" }),
+    ], []);
+    expect(requests.filter((item) => requestMatchesFilter(item, "confirmed")).map((item) => item.sourceId)).toEqual(["site", "accepted"]);
+  });
+
+  it("fournit des valeurs de présentation honnêtes quand des champs manquent", () => {
+    const [request] = buildEntrepreneurRequests([submission({ number: null, requestType: null, material: null, city: null })], []);
+    expect(request.typeLabel).toBe("Non précisé");
+    expect(request.subjectLabel).toBe("Non précisé");
+    expect(request.city).toBe("À compléter");
+    expect(request.reference).toBe("SUB-1");
+  });
+
+  it("ne complète une étape de suivi que si un état existant la prouve", () => {
+    const [waiting] = buildEntrepreneurRequests([submission()], []);
+    const [confirmed] = buildEntrepreneurRequests([submission({ siteValidatedAt: "2026-09-21T10:00:00Z" })], []);
+    expect(buildRequestTracking(waiting).find((step) => step.label === "Solution trouvée")?.state).toBe("upcoming");
+    expect(buildRequestTracking(confirmed).find((step) => step.label === "Solution trouvée")?.state).toBe("current");
   });
 
   it("ne transforme jamais une sélection en approbation", () => {

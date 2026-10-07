@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Phase 3 : centre de suivi des demandes — liste hiérarchisée, filtre Confirmées fondé sur les états existants, fiche mobile avec informations, suivi dérivé, liens et actions existants; aucune nouvelle donnée ni relation.
+- [ ] Phase 3 : validation complète liste/détails/mobile/isolation et rapport final, en cours.
+
 - [x] Phase 2 : compte utilisateur et entreprise distingués, champs existants/À compléter; fiche publique limitée aux informations déjà publiques.
 - [x] Phase 2 : navigation regroupée, cinq entrées mobiles conservées; voyages/coupons/services séparés sur la route existante.
 - [x] Phase 2 : accueil préservé, statuts chantiers existants réutilisés, disponibilité et fraîcheur séparées dans la liste seulement; agenda vérifié sans modification.
