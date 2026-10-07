@@ -1,5 +1,5 @@
 import type { MySubmission } from "@/lib/parcours/mes-demandes";
-import type { AccessRequestRow } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
+import type { AccessRequestRow, TripRow } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { statusBucket, statusMeta } from "@/lib/access-requests/status";
 import { lifecycleMeta } from "@/lib/entrepreneur-app/lifecycle";
 import { NEED_LABELS, needDirection, needsDumpSearch } from "@/lib/parcours/sens-besoin";
@@ -130,12 +130,14 @@ export type TrackingStepState = "done" | "current" | "upcoming";
 export interface TrackingStep { label: string; state: TrackingStepState }
 
 /** Présentation seulement : chaque étape s'appuie sur un statut ou un lien déjà chargé. */
-export function buildRequestTracking(request: EntrepreneurRequestView, linkedTransport?: AccessRequestRow | null): TrackingStep[] {
+export function buildRequestTracking(
+  request: EntrepreneurRequestView,
+  linkedTransport?: AccessRequestRow | null,
+  linkedTrips: TripRow[] = [],
+): TrackingStep[] {
   const terminal = request.filter === "done";
   const stopped = request.filter === "cancelled";
   const submission = request.submission;
-  const solutionFound = Boolean(submission?.selectedSiteId || submission?.siteValidatedAt);
-  const transportRequested = request.kind === "transport" || linkedTransport != null;
 
   if (request.kind === "transport") {
     return [
@@ -146,13 +148,19 @@ export function buildRequestTracking(request: EntrepreneurRequestView, linkedTra
     ];
   }
 
-  const journey = submission ? deriveJourneyStage(submission, linkedTransport) : null;
-  const rank = journey ? ["request", "search", "solution", "transport", "execution"].indexOf(journey.key) : 0;
-  return [
-    { label: "Demande créée", state: "done" },
-    { label: "Recherche de solution", state: rank > 1 ? "done" : rank === 1 ? "current" : "upcoming" },
-    { label: "Solution trouvée", state: rank > 2 ? "done" : rank === 2 ? "current" : "upcoming" },
-    { label: transportRequested ? "Transport" : "Transport à organiser", state: rank > 3 ? "done" : rank === 3 ? "current" : "upcoming" },
-    { label: "Exécution", state: rank === 4 ? "current" : "upcoming" },
-  ];
+  const journey = submission ? deriveJourneyStage(submission, linkedTransport, linkedTrips) : null;
+  const stages = [
+    { key: "request", label: "Besoin identifié" },
+    { key: "search", label: "Recherche" },
+    { key: "solution", label: "Solution trouvée" },
+    { key: "transport", label: "Transport à organiser" },
+    { key: "confirmed", label: "Confirmé" },
+    { key: "execution", label: "En cours" },
+    { key: "closed", label: "Terminé" },
+  ] as const;
+  const rank = Math.max(0, stages.findIndex((stage) => stage.key === journey?.key));
+  return stages.map((stage, index) => ({
+    label: stage.label,
+    state: index < rank ? "done" : index === rank ? "current" : "upcoming",
+  }));
 }

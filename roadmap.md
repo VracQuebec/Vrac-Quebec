@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Phase 3B : statuts réels, sens ambigu et sept étapes alignés sur les relations explicites; voyages autorisés lus par demande via le fournisseur commun sans les interpréter comme « en cours ». Cas A–J, 320/393/1440 et absence d'écriture métier validés; aucune migration, sécurité ou publication.
+
 - [x] Phase 3A : libellés de besoin, états réels et étapes demande → solution → transport → exécution corrigés sans migration; lecture transport dupliquée retirée sur la fiche. 1 832 tests réussis, types/build OK, 393×852, 320×667 et 1440×1000 vérifiés sans débordement ni écriture métier; aucune publication.
 
 - [x] Phase 4 : profil professionnel entreprise — compte/entreprise séparés, fiche privée consolidée, profil public existant clarifié et flotte privée résumée sans exposition publique. 121 tests réussis; formats 320×667, 393×852 et 1440×1000 sans débordement; build OK. Aucune table, migration, donnée, RLS, permission ni publication.

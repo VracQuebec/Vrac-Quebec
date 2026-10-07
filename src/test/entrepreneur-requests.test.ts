@@ -54,7 +54,7 @@ describe("dossiers entrepreneur", () => {
     const [confirmed] = buildEntrepreneurRequests([submission({ siteValidatedAt: "2026-09-21T10:00:00Z" })], []);
     expect(buildRequestTracking(waiting).find((step) => step.label === "Solution trouvée")?.state).toBe("upcoming");
     expect(buildRequestTracking(confirmed).find((step) => step.label === "Solution trouvée")?.state).toBe("current");
-    expect(buildRequestTracking(confirmed, { id: "t", status: "nouvelle", created_at: null }).find((step) => step.label === "Transport")?.state).toBe("current");
+    expect(buildRequestTracking(confirmed, { id: "t", status: "nouvelle", created_at: null }).find((step) => step.label === "Transport à organiser")?.state).toBe("current");
   });
 
   it.each([
@@ -72,12 +72,26 @@ describe("dossiers entrepreneur", () => {
   });
 
   it("calcule la progression seulement depuis des preuves existantes", () => {
-    expect(deriveJourneyStage(submission()).key).toBe("request");
-    expect(deriveJourneyStage(submission({ status: "soumission envoyée" })).key).toBe("search");
-    expect(deriveJourneyStage(submission({ selectedSiteId: "site-1" })).key).toBe("solution");
-    expect(deriveJourneyStage(submission(), { status: "nouvelle", lifecycle_status: "a_valider" }).key).toBe("transport");
-    expect(deriveJourneyStage(submission(), { status: "en_cours" }).key).toBe("execution");
-    expect(deriveJourneyStage(submission({ status: "archivé" })).label).toBe("Dossier fermé");
+    expect(deriveJourneyStage(submission())).toMatchObject({ key: "request", label: "Besoin identifié" });
+    expect(deriveJourneyStage(submission({ status: "soumission envoyée" }))).toMatchObject({ key: "search", label: "Recherche" });
+    expect(deriveJourneyStage(submission({ selectedSiteId: "site-1" }))).toMatchObject({ key: "solution", label: "Solution trouvée" });
+    expect(deriveJourneyStage(submission(), { status: "nouvelle", lifecycle_status: "a_valider" })).toMatchObject({ key: "transport", label: "Transport à organiser" });
+    expect(deriveJourneyStage(submission({ status: "soumission acceptée" }))).toMatchObject({ key: "confirmed", label: "Confirmé" });
+    expect(deriveJourneyStage(submission(), { status: "en_cours" })).toMatchObject({ key: "execution", label: "En cours" });
+    expect(deriveJourneyStage(submission(), null, [{ submission_id: "sub-1", voided_at: null }])).toMatchObject({ key: "request", label: "Besoin identifié" });
+    expect(deriveJourneyStage(submission({ status: "archivé" }))).toMatchObject({ key: "closed", label: "Terminé", detail: "Archivée" });
+    expect(deriveJourneyStage(submission({ status: "perdu" }))).toMatchObject({ key: "closed", label: "Terminé", detail: "Perdue" });
+    expect(deriveJourneyStage(submission(), null, [{ submission_id: "sub-1", voided_at: "2026-10-03T00:00:00Z" }]).key).toBe("request");
+  });
+
+  it("affiche les sept étapes cibles sans déclarer les étapes futures accomplies", () => {
+    const [request] = buildEntrepreneurRequests([submission({ selectedSiteId: "site-1" })], []);
+    const tracking = buildRequestTracking(request);
+    expect(tracking.map((step) => step.label)).toEqual([
+      "Besoin identifié", "Recherche", "Solution trouvée", "Transport à organiser", "Confirmé", "En cours", "Terminé",
+    ]);
+    expect(tracking.find((step) => step.label === "Solution trouvée")?.state).toBe("current");
+    expect(tracking.find((step) => step.label === "Transport à organiser")?.state).toBe("upcoming");
   });
 
   it("ne transforme jamais une sélection en approbation", () => {

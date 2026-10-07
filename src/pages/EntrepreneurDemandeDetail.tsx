@@ -28,7 +28,7 @@ const DetailLine = ({ icon, label, value }: { icon: React.ReactNode; label: stri
 
 export default function EntrepreneurDemandeDetail() {
   const { id = "" } = useParams<{ id: string }>();
-  const { loading, error, submissions, accessRequests, chantiers, refresh } = useEntrepreneurData();
+  const { loading, error, submissions, accessRequests, chantiers, trips, tripsAvailable, refresh } = useEntrepreneurData();
   const request = buildEntrepreneurRequests(submissions, accessRequests, chantiers).find((item) => item.id === id || item.sourceId === id);
   const chantier = request?.submission
     ? findChantierForSubmission(chantiers, request.submission.id)
@@ -38,8 +38,9 @@ export default function EntrepreneurDemandeDetail() {
   const linkedTransport = request?.submission
     ? accessRequests.find((item) => String(item.origin_submission_id ?? "") === request.submission?.id)
     : null;
-  const tracking = request ? buildRequestTracking(request, linkedTransport) : [];
-  const journey = request?.submission ? deriveJourneyStage(request.submission, linkedTransport) : null;
+  const linkedTrips = request?.submission ? trips.filter((trip) => trip.submission_id === request.submission?.id && !trip.voided_at) : [];
+  const tracking = request ? buildRequestTracking(request, linkedTransport, linkedTrips) : [];
+  const journey = request?.submission ? deriveJourneyStage(request.submission, linkedTransport, linkedTrips) : null;
 
   return (
     <EntrepreneurAppShell
@@ -107,7 +108,7 @@ export default function EntrepreneurDemandeDetail() {
                   <section>
                     <SectionHeader title="Voyages et services" />
                     <div className="divide-y divide-border">
-                      <div className="py-2"><p className="font-display text-sm font-semibold">Voyage</p><p className="font-body text-xs text-muted-foreground">Information de voyage non disponible dans ce suivi.</p></div>
+                      <div className="py-2"><p className="font-display text-sm font-semibold">Voyage</p><p className="font-body text-xs text-muted-foreground">{linkedTrips.length > 0 ? `${linkedTrips.length} voyage${linkedTrips.length > 1 ? "s" : ""} enregistré${linkedTrips.length > 1 ? "s" : ""}` : tripsAvailable ? "Aucun voyage lié" : "Information de voyage non disponible dans ce suivi."}</p></div>
                       <div className="py-2"><p className="font-display text-sm font-semibold">Service</p><p className="font-body text-xs text-muted-foreground">Aucun service lié.</p></div>
                     </div>
                   </section>
