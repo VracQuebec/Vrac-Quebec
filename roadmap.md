@@ -1,7 +1,7 @@
 # Roadmap
 
 - [x] Phase 3 : centre de suivi des demandes — liste hiérarchisée, filtre Confirmées fondé sur les états existants, fiche mobile avec informations, suivi dérivé, liens et actions existants; aucune nouvelle donnée ni relation.
-- [ ] Phase 3 : validation complète liste/détails/mobile/isolation et rapport final, en cours.
+- [x] Phase 3 : validation complète — 38 tests ciblés réussis; liste et fiche vérifiées sans écriture sur 320×667, 393×852 et 1440×1000, sans débordement; états sans chantier/dompe/transport/voyage/service explicites. Deux sessions A/B réelles n’avaient aucune demande disponible : isolation de ces parcours non exécutable sans donnée artificielle. Build OK, aucune publication.
 
 - [x] Phase 2 : compte utilisateur et entreprise distingués, champs existants/À compléter; fiche publique limitée aux informations déjà publiques.
 - [x] Phase 2 : navigation regroupée, cinq entrées mobiles conservées; voyages/coupons/services séparés sur la route existante.
