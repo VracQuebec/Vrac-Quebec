@@ -8,7 +8,7 @@ import LinkedTransportCard from "@/components/parcours/LinkedTransportCard";
 import { Button } from "@/components/ui/button";
 import { useEntrepreneurData } from "@/lib/entrepreneur-app/EntrepreneurDataProvider";
 import { buildEntrepreneurRequests, buildRequestTracking } from "@/lib/entrepreneur-app/requests";
-import { findChantierForSubmission } from "@/lib/parcours/chantiers";
+import { findChantierForSubmission, findChantierForTransport } from "@/lib/parcours/chantiers";
 import SubmissionProvenance from "@/components/entrepreneur-app/SubmissionProvenance";
 import { possibleDuplicates } from "@/lib/parcours/sens-besoin";
 import AddToCrmButton from "@/components/entcrm/AddToCrmButton";
@@ -29,8 +29,15 @@ export default function EntrepreneurDemandeDetail() {
   const { id = "" } = useParams<{ id: string }>();
   const { loading, error, submissions, accessRequests, chantiers, refresh } = useEntrepreneurData();
   const request = buildEntrepreneurRequests(submissions, accessRequests, chantiers).find((item) => item.id === id || item.sourceId === id);
-  const chantier = request?.submission ? findChantierForSubmission(chantiers, request.submission.id) : null;
-  const tracking = request ? buildRequestTracking(request) : [];
+  const chantier = request?.submission
+    ? findChantierForSubmission(chantiers, request.submission.id)
+    : request?.transport
+      ? findChantierForTransport(chantiers, request.transport)
+      : null;
+  const linkedTransport = request?.submission
+    ? accessRequests.find((item) => String(item.origin_submission_id ?? "") === request.submission?.id)
+    : null;
+  const tracking = request ? buildRequestTracking(request, Boolean(linkedTransport)) : [];
 
   return (
     <EntrepreneurAppShell

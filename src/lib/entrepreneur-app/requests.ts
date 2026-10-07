@@ -43,6 +43,11 @@ export interface EntrepreneurRequestView {
 
 const CONFIRMED_STATUSES = new Set(["acceptee", "planifiee", "en_cours"]);
 const CONFIRMED_LIFECYCLES = new Set(["confirmee", "prete_transport", "en_cours"]);
+const REQUEST_TYPE_LABELS: Record<string, string> = {
+  remblai: "Demande de remblai",
+  vrac: "Matériaux en vrac",
+  livraison: "Livraison",
+};
 
 const submissionState = (status: string | null, waitingSite: boolean) => {
   if (status === "annulee" || status === "refusee") {
@@ -79,7 +84,7 @@ export function buildEntrepreneurRequests(
       filter: state.filter,
       nextAction: waitingSite ? "Suivre la décision des dompes" : need === "a_preciser" ? "Préciser le besoin (recevoir, évacuer ou acheter)" : state.filter === "done" || state.filter === "cancelled" ? "Consulter le dossier" : "Suivre le dossier",
       reference: submission.number != null ? String(submission.number) : submission.id.slice(0, 8).toUpperCase(),
-      typeLabel: submission.requestType ? submission.requestType.replace(/_/g, " ") : "Non précisé",
+      typeLabel: submission.requestType ? REQUEST_TYPE_LABELS[submission.requestType] ?? submission.requestType.replace(/_/g, " ") : "Non précisé",
       city: submission.city || "À compléter",
       subjectLabel: submission.material || "Non précisé",
       isConfirmed: CONFIRMED_STATUSES.has(submission.status ?? "") || Boolean(submission.siteValidatedAt),
@@ -103,7 +108,7 @@ export function buildEntrepreneurRequests(
       id: `r-${String(transport.id)}`,
       sourceId: String(transport.id),
       kind: "transport",
-      title: `${transport.request_number ? `Nº ${String(transport.request_number)} · ` : ""}${String(transport.material_type ?? "Transport en vrac")}`,
+      title: String(transport.material_type ?? "Transport en vrac"),
       place,
       quantity: transport.estimated_trips != null ? `${String(transport.estimated_trips)} voyage(s)` : null,
       date: (transport.created_at as string | null) ?? null,
@@ -136,13 +141,12 @@ export type TrackingStepState = "done" | "current" | "upcoming";
 export interface TrackingStep { label: string; state: TrackingStepState }
 
 /** Présentation seulement : chaque étape s'appuie sur un statut ou un lien déjà chargé. */
-export function buildRequestTracking(request: EntrepreneurRequestView): TrackingStep[] {
+export function buildRequestTracking(request: EntrepreneurRequestView, hasLinkedTransport = false): TrackingStep[] {
   const terminal = request.filter === "done";
   const stopped = request.filter === "cancelled";
   const submission = request.submission;
-  const transport = request.transport;
   const solutionFound = Boolean(submission?.siteValidatedAt || request.isConfirmed || terminal);
-  const transportRequested = Boolean(transport || submission?.id && false);
+  const transportRequested = request.kind === "transport" || hasLinkedTransport;
 
   if (request.kind === "transport") {
     return [

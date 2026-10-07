@@ -37,7 +37,7 @@ describe("dossiers entrepreneur", () => {
       submission({ id: "waiting", status: "nouvelle" }),
       submission({ id: "site", status: "nouvelle", siteValidatedAt: "2026-09-21T10:00:00Z" }),
     ], []);
-    expect(requests.filter((item) => requestMatchesFilter(item, "confirmed")).map((item) => item.sourceId)).toEqual(["site", "accepted"]);
+    expect(requests.filter((item) => requestMatchesFilter(item, "confirmed")).map((item) => item.sourceId)).toEqual(["accepted", "site"]);
   });
 
   it("fournit des valeurs de présentation honnêtes quand des champs manquent", () => {
@@ -53,6 +53,7 @@ describe("dossiers entrepreneur", () => {
     const [confirmed] = buildEntrepreneurRequests([submission({ siteValidatedAt: "2026-09-21T10:00:00Z" })], []);
     expect(buildRequestTracking(waiting).find((step) => step.label === "Solution trouvée")?.state).toBe("upcoming");
     expect(buildRequestTracking(confirmed).find((step) => step.label === "Solution trouvée")?.state).toBe("current");
+    expect(buildRequestTracking(confirmed, true).find((step) => step.label === "Transport demandé")?.state).toBe("current");
   });
 
   it("ne transforme jamais une sélection en approbation", () => {

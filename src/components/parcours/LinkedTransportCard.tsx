@@ -134,10 +134,10 @@ export default function LinkedTransportCard({ submissionId, client }: Props) {
         </div>
       </dl>
       <Button
-        onClick={() => navigate(`/demande-transport?submission=${r.submissionId ?? submissionId}`)}
+        onClick={() => navigate(`/entrepreneur/demandes/r-${r.id}`)}
         className="mt-4 min-h-11 w-full font-display text-sm font-semibold sm:w-auto"
       >
-        Voir ma demande de transport
+        Voir le transport
         <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
       </Button>
     </>,
