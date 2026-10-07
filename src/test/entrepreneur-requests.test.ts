@@ -60,8 +60,8 @@ describe("dossiers entrepreneur", () => {
   it.each([
     ["nouveau", "Nouvelle", "pending"],
     ["soumission envoyée", "Soumission envoyée", "pending"],
-    ["soumission acceptée", "Soumission acceptée", "confirmed"],
-    ["paiement effectué", "Paiement effectué", "confirmed"],
+    ["soumission acceptée", "Soumission acceptée", "active"],
+    ["paiement effectué", "Paiement effectué", "active"],
     ["en attente de livraison", "En attente de livraison", "active"],
     ["archivé", "Archivée", "cancelled"],
     ["perdu", "Perdue", "cancelled"],
