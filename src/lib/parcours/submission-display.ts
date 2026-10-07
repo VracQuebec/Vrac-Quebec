@@ -18,7 +18,12 @@ export interface LinkedTransportEvidence {
   lifecycle_status?: unknown;
 }
 
-export type JourneyStageKey = "request" | "search" | "solution" | "transport" | "execution" | "closed";
+export interface LinkedTripEvidence {
+  submission_id?: unknown;
+  voided_at?: unknown;
+}
+
+export type JourneyStageKey = "request" | "search" | "solution" | "transport" | "confirmed" | "execution" | "closed";
 
 export interface JourneyStage {
   key: JourneyStageKey;
@@ -90,23 +95,29 @@ const transportState = (transport: LinkedTransportEvidence | null | undefined) =
 export const deriveJourneyStage = (
   submission: MySubmission,
   transport?: LinkedTransportEvidence | null,
+  trips: LinkedTripEvidence[] = [],
 ): JourneyStage => {
   const state = submissionDisplayState(submission.status);
-  if (state.closed) {
-    return { key: "closed", label: "Dossier fermé", detail: state.label };
-  }
-
   const linked = transport != null;
   const ts = transportState(transport);
-  if (linked && (ts.lifecycle === "en_cours" || ts.status === "en_cours")) {
-    return { key: "execution", label: "Exécution", detail: "Transport en cours" };
+  const transportClosed = linked && (
+    ["terminee", "annulee", "refusee", "expiree"].includes(ts.lifecycle) ||
+    ["terminee", "annulee", "refusee"].includes(ts.status)
+  );
+  if (state.closed || transportClosed) {
+    return { key: "closed", label: "Terminé", detail: state.closed ? state.label : "Transport terminé" };
   }
-  if (
-    linked &&
-    (["confirmee", "prete_transport"].includes(ts.lifecycle) ||
-      ["acceptee", "planifiee"].includes(ts.status))
-  ) {
-    return { key: "transport", label: "Transport confirmé", detail: "Transport lié et confirmé" };
+
+  const hasRecordedTrip = trips.some((trip) => !trip.voided_at);
+  if (hasRecordedTrip || state.key === "en_cours" || (linked && (ts.lifecycle === "en_cours" || ts.status === "en_cours"))) {
+    return { key: "execution", label: "En cours", detail: hasRecordedTrip ? "Voyage enregistré" : "Transport en cours" };
+  }
+  if (state.confirmed || (linked && (["confirmee", "prete_transport"].includes(ts.lifecycle) || ["acceptee", "planifiee"].includes(ts.status)))) {
+    return {
+      key: "confirmed",
+      label: "Confirmé",
+      detail: state.confirmed ? state.label : "Transport lié et confirmé",
+    };
   }
   if (linked) {
     return {
@@ -123,7 +134,7 @@ export const deriveJourneyStage = (
     };
   }
   if (["en_analyse", "message_texte_envoye", "soumission_envoyee", "en_attente_proprietaire"].includes(state.key)) {
-    return { key: "search", label: "Recherche de solution", detail: state.label };
+    return { key: "search", label: "Recherche", detail: state.label };
   }
-  return { key: "request", label: "Demande créée", detail: state.label };
+  return { key: "request", label: "Besoin identifié", detail: state.label };
 };

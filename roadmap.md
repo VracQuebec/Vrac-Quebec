@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Phase 3B : aligner les statuts, le sens et les sept étapes du parcours sur les relations existantes; lire les voyages autorisés via le fournisseur commun, valider 320/393/1440 et confirmer l’absence d’écriture, migration, sécurité ou publication.
+
 - [x] Phase 3A : libellés de besoin, états réels et étapes demande → solution → transport → exécution corrigés sans migration; lecture transport dupliquée retirée sur la fiche. 1 832 tests réussis, types/build OK, 393×852, 320×667 et 1440×1000 vérifiés sans débordement ni écriture métier; aucune publication.
 
 - [x] Phase 4 : profil professionnel entreprise — compte/entreprise séparés, fiche privée consolidée, profil public existant clarifié et flotte privée résumée sans exposition publique. 121 tests réussis; formats 320×667, 393×852 et 1440×1000 sans débordement; build OK. Aucune table, migration, donnée, RLS, permission ni publication.

@@ -51,7 +51,7 @@ type TabId = "apercu" | "demandes" | "sites" | "transports" | "activite";
 export default function EntrepreneurChantierDetail() {
   const { key } = useParams<{ key: string }>();
   const decoded = key ? decodeURIComponent(key) : "";
-  const { loading, error, chantiers, accessRequests, submissions, refresh } = useEntrepreneurData();
+  const { loading, error, chantiers, accessRequests, submissions, trips, refresh } = useEntrepreneurData();
   const duplicates = useMemo(() => possibleDuplicates(submissions), [submissions]);
   const chantier = useMemo(() => chantiers.find((c) => c.key === decoded), [chantiers, decoded]);
   const navigate = useNavigate();
@@ -169,8 +169,9 @@ export default function EntrepreneurChantierDetail() {
   const journey = useMemo(() => {
     const submission = chantier?.submissions[0];
     if (!submission) return null;
-    return deriveJourneyStage(submission, transports[0] ?? null);
-  }, [chantier, transports]);
+    const linkedTrips = trips.filter((trip) => trip.submission_id === submission.id && !trip.voided_at);
+    return deriveJourneyStage(submission, transports[0] ?? null, linkedTrips);
+  }, [chantier, transports, trips]);
 
   const tabs = [
     { id: "apercu", label: "Aperçu" },
