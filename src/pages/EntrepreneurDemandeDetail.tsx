@@ -12,7 +12,6 @@ import { findChantierForSubmission, findChantierForTransport } from "@/lib/parco
 import SubmissionProvenance from "@/components/entrepreneur-app/SubmissionProvenance";
 import { possibleDuplicates } from "@/lib/parcours/sens-besoin";
 import AddToCrmButton from "@/components/entcrm/AddToCrmButton";
-import ServiceOffers from "@/components/ops/ServiceOffers";
 import TransportLifecyclePanel from "@/components/entrepreneur-app/TransportLifecyclePanel";
 
 const DetailLine = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
@@ -104,13 +103,9 @@ export default function EntrepreneurDemandeDetail() {
                   <LinkedTransportCard submissionId={request.submission.id} />
                   <section>
                     <SectionHeader title="Voyages et services" />
-                    <div>
-                      <div className="mb-3 flex flex-wrap gap-2">
-                        <Button asChild size="sm"><Link to={`/compteur/${request.submission.id}`}>Compter les voyages reçus</Link></Button>
-                        <Button asChild size="sm" variant="outline"><Link to={`/compteur/${request.submission.id}?cote=livre`}>Compter les voyages livrés</Link></Button>
-                        <Button asChild size="sm" variant="outline"><Link to="/chauffeur/mission">Mission chauffeur</Link></Button>
-                      </div>
-                      <ServiceOffers submissionId={request.submission.id} />
+                    <div className="divide-y divide-border">
+                      <div className="py-2"><p className="font-display text-sm font-semibold">Voyage</p><p className="font-body text-xs text-muted-foreground">Aucun voyage lié.</p></div>
+                      <div className="py-2"><p className="font-display text-sm font-semibold">Service</p><p className="font-body text-xs text-muted-foreground">Aucun service lié.</p></div>
                     </div>
                   </section>
                 </>
