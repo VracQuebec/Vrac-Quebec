@@ -84,7 +84,7 @@ describe("dossiers entrepreneur", () => {
     const [request] = buildEntrepreneurRequests([
       submission({ selectedSiteId: "site-1", selectedSiteLabel: "Dompe 8", siteValidatedAt: null }),
     ], []);
-    expect(request.statusLabel).toBe("Dompe en attente");
+    expect(request.statusLabel).toBe("Site choisi — validation en attente");
     expect(request.submission?.selectedSiteAddress).toBeNull();
   });
 
