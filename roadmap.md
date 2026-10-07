@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Phase 4 UX : hiérarchie accueil, menus existants compacts, identité réelle, parcours chantier et distinction décompte/coupons/services; vérifier agenda et profil public sans nouveau système. Tests 393/320/1440, routes et sécurité en lecture seule; aucune donnée, migration, auth, carte, flotte ni publication.
+
 - [x] Phase 3E : règle des voyages verrouillée dans src/lib/ops/AGENTS.md (VOY-01 à 01E) et pointée depuis AGENTS.md racine — cpn_trips = preuve terrain/décompte reçu-livré, trips = exécution opérationnelle; jamais fusion, jamais addition des deux, jamais de statut d'exécution déduit d'une ligne cpn_trips. Vérification en lecture seule : aucune somme reçu+livré, espace entrepreneur lit seulement cpn_trips, trips lu seulement dans le centre des opérations admin. Aucune table, migration, donnée, RLS, permission, fonction, route, design ni publication.
 
 - [x] Phase 3B : statuts réels, sens ambigu et sept étapes alignés sur les relations explicites; voyages autorisés lus par demande via le fournisseur commun sans les interpréter comme « en cours ». Cas A–J, 320/393/1440 et absence d'écriture métier validés; aucune migration, sécurité ou publication.
