@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Images, StickyNote, Loader2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { documentLink, type FleetDocument } from "@/lib/fleet/api";
+import { getActiveCompanyId } from "@/lib/fleet/tenant";
+import { addFile as addCaptureFile } from "@/lib/finances/captures";
 
 export const PHOTO_FOLDERS = [
   { key: "camion", label: "Photos du camion" },
@@ -48,6 +50,29 @@ export function VehiclePhotosButton({ vehicleId }: { vehicleId: string }) {
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<string>("tous");
   const [edit, setEdit] = useState<Doc | null>(null);
+  const [sending, setSending] = useState(false);
+
+  // Envoi en comptabilité : la photo devient une pièce « à traiter » dans Finances
+  // (parcours existant fin_cap_*). L'utilisateur choisit ensuite lui-même :
+  // facture fournisseur (fournisseur existant ou nouveau) ou note de frais.
+  const sendToAccounting = async (d: Doc) => {
+    const company = getActiveCompanyId();
+    if (!company) return toast({ title: "Entreprise introuvable", description: "Choisissez d'abord l'entreprise active.", variant: "destructive" });
+    setSending(true);
+    try {
+      const res = await fetch(await documentLink(d));
+      if (!res.ok) throw new Error("Photo illisible");
+      const blob = await res.blob();
+      const ext = (d.url.split("?")[0].split(".").pop() ?? "jpg").toLowerCase();
+      const name = `${(d.title ?? "piece").replace(/[^\w\- ]+/g, "").trim() || "piece"}.${ext}`;
+      const cap = await addCaptureFile(company, new File([blob], name, { type: blob.type || d.mime_type || "image/jpeg" }));
+      const cur = effFolders(d);
+      if (!cur.includes("facture")) await saveFolders(d, [...cur, "facture"]);
+      toast({ title: cap.replay ? "Déjà envoyée en comptabilité" : "Envoyée en comptabilité", description: "Ouvrez Finances › Fournisseurs et achats › Pièces pour choisir comment l'attribuer." });
+    } catch (e) {
+      toast({ title: "Envoi impossible", description: (e as Error).message, variant: "destructive" });
+    } finally { setSending(false); }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -122,7 +147,15 @@ export function VehiclePhotosButton({ vehicleId }: { vehicleId: string }) {
           {edit && (
             <div className="space-y-3">
               {isImage(edit) && urls[edit.id] && <img src={urls[edit.id]} alt="" className="w-full max-h-72 object-contain rounded-md bg-muted" />}
-              <Button size="sm" variant="ghost" onClick={async () => window.open(await documentLink(edit), "_blank")}>Ouvrir en grand</Button>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="ghost" onClick={async () => window.open(await documentLink(edit), "_blank")}>Ouvrir en grand</Button>
+                <Button size="sm" disabled={sending} onClick={() => sendToAccounting(edit)}>
+                  {sending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}Envoyer en comptabilité
+                </Button>
+                <Button size="sm" variant="outline" asChild>
+                  <a href={`/entrepreneur/finances?tab=achats${getActiveCompanyId() ? `&company=${getActiveCompanyId()}` : ""}`}>Ouvrir les pièces à attribuer</a>
+                </Button>
+              </div>
               <div className="flex flex-wrap gap-1.5">
                 {PHOTO_FOLDERS.map((f) => {
                   const cur = effFolders(edit);
