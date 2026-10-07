@@ -1436,6 +1436,13 @@
       "when": 1791406078288,
       "tag": "0204_shared_catalog_fixes",
       "breakpoints": true
+    },
+    {
+      "idx": 205,
+      "version": "7",
+      "when": 1791406173656,
+      "tag": "0205_shared_catalog_notif_status",
+      "breakpoints": true
     }
   ]
 }
