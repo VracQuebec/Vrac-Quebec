@@ -105,9 +105,8 @@ export const deriveJourneyStage = (
     return { key: "closed", label: "Terminé", detail: state.closed ? state.label : "Transport terminé" };
   }
 
-  const hasRecordedTrip = trips.some((trip) => !trip.voided_at);
-  if (hasRecordedTrip || state.key === "en_cours" || (linked && (ts.lifecycle === "en_cours" || ts.status === "en_cours"))) {
-    return { key: "execution", label: "En cours", detail: hasRecordedTrip ? "Voyage enregistré" : "Transport en cours" };
+  if (state.key === "en_cours" || (linked && (ts.lifecycle === "en_cours" || ts.status === "en_cours"))) {
+    return { key: "execution", label: "En cours", detail: "Transport en cours" };
   }
   if (state.confirmed || (linked && (["confirmee", "prete_transport"].includes(ts.lifecycle) || ["acceptee", "planifiee"].includes(ts.status)))) {
     return {

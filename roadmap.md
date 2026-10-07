@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Phase 3B : aligner les statuts, le sens et les sept étapes du parcours sur les relations existantes; lire les voyages autorisés via le fournisseur commun, valider 320/393/1440 et confirmer l’absence d’écriture, migration, sécurité ou publication.
+- [x] Phase 3B : statuts réels, sens ambigu et sept étapes alignés sur les relations explicites; voyages autorisés lus par demande via le fournisseur commun sans les interpréter comme « en cours ». Cas A–J, 320/393/1440 et absence d'écriture métier validés; aucune migration, sécurité ou publication.
 
 - [x] Phase 3A : libellés de besoin, états réels et étapes demande → solution → transport → exécution corrigés sans migration; lecture transport dupliquée retirée sur la fiche. 1 832 tests réussis, types/build OK, 393×852, 320×667 et 1440×1000 vérifiés sans débordement ni écriture métier; aucune publication.
 

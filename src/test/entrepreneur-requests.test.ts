@@ -78,7 +78,7 @@ describe("dossiers entrepreneur", () => {
     expect(deriveJourneyStage(submission(), { status: "nouvelle", lifecycle_status: "a_valider" })).toMatchObject({ key: "transport", label: "Transport à organiser" });
     expect(deriveJourneyStage(submission({ status: "soumission acceptée" }))).toMatchObject({ key: "confirmed", label: "Confirmé" });
     expect(deriveJourneyStage(submission(), { status: "en_cours" })).toMatchObject({ key: "execution", label: "En cours" });
-    expect(deriveJourneyStage(submission(), null, [{ submission_id: "sub-1", voided_at: null }])).toMatchObject({ key: "execution", detail: "Voyage enregistré" });
+    expect(deriveJourneyStage(submission(), null, [{ submission_id: "sub-1", voided_at: null }])).toMatchObject({ key: "request", label: "Besoin identifié" });
     expect(deriveJourneyStage(submission({ status: "archivé" }))).toMatchObject({ key: "closed", label: "Terminé", detail: "Archivée" });
     expect(deriveJourneyStage(submission({ status: "perdu" }))).toMatchObject({ key: "closed", label: "Terminé", detail: "Perdue" });
     expect(deriveJourneyStage(submission(), null, [{ submission_id: "sub-1", voided_at: "2026-10-03T00:00:00Z" }]).key).toBe("request");

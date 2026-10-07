@@ -63,7 +63,7 @@ export function EntrepreneurDataProvider({ children }: { children: ReactNode }) 
     (async () => {
       setLoading(true);
       setError(null);
-      const [subs, reqs, tripRows] = await Promise.all([
+      const [subs, reqs] = await Promise.all([
         loadMySubmissions(),
         supabase
           .from("transport_requests")
@@ -72,17 +72,25 @@ export function EntrepreneurDataProvider({ children }: { children: ReactNode }) 
           )
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
-        supabase
-          .from("cpn_trips")
-          .select("id, submission_id, voided_at, created_at")
-          .order("created_at", { ascending: false }),
       ]);
       if (!active) return;
       if (subs.state === "error") setError(subs.message);
       if (subs.state === "ok") setSubmissions(subs.submissions);
       setAccessRequests((reqs.data as AccessRequestRow[] | null) ?? []);
-      setTrips((tripRows.data as TripRow[] | null) ?? []);
-      setTripsAvailable(!tripRows.error);
+      const submissionIds = subs.state === "ok" ? subs.submissions.map((submission) => submission.id) : [];
+      if (submissionIds.length === 0) {
+        setTrips([]);
+        setTripsAvailable(subs.state === "ok");
+      } else {
+        const tripRows = await supabase
+          .from("cpn_trips")
+          .select("id, submission_id, voided_at, created_at")
+          .in("submission_id", submissionIds)
+          .order("created_at", { ascending: false });
+        if (!active) return;
+        setTrips((tripRows.data as TripRow[] | null) ?? []);
+        setTripsAvailable(!tripRows.error);
+      }
       setLoading(false);
     })();
     return () => {
