@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { RpcClient } from "@/lib/parcours/validation";
 import { isApproximateLocation } from "@/lib/parcours/sens-besoin";
 import { loadMySubmissions, type MySubmission, type MySubmissionsResult } from "@/lib/parcours/mes-demandes";
+import { submissionDisplayState } from "@/lib/parcours/submission-display";
 
 export interface Chantier {
   /** Clé de navigation locale ; la propriété réelle reste vérifiée en base. */
@@ -73,24 +74,21 @@ export const buildChantiers = (submissions: MySubmission[]): Chantier[] =>
     })
     .sort((a, b) => (b.lastActivity ?? "").localeCompare(a.lastActivity ?? ""));
 
-const CLOSED_STATUSES = new Set(["terminee", "annulee", "refusee"]);
-const ACTIVE_STATUSES = new Set(["acceptee", "planifiee", "en_cours"]);
-
 /** Résumé d'affichage dérivé uniquement des demandes déjà autorisées. */
 export const summarizeChantier = (chantier: Chantier): ChantierSummary => {
   const latest = [...chantier.submissions].sort((a, b) =>
     (b.createdAt ?? "").localeCompare(a.createdAt ?? ""),
   )[0] ?? null;
-  const statuses = chantier.submissions.map((submission) => submission.status ?? "");
-  const allClosed = statuses.length > 0 && statuses.every((status) => CLOSED_STATUSES.has(status));
-  const hasActive = statuses.some((status) => ACTIVE_STATUSES.has(status));
+  const states = chantier.submissions.map((submission) => submissionDisplayState(submission.status));
+  const allClosed = states.length > 0 && states.every((state) => state.closed);
+  const representative = states.find((state) => state.active && state.confirmed) ?? states.find((state) => state.active) ?? states[0];
   return {
     material: latest?.material ?? chantier.materials[0] ?? null,
     quantity: latest?.quantity ?? null,
     createdAt: latest?.createdAt ?? null,
     lastActivity: chantier.lastActivity,
-    statusLabel: allClosed ? "Terminé" : hasActive ? "En cours" : "En traitement",
-    tone: allClosed ? "done" : hasActive ? "active" : "pending",
+    statusLabel: representative?.label ?? "État à confirmer",
+    tone: representative?.tone ?? "neutral",
     active: !allClosed,
   };
 };

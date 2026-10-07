@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Phase 3A : libellés de besoin, états réels et étapes demande → solution → transport → exécution corrigés sans migration; lecture transport dupliquée retirée sur la fiche. 1 832 tests réussis, types/build OK, 393×852, 320×667 et 1440×1000 vérifiés sans débordement ni écriture métier; aucune publication.
+
 - [x] Phase 4 : profil professionnel entreprise — compte/entreprise séparés, fiche privée consolidée, profil public existant clarifié et flotte privée résumée sans exposition publique. 121 tests réussis; formats 320×667, 393×852 et 1440×1000 sans débordement; build OK. Aucune table, migration, donnée, RLS, permission ni publication.
 
 - [x] Phase 3 : centre de suivi des demandes — liste hiérarchisée, filtre Confirmées fondé sur les états existants, fiche mobile avec informations, suivi dérivé, liens et actions existants; aucune nouvelle donnée ni relation.

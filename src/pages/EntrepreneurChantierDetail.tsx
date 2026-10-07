@@ -31,30 +31,15 @@ import {
 import { buildHandoff, saveHandoff } from "@/lib/parcours/handoff";
 import SubmissionProvenance, { transportKindLabel } from "@/components/entrepreneur-app/SubmissionProvenance";
 import { needDirection, needsDumpSearch, possibleDuplicates } from "@/lib/parcours/sens-besoin";
+import { deriveJourneyStage, submissionDisplayState, submissionNeedLabel } from "@/lib/parcours/submission-display";
 import { Plus, Map as MapIcon, Truck, Scale, MapPin, CalendarDays, Package } from "lucide-react";
 
 const toneFor = (status: string | null): "pending" | "active" | "done" | "refused" | "neutral" => {
-  if (!status) return "neutral";
-  if (["acceptee", "planifiee", "en_cours"].includes(status)) return "active";
-  if (["terminee", "complete"].includes(status)) return "done";
-  if (["refusee", "annulee"].includes(status)) return "refused";
-  return "pending";
+  return submissionDisplayState(status).tone;
 };
 
 const labelFor = (status: string | null): string => {
-  const map: Record<string, string> = {
-    nouvelle: "Nouvelle",
-    en_analyse: "En analyse",
-    soumission_envoyee: "Soumission envoyée",
-    en_attente_proprietaire: "En attente",
-    acceptee: "Acceptée",
-    planifiee: "Planifiée",
-    en_cours: "En cours",
-    terminee: "Terminée",
-    refusee: "Refusée",
-    annulee: "Annulée",
-  };
-  return (status && map[status]) || "À confirmer";
+  return submissionDisplayState(status).label;
 };
 
 const dt = (iso: string | null | undefined) =>
@@ -105,12 +90,9 @@ export default function EntrepreneurChantierDetail() {
   // Statut global du chantier : dérivé des demandes réelles, jamais inventé.
   const globalStatus = useMemo(() => {
     if (!chantier) return { label: "—", tone: "neutral" as const };
-    const st = chantier.submissions.map((s) => s.status ?? "");
-    if (st.some((s) => ["acceptee", "planifiee", "en_cours"].includes(s)))
-      return { label: "En cours", tone: "active" as const };
-    if (st.length && st.every((s) => ["terminee", "annulee", "refusee"].includes(s)))
-      return { label: "Terminé", tone: "done" as const };
-    return { label: "En traitement", tone: "pending" as const };
+    const states = chantier.submissions.map((s) => submissionDisplayState(s.status));
+    const state = states.find((item) => item.active && item.confirmed) ?? states.find((item) => item.active) ?? states[0];
+    return { label: state?.label ?? "État à confirmer", tone: state?.tone ?? "neutral" as const };
   }, [chantier]);
 
   // Seul le lien explicite (demande d'origine) associe un transport : jamais la ville ni l'adresse.
@@ -175,11 +157,20 @@ export default function EntrepreneurChantierDetail() {
     if (!chantier) return null;
     const waiting = chantier.submissions.find((s) => s.selectedSiteId && !s.siteValidatedAt);
     if (waiting) return "Un site attend votre validation.";
-    if (!dumpSearch) return chantier.submissions.some((s) => needDirection(s) === "a_preciser") ? "Préciser le besoin : recevoir, évacuer ou acheter." : "Suivre la demande.";
+    if (!dumpSearch) {
+      const unknown = chantier.submissions.find((s) => needDirection(s) === "a_preciser");
+      return unknown ? submissionNeedLabel(unknown, false, "") : "Suivre la demande.";
+    }
     if (sites.length === 0) return "Choisissez une dompe pour ces matériaux à évacuer.";
     if (transports.length === 0) return "Envoyez une demande d'accès à la dompe choisie.";
     return "Suivez vos transports en cours.";
   }, [chantier, sites.length, transports.length, dumpSearch]);
+
+  const journey = useMemo(() => {
+    const submission = chantier?.submissions[0];
+    if (!submission) return null;
+    return deriveJourneyStage(submission, transports[0] ?? null);
+  }, [chantier, transports]);
 
   const tabs = [
     { id: "apercu", label: "Aperçu" },
@@ -296,6 +287,7 @@ export default function EntrepreneurChantierDetail() {
             Prochaine étape : {nextStep}
           </p>
         )}
+        {journey && <p className="mt-2 font-body text-xs text-muted-foreground">Parcours · {journey.label} — {journey.detail}</p>}
       </AppCard>
 
       <dl className="grid grid-cols-2 gap-x-4 border-y border-border py-1 sm:grid-cols-4">

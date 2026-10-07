@@ -14,7 +14,7 @@ const FILTERS: { key: RequestFilter; label: string }[] = [
   { key: "pending", label: "En attente" },
   { key: "confirmed", label: "Confirmées" },
   { key: "done", label: "Terminées" },
-  { key: "cancelled", label: "Annulées" },
+  { key: "cancelled", label: "Fermées" },
 ];
 
 export default function EntrepreneurDemandes() {

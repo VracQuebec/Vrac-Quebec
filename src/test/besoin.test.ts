@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { needDirection, needsDumpSearch, isApproximateLocation, originDateNote, possibleDuplicates, parseCoordinates, reliableCoords, visibilityLabel } from "@/lib/parcours/sens-besoin";
+import { NEED_LABELS, needDirection, needsDumpSearch, isApproximateLocation, originDateNote, possibleDuplicates, parseCoordinates, reliableCoords, visibilityLabel } from "@/lib/parcours/sens-besoin";
+import { submissionNeedLabel } from "@/lib/parcours/submission-display";
 import { mapMySubmission, type MySubmission } from "@/lib/parcours/mes-demandes";
 
 const S = (id: string, extra: Partial<MySubmission> = {}, row: Record<string, unknown> = {}): MySubmission => ({
@@ -16,6 +17,10 @@ describe("sens du besoin", () => {
     const d = needDirection(S("c"));
     expect(d).toBe("a_preciser");
     expect(needsDumpSearch(d)).toBe(false);
+    expect(submissionNeedLabel(S("c", { material: "Terre", quantity: "30 tonnes" }), false, NEED_LABELS[d])).toBe("Sens à confirmer");
+  });
+  it("réserve Informations à compléter aux renseignements réellement absents", () => {
+    expect(submissionNeedLabel(S("vide", { material: null, quantity: null }), false, "")).toBe("Informations à compléter");
   });
   it("informations contradictoires : à préciser", () => {
     expect(needDirection(S("d", { parcoursDirection: "evacuation", deliverOrRemove: "À livrer" }))).toBe("a_preciser");

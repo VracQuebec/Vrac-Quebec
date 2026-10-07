@@ -25,7 +25,7 @@ export default function EntrepreneurDashboard() {
   const requests = buildEntrepreneurRequests(submissions, accessRequests, chantiers);
   const company = profile?.company || profile?.contact_name || profile?.name;
   const recentChantiers = [...chantiers].sort((a, b) => (b.lastActivity ?? "").localeCompare(a.lastActivity ?? "")).slice(0, 4);
-  const attention = requests.filter((request) => request.filter !== "done" && request.filter !== "cancelled" && request.nextAction === "Préciser le besoin (recevoir, évacuer ou acheter)").slice(0, 3);
+  const attention = requests.filter((request) => request.filter !== "done" && request.filter !== "cancelled" && (request.nextAction === "Sens à confirmer" || request.nextAction === "Informations à compléter")).slice(0, 3);
 
   const activeSites = chantiers.filter(c => summarizeChantier(c).active).length;
   const openRequests = requests.filter(r => r.filter === "active" || r.filter === "pending").length;
@@ -86,7 +86,7 @@ export default function EntrepreneurDashboard() {
         <div className="px-5 sm:px-8">
         {!loading && !error && <section className="mt-3" aria-label="À faire">
           {attention.length === 0 ? <p className="flex items-center gap-2 py-1.5 font-body text-xs font-medium text-muted-foreground"><Check className="h-4 w-4 text-primary" aria-hidden />Tout est à jour</p> :
-          <><h2 className="mb-2 font-display text-sm font-extrabold uppercase">À faire</h2><div className="divide-y divide-border/25">{attention.map(request => <Link key={request.id} to={`/entrepreneur/demandes/${request.id}`} aria-label={`${request.title} · ${request.place} · ${request.nextAction}`} className="flex min-h-14 items-center gap-3 py-2 transition-colors duration-150 active:bg-secondary motion-reduce:transition-none"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden /><div className="min-w-0 flex-1"><p className="break-words font-display text-xs font-bold">Préciser le besoin · {request.title}</p><p className="mt-0.5 break-words font-body text-[11px] text-muted-foreground">{request.place}</p></div><ChevronRight className="h-4 w-4 shrink-0 text-foreground" strokeWidth={2} /></Link>)}</div></>}
+          <><h2 className="mb-2 font-display text-sm font-extrabold uppercase">À faire</h2><div className="divide-y divide-border/25">{attention.map(request => <Link key={request.id} to={`/entrepreneur/demandes/${request.id}`} aria-label={`${request.title} · ${request.place} · ${request.nextAction}`} className="flex min-h-14 items-center gap-3 py-2 transition-colors duration-150 active:bg-secondary motion-reduce:transition-none"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden /><div className="min-w-0 flex-1"><p className="break-words font-display text-xs font-bold">{request.nextAction} · {request.title}</p><p className="mt-0.5 break-words font-body text-[11px] text-muted-foreground">{request.place}</p></div><ChevronRight className="h-4 w-4 shrink-0 text-foreground" strokeWidth={2} /></Link>)}</div></>}
         </section>}
 
         <section className="mt-3">

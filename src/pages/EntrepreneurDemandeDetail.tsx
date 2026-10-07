@@ -13,6 +13,8 @@ import SubmissionProvenance from "@/components/entrepreneur-app/SubmissionProven
 import { possibleDuplicates } from "@/lib/parcours/sens-besoin";
 import AddToCrmButton from "@/components/entcrm/AddToCrmButton";
 import TransportLifecyclePanel from "@/components/entrepreneur-app/TransportLifecyclePanel";
+import { deriveJourneyStage } from "@/lib/parcours/submission-display";
+import { mapLinkedTransport } from "@/lib/parcours/validation";
 
 const DetailLine = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
   <div className="flex gap-3 border-b border-border py-3 last:border-0">
@@ -36,7 +38,8 @@ export default function EntrepreneurDemandeDetail() {
   const linkedTransport = request?.submission
     ? accessRequests.find((item) => String(item.origin_submission_id ?? "") === request.submission?.id)
     : null;
-  const tracking = request ? buildRequestTracking(request, Boolean(linkedTransport)) : [];
+  const tracking = request ? buildRequestTracking(request, linkedTransport) : [];
+  const journey = request?.submission ? deriveJourneyStage(request.submission, linkedTransport) : null;
 
   return (
     <EntrepreneurAppShell
@@ -60,7 +63,7 @@ export default function EntrepreneurDemandeDetail() {
                   </div>
                 </div>
                 {request.submission && <div className="mt-3"><SubmissionProvenance s={request.submission} duplicates={possibleDuplicates(submissions).get(request.submission.id) ?? []} /></div>}
-                <p className="mt-4 font-display text-sm font-semibold text-primary">Prochaine étape · {request.nextAction}</p>
+                <p className="mt-4 font-display text-sm font-semibold text-primary">{journey ? `${journey.label} · ${journey.detail}` : `Prochaine étape · ${request.nextAction}`}</p>
               </section>
 
               <section>
@@ -100,11 +103,11 @@ export default function EntrepreneurDemandeDetail() {
                     <SectionHeader title="Dompe" />
                     <DompesDemandeList submissionId={request.submission.id} showEmpty />
                   </section>
-                  <LinkedTransportCard submissionId={request.submission.id} />
+                  <LinkedTransportCard submissionId={request.submission.id} existingRequest={linkedTransport ? mapLinkedTransport(linkedTransport) : null} />
                   <section>
                     <SectionHeader title="Voyages et services" />
                     <div className="divide-y divide-border">
-                      <div className="py-2"><p className="font-display text-sm font-semibold">Voyage</p><p className="font-body text-xs text-muted-foreground">Aucun voyage lié.</p></div>
+                      <div className="py-2"><p className="font-display text-sm font-semibold">Voyage</p><p className="font-body text-xs text-muted-foreground">Information de voyage non disponible dans ce suivi.</p></div>
                       <div className="py-2"><p className="font-display text-sm font-semibold">Service</p><p className="font-body text-xs text-muted-foreground">Aucun service lié.</p></div>
                     </div>
                   </section>
