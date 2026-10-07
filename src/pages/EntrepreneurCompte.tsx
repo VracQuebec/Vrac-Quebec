@@ -6,7 +6,7 @@
 // ============================================================
 import { useCallback, useEffect, useState } from "react";
 import { markVoluntarySignOut } from "@/lib/navigation/returnTo";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import EntrepreneurAppShell from "@/components/entrepreneur-app/EntrepreneurAppShell";
 import CompanyProfileDetails from "@/components/entrepreneur-app/CompanyProfileDetails";
@@ -37,6 +37,7 @@ const EntrepreneurCompte = () => {
   const { user, isReady } = useAuthReady();
   const { roles, loading: rolesLoading } = useUserRoles(user, isReady);
   const navigate = useNavigate();
+  const { hash } = useLocation();
   const { toast } = useToast();
   const [profil, setProfil] = useState<ProfilReseau | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +57,11 @@ const EntrepreneurCompte = () => {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    if (loading || failed || !hash) return;
+    document.getElementById(hash.slice(1))?.scrollIntoView({ block: "start" });
+  }, [hash, loading, failed]);
 
   const openSheet = (key: Exclude<SheetKey, null>) => {
     if (!profil) return;

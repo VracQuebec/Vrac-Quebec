@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Phase 4 UX : Plus compact avec tous les groupes visibles, ancres compte/préférences après chargement, compteur À faire non plafonné, décompte voyages clairement nommé; accueil et parcours conservés. 1 844 tests réussis, 13 ignorés; 24 pages/formats et trois fiches vérifiés en 393/320/1440 sans débordement/écriture, build OK. Agenda lié aux projets CRM seulement : aucun lien chantier inventé. Sécurité structurelle relue, A/B complet non revalidé. Rapport docs/audit/phase4-optimisation-ux-entrepreneur.md. Aucune donnée, migration, auth, carte, flotte ni publication.
+
 - [x] Phase 3E : règle des voyages verrouillée dans src/lib/ops/AGENTS.md (VOY-01 à 01E) et pointée depuis AGENTS.md racine — cpn_trips = preuve terrain/décompte reçu-livré, trips = exécution opérationnelle; jamais fusion, jamais addition des deux, jamais de statut d'exécution déduit d'une ligne cpn_trips. Vérification en lecture seule : aucune somme reçu+livré, espace entrepreneur lit seulement cpn_trips, trips lu seulement dans le centre des opérations admin. Aucune table, migration, donnée, RLS, permission, fonction, route, design ni publication.
 
 - [x] Phase 3B : statuts réels, sens ambigu et sept étapes alignés sur les relations explicites; voyages autorisés lus par demande via le fournisseur commun sans les interpréter comme « en cours ». Cas A–J, 320/393/1440 et absence d'écriture métier validés; aucune migration, sécurité ou publication.

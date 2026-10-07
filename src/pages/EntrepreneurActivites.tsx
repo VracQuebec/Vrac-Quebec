@@ -65,7 +65,7 @@ export default function EntrepreneurActivites() {
         </TabsContent>
         <TabsContent value="voyages" className="mt-6 space-y-6">
         <section className="space-y-3">
-          <h3 className="flex items-center gap-2 font-display font-bold"><Truck className="h-5 w-5 text-primary" /> Voyages par chantier</h3>
+          <h3 className="flex items-center gap-2 font-display font-bold"><Truck className="h-5 w-5 shrink-0 text-primary" /> Décompte des voyages par demande</h3>
           <div className="grid gap-2 sm:grid-cols-2">
             {submissions.map((sub) => (
               <div key={sub.id} className="space-y-2 border-b border-border py-3 text-sm">
@@ -73,7 +73,7 @@ export default function EntrepreneurActivites() {
                 <p className="text-muted-foreground">{sub.material || "Matériau à confirmer"}</p>
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm" variant="outline"><Link to={`/compteur/${sub.id}?cote=livre`}>Voyages livrés</Link></Button>
-                  <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/demandes/s-${sub.id}`}>Services du chantier</Link></Button>
+                  <Button asChild size="sm" variant="outline"><Link to={`/entrepreneur/demandes/s-${sub.id}`}>Voir la demande</Link></Button>
                 </div>
               </div>
             ))}
