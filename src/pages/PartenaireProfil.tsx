@@ -5,6 +5,7 @@
 // cumuler plusieurs rôles, services, territoires et clientèles.
 // L'isolation des données est appliquée par la base (RLS).
 // ============================================================
+import TerritoryPicker from "@/components/marketplace/TerritoryPicker";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
@@ -468,30 +469,20 @@ export default function PartenaireProfil() {
               <Card>
                 <CardHeader><CardTitle className="text-base">Territoires desservis</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
-                  {territories.length === 0 && <p className="text-sm text-muted-foreground">Aucun territoire ajouté.</p>}
-                  {territories.map((t) => (
-                    <div key={s(t.id)} className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-5">
-                      <select
-                        className="h-10 rounded-lg border border-border bg-background px-2 text-sm"
-                        value={s(t.scope) || "ville"}
-                        onChange={(e) => void upsertChild(partnerTerritories, { ...t, scope: e.target.value }, refreshTerritories)}
-                      >
-                        <option value="ville">Ville</option>
-                        <option value="region">Région</option>
-                        <option value="rayon">Rayon</option>
-                        <option value="province">Province</option>
-                      </select>
-                      <Input placeholder="Ville" defaultValue={s(t.city)} onBlur={(e) => void upsertChild(partnerTerritories, { ...t, city: e.target.value }, refreshTerritories)} />
-                      <Input placeholder="Région" defaultValue={s(t.region)} onBlur={(e) => void upsertChild(partnerTerritories, { ...t, region: e.target.value }, refreshTerritories)} />
-                      <Input placeholder="Rayon (km)" inputMode="numeric" defaultValue={s(t.radius_km)} onBlur={(e) => void upsertChild(partnerTerritories, { ...t, radius_km: num(e.target.value) }, refreshTerritories)} />
-                      <Button variant="ghost" size="sm" onClick={() => void removeChild(partnerTerritories, s(t.id), refreshTerritories)}>
-                        <Trash2 className="h-4 w-4" /> Retirer
-                      </Button>
-                    </div>
-                  ))}
-                  <Button variant="outline" onClick={() => void upsertChild(partnerTerritories, { scope: "ville" }, refreshTerritories)}>
-                    <Plus className="mr-2 h-4 w-4" /> Ajouter un territoire
-                  </Button>
+                  <TerritoryPicker
+                    territories={territories}
+                    onAdd={async (t) => {
+                      if (!companyId) return;
+                      try {
+                        await partnerTerritories.save({ company_id: companyId, territory_id: t.id, scope: "ville", city: t.name, region: t.region, is_active: true });
+                        await refreshTerritories();
+                      } catch (e) {
+                        const dup = /duplicate|unique/i.test((e as Error).message);
+                        toast({ title: dup ? "Territoire déjà sélectionné" : "Enregistrement impossible", description: dup ? undefined : (e as Error).message, variant: "destructive" });
+                      }
+                    }}
+                    onRemove={(id) => removeChild(partnerTerritories, id, refreshTerritories)}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
