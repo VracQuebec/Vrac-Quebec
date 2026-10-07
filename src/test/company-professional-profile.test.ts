@@ -26,3 +26,11 @@ describe("Profil professionnel entreprise", () => {
     expect(isProfessionalCompanyName("Excavation ABC")) .toBe(true);
   });
 });
+describe("Éléments à compléter", () => {
+  it("liste seulement les éléments réellement absents", async () => {
+    const { missingProfileItems } = await import("@/components/entrepreneur-app/CompanyProfileDetails");
+    expect(missingProfileItems(null, 0, 0)).toEqual(["Logo", "Description", "Services", "Territoires"]);
+    expect(missingProfileItems({ logo_url: "https://x/logo.png", description: "Texte" }, 2, 1)).toEqual([]);
+    expect(missingProfileItems({ logo_url: null, description: "Texte" }, 1, 0)).toEqual(["Logo", "Territoires"]);
+  });
+});
