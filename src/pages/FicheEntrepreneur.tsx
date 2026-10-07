@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, Building2, Camera, Loader2, MapPin, ShieldCheck, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Camera, Loader2, MapPin, ShieldCheck, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -122,34 +122,30 @@ export default function FicheEntrepreneur() {
         <Link to="/trouver-un-entrepreneur"><ArrowLeft className="mr-1 h-4 w-4" /> Annuaire des entreprises</Link>
       </Button>
 
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-secondary">
+      <header className="border-b border-border pb-7">
+        <div className="flex items-start gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary">
             {partner.logo_url ? <img src={partner.logo_url} alt={`Logo de ${partner.name}`} className="h-full w-full object-contain" /> : <Building2 className="h-7 w-7 text-muted-foreground" aria-hidden />}
           </div>
-          <h1 className="flex flex-wrap items-center gap-2 break-words font-display text-3xl font-bold">
-            {partner.name}
-            {partner.is_verified && <ShieldCheck className="h-6 w-6 text-primary" aria-label="Entreprise vérifiée" />}
-          </h1>
-          <p className="mt-1 flex items-center gap-1 text-muted-foreground">
-            <MapPin className="h-4 w-4 shrink-0" /> {[partner.city, partner.region].filter(Boolean).join(", ") || "À compléter"}
-            {partner.founded_year ? ` · En affaires depuis ${partner.founded_year}` : ""}
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            {partner.reviews_count > 0 && partner.reviews_avg != null && (
-              <span className="flex items-center gap-1.5 text-sm">
-                <Stars value={partner.reviews_avg} />
-                <strong>{Number(partner.reviews_avg).toFixed(1)}</strong>
-                <span className="text-muted-foreground">({partner.reviews_count} avis)</span>
-              </span>
-            )}
-            {partner.public_score != null && (
-              <Badge variant="secondary">Score qualité {Math.round(partner.public_score)} / 100</Badge>
-            )}
-            {partner.availability_status === "disponible" && <Badge>Disponible</Badge>}
+          <div className="min-w-0 flex-1">
+            <h1 className="flex flex-wrap items-center gap-2 break-words font-display text-3xl font-bold">
+              {partner.name}
+              {partner.is_verified && <ShieldCheck className="h-6 w-6 text-primary" aria-label="Entreprise vérifiée" />}
+            </h1>
+            <p className="mt-1 flex items-start gap-1 text-muted-foreground">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0" /> {[partner.city, partner.region].filter(Boolean).join(", ") || "Localisation à compléter"}
+              {partner.founded_year ? ` · En affaires depuis ${partner.founded_year}` : ""}
+            </p>
           </div>
         </div>
-        <Button asChild size="lg"><Link to="/obtenir-des-soumissions">Demander une soumission</Link></Button>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <Button asChild><Link to="/obtenir-des-soumissions">Demander une soumission <ArrowRight className="h-4 w-4" /></Link></Button>
+          {partner.reviews_count > 0 && partner.reviews_avg != null && (
+            <span className="flex items-center gap-1.5 text-sm"><Stars value={partner.reviews_avg} /><strong>{Number(partner.reviews_avg).toFixed(1)}</strong><span className="text-muted-foreground">({partner.reviews_count} avis)</span></span>
+          )}
+          {partner.public_score != null && <Badge variant="secondary">Score qualité {Math.round(partner.public_score)} / 100</Badge>}
+          {partner.availability_status === "disponible" && <Badge>Disponible</Badge>}
+        </div>
       </header>
 
       {partner.photos.length > 0 && (
@@ -165,28 +161,26 @@ export default function FicheEntrepreneur() {
         </section>
       )}
 
-      {partner.description && (
-        <section className="mt-8">
-          <h2 className="text-xl font-semibold">À propos</h2>
-          <p className="mt-2 whitespace-pre-line text-muted-foreground">{partner.description}</p>
-        </section>
-      )}
+      <section className="mt-8 border-b border-border pb-7">
+        <h2 className="text-xl font-semibold">À propos</h2>
+        <p className="mt-2 whitespace-pre-line text-muted-foreground">{partner.description || "Description à compléter."}</p>
+      </section>
 
-      {partner.services.length > 0 && (
-        <section className="mt-8">
-          <h2 className="text-xl font-semibold">Services offerts</h2>
+      <div className="grid gap-0 sm:grid-cols-2 sm:gap-8">
+        <section className="border-b border-border py-7">
+          <h2 className="text-lg font-semibold">Services</h2>
+          {partner.services.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-2">
             {partner.services.map((s) => <Badge key={s} variant="secondary">{s}</Badge>)}
           </div>
+          ) : <p className="mt-2 text-sm text-muted-foreground">Aucun service configuré.</p>}
         </section>
-      )}
 
-      {partner.territories.length > 0 && (
-        <section className="mt-8">
-          <h2 className="text-xl font-semibold">Secteurs desservis</h2>
-          <p className="mt-2 text-sm text-muted-foreground">{partner.territories.join(" · ")}</p>
+        <section className="border-b border-border py-7">
+          <h2 className="text-lg font-semibold">Territoires desservis</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{partner.territories.length ? partner.territories.join(" · ") : "Territoires à compléter."}</p>
         </section>
-      )}
+      </div>
 
       {partner.is_verified && <section className="mt-8">
         <h2 className="text-xl font-semibold">Vérifications</h2>
@@ -225,9 +219,9 @@ export default function FicheEntrepreneur() {
                   <Label htmlFor="avis-note">Note</Label>
                   <div className="flex items-center gap-1" id="avis-note">
                     {[1, 2, 3, 4, 5].map((i) => (
-                      <button key={i} type="button" onClick={() => setRating(i)} aria-label={`${i} étoile${i > 1 ? "s" : ""}`}>
+                      <Button key={i} variant="ghost" size="icon" type="button" onClick={() => setRating(i)} aria-label={`${i} étoile${i > 1 ? "s" : ""}`}>
                         <Star className={`h-6 w-6 ${i <= rating ? "fill-primary text-primary" : "text-muted-foreground/40"}`} />
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -256,7 +250,7 @@ export default function FicheEntrepreneur() {
         </Card>
       </section>
 
-      <section className="mt-12 rounded-lg border bg-muted/30 p-6 text-center">
+      <section className="mt-12 border-y border-border py-7 text-center">
         <h2 className="text-xl font-semibold">Intéressé par {partner.name} ?</h2>
         <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
           Déposez une seule demande : Vrac Québec la transmet aux entreprises compétentes de votre secteur

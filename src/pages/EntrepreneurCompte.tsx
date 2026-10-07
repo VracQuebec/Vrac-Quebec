@@ -99,7 +99,6 @@ const EntrepreneurCompte = () => {
   const accountName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : typeof user?.user_metadata?.name === "string" ? user.user_metadata.name : null;
   const roleLabels: Record<string, string> = { admin: "Administrateur", entrepreneur: "Entrepreneur", proprietaire: "Propriétaire", transporteur: "Transporteur", user: "Utilisateur" };
   const loc = profil?.publicLocalisation;
-  const initials = (e?.company || e?.contact_name || "?").trim().slice(0, 2).toUpperCase();
   const region = [loc?.city, loc?.region].filter(Boolean).join(" · ");
 
   return (
