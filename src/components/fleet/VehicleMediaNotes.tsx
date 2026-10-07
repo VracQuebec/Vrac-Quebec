@@ -15,7 +15,7 @@ export const PHOTO_FOLDERS = [
   { key: "inspection_mecanique", label: "Inspection mécanique" },
   { key: "entretien", label: "Entretien" },
   { key: "reparation", label: "Réparation" },
-  { key: "depense", label: "Dépense" },
+  { key: "depense", label: "Dépense / facture" },
   { key: "facture", label: "Facture (comptabilité)" },
   { key: "documents", label: "Documents" },
 ] as const;
@@ -26,7 +26,7 @@ const SOURCE_FOLDER: Record<string, string> = {
 };
 const SOURCE_LABEL: Record<string, string> = {
   fleet_vehicle: "Véhicule", fleet_maintenance: "Entretien", fleet_repair: "Réparation",
-  fleet_inspection: "Inspection", fleet_expense: "Dépense",
+  fleet_inspection: "Inspection", fleet_expense: "Dépense / facture",
 };
 
 type Doc = FleetDocument & { folders: string[] | null };
