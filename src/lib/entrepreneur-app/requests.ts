@@ -4,6 +4,7 @@ import { statusBucket, statusMeta } from "@/lib/access-requests/status";
 import { lifecycleMeta } from "@/lib/entrepreneur-app/lifecycle";
 import { NEED_LABELS, needDirection, needsDumpSearch } from "@/lib/parcours/sens-besoin";
 import { transportKindLabel } from "@/components/entrepreneur-app/SubmissionProvenance";
+import { deriveJourneyStage, submissionDisplayState, submissionNeedLabel } from "@/lib/parcours/submission-display";
 import {
   findChantierForSubmission,
   findChantierForTransport,
@@ -41,23 +42,11 @@ export interface EntrepreneurRequestView {
   transport?: AccessRequestRow;
 }
 
-const CONFIRMED_STATUSES = new Set(["acceptee", "planifiee", "en_cours"]);
 const CONFIRMED_LIFECYCLES = new Set(["confirmee", "prete_transport", "en_cours"]);
 const REQUEST_TYPE_LABELS: Record<string, string> = {
   remblai: "Demande de remblai",
   vrac: "Matériaux en vrac",
   livraison: "Livraison",
-};
-
-const submissionState = (status: string | null, waitingSite: boolean) => {
-  if (status === "annulee" || status === "refusee") {
-    return { label: status === "annulee" ? "Annulée" : "Refusée", tone: "refused" as const, filter: "cancelled" as const };
-  }
-  if (status === "terminee") return { label: "Terminée", tone: "done" as const, filter: "done" as const };
-  if (waitingSite || ["nouvelle", "en_analyse", "soumission_envoyee", "en_attente_proprietaire"].includes(status ?? "")) {
-    return { label: waitingSite ? "Dompe en attente" : "En attente", tone: "pending" as const, filter: "pending" as const };
-  }
-  return { label: "En cours", tone: "active" as const, filter: "active" as const };
 };
 
 export function buildEntrepreneurRequests(
@@ -67,7 +56,7 @@ export function buildEntrepreneurRequests(
 ): EntrepreneurRequestView[] {
   const materialRequests = submissions.map<EntrepreneurRequestView>((submission) => {
     const waitingSite = Boolean(submission.selectedSiteId && !submission.siteValidatedAt);
-    const state = submissionState(submission.status, waitingSite);
+    const state = submissionDisplayState(submission.status);
     const chantier = findChantierForSubmission(chantiers, submission.id);
     const need = needDirection(submission);
     return {
@@ -79,18 +68,18 @@ export function buildEntrepreneurRequests(
       quantity: submission.quantity,
       date: submission.createdAt,
       status: submission.status,
-      statusLabel: state.label,
+      statusLabel: waitingSite ? "Site choisi — validation en attente" : state.label,
       tone: state.tone,
       filter: state.filter,
-      nextAction: waitingSite ? "Suivre la décision des dompes" : need === "a_preciser" ? "Préciser le besoin (recevoir, évacuer ou acheter)" : state.filter === "done" || state.filter === "cancelled" ? "Consulter le dossier" : "Suivre le dossier",
+      nextAction: waitingSite ? "Suivre la validation du site" : need === "a_preciser" ? submissionNeedLabel(submission, false, "") : state.closed ? "Consulter le dossier fermé" : "Suivre le dossier",
       reference: submission.number != null ? String(submission.number) : submission.id.slice(0, 8).toUpperCase(),
       typeLabel: submission.requestType ? REQUEST_TYPE_LABELS[submission.requestType] ?? submission.requestType.replace(/_/g, " ") : "Non précisé",
       city: submission.city || "À compléter",
       subjectLabel: submission.material || "Non précisé",
-      isConfirmed: CONFIRMED_STATUSES.has(submission.status ?? "") || Boolean(submission.siteValidatedAt),
+      isConfirmed: state.confirmed || Boolean(submission.siteValidatedAt),
       chantierKey: chantier?.key ?? null,
       chantierLabel: chantier?.label ?? submission.location ?? "Chantier à confirmer",
-      natureLabel: NEED_LABELS[need],
+      natureLabel: submissionNeedLabel(submission, need !== "a_preciser", NEED_LABELS[need]),
       dumpSearch: needsDumpSearch(need),
       submission,
     };
@@ -122,7 +111,7 @@ export function buildEntrepreneurRequests(
       typeLabel: transport.request_kind === "transport" ? "Transport" : "Accès à une dompe",
       city: transport.site_city ? String(transport.site_city) : "À compléter",
       subjectLabel: transport.material_type ? String(transport.material_type) : "Non précisé",
-      isConfirmed: CONFIRMED_STATUSES.has(String(transport.status)) || CONFIRMED_LIFECYCLES.has(String(transport.lifecycle_status ?? "")),
+      isConfirmed: submissionDisplayState(String(transport.status)).confirmed || CONFIRMED_LIFECYCLES.has(String(transport.lifecycle_status ?? "")),
       chantierKey: chantier?.key ?? null,
       chantierLabel: chantier?.label ?? place,
       natureLabel: transportKindLabel(transport),
@@ -141,12 +130,12 @@ export type TrackingStepState = "done" | "current" | "upcoming";
 export interface TrackingStep { label: string; state: TrackingStepState }
 
 /** Présentation seulement : chaque étape s'appuie sur un statut ou un lien déjà chargé. */
-export function buildRequestTracking(request: EntrepreneurRequestView, hasLinkedTransport = false): TrackingStep[] {
+export function buildRequestTracking(request: EntrepreneurRequestView, linkedTransport?: AccessRequestRow | null): TrackingStep[] {
   const terminal = request.filter === "done";
   const stopped = request.filter === "cancelled";
   const submission = request.submission;
-  const solutionFound = Boolean(submission?.siteValidatedAt || request.isConfirmed || terminal);
-  const transportRequested = request.kind === "transport" || hasLinkedTransport;
+  const solutionFound = Boolean(submission?.selectedSiteId || submission?.siteValidatedAt);
+  const transportRequested = request.kind === "transport" || linkedTransport != null;
 
   if (request.kind === "transport") {
     return [
@@ -157,11 +146,13 @@ export function buildRequestTracking(request: EntrepreneurRequestView, hasLinked
     ];
   }
 
+  const journey = submission ? deriveJourneyStage(submission, linkedTransport) : null;
+  const rank = journey ? ["request", "search", "solution", "transport", "execution"].indexOf(journey.key) : 0;
   return [
     { label: "Demande créée", state: "done" },
-    { label: "Recherche de solution", state: solutionFound ? "done" : stopped ? "upcoming" : "current" },
-    { label: "Solution trouvée", state: solutionFound ? (transportRequested || terminal ? "done" : "current") : "upcoming" },
-    ...(transportRequested ? [{ label: "Transport demandé", state: terminal ? "done" : "current" } as TrackingStep] : []),
-    { label: "Terminé", state: terminal ? "done" : "upcoming" },
+    { label: "Recherche de solution", state: rank > 1 ? "done" : rank === 1 ? "current" : "upcoming" },
+    { label: "Solution trouvée", state: rank > 2 ? "done" : rank === 2 ? "current" : "upcoming" },
+    { label: transportRequested ? "Transport" : "Transport à organiser", state: rank > 3 ? "done" : rank === 3 ? "current" : "upcoming" },
+    { label: "Exécution", state: rank === 4 ? "current" : "upcoming" },
   ];
 }

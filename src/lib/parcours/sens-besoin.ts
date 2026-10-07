@@ -11,7 +11,7 @@ export const NEED_LABELS: Record<NeedDirection, string> = {
   recevoir: "Recevoir du remblai",
   evacuer: "Évacuer des matériaux",
   acheter: "Acheter / se faire livrer des matériaux",
-  a_preciser: "Besoin à préciser",
+  a_preciser: "Sens à confirmer",
 };
 
 const low = (v: string | null | undefined) =>

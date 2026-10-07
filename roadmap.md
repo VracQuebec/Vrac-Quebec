@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Phase 3A : corriger sans migration les libellés de besoin, états réels et étapes calculées demande → solution → transport → exécution; consolider les lectures déjà partagées et valider mobile/desktop sans écriture.
+
 - [x] Phase 4 : profil professionnel entreprise — compte/entreprise séparés, fiche privée consolidée, profil public existant clarifié et flotte privée résumée sans exposition publique. 121 tests réussis; formats 320×667, 393×852 et 1440×1000 sans débordement; build OK. Aucune table, migration, donnée, RLS, permission ni publication.
 
 - [x] Phase 3 : centre de suivi des demandes — liste hiérarchisée, filtre Confirmées fondé sur les états existants, fiche mobile avec informations, suivi dérivé, liens et actions existants; aucune nouvelle donnée ni relation.

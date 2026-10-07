@@ -11,14 +11,15 @@ import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { NEED_LABELS, needDirection } from "@/lib/parcours/sens-besoin";
 import { summarizeChantier } from "@/lib/parcours/chantiers";
+import { submissionDisplayState, submissionNeedLabel } from "@/lib/parcours/submission-display";
 
 const FILTERS = [
   { key: "all", label: "Tous" },
   { key: "active", label: "En cours" },
-  { key: "done", label: "Terminés" },
+  { key: "done", label: "Fermés" },
 ] as const;
 
-const isDone = (status: string | null) => status === "terminee" || status === "annulee" || status === "refusee";
+const isDone = (status: string | null) => submissionDisplayState(status).closed;
 
 export default function EntrepreneurChantiers() {
   const { loading, error, chantiers, refresh } = useEntrepreneurData();
@@ -96,7 +97,7 @@ export default function EntrepreneurChantiers() {
                   label={c.label}
                   city={c.city && c.label !== `${c.city} — lieu à préciser` ? c.city : null}
                   material={[summary.material, summary.quantity].filter(Boolean).join(" · ")}
-                   detail={direction === "a_preciser" && summary.material && summary.quantity ? "Sens à préciser : recevoir, évacuer ou acheter" : NEED_LABELS[direction]}
+                   detail={submissionNeedLabel(c.submissions[0], direction !== "a_preciser", NEED_LABELS[direction])}
                   metadata={[c.submissions[0]?.number ? `Demande #${c.submissions[0].number}` : null, c.lastActivity ? new Date(c.lastActivity).toLocaleDateString("fr-CA", { day: "numeric", month: "short" }) : null].filter(Boolean).join(" · ")}
                    badge={{ label: summary.statusLabel, tone: summary.tone }}
                 />

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildEntrepreneurRequests, buildRequestTracking, requestMatchesFilter } from "@/lib/entrepreneur-app/requests";
 import { buildChantiers, findChantierForTransport } from "@/lib/parcours/chantiers";
 import type { MySubmission } from "@/lib/parcours/mes-demandes";
+import { deriveJourneyStage, submissionDisplayState } from "@/lib/parcours/submission-display";
 
 const submission = (over: Partial<MySubmission> = {}): MySubmission => ({
   id: "sub-1", number: 12, createdAt: "2026-09-20T10:00:00Z", status: "nouvelle",
@@ -53,7 +54,30 @@ describe("dossiers entrepreneur", () => {
     const [confirmed] = buildEntrepreneurRequests([submission({ siteValidatedAt: "2026-09-21T10:00:00Z" })], []);
     expect(buildRequestTracking(waiting).find((step) => step.label === "Solution trouvée")?.state).toBe("upcoming");
     expect(buildRequestTracking(confirmed).find((step) => step.label === "Solution trouvée")?.state).toBe("current");
-    expect(buildRequestTracking(confirmed, true).find((step) => step.label === "Transport demandé")?.state).toBe("current");
+    expect(buildRequestTracking(confirmed, { id: "t", status: "nouvelle", created_at: null }).find((step) => step.label === "Transport")?.state).toBe("current");
+  });
+
+  it.each([
+    ["nouveau", "Nouvelle", "pending"],
+    ["soumission envoyée", "Soumission envoyée", "pending"],
+    ["soumission acceptée", "Soumission acceptée", "confirmed"],
+    ["paiement effectué", "Paiement effectué", "confirmed"],
+    ["en attente de livraison", "En attente de livraison", "active"],
+    ["archivé", "Archivée", "cancelled"],
+    ["perdu", "Perdue", "cancelled"],
+  ])("interprète %s sans modifier la valeur source", (raw, label, filter) => {
+    const state = submissionDisplayState(raw);
+    expect(state.label).toBe(label);
+    expect(state.filter).toBe(filter);
+  });
+
+  it("calcule la progression seulement depuis des preuves existantes", () => {
+    expect(deriveJourneyStage(submission()).key).toBe("request");
+    expect(deriveJourneyStage(submission({ status: "soumission envoyée" })).key).toBe("search");
+    expect(deriveJourneyStage(submission({ selectedSiteId: "site-1" })).key).toBe("solution");
+    expect(deriveJourneyStage(submission(), { status: "nouvelle", lifecycle_status: "a_valider" }).key).toBe("transport");
+    expect(deriveJourneyStage(submission(), { status: "en_cours" }).key).toBe("execution");
+    expect(deriveJourneyStage(submission({ status: "archivé" })).label).toBe("Dossier fermé");
   });
 
   it("ne transforme jamais une sélection en approbation", () => {

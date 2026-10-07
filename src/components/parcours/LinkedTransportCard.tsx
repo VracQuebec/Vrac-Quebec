@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { statusMeta } from "@/lib/access-requests/status";
 import {
   loadLinkedTransportRequest,
+  type LinkedTransportRequest,
   type LinkedTransportLookup,
   type RpcClient,
 } from "@/lib/parcours/validation";
@@ -21,9 +22,11 @@ interface Props {
   submissionId: string | null | undefined;
   /** Injection facilitant les tests ; par défaut le client Supabase. */
   client?: RpcClient;
+  /** Relation déjà chargée par le fournisseur commun; null prouve son absence. */
+  existingRequest?: LinkedTransportRequest | null;
 }
 
-export default function LinkedTransportCard({ submissionId, client }: Props) {
+export default function LinkedTransportCard({ submissionId, client, existingRequest }: Props) {
   const navigate = useNavigate();
   const [lookup, setLookup] = useState<LinkedTransportLookup | null>(null);
   const [loading, setLoading] = useState(false);
@@ -33,11 +36,16 @@ export default function LinkedTransportCard({ submissionId, client }: Props) {
       setLookup(null);
       return;
     }
+    if (existingRequest !== undefined) {
+      setLookup(existingRequest ? { state: "found", request: existingRequest } : { state: "none" });
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const res = await loadLinkedTransportRequest(submissionId, client);
     setLookup(res);
     setLoading(false);
-  }, [submissionId, client]);
+  }, [submissionId, client, existingRequest]);
 
   useEffect(() => {
     void reload();
