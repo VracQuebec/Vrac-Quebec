@@ -11,7 +11,7 @@ import {
 } from "@/lib/parcours/chantiers";
 
 export type RequestTone = "pending" | "active" | "done" | "refused" | "neutral";
-export type RequestFilter = "all" | "active" | "pending" | "done" | "cancelled";
+export type RequestFilter = "all" | "active" | "pending" | "confirmed" | "done" | "cancelled";
 
 export interface EntrepreneurRequestView {
   id: string;
@@ -26,6 +26,11 @@ export interface EntrepreneurRequestView {
   tone: RequestTone;
   filter: Exclude<RequestFilter, "all">;
   nextAction: string;
+  reference: string;
+  typeLabel: string;
+  city: string;
+  subjectLabel: string;
+  isConfirmed: boolean;
   chantierKey: string | null;
   chantierLabel: string;
   /** Libellé du sens du besoin ou de la nature de la demande d'accès. */
@@ -35,6 +40,14 @@ export interface EntrepreneurRequestView {
   submission?: MySubmission;
   transport?: AccessRequestRow;
 }
+
+const CONFIRMED_STATUSES = new Set(["acceptee", "planifiee", "en_cours"]);
+const CONFIRMED_LIFECYCLES = new Set(["confirmee", "prete_transport", "en_cours"]);
+const REQUEST_TYPE_LABELS: Record<string, string> = {
+  remblai: "Demande de remblai",
+  vrac: "Matériaux en vrac",
+  livraison: "Livraison",
+};
 
 const submissionState = (status: string | null, waitingSite: boolean) => {
   if (status === "annulee" || status === "refusee") {
@@ -70,6 +83,11 @@ export function buildEntrepreneurRequests(
       tone: state.tone,
       filter: state.filter,
       nextAction: waitingSite ? "Suivre la décision des dompes" : need === "a_preciser" ? "Préciser le besoin (recevoir, évacuer ou acheter)" : state.filter === "done" || state.filter === "cancelled" ? "Consulter le dossier" : "Suivre le dossier",
+      reference: submission.number != null ? String(submission.number) : submission.id.slice(0, 8).toUpperCase(),
+      typeLabel: submission.requestType ? REQUEST_TYPE_LABELS[submission.requestType] ?? submission.requestType.replace(/_/g, " ") : "Non précisé",
+      city: submission.city || "À compléter",
+      subjectLabel: submission.material || "Non précisé",
+      isConfirmed: CONFIRMED_STATUSES.has(submission.status ?? "") || Boolean(submission.siteValidatedAt),
       chantierKey: chantier?.key ?? null,
       chantierLabel: chantier?.label ?? submission.location ?? "Chantier à confirmer",
       natureLabel: NEED_LABELS[need],
@@ -90,7 +108,7 @@ export function buildEntrepreneurRequests(
       id: `r-${String(transport.id)}`,
       sourceId: String(transport.id),
       kind: "transport",
-      title: `${transport.request_number ? `Nº ${String(transport.request_number)} · ` : ""}${String(transport.material_type ?? "Transport en vrac")}`,
+      title: String(transport.material_type ?? "Transport en vrac"),
       place,
       quantity: transport.estimated_trips != null ? `${String(transport.estimated_trips)} voyage(s)` : null,
       date: (transport.created_at as string | null) ?? null,
@@ -100,6 +118,11 @@ export function buildEntrepreneurRequests(
       tone: life ? life.tone : cancelled ? "refused" : bucket === "completed" ? "done" : bucket === "accepted" ? "active" : "pending",
       filter,
       nextAction: filter === "pending" ? "Demande envoyée — accès non encore accordé" : filter === "active" ? "Suivre le transport" : "Consulter le dossier",
+      reference: transport.request_number ? String(transport.request_number) : String(transport.id).slice(0, 8).toUpperCase(),
+      typeLabel: transport.request_kind === "transport" ? "Transport" : "Accès à une dompe",
+      city: transport.site_city ? String(transport.site_city) : "À compléter",
+      subjectLabel: transport.material_type ? String(transport.material_type) : "Non précisé",
+      isConfirmed: CONFIRMED_STATUSES.has(String(transport.status)) || CONFIRMED_LIFECYCLES.has(String(transport.lifecycle_status ?? "")),
       chantierKey: chantier?.key ?? null,
       chantierLabel: chantier?.label ?? place,
       natureLabel: transportKindLabel(transport),
@@ -112,4 +135,33 @@ export function buildEntrepreneurRequests(
 }
 
 export const requestMatchesFilter = (request: EntrepreneurRequestView, filter: RequestFilter) =>
-  filter === "all" || request.filter === filter;
+  filter === "all" || (filter === "confirmed" ? request.isConfirmed : request.filter === filter);
+
+export type TrackingStepState = "done" | "current" | "upcoming";
+export interface TrackingStep { label: string; state: TrackingStepState }
+
+/** Présentation seulement : chaque étape s'appuie sur un statut ou un lien déjà chargé. */
+export function buildRequestTracking(request: EntrepreneurRequestView, hasLinkedTransport = false): TrackingStep[] {
+  const terminal = request.filter === "done";
+  const stopped = request.filter === "cancelled";
+  const submission = request.submission;
+  const solutionFound = Boolean(submission?.siteValidatedAt || request.isConfirmed || terminal);
+  const transportRequested = request.kind === "transport" || hasLinkedTransport;
+
+  if (request.kind === "transport") {
+    return [
+      { label: "Demande créée", state: "done" },
+      { label: "Recherche de solution", state: request.isConfirmed || terminal ? "done" : stopped ? "upcoming" : "current" },
+      { label: "Transport confirmé", state: terminal ? "done" : request.isConfirmed ? "current" : "upcoming" },
+      { label: "Terminé", state: terminal ? "done" : "upcoming" },
+    ];
+  }
+
+  return [
+    { label: "Demande créée", state: "done" },
+    { label: "Recherche de solution", state: solutionFound ? "done" : stopped ? "upcoming" : "current" },
+    { label: "Solution trouvée", state: solutionFound ? (transportRequested || terminal ? "done" : "current") : "upcoming" },
+    ...(transportRequested ? [{ label: "Transport demandé", state: terminal ? "done" : "current" } as TrackingStep] : []),
+    { label: "Terminé", state: terminal ? "done" : "upcoming" },
+  ];
+}

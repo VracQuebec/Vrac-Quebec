@@ -217,6 +217,10 @@ export const RequestCard = ({
   footer,
   nextAction,
   extra,
+  reference,
+  typeLabel,
+  city,
+  subject,
   badge,
 }: {
   to: string;
@@ -226,9 +230,17 @@ export const RequestCard = ({
   footer: string;
   nextAction: string;
   extra?: string | null;
+  reference?: string;
+  typeLabel?: string;
+  city?: string;
+  subject?: string;
   badge: { label: string; tone: "pending" | "active" | "done" | "refused" | "neutral" };
 }) => (
-  <Link to={to} className="block py-4 text-left transition-colors duration-150 hover:bg-secondary/30 active:bg-secondary/50 motion-reduce:transition-none">
+  <Link to={to} className="group block py-4 text-left transition-colors duration-150 hover:bg-secondary/30 active:bg-secondary/50 motion-reduce:transition-none">
+    {(reference || typeLabel) && <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+      <p className="font-body text-[10px] font-bold uppercase text-muted-foreground">{typeLabel || (kind === "acces" ? "Transport" : "Demande")}</p>
+      {reference && <p className="font-body text-[11px] font-semibold tabular-nums text-foreground">Nº {reference}</p>}
+    </div>}
     <div className="flex items-start gap-3">
       <span
          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
@@ -240,15 +252,16 @@ export const RequestCard = ({
       <div className="min-w-0 flex-1">
         <p className="break-words font-display text-sm font-semibold leading-snug">{title}</p>
         <p className="flex items-start gap-1 font-body text-xs leading-snug text-muted-foreground">
-          <MapPin className="h-3 w-3 shrink-0" /> {place}
+          <MapPin className="h-3 w-3 shrink-0" /> {city || place}
         </p>
+        {subject && <p className="mt-1 font-body text-xs font-medium text-foreground">{subject}</p>}
       </div>
       
     </div>
     <div className="mt-2 flex items-center justify-between gap-2 pt-1">
       <div className="min-w-0">
         <div className="mb-1"><StatusBadge label={badge.label} tone={badge.tone} /></div><p className="font-body text-xs leading-snug text-muted-foreground">{footer}</p>
-        <p className="mt-1 font-body text-xs font-medium leading-snug text-foreground">{nextAction}</p>
+        <p className="mt-1 font-body text-xs font-medium leading-snug text-foreground">Prochaine étape · {nextAction}</p>
         {extra && <p className="font-body text-xs leading-snug text-muted-foreground">{extra}</p>}
       </div>
       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />

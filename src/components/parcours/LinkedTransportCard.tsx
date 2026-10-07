@@ -46,8 +46,8 @@ export default function LinkedTransportCard({ submissionId, client }: Props) {
   if (!submissionId) return null;
 
   const shell = (children: React.ReactNode) => (
-    <section className="mt-6 rounded-2xl border border-border bg-card p-4 sm:p-5">
-      <p className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-foreground">
+    <section className="mt-6 border-t border-border pt-5">
+      <p className="flex items-center gap-2 font-display text-base font-semibold text-foreground">
         <Truck className="h-4 w-4 text-primary" aria-hidden /> Demande de transport
       </p>
       {children}
@@ -88,7 +88,7 @@ export default function LinkedTransportCard({ submissionId, client }: Props) {
   if (lookup.state === "none") {
     return shell(
       <p className="mt-2 font-body text-sm text-muted-foreground">
-        Aucune demande de transport n'est encore créée pour cette demande.
+        Aucun transport lié.
       </p>,
     );
   }
@@ -134,10 +134,10 @@ export default function LinkedTransportCard({ submissionId, client }: Props) {
         </div>
       </dl>
       <Button
-        onClick={() => navigate(`/demande-transport?submission=${r.submissionId ?? submissionId}`)}
-        className="mt-4 h-12 w-full font-display text-sm font-bold uppercase tracking-wide sm:w-auto"
+        onClick={() => navigate(`/entrepreneur/demandes/r-${r.id}`)}
+        className="mt-4 min-h-11 w-full font-display text-sm font-semibold sm:w-auto"
       >
-        Voir ma demande de transport
+        Voir le transport
         <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
       </Button>
     </>,

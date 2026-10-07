@@ -63,7 +63,7 @@ export const DompeDecisionRow = ({ site }: { site: SubmissionSite }) => (
   </li>
 );
 
-export default function DompesDemandeList({ submissionId }: { submissionId: string }) {
+export default function DompesDemandeList({ submissionId, showEmpty = false }: { submissionId: string; showEmpty?: boolean }) {
   const [sites, setSites] = useState<SubmissionSite[] | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -89,7 +89,7 @@ export default function DompesDemandeList({ submissionId }: { submissionId: stri
     );
   }
 
-  if (!sites || sites.length === 0) return null;
+  if (!sites || sites.length === 0) return showEmpty ? <p className="font-body text-sm text-muted-foreground">Aucune dompe liée.</p> : null;
 
   return (
     <div className="mt-3">
