@@ -21203,6 +21203,7 @@ export type Database = {
           radius_km: number | null
           region: string | null
           scope: string
+          territory_id: string | null
           updated_at: string
         }
         Insert: {
@@ -21217,6 +21218,7 @@ export type Database = {
           radius_km?: number | null
           region?: string | null
           scope?: string
+          territory_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -21231,6 +21233,7 @@ export type Database = {
           radius_km?: number | null
           region?: string | null
           scope?: string
+          territory_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -21239,6 +21242,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "jsc_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mkt_partner_territories_territory_id_fkey"
+            columns: ["territory_id"]
+            isOneToOne: false
+            referencedRelation: "geo_territories"
             referencedColumns: ["id"]
           },
         ]
@@ -33590,6 +33600,17 @@ export type Database = {
       }
       mkt_run_automations: { Args: never; Returns: Json }
       mkt_run_automations_manual: { Args: never; Returns: Json }
+      mkt_search_territories: {
+        Args: { _q: string }
+        Returns: {
+          id: string
+          mrc: string
+          municipality: string
+          name: string
+          region: string
+          type: string
+        }[]
+      }
       mkt_sender_save: {
         Args: { _addr: string; _contact: string; _legal: string }
         Returns: undefined

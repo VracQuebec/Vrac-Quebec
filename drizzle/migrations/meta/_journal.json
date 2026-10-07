@@ -1401,6 +1401,13 @@
       "when": 1791385420034,
       "tag": "0199_cpn_trips_read_without_email",
       "breakpoints": true
+    },
+    {
+      "idx": 200,
+      "version": "7",
+      "when": 1791393643539,
+      "tag": "0200_partner_territory_official_link",
+      "breakpoints": true
     }
   ]
 }
