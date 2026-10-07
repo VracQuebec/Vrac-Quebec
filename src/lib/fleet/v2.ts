@@ -1,3 +1,4 @@
+import { getActiveCompanyId } from "./tenant";
 // ============================================================
 // GESTION DE LA FLOTTE V2 — extensions (multi-entreprise)
 // ------------------------------------------------------------
@@ -46,7 +47,8 @@ export const UNIT_CATEGORIES = [
 /** Catégories ajoutées par les entrepreneurs (partagées, table fleet_unit_categories_custom). */
 let customCats: { value: string; label: string }[] = [];
 export const loadCustomCategories = async () => {
-  const { data } = await supabase.from("fleet_unit_categories_custom").select("value,label").order("label");
+  // Lecture filtrée côté serveur : équipements approuvés + ceux de son entreprise.
+  const { data } = await supabase.from("fleet_unit_categories_custom").select("id,value,label,status,company_id").order("label");
   customCats = data ?? [];
   return customCats;
 };
@@ -57,8 +59,12 @@ export const addCustomCategory = async (label: string) => {
   if (clean.length < 2 || clean.length > 60) throw new Error("Nom d'équipement : 2 à 60 caractères.");
   const existing = [...UNIT_CATEGORIES, ...customCats].find((c) => c.label.toLowerCase() === clean.toLowerCase());
   if (existing) return existing.value;
-  const value = slugCategory(clean);
-  const { error } = await supabase.from("fleet_unit_categories_custom").insert({ value, label: clean });
+  const company = getActiveCompanyId();
+  if (!company) throw new Error("Choisissez d'abord l'entreprise active.");
+  const { data: u } = await supabase.auth.getUser();
+  // Privé à l'entreprise; partage à tous seulement après accord du Super Admin.
+  const value = `${slugCategory(clean)}_${company.slice(0, 6)}`;
+  const { error } = await supabase.from("fleet_unit_categories_custom").insert({ value, label: clean, company_id: company, created_by: u.user?.id, status: "private" });
   if (error && !/duplicate|unique/i.test(error.message)) throw error;
   await loadCustomCategories();
   return customCats.find((c) => c.label.toLowerCase() === clean.toLowerCase())?.value ?? value;
