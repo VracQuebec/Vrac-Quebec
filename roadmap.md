@@ -1,9 +1,10 @@
 # Roadmap
 
-- [ ] Phase 2 : distinguer compte et entreprise avec les données et formulaires existants; améliorer la fiche publique sans nouvelle exposition privée.
-- [ ] Phase 2 : regrouper la navigation, séparer visuellement voyages/coupons/services sur les routes existantes.
-- [ ] Phase 2 : vérifier accueil, statuts chantiers, disponibilités hors carte et relations agenda; présentation uniquement.
-- [ ] Phase 2 : contrôler mobile/desktop, liens, modules et absence de modifications des sources métier/sécurité; aucune publication.
+- [x] Phase 2 : compte utilisateur et entreprise distingués, champs existants/À compléter; fiche publique limitée aux informations déjà publiques.
+- [x] Phase 2 : navigation regroupée, cinq entrées mobiles conservées; voyages/coupons/services séparés sur la route existante.
+- [x] Phase 2 : accueil préservé, statuts chantiers existants réutilisés, disponibilité et fraîcheur séparées dans la liste seulement; agenda vérifié sans modification.
+- [x] Phase 2 : 98 tests réussis, compilation OK; pages et onglets réels vérifiés, formats 320/393/1440 sans débordement; 469 dompes et fiche contrôlées, aucune écriture métier ni publication.
+- [ ] Phase 2 : test authentifié croisé entreprise A/B; bloqué faute de sessions approuvées pour deux entreprises distinctes. Contrôles structurels seulement, aucune création de compte.
 
 - [x] Sources téléphone public corrigées : 2 014 pages contenant 6 127 anciennes occurrences (3 337 formatées, 2 790 liens), plus quatre pages à contacts fictifs, soit 2 018 pages enregistrées corrigées. Champs hors contenu éditorial identiques avant/après, sauf horodatage automatique; aucun CRM modifié. Suppression du masque d’affichage/pré-rendu. Quatre fonctions activées : site-assistant, seo-qa-autofix, send-transactional-email, preview-transactional-email. Site non publié; contenu et fonctions partagés corrigés également en ligne.
 - [x] Vérification sources : 2 084 pages enregistrées relues, zéro ancien numéro dans tous leurs champs et sources publiques actives; 2 792 liens tel corrects, aucune mauvaise destination. Sept pages réelles contrôlées (accueil + six locales), WhatsApp et Schema.org corrects, zéro erreur navigateur. Deux modèles de courriel actifs rendus sans envoi : nouveau numéro présent, ancien absent. 60 tests et build OK. Onze champs téléphone privés conservés (jsc_clients 1, entrepreneurs 1, submissions 6, drivers 1, jsc_drivers 1, payments 1), possibles miroirs du même contact; aucun identifiant privé divulgué.
