@@ -37,7 +37,7 @@ export default function EntrepreneurDemandeDetail() {
       ? findChantierForTransport(chantiers, request.transport)
       : null;
   const linkedTransport = request?.submission
-    ? accessRequests.find((item) => isTransportLinked(item, request.submission!.id))
+    ? accessRequests.find((item) => isTransportLinked(item as { origin_submission_id?: unknown; dump_submission_id?: unknown }, request.submission!.id))
     : null;
   const linkedTrips = request?.submission ? trips.filter((trip) => trip.submission_id === request.submission?.id && !trip.voided_at) : [];
   const tracking = request ? buildRequestTracking(request, linkedTransport, linkedTrips) : [];
