@@ -86,6 +86,7 @@ export default function CompanyProfileDetails({
   const complete = professionalProfileIsComplete(partner);
   const services = publicProfile?.services ?? [];
   const territories = publicProfile?.territories ?? [];
+  const missing = missingProfileItems(partner, services.length, territories.length);
   const vehicleTypes = useMemo(() => [...new Set(vehicles.map((vehicle) => vehicle.type).filter(Boolean))], [vehicles]);
 
   if (state === "loading") return <p className="py-5 text-xs text-muted-foreground">Chargement de la fiche professionnelle…</p>;
@@ -112,28 +113,29 @@ export default function CompanyProfileDetails({
       </header>
 
       <>
+          <p className="text-xs text-muted-foreground">« Public » : visible dans votre profil public. « Privé » : réservé à votre entreprise.{!partner?.is_public && " Votre profil n’est pas encore publié dans le réseau."}</p>
           <div>
-            <h3 className="font-display text-sm font-bold">Description</h3>
+            <h3 className="font-display text-sm font-bold">Description <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Public</span></h3>
             <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{partner?.description || "À compléter"}</p>
           </div>
           <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
             <div><dt className="text-xs text-muted-foreground">Nom légal</dt><dd className="mt-1 break-words font-medium">{[partner?.legal_name, company?.legal_name].find(isProfessionalCompanyName) || "À compléter"}</dd></div>
-            <div><dt className="text-xs text-muted-foreground">Téléphone professionnel</dt><dd className="mt-1 flex items-center gap-1.5 break-words font-medium"><Phone className="h-3.5 w-3.5 text-muted-foreground" />{partner?.phone || company?.phone || "À compléter"}</dd></div>
-            <div><dt className="text-xs text-muted-foreground">Adresse professionnelle</dt><dd className="mt-1 break-words font-medium">{partner?.address || company?.address || "À compléter"}</dd></div>
-            <div><dt className="text-xs text-muted-foreground">Ville</dt><dd className="mt-1 break-words font-medium">{partner?.city || "À compléter"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Téléphone professionnel <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Privé</span></dt><dd className="mt-1 flex items-center gap-1.5 break-words font-medium"><Phone className="h-3.5 w-3.5 text-muted-foreground" />{partner?.phone || company?.phone || "À compléter"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Adresse professionnelle <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Privé</span></dt><dd className="mt-1 break-words font-medium">{partner?.address || company?.address || "À compléter"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Ville <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Public</span></dt><dd className="mt-1 break-words font-medium">{partner?.city || "À compléter"}</dd></div>
           </dl>
           <div className="grid gap-5 border-y border-border py-5 sm:grid-cols-2">
-            <div><h3 className="font-display text-sm font-bold">Services</h3><p className="mt-2 text-sm text-muted-foreground">{services.length ? services.join(" · ") : "Aucun service configuré"}</p></div>
-            <div><h3 className="font-display text-sm font-bold">Territoires desservis</h3><p className="mt-2 text-sm text-muted-foreground">{territories.length ? territories.join(" · ") : "À compléter"}</p></div>
+            <div><h3 className="font-display text-sm font-bold">Services <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Public</span></h3><p className="mt-2 text-sm text-muted-foreground">{services.length ? services.join(" · ") : "Aucun service configuré"}</p></div>
+            <div><h3 className="font-display text-sm font-bold">Territoires desservis <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Public</span></h3><p className="mt-2 text-sm text-muted-foreground">{territories.length ? territories.join(" · ") : "À compléter"}</p></div>
           </div>
           <div>
-            <div className="flex items-center justify-between gap-3"><h3 className="flex items-center gap-2 font-display text-sm font-bold"><Truck className="h-4 w-4" />Véhicules de l’entreprise</h3><span className="text-sm font-bold">{vehicles.length}</span></div>
+            <div className="flex items-center justify-between gap-3"><h3 className="flex items-center gap-2 font-display text-sm font-bold"><Truck className="h-4 w-4" />Véhicules de l’entreprise <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Privé</span></h3><span className="text-sm font-bold">{vehicles.length}</span></div>
             <p className="mt-2 text-sm text-muted-foreground">{vehicles.length ? vehicleTypes.join(" · ") || `${vehicles.length} véhicule${vehicles.length > 1 ? "s" : ""}` : "Aucun véhicule enregistré"}</p>
             <Button asChild variant="link" className="mt-1 h-auto min-h-11 px-0"><Link to="/entrepreneur/flotte">Voir Ma flotte <ArrowUpRight className="h-4 w-4" /></Link></Button>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="sm" className="min-h-11"><Link to="/partenaire/profil">Compléter la fiche <ArrowUpRight className="h-4 w-4" /></Link></Button>
-            {publicProfile && partner && <Button asChild variant="ghost" size="sm" className="min-h-11"><Link to={`/trouver-un-entrepreneur/fiche/${partner.company_id}`}>Voir le profil public <ArrowUpRight className="h-4 w-4" /></Link></Button>}
+            <Button asChild variant="outline" size="sm" className="min-h-11"><Link to="/partenaire/profil">Compléter mon profil <ArrowUpRight className="h-4 w-4" /></Link></Button>
+            {publicProfile && partner && <Button asChild variant="ghost" size="sm" className="min-h-11"><Link to={`/trouver-un-entrepreneur/fiche/${partner.company_id}`}>Voir mon profil public <ArrowUpRight className="h-4 w-4" /></Link></Button>}
           </div>
         </>
     </section>
