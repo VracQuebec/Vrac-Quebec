@@ -20,7 +20,7 @@ import {
 import FleetDocuments, { PendingPhotos, uploadPendingDocuments } from "@/components/fleet/FleetDocuments";
 import type { Driver } from "@/lib/calendar-utils";
 import {
-  ADMIN_STATUS, OPS_STATUS, UNIT_CATEGORIES, inspectionPointsFor,
+  ADMIN_STATUS, OPS_STATUS, UNIT_CATEGORIES, inspectionPointsFor, loadCustomCategories, addCustomCategory,
   syncWorkItemsFromInspection, usesEngineHours,
 } from "@/lib/fleet/v2";
 
@@ -74,6 +74,10 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
     route: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined, fileNames: [] });
   const [section, setSection] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [customCats, setCustomCats] = useState<{ value: string; label: string }[]>([]);
+  const [newCat, setNewCat] = useState("");
+  useEffect(() => { if (open) loadCustomCategories().then(setCustomCats).catch(() => {}); }, [open]);
+  const isOther = f.category === "autre_equipement" || f.category === "camion";
 
   useEffect(() => {
     if (!open) return;
@@ -108,8 +112,13 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
 
   const save = async () => {
     if (!f.name.trim()) { toast({ title: "Le nom du véhicule est requis", variant: "destructive" }); return; }
+    if (isOther && newCat.trim().length === 1) { toast({ title: "Nom d'équipement trop court", variant: "destructive" }); return; }
     setBusy(true);
     try {
+      if (isOther && newCat.trim()) {
+        f.category = await addCustomCategory(newCat);
+        setCustomCats(await loadCustomCategories()); setNewCat("");
+      }
       const num = (k: string) => (f[k] ? Number(f[k]) : null);
       const txt = (k: string) => f[k] || null;
       await saveVehicle({
@@ -165,9 +174,14 @@ export function VehicleDialog({ open, onOpenChange, vehicle, onSaved }: {
           <Field label="Catégorie d'unité *">
             <Select value={f.category} onValueChange={(v) => setF({ ...f, category: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{UNIT_CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+              <SelectContent>{[...UNIT_CATEGORIES.filter((c) => c.value !== "camion" && c.value !== "autre_equipement"), ...customCats, ...UNIT_CATEGORIES.filter((c) => c.value === "camion" || c.value === "autre_equipement")].map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
+          {isOther && (
+            <Field label="Préciser l'équipement (ajouté à la liste)">
+              <Input maxLength={60} placeholder="Ex. : Mini-excavatrice, balai de rue…" value={newCat} onChange={(e) => setNewCat(e.target.value)} />
+            </Field>
+          )}
           <Field label="Type (calendrier)">
             <Select value={f.type} onValueChange={(v) => setF({ ...f, type: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
