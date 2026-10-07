@@ -139,12 +139,12 @@ export default function EntrepreneurAppShell({
   const { isEntrepreneur, isAdmin, loading: roleLoading } = useUserRoles(user, authReady);
   const { unread: unreadCount } = useEntrepreneurNotifications(true);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [openSections, setOpenSections] = useState<string[]>(["Opérations"]);
+  const [openSections, setOpenSections] = useState<string[]>([]);
   useEffect(() => {
     if (!moreOpen) return;
     const here = `${location.pathname}${location.search}${location.hash}`;
     const current = MORE_SECTIONS.find(sec => sec.items.some(i => isActive(here, i.to)))?.title;
-    setOpenSections(current && current !== "Opérations" ? ["Opérations", current] : ["Opérations"]);
+    setOpenSections(current ? [current] : []);
   }, [moreOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shellRef = useRef<HTMLDivElement>(null);
@@ -268,9 +268,9 @@ export default function EntrepreneurAppShell({
           <SheetTitle className="mb-2 pr-12 font-display text-base font-semibold">Plus</SheetTitle>
           <nav aria-label="Sections secondaires">
             {MORE_SECTIONS.map(section => { const open = openSections.includes(section.title); return <div key={section.title} className="border-b border-border/30 py-1 last:border-0">
-              <button type="button" onClick={() => setOpenSections(o => o.includes(section.title) ? o.filter(t => t !== section.title) : [...o, section.title])} aria-expanded={open} className="flex min-h-11 w-full items-center justify-between px-2 font-body text-[11px] font-semibold uppercase text-muted-foreground">
+              <Button variant="ghost" onClick={() => setOpenSections(o => o.includes(section.title) ? o.filter(t => t !== section.title) : [...o, section.title])} aria-expanded={open} className="flex min-h-11 w-full items-center justify-between px-2 font-body text-[11px] font-semibold uppercase text-muted-foreground hover:bg-secondary hover:text-foreground">
                 <span>{section.title}</span><ChevronDown className={`h-4 w-4 transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`} strokeWidth={1.6} />
-              </button>
+              </Button>
               {open && <div className="pb-1">{section.items.map(({ to, label, icon: Icon }) => {
                 const active = isActive(currentLocation, to);
                 return <Button key={to} asChild variant="ghost" className={`h-auto min-h-11 w-full justify-start gap-3 whitespace-normal px-2 py-2 text-left font-body text-[13px] hover:bg-secondary hover:text-foreground active:bg-secondary motion-reduce:transition-none ${active ? "bg-secondary text-primary" : "text-foreground"}`}>
