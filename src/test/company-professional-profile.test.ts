@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { professionalProfileIsComplete } from "@/components/entrepreneur-app/CompanyProfileDetails";
+import { isProfessionalCompanyName, professionalProfileIsComplete } from "@/components/entrepreneur-app/CompanyProfileDetails";
 import type { MarketplacePartner } from "@/lib/marketplace/types";
 
 const partner = (values: Partial<MarketplacePartner> = {}) => ({
@@ -21,5 +21,8 @@ describe("Profil professionnel entreprise", () => {
   it("n'utilise jamais un courriel comme identité de repli", () => {
     expect(professionalProfileIsComplete(partner({ trade_name: null, legal_name: "Entreprise réelle" }))).toBe(true);
     expect(professionalProfileIsComplete(null)).toBe(false);
+    expect(isProfessionalCompanyName("Entreprise de membre@exemple.com")).toBe(false);
+    expect(isProfessionalCompanyName("membre@exemple.com")).toBe(false);
+    expect(isProfessionalCompanyName("Excavation ABC")) .toBe(true);
   });
 });

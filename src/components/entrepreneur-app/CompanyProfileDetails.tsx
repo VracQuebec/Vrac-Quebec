@@ -9,6 +9,10 @@ import type { MarketplacePartner } from "@/lib/marketplace/types";
 type CompanyVehicle = { id: string; name: string; type: string; active: boolean | null };
 type CompanyIdentity = { name: string | null; legal_name: string | null; logo_url: string | null; phone: string | null; address: string | null };
 
+export const isProfessionalCompanyName = (value: string | null | undefined) => Boolean(
+  value?.trim() && !value.includes("@") && !/^entreprise de\s+/i.test(value.trim()),
+);
+
 export const professionalProfileIsComplete = (partner: MarketplacePartner | null) => Boolean(
   partner
   && (partner.trade_name?.trim() || partner.legal_name?.trim())
@@ -64,7 +68,8 @@ export default function CompanyProfileDetails({
     return () => { active = false; };
   }, [userId]);
 
-  const companyName = partner?.trade_name?.trim() || partner?.legal_name?.trim() || company?.name?.trim() || company?.legal_name?.trim() || fallbackName || "Nom de l’entreprise · À compléter";
+  const nameCandidates = [partner?.trade_name, partner?.legal_name, company?.name, company?.legal_name, fallbackName];
+  const companyName = nameCandidates.find(isProfessionalCompanyName)?.trim() || "Nom de l’entreprise · À compléter";
   const location = [partner?.city, partner?.region].filter(Boolean).join(" · ") || fallbackLocation || "Localisation · À compléter";
   const complete = professionalProfileIsComplete(partner);
   const services = publicProfile?.services ?? [];
@@ -98,7 +103,7 @@ export default function CompanyProfileDetails({
             <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{partner?.description || "À compléter"}</p>
           </div>
           <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-            <div><dt className="text-xs text-muted-foreground">Nom légal</dt><dd className="mt-1 break-words font-medium">{partner?.legal_name || company?.legal_name || "À compléter"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Nom légal</dt><dd className="mt-1 break-words font-medium">{[partner?.legal_name, company?.legal_name].find(isProfessionalCompanyName) || "À compléter"}</dd></div>
             <div><dt className="text-xs text-muted-foreground">Téléphone professionnel</dt><dd className="mt-1 flex items-center gap-1.5 break-words font-medium"><Phone className="h-3.5 w-3.5 text-muted-foreground" />{partner?.phone || company?.phone || "À compléter"}</dd></div>
             <div><dt className="text-xs text-muted-foreground">Adresse professionnelle</dt><dd className="mt-1 break-words font-medium">{partner?.address || company?.address || "À compléter"}</dd></div>
             <div><dt className="text-xs text-muted-foreground">Ville</dt><dd className="mt-1 break-words font-medium">{partner?.city || "À compléter"}</dd></div>
