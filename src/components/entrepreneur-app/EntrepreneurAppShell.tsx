@@ -88,7 +88,7 @@ const MORE_SECTIONS: { title: string; items: MoreItem[] }[] = [
     title: "Mon entreprise",
     items: [
       { to: "/entrepreneur/compte", label: "Mon entreprise", hint: "", icon: Building2 },
-      { to: "/entrepreneur/crm", label: "CRM", hint: "Vos leads, clients, soumissions", icon: ContactRound },
+      { to: "/entrepreneur/crm", label: "Mon CRM", hint: "Vos leads, clients, soumissions", icon: ContactRound },
       { to: "/entrepreneur/documents", label: "Documents", hint: "Assurance, RPEVL, permis — glisser et consulter", icon: Files },
       { to: "/entrepreneur/assurances", label: "Assurances", hint: "Polices, couvertures, renouvellements, soumissions", icon: ShieldCheck },
       { to: "/entrepreneur/obligations", label: "Obligations", hint: "", icon: CalendarDays },
@@ -260,9 +260,11 @@ export default function EntrepreneurAppShell({
         <SheetContent side="bottom" className="ent-sheet gap-0 rounded-t-lg px-4" aria-describedby={undefined}>
           <SheetTitle className="mb-2 pr-12 font-display text-base font-semibold">Plus</SheetTitle>
           <nav aria-label="Sections secondaires">
-            {MORE_SECTIONS.map(section => <div key={section.title} className="py-2 first:pt-0">
-              <p className="px-2 pb-1 pt-2 font-body text-[10px] font-semibold uppercase text-muted-foreground">{section.title}</p>
-              {section.items.map(({ to, label, icon: Icon }) => {
+            {MORE_SECTIONS.map(section => { const open = openSections.includes(section.title); return <div key={section.title} className="border-b border-border/30 py-1 last:border-0">
+              <button type="button" onClick={() => setOpenSections(o => o.includes(section.title) ? o.filter(t => t !== section.title) : [...o, section.title])} aria-expanded={open} className="flex min-h-11 w-full items-center justify-between px-2 font-body text-[11px] font-semibold uppercase text-muted-foreground">
+                <span>{section.title}</span><ChevronDown className={`h-4 w-4 transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`} strokeWidth={1.6} />
+              </button>
+              {open && <div className="pb-1">{section.items.map(({ to, label, icon: Icon }) => {
                 const active = isActive(currentLocation, to);
                 return <Button key={to} asChild variant="ghost" className={`h-auto min-h-11 w-full justify-start gap-3 whitespace-normal px-2 py-2 text-left font-body text-[13px] hover:bg-secondary hover:text-foreground active:bg-secondary motion-reduce:transition-none ${active ? "bg-secondary text-primary" : "text-foreground"}`}>
                   <Link to={to} onClick={() => setMoreOpen(false)} aria-current={active ? "page" : undefined}><Icon className="shrink-0 text-muted-foreground" strokeWidth={1.6} /><span className="min-w-0 flex-1">{label}</span><ChevronRight className="!h-3.5 !w-3.5 text-muted-foreground/60" strokeWidth={1.6} /></Link>
@@ -272,7 +274,8 @@ export default function EntrepreneurAppShell({
                 <Button asChild variant="ghost" className="min-h-11 w-full justify-start gap-3 px-2 font-body text-[13px] hover:bg-secondary hover:text-foreground"><a href="tel:+18195923495" onClick={() => setMoreOpen(false)}><LifeBuoy className="text-muted-foreground" strokeWidth={1.6} /><span>Aide</span></a></Button>
                 <Button variant="ghost" onClick={handleLogout} className="min-h-11 w-full justify-start gap-3 px-2 font-body text-[13px] text-muted-foreground hover:bg-secondary hover:text-foreground"><LogOut strokeWidth={1.6} />Déconnexion</Button>
               </>}
-            </div>)}
+              </div>}
+            </div>; })}
           </nav>
           <div className="mt-1 border-t border-border/40 pt-2"><InstallAppCard /></div>
         </SheetContent>

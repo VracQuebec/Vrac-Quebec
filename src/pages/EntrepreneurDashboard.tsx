@@ -84,6 +84,11 @@ export default function EntrepreneurDashboard() {
         </nav>
 
         <div className="px-5 sm:px-8">
+        {!loading && !error && <section className="mt-5" aria-label="À faire">
+          {attention.length === 0 ? <p className="flex items-center gap-2 py-2 font-body text-xs font-medium text-muted-foreground"><Check className="h-4 w-4 text-primary" aria-hidden />Tout est à jour</p> :
+          <><h2 className="mb-2 font-display text-sm font-extrabold uppercase">À faire</h2><div className="divide-y divide-border/25">{attention.map(request => <Link key={request.id} to={`/entrepreneur/demandes/${request.id}`} aria-label={`${request.title} · ${request.place} · ${request.nextAction}`} className="flex min-h-14 items-center gap-3 py-3 transition-colors duration-150 active:bg-secondary motion-reduce:transition-none"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden /><div className="min-w-0 flex-1"><p className="break-words font-display text-xs font-bold">Préciser le besoin · {request.title}</p><p className="mt-0.5 break-words font-body text-[11px] text-muted-foreground">{request.place}</p></div><ChevronRight className="h-4 w-4 shrink-0 text-foreground" strokeWidth={2} /></Link>)}</div></>}
+        </section>}
+
         <section className="mt-5">
            <div className="mb-1 flex items-center justify-between gap-2"><h2 className="font-display text-sm font-extrabold uppercase">Mes chantiers</h2><Button asChild variant="ghost" className="h-11 gap-1.5 px-0 font-body text-[11px] font-semibold text-muted-foreground hover:bg-transparent hover:text-foreground"><Link to="/entrepreneur/chantiers">Tout voir <ArrowRight className="!h-3.5 !w-3.5" /></Link></Button></div>
            {loading ? <LoadingSkeleton lines={3} compact /> : error ? <ErrorState onRetry={refresh} compact /> : recentChantiers.length === 0 ? <EmptyState compact title="Aucun chantier" message="Votre premier chantier apparaîtra ici dès votre demande." actionLabel="Nouvelle demande" actionTo="/demande-transport" /> : (
@@ -110,10 +115,6 @@ export default function EntrepreneurDashboard() {
           )}
         </section>
 
-        {!loading && !error && <section className="mt-6" aria-label="À faire">
-          {attention.length === 0 ? <p className="flex items-center gap-2 py-2 font-body text-xs font-medium text-muted-foreground"><Check className="h-4 w-4 text-primary" aria-hidden />Tout est à jour</p> :
-          <><h2 className="mb-2 font-display text-sm font-extrabold uppercase">À faire</h2><div className="divide-y divide-border/25">{attention.map(request => <Link key={request.id} to={`/entrepreneur/demandes/${request.id}`} aria-label={`${request.title} · ${request.place} · ${request.nextAction}`} className="flex min-h-14 items-center gap-3 py-3 transition-colors duration-150 active:bg-secondary motion-reduce:transition-none"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden /><div className="min-w-0 flex-1"><p className="break-words font-display text-xs font-bold">Préciser le besoin · {request.title}</p><p className="mt-0.5 break-words font-body text-[11px] text-muted-foreground">{request.place}</p></div><ChevronRight className="h-4 w-4 shrink-0 text-foreground" strokeWidth={2} /></Link>)}</div></>}
-        </section>}
         </div>
 
       </div>
