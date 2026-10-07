@@ -15,7 +15,8 @@ export const PHOTO_FOLDERS = [
   { key: "inspection_mecanique", label: "Inspection mécanique" },
   { key: "entretien", label: "Entretien" },
   { key: "reparation", label: "Réparation" },
-  { key: "depense", label: "Dépense / facture" },
+  { key: "depense", label: "Dépense" },
+  { key: "facture", label: "Facture (comptabilité)" },
   { key: "documents", label: "Documents" },
 ] as const;
 
