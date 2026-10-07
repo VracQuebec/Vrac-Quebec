@@ -100,10 +100,7 @@ export const deriveJourneyStage = (
   const state = submissionDisplayState(submission.status);
   const linked = transport != null;
   const ts = transportState(transport);
-  const transportClosed = linked && (
-    ["terminee", "annulee", "refusee", "expiree"].includes(ts.lifecycle) ||
-    ["terminee", "annulee", "refusee"].includes(ts.status)
-  );
+  const transportClosed = linked && (ts.lifecycle === "terminee" || ts.status === "terminee");
   if (state.closed || transportClosed) {
     return { key: "closed", label: "Terminé", detail: state.closed ? state.label : "Transport terminé" };
   }

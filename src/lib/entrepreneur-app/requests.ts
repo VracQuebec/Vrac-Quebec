@@ -138,8 +138,6 @@ export function buildRequestTracking(
   const terminal = request.filter === "done";
   const stopped = request.filter === "cancelled";
   const submission = request.submission;
-  const solutionFound = Boolean(submission?.selectedSiteId || submission?.siteValidatedAt);
-  const transportRequested = request.kind === "transport" || linkedTransport != null;
 
   if (request.kind === "transport") {
     return [

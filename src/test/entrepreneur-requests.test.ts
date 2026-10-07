@@ -54,7 +54,7 @@ describe("dossiers entrepreneur", () => {
     const [confirmed] = buildEntrepreneurRequests([submission({ siteValidatedAt: "2026-09-21T10:00:00Z" })], []);
     expect(buildRequestTracking(waiting).find((step) => step.label === "Solution trouvée")?.state).toBe("upcoming");
     expect(buildRequestTracking(confirmed).find((step) => step.label === "Solution trouvée")?.state).toBe("current");
-    expect(buildRequestTracking(confirmed, { id: "t", status: "nouvelle", created_at: null }).find((step) => step.label === "Transport")?.state).toBe("current");
+    expect(buildRequestTracking(confirmed, { id: "t", status: "nouvelle", created_at: null }).find((step) => step.label === "Transport à organiser")?.state).toBe("current");
   });
 
   it.each([
