@@ -7,6 +7,7 @@ import { fetchPartner, fetchPublicPartner, type PublicPartner } from "@/lib/mark
 import type { MarketplacePartner } from "@/lib/marketplace/types";
 
 type CompanyVehicle = { id: string; name: string; type: string; active: boolean | null };
+type CompanyIdentity = { name: string | null; legal_name: string | null; logo_url: string | null; phone: string | null; address: string | null };
 
 export const professionalProfileIsComplete = (partner: MarketplacePartner | null) => Boolean(
   partner
@@ -26,6 +27,7 @@ export default function CompanyProfileDetails({
   fallbackLocation?: string | null;
 }) {
   const [partner, setPartner] = useState<MarketplacePartner | null>(null);
+  const [company, setCompany] = useState<CompanyIdentity | null>(null);
   const [publicProfile, setPublicProfile] = useState<PublicPartner | null>(null);
   const [vehicles, setVehicles] = useState<CompanyVehicle[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "multiple" | "error">("loading");
@@ -42,16 +44,19 @@ export default function CompanyProfileDetails({
         if (!data?.length) { setState("missing"); return; }
         if (data.length > 1) { setState("multiple"); return; }
         const companyId = data[0].company_id;
-        const [profile, fleet] = await Promise.all([
+        const [profile, identity, fleet] = await Promise.all([
           fetchPartner(companyId),
+          supabase.from("jsc_companies").select("name,legal_name,logo_url,phone,address").eq("id", companyId).maybeSingle(),
           supabase.from("trucks").select("id,name,type,active").eq("company_id", companyId).is("archived_at", null).order("name"),
         ]);
         if (!active) return;
+        if (identity.error) throw identity.error;
         if (fleet.error) throw fleet.error;
         setPartner(profile);
+        setCompany(identity.data as CompanyIdentity | null);
         setVehicles((fleet.data ?? []) as CompanyVehicle[]);
         if (profile?.is_public) setPublicProfile(await fetchPublicPartner(companyId));
-        if (active) setState(profile ? "ready" : "missing");
+        if (active) setState("ready");
       } catch {
         if (active) setState("error");
       }
@@ -59,7 +64,7 @@ export default function CompanyProfileDetails({
     return () => { active = false; };
   }, [userId]);
 
-  const companyName = partner?.trade_name?.trim() || partner?.legal_name?.trim() || fallbackName || "Nom de l’entreprise · À compléter";
+  const companyName = partner?.trade_name?.trim() || partner?.legal_name?.trim() || company?.name?.trim() || company?.legal_name?.trim() || fallbackName || "Nom de l’entreprise · À compléter";
   const location = [partner?.city, partner?.region].filter(Boolean).join(" · ") || fallbackLocation || "Localisation · À compléter";
   const complete = professionalProfileIsComplete(partner);
   const services = publicProfile?.services ?? [];
@@ -74,7 +79,7 @@ export default function CompanyProfileDetails({
     <section aria-labelledby="professional-profile-title" className="space-y-6">
       <header className="flex items-start gap-4 border-b border-border pb-5">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary">
-          {partner?.logo_url ? <img src={partner.logo_url} alt={`Logo de ${companyName}`} className="h-full w-full object-contain" /> : <Building2 className="h-7 w-7 text-muted-foreground" aria-hidden />}
+          {partner?.logo_url || company?.logo_url ? <img src={partner?.logo_url || company?.logo_url || ""} alt={`Logo de ${companyName}`} className="h-full w-full object-contain" /> : <Building2 className="h-7 w-7 text-muted-foreground" aria-hidden />}
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-display text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Profil professionnel</p>
@@ -87,17 +92,16 @@ export default function CompanyProfileDetails({
         </div>
       </header>
 
-      {partner ? (
-        <>
+      <>
           <div>
             <h3 className="font-display text-sm font-bold">Description</h3>
-            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{partner.description || "À compléter"}</p>
+            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{partner?.description || "À compléter"}</p>
           </div>
           <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-            <div><dt className="text-xs text-muted-foreground">Nom légal</dt><dd className="mt-1 break-words font-medium">{partner.legal_name || "À compléter"}</dd></div>
-            <div><dt className="text-xs text-muted-foreground">Téléphone professionnel</dt><dd className="mt-1 flex items-center gap-1.5 break-words font-medium"><Phone className="h-3.5 w-3.5 text-muted-foreground" />{partner.phone || "À compléter"}</dd></div>
-            <div><dt className="text-xs text-muted-foreground">Adresse professionnelle</dt><dd className="mt-1 break-words font-medium">{partner.address || "À compléter"}</dd></div>
-            <div><dt className="text-xs text-muted-foreground">Ville</dt><dd className="mt-1 break-words font-medium">{partner.city || "À compléter"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Nom légal</dt><dd className="mt-1 break-words font-medium">{partner?.legal_name || company?.legal_name || "À compléter"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Téléphone professionnel</dt><dd className="mt-1 flex items-center gap-1.5 break-words font-medium"><Phone className="h-3.5 w-3.5 text-muted-foreground" />{partner?.phone || company?.phone || "À compléter"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Adresse professionnelle</dt><dd className="mt-1 break-words font-medium">{partner?.address || company?.address || "À compléter"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Ville</dt><dd className="mt-1 break-words font-medium">{partner?.city || "À compléter"}</dd></div>
           </dl>
           <div className="grid gap-5 border-y border-border py-5 sm:grid-cols-2">
             <div><h3 className="font-display text-sm font-bold">Services</h3><p className="mt-2 text-sm text-muted-foreground">{services.length ? services.join(" · ") : "Aucun service configuré"}</p></div>
@@ -110,15 +114,9 @@ export default function CompanyProfileDetails({
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm" className="min-h-11"><Link to="/partenaire/profil">Compléter la fiche <ArrowUpRight className="h-4 w-4" /></Link></Button>
-            {publicProfile && <Button asChild variant="ghost" size="sm" className="min-h-11"><Link to={`/trouver-un-entrepreneur/fiche/${partner.company_id}`}>Voir le profil public <ArrowUpRight className="h-4 w-4" /></Link></Button>}
+            {publicProfile && partner && <Button asChild variant="ghost" size="sm" className="min-h-11"><Link to={`/trouver-un-entrepreneur/fiche/${partner.company_id}`}>Voir le profil public <ArrowUpRight className="h-4 w-4" /></Link></Button>}
           </div>
         </>
-      ) : (
-        <div className="border-y border-border py-5">
-          <p className="text-sm text-muted-foreground">Description, logo, services et territoires : À compléter.</p>
-          <Button asChild variant="outline" size="sm" className="mt-3 min-h-11"><Link to="/partenaire/profil">Compléter la fiche professionnelle <ArrowUpRight className="h-4 w-4" /></Link></Button>
-        </div>
-      )}
     </section>
   );
 }
