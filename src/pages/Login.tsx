@@ -35,11 +35,22 @@ const Login = () => {
     else if (isEntrepreneur) goAfterLogin(user.id, "/entrepreneur");
   }, [authReady, user, roleLoading, isAdmin, isEntrepreneur, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const LOGIN_TIMEOUT_MS = 20000;
+  const TIMEOUT_MSG = "La connexion prend plus de temps que prévu. Vérifiez votre connexion et réessayez.";
+
+  const handleLogin = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (loading) return;
     setLoading(true);
+    setLoginError(null);
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("__login_timeout__")), LOGIN_TIMEOUT_MS);
+      });
+      const { data, error } = await Promise.race([supabase.auth.signInWithPassword({ email, password }), timeout]);
+      clearTimeout(timer);
       if (error) throw error;
       try {
         localStorage.setItem("vq_stay_logged_in", stayLoggedIn ? "1" : "0");
@@ -59,7 +70,14 @@ const Login = () => {
         goAfterLogin(data.user.id, roleList.includes("admin") ? "/admin" : "/entrepreneur");
       }
     } catch (err: any) {
-      toast({ title: "Erreur", description: err.message || "Connexion échouée", variant: "destructive" });
+      clearTimeout(timer);
+      const raw = String(err?.message ?? "");
+      let msg: string;
+      if (raw === "__login_timeout__" || /timeout|fetch|network|50\d/i.test(raw) || err?.status >= 500) msg = TIMEOUT_MSG;
+      else if (/invalid login credentials/i.test(raw)) msg = "Courriel ou mot de passe incorrect.";
+      else if (/email not confirmed/i.test(raw)) msg = "Votre courriel n’est pas encore confirmé.";
+      else msg = "La connexion a échoué. Réessayez dans un instant.";
+      setLoginError(msg);
     } finally {
       setLoading(false);
     }
@@ -116,6 +134,16 @@ const Login = () => {
                 required
               />
             </div>
+            {loginError && (
+              <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive font-body">
+                <p>{loginError}</p>
+                {loginError === TIMEOUT_MSG && (
+                  <button type="button" onClick={() => handleLogin()} disabled={loading} className="mt-2 font-semibold underline">
+                    Réessayer
+                  </button>
+                )}
+              </div>
+            )}
             <button
               type="submit"
               disabled={loading}
