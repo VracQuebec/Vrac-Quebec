@@ -14,7 +14,8 @@ export type CoverageRaw = {
 };
 
 export type ItemStatus =
-  | "covered"          // page existante, prévue par les données/configurations
+  | "covered"          // page publiée, opportunité pertinente
+  | "draft"            // page en brouillon, opportunité pertinente
   | "covered_equiv"    // page existante, matériau demandé sous un nom équivalent (à confirmer)
   | "off_criteria"     // page existante sans critère qui la justifie
   | "to_develop"       // prévue, aucune page
@@ -24,14 +25,15 @@ export type ItemStatus =
   | "not_linked";      // service SEO sans rattachement territorial
 
 export const ITEM_STATUS_LABEL: Record<ItemStatus, string> = {
-  covered: "Couverte",
-  covered_equiv: "Couverte — nom équivalent",
-  off_criteria: "Existante hors critères",
+  covered: "Couvert",
+  draft: "En brouillon",
+  covered_equiv: "Correspondance à confirmer — page existante",
+  off_criteria: "Hors critères",
   to_develop: "À développer",
-  to_develop_equiv: "À développer — équivalence à confirmer",
+  to_develop_equiv: "Correspondance à confirmer",
   not_configured: "Service non configuré",
   not_requested: "Non demandé",
-  not_linked: "Non rattaché au territoire",
+  not_linked: "Non applicable — aucun rattachement territorial",
 };
 
 export type CoverageItem = {
@@ -84,14 +86,14 @@ export function computeCoverage(raw: CoverageRaw) {
   const items: CoverageItem[] = [];
   const hub = pageFor(null, null);
   items.push({ kind: "hub", slug: null, label: "Page ville", page: hub, published: !!hub && isPublished(hub),
-    status: hub ? "covered" : "to_develop", reason: "Toujours prévue pour une municipalité active." });
+    status: hub ? (isPublished(hub) ? "covered" : "draft") : "to_develop", reason: "Toujours prévue pour une municipalité active." });
 
   for (const m of raw.materials) {
     const page = pageFor(m.slug, null);
     const exact = terms.filter((t) => t.match === "exact" && t.material === m.slug);
     const equiv = terms.filter((t) => t.match === "equiv" && t.material === m.slug);
     let status: ItemStatus; let reason: string;
-    if (exact.length) { status = page ? "covered" : "to_develop"; reason = `Demandé : ${exact.map((t) => `« ${t.raw} »`).join(", ")}.`; }
+    if (exact.length) { status = page ? (isPublished(page) ? "covered" : "draft") : "to_develop"; reason = `Demandé : ${exact.map((t) => `« ${t.raw} »`).join(", ")}.`; }
     else if (equiv.length) { status = page ? "covered_equiv" : "to_develop_equiv"; reason = `Nom équivalent à confirmer : ${equiv.map((t) => `« ${t.raw} »`).join(", ")}.`; }
     else if (page) { status = "off_criteria"; reason = "La page existe, mais aucune demande de la ville ne mentionne ce matériau."; }
     else { status = "not_requested"; reason = "Aucune demande de la ville ne mentionne ce matériau."; }
@@ -104,7 +106,7 @@ export function computeCoverage(raw: CoverageRaw) {
     const configured = links.filter((t) => t.status === "ACTIVE" || t.status === "PARTIELLE");
     const planned = configured.some((t) => t.requests > 0);
     let status: ItemStatus; let reason: string;
-    if (planned) { status = page ? "covered" : "to_develop"; reason = "Service configuré dans le territoire, avec demandes."; }
+    if (planned) { status = page ? (isPublished(page) ? "covered" : "draft") : "to_develop"; reason = "Service configuré dans le territoire, avec demandes."; }
     else if (page) { status = "off_criteria"; reason = links.length ? "La page existe, mais le service n'est pas configuré ou n'a aucune demande." : "La page existe, mais le service n'est rattaché à aucune configuration du territoire."; }
     else if (configured.length) { status = "not_requested"; reason = "Service configuré, mais aucune demande enregistrée."; }
     else if (links.length) { status = "not_configured"; reason = "Service réglé « non configuré » dans le territoire — à configurer, aucune page à créer."; }
@@ -132,10 +134,15 @@ export function computeCoverage(raw: CoverageRaw) {
     existingInCatalog: existingItems.length,
     published: raw.pages.filter(isPublished).length,
     drafts: raw.pages.filter((p) => !isPublished(p)).length,
-    planned: has(["covered", "to_develop"]).length,
-    plannedCovered: has(["covered"]).length,
+    /** Potentiel théorique du catalogue (jamais un objectif). */
+    theoretical: items.length,
+    /** Opportunités SEO pertinentes : page ville + matériaux demandés (nom exact) + services configurés avec demandes. */
+    planned: has(["covered", "draft", "to_develop"]).length,
+    plannedCovered: has(["covered", "draft"]).length,
+    plannedDrafts: has(["draft"]).length,
+    toConfirm: has(["covered_equiv", "to_develop_equiv"]).length,
     offCriteria: has(["off_criteria"]).length + outsideCatalog.length,
-    toDevelop: has(["to_develop", "to_develop_equiv"]).length,
+    toDevelop: has(["to_develop"]).length,
     notConfigured: has(["not_configured"]).length,
     outsideCatalog,
     territoryConfigured,

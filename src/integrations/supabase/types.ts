@@ -34054,6 +34054,15 @@ export type Database = {
       }
       seo_city_is_generable: { Args: { _city_slug: string }; Returns: boolean }
       seo_city_matrix: { Args: { _city_slug: string }; Returns: Json }
+      seo_city_opportunities: {
+        Args: never
+        Returns: {
+          city_slug: string
+          covered: number
+          drafts: number
+          pertinent: number
+        }[]
+      }
       seo_city_publish_missing: { Args: { _city_slug: string }; Returns: Json }
       seo_city_retry_errors: { Args: { _city_slug: string }; Returns: number }
       seo_city_run_abandon: { Args: { _job_id: string }; Returns: undefined }

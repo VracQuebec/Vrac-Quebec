@@ -72,6 +72,14 @@ export default function PipelineControlCenter() {
   const [errorsOpen, setErrorsOpen] = useState(false);
   const [problemsOpen, setProblemsOpen] = useState(false);
   const [workSlug, setWorkSlug] = useState<string | null>(null);
+  const [opps, setOpps] = useState<Map<string, { pertinent: number; covered: number }>>(new Map());
+  useEffect(() => {
+    void supabase.rpc("seo_city_opportunities" as never).then(({ data }) => {
+      const m = new Map<string, { pertinent: number; covered: number }>();
+      for (const r of ((data ?? []) as Array<{ city_slug: string; pertinent: number; covered: number }>)) m.set(r.city_slug, r);
+      setOpps(m);
+    });
+  }, [state?.computed_at]);
   const [coverageCity, setCoverageCity] = useState<{ slug: string; name: string } | null>(null);
   // Même logique de génération que le Générateur (aucune architecture parallèle).
   const gen = useCityGeneration();
@@ -434,7 +442,7 @@ export default function PipelineControlCenter() {
                   <Badge variant="outline" className={`text-[10px] shrink-0 ${meta.className}`}>{meta.label}</Badge>
                 </div>
 
-                <Progress value={coveragePct(c.generated, state?.totals.per_city ?? 0)} className="h-2" />
+                <Progress value={coveragePct(opps.get(c.slug)?.covered ?? 0, opps.get(c.slug)?.pertinent ?? 0)} className="h-2" />
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-xs">
                   <span>{c.generated} page{c.generated > 1 ? "s" : ""} existante{c.generated > 1 ? "s" : ""}</span>
@@ -442,7 +450,8 @@ export default function PipelineControlCenter() {
                   <span>{c.drafts} en brouillon</span>
                   <span>{c.remaining} prévue{c.remaining > 1 ? "s" : ""} non créée{c.remaining > 1 ? "s" : ""}</span>
                   <span className={c.errors > 0 ? "text-destructive font-medium" : ""}>{c.errors} erreur{c.errors > 1 ? "s" : ""}</span>
-                  <span className="font-semibold">Couverture SEO : {coverageLabel(c.generated, state?.totals.per_city ?? 0)}</span>
+                  <span className="font-semibold">Opportunités couvertes : {opps.get(c.slug) ? coverageLabel(opps.get(c.slug)!.covered, opps.get(c.slug)!.pertinent) : "…"}</span>
+                  <span className="text-muted-foreground">Potentiel théorique : {state?.totals.per_city ?? "—"}</span>
                 </div>
 
                 {isRunning && liveTotal ? (

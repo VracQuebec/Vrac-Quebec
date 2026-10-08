@@ -8,6 +8,7 @@ import { computeCoverage, coverageLabel, ITEM_STATUS_LABEL, type CoverageRaw, ty
 
 const TONE: Record<ItemStatus, string> = {
   covered: "text-green-700 border-green-500/30",
+  draft: "text-amber-700 border-amber-500/30",
   covered_equiv: "text-green-700 border-green-500/30",
   off_criteria: "text-amber-700 border-amber-500/30",
   to_develop: "text-primary border-primary/40",
@@ -31,11 +32,13 @@ export default function CityCoverageDialog({ city, onClose }: { city: { slug: st
 
   const c = raw ? computeCoverage(raw) : null;
   const groups: Array<{ title: string; st: ItemStatus[] }> = [
-    { title: "Pages couvertes", st: ["covered", "covered_equiv"] },
-    { title: "Pages existantes hors critères", st: ["off_criteria"] },
-    { title: "Pages à développer", st: ["to_develop", "to_develop_equiv"] },
+    { title: "Couvert", st: ["covered"] },
+    { title: "En brouillon", st: ["draft"] },
+    { title: "À développer", st: ["to_develop"] },
+    { title: "Hors critères", st: ["off_criteria"] },
+    { title: "Correspondance à confirmer", st: ["covered_equiv", "to_develop_equiv"] },
     { title: "Services à configurer", st: ["not_configured"] },
-    { title: "Non demandés ou non rattachés", st: ["not_requested", "not_linked"] },
+    { title: "Non demandé / non applicable", st: ["not_requested", "not_linked"] },
   ];
 
   return (
@@ -49,10 +52,12 @@ export default function CityCoverageDialog({ city, onClose }: { city: { slug: st
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <Stat label="Pages existantes" value={String(c.existing)} />
               <Stat label="Publiées" value={String(c.published)} />
-              <Stat label="En brouillon" value={String(c.drafts)} />
-              <Stat label="Couverture SEO" value={coverageLabel(c.existingInCatalog, c.possible)} hint="Possibilités du catalogue SEO actuel" />
-              <Stat label="Prévues par les données" value={`${c.plannedCovered} / ${c.planned}`} hint="Sans compter les pages hors critères" />
+              <Stat label="Brouillons" value={String(c.drafts)} />
+              <Stat label="Opportunités SEO pertinentes" value={String(c.planned)} hint="Ville + matériaux demandés + services configurés avec demandes" />
+              <Stat label="Couverture des opportunités" value={`${c.plannedCovered} / ${c.planned}`} hint={c.plannedDrafts ? `dont ${c.plannedDrafts} en brouillon` : undefined} />
+              <Stat label="Potentiel théorique du catalogue" value={String(c.theoretical)} hint={`${c.existingInCatalog} page(s) sur ${c.theoretical} — indicatif, jamais un objectif`} />
               <Stat label="Hors critères" value={String(c.offCriteria)} />
+              <Stat label="Correspondances à confirmer" value={String(c.toConfirm)} />
               <Stat label="À développer" value={String(c.toDevelop)} />
               <Stat label="Services non configurés" value={String(c.notConfigured)} />
             </div>
@@ -81,7 +86,7 @@ export default function CityCoverageDialog({ city, onClose }: { city: { slug: st
 
             {c.outsideCatalog.length > 0 && (
               <section className="space-y-1">
-                <h3 className="font-semibold">Pages hors catalogue actif ({c.outsideCatalog.length})</h3>
+                <h3 className="font-semibold">Hors catalogue actif ({c.outsideCatalog.length})</h3>
                 {c.outsideCatalog.map((p) => <div key={p.slug} className="text-xs">/{p.slug}</div>)}
               </section>
             )}
