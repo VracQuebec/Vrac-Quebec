@@ -56,3 +56,41 @@
 
 ---
 Demandes, transports, voyages, dompes, flotte, CRM, comptes : NON modifiés · RLS / permissions / authentification : NON · Nouvelle table : NON · Pages existantes modifiées : NON · URLs modifiées : NON · Pages créées : 10 brouillons · Publication : NON
+
+## Contrôle qualité 5E.1
+
+Contrôle effectué uniquement sur les dix brouillons `phase5e-p1`. Les textes ont été réécrits autour des éléments propres à chaque ville, sans viser un nombre minimal de mots. Le contenu principal compte désormais de 192 à 335 mots, auxquels s'ajoutent l'introduction et la FAQ. Cette concision est volontaire : aucune information locale manquante n'a été remplacée par du contenu générique.
+
+Le rendu réel a été vérifié dans le gabarit public sans changer le statut des pages : interception locale de la lecture du brouillon dans le navigateur, à 1280 × 1800 et 390 × 844. Cette vérification n'a rendu aucune page publique. Les dix pages ont affiché leur H1, leurs sections, leur FAQ et leur CTA sans bloc vide ni erreur d'exécution. Le bandeau animé et la troncature du dernier élément du fil d'Ariane sur petit écran sont des comportements existants et intentionnels du gabarit; le contenu éditorial et les H1 ne sont pas coupés.
+
+| Page | Contenu différencié | Similarité excessive | Rendu vérifié | SEO vérifié | Liens vérifiés | Problème éventuel | Correction effectuée |
+|---|---|---|---|---|---|---|---|
+| `/remblai-beaumont` | OUI | NON | OUI | OUI | OUI | Le texte précédent partageait trop de formulations génériques. | Recentré sur terrains résidentiels à monter ou remplir, terre, sable, roches et accès variables. |
+| `/remblai-saint-antoine-de-tilly` | OUI | NON | OUI | OUI | OUI | L'intention locale n'était pas assez distincte. | Recentré sur le rehaussement de terrain, les couches de matériaux et l'espace de demi-tour documenté. |
+| `/remblai-saint-georges` | OUI | NON | OUI | OUI | OUI | Les deux usages locaux étaient dilués dans un texte général. | Séparé en entrée 0-3/4 sur rue en pente et trou à remplir avec accès difficile. |
+| `/remblai-saint-henri` | OUI | NON | OUI | OUI | OUI | Le contexte agricole était insuffisamment exploité. | Recentré sur fondation de ferme, enclos, entrées et fonctions différentes du sable et du gravier. |
+| `/remblai-saint-isidore` | OUI | NON | OUI | OUI | OUI | Les contraintes propres aux dossiers étaient peu visibles. | Distinction entrée, terrains à monter et trou; restrictions de composition, recul et machinerie précisés. |
+| `/remblai-saint-tite-des-caps` | OUI | NON | OUI | OUI | OUI | Similarité élevée avec d'autres pages dans la version précédente. | Recentré sur dénivellation, chemin vers une terre à bois et rehaussement progressif avec déplacement du matériau. |
+| `/remblai-sainte-henedine` | OUI | NON | OUI | OUI | OUI | Peu d'information locale disponible. | Page volontairement raccourcie et limitée au terrain agricole et à l'espace de dépôt réellement décrits. |
+| `/remblai-sainte-marie` | OUI | NON | OUI | OUI | OUI | La pente n'était pas assez structurante. | Recentré sur le trou à remplir en pente prononcée et distingué des terrains à rehausser. |
+| `/remblai-scott` | OUI | NON | OUI | OUI | OUI | La contrainte du point de dépôt était noyée. | Recentré sur les besoins résidentiels, la terre mélangée et le dépôt vers l'arrière du terrain. |
+| `/remblai-trois-rivieres` | OUI | NON | OUI | OUI | OUI | Risque de confondre terre tamisée et remblai profond. | Séparé clairement l'entrée en gravier/pierre 3/4 net de la recherche de terre tamisée pour finition. |
+
+### Vérifications SEO et liens
+
+- **Unicité** : 10/10 titles, 10/10 meta descriptions et 10/10 H1 uniques.
+- **URL et canonical** : URLs inchangées; canonical observée dans le rendu sous la forme exacte `https://vracquebec.ca/remblai-<ville>`.
+- **FAQ et CTA** : 4 FAQ cohérentes et au moins un CTA `/soumission` rendus sur chacune des dix pages.
+- **Liens internes** : 43 destinations distinctes vérifiées; 0 absente et 0 non publiée. Les pages dompe liées n'ont pas été modifiées.
+- **Doublons** : une seule ligne par URL ciblée; aucune page existante fusionnée, supprimée, redirigée ou modifiée.
+- **Cannibalisation** : intention remblai conservée et distinguée de l'intention dompe; aucune des 144 pages protégées n'a été touchée.
+- **Promesses** : aucune disponibilité, entreprise, fournisseur, adresse, prix, distance, volume, délai, capacité, livraison ou transport n'a été inventé ou garanti.
+
+### Bilan 5E.1
+
+- **Pages corrigées** : 10.
+- **Pages déjà satisfaisantes sans correction** : 0.
+- **Plus haut niveau de similarité restant** : **27,6 %** (Jaccard sur les mots normalisés de l'introduction et du contenu principal), entre Beaumont et Sainte-Marie, contre environ 65 % auparavant.
+- **Pages nécessitant encore une intervention** : 0 selon les contrôles demandés.
+- **Publication effectuée** : **NON** — 10/10 restent en brouillon, `published_at` vide.
+- **Pages P2 commencées** : **NON**.
