@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
+import { coverageLabel, coveragePct } from "@/lib/seo/cityCoverage";
 import { useSeoControlCenter, type ControlCityRow, type ControlProblem } from "@/lib/seo/useSeoControlCenter";
 import { useSeoPipelineV2 } from "@/lib/seo/useSeoPipelineV2";
 import { Button } from "@/components/ui/button";
@@ -40,7 +42,7 @@ type FilterKey = "all" | "done" | "partial" | "running" | "todo" | "error";
 
 const FILTERS: Array<{ key: FilterKey; label: string }> = [
   { key: "all", label: "Toutes" },
-  { key: "done", label: "Terminées" },
+  { key: "done", label: "Pages prévues créées" },
   { key: "partial", label: "Partielles" },
   { key: "running", label: "En cours" },
   { key: "todo", label: "En attente" },
@@ -48,8 +50,8 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
 ];
 
 const STATUS_META: Record<ControlCityRow["status"], { label: string; className: string; dot: string }> = {
-  done:    { label: "TERMINÉE — GÉNÉRATION", className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" },
-  partial: { label: "GÉNÉRATION PARTIELLE", className: "bg-amber-500/15 text-amber-700 border-amber-500/30", dot: "bg-amber-500" },
+  done:    { label: "PAGES ACTUELLEMENT COUVERTES", className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" },
+  partial: { label: "PAGES PRÉVUES À CRÉER", className: "bg-amber-500/15 text-amber-700 border-amber-500/30", dot: "bg-amber-500" },
   running: { label: "EN COURS", className: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30", dot: "bg-yellow-500" },
   error:   { label: "ERREUR",   className: "bg-destructive/15 text-destructive border-destructive/30", dot: "bg-destructive" },
   todo:    { label: "EN ATTENTE",  className: "bg-muted text-muted-foreground border-border", dot: "bg-muted-foreground" },
@@ -70,6 +72,7 @@ export default function PipelineControlCenter() {
   const [errorsOpen, setErrorsOpen] = useState(false);
   const [problemsOpen, setProblemsOpen] = useState(false);
   const [workSlug, setWorkSlug] = useState<string | null>(null);
+  const [coverageCity, setCoverageCity] = useState<{ slug: string; name: string } | null>(null);
   // Même logique de génération que le Générateur (aucune architecture parallèle).
   const gen = useCityGeneration();
   const workCity = workSlug ? gen.bySlug.get(workSlug) ?? null : null;
@@ -431,15 +434,15 @@ export default function PipelineControlCenter() {
                   <Badge variant="outline" className={`text-[10px] shrink-0 ${meta.className}`}>{meta.label}</Badge>
                 </div>
 
-                <Progress value={c.pct} className="h-2" />
+                <Progress value={coveragePct(c.generated, state?.totals.per_city ?? 0)} className="h-2" />
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-xs">
-                  <span>{c.generated} / {c.planned} générées</span>
-                  <span>{c.published} / {c.planned} publiées</span>
-                  <span>{c.drafts} / {c.planned} en brouillon</span>
-                  <span>{c.remaining} restante{c.remaining > 1 ? "s" : ""} à générer</span>
+                  <span>{c.generated} page{c.generated > 1 ? "s" : ""} existante{c.generated > 1 ? "s" : ""}</span>
+                  <span>{c.published} publiée{c.published > 1 ? "s" : ""}</span>
+                  <span>{c.drafts} en brouillon</span>
+                  <span>{c.remaining} prévue{c.remaining > 1 ? "s" : ""} non créée{c.remaining > 1 ? "s" : ""}</span>
                   <span className={c.errors > 0 ? "text-destructive font-medium" : ""}>{c.errors} erreur{c.errors > 1 ? "s" : ""}</span>
-                  <span className="font-semibold">{c.pct} % générées</span>
+                  <span className="font-semibold">Couverture SEO : {coverageLabel(c.generated, state?.totals.per_city ?? 0)}</span>
                 </div>
 
                 {isRunning && liveTotal ? (
@@ -452,6 +455,9 @@ export default function PipelineControlCenter() {
                 <div className="flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" onClick={() => setPagesCity({ slug: c.slug, name: c.name })}>
                     <FileText className="w-3 h-3" /> Voir les pages
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1" onClick={() => setCoverageCity({ slug: c.slug, name: c.name })}>
+                    <FileText className="w-3 h-3" /> Couverture
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
                     disabled={!genRow || gen.verifying === c.slug || isRunning}
@@ -583,6 +589,8 @@ export default function PipelineControlCenter() {
         onRegenerateErrors={(city) => void gen.regenerateErrors(city)}
         onGenerateSlot={(city, slot) => void gen.generate(city, [slot], slot.state === "invalid" ? "repair" : "missing")}
       />
+
+      <CityCoverageDialog city={coverageCity} onClose={() => setCoverageCity(null)} />
 
       <CityPagesDialog
         citySlug={pagesCity?.slug ?? null}
