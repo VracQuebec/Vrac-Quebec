@@ -123,6 +123,13 @@ export function computeCoverage(raw: CoverageRaw) {
   const catalogPageIds = new Set(existingItems.map((i) => i.page!.slug));
   const outsideCatalog = raw.pages.filter((p) => !catalogPageIds.has(p.slug));
 
+  // Services configurés avec demandes, mais sans service SEO correspondant dans le catalogue :
+  // jamais comptés comme opportunités (aucune correspondance autorisée), signalés à valider.
+  const seoSlugs = new Set(raw.services.map((x) => x.slug));
+  const unmappedServices = raw.territory_services
+    .filter((t) => (t.status === "ACTIVE" || t.status === "PARTIELLE") && t.requests > 0 && !seoSlugs.has(territoryKeyToSeo(t.key)))
+    .map((t) => ({ key: t.key, status: t.status, requests: t.requests }));
+
   const territoryUnconfigured = raw.territory_services
     .filter((t) => !(t.status === "ACTIVE" || t.status === "PARTIELLE"))
     .map((t) => t.key);
@@ -149,6 +156,7 @@ export function computeCoverage(raw: CoverageRaw) {
     toDevelop: has(["to_develop"]).length,
     notConfigured: has(["not_configured"]).length,
     outsideCatalog,
+    unmappedServices,
     territoryConfigured,
     territoryUnconfigured,
   };
@@ -189,7 +197,7 @@ export function coverageFlags(c: Coverage) {
   return {
     badge: (c.toDevelop > 0 ? "to_develop" : "covered") as CoverageBadge,
     toConfigure: c.notConfigured > 0,
-    toValidate: c.toConfirm > 0,
+    toValidate: c.toConfirm > 0 || c.unmappedServices.length > 0,
     offCriteria: c.offCriteria > 0,
   };
 }
@@ -205,5 +213,6 @@ export function suspiciousLegacyRatio(legacy: { planned: number; generated: numb
   if (c.offCriteria > 0) why.push(`${c.offCriteria} page(s) hors critères incluses dans l'ancien total`);
   if (c.toDevelop > 0) why.push(`${c.toDevelop} opportunité(s) non couverte(s)`);
   if (c.toConfirm > 0) why.push(`${c.toConfirm} correspondance(s) à confirmer`);
+  if (c.unmappedServices.length > 0) why.push(`${c.unmappedServices.length} service(s) configuré(s) sans page SEO correspondante`);
   return why;
 }
