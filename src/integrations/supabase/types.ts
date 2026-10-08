@@ -34046,6 +34046,7 @@ export type Database = {
       }
       seo_bulk_state: { Args: never; Returns: Json }
       seo_city_active_run: { Args: never; Returns: Json }
+      seo_city_coverage: { Args: { _city_slug: string }; Returns: Json }
       seo_city_generation_overview: { Args: never; Returns: Json }
       seo_city_generation_report: {
         Args: { _city_slug: string }

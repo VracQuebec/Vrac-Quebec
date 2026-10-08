@@ -1443,6 +1443,13 @@
       "when": 1791406173656,
       "tag": "0205_shared_catalog_notif_status",
       "breakpoints": true
+    },
+    {
+      "idx": 206,
+      "version": "7",
+      "when": 1791478863785,
+      "tag": "0206_migration",
+      "breakpoints": true
     }
   ]
 }
