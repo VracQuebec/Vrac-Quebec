@@ -30,6 +30,19 @@ describe("couverture SEO réelle d'une ville", () => {
     expect(c.existing).toBe(4);
     expect(coverageLabel(c.existingInCatalog, c.possible)).toBe("4 / 28");
   });
+  it("Disraeli : 3 opportunités pertinentes, 3 couvertes, distinctes du potentiel théorique", () => {
+    expect(c.planned).toBe(3);
+    expect(c.plannedCovered).toBe(3);
+    expect(c.theoretical).toBe(28);
+    expect(c.toConfirm).toBe(1);
+    expect(c.toDevelop).toBe(0);
+  });
+  it("une page pertinente en brouillon est « En brouillon »", () => {
+    const d = computeCoverage({ ...disraeli, pages: [page("sable-disraeli", "sable", null, false)] });
+    expect(d.items.find((i) => i.slug === "sable")?.status).toBe("draft");
+    expect(d.plannedDrafts).toBe(1);
+    expect(d.items.find((i) => i.kind === "hub")?.status).toBe("to_develop");
+  });
   it("Disraeli : 3 publiées, 1 brouillon", () => {
     expect(c.published).toBe(3);
     expect(c.drafts).toBe(1);
