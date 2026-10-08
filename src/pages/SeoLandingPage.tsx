@@ -67,6 +67,7 @@ type SeoPage = {
   internal_links?: InternalLink[];
   status: string;
   noindex?: boolean | null;
+  wave?: string | null;
 };
 
 export default function SeoLandingPage() {
@@ -79,6 +80,7 @@ export default function SeoLandingPage() {
   const [materials, setMaterials] = useState<SeoMaterial[]>([]);
   const [relatedPosts, setRelatedPosts] = useState<Array<{ slug: string; title: string; excerpt: string | null; cover_image_url: string | null }>>([]);
   const [localPages, setLocalPages] = useState<LocalPageRef[]>([]);
+  const isPhase5fP2 = page?.wave === "phase5f-p2";
 
   const cityMap = useMemo(
     () => Object.fromEntries(cities.map((c) => [c.slug, c])) as Record<string, SeoCity>,
@@ -262,7 +264,7 @@ export default function SeoLandingPage() {
         {jsonLdFaq && <script type="application/ld+json">{JSON.stringify(jsonLdFaq)}</script>}
       </Helmet>
 
-      <TransportBanner />
+      {!isPhase5fP2 && <TransportBanner />}
 
       <nav aria-label="Fil d'Ariane" className="container mx-auto px-4 sm:px-6 pt-4 flex flex-wrap items-center gap-1 text-xs text-muted-foreground font-body">
         <Link to="/" className="hover:text-foreground flex items-center gap-1"><Home className="w-3 h-3" /> Accueil</Link>
@@ -315,7 +317,7 @@ export default function SeoLandingPage() {
         <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(page.content_html) }} />
       </article>
 
-      {city && dumpCount !== null && dumpCount > 0 && (
+      {!isPhase5fP2 && city && dumpCount !== null && dumpCount > 0 && (
         <section className="container mx-auto px-4 sm:px-6 pb-8">
           <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 flex items-start gap-4">
             <div className="shrink-0 rounded-lg bg-primary/15 p-2">
@@ -340,7 +342,9 @@ export default function SeoLandingPage() {
               Faire une demande{city ? ` à ${city.name}` : ""}
             </h2>
             <p className="text-muted-foreground font-body mt-1">
-              Formulaire rapide — moins d'une minute pour recevoir une soumission.
+              {isPhase5fP2
+                ? "Présentez votre besoin afin que la demande puisse être examinée."
+                : "Formulaire rapide — moins d'une minute pour recevoir une soumission."}
             </p>
           </div>
           <Questionnaire sourcePageSlug={page.slug} />
