@@ -69,3 +69,63 @@ describe("couverture SEO réelle d'une ville", () => {
     expect(matchTerm("sable", mats)).toEqual({ match: "exact", material: "sable" });
   });
 });
+
+import real from "./fixtures/coverage-real-cities.json";
+import { splitAll, coverageFlags, suspiciousLegacyRatio, type CoverageAllRaw } from "@/lib/seo/cityCoverage";
+
+const base = (over: Partial<CoverageRaw>): CoverageRaw => ({ ...disraeli, terms: [], pages: [], territory_services: [], ...over });
+
+describe("moteur global — mêmes règles pour toute municipalité", () => {
+  it("ville partiellement couverte : opportunité pertinente sans page = À développer", () => {
+    const c = computeCoverage(base({ terms: [{ raw: "Gravier", slug: "gravier", count: 3 }, { raw: "Sable", slug: "sable", count: 1 }], pages: [page("x", null, null), page("gravier-x", "gravier", null)] }));
+    expect(c.planned).toBe(3);
+    expect(c.plannedCovered).toBe(2);
+    expect(c.toDevelop).toBe(1);
+    expect(coverageFlags(c).badge).toBe("to_develop");
+  });
+  it("ville complètement couverte = COUVERTE", () => {
+    const c = computeCoverage(base({ terms: [{ raw: "Sable", slug: "sable", count: 1 }], pages: [page("x", null, null), page("sable-x", "sable", null)] }));
+    expect(c.plannedCovered).toBe(c.planned);
+    expect(coverageFlags(c).badge).toBe("covered");
+  });
+  it("plusieurs services actifs/partiels avec demandes sont des opportunités; sans demande, non", () => {
+    const c = computeCoverage(base({ territory_services: [
+      { key: "recherche_dompe", status: "ACTIVE", requests: 5 }, { key: "transport", status: "PARTIELLE", requests: 2 },
+      { key: "courtage_materiaux", status: "ACTIVE", requests: 0 }] }));
+    expect(c.items.find((i) => i.slug === "dompe")?.status).toBe("to_develop");
+    expect(c.items.find((i) => i.slug === "transport-vrac")?.status).toBe("to_develop");
+    expect(c.items.find((i) => i.slug === "courtage-materiaux")?.status).toBe("not_requested");
+    expect(c.planned).toBe(3);
+  });
+  it("service configuré avec demandes mais sans service SEO correspondant : à valider, jamais compté", () => {
+    const c = computeCoverage(base({ territory_services: [{ key: "livraison", status: "ACTIVE", requests: 3 }] }));
+    expect(c.unmappedServices.map((u) => u.key)).toEqual(["livraison"]);
+    expect(c.planned).toBe(1);
+    expect(coverageFlags(c).toValidate).toBe(true);
+  });
+  it("beaucoup de pages hors critères n'augmentent jamais les opportunités", () => {
+    const pages = [page("x", null, null), ...["beton", "brique", "neige", "pierre"].map((m) => page(`${m}-x`, m, null))];
+    const c = computeCoverage(base({ pages }));
+    expect(c.existing).toBe(5);
+    expect(c.planned).toBe(1);
+    expect(c.offCriteria).toBe(4);
+  });
+  it("l'ancien ratio X/X complet est signalé quand des pages hors critères y étaient incluses", () => {
+    const c = computeCoverage(disraeli);
+    expect(suspiciousLegacyRatio({ planned: 4, generated: 4 }, c).length).toBeGreaterThan(0);
+  });
+  it("données réelles — Saint-Agapit et Québec : même moteur, opportunités ≤ potentiel théorique", () => {
+    const rows = splitAll(real as unknown as CoverageAllRaw).map(computeCoverage);
+    expect(rows).toHaveLength(2);
+    for (const c of rows) {
+      expect(c.theoretical).toBe(28);
+      expect(c.planned).toBeLessThan(c.theoretical);
+
+      // Aucune page existante hors critères ne gonfle le total
+      expect(c.planned).toBe(c.items.filter((i) => ["covered", "draft", "to_develop"].includes(i.status)).length);
+    }
+    const quebec = rows[1];
+    expect(quebec.offCriteria).toBeGreaterThan(0);
+    expect(quebec.unmappedServices.map((u) => u.key)).toContain("livraison");
+  });
+});

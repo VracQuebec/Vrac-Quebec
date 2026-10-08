@@ -55,7 +55,7 @@ export default function CityCoverageDialog({ city, onClose }: { city: { slug: st
               <Stat label="Brouillons" value={String(c.drafts)} />
               <Stat label="Opportunités SEO pertinentes" value={String(c.planned)} hint="Ville + matériaux demandés + services configurés avec demandes" />
               <Stat label="Couverture des opportunités" value={`${c.plannedCovered} / ${c.planned}`} hint={c.plannedDrafts ? `dont ${c.plannedDrafts} en brouillon` : undefined} />
-              <Stat label="Potentiel théorique du catalogue" value={String(c.theoretical)} hint={`${c.existingInCatalog} page(s) sur ${c.theoretical} — indicatif, jamais un objectif`} />
+              <Stat label="Potentiel théorique du catalogue" value={String(c.theoretical)} hint="Indicatif — jamais un dénominateur" />
               <Stat label="Hors critères" value={String(c.offCriteria)} />
               <Stat label="Correspondances à confirmer" value={String(c.toConfirm)} />
               <Stat label="À développer" value={String(c.toDevelop)} />
@@ -78,11 +78,23 @@ export default function CityCoverageDialog({ city, onClose }: { city: { slug: st
                       <Badge variant="outline" className={TONE[i.status]}>{ITEM_STATUS_LABEL[i.status]}</Badge>
                       {i.page && <Badge variant="outline">{i.published ? "Publiée" : "Brouillon"} · /{i.page.slug}</Badge>}
                       <span className="w-full text-muted-foreground">{i.reason}</span>
+                      {i.sources.length > 0 && (
+                        <span className="w-full text-muted-foreground">
+                          Source : {i.sources.map((x) => `« ${x.raw} » (${x.count})${x.match === "equiv" ? " — correspondance à confirmer" : ""}`).join(", ")}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </section>
               );
             })}
+
+            {c.unmappedServices.length > 0 && (
+              <section className="space-y-1">
+                <h3 className="font-semibold">Services configurés sans page SEO correspondante ({c.unmappedServices.length})</h3>
+                {c.unmappedServices.map((u) => <div key={u.key} className="text-xs">{u.key} — {u.status}, {u.requests} demande(s) — non compté, correspondance à valider</div>)}
+              </section>
+            )}
 
             {c.outsideCatalog.length > 0 && (
               <section className="space-y-1">

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
-import { coverageLabel, coveragePct } from "@/lib/seo/cityCoverage";
+import { coverageLabel, coveragePct, computeCoverage, splitAll, coverageFlags, COVERAGE_BADGE_LABEL, type Coverage, type CoverageAllRaw } from "@/lib/seo/cityCoverage";
 import { useSeoControlCenter, type ControlCityRow, type ControlProblem } from "@/lib/seo/useSeoControlCenter";
 import { useSeoPipelineV2 } from "@/lib/seo/useSeoPipelineV2";
 import { Button } from "@/components/ui/button";
@@ -72,12 +72,14 @@ export default function PipelineControlCenter() {
   const [errorsOpen, setErrorsOpen] = useState(false);
   const [problemsOpen, setProblemsOpen] = useState(false);
   const [workSlug, setWorkSlug] = useState<string | null>(null);
-  const [opps, setOpps] = useState<Map<string, { pertinent: number; covered: number }>>(new Map());
+  // Couverture réelle : même moteur (cityCoverage.ts) pour toutes les municipalités actives.
+  const [cov, setCov] = useState<Map<string, Coverage>>(new Map());
   useEffect(() => {
-    void supabase.rpc("seo_city_opportunities" as never).then(({ data }) => {
-      const m = new Map<string, { pertinent: number; covered: number }>();
-      for (const r of ((data ?? []) as Array<{ city_slug: string; pertinent: number; covered: number }>)) m.set(r.city_slug, r);
-      setOpps(m);
+    void supabase.rpc("seo_city_coverage_all" as never).then(({ data }) => {
+      if (!data) return;
+      const m = new Map<string, Coverage>();
+      for (const r of splitAll(data as unknown as CoverageAllRaw)) m.set(r.city_slug, computeCoverage(r));
+      setCov(m);
     });
   }, [state?.computed_at]);
   const [coverageCity, setCoverageCity] = useState<{ slug: string; name: string } | null>(null);
@@ -426,7 +428,14 @@ export default function PipelineControlCenter() {
             const genRow = gen.bySlug.get(c.slug) ?? null;
             const isRunning = gen.run?.citySlug === c.slug || gen.dbActive?.city_slug === c.slug;
             const lockedByOther = !!gen.lockedBy && gen.lockedBy !== c.slug;
-            const meta = STATUS_META[isRunning ? "running" : c.status];
+            const cv = cov.get(c.slug) ?? null;
+            const flags = cv ? coverageFlags(cv) : null;
+            const legacyMeta = STATUS_META[isRunning ? "running" : c.status];
+            // Le badge ne dépend plus de la file du Générateur, sauf génération en cours ou erreur.
+            const meta = isRunning || c.status === "error" || !flags ? legacyMeta
+              : flags.badge === "covered"
+                ? { label: COVERAGE_BADGE_LABEL.covered, className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" }
+                : { label: COVERAGE_BADGE_LABEL.to_develop, className: "bg-amber-500/15 text-amber-700 border-amber-500/30", dot: "bg-amber-500" };
             const liveDone = gen.run?.citySlug === c.slug ? gen.run.done : gen.dbActive?.city_slug === c.slug ? gen.dbActive.done : null;
             const liveTotal = gen.run?.citySlug === c.slug ? gen.run.total : gen.dbActive?.city_slug === c.slug ? gen.dbActive.total : null;
             return (
@@ -442,7 +451,14 @@ export default function PipelineControlCenter() {
                   <Badge variant="outline" className={`text-[10px] shrink-0 ${meta.className}`}>{meta.label}</Badge>
                 </div>
 
-                <Progress value={coveragePct(opps.get(c.slug)?.covered ?? 0, opps.get(c.slug)?.pertinent ?? 0)} className="h-2" />
+                {flags && (flags.toValidate || flags.toConfigure || flags.offCriteria) && (
+                  <div className="flex flex-wrap gap-1">
+                    {flags.toValidate && <Badge variant="outline" className="text-[10px]">À VALIDER</Badge>}
+                    {flags.toConfigure && <Badge variant="outline" className="text-[10px]">À CONFIGURER</Badge>}
+                    {flags.offCriteria && <Badge variant="outline" className="text-[10px]">{cv!.offCriteria} HORS CRITÈRES</Badge>}
+                  </div>
+                )}
+                <Progress value={cv ? coveragePct(cv.plannedCovered, cv.planned) : 0} className="h-2" />
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-xs">
                   <span>{c.generated} page{c.generated > 1 ? "s" : ""} existante{c.generated > 1 ? "s" : ""}</span>
@@ -450,7 +466,7 @@ export default function PipelineControlCenter() {
                   <span>{c.drafts} en brouillon</span>
                   <span>{c.remaining} prévue{c.remaining > 1 ? "s" : ""} non créée{c.remaining > 1 ? "s" : ""}</span>
                   <span className={c.errors > 0 ? "text-destructive font-medium" : ""}>{c.errors} erreur{c.errors > 1 ? "s" : ""}</span>
-                  <span className="font-semibold">Opportunités couvertes : {opps.get(c.slug) ? coverageLabel(opps.get(c.slug)!.covered, opps.get(c.slug)!.pertinent) : "…"}</span>
+                  <span className="font-semibold">Couverture des opportunités : {cv ? coverageLabel(cv.plannedCovered, cv.planned) : "…"}</span>
                   <span className="text-muted-foreground">Potentiel théorique : {state?.totals.per_city ?? "—"}</span>
                 </div>
 
