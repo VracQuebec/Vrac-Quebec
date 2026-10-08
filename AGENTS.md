@@ -23,4 +23,5 @@
 - Public category colors normalize known legacy brand values at display time through the shared helper; no stored colors are rewritten.
 - Compact address labels retain full accessible names, tooltips and detail links so source information stays available.
 - Home art direction stays local to EntrepreneurDashboard; reusing authorized summaries and existing links isolates visual composition from shared pages and map behavior.
+- SEO draft waves may opt out of automatic operational claims by their wave marker; this keeps unvalidated services out without changing existing published pages.
 <!-- LOVABLE:END -->
