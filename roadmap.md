@@ -78,3 +78,4 @@
 - [x] Harmoniser la marque avec un token unique #7DD520, sans changer les couleurs fonctionnelles ni les espaces exclus; icônes bitmap existantes conservées.
 - [x] Affiner l’accueil, les listes et l’entourage de la carte en direction mobile visuelle, sans modifier les fonctions.
 - [x] Vérifier six formats, safe areas simulées, navigation, filtres, recherche et menu Plus sans écriture ni publication; 469 marqueurs individuels et 34 tests réussis.
+- [x] Phase 5F : 35 pages P2 « remblai » créées en brouillon (`phase5f-p2`, noindex, published_at vide), 0 exclusion; contenu local contrôlé, 114 liens publiés vérifiés, similarité substantielle maximale 20,7 %, 70/70 rendus ordinateur/mobile validés. Bandeau livraison et compteur de dépôts masqués uniquement pour cette vague afin d’éviter toute promesse non validée. P1 et 16 pages « À VALIDER » inchangées; aucune donnée opérationnelle, sécurité, migration ou publication. Rapport `docs/audit/phase5f-generation-p2.md`.
