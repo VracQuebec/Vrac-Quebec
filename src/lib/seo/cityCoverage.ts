@@ -44,6 +44,8 @@ export type CoverageItem = {
   reason: string;
   page: CoverageRaw["pages"][number] | null;
   published: boolean;
+  /** Demandes sources (termes saisis) et correspondance utilisée, si applicable. */
+  sources: Array<{ raw: string; count: number; match: "exact" | "equiv" }>;
 };
 
 export type TermMatch = { raw: string; slug: string; count: number; match: "exact" | "equiv" | "none"; material: string | null };
@@ -85,7 +87,7 @@ export function computeCoverage(raw: CoverageRaw) {
 
   const items: CoverageItem[] = [];
   const hub = pageFor(null, null);
-  items.push({ kind: "hub", slug: null, label: "Page ville", page: hub, published: !!hub && isPublished(hub),
+  items.push({ kind: "hub", slug: null, label: "Page ville", page: hub, sources: [], published: !!hub && isPublished(hub),
     status: hub ? (isPublished(hub) ? "covered" : "draft") : "to_develop", reason: "Toujours prévue pour une municipalité active." });
 
   for (const m of raw.materials) {
@@ -97,7 +99,8 @@ export function computeCoverage(raw: CoverageRaw) {
     else if (equiv.length) { status = page ? "covered_equiv" : "to_develop_equiv"; reason = `Nom équivalent à confirmer : ${equiv.map((t) => `« ${t.raw} »`).join(", ")}.`; }
     else if (page) { status = "off_criteria"; reason = "La page existe, mais aucune demande de la ville ne mentionne ce matériau."; }
     else { status = "not_requested"; reason = "Aucune demande de la ville ne mentionne ce matériau."; }
-    items.push({ kind: "material", slug: m.slug, label: m.name, status, reason, page, published: !!page && isPublished(page) });
+    items.push({ kind: "material", slug: m.slug, label: m.name, status, reason, page,
+      sources: [...exact, ...equiv].map((t) => ({ raw: t.raw, count: t.count, match: t.match as "exact" | "equiv" })), published: !!page && isPublished(page) });
   }
 
   for (const s of raw.services) {
@@ -111,7 +114,8 @@ export function computeCoverage(raw: CoverageRaw) {
     else if (configured.length) { status = "not_requested"; reason = "Service configuré, mais aucune demande enregistrée."; }
     else if (links.length) { status = "not_configured"; reason = "Service réglé « non configuré » dans le territoire — à configurer, aucune page à créer."; }
     else { status = "not_linked"; reason = "Aucune configuration territoriale ne correspond à ce service."; }
-    items.push({ kind: "service", slug: s.slug, label: s.name, status, reason, page, published: !!page && isPublished(page) });
+    items.push({ kind: "service", slug: s.slug, label: s.name, status, reason, page,
+      sources: links.filter((t) => t.requests > 0).map((t) => ({ raw: `${t.key} (${t.status})`, count: t.requests, match: "exact" as const })), published: !!page && isPublished(page) });
   }
 
   const has = (st: ItemStatus[]) => items.filter((i) => st.includes(i.status));
@@ -156,4 +160,50 @@ export function coverageLabel(existing: number, possible: number): string {
 }
 export function coveragePct(existing: number, possible: number): number {
   return possible > 0 ? Math.min(100, Math.round((existing / possible) * 100)) : 0;
+}
+
+// ── Moteur global : mêmes règles pour toutes les municipalités actives ──
+
+export type CoverageAllRaw = {
+  computed_at: string;
+  materials: CoverageRaw["materials"];
+  services: CoverageRaw["services"];
+  cities: Array<Omit<CoverageRaw, "materials" | "services">>;
+};
+
+export type Coverage = ReturnType<typeof computeCoverage>;
+
+/** Découpe la lecture globale en lectures par ville, sans aucune règle propre à une ville. */
+export function splitAll(all: CoverageAllRaw): CoverageRaw[] {
+  return all.cities.map((c) => ({ ...c, materials: all.materials, services: all.services }));
+}
+
+export type CoverageBadge = "covered" | "to_develop";
+export const COVERAGE_BADGE_LABEL: Record<CoverageBadge, string> = {
+  covered: "COUVERTE",
+  to_develop: "OPPORTUNITÉS À DÉVELOPPER",
+};
+
+/** Statut d'une ville, fondé uniquement sur les opportunités pertinentes (jamais sur la file du Générateur). */
+export function coverageFlags(c: Coverage) {
+  return {
+    badge: (c.toDevelop > 0 ? "to_develop" : "covered") as CoverageBadge,
+    toConfigure: c.notConfigured > 0,
+    toValidate: c.toConfirm > 0,
+    offCriteria: c.offCriteria > 0,
+  };
+}
+
+/**
+ * Ancien compteur du Générateur (« X / X ») : il ajoutait chaque page existante au total.
+ * Une ville est suspecte quand cet ancien ratio paraît complet alors que la couverture réelle
+ * comporte des pages hors critères, des opportunités non couvertes ou des éléments à valider.
+ */
+export function suspiciousLegacyRatio(legacy: { planned: number; generated: number }, c: Coverage): string[] {
+  if (legacy.planned === 0 || legacy.generated !== legacy.planned) return [];
+  const why: string[] = [];
+  if (c.offCriteria > 0) why.push(`${c.offCriteria} page(s) hors critères incluses dans l'ancien total`);
+  if (c.toDevelop > 0) why.push(`${c.toDevelop} opportunité(s) non couverte(s)`);
+  if (c.toConfirm > 0) why.push(`${c.toConfirm} correspondance(s) à confirmer`);
+  return why;
 }
