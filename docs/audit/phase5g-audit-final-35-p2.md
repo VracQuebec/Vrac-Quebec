@@ -17,39 +17,39 @@ Date : 2026-10-08. Audit en lecture seule : aucune page créée, modifiée ni pu
 |---|---|---|---|---|---|---|---|---|---|
 | Adstock | Remblai | /remblai-adstock | 11.0 % | Vérifié | OK | OK (5) | Aucun | A | — |
 | Cap-Saint-Ignace | Remblai | /remblai-cap-saint-ignace | 12.9 % | Vérifié | OK | OK (5) | Aucun | A | — |
-| monter | Remblai | /remblai-disraeli | 13.9 % | Vérifié | OK | OK (4) | Aucun | A | — |
-| East Broughton selon le projet | Remblai | /remblai-east-broughton | 14.1 % | Vérifié | OK | OK (5) | Aucun | A | — |
-| combler | Remblai | /remblai-la-durantaye | 15.5 % | Vérifié | OK | OK (5) | Aucun | A | — |
+| Disraeli | Remblai | /remblai-disraeli | 13.9 % | Vérifié | OK | OK (4) | Aucun | A | — |
+| East Broughton | Remblai | /remblai-east-broughton | 14.1 % | Vérifié | OK | OK (5) | Aucun | A | — |
+| La Durantaye | Remblai | /remblai-la-durantaye | 15.5 % | Vérifié | OK | OK (5) | Aucun | A | — |
 | Lac-Etchemin | Remblai | /remblai-lac-etchemin | 11.5 % | Vérifié | OK | OK (4) | Aucun | A | — |
-| Notre-Dame-du-Sacré-Coeur-d'Issoudun selon le projet | Remblai | /remblai-notre-dame-du-sacre-coeur-d-issoudun | 20.7 % | Vérifié | OK | OK (5) | Aucun | A | — |
-| monter | Remblai | /remblai-saint-anselme | 13.7 % | Vérifié | OK | OK (3) | Aucun | A | — |
-| Saint-Basile selon le projet | Remblai | /remblai-saint-basile | 18.3 % | Vérifié | OK | OK (5) | Aucun | A | — |
-| Saint-Benoît-Labre selon le projet | Remblai | /remblai-saint-benoit-labre | 11.5 % | Limité | OK | OK (3) | Aucun | B | Aucune demande enregistrée dans cette ville : contenu local limité au territoire et aux matériaux du rapport 5D; à confirmer avant publication |
+| Notre-Dame-du-Sacré-Coeur-d'Issoudun | Remblai | /remblai-notre-dame-du-sacre-coeur-d-issoudun | 20.7 % | Vérifié | OK | OK (5) | Aucun | A | — |
+| Saint-Anselme | Remblai | /remblai-saint-anselme | 13.7 % | Vérifié | OK | OK (3) | Aucun | A | — |
+| Saint-Basile | Remblai | /remblai-saint-basile | 18.3 % | Vérifié | OK | OK (5) | Aucun | A | — |
+| Saint-Benoît-Labre | Remblai | /remblai-saint-benoit-labre | 11.5 % | Limité | OK | OK (3) | Aucun | B | Aucune demande enregistrée dans cette ville : contenu local limité au territoire et aux matériaux du rapport 5D; à confirmer avant publication |
 | Saint-Calixte-de-Kilkenny | Remblai | /remblai-saint-calixte-de-kilkenny | 14.3 % | Vérifié | OK | OK (5) | Aucun | A | — |
 | Saint-Colomban | Remblai | /remblai-saint-colomban | 10.8 % | Vérifié | OK | OK (4) | Aucun | A | — |
 | Saint-Elzéar | Remblai | /remblai-saint-elzear | 13.9 % | Vérifié | OK | OK (5) | Aucun | A | — |
 | Saint-Félix-de-Valois | Remblai | /remblai-saint-felix-de-valois | 13.6 % | Vérifié | OK | OK (4) | Aucun | A | — |
-| Saint-Flavien selon le projet | Remblai | /remblai-saint-flavien | 20.7 % | Vérifié | OK | OK (5) | Aucun | A | — |
+| Saint-Flavien | Remblai | /remblai-saint-flavien | 20.7 % | Vérifié | OK | OK (5) | Aucun | A | — |
 | Saint-Gervais | Remblai | /remblai-saint-gervais | 16.4 % | Limité | OK | OK (4) | Aucun | B | Aucune demande enregistrée dans cette ville : contenu local limité au territoire et aux matériaux du rapport 5D; à confirmer avant publication |
 | Saint-Janvier-de-Joly | Remblai | /remblai-saint-janvier-de-joly | 12.9 % | Vérifié | OK | OK (5) | Aucun | A | — |
-| Saint-Jérôme selon le projet | Remblai | /remblai-saint-jerome | 13.0 % | Vérifié | OK | OK (4) | Aucun | A | — |
+| Saint-Jérôme | Remblai | /remblai-saint-jerome | 13.0 % | Vérifié | OK | OK (4) | Aucun | A | — |
 | Saint-Lazare-de-Bellechasse | Remblai | /remblai-saint-lazare-de-bellechasse | 10.3 % | Limité | OK | OK (3) | Aucun | B | Aucune demande enregistrée dans cette ville : contenu local limité au territoire et aux matériaux du rapport 5D; à confirmer avant publication |
-| monter | Remblai | /remblai-saint-maurice | 8.3 % | Vérifié | OK | OK (3) | Aucun | A | — |
-| Saint-Michel-de-Bellechasse selon le projet | Remblai | /remblai-saint-michel-de-bellechasse | 11.6 % | Limité | OK | OK (4) | Aucun | B | Aucune demande enregistrée dans cette ville : contenu local limité au territoire et aux matériaux du rapport 5D; à confirmer avant publication |
+| Saint-Maurice | Remblai | /remblai-saint-maurice | 8.3 % | Vérifié | OK | OK (3) | Aucun | A | — |
+| Saint-Michel-de-Bellechasse | Remblai | /remblai-saint-michel-de-bellechasse | 11.6 % | Limité | OK | OK (4) | Aucun | B | Aucune demande enregistrée dans cette ville : contenu local limité au territoire et aux matériaux du rapport 5D; à confirmer avant publication |
 | Saint-René | Remblai | /remblai-saint-rene | 9.3 % | Vérifié | OK | OK (4) | Aucun | A | — |
-| Saint-Simon-les-Mines selon le projet | Remblai | /remblai-saint-simon-les-mines | 14.3 % | Vérifié | OK | OK (5) | Aucun | A | — |
-| combler | Remblai | /remblai-saint-theophile | 13.9 % | Vérifié | OK | OK (5) | Aucun | A | — |
-| Sainte-Christine-d'Auvergne selon le projet | Remblai | /remblai-sainte-christine-d-auvergne | 16.4 % | Limité | OK | OK (4) | Aucun | B | Aucune demande enregistrée dans cette ville : contenu local limité au territoire et aux matériaux du rapport 5D; à confirmer avant publication |
-| combler | Remblai | /remblai-sainte-emelie-de-l-energie | 12.4 % | Vérifié | OK | OK (5) | Aucun | A | — |
+| Saint-Simon-les-Mines | Remblai | /remblai-saint-simon-les-mines | 14.3 % | Vérifié | OK | OK (5) | Aucun | A | — |
+| Saint-Théophile | Remblai | /remblai-saint-theophile | 13.9 % | Vérifié | OK | OK (5) | Aucun | A | — |
+| Sainte-Christine-d'Auvergne | Remblai | /remblai-sainte-christine-d-auvergne | 16.4 % | Limité | OK | OK (4) | Aucun | B | Aucune demande enregistrée dans cette ville : contenu local limité au territoire et aux matériaux du rapport 5D; à confirmer avant publication |
+| Sainte-Émélie-de-l'Énergie | Remblai | /remblai-sainte-emelie-de-l-energie | 12.4 % | Vérifié | OK | OK (5) | Aucun | A | — |
 | Sainte-Julienne | Remblai | /remblai-sainte-julienne | 14.1 % | Vérifié | OK | OK (4) | Aucun | A | — |
 | Sainte-Marguerite | Remblai | /remblai-sainte-marguerite | 14.9 % | Vérifié | OK | OK (5) | Aucun | A | — |
 | Sainte-Sophie-de-Lévrard | Remblai | /remblai-sainte-sophie-de-levrard | 10.9 % | Limité | OK | OK (5) | Aucun | B | Aucune demande enregistrée dans cette ville : contenu local limité au territoire et aux matériaux du rapport 5D; à confirmer avant publication |
-| Saints-Anges selon le projet | Remblai | /remblai-saints-anges | 12.9 % | Vérifié | OK | OK (5) | Aucun | A | — |
-| Shawinigan selon le projet | Remblai | /remblai-shawinigan | 15.7 % | Vérifié | OK | OK (4) | Aucun | A | — |
+| Saints-Anges | Remblai | /remblai-saints-anges | 12.9 % | Vérifié | OK | OK (5) | Aucun | A | — |
+| Shawinigan | Remblai | /remblai-shawinigan | 15.7 % | Vérifié | OK | OK (4) | Aucun | A | — |
 | Val-Alain | Remblai | /remblai-val-alain | 18.3 % | Vérifié | OK | OK (3) | Aucun | A | — |
-| monter | Remblai | /remblai-val-david | 12.4 % | Vérifié | OK | OK (3) | Aucun | A | — |
+| Val-David | Remblai | /remblai-val-david | 12.4 % | Vérifié | OK | OK (3) | Aucun | A | — |
 | Villeroy | Remblai | /remblai-villeroy | 11.8 % | Vérifié | OK | OK (4) | Aucun | A | — |
-| Wentworth-Nord selon le projet | Remblai | /remblai-wentworth-nord | 10.4 % | Vérifié | OK | OK (3) | Aucun | A | — |
+| Wentworth-Nord | Remblai | /remblai-wentworth-nord | 10.4 % | Vérifié | OK | OK (3) | Aucun | A | — |
 
 ## Points communs vérifiés (35/35)
 - Brouillon, published_at vide, absent du sitemap public (noindex actif tant que non publié).
