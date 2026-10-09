@@ -157,11 +157,11 @@ Deno.serve(async (req) => {
 
     if (targets.length === 1) {
       await work;
-      return json({ ok: true, queued: 1, done: true });
+      return json({ ok: true, queued: 1, done: true, skipped_published: skippedPublished });
     }
     // deno-lint-ignore no-explicit-any
     (globalThis as any).EdgeRuntime?.waitUntil?.(work);
-    return json({ ok: true, queued: targets.length, done: false });
+    return json({ ok: true, queued: targets.length, done: false, skipped_published: skippedPublished });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
