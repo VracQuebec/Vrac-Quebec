@@ -477,12 +477,13 @@ export default function PipelineControlCenter() {
                   <span>{c.generated} page{c.generated > 1 ? "s" : ""} existante{c.generated > 1 ? "s" : ""}</span>
                   <span>{c.published} publiée{c.published > 1 ? "s" : ""}</span>
                   <span>{c.drafts} en brouillon</span>
-                  <span>{c.remaining} prévue{c.remaining > 1 ? "s" : ""} non créée{c.remaining > 1 ? "s" : ""}</span>
-                  <span className={split.realErrors > 0 ? "text-destructive font-medium" : ""}>{split.realErrors} erreur{split.realErrors > 1 ? "s" : ""}</span>
+                  <span>{plan.missing + plan.failed + plan.stalled} manquante(s)</span>
+                  {plan.pending > 0 && <span>{plan.pending} en file d'attente</span>}
+                  <span className={split.realErrors > 0 ? "text-destructive font-medium" : ""}>{split.realErrors} erreur{split.realErrors > 1 ? "s" : ""}{plan.invalidPublished > 0 ? ` (dont ${plan.invalidPublished} en ligne)` : ""}</span>
                   {split.noindex > 0 && <span className="text-muted-foreground">{split.noindex} publiée(s) non indexée(s) volontairement</span>}
                   <span className="font-semibold">Couverture des opportunités : {cv ? coverageLabel(cv.plannedCovered, cv.planned) : "…"}</span>
                   <span className="text-muted-foreground">Potentiel théorique : {state?.totals.per_city ?? "—"}</span>
-                  {cv && cv.toDevelop > 0 && <span className="text-amber-700">{cv.toDevelop} opportunité(s) sans page — hors file du générateur</span>}
+                  {cv && cv.toDevelop > 0 && <span className="text-amber-700">{cv.toDevelop} opportunité(s) sans page — dans la file du générateur</span>}
                 </div>
 
                 {isRunning && liveTotal ? (
@@ -524,24 +525,23 @@ export default function PipelineControlCenter() {
                     {busy === `pub-${c.slug}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />} Publier les non publiées
                   </Button>
                   <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => openLogs(c.slug)}>Voir les logs</Button>
-                  {c.remaining > 0 && (
-                    <Button size="sm" className="h-8 px-2.5 text-xs gap-1"
-                      disabled={!genRow || isRunning || lockedByOther}
-                      onClick={() => genRow && void gen.generateCity(genRow)}>
-                      {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-                      {c.generated > 0 ? "Reprendre la génération" : "Générer cette ville"}
-                    </Button>
-                  )}
+                  <Button size="sm" className="h-8 px-2.5 text-xs gap-1"
+                    title={plan.generate.reason ?? undefined}
+                    disabled={!plan.generate.enabled}
+                    onClick={() => genRow && void gen.generateCity(genRow, { includeStalled: plan.stalled > 0 })}>
+                    {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+                    {c.generated > 0 ? "Reprendre la génération" : "Générer cette ville"}
+                    {plan.generate.count > 0 ? ` (${plan.generate.count})` : ""}
+                  </Button>
                 </div>
-                {(retryReason || publishReason) && (
-                  <div className="text-[10px] text-muted-foreground space-y-0.5" onClick={(e) => e.stopPropagation()}>
-                    {retryReason && <div>Régénérer : {retryReason}</div>}
-                    {publishReason && <div>Publier : {publishReason}</div>}
-                  </div>
-                )}
-                {lockedByOther && c.remaining > 0 && (
-                  <div className="text-[10px] text-muted-foreground">Une autre ville est en cours de génération.</div>
-                )}
+                <div className="text-[10px] text-muted-foreground space-y-0.5" onClick={(e) => e.stopPropagation()}>
+                  {plan.generate.reason && <div>Générer : {plan.generate.reason}</div>}
+                  {plan.stalled > 0 && <div>{plan.stalled} génération(s) interrompue(s) — reprises par « Reprendre la génération ».</div>}
+                  {retryReason && <div>Régénérer : {retryReason}</div>}
+                  {plan.retry.enabled && plan.invalidPublished > 0 && <div>Régénérer : {plan.invalidDrafts} brouillon(s) visé(s); {plan.invalidPublished} page(s) en ligne protégée(s).</div>}
+                  {publishReason && <div>Publier : {publishReason}</div>}
+                  {cv && cv.offCriteria > 0 && <div>Exclues : {cv.offCriteria} page(s) existante(s) hors critères (aucune demande ni service configuré) — conservées, jamais régénérées.</div>}
+                </div>
               </div>
             );
           })}
