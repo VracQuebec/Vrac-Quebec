@@ -224,7 +224,7 @@ export default function Soumission() {
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>Estimation de matériaux en vrac | Vrac Québec</title>
-        <meta name="description" content="Obtenez en moins de 60 secondes une estimation de livraison de terre, sable, pierre concassée ou enrochement partout au Québec." />
+        <meta name="description" content="Demandez en ligne une soumission pour de la terre, du sable, de la pierre concassée ou de l'enrochement. Prix et modalités confirmés après analyse." />
         <link rel="canonical" href="https://vracquebec.ca/soumission" />
       </Helmet>
       <TransportBanner />
@@ -236,7 +236,7 @@ export default function Soumission() {
             <h1 className="mt-4 text-2xl font-bold text-foreground">Votre demande est enregistrée</h1>
             <p className="mt-2 text-muted-foreground">
               Référence <span className="font-semibold text-foreground">{confirmation.number}</span>.
-              Un conseiller Vrac Québec valide votre estimation et vous contacte rapidement.
+              Un conseiller Vrac Québec valide votre estimation et communique avec vous pour confirmer les modalités.
             </p>
             <div className="mt-6"><QuoteCard quote={confirmation.quote} /></div>
             <Button asChild className="mt-6"><Link to="/">Retour à l'accueil</Link></Button>
@@ -247,9 +247,9 @@ export default function Soumission() {
               <p className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
                 <Truck className="h-4 w-4" /> Assistant intelligent de soumission
               </p>
-              <h1 className="mt-3 text-3xl font-bold text-foreground">Votre estimation en moins de 60 secondes</h1>
+              <h1 className="mt-3 text-3xl font-bold text-foreground">Faites une demande de soumission en ligne</h1>
               <p className="mt-2 text-muted-foreground">
-                Répondez à quelques questions simples : nous nous occupons de toute la logistique.
+                Répondez à quelques questions simples : Vrac Québec analyse votre demande et vous confirme les modalités.
               </p>
             </header>
 

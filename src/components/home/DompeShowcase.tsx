@@ -20,7 +20,7 @@ const DompeShowcase = () => (
           <Sparkles className="h-3.5 w-3.5" aria-hidden /> Recherche de dompes
         </span>
         <h2 id="dompes-title" className="mt-4 font-display text-2xl sm:text-3xl font-extrabold leading-tight text-foreground">
-          Trouvez la meilleure dompe <span className="text-primary">en moins de 60 secondes</span>
+          Trouvez une dompe <span className="text-primary">compatible avec vos matériaux</span>
         </h2>
         <p className="mt-3 font-body text-sm sm:text-base leading-relaxed text-muted-foreground">
           Site de dépôt / site receveur de matériaux. Une dompe à quelques minutes de moins peut
