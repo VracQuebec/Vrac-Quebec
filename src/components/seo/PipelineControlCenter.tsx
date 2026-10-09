@@ -432,9 +432,15 @@ export default function PipelineControlCenter() {
             const lockedByOther = !!gen.lockedBy && gen.lockedBy !== c.slug;
             const cv = cov.get(c.slug) ?? null;
             const flags = cv ? coverageFlags(cv) : null;
-            const split = cityProblemSplit(state?.problems ?? [], c.slug);
-            const retryReason = retryDisabledReason(split.realErrors, split.noindex);
-            const publishReason = publishDisabledReason(c);
+            const plan = cityPlan({
+              slug: c.slug, unpublished: c.unpublished, drafts: c.drafts,
+              problems: (state?.problems ?? []) as never,
+              publishedKeys: publishedKeysOf(cv),
+              runningHere: isRunning, lockedByOther, globalRunActive: globalActive, hasGenRow: !!genRow,
+            });
+            const split = { realErrors: plan.invalidDrafts + plan.invalidPublished + plan.failed, noindex: plan.noindex };
+            const retryReason = plan.retry.reason;
+            const publishReason = plan.publish.reason;
             const legacyMeta = STATUS_META[isRunning ? "running" : c.status];
             // Le badge ne dépend plus de la file du Générateur, sauf génération en cours ou erreur.
             const meta = isRunning || c.status === "error" || !flags ? legacyMeta

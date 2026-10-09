@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { toast } from "sonner";
+import { generationTargets } from "@/lib/seo/cityActions";
 
 /**
  * SOURCE UNIQUE de la génération SEO ville par ville.
