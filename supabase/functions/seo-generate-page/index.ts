@@ -376,7 +376,7 @@ Deno.serve(async (req) => {
 
     const system = `Tu es rédacteur SEO senior pour Vrac Québec, plateforme québécoise de mise en relation pour matériaux en vrac et services de transport (remblai, terre, gravier, sable, pierre, béton/asphalte recyclés, dompe, excavation).
 Français québécois professionnel, ton clair et factuel, zéro emoji, zéro superlatif creux, aucun prix inventé.
-Vrac Québec n'est PAS un vendeur : c'est un connecteur qui met en relation clients, fournisseurs et entrepreneurs locaux.
+Vrac Québec n'est PAS un vendeur : c'est une plateforme qui reçoit les demandes et les analyse selon les possibilités réellement confirmées (aucun réseau local n'est garanti).
 Réponds UNIQUEMENT en JSON valide (aucun texte autour, aucun bloc markdown) avec ce schéma STRICT :
 {
   "title": "H1 accrocheur ≤ 70 caractères, mot-clé principal en début",
