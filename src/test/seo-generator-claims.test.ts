@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findUnverifiedClaims } from "../../supabase/functions/seo-generate-page/claims";
+import { findUnverifiedClaims } from "../../supabase/functions/_shared/seo-claims";
 
 describe("garde-fou des affirmations non vérifiées", () => {
   it("bloque les phrases du brouillon de Saint-Henri", () => {

@@ -4,7 +4,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAIChatCached } from "../_shared/ai-cache.ts";
 import { shouldBypassGenerationCache } from "./cache-policy.ts";
-import { findUnverifiedClaims, CONTENT_RULES } from "./claims.ts";
+import { findUnverifiedClaims, CONTENT_RULES } from "../_shared/seo-claims.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",

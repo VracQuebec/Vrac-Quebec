@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
-import { findUnverifiedClaims } from "../../supabase/functions/seo-generate-page/claims";
+import { findUnverifiedClaims } from "../../supabase/functions/_shared/seo-claims";
 
 const src = readFileSync("supabase/functions/seo-qa-autofix/index.ts", "utf8");
 const faqBlock = src.slice(src.indexOf("function buildFaq"), src.indexOf("Deno.serve"));
