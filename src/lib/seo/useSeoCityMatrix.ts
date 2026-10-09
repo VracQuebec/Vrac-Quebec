@@ -92,7 +92,7 @@ export async function repairSeoPages(input: {
     all_errors: input.allErrors ?? false,
   });
   if (error) throw new Error(error.message);
-  const d = data as { error?: string; queued?: number; done?: boolean };
+  const d = data as { error?: string; queued?: number; done?: boolean; message?: string; skipped_published?: number };
   if (d?.error) throw new Error(d.error);
   return d;
 }

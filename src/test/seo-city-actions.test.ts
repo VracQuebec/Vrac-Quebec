@@ -28,3 +28,10 @@ describe("actions de ville du gestionnaire SEO", () => {
     expect(publishResultMessage({ published: 1, skipped_invalid: 2 })).toBe("1 page(s) publiée(s), 2 ignorée(s) (contrôle qualité non réussi).");
   });
 });
+
+import { repairResultMessage } from "@/lib/seo/cityActions";
+describe("protection des pages en ligne", () => {
+  it("signale les pages en ligne non remplacées", () => {
+    expect(repairResultMessage({ queued: 1, done: true, skipped_published: 2 })).toContain("2 page(s) en ligne protégée(s)");
+  });
+});
