@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findUnverifiedClaims } from "../../supabase/functions/seo-generate-page/claims";
+import { findUnverifiedClaims } from "../../supabase/functions/_shared/seo-claims";
 
 describe("garde-fou des affirmations non vérifiées", () => {
   it("bloque les phrases du brouillon de Saint-Henri", () => {
@@ -22,5 +22,13 @@ describe("garde-fou des affirmations non vérifiées", () => {
 describe("faux positifs", () => {
   it("une phrase technique générale avec « garantit » reste permise", () => {
     expect(findUnverifiedClaims("Une bonne préparation du terrain garantit une application efficace du remblai.")).toEqual([]);
+  });
+});
+
+describe("négations", () => {
+  it("une garantie niée n'est pas une promesse", () => {
+    expect(findUnverifiedClaims("aucun délai n'est garanti à l'avance")).toEqual([]);
+    expect(findUnverifiedClaims("Une solution est-elle garantie? Non.")).toEqual([]);
+    expect(findUnverifiedClaims("la qualité est garantie")).not.toHaveLength(0);
   });
 });
