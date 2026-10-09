@@ -192,11 +192,15 @@ export function useCityGeneration() {
     toast.success(`${city.name} : ${state.created} page(s) créée(s), ${state.errors} erreur(s). Aucune publication automatique.`);
   }, [materials, services, load]);
 
-  /** Génère / reprend une ville : ne cible que les emplacements manquants ou en échec. */
-  const generateCity = useCallback(async (city: CityRow) => {
+  /**
+   * Génère / reprend une ville : emplacements manquants, en échec et — si aucune exécution
+   * n'est active — tâches interrompues. Chaque emplacement n'est ciblé qu'une fois; la fonction
+   * serveur ignore toute page déjà existante (aucun doublon, aucun appel IA inutile).
+   */
+  const generateCity = useCallback(async (city: CityRow, opts?: { includeStalled?: boolean }) => {
     try {
       const report = await fetchReport(city.slug);
-      const targets = (report?.slots ?? []).filter((s) => s.state === "missing" || s.state === "error");
+      const targets = generationTargets((report?.slots ?? []) as Slot[], !!opts?.includeStalled);
       if (targets.length === 0) { toast.info(`${city.name} : aucune page manquante.`); return; }
       await generate(city, targets, "missing");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Rapport indisponible"); }
