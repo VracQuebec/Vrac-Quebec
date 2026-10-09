@@ -1,13 +1,13 @@
 --- supabase/functions/seo-generate-page/index.ts	2026-10-09 17:01:31.211032998 +0000
-+++ prepared/seo-generator/seo-generate-page/index.ts	2026-10-09 17:42:30.493171628 +0000
++++ prepared/seo-generator/seo-generate-page/index.ts	2026-10-09 17:49:04.862660297 +0000
 @@ -4,7 +4,9 @@
  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  import { callAIChatCached } from "../_shared/ai-cache.ts";
  import { shouldBypassGenerationCache } from "./cache-policy.ts";
 -import { offerKind } from "../_shared/seo-faq-offer.ts";
 +import { offerKind, enforceOfferFaq } from "../_shared/seo-faq-offer.ts";
-+import { sanitizeContentLinks, candidateSlugs } from "../_shared/seo-link-guard.ts";
-+import { findPlaceholders, metaIssues } from "../_shared/seo-quality.ts";
++import { sanitizeContentLinks, candidateSlugs, FIXED_ROUTES } from "../_shared/seo-link-guard.ts";
++import { findPlaceholders, metaIssues, similarityFlags } from "../_shared/seo-quality.ts";
  import { findUnverifiedClaims, CONTENT_RULES } from "../_shared/seo-claims.ts";
  
  const CORS = {
@@ -46,7 +46,7 @@
  
      // CTA obligatoire, propre au type de page (service / matériau / remblai /
      // dompe / transport / livraison / hub local). Ajouté à la source pour que
-@@ -489,7 +493,25 @@
+@@ -489,7 +493,34 @@
        materialSlug: material?.slug ?? null,
        materialName: material?.name ?? null,
      });
@@ -58,7 +58,7 @@
 +      const { data: pub } = await supabase.from("seo_pages").select("slug").in("slug", cands).eq("status", "published");
 +      publishedSet = (pub ?? []).map((r: { slug: string }) => r.slug);
 +    }
-+    const linkCheck = sanitizeContentLinks(aiContentHtml, publishedSet);
++    const linkCheck = sanitizeContentLinks(aiContentHtml, publishedSet, FIXED_ROUTES);
 +    const contentHtml = linkCheck.html ? `${linkCheck.html}\n${ctaBlock}` : "";
 +    const placeholders = findPlaceholders({
 +      title, meta_title: metaTitle, meta_description: metaDescription, intro, content_html: linkCheck.html,
@@ -69,11 +69,20 @@
 +      .or(`meta_title.eq."${metaTitle.replace(/"/g, "")}",meta_description.eq."${metaDescription.replace(/"/g, "")}"`)
 +      .limit(10);
 +    const metaCheck = metaIssues({ meta_title: metaTitle, meta_description: metaDescription }, sameMeta ?? []);
-+    const quality = { links_removed: linkCheck.removed, links_kept: linkCheck.kept, placeholders, meta: metaCheck };
++    // Ressemblance avec les pages publiées de la même famille : signalement seulement.
++    let similar: Array<{ slug: string; score: number }> = [];
++    {
++      let fam = supabase.from("seo_pages").select("slug, city_slug, content_html").eq("status", "published").neq("slug", pageSlug);
++      fam = material?.slug ? fam.eq("material_slug", material.slug) : fam.is("material_slug", null);
++      fam = service?.slug ? fam.eq("service_slug", service.slug) : fam.is("service_slug", null);
++      const { data: famPages } = await fam.limit(400);
++      similar = similarityFlags(linkCheck.html, city.name, famPages ?? []);
++    }
++    const quality = { similar, links_removed: linkCheck.removed, links_kept: linkCheck.kept, placeholders, meta: metaCheck };
  
      // Compute analytics
      const words = countWords(contentHtml);
-@@ -501,14 +523,14 @@
+@@ -501,14 +532,14 @@
      // malformed or truncated, return a retryable 502 so the pipeline requeues
      // the task instead of publishing a 0-word page that QA autofix would then
      // overwrite with a CTA-only stub.
@@ -92,7 +101,7 @@
        });
      }
      if (countWords(aiContentHtml) < 400 || aiContentHtml.length < 2000 || h2 < 3 || faq.length < 3) {
-@@ -519,11 +541,15 @@
+@@ -519,11 +550,15 @@
      }
  
      // Affirmations non vérifiées : la page n'est pas enregistrée, rien n'est écrasé.
@@ -109,7 +118,7 @@
      const analytics = computeSeoScore({
        words, h2, h3,
        internal: linkStats.internal,
-@@ -550,7 +576,7 @@
+@@ -550,7 +585,7 @@
        h1: title,
        intro,
        content_html: contentHtml,
@@ -118,7 +127,7 @@
        internal_links: internalLinks,
        word_count: words,
        h2_count: h2,
-@@ -569,14 +595,33 @@
+@@ -569,14 +604,33 @@
      };
  
      let pageRow: { id: string; slug: string } | null = null;
@@ -153,7 +162,7 @@
        pageRow = upd;
      } else {
        const { data: ins, error: iErr } = await supabase
-@@ -607,7 +652,7 @@
+@@ -607,7 +661,7 @@
        });
      }
  

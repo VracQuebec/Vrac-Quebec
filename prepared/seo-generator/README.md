@@ -17,3 +17,14 @@ Ce dossier n'est pas déployé. Les fichiers en service restent ceux de `supabas
 5. Vérification sans génération : appel sans session → 401; appel admin avec ville non active → 400 (refus avant tout appel IA); journaux sans erreur de démarrage.
 6. Retour arrière : recopier la sauvegarde de l'étape 1 et remettre en service la fonction.
 7. Pages publiées : la mise en service ne touche aucune page (le code n'agit qu'à l'appel); le nouveau code n'écrit jamais dans `seo_pages` pour une page publiée.
+
+## Mise à jour 2026-10-09 (2)
+- Vérification technique : réussie après ajout des copies `_shared/ai-cache.ts` et `seo-generate-page/cache-policy.ts` (cause de l'échec : modules absents du dossier).
+- Pages fixes autorisées : `/soumission`, `/transport-en-vrac` (`FIXED_ROUTES`).
+- Ressemblance : signalement à partir de 40 % (`SIMILARITY_FLAG`), jamais de blocage.
+- `migration-proposition-NON-APPLIQUEE.sql` : application/restauration d'une version (contenu seul, statut et indexation jamais modifiés).
+
+## Retour arrière détaillé
+1. Avant mise en service : `cp -r supabase/functions/seo-generate-page supabase/functions/_shared/seo-faq-offer.ts prepared/seo-generator/backup-<date>/`.
+2. En cas de problème : recopier la sauvegarde dans `supabase/functions/`, remettre en service `seo-generate-page`, vérifier 401 sans session.
+3. Les pages déjà enregistrées ne dépendent pas du code : un retour arrière ne touche aucune page.

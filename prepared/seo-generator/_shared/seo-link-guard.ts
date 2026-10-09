@@ -37,11 +37,15 @@ function classify(href: string | null): RemovedLink["reason"] {
   return "not_published";
 }
 
+/** Pages fixes du site vérifiées (existantes, accessibles, dans le plan du site). */
+export const FIXED_ROUTES = ["soumission", "transport-en-vrac"] as const;
+
 export function sanitizeContentLinks(
   html: string,
   publishedSlugs: Iterable<string>,
+  fixedRoutes: Iterable<string> = [],
 ): { html: string; kept: string[]; removed: RemovedLink[] } {
-  const allowed = new Set(publishedSlugs);
+  const allowed = new Set([...publishedSlugs, ...fixedRoutes]);
   const kept: string[] = [];
   const removed: RemovedLink[] = [];
   const out = html.replace(ANCHOR, (whole, attrs: string, inner: string) => {

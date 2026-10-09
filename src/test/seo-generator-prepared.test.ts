@@ -90,3 +90,25 @@ describe("contrôles SEO", () => {
     expect(jaccard(shingles(normalizeForSimilarity(x, [], [common])), shingles(normalizeForSimilarity(y, [], [common])))).toBe(0);
   });
 });
+
+import { similarityFlags, SIMILARITY_FLAG } from "../../prepared/seo-generator/_shared/seo-quality";
+import { FIXED_ROUTES } from "../../prepared/seo-generator/_shared/seo-link-guard";
+describe("pages fixes et signalement de ressemblance", () => {
+  it("autorise seulement /soumission et /transport-en-vrac comme pages fixes", () => {
+    const r = sanitizeContentLinks('<a href="/soumission">s</a> <a href="/transport-en-vrac">t</a> <a href="/calculateur">c</a>', [], FIXED_ROUTES);
+    expect(r.kept).toEqual(["soumission", "transport-en-vrac"]);
+    expect(r.removed.map((x) => x.href)).toEqual(["/calculateur"]);
+  });
+  it("le seuil de signalement est 40 %", () => expect(SIMILARITY_FLAG).toBe(0.4));
+  it("signale une page quasi identique d'une autre ville, pas une page différente", () => {
+    const t = (v: string) => `<p>Le remblai à ${v} sert à niveler un terrain, combler une excavation et préparer une surface stable avant la pose de gazon ou de pavé.</p>`;
+    const flags = similarityFlags(t("Lévis"), "Lévis", [
+      { slug: "remblai-beauport", city_slug: "beauport", content_html: t("Beauport") },
+      { slug: "remblai-autre", city_slug: "autre", content_html: "<p>Texte entièrement différent sur le drainage des sols argileux en bordure de rivière.</p>" },
+    ]);
+    expect(flags.map((f) => f.slug)).toEqual(["remblai-beauport"]);
+  });
+  it("ne bloque jamais : renvoie seulement une liste", () => {
+    expect(Array.isArray(similarityFlags("<p>x</p>", "X", []))).toBe(true);
+  });
+});
