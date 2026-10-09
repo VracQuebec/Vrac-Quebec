@@ -27,36 +27,76 @@ CREATE POLICY "Admins gèrent les exclusions SEO" ON public.seo_generation_exclu
 --   ('material','terre-contaminee','Exclusion temporaire — sujet réglementé, validation requise')
 --   ('material','neige','Exclusion temporaire — service saisonnier hors offre générale')
 
--- 2. Catalogue complet attendu par ville, comparé à la file actuelle.
+-- 2. Catalogue complet attendu par ville. « confirmee » = même règle de pertinence que la file
+--    actuelle (demandes, Terre→Remblai, services configurés), SANS compter une page du seul fait d'exister.
 CREATE OR REPLACE FUNCTION public.seo_city_slots_catalog(_city_slug text DEFAULT NULL)
 RETURNS TABLE(city_slug text, city_name text, kind text, material_slug text, service_slug text,
               label text, availability text, page_slug text, page_status text, page_count int)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   WITH registry AS (
-    SELECT DISTINCT ON (g.seo_city_slug) g.seo_city_slug AS slug, c.name
-    FROM geo_territories g JOIN seo_cities c ON c.slug = g.seo_city_slug AND c.active
+    SELECT DISTINCT ON (g.seo_city_slug)
+      g.id AS territory_id, g.seo_city_slug AS slug, c.name
+    FROM public.geo_territories g
+    JOIN public.seo_cities c ON c.slug = g.seo_city_slug AND c.active = true
     WHERE g.type = 'municipalite' AND g.status = 'active' AND g.seo_city_slug IS NOT NULL
       AND (_city_slug IS NULL OR g.seo_city_slug = _city_slug)
     ORDER BY g.seo_city_slug, g.request_count DESC, g.id
+  ), raw_materials AS (
+    SELECT r.slug AS city_slug, public.seo_slugify(x.material) AS term
+    FROM registry r
+    JOIN public.submissions s ON s.territory_id = r.territory_id
+    CROSS JOIN LATERAL unnest(coalesce(s.materials, '{}'::text[])) AS x(material)
+    WHERE nullif(btrim(x.material), '') IS NOT NULL
+      AND public.seo_slugify(x.material) <> 'je-ne-suis-pas-certain'
+  ), material_slots AS (
+    SELECT DISTINCT rm.city_slug, m.slug, m.name
+    FROM raw_materials rm
+    JOIN public.seo_materials m ON m.active = true AND (
+      public.seo_slugify(m.name) = rm.term
+      OR EXISTS (SELECT 1 FROM unnest(coalesce(m.keywords, '{}'::text[])) k WHERE public.seo_slugify(k) = rm.term)
+    )
+  ), terre_slots AS (
+    SELECT r.slug AS city_slug, m.slug
+    FROM registry r
+    JOIN public.seo_terre_remblai_requests() te ON te.tid = r.territory_id AND te.n > 0
+    JOIN public.seo_materials m ON m.slug = 'remblai' AND m.active = true
+  ), service_slots AS (
+    SELECT DISTINCT r.slug AS city_slug, ss.slug, ss.name
+    FROM registry r
+    JOIN public.geo_territory_services gts ON gts.territory_id = r.territory_id
+    JOIN LATERAL (
+      SELECT s.slug, s.name FROM public.seo_services s
+      WHERE s.active = true AND s.slug = CASE gts.service_key
+        WHEN 'recherche_dompe' THEN 'dompe'
+        WHEN 'point_de_depot' THEN 'recherche-point-de-depot'
+        WHEN 'disposition_remblai' THEN 'recherche-point-de-depot'
+        WHEN 'transport' THEN 'transport-vrac'
+        WHEN 'courtage_materiaux' THEN 'courtage-materiaux'
+        ELSE replace(gts.service_key, '_', '-')
+      END
+    ) ss ON true
+    WHERE gts.status IN ('ACTIVE', 'PARTIELLE') AND gts.request_count > 0
+  ), confirmed AS (
+    SELECT r.slug AS city_slug, 'hub'::text AS kind, NULL::text AS material_slug, NULL::text AS service_slug FROM registry r
+    UNION SELECT ms.city_slug, 'material', ms.slug, NULL FROM material_slots ms
+    UNION SELECT ts.city_slug, 'material', ts.slug, NULL FROM terre_slots ts
+    UNION SELECT sv.city_slug, 'service', NULL, sv.slug FROM service_slots sv
   ), grid AS (
     SELECT r.slug, r.name, 'hub'::text AS kind, NULL::text AS m, NULL::text AS s, 'Page ville (hub)'::text AS label FROM registry r
-    UNION ALL SELECT r.slug, r.name, 'material', m.slug, NULL, m.name FROM registry r CROSS JOIN seo_materials m WHERE m.active
-    UNION ALL SELECT r.slug, r.name, 'service', NULL, s.slug, s.name FROM registry r CROSS JOIN seo_services s WHERE s.active
-  ), confirmed AS (
-    SELECT e.city_slug, e.kind, e.material_slug, e.service_slug FROM public.seo_city_slots_expected(_city_slug) e
+    UNION ALL SELECT r.slug, r.name, 'material', m.slug, NULL, m.name FROM registry r CROSS JOIN public.seo_materials m WHERE m.active
+    UNION ALL SELECT r.slug, r.name, 'service', NULL, s.slug, s.name FROM registry r CROSS JOIN public.seo_services s WHERE s.active
   )
   SELECT g.slug, g.name, g.kind, g.m, g.s, g.label,
-    CASE WHEN EXISTS (SELECT 1 FROM seo_generation_exclusions x WHERE x.active AND x.kind = g.kind AND x.slug = coalesce(g.m, g.s)) THEN 'exclue'
+    CASE WHEN EXISTS (SELECT 1 FROM public.seo_generation_exclusions x WHERE x.active AND x.kind = g.kind AND x.slug = coalesce(g.m, g.s)) THEN 'exclue'
          WHEN EXISTS (SELECT 1 FROM confirmed c WHERE c.city_slug = g.slug AND c.kind = g.kind
-                      AND c.material_slug IS NOT DISTINCT FROM g.m AND c.service_slug IS NOT DISTINCT FROM g.s
-                      AND (g.kind = 'hub' OR EXISTS (SELECT 1 FROM public.seo_city_slots_expected(g.slug) z WHERE false) OR true)) THEN 'confirmee'
+                      AND c.material_slug IS NOT DISTINCT FROM g.m AND c.service_slug IS NOT DISTINCT FROM g.s) THEN 'confirmee'
          ELSE 'inconnue' END,
     p.slug, p.status, coalesce(pc.n, 0)
   FROM grid g
-  LEFT JOIN LATERAL (SELECT sp.slug, sp.status FROM seo_pages sp WHERE sp.city_slug = g.slug
+  LEFT JOIN LATERAL (SELECT sp.slug, sp.status FROM public.seo_pages sp WHERE sp.city_slug = g.slug
        AND sp.material_slug IS NOT DISTINCT FROM g.m AND sp.service_slug IS NOT DISTINCT FROM g.s
        ORDER BY sp.updated_at DESC NULLS LAST LIMIT 1) p ON true
-  LEFT JOIN LATERAL (SELECT count(*)::int n FROM seo_pages sp WHERE sp.city_slug = g.slug
+  LEFT JOIN LATERAL (SELECT count(*)::int n FROM public.seo_pages sp WHERE sp.city_slug = g.slug
        AND sp.material_slug IS NOT DISTINCT FROM g.m AND sp.service_slug IS NOT DISTINCT FROM g.s) pc ON true
 $$;
 REVOKE ALL ON FUNCTION public.seo_city_slots_catalog(text) FROM PUBLIC, anon, authenticated;
