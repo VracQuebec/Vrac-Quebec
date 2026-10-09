@@ -1,0 +1,163 @@
+--- supabase/functions/seo-generate-page/index.ts	2026-10-09 17:01:31.211032998 +0000
++++ prepared/seo-generator/seo-generate-page/index.ts	2026-10-09 17:40:55.429424669 +0000
+@@ -4,7 +4,9 @@
+ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+ import { callAIChatCached } from "../_shared/ai-cache.ts";
+ import { shouldBypassGenerationCache } from "./cache-policy.ts";
+-import { offerKind } from "../_shared/seo-faq-offer.ts";
++import { offerKind, enforceOfferFaq } from "../_shared/seo-faq-offer.ts";
++import { sanitizeContentLinks, candidateSlugs } from "../_shared/seo-link-guard.ts";
++import { findPlaceholders, metaIssues } from "../_shared/seo-quality.ts";
+ import { findUnverifiedClaims, CONTENT_RULES } from "../_shared/seo-claims.ts";
+ 
+ const CORS = {
+@@ -340,7 +342,7 @@
+     // Skip if already exists (sauf régénération forcée)
+     const { data: existing } = await supabase
+       .from("seo_pages")
+-      .select("id, status, published_at")
++      .select("*")
+       .eq("slug", pageSlug)
+       .maybeSingle();
+     if (preview && existing?.id && (existing.status === "published" || existing.published_at)) {
+@@ -349,11 +351,10 @@
+     if (existing?.id && !forceRegenerate && !preview) {
+       return json({ skipped: true, reason: "exists", slug: pageSlug });
+     }
+-    // Une page EN LIGNE n'est jamais remplacée sans validation explicite :
+-    // la régénération la remettrait en brouillon non indexé.
+-    if (existing?.id && (existing.status === "published" || existing.published_at) && body?.confirm_published !== true) {
+-      return json({ error: "Page en ligne protégée : remplacement refusé sans validation explicite.", protected: true, slug: pageSlug }, 409);
+-    }
++    // Une page EN LIGNE n'est jamais remplacée ni remise en brouillon par le
++    // générateur : la nouvelle version est conservée à part (proposition).
++    // confirm_published n'a plus aucun effet.
++    const isPublished = Boolean(existing?.id && (existing.status === "published" || existing.published_at));
+ 
+     // Données vérifiées (lecture seule) : seuls faits locaux permis dans le texte.
+     const verified: string[] = [];
+@@ -478,6 +479,9 @@
+       })
+       .filter((f: { question: string; answer: string }) => f.question && f.answer)
+       .slice(0, 10);
++    const kind = offerKind(material?.slug ?? null, service?.slug ?? null);
++    const topic = (material?.name ?? service?.name ?? "matériaux en vrac").toLowerCase();
++    const faqControlled = enforceOfferFaq(faq, kind, topic, city.name);
+ 
+     // CTA obligatoire, propre au type de page (service / matériau / remblai /
+     // dompe / transport / livraison / hub local). Ajouté à la source pour que
+@@ -489,7 +493,25 @@
+       materialSlug: material?.slug ?? null,
+       materialName: material?.name ?? null,
+     });
+-    const contentHtml = aiContentHtml ? `${aiContentHtml}\n${ctaBlock}` : "";
++    // Liens écrits par l'IA : seules les pages publiées existantes sont gardées.
++    const cands = candidateSlugs(aiContentHtml);
++    let publishedSet: string[] = [];
++    if (cands.length) {
++      const { data: pub } = await supabase.from("seo_pages").select("slug").in("slug", cands).eq("status", "published");
++      publishedSet = (pub ?? []).map((r: { slug: string }) => r.slug);
++    }
++    const linkCheck = sanitizeContentLinks(aiContentHtml, publishedSet);
++    const contentHtml = linkCheck.html ? `${linkCheck.html}\n${ctaBlock}` : "";
++    const placeholders = findPlaceholders({
++      title, meta_title: metaTitle, meta_description: metaDescription, intro, content_html: linkCheck.html,
++      faq: faqControlled.map((f) => `${f.question} ${f.answer}`).join(" "),
++    });
++    const { data: sameMeta } = await supabase.from("seo_pages")
++      .select("slug, meta_title, meta_description").neq("slug", pageSlug)
++      .or(`meta_title.eq."${metaTitle.replace(/"/g, "")}",meta_description.eq."${metaDescription.replace(/"/g, "")}"`)
++      .limit(10);
++    const metaCheck = metaIssues({ meta_title: metaTitle, meta_description: metaDescription }, sameMeta ?? []);
++    const quality = { links_removed: linkCheck.removed, links_kept: linkCheck.kept, placeholders, meta: metaCheck };
+ 
+     // Compute analytics
+     const words = countWords(contentHtml);
+@@ -501,14 +523,14 @@
+     // malformed or truncated, return a retryable 502 so the pipeline requeues
+     // the task instead of publishing a 0-word page that QA autofix would then
+     // overwrite with a CTA-only stub.
+-    const claimHitsPreview = preview ? findUnverifiedClaims([intro, aiContentHtml, ...faq.map((f: { question: string; answer: string }) => `${f.question} ${f.answer}`), metaDescription].join(" ")) : [];
++    const claimHitsPreview = preview ? findUnverifiedClaims([intro, aiContentHtml, ...faqControlled.map((f: { question: string; answer: string }) => `${f.question} ${f.answer}`), metaDescription].join(" ")) : [];
+     if (preview) {
+       return json({
+         preview: true, saved: false, slug: pageSlug, existing_status: existing?.status ?? null,
+-        would_be_rejected: claimHitsPreview.length > 0 || countWords(aiContentHtml) < 400 || h2 < 3 || faq.length < 3,
+-        claims: claimHitsPreview,
++        would_be_rejected: claimHitsPreview.length > 0 || placeholders.length > 0 || countWords(aiContentHtml) < 400 || h2 < 3 || faq.length < 3,
++        claims: claimHitsPreview, quality, would_be_proposal: isPublished,
+         stats: { words: countWords(aiContentHtml), h2, faq: faq.length },
+-        title, meta_title: metaTitle, meta_description: metaDescription, intro, faq, content_html: contentHtml,
++        title, meta_title: metaTitle, meta_description: metaDescription, intro, faq: faqControlled, content_html: contentHtml,
+       });
+     }
+     if (countWords(aiContentHtml) < 400 || aiContentHtml.length < 2000 || h2 < 3 || faq.length < 3) {
+@@ -519,11 +541,15 @@
+     }
+ 
+     // Affirmations non vérifiées : la page n'est pas enregistrée, rien n'est écrasé.
+-    const claimHits = findUnverifiedClaims([intro, aiContentHtml, ...faq.map((f: { question: string; answer: string }) => `${f.question} ${f.answer}`), metaDescription].join(" "));
++    const claimHits = findUnverifiedClaims([intro, aiContentHtml, ...faqControlled.map((f: { question: string; answer: string }) => `${f.question} ${f.answer}`), metaDescription].join(" "));
+     if (claimHits.length) {
+       return json({ error: `Affirmations non vérifiées détectées — page non enregistrée : ${claimHits.map((h) => `${h.reason} (« ${h.excerpt} »)`).join(" ; ")}`.slice(0, 900), claims: claimHits }, 422);
+     }
+ 
++    if (placeholders.length) {
++      return json({ error: `Variables non remplacées — page non enregistrée : ${placeholders.map((p) => `${p.field} ${p.token}`).join(", ")}`, quality }, 422);
++    }
++
+     const analytics = computeSeoScore({
+       words, h2, h3,
+       internal: linkStats.internal,
+@@ -550,7 +576,7 @@
+       h1: title,
+       intro,
+       content_html: contentHtml,
+-      faq,
++      faq: faqControlled,
+       internal_links: internalLinks,
+       word_count: words,
+       h2_count: h2,
+@@ -569,14 +595,32 @@
+     };
+ 
+     let pageRow: { id: string; slug: string } | null = null;
++    if (existing?.id && forceRegenerate && isPublished) {
++      // Page en ligne : nouvelle version conservée à part, page inchangée.
++      const { data: prop, error: pErr } = await supabase.from("seo_page_improvements").insert({
++        page_id: existing.id, before_snapshot: existing, after_snapshot: payload,
++        applied: false, model: "google/gemini-2.5-flash", notes: "generateur:proposition",
++      }).select("id").single();
++      if (pErr) return json({ error: `Proposition non enregistrée : ${pErr.message}` }, 500);
++      return json({ proposal: true, proposal_id: prop.id, page_unchanged: true, slug: pageSlug, quality });
++    }
+     if (existing?.id && forceRegenerate) {
++      // Brouillon : sauvegarde complète AVANT remplacement; échec = page intacte.
++      const { error: bErr } = await supabase.from("seo_page_improvements").insert({
++        page_id: existing.id, before_snapshot: existing, after_snapshot: payload,
++        applied: true, applied_at: new Date().toISOString(), model: "google/gemini-2.5-flash", notes: "generateur:sauvegarde-avant-regeneration",
++      });
++      if (bErr) return json({ error: `Sauvegarde impossible — brouillon non modifié : ${bErr.message}` }, 500);
+       const { data: upd, error: uErr } = await supabase
+         .from("seo_pages")
+         .update(payload)
+         .eq("id", existing.id)
++        .eq("updated_at", existing.updated_at)
++        .eq("status", "draft")
+         .select("id, slug")
+-        .single();
++        .maybeSingle();
+       if (uErr) return json({ error: uErr.message }, 500);
++      if (!upd) return json({ error: "Brouillon modifié entre-temps ou publié — aucun remplacement effectué." }, 409);
+       pageRow = upd;
+     } else {
+       const { data: ins, error: iErr } = await supabase
+@@ -607,7 +651,7 @@
+       });
+     }
+ 
+-    return json({ created: !existing?.id, updated: Boolean(existing?.id && forceRegenerate), page: pageRow, score: analytics.score });
++    return json({ created: !existing?.id, updated: Boolean(existing?.id && forceRegenerate), page: pageRow, score: analytics.score, quality });
+   } catch (e) {
+     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
+   }
