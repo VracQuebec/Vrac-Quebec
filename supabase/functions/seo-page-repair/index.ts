@@ -124,7 +124,10 @@ Deno.serve(async (req) => {
 
     let targets: Slot[];
     if (allErrors) {
-      targets = rows.filter((r) => r.gen_state === "error" || r.gen_state === "invalid" || r.gen_state === "missing");
+      // Une page publiée volontairement non indexée n'est pas un échec : régénérer ne la changerait pas.
+      const noindexOnly = (r: Slot & { issues?: string[] | null }) =>
+        r.gen_state === "invalid" && !!r.issues?.length && r.issues.every((i) => i === "Publiée mais noindex");
+      targets = rows.filter((r) => (r.gen_state === "error" || r.gen_state === "invalid" || r.gen_state === "missing") && !noindexOnly(r));
     } else {
       const m = (body.material_slug ?? null) as string | null;
       const s = (body.service_slug ?? null) as string | null;
