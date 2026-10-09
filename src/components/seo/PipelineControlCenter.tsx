@@ -435,7 +435,9 @@ export default function PipelineControlCenter() {
             const meta = isRunning || c.status === "error" || !flags ? legacyMeta
               : flags.badge === "covered"
                 ? { label: COVERAGE_BADGE_LABEL.covered, className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" }
-                : { label: COVERAGE_BADGE_LABEL.to_develop, className: "bg-amber-500/15 text-amber-700 border-amber-500/30", dot: "bg-amber-500" };
+                : flags.badge === "drafts"
+                  ? { label: COVERAGE_BADGE_LABEL.drafts, className: "bg-sky-500/15 text-sky-700 border-sky-500/30", dot: "bg-sky-500" }
+                  : { label: COVERAGE_BADGE_LABEL.to_develop, className: "bg-amber-500/15 text-amber-700 border-amber-500/30", dot: "bg-amber-500" };
             const liveDone = gen.run?.citySlug === c.slug ? gen.run.done : gen.dbActive?.city_slug === c.slug ? gen.dbActive.done : null;
             const liveTotal = gen.run?.citySlug === c.slug ? gen.run.total : gen.dbActive?.city_slug === c.slug ? gen.dbActive.total : null;
             return (

@@ -129,3 +129,23 @@ describe("moteur global — mêmes règles pour toute municipalité", () => {
     expect(quebec.unmappedServices.map((u) => u.key)).toContain("livraison");
   });
 });
+
+describe("règle B et Terre → Remblai", () => {
+  it("un brouillon pertinent n'est pas compté comme couvert et donne le badge PAGES EN BROUILLON", async () => {
+    const { coverageFlags } = await import("@/lib/seo/cityCoverage");
+    const d = computeCoverage({ ...disraeli, terms: [], pages: [page("disraeli", null, null), page("dompe-disraeli", null, "dompe"), page("remblai-disraeli", "remblai", null, false)], terre_remblai: 3 });
+    expect(d.planned).toBe(3);
+    expect(d.plannedCovered).toBe(2);
+    expect(d.plannedDrafts).toBe(1);
+    expect(coverageFlags(d).badge).toBe("drafts");
+  });
+  it("des demandes Terre confirmées en remblai sans page donnent une opportunité À développer", () => {
+    const d = computeCoverage({ ...disraeli, terms: [], pages: [page("disraeli", null, null), page("dompe-disraeli", null, "dompe")], terre_remblai: 2 });
+    expect(d.items.find((i) => i.slug === "remblai")?.status).toBe("to_develop");
+    expect(d.toDevelop).toBe(1);
+  });
+  it("sans demande Terre admissible, la page remblai reste hors critères", () => {
+    const d = computeCoverage({ ...disraeli, terms: [], terre_remblai: 0 });
+    expect(d.items.find((i) => i.slug === "remblai")?.status).toBe("off_criteria");
+  });
+});
