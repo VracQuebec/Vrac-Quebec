@@ -31,6 +31,8 @@ export interface CachedAIOptions {
   forceRefresh?: boolean;
   /** Optional supabase client (service role). Auto-created from env if omitted. */
   supabase?: SupabaseClient;
+  /** Aperçu : lecture du cache permise, aucune écriture (journal, cache, compteur). */
+  noWrite?: boolean;
 }
 
 export interface CachedAIResult {
@@ -113,8 +115,8 @@ export async function callAIChatCached(opts: CachedAIOptions): Promise<CachedAIR
       const { data } = await sb.from("ai_cache").select("response, prompt_tokens, completion_tokens").eq("cache_key", cacheKey).maybeSingle();
       if (data?.response) {
         const content = (data.response as any)?.choices?.[0]?.message?.content ?? "";
-        try { await sb.rpc("ai_cache_hit", { _key: cacheKey, _credits: estCredits }); } catch { /* ignore */ }
-        await logCall(sb, {
+        if (!opts.noWrite) { try { await sb.rpc("ai_cache_hit", { _key: cacheKey, _credits: estCredits }); } catch { /* ignore */ } }
+        if (!opts.noWrite) await logCall(sb, {
           function_name: opts.functionName, model: opts.model, cache_key: cacheKey,
           cached: true, estimated_credits: estCredits, duration_ms: 0,
         });
@@ -156,7 +158,7 @@ export async function callAIChatCached(opts: CachedAIOptions): Promise<CachedAIR
     const completionTokens = raw?.usage?.completion_tokens ?? 0;
 
     // Store cache (upsert, ignore errors)
-    try {
+    if (!opts.noWrite) try {
       await sb.from("ai_cache").upsert({
         cache_key: cacheKey,
         model: opts.model,
@@ -170,7 +172,7 @@ export async function callAIChatCached(opts: CachedAIOptions): Promise<CachedAIR
       }, { onConflict: "cache_key" });
     } catch { /* ignore */ }
 
-    await logCall(sb, {
+    if (!opts.noWrite) await logCall(sb, {
       function_name: opts.functionName, model: opts.model, cache_key: cacheKey,
       cached: false, prompt_tokens: promptTokens, completion_tokens: completionTokens,
       estimated_credits: estCredits, duration_ms: durationMs,
