@@ -999,7 +999,7 @@ const TransportRequest = () => {
                 Nous analysons votre chantier d'excavation afin de vous recommander les dompes compatibles les plus proches.
               </p>
               <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-display font-bold">
-                <Clock className="w-3.5 h-3.5" /> Temps estimé : moins de 60 secondes
+                <Clock className="w-3.5 h-3.5" /> Quelques étapes simples
               </div>
             </div>
 
