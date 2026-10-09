@@ -1,10 +1,10 @@
 # Roadmap
 
-- [ ] Mettre en service uniquement le modèle FAQ sécurisé et vérifier ses garde-fous.
-- [ ] Sauvegarder et corriger les six FAQ exactes de 100 pages supplémentaires, hors pilote et mg-20-quebec; contrôler tous les autres champs et l'affichage mobile/ordinateur.
-- [ ] Corriger uniquement les trois liens approuvés dans les six pages autorisées, avec sauvegarde.
-- [ ] Fournir huit descriptions avant/après et préparer vingt H1 sans application; proposer le bandeau sans le modifier.
-- [ ] Remettre le rapport exact et arrêter sans publication globale ni autre déploiement.
+- [x] Modèle FAQ sécurisé mis en service seul; neuf tests réussis, contrôle anti-promesses ajouté. Appel privilégié en production non vérifié faute de session (401 sans authentification).
+- [x] 100 pages sauvegardées intégralement et six FAQ exactes corrigées; seules faq et date automatique changent. mg-20-quebec exclue intacte, 1 436 pages restantes non traitées. Contrôles sur données des 100 et douze vues mobile/ordinateur dans chacun des environnements aperçu/public.
+- [x] Trois liens approuvés corrigés dans deux des six pages sauvegardées; quatre pages inchangées, seule content_html et date automatique modifiées sur les deux.
+- [x] Huit descriptions et vingt H1 préparés sans application; bandeau localisé et reformulation proposée sans changement.
+- [x] Rapport et sauvegardes remis, arrêt sans publication globale ni autre déploiement : rapport-seo-lot100-20261009.md.
 
 - [x] Phase 4 UX : Plus compact avec tous les groupes visibles, ancres compte/préférences après chargement, compteur À faire non plafonné, décompte voyages clairement nommé; accueil et parcours conservés. 1 844 tests réussis, 13 ignorés; 24 pages/formats et trois fiches vérifiés en 393/320/1440 sans débordement/écriture, build OK. Agenda lié aux projets CRM seulement : aucun lien chantier inventé. Sécurité structurelle relue, A/B complet non revalidé. Rapport docs/audit/phase4-optimisation-ux-entrepreneur.md. Aucune donnée, migration, auth, carte, flotte ni publication.
 
