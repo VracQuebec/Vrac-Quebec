@@ -316,7 +316,9 @@ Deno.serve(async (req) => {
       if (row) service = row;
     }
 
-    const forceRegenerate = Boolean(body?.force && body?.confirm_overwrite === true);
+    // Mode aperçu : génère et contrôle, n'écrit jamais rien (ni page, ni journal IA, ni cache).
+    const preview = body?.preview === true;
+    const forceRegenerate = !preview && Boolean(body?.force && body?.confirm_overwrite === true);
     if (!city?.slug) return json({ error: "Ville requise" }, 400);
 
     // New pages may only be created for active municipalities from the CRM
@@ -340,7 +342,10 @@ Deno.serve(async (req) => {
       .select("id, status, published_at")
       .eq("slug", pageSlug)
       .maybeSingle();
-    if (existing?.id && !forceRegenerate) {
+    if (preview && existing?.id && (existing.status === "published" || existing.published_at)) {
+      return json({ error: "Aperçu refusé : page en ligne.", protected: true, slug: pageSlug }, 409);
+    }
+    if (existing?.id && !forceRegenerate && !preview) {
       return json({ skipped: true, reason: "exists", slug: pageSlug });
     }
     // Une page EN LIGNE n'est jamais remplacée sans validation explicite :
@@ -419,7 +424,7 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
     let raw = "";
     try {
       // Honor `allow_ai` from the request; force flag also implies user intent.
-      const allowAi = body?.allow_ai === true || forceRegenerate === true;
+      const allowAi = body?.allow_ai === true || forceRegenerate === true || preview;
       const bypassCache = shouldBypassGenerationCache({
         forceRegenerate,
         bypassCacheRequested: body?.bypass_cache === true,
@@ -435,7 +440,8 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
         response_format: { type: "json_object" },
         allowAi,
         // Never replay a response already known to be malformed during a retry.
-        forceRefresh: bypassCache,
+        forceRefresh: preview ? true : bypassCache,
+        noWrite: preview,
       });
       raw = ai.content;
     } catch (e) {
@@ -487,6 +493,16 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
     // malformed or truncated, return a retryable 502 so the pipeline requeues
     // the task instead of publishing a 0-word page that QA autofix would then
     // overwrite with a CTA-only stub.
+    const claimHitsPreview = preview ? findUnverifiedClaims([intro, aiContentHtml, ...faq.map((f: { question: string; answer: string }) => `${f.question} ${f.answer}`), metaDescription].join(" ")) : [];
+    if (preview) {
+      return json({
+        preview: true, saved: false, slug: pageSlug, existing_status: existing?.status ?? null,
+        would_be_rejected: claimHitsPreview.length > 0 || countWords(aiContentHtml) < 400 || h2 < 3 || faq.length < 3,
+        claims: claimHitsPreview,
+        stats: { words: countWords(aiContentHtml), h2, faq: faq.length },
+        title, meta_title: metaTitle, meta_description: metaDescription, intro, faq, content_html: contentHtml,
+      });
+    }
     if (countWords(aiContentHtml) < 400 || aiContentHtml.length < 2000 || h2 < 3 || faq.length < 3) {
       return json({
         error: "AI response incomplete (< 400 words or malformed) — task will retry",
