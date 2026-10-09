@@ -35,8 +35,10 @@ export function publishResultMessage(r: { published?: number; skipped_invalid?: 
   return `${pub} page(s) publiée(s), ${skip} ignorée(s) (contrôle qualité non réussi).`;
 }
 
-export function repairResultMessage(r: { queued?: number; done?: boolean; message?: string } | null): string {
+export function repairResultMessage(r: { queued?: number; done?: boolean; message?: string; skipped_published?: number } | null): string {
   const q = r?.queued ?? 0;
-  if (q === 0) return r?.message ?? "Aucune page à régénérer.";
-  return r?.done ? `${q} page(s) régénérée(s) en brouillon.` : `${q} page(s) en cours de régénération (brouillon) — résultat dans les logs.`;
+  const prot = r?.skipped_published ?? 0;
+  const tail = prot > 0 ? ` ${prot} page(s) en ligne protégée(s) — non remplacée(s) sans validation.` : "";
+  if (q === 0) return (r?.message ?? "Aucune page à régénérer.");
+  return (r?.done ? `${q} page(s) traitée(s) en brouillon.` : `${q} page(s) en cours de traitement (brouillon) — résultat dans les logs.`) + tail;
 }

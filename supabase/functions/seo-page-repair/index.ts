@@ -122,20 +122,30 @@ Deno.serve(async (req) => {
     if (slotErr) return json({ error: slotErr.message }, 500);
     const rows = (slotRows ?? []) as Slot[];
 
+    // Régénérer remet la page en brouillon non indexé : une page EN LIGNE n'est
+    // jamais remplacée sans validation explicite (confirm_published).
+    const isPublished = (r: Slot & { pub_state?: string }) => r.pub_state === "published";
+    const confirmPublished = body.confirm_published === true;
     let targets: Slot[];
+    let skippedPublished = 0;
     if (allErrors) {
       // Une page publiée volontairement non indexée n'est pas un échec : régénérer ne la changerait pas.
       const noindexOnly = (r: Slot & { issues?: string[] | null }) =>
         r.gen_state === "invalid" && !!r.issues?.length && r.issues.every((i) => i === "Publiée mais noindex");
-      targets = rows.filter((r) => (r.gen_state === "error" || r.gen_state === "invalid" || r.gen_state === "missing") && !noindexOnly(r));
+      const candidates = rows.filter((r) => (r.gen_state === "error" || r.gen_state === "invalid" || r.gen_state === "missing") && !noindexOnly(r));
+      targets = candidates.filter((r) => !isPublished(r));
+      skippedPublished = candidates.length - targets.length;
     } else {
       const m = (body.material_slug ?? null) as string | null;
       const s = (body.service_slug ?? null) as string | null;
       targets = rows.filter((r) => (r.material_slug ?? null) === m && (r.service_slug ?? null) === s);
       if (targets.length === 0) return json({ error: "Page introuvable pour cette ville" }, 404);
+      if (!confirmPublished && targets.some(isPublished)) {
+        return json({ error: "Page en ligne : la régénération la remettrait en brouillon. Validation explicite requise." }, 409);
+      }
     }
 
-    if (targets.length === 0) return json({ ok: true, queued: 0, message: "Aucune page en erreur." });
+    if (targets.length === 0) return json({ ok: true, queued: 0, skipped_published: skippedPublished, message: skippedPublished ? `Aucun brouillon à régénérer — ${skippedPublished} page(s) en ligne protégée(s), validation requise.` : "Aucune page en erreur." });
 
     // Traitement séquentiel en arrière-plan : une page en échec n'empêche
     // jamais les suivantes d'être traitées.
@@ -147,11 +157,11 @@ Deno.serve(async (req) => {
 
     if (targets.length === 1) {
       await work;
-      return json({ ok: true, queued: 1, done: true });
+      return json({ ok: true, queued: 1, done: true, skipped_published: skippedPublished });
     }
     // deno-lint-ignore no-explicit-any
     (globalThis as any).EdgeRuntime?.waitUntil?.(work);
-    return json({ ok: true, queued: targets.length, done: false });
+    return json({ ok: true, queued: targets.length, done: false, skipped_published: skippedPublished });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
