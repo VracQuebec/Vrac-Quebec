@@ -1,0 +1,10 @@
+[{"slug":"transport-vrac","name":"Transport en vrac","active":true}, 
+ {"slug":"dompe","name":"Dompe","active":true}, 
+ {"slug":"recherche-point-de-depot","name":"Recherche de point de dépôt","active":true}, 
+ {"slug":"livraison-terre","name":"Livraison de terre","active":true}, 
+ {"slug":"livraison-sable","name":"Livraison de sable","active":true}, 
+ {"slug":"livraison-gravier","name":"Livraison de gravier","active":true}, 
+ {"slug":"livraison-pierre","name":"Livraison de pierre","active":true}, 
+ {"slug":"excavation","name":"Excavation","active":true}, 
+ {"slug":"nivellement","name":"Nivellement","active":true}, 
+ {"slug":"courtage-materiaux","name":"Courtage de matériaux","active":true}]
