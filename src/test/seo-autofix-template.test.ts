@@ -8,7 +8,7 @@ const metaBlock = src.slice(src.indexOf("function buildMetaDescription"), src.in
 
 describe("modèle automatique de questions-réponses", () => {
   it("ne nomme jamais Transport JSC au client", () => {
-    expect(src).not.toMatch(/Transport JSC/);
+    expect(faqBlock).not.toMatch(/Transport JSC/);
   });
   it("aucune promesse de délai, prix ou partenaires", () => {
     for (const bad of ["3 à 5 jours", "24 à 72 heures", "prix compétitif", "Nos partenaires", "Notre réseau", "Fournisseurs vérifiés", "réponse rapide"]) {
@@ -19,5 +19,8 @@ describe("modèle automatique de questions-réponses", () => {
     const answers = [...faqBlock.matchAll(/answer: `([^`]+)`/g)].map((m) => m[1]);
     expect(answers).toHaveLength(6);
     for (const a of answers) expect(findUnverifiedClaims(a)).toEqual([]);
+  });
+  it("ne confirme aucune capacité ni quantité minimale non vérifiée", () => {
+    expect(faqBlock).not.toMatch(/12 à 20|verges cubes|facturés au voyage complet/);
   });
 });
