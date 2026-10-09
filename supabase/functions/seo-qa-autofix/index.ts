@@ -111,8 +111,8 @@ function buildMetaDescription(page: Page): string {
   const city = cityOf(page);
   const topic = topicOf(page, "matériaux en vrac et dompes");
   const target = city
-    ? `Vrac Québec coordonne la livraison de ${topic.toLowerCase()} à ${city} avec Transport JSC. Fournisseurs vérifiés, réponse rapide, aucun engagement.`
-    : `Vrac Québec coordonne la livraison de ${topic.toLowerCase()} au Québec avec Transport JSC. Fournisseurs vérifiés, réponse rapide, aucun engagement.`;
+    ? `Vrac Québec reçoit et analyse vos demandes de ${topic.toLowerCase()} à ${city} selon les possibilités confirmées. Demande sans engagement.`
+    : `Vrac Québec reçoit et analyse vos demandes de ${topic.toLowerCase()} au Québec selon les possibilités confirmées. Demande sans engagement.`;
   const cta = " Demandez votre soumission gratuite dès maintenant.";
   return clip(target + cta, 145, 160);
 }
@@ -122,7 +122,7 @@ function buildOpenGraph(page: Page, metaTitle: string, metaDesc: string): { og_t
   const topic = topicOf(page);
   const ogTitleCore = city ? `${topic} à ${city} — Vrac Québec` : `${topic} — Vrac Québec`;
   const og_title = clip(ogTitleCore, 30, 88);
-  const og_description = clip(metaDesc || `Plateforme québécoise pour ${topic.toLowerCase()}${city ? ` à ${city}` : ""}. Coordination Transport JSC, matériaux vérifiés.`, 80, 195);
+  const og_description = clip(metaDesc || `Plateforme québécoise pour ${topic.toLowerCase()}${city ? ` à ${city}` : ""}. Demande analysée selon les possibilités confirmées.`, 80, 195);
   return { og_title, og_description };
 }
 
@@ -176,31 +176,33 @@ function buildFaq(page: Page): Array<{ question: string; answer: string }> {
   const faq: Array<{ question: string; answer: string }> = [
     {
       question: `Comment obtenir une soumission de ${topic} à ${city} ?`,
-      answer: `Vous remplissez le formulaire de demande de Vrac Québec en indiquant l'adresse du chantier${cityRaw ? ` à ${cityRaw}` : ""}, la quantité approximative et la date souhaitée. Notre partenaire logistique Transport JSC prend contact rapidement pour confirmer la disponibilité, l'accès camion et un prix ferme avant toute livraison. Aucun engagement n'est requis pour recevoir votre soumission gratuite.`,
+      answer: `Vous remplissez le formulaire de demande de Vrac Québec en indiquant l'adresse du chantier${cityRaw ? ` à ${cityRaw}` : ""}, la quantité approximative et la date souhaitée. Votre demande est ensuite analysée pour vérifier les possibilités réelles (matériau, accès camion, conditions) avant toute confirmation ou prix. La demande est sans engagement.`,
     },
     {
       question: `Quelle quantité minimum de ${topic} peut-on commander ?`,
-      answer: `Les chargements de ${topic} sont généralement facturés au voyage complet (camion 10 ou 12 roues), soit environ 12 à 20 verges cubes. Pour de plus petites quantités, nous coordonnons avec des partenaires équipés de camions plus légers ou proposons un regroupement de livraison. Précisez votre volume estimé dans le formulaire pour obtenir la meilleure option.`,
+      answer: `Les chargements de ${topic} sont généralement facturés au voyage complet (camion 10 ou 12 roues), soit environ 12 à 20 verges cubes. Les petites quantités peuvent demander un camion plus léger ; indiquez votre volume estimé dans le formulaire, la faisabilité sera vérifiée.`,
     },
     {
       question: `Quels sont les délais de livraison à ${city} ?`,
-      answer: `La plupart des livraisons de ${topic} à ${city} sont assurées sous 24 à 72 heures ouvrables selon la saison, la disponibilité des dompes locales et l'accessibilité du chantier. En haute saison (avril à novembre), planifier 3 à 5 jours d'avance permet de sécuriser le meilleur créneau et de limiter les frais d'attente sur place.`,
+      answer: `Le délai dépend de la saison, de l'accessibilité du chantier et des possibilités confirmées lors de l'analyse de votre demande ; aucun délai n'est garanti à l'avance. Prévoir votre demande tôt, surtout au printemps et en été, aide à planifier.`,
     },
     {
       question: `Vrac Québec vend-il directement le ${topic} ?`,
-      answer: `Non. Vrac Québec est une plateforme de mise en relation : nous connectons les entrepreneurs, les fournisseurs de matériaux et les propriétaires de dompes du Québec. Transport JSC agit comme orchestrateur pour coordonner la logistique. Cela garantit un prix compétitif basé sur le fournisseur le plus proche du chantier.`,
+      answer: `Non. Vrac Québec est une plateforme qui reçoit les demandes de matériaux en vrac et de dompe et les analyse selon les possibilités réellement confirmées. Le prix n'est connu qu'après cette analyse.`,
     },
     {
       question: `Puis-je faire livrer et récupérer les surplus dans la même intervention ?`,
-      answer: `Oui. Notre réseau permet fréquemment de combiner une livraison de ${topic} avec la reprise de surplus (terre d'excavation, sable, béton concassé, matériaux mixtes) sur le même chantier. Cette formule « bidirectionnelle » réduit les coûts de transport et les délais. Mentionnez-le dans votre demande pour que nous priorisions un partenaire équipé pour les deux opérations.`,
+      answer: `C'est parfois possible. Si vous avez aussi des surplus à évacuer (terre d'excavation, sable, béton concassé, matériaux mixtes), mentionnez-le dans votre demande : la possibilité de combiner les deux opérations sera vérifiée.`,
     },
     {
       question: `Que se passe-t-il si l'accès au chantier de ${city} est limité ?`,
-      answer: `Nos partenaires interviennent avec des camions 10 ou 12 roues et, au besoin, des unités plus courtes ou des remorques dédiées. Précisez dans le formulaire les contraintes d'accès (rue étroite, hauteur limitée, présence de fils, terrain meuble). Transport JSC valide la faisabilité avant confirmation pour éviter tout aller-retour inutile et facturé.`,
+      answer: `Les matériaux en vrac se transportent généralement en camion 10 ou 12 roues ; un camion plus court peut être nécessaire selon l'accès. Précisez dans le formulaire les contraintes (rue étroite, hauteur limitée, présence de fils, terrain meuble) : la faisabilité est vérifiée avant toute confirmation.`,
     },
   ];
   return faq;
 }
+
+import { findUnverifiedClaims } from "../seo-generate-page/claims.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
@@ -478,9 +480,10 @@ Deno.serve(async (req) => {
             {
               role: "system",
               content:
-                "Tu es rédacteur SEO québécois pour Vrac Québec, plateforme de mise en relation (matériaux en vrac, dompes, transport) qui coordonne avec Transport JSC. " +
+                "Tu es rédacteur SEO québécois pour Vrac Québec, plateforme qui reçoit et analyse les demandes (matériaux en vrac, dompes, transport). Ne nomme jamais de transporteur. " +
                 "Tu écris en français du Québec, accents et noms propres exacts. " +
                 "INTERDIT : inventer un prix, une adresse, un numéro de téléphone, un délai garanti, un service non mentionné, une zone desservie non mentionnée, un témoignage ou une statistique. " +
+                "INTERDIT : affirmer l'existence de partenaires, fournisseurs, transporteurs ou d'un réseau, une disponibilité, une livraison ou une qualité garantie. " +
                 "INTERDIT : bourrage de mots-clés, répétitions, paraphrase du contenu existant. " +
                 "Tu produis uniquement des sections NOUVELLES et réellement utiles à un internaute. JSON strict, sans markdown.",
             },
@@ -492,7 +495,7 @@ Deno.serve(async (req) => {
                 `Pages voisines du même secteur (ne pas dupliquer leur angle) : ${(neighbours ?? []).map((n) => n.title).join(" ; ")}\n\n` +
                 `Contenu actuel (à conserver tel quel, tu ne le réécris pas) :\n${stripHtml(baseHtml).slice(0, 5000)}\n\n` +
                 `Rédige 2 à 4 NOUVELLES sections HTML (<h2> + <p>/<ul>) totalisant 350 à 650 mots, qui complètent la page : ` +
-                `contexte local concret (accès, type de chantiers, saisonnalité, contraintes routières régionales), ` +
+                `considérations générales exactes (accès camion, type de chantiers, saisonnalité) sans nommer de route, de quartier ni de lieu, ` +
                 `couverture réelle de l'intention de recherche (quoi demander, comment estimer le volume, quoi préparer avant la livraison), ` +
                 `et usages concrets du matériau ou du service lorsque pertinent. ` +
                 `Format : { "sections_html": "..." }`,
@@ -505,7 +508,7 @@ Deno.serve(async (req) => {
         let add = typeof parsed.sections_html === "string" ? parsed.sections_html : "";
         // Garde-fous : pas de script/style, pas de H1 concurrent, pas de prix inventé.
         add = add.replace(/<\/?(script|style)[^>]*>/gi, "").replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, "");
-        const hasFakePrice = /\d[\d\s.,]*\s*(\$|dollars)/i.test(stripHtml(add));
+        const hasFakePrice = /\d[\d\s.,]*\s*(\$|dollars)/i.test(stripHtml(add)) || findUnverifiedClaims(add).length > 0;
         const words = stripHtml(add).split(/\s+/).filter(Boolean).length;
         if (add.length > 300 && words >= 200 && !hasFakePrice) {
           updates.content_html = `${baseHtml}\n${add}`;
