@@ -62,3 +62,24 @@ export function jaccard(a: Set<string>, b: Set<string>): number {
   for (const x of a) if (b.has(x)) inter++;
   return inter / (a.size + b.size - inter);
 }
+
+/** Seuil de SIGNALEMENT (jamais de blocage) — choisi par l'administrateur. */
+export const SIMILARITY_FLAG = 0.40;
+
+/** Pages de la même famille dont la ressemblance atteint le seuil de signalement. */
+export function similarityFlags(
+  html: string,
+  cityName: string,
+  others: Array<{ slug: string; city_slug: string | null; content_html: string | null }>,
+  threshold = SIMILARITY_FLAG,
+): Array<{ slug: string; score: number }> {
+  const mine = shingles(normalizeForSimilarity(html, [cityName]));
+  const out: Array<{ slug: string; score: number }> = [];
+  for (const o of others) {
+    if (!o.content_html) continue;
+    const cityWords = (o.city_slug ?? "").replace(/-/g, " ");
+    const score = jaccard(mine, shingles(normalizeForSimilarity(o.content_html, [cityWords])));
+    if (score >= threshold) out.push({ slug: o.slug, score: Math.round(score * 1000) / 1000 });
+  }
+  return out.sort((a, b) => b.score - a.score);
+}

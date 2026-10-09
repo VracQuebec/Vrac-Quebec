@@ -5,8 +5,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAIChatCached } from "../_shared/ai-cache.ts";
 import { shouldBypassGenerationCache } from "./cache-policy.ts";
 import { offerKind, enforceOfferFaq } from "../_shared/seo-faq-offer.ts";
-import { sanitizeContentLinks, candidateSlugs } from "../_shared/seo-link-guard.ts";
-import { findPlaceholders, metaIssues } from "../_shared/seo-quality.ts";
+import { sanitizeContentLinks, candidateSlugs, FIXED_ROUTES } from "../_shared/seo-link-guard.ts";
+import { findPlaceholders, metaIssues, similarityFlags } from "../_shared/seo-quality.ts";
 import { findUnverifiedClaims, CONTENT_RULES } from "../_shared/seo-claims.ts";
 
 const CORS = {
@@ -500,7 +500,7 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
       const { data: pub } = await supabase.from("seo_pages").select("slug").in("slug", cands).eq("status", "published");
       publishedSet = (pub ?? []).map((r: { slug: string }) => r.slug);
     }
-    const linkCheck = sanitizeContentLinks(aiContentHtml, publishedSet);
+    const linkCheck = sanitizeContentLinks(aiContentHtml, publishedSet, FIXED_ROUTES);
     const contentHtml = linkCheck.html ? `${linkCheck.html}\n${ctaBlock}` : "";
     const placeholders = findPlaceholders({
       title, meta_title: metaTitle, meta_description: metaDescription, intro, content_html: linkCheck.html,
@@ -511,7 +511,16 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
       .or(`meta_title.eq."${metaTitle.replace(/"/g, "")}",meta_description.eq."${metaDescription.replace(/"/g, "")}"`)
       .limit(10);
     const metaCheck = metaIssues({ meta_title: metaTitle, meta_description: metaDescription }, sameMeta ?? []);
-    const quality = { links_removed: linkCheck.removed, links_kept: linkCheck.kept, placeholders, meta: metaCheck };
+    // Ressemblance avec les pages publiées de la même famille : signalement seulement.
+    let similar: Array<{ slug: string; score: number }> = [];
+    {
+      let fam = supabase.from("seo_pages").select("slug, city_slug, content_html").eq("status", "published").neq("slug", pageSlug);
+      fam = material?.slug ? fam.eq("material_slug", material.slug) : fam.is("material_slug", null);
+      fam = service?.slug ? fam.eq("service_slug", service.slug) : fam.is("service_slug", null);
+      const { data: famPages } = await fam.limit(400);
+      similar = similarityFlags(linkCheck.html, city.name, famPages ?? []);
+    }
+    const quality = { similar, links_removed: linkCheck.removed, links_kept: linkCheck.kept, placeholders, meta: metaCheck };
 
     // Compute analytics
     const words = countWords(contentHtml);
