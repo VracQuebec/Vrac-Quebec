@@ -4,17 +4,17 @@
 // Une page qui contient une de ces affirmations n'est jamais enregistrée.
 
 const PATTERNS: Array<[RegExp, string]> = [
-  [/\bnos\s+(partenaires|fournisseurs|transporteurs|camionneurs|entrepreneurs)\b/i, "partenaires/fournisseurs revendiqués"],
-  [/\b(fournisseurs?|transporteurs?|entrepreneurs?|partenaires?)\s+(locaux|local|de la r[ée]gion|r[ée]gionaux|situ[ée]s?\s+[àa]\s+proximit[ée]|à proximité|pr[èe]s de chez vous)\b/i, "fournisseurs locaux non vérifiés"],
-  [/\b(fournisseur|transporteur)\s+local\b/i, "fournisseur local non vérifié"],
-  [/\b(livraison|livrons|livrer)\s+(rapide|express|le jour même|en \d+|dans les \d+|sous \d+|garantie)/i, "délai de livraison"],
-  [/\b(dans les|en|sous)\s+\d+\s*(h|heures?|jours?)\b/i, "délai chiffré"],
-  [/\b(garanti[es]?|garantit|garantissons|certifi[ée]s?|v[ée]rifi[ée]s? par (nos|vrac))\b/i, "garantie/certification"],
-  [/\b(normes de qualit[ée] strictes|qualit[ée] sup[ée]rieure|meilleurs? prix|prix comp[ée]titifs?|les plus bas)\b/i, "qualité/prix revendiqués"],
-  [/\b(toujours|imm[ée]diatement)\s+disponibles?\b|\bdisponible\s+(imm[ée]diatement|en tout temps|toute l'ann[ée]e)\b/i, "disponibilité"],
-  [/\b(nous|on)\s+(livrons|transportons|fournissons|garantissons)\b/i, "service direct revendiqué"],
-  [/\b\d+\s*\$|\$\s*\d+/i, "prix"],
-  [/\b\d+\s*km\b/i, "distance chiffrée"],
+  [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))nos\s+(partenaires|fournisseurs|transporteurs|camionneurs|entrepreneurs)(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))/iu, "partenaires/fournisseurs revendiqués"],
+  [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))(fournisseurs?|transporteurs?|entrepreneurs?|partenaires?)\s+(locaux|local|de la r[ée]gion|r[ée]gionaux|situ[ée]s?\s+[àa]\s+proximit[ée]|à proximité|pr[èe]s de chez vous)(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))/iu, "fournisseurs locaux non vérifiés"],
+  [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))(fournisseur|transporteur)\s+local(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))/iu, "fournisseur local non vérifié"],
+  [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))(livraison|livrons|livrer)\s+(rapide|express|le jour même|en \d+|dans les \d+|sous \d+|garantie)/iu, "délai de livraison"],
+  [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))(dans les|en|sous)\s+\d+\s*(h|heures?|jours?)(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))/iu, "délai chiffré"],
+  [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))(garanti[es]?|garantit|garantissons|certifi[ée]s?|v[ée]rifi[ée]s? par (nos|vrac))(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))/iu, "garantie/certification"],
+  [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))(normes de qualit[ée] strictes|qualit[ée] sup[ée]rieure|meilleurs? prix|prix comp[ée]titifs?|les plus bas)(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))/iu, "qualité/prix revendiqués"],
+  [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))(toujours|imm[ée]diatement)\s+disponibles?(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))|(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))disponible\s+(imm[ée]diatement|en tout temps|toute l'ann[ée]e)(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))/iu, "disponibilité"],
+  [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))(nous|on)\s+(livrons|transportons|fournissons|garantissons)(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))/iu, "service direct revendiqué"],
+  [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))\d+\s*\$|\$\s*\d+/iu, "prix"],
+  [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))\d+\s*km(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))/iu, "distance chiffrée"],
 ];
 
 export type ClaimHit = { reason: string; excerpt: string };
