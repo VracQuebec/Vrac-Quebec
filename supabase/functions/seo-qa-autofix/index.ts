@@ -11,6 +11,7 @@
 // This function no longer reads LOVABLE_API_KEY unless the caller explicitly opts in.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { findUnverifiedClaims } from "../seo-generate-page/claims.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -201,8 +202,6 @@ function buildFaq(page: Page): Array<{ question: string; answer: string }> {
   ];
   return faq;
 }
-
-import { findUnverifiedClaims } from "../seo-generate-page/claims.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
