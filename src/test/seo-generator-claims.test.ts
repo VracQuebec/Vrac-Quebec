@@ -18,3 +18,9 @@ describe("garde-fou des affirmations non vérifiées", () => {
     expect(findUnverifiedClaims(ok)).toEqual([]);
   });
 });
+
+describe("faux positifs", () => {
+  it("une phrase technique générale avec « garantit » reste permise", () => {
+    expect(findUnverifiedClaims("Une bonne préparation du terrain garantit une application efficace du remblai.")).toEqual([]);
+  });
+});
