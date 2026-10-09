@@ -543,7 +543,7 @@ Deno.serve(async (req) => {
         const content = ai.content || "{}";
         try {
           const parsed = JSON.parse(content) as { content_html?: string };
-          if (typeof parsed.content_html === "string" && parsed.content_html.length > 400) {
+          if (typeof parsed.content_html === "string" && parsed.content_html.length > 400 && findUnverifiedClaims(parsed.content_html).length === 0) {
             updates.content_html = parsed.content_html;
             if (want("expand_content")) fixedActions.push("expand_content");
             if (want("rebuild_headings")) fixedActions.push("rebuild_headings");
