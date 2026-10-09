@@ -188,7 +188,7 @@ function buildFaq(page: Page): Array<{ question: string; answer: string }> {
       answer: `Le délai dépend de la saison, de l'accessibilité du chantier et des possibilités confirmées lors de l'analyse de votre demande ; aucun délai n'est garanti à l'avance. Prévoir votre demande tôt, surtout au printemps et en été, aide à planifier.`,
     },
     {
-      question: `Vrac Québec vend-il directement le ${topic} ?`,
+      question: `Vrac Québec fournit-il lui-même ce matériau ou ce service ?`,
       answer: `Non. Vrac Québec est une plateforme qui reçoit les demandes de matériaux en vrac et de dompe et les analyse selon les possibilités réellement confirmées. Le prix n'est connu qu'après cette analyse.`,
     },
     {
