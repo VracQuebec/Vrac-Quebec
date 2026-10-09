@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { cityProblemSplit, retryDisabledReason, publishDisabledReason, publishResultMessage, repairResultMessage } from "@/lib/seo/cityActions";
+import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindexOnly } from "@/lib/seo/cityActions";
 import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
 import { coverageLabel, coveragePct, computeCoverage, splitAll, coverageFlags, COVERAGE_BADGE_LABEL, type Coverage, type CoverageAllRaw } from "@/lib/seo/cityCoverage";
 import { useSeoControlCenter, type ControlCityRow, type ControlProblem } from "@/lib/seo/useSeoControlCenter";
@@ -60,6 +60,13 @@ const STATUS_META: Record<ControlCityRow["status"], { label: string; className: 
 
 function nf(n: number) { return n.toLocaleString("fr-CA"); }
 
+/** Clés des pages publiées d'une ville, d'après la lecture de couverture (même source pour toutes les villes). */
+function publishedKeysOf(cv: Coverage | null): Set<string> {
+  const out = new Set<string>();
+  for (const it of cv?.items ?? []) if (it.page && it.published) out.add(slotKey(it.kind, it.kind === "material" ? it.slug : null, it.kind === "service" ? it.slug : null));
+  return out;
+}
+
 export default function PipelineControlCenter() {
   const { state, loading, error, reload } = useSeoControlCenter();
   const { pause, resume, stop, retryErrors } = useSeoPipelineV2();
@@ -119,6 +126,23 @@ export default function PipelineControlCenter() {
   const global = useGlobalGeneration(phase === "running" || phase === "paused");
   const startable = canStartGlobal(global.preview, activeRun as never);
   const prog = runProgress(activeRun as never);
+  const globalActive = phase === "running" || phase === "paused";
+  // Bilan global : mêmes règles que chaque carte de ville.
+  const bilan = useMemo(() => {
+    const t = { cities: 0, planned: 0, published: 0, drafts: 0, toDevelop: 0, offCriteria: 0, errDraft: 0, errPub: 0, noindex: 0, pending: 0, failed: 0 };
+    const pubByCity = new Map<string, Set<string>>();
+    for (const [slug, cv] of cov) { t.cities++; t.planned += cv.planned; t.published += cv.plannedCovered; t.drafts += cv.plannedDrafts; t.toDevelop += cv.toDevelop; t.offCriteria += cv.offCriteria; pubByCity.set(slug, publishedKeysOf(cv)); }
+    for (const p of (state?.problems ?? []) as ControlProblem[]) {
+      if (p.gen_state === "pending") t.pending++;
+      else if (p.gen_state === "error") t.failed++;
+      else if (p.gen_state === "invalid") {
+        if (isNoindexOnly(p as never)) t.noindex++;
+        else if (pubByCity.get(p.city_slug)?.has(slotKey(p.kind, p.material_slug, p.service_slug))) t.errPub++;
+        else t.errDraft++;
+      }
+    }
+    return t;
+  }, [cov, state?.problems]);
 
   async function launchGlobal() {
     setConfirmOpen(false);
@@ -408,6 +432,23 @@ export default function PipelineControlCenter() {
           </>
         )}
       </Card>
+
+      {cov.size > 0 && (
+        <Card className="p-4 md:p-6 space-y-2">
+          <h3 className="text-base font-display font-bold">Bilan de couverture — {nf(bilan.cities)} villes actives</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div><div className="text-lg font-bold">{nf(bilan.planned)}</div>pages attendues (opportunités pertinentes)</div>
+            <div><div className="text-lg font-bold">{nf(bilan.published)}</div>publiées</div>
+            <div><div className="text-lg font-bold">{nf(bilan.drafts)}</div>en brouillon</div>
+            <div><div className="text-lg font-bold">{nf(bilan.toDevelop)}</div>manquantes (dans la file)</div>
+            <div><div className="text-lg font-bold">{nf(bilan.errDraft)}</div>brouillons en erreur (régénérables)</div>
+            <div><div className="text-lg font-bold">{nf(bilan.errPub)}</div>pages en ligne à corriger (protégées)</div>
+            <div><div className="text-lg font-bold">{nf(bilan.pending + bilan.failed)}</div>tâches en attente ou échouées</div>
+            <div><div className="text-lg font-bold">{nf(bilan.noindex)}</div>non indexées volontairement (pas une erreur)</div>
+          </div>
+          <p className="text-xs text-muted-foreground">Exclues : {nf(bilan.offCriteria)} page(s) existante(s) hors critères — aucune demande ni service configuré ne les justifie; elles sont conservées mais ne comptent pas dans les pages attendues.</p>
+        </Card>
+      )}
 
       {/* ── État des villes ─────────────────────────────────────── */}
       <Card className="p-4 md:p-6 space-y-4">
