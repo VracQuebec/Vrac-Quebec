@@ -4,6 +4,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAIChatCached } from "../_shared/ai-cache.ts";
 import { shouldBypassGenerationCache } from "./cache-policy.ts";
+import { findUnverifiedClaims, CONTENT_RULES } from "./claims.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -336,19 +337,46 @@ Deno.serve(async (req) => {
     // Skip if already exists (sauf régénération forcée)
     const { data: existing } = await supabase
       .from("seo_pages")
-      .select("id")
+      .select("id, status, published_at")
       .eq("slug", pageSlug)
       .maybeSingle();
     if (existing?.id && !forceRegenerate) {
       return json({ skipped: true, reason: "exists", slug: pageSlug });
     }
+    // Une page EN LIGNE n'est jamais remplacée sans validation explicite :
+    // la régénération la remettrait en brouillon non indexé.
+    if (existing?.id && (existing.status === "published" || existing.published_at) && body?.confirm_published !== true) {
+      return json({ error: "Page en ligne protégée : remplacement refusé sans validation explicite.", protected: true, slug: pageSlug }, 409);
+    }
+
+    // Données vérifiées (lecture seule) : seuls faits locaux permis dans le texte.
+    const verified: string[] = [];
+    {
+      const { data: terr } = await supabase.from("geo_territories")
+        .select("id").eq("seo_city_slug", city.slug).eq("type", "municipalite").eq("status", "active")
+        .order("request_count", { ascending: false }).limit(1).maybeSingle();
+      if (terr?.id) {
+        const { data: subs } = await supabase.from("submissions").select("materials").eq("territory_id", terr.id).limit(2000);
+        const total = subs?.length ?? 0;
+        if (total > 0) verified.push(`${total} demande(s) enregistrée(s) sur Vrac Québec pour ${city.name}`);
+        if (material) {
+          const key = slugify(material.name);
+          const n = (subs ?? []).filter((r: { materials: string[] | null }) => (r.materials ?? []).some((m) => slugify(m).includes(key))).length;
+          if (n > 0) verified.push(`${n} demande(s) mentionnant « ${material.name} »`);
+        }
+        const { data: svcs } = await supabase.from("geo_territory_services").select("service_key, status").eq("territory_id", terr.id);
+        const active = (svcs ?? []).filter((x: { status: string }) => x.status === "ACTIVE" || x.status === "PARTIELLE").map((x: { service_key: string }) => x.service_key);
+        verified.push(active.length ? `services configurés (actifs/partiels) : ${active.join(", ")}` : "aucun service de transport ou de livraison n'est configuré pour cette ville — n'en promets aucun");
+      }
+    }
+    const verifiedBlock = verified.length ? verified.map((v) => `- ${v}`).join("\n") : "- aucune donnée locale vérifiée : reste général";
 
     const label = [service?.name, material?.name].filter(Boolean).join(" — ") || "Matériaux en vrac et dompes";
     const humanTitle = `${label} à ${city.name}`;
 
     const system = `Tu es rédacteur SEO senior pour Vrac Québec, plateforme québécoise de mise en relation pour matériaux en vrac et services de transport (remblai, terre, gravier, sable, pierre, béton/asphalte recyclés, dompe, excavation).
-Français québécois professionnel, ton clair, orienté conversion, zéro emoji, zéro superlatif creux, aucun prix inventé.
-Vrac Québec n'est PAS un vendeur : c'est un connecteur qui met en relation clients, fournisseurs et entrepreneurs locaux.
+Français québécois professionnel, ton clair et factuel, zéro emoji, zéro superlatif creux, aucun prix inventé.
+Vrac Québec n'est PAS un vendeur : c'est une plateforme qui reçoit les demandes et les analyse selon les possibilités réellement confirmées (aucun réseau local n'est garanti).
 Réponds UNIQUEMENT en JSON valide (aucun texte autour, aucun bloc markdown) avec ce schéma STRICT :
 {
   "title": "H1 accrocheur ≤ 70 caractères, mot-clé principal en début",
@@ -365,12 +393,14 @@ Réponds UNIQUEMENT en JSON valide (aucun texte autour, aucun bloc markdown) ave
 }
 
 RÈGLES content_html :
-- 800 à 1500 mots (STRICT).
+- 450 à 1000 mots, sans remplissage.
 - Balises autorisées uniquement : h2, h3, p, ul, ol, li, strong, em, a.
 - Aucun h1 (le H1 est géré ailleurs). Aucun script/style/iframe/img.
-- Structure : 5 à 7 sections H2, chacune avec 1-2 sous-sections H3 pertinentes.
-- Localise fortement sur ${city.name} (${city.region ?? "Québec"}) : quartiers, accès camion, type de chantier.
-- 6 à 8 FAQ locales et concrètes (accès, délais, quantité minimum, unité de mesure, camion utilisé, saisonnalité, permis, contamination). Jamais de prix précis.
+- Structure : 4 à 6 sections H2, avec sous-sections H3 si utiles.
+- Mentionne ${city.name} naturellement, sans inventer de caractéristique locale.
+- 4 à 6 FAQ concrètes et générales (unité de mesure, estimation de volume, saisonnalité, contamination, préparation, déroulement d'une demande). Jamais de prix, de délai ni de disponibilité promis.
+
+${CONTENT_RULES}
 - Aucune donnée officielle inventée. Ne cite pas de règlements municipaux par numéro.
 - Densité du mot-clé principal : 1-2 % (naturel).
 - Inclus 2-4 liens internes contextuels vers d'autres villes/matériaux (utiliser des liens relatifs, ex : /gravier-levis).`;
@@ -381,7 +411,9 @@ ${material ? `Matériau : ${material.name}${material.description ? ` — ${mater
 ${service ? `Service : ${service.name}${service.description ? ` — ${service.description}` : ""}.` : ""}
 ${usage ? `Usage ciblé : ${usage}.` : ""}
 ${!material && !service ? "Type de page : hub local général sur les matériaux en vrac, l'accès aux dompes et la coordination locale." : ""}
-Objectif : positionner cette page en tête de Google pour ce mot-clé local et convertir vers le formulaire de demande de Vrac Québec.
+Données vérifiées (seuls faits locaux permis) :
+${verifiedBlock}
+Objectif : répondre utilement et exactement à la recherche, puis orienter vers le formulaire de demande de Vrac Québec.
 Respecte STRICTEMENT le schéma JSON et les règles content_html du system prompt.`;
 
     let raw = "";
@@ -455,11 +487,17 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
     // malformed or truncated, return a retryable 502 so the pipeline requeues
     // the task instead of publishing a 0-word page that QA autofix would then
     // overwrite with a CTA-only stub.
-    if (countWords(aiContentHtml) < 800 || aiContentHtml.length < 3000 || h2 < 4 || faq.length < 3) {
+    if (countWords(aiContentHtml) < 400 || aiContentHtml.length < 2000 || h2 < 3 || faq.length < 3) {
       return json({
-        error: "AI response incomplete (< 800 words or malformed) — task will retry",
+        error: "AI response incomplete (< 400 words or malformed) — task will retry",
         details: { words, contentLen: aiContentHtml.length, h2, faq: faq.length },
       }, 502);
+    }
+
+    // Affirmations non vérifiées : la page n'est pas enregistrée, rien n'est écrasé.
+    const claimHits = findUnverifiedClaims([intro, aiContentHtml, ...faq.map((f: { question: string; answer: string }) => `${f.question} ${f.answer}`), metaDescription].join(" "));
+    if (claimHits.length) {
+      return json({ error: `Affirmations non vérifiées détectées — page non enregistrée : ${claimHits.map((h) => `${h.reason} (« ${h.excerpt} »)`).join(" ; ")}`.slice(0, 900), claims: claimHits }, 422);
     }
 
     const analytics = computeSeoScore({
