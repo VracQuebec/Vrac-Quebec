@@ -1,5 +1,5 @@
 --- supabase/functions/seo-generate-page/index.ts	2026-10-09 17:01:31.211032998 +0000
-+++ prepared/seo-generator/seo-generate-page/index.ts	2026-10-09 17:40:55.429424669 +0000
++++ prepared/seo-generator/seo-generate-page/index.ts	2026-10-09 17:42:30.493171628 +0000
 @@ -4,7 +4,9 @@
  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  import { callAIChatCached } from "../_shared/ai-cache.ts";
@@ -118,7 +118,7 @@
        internal_links: internalLinks,
        word_count: words,
        h2_count: h2,
-@@ -569,14 +595,32 @@
+@@ -569,14 +595,33 @@
      };
  
      let pageRow: { id: string; slug: string } | null = null;
@@ -133,10 +133,10 @@
 +    }
      if (existing?.id && forceRegenerate) {
 +      // Brouillon : sauvegarde complète AVANT remplacement; échec = page intacte.
-+      const { error: bErr } = await supabase.from("seo_page_improvements").insert({
++      const { data: bak, error: bErr } = await supabase.from("seo_page_improvements").insert({
 +        page_id: existing.id, before_snapshot: existing, after_snapshot: payload,
-+        applied: true, applied_at: new Date().toISOString(), model: "google/gemini-2.5-flash", notes: "generateur:sauvegarde-avant-regeneration",
-+      });
++        applied: false, model: "google/gemini-2.5-flash", notes: "generateur:sauvegarde-avant-regeneration",
++      }).select("id").single();
 +      if (bErr) return json({ error: `Sauvegarde impossible — brouillon non modifié : ${bErr.message}` }, 500);
        const { data: upd, error: uErr } = await supabase
          .from("seo_pages")
@@ -148,11 +148,12 @@
 -        .single();
 +        .maybeSingle();
        if (uErr) return json({ error: uErr.message }, 500);
-+      if (!upd) return json({ error: "Brouillon modifié entre-temps ou publié — aucun remplacement effectué." }, 409);
++      if (!upd) return json({ error: "Brouillon modifié entre-temps ou publié — aucun remplacement effectué.", backup_id: bak?.id ?? null }, 409);
++      await supabase.from("seo_page_improvements").update({ applied: true, applied_at: new Date().toISOString() }).eq("id", bak.id);
        pageRow = upd;
      } else {
        const { data: ins, error: iErr } = await supabase
-@@ -607,7 +651,7 @@
+@@ -607,7 +652,7 @@
        });
      }
  

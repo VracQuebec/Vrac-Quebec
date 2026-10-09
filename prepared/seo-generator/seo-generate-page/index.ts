@@ -606,10 +606,10 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
     }
     if (existing?.id && forceRegenerate) {
       // Brouillon : sauvegarde complète AVANT remplacement; échec = page intacte.
-      const { error: bErr } = await supabase.from("seo_page_improvements").insert({
+      const { data: bak, error: bErr } = await supabase.from("seo_page_improvements").insert({
         page_id: existing.id, before_snapshot: existing, after_snapshot: payload,
-        applied: true, applied_at: new Date().toISOString(), model: "google/gemini-2.5-flash", notes: "generateur:sauvegarde-avant-regeneration",
-      });
+        applied: false, model: "google/gemini-2.5-flash", notes: "generateur:sauvegarde-avant-regeneration",
+      }).select("id").single();
       if (bErr) return json({ error: `Sauvegarde impossible — brouillon non modifié : ${bErr.message}` }, 500);
       const { data: upd, error: uErr } = await supabase
         .from("seo_pages")
@@ -620,7 +620,8 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
         .select("id, slug")
         .maybeSingle();
       if (uErr) return json({ error: uErr.message }, 500);
-      if (!upd) return json({ error: "Brouillon modifié entre-temps ou publié — aucun remplacement effectué." }, 409);
+      if (!upd) return json({ error: "Brouillon modifié entre-temps ou publié — aucun remplacement effectué.", backup_id: bak?.id ?? null }, 409);
+      await supabase.from("seo_page_improvements").update({ applied: true, applied_at: new Date().toISOString() }).eq("id", bak.id);
       pageRow = upd;
     } else {
       const { data: ins, error: iErr } = await supabase
