@@ -25,6 +25,11 @@ export function findUnverifiedClaims(html: string): ClaimHit[] {
   for (const [re, reason] of PATTERNS) {
     const m = text.match(re);
     if (m && m.index !== undefined) {
+      // Négation explicite (« aucun délai n'est garanti », « est-elle garantie ? Non ») : pas une promesse.
+      const before = text.slice(Math.max(0, m.index - 30), m.index);
+      const after = text.slice(m.index + m[0].length, m.index + m[0].length + 8);
+      if ((reason === "garantie/certification" || reason === "disponibilité") &&
+          (/(n['’]est|n['’]être|pas|aucune?|ni|non|est-(il|elle))\W+(\p{L}+\W+){0,2}$/iu.test(before) || /^\s*\?\s*non/iu.test(after))) continue;
       hits.push({ reason, excerpt: text.slice(Math.max(0, m.index - 40), m.index + m[0].length + 40).trim() });
     }
   }
