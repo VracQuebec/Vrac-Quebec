@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { cityProblemSplit, retryDisabledReason, publishDisabledReason, publishResultMessage, repairResultMessage } from "@/lib/seo/cityActions";
 import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
 import { coverageLabel, coveragePct, computeCoverage, splitAll, coverageFlags, COVERAGE_BADGE_LABEL, type Coverage, type CoverageAllRaw } from "@/lib/seo/cityCoverage";
 import { useSeoControlCenter, type ControlCityRow, type ControlProblem } from "@/lib/seo/useSeoControlCenter";
@@ -164,9 +165,9 @@ export default function PipelineControlCenter() {
     [state],
   );
 
-  async function act(key: string, fn: () => Promise<void>, okMsg: string) {
+  async function act(key: string, fn: () => Promise<void | string>, okMsg: string) {
     setBusy(key);
-    try { await fn(); await reload(); toast({ title: okMsg }); }
+    try { const detail = await fn(); await reload(); toast({ title: okMsg, description: detail || undefined }); }
     catch (e) { toast({ title: "Erreur", description: e instanceof Error ? e.message : "Action impossible", variant: "destructive" }); }
     finally { setBusy(null); }
   }
@@ -431,6 +432,9 @@ export default function PipelineControlCenter() {
             const lockedByOther = !!gen.lockedBy && gen.lockedBy !== c.slug;
             const cv = cov.get(c.slug) ?? null;
             const flags = cv ? coverageFlags(cv) : null;
+            const split = cityProblemSplit(state?.problems ?? [], c.slug);
+            const retryReason = retryDisabledReason(split.realErrors, split.noindex);
+            const publishReason = publishDisabledReason(c);
             const legacyMeta = STATUS_META[isRunning ? "running" : c.status];
             // Le badge ne dépend plus de la file du Générateur, sauf génération en cours ou erreur.
             const meta = isRunning || c.status === "error" || !flags ? legacyMeta
@@ -468,9 +472,11 @@ export default function PipelineControlCenter() {
                   <span>{c.published} publiée{c.published > 1 ? "s" : ""}</span>
                   <span>{c.drafts} en brouillon</span>
                   <span>{c.remaining} prévue{c.remaining > 1 ? "s" : ""} non créée{c.remaining > 1 ? "s" : ""}</span>
-                  <span className={c.errors > 0 ? "text-destructive font-medium" : ""}>{c.errors} erreur{c.errors > 1 ? "s" : ""}</span>
+                  <span className={split.realErrors > 0 ? "text-destructive font-medium" : ""}>{split.realErrors} erreur{split.realErrors > 1 ? "s" : ""}</span>
+                  {split.noindex > 0 && <span className="text-muted-foreground">{split.noindex} publiée(s) non indexée(s) volontairement</span>}
                   <span className="font-semibold">Couverture des opportunités : {cv ? coverageLabel(cv.plannedCovered, cv.planned) : "…"}</span>
                   <span className="text-muted-foreground">Potentiel théorique : {state?.totals.per_city ?? "—"}</span>
+                  {cv && cv.toDevelop > 0 && <span className="text-amber-700">{cv.toDevelop} opportunité(s) sans page — hors file du générateur</span>}
                 </div>
 
                 {isRunning && liveTotal ? (
@@ -493,16 +499,23 @@ export default function PipelineControlCenter() {
                     {gen.verifying === c.slug ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />} Vérifier la ville
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
-                    disabled={c.errors === 0 || busy === `retry-${c.slug}`}
+                    title={retryReason ?? undefined}
+                    disabled={!!retryReason || busy === `retry-${c.slug}`}
                     onClick={() => act(`retry-${c.slug}`, async () => {
-                      await repairSeoPages({ citySlug: c.slug, allErrors: true });
-                    }, `Régénération lancée — ${c.name}`)}>
+                      const r = await repairSeoPages({ citySlug: c.slug, allErrors: true });
+                      return repairResultMessage(r);
+                    }, `Régénération — ${c.name}`)}>
                     {busy === `retry-${c.slug}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <ListRestart className="w-3 h-3" />} Régénérer les erreurs
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
-                    disabled={c.unpublished === 0 || busy === `pub-${c.slug}`}
-                    onClick={() => act(`pub-${c.slug}`, async () => { await supabase.rpc("seo_city_publish_missing" as never, { _city_slug: c.slug } as never); }, `Pages non publiées publiées — ${c.name}`)}>
-                    <Send className="w-3 h-3" /> Publier les non publiées
+                    title={publishReason ?? undefined}
+                    disabled={!!publishReason || busy === `pub-${c.slug}`}
+                    onClick={() => act(`pub-${c.slug}`, async () => {
+                      const { data, error } = await supabase.rpc("seo_city_publish_missing" as never, { _city_slug: c.slug } as never);
+                      if (error) throw new Error(error.message);
+                      return publishResultMessage(data as { published?: number; skipped_invalid?: number } | null);
+                    }, `Publication — ${c.name}`)}>
+                    {busy === `pub-${c.slug}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />} Publier les non publiées
                   </Button>
                   <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => openLogs(c.slug)}>Voir les logs</Button>
                   {c.remaining > 0 && (
@@ -514,6 +527,12 @@ export default function PipelineControlCenter() {
                     </Button>
                   )}
                 </div>
+                {(retryReason || publishReason) && (
+                  <div className="text-[10px] text-muted-foreground space-y-0.5" onClick={(e) => e.stopPropagation()}>
+                    {retryReason && <div>Régénérer : {retryReason}</div>}
+                    {publishReason && <div>Publier : {publishReason}</div>}
+                  </div>
+                )}
                 {lockedByOther && c.remaining > 0 && (
                   <div className="text-[10px] text-muted-foreground">Une autre ville est en cours de génération.</div>
                 )}
