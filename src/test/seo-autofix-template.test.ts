@@ -17,7 +17,7 @@ describe("modèle automatique de questions-réponses", () => {
   });
   it("les réponses passent le contrôle des promesses", () => {
     const answers = [...faqBlock.matchAll(/answer: `([^`]+)`/g)].map((m) => m[1]);
-    expect(answers).toHaveLength(6);
+    expect(answers).toHaveLength(5); // la 6e (offre) vient de seo-faq-offer, testée à part
     for (const a of answers) expect(findUnverifiedClaims(a)).toEqual([]);
   });
   it("ne confirme aucune capacité ni quantité minimale non vérifiée", () => {

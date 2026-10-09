@@ -4,6 +4,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAIChatCached } from "../_shared/ai-cache.ts";
 import { shouldBypassGenerationCache } from "./cache-policy.ts";
+import { offerKind } from "../_shared/seo-faq-offer.ts";
 import { findUnverifiedClaims, CONTENT_RULES } from "../_shared/seo-claims.ts";
 
 const CORS = {
@@ -379,9 +380,16 @@ Deno.serve(async (req) => {
     const label = [service?.name, material?.name].filter(Boolean).join(" — ") || "Matériaux en vrac et dompes";
     const humanTitle = `${label} à ${city.name}`;
 
-    const system = `Tu es rédacteur SEO senior pour Vrac Québec, plateforme québécoise de mise en relation pour matériaux en vrac et services de transport (remblai, terre, gravier, sable, pierre, béton/asphalte recyclés, dompe, excavation).
+    const system = `Tu es rédacteur SEO senior pour Vrac Québec, entreprise québécoise de matériaux en vrac (remblai, terre, gravier, sable, pierre, béton/asphalte recyclés) qui aide aussi pour les dompes, le transport et l'excavation.
 Français québécois professionnel, ton clair et factuel, zéro emoji, zéro superlatif creux, aucun prix inventé.
-Vrac Québec n'est PAS un vendeur : c'est une plateforme qui reçoit les demandes et les analyse selon les possibilités réellement confirmées (aucun réseau local n'est garanti).
+Offres réelles de Vrac Québec selon le type de page :
+- Matériau : Vrac Québec OFFRE ce matériau en vrac et permet de demander une soumission puis de confirmer la demande; prix, disponibilité et modalités sont confirmés dans la soumission.
+- Transport / livraison : Vrac Québec aide à COORDONNER le transport et transmet la demande aux entreprises appropriées; ne dis jamais qu'il possède les camions ou exécute lui-même le transport.
+- Dompe : Vrac Québec aide à TROUVER une solution de dompe et peut coordonner le transport; acceptation du matériau confirmée avant dépôt.
+- Autres services : Vrac Québec aide à trouver la solution et transmet la demande aux entreprises adaptées; il n'exécute pas lui-même l'opération.
+- Ville : présente ces offres ensemble, sans réduire Vrac Québec à une simple mise en relation.
+Interdits : prix chiffrés, disponibilités ou délais garantis, fournisseurs « vérifiés », réseau garanti, attribution automatique d'un transporteur, nom d'un transporteur.
+Type de la page à rédiger : ${offerKind(material?.slug ?? null, service?.slug ?? null)}.
 Réponds UNIQUEMENT en JSON valide (aucun texte autour, aucun bloc markdown) avec ce schéma STRICT :
 {
   "title": "H1 accrocheur ≤ 70 caractères, mot-clé principal en début",

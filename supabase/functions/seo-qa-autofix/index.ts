@@ -10,6 +10,7 @@
 // "Fix all" (empty actions array) applies deterministic actions ONLY — zero AI calls.
 // This function no longer reads LOVABLE_API_KEY unless the caller explicitly opts in.
 
+import { offerFaq, offerKind } from "../_shared/seo-faq-offer.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { findUnverifiedClaims } from "../_shared/seo-claims.ts";
 
@@ -187,10 +188,7 @@ function buildFaq(page: Page): Array<{ question: string; answer: string }> {
       question: `Quels sont les délais de livraison à ${city} ?`,
       answer: `Le délai dépend de la saison, de l'accessibilité du chantier et des possibilités confirmées lors de l'analyse de votre demande ; aucun délai n'est garanti à l'avance. Prévoir votre demande tôt, surtout au printemps et en été, aide à planifier.`,
     },
-    {
-      question: `Vrac Québec fournit-il lui-même ce matériau ou ce service ?`,
-      answer: `Non. Vrac Québec est une plateforme qui reçoit les demandes de matériaux en vrac et de dompe et les analyse selon les possibilités réellement confirmées. Le prix n'est connu qu'après cette analyse.`,
-    },
+    offerFaq(offerKind(page.material_slug, page.service_slug), topic, city),
     {
       question: `Puis-je faire livrer et récupérer les surplus dans la même intervention ?`,
       answer: `C'est parfois possible. Si vous avez aussi des surplus à évacuer (terre d'excavation, sable, béton concassé, matériaux mixtes), mentionnez-le dans votre demande : la possibilité de combiner les deux opérations sera vérifiée.`,
