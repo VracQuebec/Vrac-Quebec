@@ -25,3 +25,5 @@
 - Home art direction stays local to EntrepreneurDashboard; reusing authorized summaries and existing links isolates visual composition from shared pages and map behavior.
 - SEO draft waves may opt out of automatic operational claims by their wave marker; this keeps unvalidated services out without changing existing published pages.
 <!-- LOVABLE:END -->
+
+- `prepared/` holds NON-deployed staging copies (e.g. the corrected SEO generator); nothing there is live until copied into `supabase/functions/` after approval — keeps preparation separate from production.
