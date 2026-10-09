@@ -181,7 +181,7 @@ function buildFaq(page: Page): Array<{ question: string; answer: string }> {
     },
     {
       question: `Quelle quantité minimum de ${topic} peut-on commander ?`,
-      answer: `Les chargements de ${topic} sont généralement facturés au voyage complet (camion 10 ou 12 roues), soit environ 12 à 20 verges cubes. Les petites quantités peuvent demander un camion plus léger ; indiquez votre volume estimé dans le formulaire, la faisabilité sera vérifiée.`,
+      answer: `Aucune quantité minimale de ${topic} n'est confirmée à l'avance. Indiquez votre volume estimé dans votre demande ; les possibilités seront vérifiées avant toute confirmation.`,
     },
     {
       question: `Quels sont les délais de livraison à ${city} ?`,
@@ -384,6 +384,11 @@ Deno.serve(async (req) => {
         const generated = buildFaq(p).filter(
           (g) => !existingFaq.some((e) => e.question.trim().toLowerCase() === g.question.trim().toLowerCase()),
         );
+        const generatedText = generated.map((g) => g.answer).join(" ");
+        const claimHits = findUnverifiedClaims(generatedText);
+        if (/Transport\s+JSC/iu.test(generatedText) || claimHits.length > 0) {
+          return json({ error: "FAQ refusée : affirmation non vérifiée", claims: claimHits }, 422);
+        }
         const merged = [...existingFaq, ...generated].slice(0, 6);
         if (merged.length > existingFaq.length) {
           updates.faq = merged;
