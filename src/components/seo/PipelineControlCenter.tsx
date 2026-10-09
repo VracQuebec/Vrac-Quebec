@@ -238,13 +238,13 @@ export default function PipelineControlCenter() {
               <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
                 <div className="flex flex-wrap items-end justify-between gap-3">
                   <div>
-                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Combinaisons pertinentes créées</div>
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Progression du générateur — combinaisons créées</div>
                     <div className="text-4xl font-display font-extrabold text-primary leading-tight">
                       {nf(totals.generated)} <span className="text-xl text-muted-foreground font-bold">/ {nf(totals.target_total)}</span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Couverture</div>
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Progression du générateur</div>
                     <div className="text-4xl font-display font-extrabold text-primary leading-tight">
                       {globalPct}<span className="text-lg text-muted-foreground font-bold"> %</span>
                     </div>
@@ -252,6 +252,7 @@ export default function PipelineControlCenter() {
                 </div>
                 <Progress value={globalPct} className="h-2 mt-3" />
                 <div className="text-xs text-muted-foreground mt-2">
+                  Ces chiffres décrivent la file du générateur, pas la couverture réelle des pages publiées.
                   Publication (manuelle) : {publishedPct}% — {nf(totals.published)} publiée(s), {nf(totals.drafts)} en brouillon.
                   Une page générée n'est jamais publiée automatiquement.
                 </div>
@@ -260,20 +261,20 @@ export default function PipelineControlCenter() {
               {/* Tuiles officielles */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
                 <Kpi label="Municipalités analysées" value={nf(state.cities.length)} hint="Registre municipal actuel" />
-                <Kpi label="Combinaisons pertinentes" value={nf(totals.target_total)} hint="Ville × matériau × service" />
-                <Kpi label="Combinaisons créées" value={nf(totals.generated)} tone="good" hint="Pages existantes, brouillons inclus" />
+                <Kpi label="Générateur — combinaisons pertinentes" value={nf(totals.target_total)} hint="Ville × matériau × service — file du générateur, pas des pages indexables" />
+                <Kpi label="Générateur — combinaisons créées" value={nf(totals.generated)} tone="good" hint="Pages existantes, brouillons inclus" />
                 <button type="button" onClick={() => setProblemsOpen(true)} className="text-left">
-                  <Kpi label="Combinaisons manquantes" value={nf(totals.remaining)} tone={totals.remaining > 0 ? "bad" : "muted"} hint="Pages pertinentes non générées — voir la liste" />
+                  <Kpi label="Générateur — combinaisons manquantes" value={nf(totals.remaining)} tone={totals.remaining > 0 ? "bad" : "muted"} hint="Pages pertinentes non générées — voir la liste" />
                 </button>
-                <Kpi label="Pages publiées" value={nf(totals.published)} tone="good" hint="En ligne" />
-                <Kpi label="Pages en brouillon" value={nf(totals.drafts)} hint="Générées, à publier manuellement" />
+                <Kpi label="Couverture SEO — pages publiées" value={nf(totals.published)} tone="good" hint="Pages réellement publiées et admissibles (en ligne)" />
+                <Kpi label="Pages en brouillon" value={nf(totals.drafts)} hint="Pages existantes non publiées — jamais comptées comme couvertes" />
                 <Kpi label="Pages à corriger" value={fixRows ? nf(fixRows.length) : "…"} tone={fixRows && fixRows.length > 0 ? "bad" : "muted"} hint="Qualité — voir l'encadré" />
                 <button type="button" onClick={() => setErrorsOpen(true)} className="text-left">
                   <Kpi label="Pages avec erreurs" value={nf(totals.errors)} tone={totals.errors > 0 ? "bad" : "muted"} hint="Génération — voir la liste" />
                 </button>
-                <Kpi label="Villes complètes" value={`${nf(citySummary.complete)} / ${nf(state.cities.length)}`} tone={citySummary.complete === state.cities.length ? "good" : undefined} hint="Toutes les combinaisons créées" />
-                <Kpi label="Villes incomplètes" value={nf(citySummary.incomplete)} tone={citySummary.incomplete > 0 ? "bad" : "muted"} hint="Certaines combinaisons manquent" />
-                <Kpi label="Villes sans page" value={nf(citySummary.none)} tone={citySummary.none > 0 ? "bad" : "muted"} hint="Aucune page générée" />
+                <Kpi label="Villes complètes" value={`${nf(citySummary.complete)} / ${nf(state.cities.length)}`} tone={citySummary.complete === state.cities.length ? "good" : undefined} hint="Toutes les combinaisons du générateur créées" />
+                <Kpi label="Villes incomplètes" value={nf(citySummary.incomplete)} tone={citySummary.incomplete > 0 ? "bad" : "muted"} hint="Certaines combinaisons du générateur manquent" />
+                <Kpi label="Villes à développer" value={nf(citySummary.none)} tone={citySummary.none > 0 ? "bad" : "muted"} hint="Opportunités admissibles sans page — aucune page générée" />
                 <Kpi label="Villes à vérifier" value={nf(citySummary.check)} tone={citySummary.check > 0 ? "bad" : "muted"} hint="Incohérence à contrôler" />
               </div>
 
