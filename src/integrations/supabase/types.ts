@@ -34290,6 +34290,13 @@ export type Database = {
       }
       seo_slugify: { Args: { _s: string }; Returns: string }
       seo_sync_cities_from_territories: { Args: never; Returns: Json }
+      seo_terre_remblai_requests: {
+        Args: never
+        Returns: {
+          n: number
+          tid: string
+        }[]
+      }
       seo_territorial_coverage: { Args: never; Returns: Json }
       seo_triage_summary: { Args: never; Returns: Json }
       seo_truth_metrics: { Args: never; Returns: Json }
