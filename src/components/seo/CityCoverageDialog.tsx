@@ -54,7 +54,7 @@ export default function CityCoverageDialog({ city, onClose }: { city: { slug: st
               <Stat label="Publiées" value={String(c.published)} />
               <Stat label="Brouillons" value={String(c.drafts)} />
               <Stat label="Opportunités SEO pertinentes" value={String(c.planned)} hint="Ville + matériaux demandés + services configurés avec demandes" />
-              <Stat label="Couverture des opportunités" value={`${c.plannedCovered} / ${c.planned}`} hint={c.plannedDrafts ? `dont ${c.plannedDrafts} en brouillon` : undefined} />
+              <Stat label="Couverture des opportunités" value={`${c.plannedCovered} / ${c.planned}`} hint={c.plannedDrafts ? `Pages publiées seulement — ${c.plannedDrafts} en brouillon, non couverte(s)` : "Pages publiées seulement"} />
               <Stat label="Potentiel théorique du catalogue" value={String(c.theoretical)} hint="Indicatif — jamais un dénominateur" />
               <Stat label="Hors critères" value={String(c.offCriteria)} />
               <Stat label="Correspondances à confirmer" value={String(c.toConfirm)} />
