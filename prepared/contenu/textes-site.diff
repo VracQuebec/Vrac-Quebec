@@ -1,0 +1,54 @@
+--- a/src/pages/Soumission.tsx
++++ b/src/pages/Soumission.tsx
+@@ -224,7 +224,7 @@
+     <div className="min-h-screen bg-background">
+       <Helmet>
+         <title>Estimation de matériaux en vrac | Vrac Québec</title>
+-        <meta name="description" content="Obtenez en moins de 60 secondes une estimation de livraison de terre, sable, pierre concassée ou enrochement partout au Québec." />
++        <meta name="description" content="Demandez en ligne une soumission pour de la terre, du sable, de la pierre concassée ou de l'enrochement. Prix et modalités confirmés après analyse." />
+         <link rel="canonical" href="https://vracquebec.ca/soumission" />
+       </Helmet>
+       <TransportBanner />
+@@ -236,7 +236,7 @@
+             <h1 className="mt-4 text-2xl font-bold text-foreground">Votre demande est enregistrée</h1>
+             <p className="mt-2 text-muted-foreground">
+               Référence <span className="font-semibold text-foreground">{confirmation.number}</span>.
+-              Un conseiller Vrac Québec valide votre estimation et vous contacte rapidement.
++              Un conseiller Vrac Québec valide votre estimation et communique avec vous pour confirmer les modalités.
+             </p>
+             <div className="mt-6"><QuoteCard quote={confirmation.quote} /></div>
+             <Button asChild className="mt-6"><Link to="/">Retour à l'accueil</Link></Button>
+@@ -247,9 +247,9 @@
+               <p className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+                 <Truck className="h-4 w-4" /> Assistant intelligent de soumission
+               </p>
+-              <h1 className="mt-3 text-3xl font-bold text-foreground">Votre estimation en moins de 60 secondes</h1>
++              <h1 className="mt-3 text-3xl font-bold text-foreground">Faites une demande de soumission en ligne</h1>
+               <p className="mt-2 text-muted-foreground">
+-                Répondez à quelques questions simples : nous nous occupons de toute la logistique.
++                Répondez à quelques questions simples : Vrac Québec analyse votre demande et vous confirme les modalités.
+               </p>
+             </header>
+ 
+--- a/src/components/home/DompeShowcase.tsx
++++ b/src/components/home/DompeShowcase.tsx
+@@ -20,7 +20,7 @@
+           <Sparkles className="h-3.5 w-3.5" aria-hidden /> Recherche de dompes
+         </span>
+         <h2 id="dompes-title" className="mt-4 font-display text-2xl sm:text-3xl font-extrabold leading-tight text-foreground">
+-          Trouvez la meilleure dompe <span className="text-primary">en moins de 60 secondes</span>
++          Trouvez une dompe <span className="text-primary">compatible avec vos matériaux</span>
+         </h2>
+         <p className="mt-3 font-body text-sm sm:text-base leading-relaxed text-muted-foreground">
+           Site de dépôt / site receveur de matériaux. Une dompe à quelques minutes de moins peut
+--- a/src/pages/TransportRequest.tsx
++++ b/src/pages/TransportRequest.tsx
+@@ -999,7 +999,7 @@
+                 Nous analysons votre chantier d'excavation afin de vous recommander les dompes compatibles les plus proches.
+               </p>
+               <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-display font-bold">
+-                <Clock className="w-3.5 h-3.5" /> Temps estimé : moins de 60 secondes
++                <Clock className="w-3.5 h-3.5" /> Quelques étapes simples
+               </div>
+             </div>
+ 
