@@ -31,6 +31,8 @@ export interface CachedAIOptions {
   forceRefresh?: boolean;
   /** Optional supabase client (service role). Auto-created from env if omitted. */
   supabase?: SupabaseClient;
+  /** Aperçu : lecture du cache permise, aucune écriture (journal, cache, compteur). */
+  noWrite?: boolean;
 }
 
 export interface CachedAIResult {
