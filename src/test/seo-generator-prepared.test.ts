@@ -112,3 +112,14 @@ describe("pages fixes et signalement de ressemblance", () => {
     expect(Array.isArray(similarityFlags("<p>x</p>", "X", []))).toBe(true);
   });
 });
+
+import { findUnverifiedClaims as preparedClaims } from "../../prepared/seo-generator/_shared/seo-claims";
+describe("services décrits fidèlement (version préparée)", () => {
+  it("refuse l'exécution directe revendiquée", () => {
+    expect(preparedClaims("<p>Nous effectuons l'excavation de votre terrain.</p>").length).toBeGreaterThan(0);
+    expect(preparedClaims("<p>Vrac Québec nivelle votre terrain à Lévis.</p>").length).toBeGreaterThan(0);
+  });
+  it("accepte la formulation fidèle", () => {
+    expect(preparedClaims("<p>Vrac Québec reçoit votre demande d'excavation et peut rechercher ou aider à coordonner une solution selon votre besoin.</p>")).toEqual([]);
+  });
+});
