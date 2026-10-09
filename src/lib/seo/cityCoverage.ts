@@ -11,7 +11,11 @@ export type CoverageRaw = {
   territory_services: Array<{ key: string; status: string; requests: number }>;
   terms: Array<{ raw: string; slug: string; count: number }>;
   pages: Array<{ slug: string; status: string; noindex: boolean | null; published_at: string | null; material_slug: string | null; service_slug: string | null }>;
+  /** Demandes distinctes « Terre / Terre mélangée » au contexte clairement remblai (règle validée, calculée côté lecture). */
+  terre_remblai?: number;
 };
+
+export const TERRE_REMBLAI_LABEL = "Terre / Terre mélangée (remblai confirmé, demandes)";
 
 export type ItemStatus =
   | "covered"          // page publiée, opportunité pertinente
@@ -81,7 +85,9 @@ export function matchTerm(slug: string, materials: CoverageRaw["materials"]): { 
 const isPublished = (p: CoverageRaw["pages"][number]) => p.status === "published" || !!p.published_at;
 
 export function computeCoverage(raw: CoverageRaw) {
-  const terms: TermMatch[] = raw.terms.map((t) => ({ ...t, ...matchTerm(t.slug, raw.materials) }));
+  const baseTerms = [...raw.terms];
+  if ((raw.terre_remblai ?? 0) > 0) baseTerms.push({ raw: TERRE_REMBLAI_LABEL, slug: "remblai", count: raw.terre_remblai! });
+  const terms: TermMatch[] = baseTerms.map((t) => ({ ...t, ...matchTerm(t.slug, raw.materials) }));
   const pageFor = (m: string | null, s: string | null) =>
     raw.pages.find((p) => (p.material_slug ?? null) === m && (p.service_slug ?? null) === s) ?? null;
 
@@ -149,7 +155,8 @@ export function computeCoverage(raw: CoverageRaw) {
     theoretical: items.length,
     /** Opportunités SEO pertinentes : page ville + matériaux demandés (nom exact) + services configurés avec demandes. */
     planned: has(["covered", "draft", "to_develop"]).length,
-    plannedCovered: has(["covered", "draft"]).length,
+    /** Couvertes = pages PUBLIÉES seulement; les brouillons restent comptés à part. */
+    plannedCovered: has(["covered"]).length,
     plannedDrafts: has(["draft"]).length,
     toConfirm: has(["covered_equiv", "to_develop_equiv"]).length,
     offCriteria: has(["off_criteria"]).length + outsideCatalog.length,
@@ -186,16 +193,17 @@ export function splitAll(all: CoverageAllRaw): CoverageRaw[] {
   return all.cities.map((c) => ({ ...c, materials: all.materials, services: all.services }));
 }
 
-export type CoverageBadge = "covered" | "to_develop";
+export type CoverageBadge = "covered" | "to_develop" | "drafts";
 export const COVERAGE_BADGE_LABEL: Record<CoverageBadge, string> = {
   covered: "COUVERTE",
+  drafts: "PAGES EN BROUILLON",
   to_develop: "OPPORTUNITÉS À DÉVELOPPER",
 };
 
 /** Statut d'une ville, fondé uniquement sur les opportunités pertinentes (jamais sur la file du Générateur). */
 export function coverageFlags(c: Coverage) {
   return {
-    badge: (c.toDevelop > 0 ? "to_develop" : "covered") as CoverageBadge,
+    badge: (c.toDevelop > 0 ? "to_develop" : c.plannedDrafts > 0 ? "drafts" : "covered") as CoverageBadge,
     toConfigure: c.notConfigured > 0,
     toValidate: c.toConfirm > 0 || c.unmappedServices.length > 0,
     offCriteria: c.offCriteria > 0,
