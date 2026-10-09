@@ -26,12 +26,12 @@ export function offerFaq(kind: OfferKind, topic: string, city: string): { questi
   switch (kind) {
     case "material":
       return {
-        question: `Vrac Québec offre-t-il ${topic} ?`,
-        answer: `Oui. Vrac Québec offre des matériaux en vrac, dont ${topic}, et vous permet de demander une soumission. Le prix, la disponibilité et les modalités vous sont confirmés dans la soumission, selon votre projet et l'adresse du chantier, avant toute confirmation de la demande.`,
+        question: `Vrac Québec offre-t-il ce matériau ?`,
+        answer: `Oui. Vrac Québec offre des matériaux en vrac, notamment pour vos besoins en ${topic}, et vous permet de demander une soumission. Le prix, la disponibilité et les modalités vous sont confirmés dans la soumission, selon votre projet et l'adresse du chantier, avant toute confirmation de la demande.`,
       };
     case "transport":
       return {
-        question: `Comment Vrac Québec aide-t-il pour ${topic} ?`,
+        question: `Comment Vrac Québec aide-t-il pour le transport ?`,
         answer: `Vrac Québec reçoit votre demande et aide à coordonner le transport adapté à votre projet, notamment en la transmettant aux entreprises appropriées. Le prix, la date et les modalités vous sont confirmés avant toute réalisation.`,
       };
     case "dompe":
@@ -41,7 +41,7 @@ export function offerFaq(kind: OfferKind, topic: string, city: string): { questi
       };
     case "service":
       return {
-        question: `Comment Vrac Québec aide-t-il pour ${topic} ?`,
+        question: `Comment Vrac Québec aide-t-il pour ce service ?`,
         answer: `Vrac Québec reçoit votre demande, aide à trouver la solution pertinente et la transmet aux entreprises adaptées à votre projet. Le prix et les modalités vous sont confirmés avant toute intervention.`,
       };
     default:
