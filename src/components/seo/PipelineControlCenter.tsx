@@ -82,9 +82,11 @@ export default function PipelineControlCenter() {
   const [workSlug, setWorkSlug] = useState<string | null>(null);
   // Couverture réelle : même moteur (cityCoverage.ts) pour toutes les municipalités actives.
   const [cov, setCov] = useState<Map<string, Coverage>>(new Map());
+  const [covState, setCovState] = useState<"loading" | "error" | "ok">("loading");
   useEffect(() => {
-    void supabase.rpc("seo_city_coverage_all" as never).then(({ data }) => {
-      if (!data) return;
+    void supabase.rpc("seo_city_coverage_all" as never).then(({ data, error }) => {
+      if (error || !data) { setCovState((s) => (s === "ok" ? "ok" : "error")); return; }
+      setCovState("ok");
       const m = new Map<string, Coverage>();
       for (const r of splitAll(data as unknown as CoverageAllRaw)) m.set(r.city_slug, computeCoverage(r));
       setCov(m);
@@ -485,6 +487,7 @@ export default function PipelineControlCenter() {
               publishedKeys: publishedKeysOf(cv),
               runningHere: isRunning, lockedByOther, globalRunActive: globalActive, hasGenRow: !!genRow,
               registryState: gen.registryState(c.slug),
+              coverageState: covState === "ok" && !cv ? "error" : covState,
             });
             const cat = cv ? catalogBreakdown(cv, exclusions) : null;
             const split = { realErrors: plan.invalidDrafts + plan.invalidPublished + plan.failed, noindex: plan.noindex };
@@ -565,7 +568,7 @@ export default function PipelineControlCenter() {
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
                     title={retryReason ?? undefined}
                     disabled={!!retryReason || busy === `retry-${c.slug}`}
-                    onClick={() => act(`retry-${c.slug}`, async () => {
+                    onClick={() => window.confirm(`Régénérer ${plan.invalidDrafts} brouillon(s) en erreur de ${c.name} ? Les pages en ligne ne seront pas remplacées.`) && act(`retry-${c.slug}`, async () => {
                       const r = await repairSeoPages({ citySlug: c.slug, allErrors: true });
                       return repairResultMessage(r);
                     }, `Régénération — ${c.name}`)}>
@@ -574,7 +577,7 @@ export default function PipelineControlCenter() {
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
                     title={publishReason ?? undefined}
                     disabled={!!publishReason || busy === `pub-${c.slug}`}
-                    onClick={() => act(`pub-${c.slug}`, async () => {
+                    onClick={() => window.confirm(`Publier ${c.unpublished} brouillon(s) admissible(s) de ${c.name} ? Les brouillons qui échouent au contrôle de qualité seront ignorés.`) && act(`pub-${c.slug}`, async () => {
                       const { data, error } = await supabase.rpc("seo_city_publish_missing" as never, { _city_slug: c.slug } as never);
                       if (error) throw new Error(error.message);
                       return publishResultMessage(data as { published?: number; skipped_invalid?: number } | null);
