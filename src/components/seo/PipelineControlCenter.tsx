@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindexOnly, generateReasonWithCatalog, catalogActionLine } from "@/lib/seo/cityActions";
 import UnknownDecisionDialog from "@/components/seo/UnknownDecisionDialog";
+import PublishConfirmDialog from "@/components/seo/PublishConfirmDialog";
+import { loadDecisions, availabilityOf, decisionKey, type DecisionRow } from "@/lib/seo/slotDecisions";
 import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
 import { buildCatInput, classify, summarizeCatalog, mergeSummaries, CAT_STATE_LABEL, estimateCredits, type CatState, type CatSummary } from "@/lib/seo/catalogStatus";
 import { publishCityDrafts, publishOutcomeMessage, publishPrecheck, precheckReason, loadAllDraftsForPrecheck, type PublishPrecheck } from "@/lib/seo/cityPublish";
@@ -109,14 +111,41 @@ export default function PipelineControlCenter() {
     void loadAllDraftsForPrecheck().then((r) => { setPrecheckRaw(r); setPrecheckErr(false); }).catch(() => setPrecheckErr(true));
   }, [state?.computed_at]);
   const [unknownCity, setUnknownCity] = useState<{ slug: string; name: string } | null>(null);
+  const [publishCity, setPublishCity] = useState<{ slug: string; name: string } | null>(null);
+  // Décisions admin par ville (lecture) : jamais de génération déclenchée.
+  const [decisions, setDecisions] = useState<Map<string, DecisionRow>>(new Map());
+  const [decTick, setDecTick] = useState(0);
+  useEffect(() => { void loadDecisions().then(setDecisions).catch(() => setDecisions(new Map())); }, [decTick]);
+  const exclusionsFor = (city: string) => {
+    const s0 = new Set(exclusions);
+    for (const d of decisions.values()) if (d.city_slug === city && d.decision === "exclue") s0.add(`${d.kind}|${d.slug}`);
+    return s0;
+  };
+  const precheckFor = (slug: string, name: string): PublishPrecheck | undefined => {
+    if (!precheckRaw) return undefined;
+    const items = cov.get(slug)?.items ?? [];
+    const avail = (d: { material_slug?: string | null; service_slug?: string | null }) => {
+      const kind = d.material_slug ? "material" : d.service_slug ? "service" : "hub";
+      const sl = d.material_slug ?? d.service_slug ?? null;
+      const it = items.find((x) => x.kind === kind && (x.slug ?? null) === sl);
+      if (!it) return "inconnue" as const;
+      return availabilityOf(it, decisions.get(decisionKey(slug, kind, sl))?.decision);
+    };
+    return publishPrecheck(precheckRaw.drafts.filter((d) => d.city_slug === slug), name, precheckRaw.copies, avail);
+  };
   const [pubReport, setPubReport] = useState<Map<string, Awaited<ReturnType<typeof publishCityDrafts>>>>(new Map());
   // Couverture réelle du catalogue : une combinaison = un seul état (catalogStatus.ts).
   const catalogBySlug = useMemo(() => {
     const m = new Map<string, CatSummary>();
     const run = !!state?.active_run;
-    for (const [slug, cv0] of cov) m.set(slug, summarizeCatalog(buildCatInput(slug, cv0.items as never, (state?.problems ?? []) as never, exclusions, { activeRun: run })));
+    for (const [slug, cv0] of cov) m.set(slug, summarizeCatalog(withConfirmed(slug, buildCatInput(slug, cv0.items as never, (state?.problems ?? []) as never, exclusionsFor(slug), { activeRun: run }))));
     return m;
-  }, [cov, state, exclusions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cov, state, exclusions, decisions]);
+  function withConfirmed<T extends { queueKeys: Set<string> }>(city: string, inp: T): T {
+    for (const d of decisions.values()) if (d.city_slug === city && d.decision === "confirmee") inp.queueKeys.add(`${d.kind}|${d.slug}`);
+    return inp;
+  }
   const catalogOf = (slug: string) => catalogBySlug.get(slug) ?? null;
   const catalogTotal = useMemo(() => catalogBySlug.size ? mergeSummaries([...catalogBySlug.values()]) : null, [catalogBySlug]);
   const catalogComplete = useMemo(() => [...catalogBySlug.values()].filter((x) => x.complete).length, [catalogBySlug]);
@@ -523,8 +552,7 @@ export default function PipelineControlCenter() {
             const queuePct = c.planned > 0 ? Math.round(((c.generated) / c.planned) * 100) : 0;
             const split = { realErrors: plan.invalidDrafts + plan.invalidPublished + plan.failed, noindex: plan.noindex };
             const retryReason = plan.retry.reason;
-            const pre: PublishPrecheck | undefined = precheckRaw
-              ? publishPrecheck(precheckRaw.drafts.filter((d) => d.city_slug === c.slug), c.name, precheckRaw.copies) : undefined;
+            const pre = precheckFor(c.slug, c.name);
             const publishReason = precheckErr ? "Lecture des brouillons impossible — publication bloquée; utilisez « Actualiser »." : precheckReason(pre);
             const genReason = generateReasonWithCatalog(plan.generate.reason, catSum);
             const catLine = catalogActionLine(catSum);
@@ -620,12 +648,7 @@ export default function PipelineControlCenter() {
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
                     title={publishReason ?? undefined}
                     disabled={!!publishReason || busy === `pub-${c.slug}`}
-                    onClick={() => window.confirm(`Publier les brouillons admissibles de ${c.name} ? Chaque brouillon est contrôlé (promesses, noindex, cohérence, liens, slug); les brouillons bloqués restent en brouillon avec leur raison. Aucun noindex n'est retiré.`) && act(`pub-${c.slug}`, async () => {
-                      const o = await publishCityDrafts(c.slug, c.name);
-                      setPubReport((m) => new Map(m).set(c.slug, o));
-                      void reload();
-                      return publishOutcomeMessage(o);
-                    }, `Publication — ${c.name}`)}>
+                    onClick={() => setPublishCity({ slug: c.slug, name: c.name })}>
                     {busy === `pub-${c.slug}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />} Publier les non publiées
                   </Button>
                   <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => openLogs(c.slug)}>Voir les logs</Button>
@@ -764,11 +787,19 @@ export default function PipelineControlCenter() {
       />
 
       <CityCoverageDialog city={coverageCity} onClose={() => setCoverageCity(null)} />
-      <UnknownDecisionDialog city={unknownCity} onClose={() => setUnknownCity(null)}
+      <PublishConfirmDialog city={publishCity} pre={publishCity ? precheckFor(publishCity.slug, publishCity.name) : undefined}
+        onClose={() => setPublishCity(null)}
+        onConfirm={(slugs) => { const pc = publishCity!; setPublishCity(null); void act(`pub-${pc.slug}`, async () => {
+          const o = await publishCityDrafts(pc.slug, pc.name, undefined, { removeGenerationNoindex: true, onlySlugs: slugs });
+          setPubReport((m) => new Map(m).set(pc.slug, o));
+          void reload();
+          return publishOutcomeMessage(o);
+        }, `Publication — ${pc.name}`); }} />
+      <UnknownDecisionDialog city={unknownCity} onClose={() => setUnknownCity(null)} onSaved={() => setDecTick((t) => t + 1)}
         items={(() => {
           const cv0 = unknownCity ? cov.get(unknownCity.slug) : null;
           if (!cv0 || !unknownCity) return [];
-          const inp = buildCatInput(unknownCity.slug, cv0.items as never, (state?.problems ?? []) as never, exclusions, { activeRun: !!state?.active_run });
+          const inp = withConfirmed(unknownCity.slug, buildCatInput(unknownCity.slug, cv0.items as never, (state?.problems ?? []) as never, exclusionsFor(unknownCity.slug), { activeRun: !!state?.active_run }));
           return cv0.items.filter((it) => it.kind !== "hub" && classify(it as never, inp) === "missing_unknown")
             .map((it) => ({ kind: it.kind as "material" | "service", slug: it.slug as string, label: it.label }));
         })()} />
