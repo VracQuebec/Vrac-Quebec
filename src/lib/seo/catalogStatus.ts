@@ -120,7 +120,7 @@ const TECH = /(lorem ipsum|\bundefined\b|\[object |\{\{|\}\}|\bTODO\b|\bnull\b|<
 export function publishGate(p: DraftForGate, ctx: { cityName: string; slugCopies: number }): string[] {
   const r: string[] = [];
   if (p.status === "published") return ["Déjà publiée — ignorée (publication idempotente)."];
-  if (p.noindex) r.push("Noindex volontaire — ne sera pas retiré automatiquement; décision explicite requise.");
+  if (p.noindex) r.push("Noindex conservé — retrait seulement par la publication validée (fonction serveur en attente d’approbation) et jamais pour un noindex volontaire.");
   const title = (p.meta_title || p.title || "").trim();
   if (title.length < 30) r.push("Titre SEO trop court ou absent.");
   if ((p.meta_description ?? "").trim().length < 70) r.push("Meta description trop courte ou absente.");

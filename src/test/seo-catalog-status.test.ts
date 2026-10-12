@@ -78,7 +78,7 @@ describe("contrôle avant publication", () => {
     expect(publishGate(good, { cityName: "Beaumont", slugCopies: 1 })).toEqual([]);
   });
   it("noindex volontaire jamais retiré : bloqué", () => {
-    expect(publishGate({ ...good, noindex: true }, { cityName: "Beaumont", slugCopies: 1 }).join()).toMatch(/Noindex volontaire/);
+    expect(publishGate({ ...good, noindex: true }, { cityName: "Beaumont", slugCopies: 1 }).join()).toMatch(/Noindex conservé/);
   });
   it("promesse non confirmée bloquée", () => {
     const r = publishGate({ ...good, content_html: good.content_html + "<p>Livraison en 24 heures garantie.</p>" }, { cityName: "Beaumont", slugCopies: 1 });
