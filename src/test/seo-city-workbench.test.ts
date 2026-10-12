@@ -5,7 +5,7 @@ import { publishCityDrafts } from "@/lib/seo/cityPublish";
 const good = (slug: string, m: string | null, extra: Partial<WbDraft> = {}): WbDraft => ({
   id: `id-${slug}`, slug, status: "draft", noindex: true, noindex_volontaire: false, updated_at: "t",
   meta_title: "Sable à Berthierville : livraison en vrac", meta_description: "Sable en vrac à Berthierville : usages, quantités et conseils pour bien planifier votre projet.",
-  h1: "Sable à Berthierville", title: "Sable à Berthierville", content_html: "<p>" + "mot ".repeat(400) + "</p>", word_count: 400, internal_link_count: 3,
+  h1: "Sable à Berthierville", title: "Sable à Berthierville", content_html: "<p>" + "mot ".repeat(400) + "</p>", word_count: 400, internal_link_count: 3, qa_score: 95, qa_fresh: true,
   material_slug: m, service_slug: null, ...extra,
 });
 const items = [

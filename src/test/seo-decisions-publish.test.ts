@@ -4,7 +4,7 @@ import { publishCityDrafts, publishPrecheck } from "@/lib/seo/cityPublish";
 
 const draft = { id: "1", slug: "remblai-x", status: "draft", noindex: true, noindex_volontaire: false, updated_at: "t",
   meta_title: "Remblai à Saint-Georges : guide complet du projet", meta_description: "x".repeat(80), h1: "Remblai à Saint-Georges",
-  title: null, content_html: "<p>" + "mot ".repeat(400) + "</p>", word_count: 400, internal_link_count: 3 };
+  title: null, content_html: "<p>" + "mot ".repeat(400) + "</p>", word_count: 400, internal_link_count: 3, qa_score: 95, qa_fresh: true };
 
 function deps(rows = [draft]) {
   const calls: Array<{ id: string; remove: boolean }> = [];

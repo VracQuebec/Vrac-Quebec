@@ -70,7 +70,7 @@ const good = {
   id: "1", slug: "remblai-beaumont", status: "draft", noindex: false,
   meta_title: "Remblai à Beaumont — demande de soumission", meta_description: "Faites une demande de remblai à Beaumont : précisez le volume et votre projet pour recevoir une réponse adaptée.",
   h1: "Remblai à Beaumont", title: null, content_html: "<p>" + "Vrac Québec reçoit votre demande pour Beaumont. ".repeat(60) + "</p>",
-  word_count: 420, internal_link_count: 3,
+  word_count: 420, internal_link_count: 3, qa_score: 95, qa_fresh: true,
 };
 
 describe("contrôle avant publication", () => {
