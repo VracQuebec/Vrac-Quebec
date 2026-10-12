@@ -71,6 +71,8 @@ export type CityPlanInput = {
   hasGenRow: boolean;
   /** État de lecture du registre du générateur pour cette ville. */
   registryState?: "loading" | "error" | "absent" | "ok";
+  /** Lecture des pages publiées (couverture) : sans elle, impossible de protéger les pages en ligne. */
+  coverageState?: "loading" | "error" | "ok";
   now?: number;
 };
 
@@ -109,7 +111,10 @@ export function cityPlan(i: CityPlanInput) {
   generate.enabled = generate.reason === null;
 
   const retry: ButtonState = { count: invalidDrafts, enabled: false, reason: null };
-  retry.reason = lock ?? (invalidDrafts > 0 ? null
+  const cover = i.coverageState === "loading" ? "Lecture des pages publiées en cours — protection des pages en ligne non encore vérifiée."
+    : i.coverageState === "error" ? "Lecture des pages publiées impossible — régénération bloquée pour protéger les pages en ligne; utilisez « Actualiser »."
+    : null;
+  retry.reason = lock ?? cover ?? (invalidDrafts > 0 ? null
     : invalidPublished > 0 ? `${invalidPublished} page(s) en ligne à corriger : protégées, leur remplacement exige votre approbation page par page.`
     : retryDisabledReason(0, noindex));
   retry.enabled = retry.reason === null;
