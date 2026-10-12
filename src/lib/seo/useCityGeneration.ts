@@ -79,20 +79,26 @@ export function useCityGeneration() {
   runRef.current = run;
 
   /** Relecture pure des données réelles. Ne déclenche aucune génération. */
+  const [overviewError, setOverviewError] = useState<string | null>(null);
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);
     try {
-      const [ov, m, s] = await Promise.all([
+      const [ovFirst, m, s] = await Promise.all([
         supabase.rpc("seo_city_generation_overview" as never),
         supabase.from("seo_materials").select("slug,name,short_name,description").eq("active", true).order("sort_order"),
         supabase.from("seo_services").select("slug,name,description").eq("active", true).order("sort_order"),
       ]);
+      // Une lecture lourde peut échouer ponctuellement (délai dépassé) : une seule nouvelle tentative.
+      const ov = ovFirst.error ? await supabase.rpc("seo_city_generation_overview" as never) : ovFirst;
       if (ov.error) throw ov.error;
       setOverview(ov.data as unknown as Overview);
+      setOverviewError(null);
       if (m.data) setMaterials(m.data as Ref[]);
       if (s.data) setServices(s.data as Ref[]);
     } catch (e) {
-      if (!opts?.silent) toast.error(e instanceof Error ? e.message : "Chargement impossible");
+      const msg = e instanceof Error ? e.message : (e as { message?: string })?.message ?? "Chargement impossible";
+      setOverviewError(msg);
+      if (!opts?.silent) toast.error(`Registre du générateur : ${msg}`);
     } finally { if (!opts?.silent) setLoading(false); }
   }, []);
 
@@ -235,8 +241,13 @@ export function useCityGeneration() {
     finally { setVerifying(null); }
   }, [load]);
 
+  /** État du registre pour une ville : jamais « absente » tant que la lecture n'a pas réussi. */
+  const registryState = useCallback((slug: string): "loading" | "error" | "absent" | "ok" =>
+    bySlug.has(slug) ? "ok" : overview ? "absent" : overviewError ? "error" : "loading",
+  [bySlug, overview, overviewError]);
+
   return {
-    overview, loading, materials, services, run, verifying, dbActive, lockedBy, bySlug,
+    overview, loading, overviewError, registryState, materials, services, run, verifying, dbActive, lockedBy, bySlug,
     load, generate, generateCity, regenerateErrors, verifyCity,
   };
 }

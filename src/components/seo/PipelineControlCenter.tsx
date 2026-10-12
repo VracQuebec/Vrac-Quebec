@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindexOnly } from "@/lib/seo/cityActions";
 import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
-import { coverageLabel, coveragePct, computeCoverage, splitAll, coverageFlags, COVERAGE_BADGE_LABEL, type Coverage, type CoverageAllRaw } from "@/lib/seo/cityCoverage";
+import { coverageLabel, coveragePct, computeCoverage, splitAll, coverageFlags, catalogBreakdown, COVERAGE_BADGE_LABEL, type Coverage, type CoverageAllRaw } from "@/lib/seo/cityCoverage";
 import { useSeoControlCenter, type ControlCityRow, type ControlProblem } from "@/lib/seo/useSeoControlCenter";
 import { useSeoPipelineV2 } from "@/lib/seo/useSeoPipelineV2";
 import { Button } from "@/components/ui/button";
@@ -91,6 +91,12 @@ export default function PipelineControlCenter() {
     });
   }, [state?.computed_at]);
   const [coverageCity, setCoverageCity] = useState<{ slug: string; name: string } | null>(null);
+  // Exclusions temporaires (ex. Terre contaminée, Neige) : lecture admin seulement.
+  const [exclusions, setExclusions] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    void supabase.from("seo_generation_exclusions" as never).select("kind,slug").eq("active", true)
+      .then(({ data }) => setExclusions(new Set(((data ?? []) as Array<{ kind: string; slug: string }>).map((x) => `${x.kind}|${x.slug}`))));
+  }, []);
   // Même logique de génération que le Générateur (aucune architecture parallèle).
   const gen = useCityGeneration();
   const workCity = workSlug ? gen.bySlug.get(workSlug) ?? null : null;
@@ -478,7 +484,9 @@ export default function PipelineControlCenter() {
               problems: (state?.problems ?? []) as never,
               publishedKeys: publishedKeysOf(cv),
               runningHere: isRunning, lockedByOther, globalRunActive: globalActive, hasGenRow: !!genRow,
+              registryState: gen.registryState(c.slug),
             });
+            const cat = cv ? catalogBreakdown(cv, exclusions) : null;
             const split = { realErrors: plan.invalidDrafts + plan.invalidPublished + plan.failed, noindex: plan.noindex };
             const retryReason = plan.retry.reason;
             const publishReason = plan.publish.reason;
@@ -524,6 +532,14 @@ export default function PipelineControlCenter() {
                   {split.noindex > 0 && <span className="text-muted-foreground">{split.noindex} publiée(s) non indexée(s) volontairement</span>}
                   <span className="font-semibold">Couverture des opportunités : {cv ? coverageLabel(cv.plannedCovered, cv.planned) : "…"}</span>
                   <span className="text-muted-foreground">Potentiel théorique : {state?.totals.per_city ?? "—"}</span>
+                  {cat && (
+                    <span className="col-span-full text-muted-foreground">
+                      Catalogue complet : {cat.catalogPublished} / {cat.catalogTarget} publiées
+                      {" · "}{cat.relevant} pertinente(s){" · "}{cat.unknownMissing} sans page, disponibilité inconnue
+                      {cat.excluded > 0 ? ` · ${cat.excluded} exclue(s) temporairement` : ""}
+                      {cat.offCriteriaPages > 0 ? ` · ${cat.offCriteriaPages} page(s) hors critères` : ""}
+                    </span>
+                  )}
                   {cv && cv.toDevelop > 0 && <span className="text-amber-700">{cv.toDevelop} opportunité(s) sans page — dans la file du générateur</span>}
                 </div>
 
@@ -542,8 +558,8 @@ export default function PipelineControlCenter() {
                     <FileText className="w-3 h-3" /> Couverture
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
-                    disabled={!genRow || gen.verifying === c.slug || isRunning}
-                    onClick={() => genRow && void gen.verifyCity(genRow)}>
+                    disabled={gen.verifying === c.slug || isRunning}
+                    onClick={() => void gen.verifyCity(genRow ?? ({ slug: c.slug, name: c.name } as never))}>
                     {gen.verifying === c.slug ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />} Vérifier la ville
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
