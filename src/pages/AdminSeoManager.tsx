@@ -20,6 +20,7 @@ import SeoIntelligence from "@/components/seo/SeoIntelligence";
 import GbpDashboard from "@/components/seo/GbpDashboard";
 import ConversionsTable from "@/components/seo/ConversionsTable";
 import CommandCenter from "@/components/seo/CommandCenter";
+import PipelineControlCenter from "@/components/seo/PipelineControlCenter";
 import CopilotDashboard from "@/components/seo/CopilotDashboard";
 import ImproveDialog from "@/components/seo/ImproveDialog";
 import OptimizeDialog from "@/components/seo/OptimizeDialog";
@@ -37,7 +38,7 @@ import {
   type RunState, type RunTarget,
 } from "@/lib/seo/productionRunner";
 
-type Tab = "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "publication" | "intelligence" | "coverage" | "territory" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "gbp" | "blog";
+type Tab = "villes-gestion" | "copilot" | "dashboard" | "assistant" | "production" | "optimizer" | "goals" | "competitors" | "pages" | "publication" | "intelligence" | "coverage" | "territory" | "conversions" | "cities" | "materials" | "uses" | "services" | "generator" | "suggestions" | "analytics" | "gsc" | "gbp" | "blog";
 
 type City = {
   id: string; slug: string; name: string; region: string;
@@ -77,6 +78,7 @@ export default function AdminSeoManager() {
     {
       title: "Pilotage",
       tabs: [
+        { id: "villes-gestion", label: "Gestion des villes", icon: LayoutDashboard },
         { id: "copilot", label: "Copilote IA", icon: Sparkles },
         { id: "dashboard", label: "Centre de pilotage", icon: LayoutDashboard },
         { id: "production", label: "File de production", icon: Play },
@@ -189,6 +191,7 @@ export default function AdminSeoManager() {
         </nav>
         <main className="min-w-0">
           <TabBoundary key={`${tab}-${remountKey}`} label={currentLabel} onRetry={() => setRemountKey((k) => k + 1)}>
+            {tab === "villes-gestion" && <PipelineControlCenter />}
             {tab === "copilot" && <CopilotDashboard />}
             {tab === "dashboard" && <CommandCenter />}
             {tab === "assistant" && <AssistantTab />}
