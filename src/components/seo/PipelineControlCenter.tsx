@@ -3,6 +3,7 @@ import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindex
 import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
 import { buildCatInput, summarizeCatalog, mergeSummaries, CAT_STATE_LABEL, estimateCredits, type CatState, type CatSummary } from "@/lib/seo/catalogStatus";
 import { publishCityDrafts, publishOutcomeMessage } from "@/lib/seo/cityPublish";
+import { repairCity, repairOutcomeMessage, type RepairSlot } from "@/lib/seo/cityRepair";
 import { coverageLabel, coveragePct, computeCoverage, splitAll, coverageFlags, catalogBreakdown, COVERAGE_BADGE_LABEL, type Coverage, type CoverageAllRaw } from "@/lib/seo/cityCoverage";
 import { useSeoControlCenter, type ControlCityRow, type ControlProblem } from "@/lib/seo/useSeoControlCenter";
 import { useSeoPipelineV2 } from "@/lib/seo/useSeoPipelineV2";
@@ -592,8 +593,15 @@ export default function PipelineControlCenter() {
                     title={retryReason ?? undefined}
                     disabled={!!retryReason || busy === `retry-${c.slug}`}
                     onClick={() => window.confirm(`Régénérer ${plan.invalidDrafts} brouillon(s) en erreur de ${c.name} ? Les pages en ligne ne seront pas remplacées.`) && act(`retry-${c.slug}`, async () => {
-                      const r = await repairSeoPages({ citySlug: c.slug, allErrors: true });
-                      return repairResultMessage(r);
+                      const slots: RepairSlot[] = ((state?.problems ?? []) as ControlProblem[]).filter((p) => p.city_slug === c.slug).map((p) => ({
+                        key: `${c.slug}|${p.material_slug ?? ""}|${p.service_slug ?? ""}`, label: p.label, gen_state: p.gen_state,
+                        has_page: p.gen_state === "invalid", published: publishedKeysOf(cv).has(slotKey(p.kind, p.material_slug, p.service_slug)),
+                        noindex_volontaire: isNoindexOnly(p as never), issues: p.issues, attempts: p.task_attempts ?? 0,
+                        material_slug: p.material_slug, service_slug: p.service_slug,
+                      }));
+                      const o = await repairCity(slots);
+                      void reload();
+                      return repairOutcomeMessage(o);
                     }, `Régénération — ${c.name}`)}>
                     {busy === `retry-${c.slug}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <ListRestart className="w-3 h-3" />} Régénérer les erreurs
                   </Button>
