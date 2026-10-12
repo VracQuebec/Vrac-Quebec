@@ -36,3 +36,22 @@ describe("catalogue complet distinct des opportunités", () => {
     expect(catalogBreakdown(cv, new Set()).unknownMissing).toBe(3);
   });
 });
+
+describe("protection des pages en ligne pendant le chargement", () => {
+  const p = { ...base, hasGenRow: true, registryState: "ok" as const,
+    problems: [{ city_slug: "beaumont", gen_state: "invalid", issues: ["Contenu insuffisant"], kind: "material", material_slug: "sable", service_slug: null }] };
+  it("couverture en chargement : régénérer bloqué", () => {
+    expect(cityPlan({ ...p, coverageState: "loading" }).retry.reason).toMatch(/en cours/);
+  });
+  it("couverture en échec : régénérer bloqué avec explication", () => {
+    expect(cityPlan({ ...p, coverageState: "error" }).retry.reason).toMatch(/impossible/);
+  });
+  it("couverture chargée : brouillon en erreur régénérable", () => {
+    expect(cityPlan({ ...p, coverageState: "ok" }).retry.enabled).toBe(true);
+  });
+  it("tâche interrompue (> 15 min) reprise par Générer", () => {
+    const old = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+    const r = cityPlan({ ...p, problems: [{ ...p.problems[0], gen_state: "pending", task_updated_at: old }] });
+    expect(r.stalled).toBe(1); expect(r.generate.enabled).toBe(true);
+  });
+});
