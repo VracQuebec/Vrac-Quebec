@@ -41,3 +41,11 @@ export function selectRepairTargets(rows: RepairCandidate[]): { targets: RepairC
 /** Clé de verrou d'une combinaison (identique à l'index unique préparé côté base). */
 export const lockKey = (city: string, material: string | null, service: string | null) =>
   `${city}|${material ?? ""}|${service ?? ""}`;
+
+/** Réponse d'une régénération unitaire : jamais « réussi » si la génération ou le remplacement a échoué. */
+export type SlotResult = { ok: boolean; error?: string; skipped?: boolean };
+export function repairResponse(r: SlotResult): { status: number; body: Record<string, unknown> } {
+  if (r.skipped) return { status: 409, body: { ok: false, queued: 0, done: false, error: "Une génération est déjà en cours pour cette combinaison — aucune nouvelle tentative." } };
+  if (!r.ok) return { status: 502, body: { ok: false, queued: 1, done: true, error: r.error ?? "Échec de la génération — brouillon non remplacé." } };
+  return { status: 200, body: { ok: true, queued: 1, done: true } };
+}

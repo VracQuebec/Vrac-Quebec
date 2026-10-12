@@ -91,7 +91,12 @@ export async function repairSeoPages(input: {
     service_slug: input.serviceSlug ?? null,
     all_errors: input.allErrors ?? false,
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    // Échec réel renvoyé par le serveur (409/502) : afficher sa raison exacte, jamais « réussi ».
+    let detail: string | null = null;
+    try { detail = ((await (error as { context?: Response }).context?.clone().json()) as { error?: string } | undefined)?.error ?? null; } catch { detail = null; }
+    throw new Error(detail ?? error.message);
+  }
   const d = data as { error?: string; queued?: number; done?: boolean; message?: string; skipped_published?: number };
   if (d?.error) throw new Error(d.error);
   return d;

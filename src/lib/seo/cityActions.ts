@@ -138,3 +138,20 @@ export function generationTargets<T extends { state: string; kind: string; mater
     seen.add(k); return true;
   });
 }
+
+// ── Explication des boutons à partir du catalogue complet (lecture seule) ──
+// La file du Générateur ne contient que les combinaisons à disponibilité confirmée :
+// quand elle est vide, on dit clairement ce qui reste dans le catalogue et pourquoi rien n'est généré.
+export type CatalogCounts = { missing_unknown: number; missing_confirmed: number; excluded_missing: number; draft_error: number };
+
+export function generateReasonWithCatalog(reason: string | null, c: CatalogCounts | null): string | null {
+  if (!reason || !c) return reason;
+  if (!reason.startsWith("Toutes les pages prévues existent")) return reason;
+  if (c.missing_unknown > 0) return `Aucune page à disponibilité confirmée à générer — ${c.missing_unknown} combinaison(s) à disponibilité inconnue attendent votre décision (jamais générées automatiquement).`;
+  return reason;
+}
+
+export function catalogActionLine(c: CatalogCounts | null): string | null {
+  if (!c) return null;
+  return `Catalogue : ${c.missing_confirmed} manquante(s) confirmée(s) · ${c.missing_unknown} inconnue(s) à décider · ${c.excluded_missing} exclue(s) · ${c.draft_error} brouillon(s) en erreur`;
+}
