@@ -30,13 +30,13 @@ describe("publication confirmée page par page", () => {
   });
   it("seules les pages cochées sont publiées, avec retrait du noindex de génération", async () => {
     const { d, calls } = deps([draft, { ...draft, id: "2", slug: "remblai-y" }]);
-    const o = await publishCityDrafts("saint-georges", "Saint-Georges", d, { removeGenerationNoindex: true, onlySlugs: ["remblai-x"] });
+    const o = await publishCityDrafts("saint-georges", "Saint-Georges", d, { removeGenerationNoindex: true, onlySlugs: ["remblai-x"], isAvailable: () => true });
     expect(o.published).toEqual(["remblai-x"]);
     expect(calls).toEqual([{ id: "1", remove: true }]);
   });
   it("noindex volontaire jamais retiré, même coché", async () => {
     const { d, calls } = deps([{ ...draft, noindex_volontaire: true }]);
-    const o = await publishCityDrafts("saint-georges", "Saint-Georges", d, { removeGenerationNoindex: true, onlySlugs: ["remblai-x"] });
+    const o = await publishCityDrafts("saint-georges", "Saint-Georges", d, { removeGenerationNoindex: true, onlySlugs: ["remblai-x"], isAvailable: () => true });
     expect(calls).toEqual([]);
     expect(o.blocked[0].reasons.join(" ")).toMatch(/volontaire/);
   });

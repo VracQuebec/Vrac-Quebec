@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindexOnly, generateReasonWithCatalog, catalogActionLine } from "@/lib/seo/cityActions";
 import UnknownDecisionDialog from "@/components/seo/UnknownDecisionDialog";
 import PublishConfirmDialog from "@/components/seo/PublishConfirmDialog";
+import CityWorkbenchDialog, { type RowResult } from "@/components/seo/CityWorkbenchDialog";
+import { buildWorkbench, type WbRow } from "@/lib/seo/cityWorkbench";
+import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { loadDecisions, availabilityOf, decisionKey, type DecisionRow } from "@/lib/seo/slotDecisions";
 import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
 import { buildCatInput, classify, summarizeCatalog, mergeSummaries, CAT_STATE_LABEL, estimateCredits, type CatState, type CatSummary } from "@/lib/seo/catalogStatus";
@@ -158,6 +161,96 @@ export default function PipelineControlCenter() {
   // Même logique de génération que le Générateur (aucune architecture parallèle).
   const gen = useCityGeneration();
   const workCity = workSlug ? gen.bySlug.get(workSlug) ?? null : null;
+
+  // ── Poste de travail par ville : une ligne par combinaison, actions manuelles avec résultat par page ──
+  const [wbCity, setWbCity] = useState<{ slug: string; name: string } | null>(null);
+  const availFor = (city: string) => (d: { material_slug?: string | null; service_slug?: string | null }) => {
+    const kind = d.material_slug ? "material" : d.service_slug ? "service" : "hub";
+    const sl = d.material_slug ?? d.service_slug ?? null;
+    if (kind !== "hub" && exclusionsFor(city).has(`${kind}|${sl}`)) return false;
+    const it = (cov.get(city)?.items ?? []).find((x) => x.kind === kind && (x.slug ?? null) === sl);
+    return !!it && availabilityOf(it, decisions.get(decisionKey(city, kind, sl))?.decision) === "confirmee";
+  };
+  const wbRowsFor = (slug: string, name: string): WbRow[] => {
+    const cv0 = cov.get(slug);
+    if (!cv0 || !precheckRaw) return [];
+    const excl = exclusionsFor(slug);
+    const probs = ((state?.problems ?? []) as ControlProblem[]).filter((p) => p.city_slug === slug);
+    return buildWorkbench({
+      cityName: name, items: cv0.items as never, excluded: excl, slugCopies: precheckRaw.copies,
+      cat: withConfirmed(slug, buildCatInput(slug, cv0.items as never, probs as never, excl, { activeRun: !!state?.active_run })),
+      drafts: precheckRaw.drafts.filter((d) => d.city_slug === slug) as never,
+      published: cv0.items.filter((i) => i.page && i.page.status === "published").map((i) => i.page!) as never,
+      problems: probs as never,
+      decisionOf: (k, s) => decisions.get(decisionKey(slug, k, s))?.decision,
+    });
+  };
+  const verifyWb = async () => {
+    await reload();
+    setDecisions(await loadDecisions().catch(() => new Map()));
+    setPrecheckRaw(await loadAllDraftsForPrecheck());
+  };
+  const wbRun = (city: { slug: string; name: string }) => ({
+    generate: async (rows: WbRow[]) => {
+      const out = new Map<string, RowResult>();
+      const row = gen.bySlug.get(city.slug);
+      for (const r of rows) {
+        // Revérifié au moment de l'action : seules les combinaisons à disponibilité confirmée sont générées.
+        const d = { material_slug: r.kind === "material" ? r.slug : null, service_slug: r.kind === "service" ? r.slug : null };
+        if (!availFor(city.slug)(d)) { out.set(r.key, { ok: false, msg: "Disponibilité non confirmée — génération refusée." }); continue; }
+        const m = d.material_slug ? gen.materials.find((x) => x.slug === d.material_slug) : undefined;
+        const s = d.service_slug ? gen.services.find((x) => x.slug === d.service_slug) : undefined;
+        try {
+          const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { created?: boolean; skipped?: boolean; error?: string }>("seo-generate-page", {
+            city: { slug: city.slug, name: city.name, region: row?.region ?? null },
+            material: m ? { slug: m.slug, name: m.name, short_name: m.short_name, description: m.description } : undefined,
+            service: s ? { slug: s.slug, name: s.name, description: s.description } : undefined,
+            publish: false, allow_ai: true, force: false,
+          });
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+          out.set(r.key, data?.skipped ? { ok: false, msg: "Page déjà existante — rien généré." } : { ok: true, msg: "Brouillon créé (noindex, non publié). Prochaine action : vérifier puis publier." });
+        } catch (e) { out.set(r.key, { ok: false, msg: e instanceof Error ? e.message : "Erreur inconnue" }); }
+      }
+      return out;
+    },
+    repair: async (rows: WbRow[]) => {
+      const out = new Map<string, RowResult>();
+      const probs = ((state?.problems ?? []) as ControlProblem[]).filter((p) => p.city_slug === city.slug);
+      for (const r of rows) {
+        const p = probs.find((x) => slotKey(x.kind, x.material_slug, x.service_slug) === slotKey(r.kind, r.kind === "material" ? r.slug : null, r.kind === "service" ? r.slug : null));
+        if (!p) { out.set(r.key, { ok: false, msg: "Aucune erreur serveur pour cette page — rien à régénérer." }); continue; }
+        const o = await repairCity([toRepairSlot(p)]);
+        out.set(r.key, o.done.length ? { ok: true, msg: "Régénéré (sauvegarde faite, reste brouillon noindex)." }
+          : { ok: false, msg: o.failed[0]?.error ?? o.skipped[0]?.reason ?? "Ignoré." });
+      }
+      return out;
+    },
+    autofix: async (rows: WbRow[]) => {
+      const out = new Map<string, RowResult>();
+      for (const r of rows) {
+        if (!r.pageId) { out.set(r.key, { ok: false, msg: "Aucun brouillon." }); continue; }
+        try {
+          const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { fixed?: string[]; error?: string; message?: string; new_score?: number }>("seo-qa-autofix", { page_id: r.pageId, actions: [], allow_ai: false });
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+          const n = data?.fixed?.length ?? 0;
+          out.set(r.key, n ? { ok: true, msg: `${n} correction(s) : ${data!.fixed!.join(", ")} (sauvegarde faite).` } : { ok: false, msg: data?.message ?? "Aucune correction automatique possible — correction manuelle requise." });
+        } catch (e) { out.set(r.key, { ok: false, msg: e instanceof Error ? e.message : "Erreur inconnue" }); }
+      }
+      return out;
+    },
+    publish: async (rows: WbRow[]) => {
+      const bySlug = new Map(rows.filter((r) => r.pageSlug).map((r) => [r.pageSlug!, r.key]));
+      const o = await publishCityDrafts(city.slug, city.name, undefined, { removeGenerationNoindex: true, onlySlugs: [...bySlug.keys()], isAvailable: availFor(city.slug) });
+      const out = new Map<string, RowResult>();
+      for (const s of o.published) out.set(bySlug.get(s)!, { ok: true, msg: "Publiée — statut confirmé dans la base." });
+      for (const b of o.blocked) out.set(bySlug.get(b.slug)!, { ok: false, msg: `Bloquée : ${b.reasons.join(" ")}` });
+      for (const f of o.failed) out.set(bySlug.get(f.slug)!, { ok: false, msg: f.error });
+      for (const [s, k] of bySlug) if (!out.has(k)) out.set(k, { ok: false, msg: `/${s} n'est plus un brouillon — rien publié.` });
+      return out;
+    },
+  });
 
   // ── COUVERTURE SEO — lectures complémentaires (aucune écriture) ──
   // Pages totales / villes historiques : seo_dashboard_stats (même source que le reste du tableau de bord).
@@ -556,6 +649,7 @@ export default function PipelineControlCenter() {
             const publishReason = precheckErr ? "Lecture des brouillons impossible — publication bloquée; utilisez « Actualiser »." : precheckReason(pre);
             const genReason = generateReasonWithCatalog(plan.generate.reason, catSum);
             const catLine = catalogActionLine(catSum);
+            const wbGen = wbRowsFor(c.slug, c.name).filter((r) => r.action === "generate").length;
             const legacyMeta = STATUS_META[isRunning ? "running" : c.status];
             // Le badge ne dépend plus de la file du Générateur, sauf génération en cours ou erreur.
             const meta = isRunning || c.status === "error" || !flags ? legacyMeta
@@ -631,8 +725,8 @@ export default function PipelineControlCenter() {
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
                     disabled={gen.verifying === c.slug || isRunning}
-                    onClick={() => { void gen.verifyCity(genRow ?? ({ slug: c.slug, name: c.name } as never)); const k = catalogOf(c.slug); if (k) toast({ title: `Catalogue ${c.name} : ${k.complete ? "COMPLET" : "INCOMPLET"}`, description: catalogGaps(k) }); }}>
-                    {gen.verifying === c.slug ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />} Vérifier la ville
+                    onClick={() => { setWbCity({ slug: c.slug, name: c.name }); void verifyWb(); }}>
+                    <CheckCircle2 className="w-3 h-3" /> Vérifier et gérer la ville
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
                     title={retryReason ?? undefined}
@@ -659,16 +753,17 @@ export default function PipelineControlCenter() {
                   )}
                   <Button size="sm" className="h-8 px-2.5 text-xs gap-1"
                     title={genReason ?? undefined}
-                    disabled={!plan.generate.enabled}
-                    onClick={() => genRow && window.confirm(`${plan.generate.count} page(s) admissible(s) (disponibilité confirmée) pour ${c.name}. Coût IA estimé : ${estimateCredits(plan.generate.count)} crédit(s). Les combinaisons inconnues et exclues ne sont pas générées. Continuer ?`) && void gen.generateCity(genRow, { includeStalled: plan.stalled > 0 }).finally(() => void reload())}>
+                    disabled={!plan.generate.enabled && wbGen === 0}
+                    onClick={() => !plan.generate.enabled ? setWbCity({ slug: c.slug, name: c.name }) : genRow && window.confirm(`${plan.generate.count} page(s) admissible(s) (disponibilité confirmée) pour ${c.name}. Coût IA estimé : ${estimateCredits(plan.generate.count)} crédit(s). Les combinaisons inconnues et exclues ne sont pas générées. Continuer ?`) && void gen.generateCity(genRow, { includeStalled: plan.stalled > 0 }).finally(() => void reload())}>
                     {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
                     {c.generated > 0 ? "Reprendre la génération" : "Générer cette ville"}
-                    {plan.generate.count > 0 ? ` (${plan.generate.count})` : ""}
+                    {Math.max(plan.generate.count, wbGen) > 0 ? ` (${Math.max(plan.generate.count, wbGen)})` : ""}
                   </Button>
                 </div>
                 <div className="text-[10px] text-muted-foreground space-y-0.5" onClick={(e) => e.stopPropagation()}>
                   {catLine && <div className="font-medium text-foreground/80">{catLine}</div>}
-                  {genReason && <div>Générer : {genReason}</div>}
+                  {genReason && wbGen === 0 && <div>Générer : {genReason}</div>}
+                  {wbGen > 0 && !plan.generate.enabled && <div>Générer : {wbGen} combinaison(s) confirmée(s) par vos décisions — ouvrez « Vérifier et gérer la ville » pour les sélectionner.</div>}
                   {pre && pre.eligible.length > 0 && <div>Publier : {pre.eligible.length} brouillon(s) admissible(s){pre.blocked.length ? `, ${pre.blocked.length} bloqué(s)` : ""}.</div>}
                   {pre?.blocked.map((b) => <div key={`pre-${b.slug}`}>Bloquée {b.slug} : {b.reasons.join(" ")}</div>)}
                   {plan.stalled > 0 && <div>{plan.stalled} génération(s) interrompue(s) — reprises par « Reprendre la génération ».</div>}
@@ -790,7 +885,7 @@ export default function PipelineControlCenter() {
       <PublishConfirmDialog city={publishCity} pre={publishCity ? precheckFor(publishCity.slug, publishCity.name) : undefined}
         onClose={() => setPublishCity(null)}
         onConfirm={(slugs) => { const pc = publishCity!; setPublishCity(null); void act(`pub-${pc.slug}`, async () => {
-          const o = await publishCityDrafts(pc.slug, pc.name, undefined, { removeGenerationNoindex: true, onlySlugs: slugs });
+          const o = await publishCityDrafts(pc.slug, pc.name, undefined, { removeGenerationNoindex: true, onlySlugs: slugs, isAvailable: availFor(pc.slug) });
           setPubReport((m) => new Map(m).set(pc.slug, o));
           void reload();
           return publishOutcomeMessage(o);
@@ -804,6 +899,10 @@ export default function PipelineControlCenter() {
             .map((it) => ({ kind: it.kind as "material" | "service", slug: it.slug as string, label: it.label }));
         })()} />
 
+      <CityWorkbenchDialog city={wbCity} rows={wbCity ? wbRowsFor(wbCity.slug, wbCity.name) : []}
+        onClose={() => setWbCity(null)} onVerify={verifyWb}
+        onDecide={() => wbCity && setUnknownCity(wbCity)}
+        run={wbCity ? wbRun(wbCity) : {}} />
       <CityPagesDialog
         citySlug={pagesCity?.slug ?? null}
         cityName={pagesCity?.name}

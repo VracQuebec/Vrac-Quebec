@@ -11,22 +11,25 @@ export type PublishOutcome = {
 };
 
 type Deps = {
-  listDrafts: (citySlug: string) => Promise<Array<DraftForGate & { id: string; updated_at?: string }>>;
+  listDrafts: (citySlug: string) => Promise<Array<DraftForGate & { id: string; updated_at?: string; material_slug?: string | null; service_slug?: string | null }>>;
   slugCopies: (slugs: string[]) => Promise<Map<string, number>>;
   publish: (id: string, expectedUpdatedAt: string | undefined, removeNoindex: boolean) => Promise<{ ok: boolean; issues?: string[] }>;
   readStatus: (id: string) => Promise<string | null>;
 };
 
-export async function publishCityDrafts(citySlug: string, cityName: string, deps: Deps = defaultDeps, opts: { removeGenerationNoindex?: boolean; onlySlugs?: string[] } = {}): Promise<PublishOutcome> {
+export async function publishCityDrafts(citySlug: string, cityName: string, deps: Deps = defaultDeps, opts: { removeGenerationNoindex?: boolean; onlySlugs?: string[]; isAvailable?: (d: { material_slug?: string | null; service_slug?: string | null }) => boolean } = {}): Promise<PublishOutcome> {
   const removeNoindex = opts.removeGenerationNoindex === true;
   // Retrait du noindex seulement pour une liste explicite de pages confirmées une à une.
   if (removeNoindex && !opts.onlySlugs?.length) throw new Error("Liste explicite de pages requise pour retirer le noindex.");
+  // Retrait du noindex = rendre indexable : la disponibilité doit être confirmée, revérifiée ici.
+  if (removeNoindex && !opts.isAvailable) throw new Error("Contrôle de disponibilité requis pour publier.");
   const out: PublishOutcome = { published: [], blocked: [], failed: [] };
   const all = await deps.listDrafts(citySlug);
   const drafts = opts.onlySlugs ? all.filter((d) => opts.onlySlugs!.includes(d.slug)) : all;
   const copies = await deps.slugCopies(drafts.map((d) => d.slug));
   for (const d of drafts) {
     const reasons = publishGate(d, { cityName, slugCopies: copies.get(d.slug) ?? 1, removeGenerationNoindex: removeNoindex });
+    if (opts.isAvailable && !opts.isAvailable(d as never)) reasons.push("Disponibilité non confirmée — décision requise avant publication.");
     if (reasons.length) { out.blocked.push({ slug: d.slug, reasons }); continue; }
     try {
       const r = await deps.publish(d.id, d.updated_at, removeNoindex && !!d.noindex && !d.noindex_volontaire);
@@ -50,7 +53,7 @@ export function publishOutcomeMessage(o: PublishOutcome): string {
 const defaultDeps: Deps = {
   listDrafts: async (citySlug) => {
     const { data, error } = await supabase.from("seo_pages")
-      .select("id, slug, status, noindex, noindex_volontaire, updated_at, meta_title, meta_description, h1, title, content_html, word_count, internal_link_count")
+      .select("id, slug, material_slug, service_slug, status, noindex, noindex_volontaire, updated_at, meta_title, meta_description, h1, title, content_html, word_count, internal_link_count")
       .eq("city_slug", citySlug).neq("status", "published");
     if (error) throw new Error(error.message);
     return (data ?? []) as never;
