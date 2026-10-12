@@ -2,7 +2,7 @@
 // noindex, texte technique, cohérence, liens, slug) PUIS le contrôle serveur seo_page_publish.
 // Le statut est relu après chaque publication : une page n'est déclarée publiée que si la base le confirme.
 import { supabase } from "@/integrations/supabase/client";
-import { publishGate, type DraftForGate } from "./catalogStatus";
+import { publishGate, qualityGate, type DraftForGate } from "./catalogStatus";
 
 export type PublishOutcome = {
   published: string[];
@@ -30,6 +30,7 @@ export async function publishCityDrafts(citySlug: string, cityName: string, deps
   for (const d of drafts) {
     const reasons = publishGate(d, { cityName, slugCopies: copies.get(d.slug) ?? 1, removeGenerationNoindex: removeNoindex });
     if (opts.isAvailable && !opts.isAvailable(d as never)) reasons.push("Disponibilité non confirmée — décision requise avant publication.");
+    reasons.push(...qualityGate(d));
     if (reasons.length) { out.blocked.push({ slug: d.slug, reasons }); continue; }
     try {
       const r = await deps.publish(d.id, d.updated_at, removeNoindex && !!d.noindex && !d.noindex_volontaire);
@@ -56,7 +57,7 @@ const defaultDeps: Deps = {
       .select("id, slug, material_slug, service_slug, status, noindex, noindex_volontaire, updated_at, meta_title, meta_description, h1, title, content_html, word_count, internal_link_count")
       .eq("city_slug", citySlug).neq("status", "published");
     if (error) throw new Error(error.message);
-    return (data ?? []) as never;
+    return withQuality((data ?? []) as Array<{ id: string }>) as never;
   },
   slugCopies: async (slugs) => {
     const m = new Map<string, number>();
@@ -92,6 +93,7 @@ export function publishPrecheck(
     const reasons = publishGate(d, { cityName, slugCopies: copies.get(d.slug) ?? 1, removeGenerationNoindex: true });
     const av = availability(d);
     if (av !== "confirmee") reasons.push(av === "exclue" ? "Combinaison exclue pour cette ville." : "Disponibilité inconnue — décision requise avant publication.");
+    reasons.push(...qualityGate(d));
     if (reasons.length) out.blocked.push({ slug: d.slug, reasons }); else out.eligible.push(d.slug);
   }
   return out;
@@ -110,7 +112,7 @@ export async function loadAllDraftsForPrecheck(): Promise<{ drafts: Array<DraftF
     .select("id, slug, city_slug, material_slug, service_slug, status, noindex, noindex_volontaire, updated_at, meta_title, meta_description, h1, title, content_html, word_count, internal_link_count")
     .neq("status", "published").limit(1000);
   if (error) throw new Error(error.message);
-  const drafts = (data ?? []) as never as Array<DraftForGate & { city_slug: string }>;
+  const drafts = (await withQuality((data ?? []) as Array<{ id: string }>)) as never as Array<DraftForGate & { city_slug: string }>;
   const copies = new Map<string, number>();
   const slugs = drafts.map((d) => d.slug);
   if (slugs.length) {
@@ -118,4 +120,16 @@ export async function loadAllDraftsForPrecheck(): Promise<{ drafts: Array<DraftF
     for (const r of (all ?? []) as Array<{ slug: string }>) copies.set(r.slug, (copies.get(r.slug) ?? 0) + 1);
   }
   return { drafts, copies };
+}
+
+/** Joint la dernière note de qualité et sa fraîcheur (lecture serveur, aucune écriture). */
+export async function withQuality<T extends { id: string }>(rows: T[]): Promise<Array<T & { qa_score: number | null; qa_fresh: boolean; qa_blockers: string[] | null }>> {
+  const m = new Map<string, { score: number | null; fresh: boolean | null; blockers: string[] | null }>();
+  for (let i = 0; i < rows.length; i += 200) {
+    const ids = rows.slice(i, i + 200).map((r) => r.id);
+    const { data, error } = await supabase.rpc("seo_page_quality_state" as never, { _page_ids: ids } as never);
+    if (error) throw new Error(error.message);
+    for (const q of (data ?? []) as Array<{ page_id: string; score: number | null; fresh: boolean | null; blockers: string[] | null }>) m.set(q.page_id, q);
+  }
+  return rows.map((r) => { const q = m.get(r.id); return { ...r, qa_score: q?.score ?? null, qa_fresh: q?.fresh === true, qa_blockers: q?.blockers ?? null }; });
 }

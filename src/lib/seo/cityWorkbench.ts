@@ -1,11 +1,11 @@
 // Poste de travail d'une ville : UNE ligne par combinaison du catalogue (page ville, matériaux, services),
 // avec son état, sa disponibilité, ses problèmes précis et la SEULE action manuelle possible.
 // Pur et testable : aucune écriture, aucun appel IA. Les actions sont lancées par l'administrateur.
-import { classify, catKey, publishGate, type CatState, type CatInput, type DraftForGate } from "./catalogStatus";
+import { classify, catKey, publishGate, qualityGate, QA_MIN, type CatState, type CatInput, type DraftForGate } from "./catalogStatus";
 import { availabilityOf, type Decision } from "./slotDecisions";
 import { MAX_ATTEMPTS } from "../../../prepared/seo-generator/_shared/seo-repair-guard";
 
-export type WbAction = "generate" | "repair" | "autofix" | "publish" | "decide" | "none";
+export type WbAction = "generate" | "repair" | "autofix" | "recheck" | "publish" | "decide" | "none";
 export type Availability = "confirmee" | "exclue" | "inconnue";
 
 export type WbItem = { kind: "hub" | "material" | "service"; slug: string | null; label: string; status: string };
@@ -18,6 +18,8 @@ export type WbRow = {
   state: CatState; availability: Availability;
   pageSlug: string | null; pageId: string | null; noindexVolontaire: boolean;
   attempts: number;
+  /** Brouillon : date de lecture (refus si modifié avant l'action) et note de qualité actuelle. */
+  updatedAt: string | null; qaScore: number | null; qaFresh: boolean;
   /** Problèmes précis (génération, qualité, disponibilité). */
   problems: string[];
   action: WbAction;
@@ -58,6 +60,7 @@ export function buildWorkbench(input: {
       key, kind: it.kind, slug: it.slug, label: it.label, state, availability,
       pageSlug: draft?.slug ?? pub?.slug ?? null, pageId: draft?.id ?? null,
       noindexVolontaire: !!draft?.noindex_volontaire, attempts,
+      updatedAt: draft?.updated_at ?? null, qaScore: draft?.qa_score ?? null, qaFresh: draft?.qa_fresh === true,
       problems: [], action: "none", alt: null, blocked: null,
     };
     const availReason = availability === "exclue" ? "Combinaison exclue pour cette ville."
@@ -76,15 +79,20 @@ export function buildWorkbench(input: {
     // Brouillon existant : qualité + disponibilité.
     const gate = publishGate(draft, { cityName: input.cityName, slugCopies: input.slugCopies.get(draft.slug) ?? 1, removeGenerationNoindex: true });
     row.problems.push(...gate);
+    const qGate = qualityGate(draft);
+    row.problems.push(...qGate);
+    const needsRecheck = draft.qa_score == null || draft.qa_fresh !== true;
+    const belowMin = !needsRecheck && (draft.qa_score as number) < QA_MIN;
     for (const x of prob?.issues ?? []) if (!row.problems.includes(x)) row.problems.push(`Contrôle serveur : ${x}`);
     if (availReason) row.problems.push(availReason);
     const fixable = gate.some((r) => AUTOFIXABLE.test(r));
     const repairable = state === "draft_error" && !draft.noindex_volontaire && attempts < MAX_ATTEMPTS;
 
     if (draft.noindex_volontaire) row.blocked = "Noindex volontaire — décision distincte requise.";
-    if (gate.length === 0 && !availReason && !draft.noindex_volontaire) { row.action = "publish"; return row; }
-    if (repairable) { row.action = "repair"; row.alt = fixable ? "autofix" : null; }
-    else if (fixable) row.action = "autofix";
+    if (gate.length === 0 && qGate.length === 0 && !availReason && !draft.noindex_volontaire) { row.action = "publish"; return row; }
+    if (repairable) { row.action = "repair"; row.alt = fixable || belowMin ? "autofix" : needsRecheck ? "recheck" : null; }
+    else if (needsRecheck && gate.length === 0) row.action = "recheck";
+    else if (fixable || belowMin) row.action = "autofix";
     else if (availReason && availability === "inconnue") row.action = "decide";
     if (state === "draft_error" && attempts >= MAX_ATTEMPTS) row.problems.push(`Limite de ${MAX_ATTEMPTS} régénérations atteinte — correction manuelle requise.`);
     if (row.action === "none" && !row.blocked) row.blocked = availReason ?? "Correction manuelle du contenu requise (texte trop court ou promesse non confirmée).";
@@ -94,7 +102,7 @@ export function buildWorkbench(input: {
 }
 
 export const ACTION_LABEL: Record<WbAction, string> = {
-  generate: "Générer", repair: "Régénérer (IA)", autofix: "Corriger la qualité (sans IA)",
+  generate: "Générer", repair: "Régénérer (IA)", autofix: "Corriger sans IA", recheck: "Recalculer la qualité",
   publish: "Publier", decide: "Décider la disponibilité", none: "—",
 };
 
@@ -109,6 +117,6 @@ export function summarizeWorkbench(rows: WbRow[]) {
     qualityErrors: n((r) => !!r.pageId && r.problems.some((p) => !/Disponibilité|exclue/.test(p))),
     unknown: n((r) => r.availability === "inconnue" && !r.state.startsWith("published")),
     excluded: n((r) => r.availability === "exclue"),
-    byAction: Object.fromEntries((["generate", "repair", "autofix", "publish", "decide"] as WbAction[]).map((a) => [a, n((r) => r.action === a || r.alt === a)])) as Record<WbAction, number>,
+    byAction: Object.fromEntries((["generate", "repair", "autofix", "recheck", "publish", "decide"] as WbAction[]).map((a) => [a, n((r) => r.action === a || r.alt === a)])) as Record<WbAction, number>,
   };
 }

@@ -113,7 +113,21 @@ export type DraftForGate = {
   meta_title: string | null; meta_description: string | null; h1: string | null; title: string | null;
   content_html: string | null; word_count: number | null; internal_link_count: number | null;
   noindex_volontaire?: boolean | null;
+  /** Dernière note de qualité enregistrée et sa fraîcheur (même contenu que la page actuelle). */
+  qa_score?: number | null; qa_fresh?: boolean | null; qa_blockers?: string[] | null;
 };
+
+/** Seuil de qualité obligatoire à la publication (appliqué aussi côté serveur). */
+export const QA_MIN = 90;
+
+/** Contrôle de qualité à la publication : note présente, à jour (contenu inchangé), >= 90, sans blocage. */
+export function qualityGate(p: Pick<DraftForGate, "qa_score" | "qa_fresh" | "qa_blockers">): string[] {
+  if (p.qa_score === null || p.qa_score === undefined) return ["Note de qualité absente — « Recalculer la qualité » requis."];
+  if (p.qa_fresh !== true) return ["Note de qualité périmée (contenu modifié depuis) — « Recalculer la qualité » requis."];
+  if (p.qa_score < QA_MIN) return [`Note de qualité ${p.qa_score}/100 inférieure à ${QA_MIN}.`];
+  if (p.qa_blockers?.length) return [`Contrôle qualité bloquant : ${p.qa_blockers.join(", ")}.`];
+  return [];
+}
 
 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const TECH = /(lorem ipsum|\bundefined\b|\[object |\{\{|\}\}|\bTODO\b|\bnull\b|<script)/i;
