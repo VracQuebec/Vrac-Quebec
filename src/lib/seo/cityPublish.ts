@@ -17,10 +17,13 @@ type Deps = {
   readStatus: (id: string) => Promise<string | null>;
 };
 
-export async function publishCityDrafts(citySlug: string, cityName: string, deps: Deps = defaultDeps, opts: { removeGenerationNoindex?: boolean } = {}): Promise<PublishOutcome> {
+export async function publishCityDrafts(citySlug: string, cityName: string, deps: Deps = defaultDeps, opts: { removeGenerationNoindex?: boolean; onlySlugs?: string[] } = {}): Promise<PublishOutcome> {
   const removeNoindex = opts.removeGenerationNoindex === true;
+  // Retrait du noindex seulement pour une liste explicite de pages confirmées une à une.
+  if (removeNoindex && !opts.onlySlugs?.length) throw new Error("Liste explicite de pages requise pour retirer le noindex.");
   const out: PublishOutcome = { published: [], blocked: [], failed: [] };
-  const drafts = await deps.listDrafts(citySlug);
+  const all = await deps.listDrafts(citySlug);
+  const drafts = opts.onlySlugs ? all.filter((d) => opts.onlySlugs!.includes(d.slug)) : all;
   const copies = await deps.slugCopies(drafts.map((d) => d.slug));
   for (const d of drafts) {
     const reasons = publishGate(d, { cityName, slugCopies: copies.get(d.slug) ?? 1, removeGenerationNoindex: removeNoindex });
@@ -76,10 +79,16 @@ const defaultDeps: Deps = {
 // ── Pré-contrôle AVANT le clic : mêmes règles que publishCityDrafts (publishGate), sans écriture ──
 export type PublishPrecheck = { eligible: string[]; blocked: Array<{ slug: string; reasons: string[] }> };
 
-export function publishPrecheck(drafts: DraftForGate[], cityName: string, copies: Map<string, number>): PublishPrecheck {
+export function publishPrecheck(
+  drafts: Array<DraftForGate & { material_slug?: string | null; service_slug?: string | null }>, cityName: string, copies: Map<string, number>,
+  availability: (d: { material_slug?: string | null; service_slug?: string | null }) => "confirmee" | "exclue" | "inconnue" = () => "confirmee",
+): PublishPrecheck {
   const out: PublishPrecheck = { eligible: [], blocked: [] };
   for (const d of drafts) {
-    const reasons = publishGate(d, { cityName, slugCopies: copies.get(d.slug) ?? 1, removeGenerationNoindex: false });
+    // Noindex de génération retirable seulement à la confirmation explicite; noindex volontaire toujours bloquant.
+    const reasons = publishGate(d, { cityName, slugCopies: copies.get(d.slug) ?? 1, removeGenerationNoindex: true });
+    const av = availability(d);
+    if (av !== "confirmee") reasons.push(av === "exclue" ? "Combinaison exclue pour cette ville." : "Disponibilité inconnue — décision requise avant publication.");
     if (reasons.length) out.blocked.push({ slug: d.slug, reasons }); else out.eligible.push(d.slug);
   }
   return out;
@@ -95,7 +104,7 @@ export function precheckReason(p: PublishPrecheck | undefined): string | null {
 /** Lecture unique de tous les brouillons (toutes villes) pour le pré-contrôle. */
 export async function loadAllDraftsForPrecheck(): Promise<{ drafts: Array<DraftForGate & { city_slug: string }>; copies: Map<string, number> }> {
   const { data, error } = await supabase.from("seo_pages")
-    .select("id, slug, city_slug, status, noindex, noindex_volontaire, updated_at, meta_title, meta_description, h1, title, content_html, word_count, internal_link_count")
+    .select("id, slug, city_slug, material_slug, service_slug, status, noindex, noindex_volontaire, updated_at, meta_title, meta_description, h1, title, content_html, word_count, internal_link_count")
     .neq("status", "published").limit(1000);
   if (error) throw new Error(error.message);
   const drafts = (data ?? []) as never as Array<DraftForGate & { city_slug: string }>;

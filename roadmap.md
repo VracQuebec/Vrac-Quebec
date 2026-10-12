@@ -88,5 +88,5 @@
 
 - [x] remblai-saint-georges révisée manuellement (brouillon noindex, deux sauvegardes); faux « réussi » corrigé dans le code (déploiement de la fonction non fait)
 - [x] Boutons de ville : raisons catalogue + pré-contrôle publication (aperçu)
-- [ ] Décisions des combinaisons inconnues : table à approuver (prepared/seo-generator/migration-decisions-inconnues-NON-APPLIQUEE.sql)
-- [ ] Déploiement de seo-page-repair corrigé : autorisation requise
+- [x] Décisions des combinaisons inconnues : table appliquée, écran fonctionnel (aperçu)
+- [x] seo-page-repair corrigé mis en service et testé sans IA

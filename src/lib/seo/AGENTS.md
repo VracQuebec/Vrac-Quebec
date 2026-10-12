@@ -14,3 +14,5 @@
 - Verrou serveur : seo-generate-page prend seo_lock_acquire(ville|matériau|service) avant tout appel IA et le libère en fin de requête (expiration 10 min) — empêche deux traitements payants de la même combinaison.
 - Boutons de ville : « Publier » n'est actif qu'après le pré-contrôle publishPrecheck (mêmes règles publishGate que l'action, calculées avant le clic); la raison de « Générer » cite les combinaisons inconnues du catalogue — un bouton actif doit toujours avoir un effet possible.
 - seo-page-repair unitaire renvoie le résultat réel (repairResponse dans _shared/seo-repair-guard.ts : 502 si échec, 409 si déjà en cours) — jamais « réussi » après un échec.
+- Disponibilité par ville : seo_city_slot_decisions (admin, motif obligatoire, une ligne par ville × matériau/service) via slotDecisions.ts; une décision ne lance jamais de génération et ne modifie pas la file serveur — seule une preuve ou une décision explicite rend une combinaison confirmée.
+- Publication avec retrait du noindex : seulement via PublishConfirmDialog (pages cochées une à une, onlySlugs obligatoire dans publishCityDrafts) et disponibilité confirmée; noindex volontaire toujours bloquant.
