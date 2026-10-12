@@ -18,8 +18,14 @@ export default function PublishConfirmDialog({ city, pre, onClose, onConfirm }: 
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Publier — {city?.name}</DialogTitle></DialogHeader>
         <p className="text-xs text-muted-foreground">
-          Cochez chaque page à publier. Elle deviendra indexable (retrait du noindex de génération). Le statut est relu dans la base après publication.
+          Cochez les pages à publier (ou « Tout sélectionner »). Elle deviendra indexable (retrait du noindex de génération). Le statut est relu dans la base après publication.
         </p>
+        {!!pre?.eligible.length && (
+          <Button variant="ghost" size="sm" className="h-7 text-xs self-start"
+            onClick={() => setSel(sel.length === pre.eligible.length ? [] : [...pre.eligible])}>
+            {sel.length === pre.eligible.length ? "Tout désélectionner" : `Tout sélectionner (${pre.eligible.length})`}
+          </Button>
+        )}
         <ul className="divide-y divide-border text-sm">
           {pre?.eligible.map((s) => (
             <li key={s} className="flex items-center gap-2 py-1.5">
