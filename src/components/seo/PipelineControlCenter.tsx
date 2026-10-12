@@ -457,6 +457,8 @@ export default function PipelineControlCenter() {
       {cov.size > 0 && (
         <Card className="p-4 md:p-6 space-y-2">
           <h3 className="text-base font-display font-bold">Bilan de couverture — {nf(bilan.cities)} villes actives</h3>
+          {catalogTotal && <CatalogTotals s={catalogTotal} complete={catalogComplete} cities={catalogBySlug.size} />}
+          <div className="text-xs font-semibold pt-1">File du générateur (opportunités pertinentes seulement)</div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             <div><div className="text-lg font-bold">{nf(bilan.planned)}</div>pages attendues (opportunités pertinentes)</div>
             <div><div className="text-lg font-bold">{nf(bilan.published)}</div>publiées</div>
