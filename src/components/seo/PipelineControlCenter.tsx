@@ -694,10 +694,20 @@ export default function PipelineControlCenter() {
             const publishReason = precheckErr ? "Lecture des brouillons impossible — publication bloquée; utilisez « Actualiser »." : precheckReason(pre);
             const genReason = generateReasonWithCatalog(plan.generate.reason, catSum);
             const catLine = catalogActionLine(catSum);
-            const wbGen = wbRowsFor(c.slug, c.name).filter((r) => r.action === "generate").length;
+            const wbGen = wbRowsFor(c.slug, c.name).filter((r) => r.action === "generate").length; // eslint-disable-line
             const legacyMeta = STATUS_META[isRunning ? "running" : c.status];
             // Le badge ne dépend plus de la file du Générateur, sauf génération en cours ou erreur.
-            const meta = isRunning || c.status === "error" || !flags ? legacyMeta
+            const wbRows = wbRowsFor(c.slug, c.name);
+            const gaps = missingGroups(wbRows);
+            // Badge = couverture réelle des 28 combinaisons (même règle que la fenêtre de ville), jamais la file.
+            const meta = isRunning || c.status === "error" || !catSum ? legacyMeta
+              : catSum.complete
+                ? { label: "Complète (28 combinaisons)", className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" }
+                : catSum.draft_ready + catSum.draft_noindex + catSum.draft_error > 0
+                  ? { label: COVERAGE_BADGE_LABEL.drafts, className: "bg-sky-500/15 text-sky-700 border-sky-500/30", dot: "bg-sky-500" }
+                  : { label: "Incomplète", className: "bg-amber-500/15 text-amber-700 border-amber-500/30", dot: "bg-amber-500" };
+            void flags;
+            const _legacy = isRunning || c.status === "error" || !flags ? legacyMeta
               : flags.badge === "covered"
                 ? { label: COVERAGE_BADGE_LABEL.covered, className: "bg-green-500/15 text-green-700 border-green-500/30", dot: "bg-green-500" }
                 : flags.badge === "drafts"
@@ -732,6 +742,15 @@ export default function PipelineControlCenter() {
                   <Progress value={catSum?.coveredPct ?? 0} className="h-2" />
                   {catSum && <CatStateLine s={catSum} />}
                 </div>
+                {gaps.length > 0 && (
+                  <div className="rounded-md border border-border p-2 text-[11px] space-y-1" onClick={(e) => e.stopPropagation()}>
+                    <div className="font-semibold">Sans page publiée ({gaps.reduce((n, g) => n + g.items.length, 0)})</div>
+                    {gaps.map((g) => (
+                      <div key={g.title}><span className="font-medium">{g.title} — </span><span className="text-muted-foreground">{g.reason}</span>
+                        <div>{g.items.join(", ")}</div></div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-xs">
                   <span>{c.generated} page{c.generated > 1 ? "s" : ""} existante{c.generated > 1 ? "s" : ""}</span>
@@ -741,7 +760,7 @@ export default function PipelineControlCenter() {
                   {plan.pending > 0 && <span>{plan.pending} en file d'attente</span>}
                   <span className={split.realErrors > 0 ? "text-destructive font-medium" : ""}>{split.realErrors} erreur{split.realErrors > 1 ? "s" : ""}{plan.invalidPublished > 0 ? ` (dont ${plan.invalidPublished} en ligne)` : ""}</span>
                   {split.noindex > 0 && <span className="text-muted-foreground">{split.noindex} publiée(s) non indexée(s) volontairement</span>}
-                  <span className="font-semibold">Couverture des opportunités : {cv ? coverageLabel(cv.plannedCovered, cv.planned) : "…"}</span>
+                  <span className="text-muted-foreground">File du générateur (secondaire) : {cv ? coverageLabel(cv.plannedCovered, cv.planned) : "…"}</span>
                   <span className="text-muted-foreground">Potentiel théorique : {state?.totals.per_city ?? "—"}</span>
                   {cat && (
                     <span className="col-span-full text-muted-foreground">
@@ -997,6 +1016,17 @@ const SHOWN: CatState[] = ["published_indexable", "published_noindex", "draft_re
 function catalogGaps(k: CatSummary): string {
   return SHOWN.filter((x) => k[x] > 0).map((x) => `${CAT_STATE_LABEL[x]} : ${k[x]}`).join(" · ")
     + (k.excludedExisting > 0 ? ` · Exclues mais déjà publiées (à décider) : ${k.excludedExisting}` : "");
+}
+
+/** Combinaisons sans page publiée, regroupées par raison (même lignes que la fenêtre de ville). */
+export function missingGroups(rows: WbRow[]): { title: string; reason: string; items: string[] }[] {
+  const g: { title: string; reason: string; test: (r: WbRow) => boolean }[] = [
+    { title: "Manquantes — disponibilité confirmée", reason: "générables par « Générer » (confirmation et coût affichés avant)", test: (r) => !r.pageSlug && r.availability === "confirmee" && !r.state.startsWith("published") },
+    { title: "Manquantes — disponibilité inconnue", reason: "non générables : aucune preuve ni décision — décider d'abord", test: (r) => !r.pageSlug && r.availability === "inconnue" },
+    { title: "Brouillons à corriger ou publier", reason: "voir « Vérifier et gérer la ville » (qualité ≥ 90 et disponibilité confirmée requises)", test: (r) => !!r.pageId },
+    { title: "Exclues", reason: "jamais générées ni publiées", test: (r) => !r.pageSlug && r.availability === "exclue" },
+  ];
+  return g.map((x) => ({ title: x.title, reason: x.reason, items: rows.filter(x.test).map((r) => r.label) })).filter((x) => x.items.length > 0);
 }
 
 function CatStateLine({ s }: { s: CatSummary }) {
