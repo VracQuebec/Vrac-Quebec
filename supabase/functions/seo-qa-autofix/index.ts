@@ -613,6 +613,7 @@ Deno.serve(async (req) => {
 
     // Re-run QA (deterministic)
     let newScore: number | null = null;
+    let remaining: string[] = [];
     try {
       const qaRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/seo-qa-check`, {
         method: "POST",
@@ -621,6 +622,7 @@ Deno.serve(async (req) => {
       });
       const qaJson = await qaRes.json().catch(() => ({}));
       if (typeof qaJson?.score === "number") newScore = qaJson.score;
+      remaining = [...(qaJson?.blockers ?? []), ...(qaJson?.warnings ?? [])];
     } catch { /* ignore */ }
 
     return json({
@@ -630,6 +632,7 @@ Deno.serve(async (req) => {
       preserved,
       old_score: (fullBefore as { qa_last_score?: number | null } | null)?.qa_last_score ?? null,
       new_score: newScore,
+      remaining,
       ai_calls: aiCalls,
       improvement_id: improvementId,
       skipped_ai_actions: skippedAi,

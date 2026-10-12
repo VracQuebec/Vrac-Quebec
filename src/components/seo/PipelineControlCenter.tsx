@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindexOnly, generateReasonWithCatalog, catalogActionLine } from "@/lib/seo/cityActions";
 import UnknownDecisionDialog from "@/components/seo/UnknownDecisionDialog";
 import PublishConfirmDialog from "@/components/seo/PublishConfirmDialog";
-import CityWorkbenchDialog, { type RowResult } from "@/components/seo/CityWorkbenchDialog";
+import CityWorkbenchDialog, { type RowResult, type Evidence } from "@/components/seo/CityWorkbenchDialog";
 import { buildWorkbench, type WbRow } from "@/lib/seo/cityWorkbench";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { loadDecisions, availabilityOf, decisionKey, type DecisionRow } from "@/lib/seo/slotDecisions";
@@ -164,6 +164,14 @@ export default function PipelineControlCenter() {
 
   // ── Poste de travail par ville : une ligne par combinaison, actions manuelles avec résultat par page ──
   const [wbCity, setWbCity] = useState<{ slug: string; name: string } | null>(null);
+  // Preuves de disponibilité de la ville ouverte (lecture seule) : distingue demande explicite et « Terre » seulement.
+  const [wbEvidence, setWbEvidence] = useState<Evidence[]>([]);
+  useEffect(() => {
+    setWbEvidence([]);
+    if (!wbCity) return;
+    void supabase.rpc("seo_slot_evidence" as never, { _city_slug: wbCity.slug } as never)
+      .then(({ data }) => setWbEvidence(((data ?? []) as unknown) as Evidence[]));
+  }, [wbCity]);
   const availFor = (city: string) => (d: { material_slug?: string | null; service_slug?: string | null }) => {
     const kind = d.material_slug ? "material" : d.service_slug ? "service" : "hub";
     const sl = d.material_slug ?? d.service_slug ?? null;
@@ -921,7 +929,7 @@ export default function PipelineControlCenter() {
       <CityWorkbenchDialog city={wbCity} rows={wbCity ? wbRowsFor(wbCity.slug, wbCity.name) : []}
         onClose={() => setWbCity(null)} onVerify={verifyWb}
         onDecide={() => wbCity && setUnknownCity(wbCity)}
-        run={wbCity ? wbRun(wbCity) : {}} />
+        run={wbCity ? wbRun(wbCity) : {}} evidence={wbEvidence} />
       <CityPagesDialog
         citySlug={pagesCity?.slug ?? null}
         cityName={pagesCity?.name}
