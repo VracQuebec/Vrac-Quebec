@@ -77,8 +77,14 @@ describe("contrôle avant publication", () => {
   it("brouillon conforme admis", () => {
     expect(publishGate(good, { cityName: "Beaumont", slugCopies: 1 })).toEqual([]);
   });
-  it("noindex volontaire jamais retiré : bloqué", () => {
-    expect(publishGate({ ...good, noindex: true }, { cityName: "Beaumont", slugCopies: 1 }).join()).toMatch(/Noindex conservé/);
+  it("noindex de génération conservé par défaut", () => {
+    expect(publishGate({ ...good, noindex: true }, { cityName: "Beaumont", slugCopies: 1 }).join()).toMatch(/Noindex de génération conservé/);
+  });
+  it("retrait autorisé explicitement : admis si tous les contrôles passent", () => {
+    expect(publishGate({ ...good, noindex: true }, { cityName: "Beaumont", slugCopies: 1, removeGenerationNoindex: true })).toEqual([]);
+  });
+  it("noindex volontaire jamais retiré, même avec autorisation", () => {
+    expect(publishGate({ ...good, noindex: true, noindex_volontaire: true }, { cityName: "Beaumont", slugCopies: 1, removeGenerationNoindex: true }).join()).toMatch(/Noindex volontaire/);
   });
   it("promesse non confirmée bloquée", () => {
     const r = publishGate({ ...good, content_html: good.content_html + "<p>Livraison en 24 heures garantie.</p>" }, { cityName: "Beaumont", slugCopies: 1 });
