@@ -1513,6 +1513,13 @@
       "when": 1791826598738,
       "tag": "0215_seo_quality_publish_gate",
       "breakpoints": true
+    },
+    {
+      "idx": 216,
+      "version": "7",
+      "when": 1791826642510,
+      "tag": "0216_seo_publish_guard_trigger",
+      "breakpoints": true
     }
   ]
 }

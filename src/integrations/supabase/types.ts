@@ -34317,6 +34317,10 @@ export type Database = {
       seo_orchestrator_try_lock: { Args: never; Returns: boolean }
       seo_orchestrator_unlock: { Args: never; Returns: boolean }
       seo_page_content_hash: { Args: { _page_id: string }; Returns: string }
+      seo_page_content_hash_of: {
+        Args: { _p: Database["public"]["Tables"]["seo_pages"]["Row"] }
+        Returns: string
+      }
       seo_page_optim_history: {
         Args: { _limit?: number; _page_id: string }
         Returns: {
