@@ -53,3 +53,22 @@ export function offerFaq(kind: OfferKind, topic: string, city: string): { questi
 }
 
 export const LEGACY_OFFER_QUESTION = "Vrac Québec fournit-il lui-même ce matériau ou ce service ?";
+
+// Réponses anciennes interdites : question universelle et réduction à « une plateforme ».
+const LEGACY_QUESTION = /fournit-il lui-m[eê]me ce mat[ée]riau ou ce service/i;
+const OFFER_QUESTION = /(offre-t-il ce mat[ée]riau|comment vrac qu[ée]bec aide-t-il|que propose vrac qu[ée]bec)/i;
+const PLATFORM_ONLY = /(^\s*non\b[^.]*\.?\s*vrac qu[ée]bec est une plateforme|\b(simple|simplement|uniquement|seulement)\b[^.]{0,40}plateforme|plateforme de mise en relation)/i;
+
+export function isForbiddenOfferFaq(f: { question: string; answer: string }): boolean {
+  return LEGACY_QUESTION.test(f.question) || OFFER_QUESTION.test(f.question) || PLATFORM_ONLY.test(f.answer);
+}
+
+/** Retire toute réponse « offre » rédigée librement ou ancienne, puis ajoute UNE réponse contrôlée. */
+export function enforceOfferFaq(
+  faq: Array<{ question: string; answer: string }>,
+  kind: OfferKind,
+  topic: string,
+  city: string,
+): Array<{ question: string; answer: string }> {
+  return [...faq.filter((f) => !isForbiddenOfferFaq(f)), offerFaq(kind, topic, city)];
+}

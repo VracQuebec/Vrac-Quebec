@@ -24578,6 +24578,36 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_generation_exclusions: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          reason: string
+          slug: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          reason: string
+          slug: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          reason?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       seo_generation_jobs: {
         Row: {
           blocked_items: Json
@@ -34045,6 +34075,7 @@ export type Database = {
         Returns: Json
       }
       seo_bulk_state: { Args: never; Returns: Json }
+      seo_catalog_coverage_summary: { Args: never; Returns: Json }
       seo_city_active_run: { Args: never; Returns: Json }
       seo_city_coverage: { Args: { _city_slug: string }; Returns: Json }
       seo_city_coverage_all: { Args: never; Returns: Json }
@@ -34093,6 +34124,21 @@ export type Database = {
       seo_city_run_start: {
         Args: { _city_slug: string; _total: number }
         Returns: string
+      }
+      seo_city_slots_catalog: {
+        Args: { _city_slug?: string }
+        Returns: {
+          availability: string
+          city_name: string
+          city_slug: string
+          kind: string
+          label: string
+          material_slug: string
+          page_count: number
+          page_slug: string
+          page_status: string
+          service_slug: string
+        }[]
       }
       seo_city_slots_expected: {
         Args: { _city_slug?: string }

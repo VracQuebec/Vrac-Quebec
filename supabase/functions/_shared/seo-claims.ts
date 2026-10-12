@@ -13,6 +13,8 @@ const PATTERNS: Array<[RegExp, string]> = [
   [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))(normes de qualit[ée] strictes|qualit[ée] sup[ée]rieure|meilleurs? prix|prix comp[ée]titifs?|les plus bas)(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))/iu, "qualité/prix revendiqués"],
   [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))(toujours|imm[ée]diatement)\s+disponibles?(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))|(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))disponible\s+(imm[ée]diatement|en tout temps|toute l'ann[ée]e)(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))/iu, "disponibilité"],
   [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))(nous|on)\s+(livrons|transportons|fournissons|garantissons)(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))/iu, "service direct revendiqué"],
+  [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))(nous|on)\s+(excavons|nivelons|creusons|effectuons|r[ée]alisons|ex[ée]cutons|exécutons)(?:\s+(les|vos|l'|tous))?(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))/iu, "exécution directe revendiquée"],
+  [/Vrac Qu[ée]bec\s+(excave|nivelle|creuse|livre|transporte|effectue|r[ée]alise|ex[ée]cute)\s+/iu, "exécution directe revendiquée"],
   [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))\d+\s*\$|\$\s*\d+/iu, "prix"],
   [/(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))\d+\s*km(?:(?<![\p{L}\p{N}])(?=[\p{L}\p{N}])|(?<=[\p{L}\p{N}])(?![\p{L}\p{N}]))/iu, "distance chiffrée"],
 ];
