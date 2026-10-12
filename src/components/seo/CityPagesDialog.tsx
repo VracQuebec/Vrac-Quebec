@@ -7,6 +7,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { repairCity, repairOutcomeMessage, type RepairSlot } from "@/lib/seo/cityRepair";
+import { publishCityDrafts, publishOutcomeMessage } from "@/lib/seo/cityPublish";
+
+const toSlot = (city: string, x: SlotRow): RepairSlot => ({
+  key: `${city}|${x.material_slug ?? ""}|${x.service_slug ?? ""}`, label: x.label, gen_state: x.gen_state,
+  has_page: !!x.page_id, published: x.pub_state === "published",
+  noindex_volontaire: x.pub_state === "published" && !!x.issues?.length && x.issues.every((i) => i === "Publiée mais noindex"),
+  issues: x.issues, attempts: x.task_attempts ?? 0, material_slug: x.material_slug, service_slug: x.service_slug,
+});
 import {
   useSeoCityMatrix, repairSeoPages, GEN_LABEL, type SlotRow,
 } from "@/lib/seo/useSeoCityMatrix";
@@ -84,17 +93,15 @@ export default function CityPagesDialog({ citySlug, cityName, onClose, onChanged
                 </Button>
                 <Button size="sm" variant="outline" className="h-8 text-xs gap-1" disabled={s.errors + s.remaining === 0 || busy === "all"}
                   onClick={() => act("all", async () => {
-                    const r = await repairSeoPages({ citySlug: citySlug!, allErrors: true });
-                    return `Régénération lancée sur ${r.queued ?? 0} page(s) en erreur`;
+                    const o = await repairCity((matrix?.slots ?? []).map((x) => toSlot(citySlug!, x)));
+                    return repairOutcomeMessage(o);
                   })}>
                   {busy === "all" ? <Loader2 className="w-3 h-3 animate-spin" /> : <ListRestart className="w-3 h-3" />} Régénérer les erreurs
                 </Button>
                 <Button size="sm" variant="outline" className="h-8 text-xs gap-1" disabled={s.unpublished === 0 || busy === "pub"}
                   onClick={() => act("pub", async () => {
-                    const { data, error } = await supabase.rpc("seo_city_publish_missing" as never, { _city_slug: citySlug } as never);
-                    if (error) throw error;
-                    const d = data as unknown as { published: number; skipped_invalid: number };
-                    return `${d.published} page(s) publiée(s)${d.skipped_invalid ? ` — ${d.skipped_invalid} ignorée(s) (invalides)` : ""}`;
+                    const o = await publishCityDrafts(citySlug!, cityName ?? citySlug!);
+                    return publishOutcomeMessage(o);
                   })}>
                   <Send className="w-3 h-3" /> Publier les non publiées ({s.unpublished})
                 </Button>
@@ -166,8 +173,10 @@ export default function CityPagesDialog({ citySlug, cityName, onClose, onChanged
                         {(problem || r.gen_state === "ok") && (
                           <Button size="sm" variant={problem ? "default" : "ghost"} className="h-7 text-[11px] gap-1" disabled={busy === `re-${key}`}
                             onClick={() => act(`re-${key}`, async () => {
-                              await repairSeoPages({ citySlug: citySlug!, materialSlug: r.material_slug, serviceSlug: r.service_slug });
-                              return `Page régénérée — ${r.label}`;
+                              const o = await repairCity([toSlot(citySlug!, r)]);
+                              if (o.skipped[0]) throw new Error(o.skipped[0].reason);
+                              if (o.failed[0]) throw new Error(o.failed[0].error);
+                              return `Brouillon envoyé en régénération (sauvegarde préalable) — ${r.label}`;
                             })}>
                             {busy === `re-${key}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Régénérer
                           </Button>

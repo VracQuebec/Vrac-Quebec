@@ -3,6 +3,7 @@ import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindex
 import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
 import { buildCatInput, summarizeCatalog, mergeSummaries, CAT_STATE_LABEL, estimateCredits, type CatState, type CatSummary } from "@/lib/seo/catalogStatus";
 import { publishCityDrafts, publishOutcomeMessage } from "@/lib/seo/cityPublish";
+import { repairCity, repairOutcomeMessage, type RepairSlot } from "@/lib/seo/cityRepair";
 import { coverageLabel, coveragePct, computeCoverage, splitAll, coverageFlags, catalogBreakdown, COVERAGE_BADGE_LABEL, type Coverage, type CoverageAllRaw } from "@/lib/seo/cityCoverage";
 import { useSeoControlCenter, type ControlCityRow, type ControlProblem } from "@/lib/seo/useSeoControlCenter";
 import { useSeoPipelineV2 } from "@/lib/seo/useSeoPipelineV2";
@@ -17,7 +18,6 @@ import { toast } from "@/hooks/use-toast";
 import CityPagesDialog from "@/components/seo/CityPagesDialog";
 import { CityDetailDialog } from "@/components/seo/CityGenerator";
 import { useCityGeneration } from "@/lib/seo/useCityGeneration";
-import { repairSeoPages } from "@/lib/seo/useSeoCityMatrix";
 import CityCombinationAudit from "@/components/seo/CityCombinationAudit";
 import DraftAudit from "@/components/seo/DraftAudit";
 import QaControlPanel from "@/components/seo/QaControlPanel";
@@ -112,6 +112,12 @@ export default function PipelineControlCenter() {
   const catalogOf = (slug: string) => catalogBySlug.get(slug) ?? null;
   const catalogTotal = useMemo(() => catalogBySlug.size ? mergeSummaries([...catalogBySlug.values()]) : null, [catalogBySlug]);
   const catalogComplete = useMemo(() => [...catalogBySlug.values()].filter((x) => x.complete).length, [catalogBySlug]);
+  const toRepairSlot = (p: ControlProblem): RepairSlot => ({
+    key: `${p.city_slug}|${p.material_slug ?? ""}|${p.service_slug ?? ""}`, label: p.label, gen_state: p.gen_state,
+    has_page: p.gen_state === "invalid", published: publishedKeysOf(cov.get(p.city_slug) ?? null).has(slotKey(p.kind, p.material_slug, p.service_slug)),
+    noindex_volontaire: isNoindexOnly(p as never), issues: p.issues, attempts: p.task_attempts ?? 0,
+    material_slug: p.material_slug, service_slug: p.service_slug,
+  });
   // Même logique de génération que le Générateur (aucune architecture parallèle).
   const gen = useCityGeneration();
   const workCity = workSlug ? gen.bySlug.get(workSlug) ?? null : null;
@@ -592,8 +598,10 @@ export default function PipelineControlCenter() {
                     title={retryReason ?? undefined}
                     disabled={!!retryReason || busy === `retry-${c.slug}`}
                     onClick={() => window.confirm(`Régénérer ${plan.invalidDrafts} brouillon(s) en erreur de ${c.name} ? Les pages en ligne ne seront pas remplacées.`) && act(`retry-${c.slug}`, async () => {
-                      const r = await repairSeoPages({ citySlug: c.slug, allErrors: true });
-                      return repairResultMessage(r);
+                      const slots = ((state?.problems ?? []) as ControlProblem[]).filter((p) => p.city_slug === c.slug).map(toRepairSlot);
+                      const o = await repairCity(slots);
+                      void reload();
+                      return repairOutcomeMessage(o);
                     }, `Régénération — ${c.name}`)}>
                     {busy === `retry-${c.slug}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <ListRestart className="w-3 h-3" />} Régénérer les erreurs
                   </Button>
@@ -680,7 +688,10 @@ export default function PipelineControlCenter() {
             {errorProblems.map((problem) => (
               <ProblemRow key={`${problem.city_slug}|${problem.material_slug ?? ""}|${problem.service_slug ?? ""}`} problem={problem} busy={busy}
                 onRepair={() => act(`problem-${problem.city_slug}-${problem.material_slug ?? problem.service_slug ?? "hub"}`, async () => {
-                  await repairSeoPages({ citySlug: problem.city_slug, materialSlug: problem.material_slug, serviceSlug: problem.service_slug });
+                  const o = await repairCity([toRepairSlot(problem)]);
+                  if (o.skipped[0]) throw new Error(o.skipped[0].reason);
+                  if (o.failed[0]) throw new Error(o.failed[0].error);
+                  void reload();
                 }, `Régénération terminée — ${problem.city_name} · ${problem.label}`)} />
             ))}
           </div>
@@ -694,7 +705,10 @@ export default function PipelineControlCenter() {
             {(state?.problems ?? []).map((problem) => (
               <ProblemRow key={`${problem.city_slug}|${problem.material_slug ?? ""}|${problem.service_slug ?? ""}`} problem={problem} busy={busy}
                 onRepair={() => act(`problem-${problem.city_slug}-${problem.material_slug ?? problem.service_slug ?? "hub"}`, async () => {
-                  await repairSeoPages({ citySlug: problem.city_slug, materialSlug: problem.material_slug, serviceSlug: problem.service_slug });
+                  const o = await repairCity([toRepairSlot(problem)]);
+                  if (o.skipped[0]) throw new Error(o.skipped[0].reason);
+                  if (o.failed[0]) throw new Error(o.failed[0].error);
+                  void reload();
                 }, `Régénération terminée — ${problem.city_name} · ${problem.label}`)} />
             ))}
           </div>
