@@ -12,8 +12,11 @@ type Runner = (rows: WbRow[]) => Promise<Map<string, RowResult>>;
 
 // Poste de travail d'une ville : vérification détaillée, sélection, actions manuelles et résultat par page.
 // Rien n'est lancé sans clic + confirmation; chaque action ne vise que les lignes admissibles cochées.
-export default function CityWorkbenchDialog({ city, rows, onClose, onVerify, onDecide, run }: {
-  city: { slug: string; name: string } | null; rows: WbRow[];
+export type Evidence = { submission_number: string | null; material_slug: string; evidence: string; origin: string; materials: string[] | null };
+const ORIGIN_LABEL: Record<string, string> = { "/remblai": "formulaire remblai (besoin de remplissage)", "/depot-materiaux": "dépôt de matériaux (terre à SORTIR)", non_indiquee: "origine non indiquée" };
+
+export default function CityWorkbenchDialog({ city, rows, onClose, onVerify, onDecide, run, evidence = [] }: {
+  city: { slug: string; name: string } | null; rows: WbRow[]; evidence?: Evidence[];
   onClose: () => void; onVerify: () => Promise<void>; onDecide: () => void;
   run: Partial<Record<Exclude<WbAction, "none" | "decide">, Runner>>;
 }) {
@@ -23,7 +26,9 @@ export default function CityWorkbenchDialog({ city, rows, onClose, onVerify, onD
   const [verifiedAt, setVerifiedAt] = useState<string | null>(null);
   useEffect(() => { setSel({}); setResults(new Map()); setVerifiedAt(null); }, [city?.slug]);
   const sum = useMemo(() => summarizeWorkbench(rows), [rows]);
-  const rowsFor = (a: WbAction) => rows.filter((r) => r.action === a || r.alt === a);
+  // Outils de qualité offerts pour TOUS les brouillons (jamais pour les pages en ligne).
+  const rowsFor = (a: WbAction) => rows.filter((r) => r.action === a || r.alt === a || ((a === "recheck" || a === "autofix") && !!r.pageId));
+  const evFor = (r: WbRow) => r.kind === "material" ? evidence.filter((e) => e.material_slug === r.slug) : [];
   const selOf = (a: WbAction) => sel[a] ?? new Set<string>();
   const toggle = (a: WbAction, k: string) => setSel((s) => { const n = new Set(selOf(a)); n.has(k) ? n.delete(k) : n.add(k); return { ...s, [a]: n }; });
   const toggleAll = (a: WbAction) => setSel((s) => ({ ...s, [a]: selOf(a).size === rowsFor(a).length ? new Set() : new Set(rowsFor(a).map((r) => r.key)) }));
@@ -36,7 +41,8 @@ export default function CityWorkbenchDialog({ city, rows, onClose, onVerify, onD
     if (!chosen.length) return;
     const list = chosen.map((r) => `• ${r.label}${r.pageSlug ? ` (/${r.pageSlug})` : ""}`).join("\n");
     const cost = a === "generate" || a === "repair" ? `\nCoût IA estimé : ${estimateCredits(chosen.length)} crédit(s).` : "\nAucun appel IA.";
-    const extra = a === "publish" ? "\nCes pages deviendront indexables (noindex de génération retiré; noindex volontaire jamais retiré). Le statut sera relu dans la base." : "";
+    const extraQ = a === "recheck" ? "\nActualise seulement le rapport de qualité : contenu, statut et noindex inchangés." : a === "autofix" ? "\nSauvegarde avant modification, corrections prises en charge seulement, puis recalcul. Aucune publication, noindex conservé." : "";
+    const extra = extraQ || (a === "publish" ? "\nCes pages deviendront indexables (noindex de génération retiré; noindex volontaire jamais retiré). Le statut sera relu dans la base." : "");
     if (!window.confirm(`${ACTION_LABEL[a]} — ${chosen.length} page(s) de ${city?.name} :\n${list}${cost}${extra}\n\nConfirmer ?`)) return;
     setBusy(a);
     try {
@@ -47,7 +53,7 @@ export default function CityWorkbenchDialog({ city, rows, onClose, onVerify, onD
     } finally { setBusy(null); }
   };
 
-  const groups: Array<Exclude<WbAction, "none" | "decide">> = ["generate", "repair", "autofix", "publish"];
+  const groups: Array<Exclude<WbAction, "none" | "decide">> = ["generate", "repair", "recheck", "autofix", "publish"];
 
   return (
     <Dialog open={!!city} onOpenChange={(o) => !o && onClose()}>
@@ -91,6 +97,8 @@ export default function CityWorkbenchDialog({ city, rows, onClose, onVerify, onD
                       <span className="font-medium">{r.label}</span>{r.pageSlug && <span className="font-mono text-muted-foreground"> /{r.pageSlug}</span>}
                       {r.problems.length > 0 && <span className="block text-muted-foreground">{r.problems.join(" · ")}</span>}
                       {a === "repair" && <span className="block text-muted-foreground">Tentatives : {r.attempts} / 3</span>}
+                      {(a === "recheck" || a === "autofix" || a === "publish") && r.pageId && <span className="block text-muted-foreground">Note actuelle : {r.qaScore ?? "absente"}{r.qaScore != null && !r.qaFresh ? " (périmée)" : ""} — minimum 90 pour publier</span>}
+                      {results.get(r.key) && <span className={`block ${results.get(r.key)!.ok ? "text-primary" : "text-destructive"}`}>{results.get(r.key)!.msg}</span>}
                     </label>
                     {results.get(r.key) && <Badge variant="outline" className={results.get(r.key)!.ok ? "text-primary" : "text-destructive"}>{results.get(r.key)!.ok ? "Réussi" : "Échec"}</Badge>}
                   </li>
@@ -115,6 +123,13 @@ export default function CityWorkbenchDialog({ city, rows, onClose, onVerify, onD
                   </div>
                   {r.problems.length > 0 && <div className="text-muted-foreground">{r.problems.join(" · ")}</div>}
                   {r.blocked && <div className="text-muted-foreground">Bloquée : {r.blocked}</div>}
+                  {evFor(r).length > 0 && (
+                    <div className="text-muted-foreground">Preuves : {evFor(r).map((e) => {
+                      const warn = e.evidence === "terre_seulement" || e.origin !== "/remblai";
+                      return <span key={`${e.submission_number}-${e.material_slug}`} className={warn ? "text-destructive" : undefined}>
+                        n° {e.submission_number ?? "?"} — {e.evidence === "directe" ? "demande explicite" : "« Terre » seulement (ne prouve pas le remblai)"}, {ORIGIN_LABEL[e.origin] ?? e.origin}{"; "}</span>;
+                    })}</div>
+                  )}
                   {res && <div className={res.ok ? "text-primary" : "text-destructive"}>{res.ok ? "✔" : "✖"} {res.msg}</div>}
                 </li>
               );
