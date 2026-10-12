@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, AlertTriangle, XCircle, Loader2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
+import { supabase } from "@/integrations/supabase/client";
 
 export type QaCheck = {
   key: string;
@@ -49,11 +50,19 @@ export default function QaChecklist({
   useEffect(() => { void runCheck(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [pageId]);
 
   async function autofix(actions: string[] | null) {
+    // Page en ligne : autorisation explicite pour cette page seulement.
+    const { data: pg } = await supabase.from("seo_pages").select("status, slug").eq("id", pageId).maybeSingle();
+    let confirmId: string | undefined;
+    if (pg?.status === "published") {
+      if (!window.confirm(`La page « ${pg.slug} » est en ligne. Autoriser la correction de cette page ? Une sauvegarde complète sera faite avant.`)) return;
+      confirmId = pageId;
+    }
     setAutofixing(actions?.[0] ?? "all");
     try {
       const { data, error } = await invokeWithFreshSession("seo-qa-autofix", {
         page_id: pageId,
         actions: actions ?? [],
+        ...(confirmId ? { confirm_published_page_id: confirmId } : {}),
       });
       if (error) throw new Error(error.message);
       const d = data as { ok?: boolean; fixed?: string[]; new_score?: number; error?: string; message?: string };

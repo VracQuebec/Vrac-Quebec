@@ -582,8 +582,6 @@ Deno.serve(async (req) => {
     // Content protection: snapshot the previous value of every field we are about to
     // change, so any optimisation can be rolled back and stays in the page history.
     const changedKeys = Object.keys(updates);
-    const beforeSnapshot: Record<string, unknown> = {};
-    for (const k of changedKeys) beforeSnapshot[k] = (p as unknown as Record<string, unknown>)[k] ?? null;
 
     updates.updated_at = new Date().toISOString();
     const notes = `Corrections: ${fixedActions.join(", ") || "aucune"}${preserved.length ? ` · Conservé: ${preserved.join(", ")}` : ""} · Sauvegarde complète avant remplacement (avant: ${changedKeys.join(", ")})`;

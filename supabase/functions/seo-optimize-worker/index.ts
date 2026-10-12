@@ -145,6 +145,14 @@ async function processTask(supabase: ReturnType<typeof createClient>, supaUrl: s
       await new Promise((r) => setTimeout(r, retryMs));
       return "rate_limited";
     }
+    // Page en ligne sans autorisation explicite, ou page changée : ignorée, jamais modifiée.
+    if (res.status === 409 && ["published_confirmation_required", "page_changed"].includes(String(body?.code))) {
+      await supabase.from("seo_optimization_tasks").update({
+        status: "skipped", skip_reason: String(body?.error ?? body?.code),
+        qa_before: qaBefore, finished_at: new Date().toISOString(), duration_ms: Date.now() - start,
+      }).eq("id", task.id);
+      return "skipped";
+    }
     if (!res.ok || body?.error) {
       throw new EdgeCallError(
         String(body?.error || `seo-qa-autofix returned HTTP ${res.status}`),
