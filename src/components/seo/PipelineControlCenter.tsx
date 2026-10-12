@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindexOnly, generateReasonWithCatalog, catalogActionLine } from "@/lib/seo/cityActions";
 import UnknownDecisionDialog from "@/components/seo/UnknownDecisionDialog";
 import PublishConfirmDialog from "@/components/seo/PublishConfirmDialog";
-import CityWorkbenchDialog, { type RowResult } from "@/components/seo/CityWorkbenchDialog";
+import CityWorkbenchDialog, { type RowResult, type Evidence } from "@/components/seo/CityWorkbenchDialog";
 import { buildWorkbench, type WbRow } from "@/lib/seo/cityWorkbench";
 import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { loadDecisions, availabilityOf, decisionKey, type DecisionRow } from "@/lib/seo/slotDecisions";
@@ -164,6 +164,14 @@ export default function PipelineControlCenter() {
 
   // ── Poste de travail par ville : une ligne par combinaison, actions manuelles avec résultat par page ──
   const [wbCity, setWbCity] = useState<{ slug: string; name: string } | null>(null);
+  // Preuves de disponibilité de la ville ouverte (lecture seule) : distingue demande explicite et « Terre » seulement.
+  const [wbEvidence, setWbEvidence] = useState<Evidence[]>([]);
+  useEffect(() => {
+    setWbEvidence([]);
+    if (!wbCity) return;
+    void supabase.rpc("seo_slot_evidence" as never, { _city_slug: wbCity.slug } as never)
+      .then(({ data }) => setWbEvidence(((data ?? []) as unknown) as Evidence[]));
+  }, [wbCity]);
   const availFor = (city: string) => (d: { material_slug?: string | null; service_slug?: string | null }) => {
     const kind = d.material_slug ? "material" : d.service_slug ? "service" : "hub";
     const sl = d.material_slug ?? d.service_slug ?? null;
@@ -226,17 +234,36 @@ export default function PipelineControlCenter() {
       }
       return out;
     },
+    recheck: async (rows: WbRow[]) => {
+      // Rapport de qualité seulement : enforce_draft=false → contenu, statut et noindex inchangés.
+      const out = new Map<string, RowResult>();
+      for (const r of rows) {
+        if (!r.pageId) { out.set(r.key, { ok: false, msg: "Aucun brouillon." }); continue; }
+        try {
+          const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { score?: number; blockers?: string[]; warnings?: string[]; error?: string }>("seo-qa-check", { page_id: r.pageId, enforce_draft: false });
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+          const left = [...(data?.blockers ?? []), ...(data?.warnings ?? [])];
+          out.set(r.key, { ok: typeof data?.score === "number", msg: `Note : ${r.qaScore ?? "absente"} → ${data?.score ?? "?"}/100${(data?.score ?? 0) < 90 ? " (sous 90 : publication refusée)" : ""}.${left.length ? ` Reste : ${left.join(", ")}.` : ""} Contenu non modifié.` });
+        } catch (e) { out.set(r.key, { ok: false, msg: e instanceof Error ? e.message : "Erreur inconnue" }); }
+      }
+      return out;
+    },
     autofix: async (rows: WbRow[]) => {
       const out = new Map<string, RowResult>();
       for (const r of rows) {
         if (!r.pageId) { out.set(r.key, { ok: false, msg: "Aucun brouillon." }); continue; }
         try {
-          const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { fixed?: string[]; error?: string; message?: string; new_score?: number }>("seo-qa-autofix", { page_id: r.pageId, actions: [], allow_ai: false });
+          // expected_updated_at : refus serveur (rien modifié) si la page a changé depuis la vérification.
+          const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { fixed?: string[]; changed_fields?: string[]; error?: string; message?: string; old_score?: number | null; new_score?: number | null; remaining?: string[] }>("seo-qa-autofix", { page_id: r.pageId, actions: [], allow_ai: false, expected_updated_at: r.updatedAt });
           if (error) throw error;
           if (data?.error) throw new Error(data.error);
           const n = data?.fixed?.length ?? 0;
-          out.set(r.key, n ? { ok: true, msg: `${n} correction(s) : ${data!.fixed!.join(", ")} (sauvegarde faite).` } : { ok: false, msg: data?.message ?? "Aucune correction automatique possible — correction manuelle requise." });
-        } catch (e) { out.set(r.key, { ok: false, msg: e instanceof Error ? e.message : "Erreur inconnue" }); }
+          const left = data?.remaining?.length ? ` Reste : ${data.remaining.join(", ")}.` : "";
+          out.set(r.key, n
+            ? { ok: true, msg: `Note ${data?.old_score ?? r.qaScore ?? "absente"} → ${data?.new_score ?? "?"}/100. Modifié : ${(data?.changed_fields ?? data!.fixed!).join(", ")} (version précédente sauvegardée, noindex conservé).${left}` }
+            : { ok: false, msg: `${data?.message ?? "Aucune correction automatique possible"} — rien modifié. Note : ${r.qaScore ?? "absente"}.` });
+        } catch (e) { out.set(r.key, { ok: false, msg: `${e instanceof Error ? e.message : "Erreur inconnue"} — rien modifié.` }); }
       }
       return out;
     },
@@ -902,7 +929,7 @@ export default function PipelineControlCenter() {
       <CityWorkbenchDialog city={wbCity} rows={wbCity ? wbRowsFor(wbCity.slug, wbCity.name) : []}
         onClose={() => setWbCity(null)} onVerify={verifyWb}
         onDecide={() => wbCity && setUnknownCity(wbCity)}
-        run={wbCity ? wbRun(wbCity) : {}} />
+        run={wbCity ? wbRun(wbCity) : {}} evidence={wbEvidence} />
       <CityPagesDialog
         citySlug={pagesCity?.slug ?? null}
         cityName={pagesCity?.name}

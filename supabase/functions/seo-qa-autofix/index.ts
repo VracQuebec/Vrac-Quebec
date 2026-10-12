@@ -13,7 +13,7 @@
 import { offerFaq, offerKind } from "../_shared/seo-faq-offer.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { findUnverifiedClaims } from "../_shared/seo-claims.ts";
-import { autofixAuthorization, guardedReplace } from "../_shared/seo-write-guards.ts";
+import { autofixAuthorization, guardedReplace, staleReadRefusal } from "../_shared/seo-write-guards.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -246,6 +246,9 @@ Deno.serve(async (req) => {
       confirmPublishedPageId: typeof body?.confirm_published_page_id === "string" ? body.confirm_published_page_id : null,
     });
     if (!auth.ok) return json({ error: auth.error, code: auth.code }, auth.status);
+    // Lecture du tableau de bord : si la page a changé depuis, rien n'est modifié.
+    const stale = staleReadRefusal(body?.expected_updated_at, (fullBefore as { updated_at?: string } | null)?.updated_at);
+    if (stale) return json({ error: stale, code: "stale_read" }, 409);
 
     // Résout les vrais noms (accentués) du référentiel pour ne jamais générer
     // « Beton à Quebec » à partir d'un slug sans accents.
@@ -610,6 +613,7 @@ Deno.serve(async (req) => {
 
     // Re-run QA (deterministic)
     let newScore: number | null = null;
+    let remaining: string[] = [];
     try {
       const qaRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/seo-qa-check`, {
         method: "POST",
@@ -618,13 +622,17 @@ Deno.serve(async (req) => {
       });
       const qaJson = await qaRes.json().catch(() => ({}));
       if (typeof qaJson?.score === "number") newScore = qaJson.score;
+      remaining = [...(qaJson?.blockers ?? []), ...(qaJson?.warnings ?? [])];
     } catch { /* ignore */ }
 
     return json({
       ok: true,
       fixed: fixedActions,
+      changed_fields: changedKeys.filter((k) => k !== "updated_at"),
       preserved,
+      old_score: (fullBefore as { qa_last_score?: number | null } | null)?.qa_last_score ?? null,
       new_score: newScore,
+      remaining,
       ai_calls: aiCalls,
       improvement_id: improvementId,
       skipped_ai_actions: skippedAi,

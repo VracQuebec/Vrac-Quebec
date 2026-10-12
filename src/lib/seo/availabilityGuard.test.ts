@@ -13,11 +13,11 @@ describe("garde de disponibilité serveur", () => {
   });
   it("inconnue : refus 403", async () => {
     const r = await checkAvailability(rpcReturning(["inconnue"]).fn, "a", "sable", null);
-    expect(r.ok).toBe(false); if (!r.ok) expect(r.status).toBe(403);
+    expect(r.ok).toBe(false); expect((r as any).status).toBe(403);
   });
   it("exclue : refus 403", async () => {
     const r = await checkAvailability(rpcReturning(["exclue"]).fn, "a", null, "dompe");
-    expect(r.ok).toBe(false); if (!r.ok) expect(r.error).toMatch(/exclue/);
+    expect(r.ok).toBe(false); expect((r as any).error).toMatch(/exclue/);
   });
   it("valeur absente ou inattendue = inconnue, jamais confirmée", () => {
     expect(availabilityRefusal(null)).toMatch(/inconnue/);
@@ -25,7 +25,7 @@ describe("garde de disponibilité serveur", () => {
   });
   it("erreur de lecture : refus 503, aucun traitement", async () => {
     const r = await checkAvailability(async () => ({ data: null, error: { message: "x" } }), "a", null, null);
-    expect(r.ok).toBe(false); if (!r.ok) expect(r.status).toBe(503);
+    expect(r.ok).toBe(false); expect((r as any).status).toBe(503);
   });
   it("tâches en file : chaque tâche relue à l'exécution, changement entre sélection et exécution refusé", async () => {
     const rpc = rpcReturning(["confirmee", "exclue", "inconnue"]);

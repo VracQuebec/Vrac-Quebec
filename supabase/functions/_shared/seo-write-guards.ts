@@ -30,6 +30,15 @@ export function autofixAuthorization(input: {
   return { ok: true };
 }
 
+/** Lecture du tableau de bord périmée : la page a changé entre l'affichage et le clic → refus, rien modifié. */
+export function staleReadRefusal(expected: unknown, current: string | null | undefined): string | null {
+  if (expected === undefined || expected === null) return null; // appel sans lecture préalable (rétrocompatible)
+  if (typeof expected !== "string" || !current || expected !== current) {
+    return "La page a changé depuis sa lecture dans le tableau de bord : rien n'a été modifié. Revérifiez la ville.";
+  }
+  return null;
+}
+
 export type GuardedDeps = {
   /** Insère la sauvegarde complète (non appliquée). Retourne son id ou null en cas d'échec. */
   insertBackup: (before: Record<string, unknown>) => Promise<string | null>;
