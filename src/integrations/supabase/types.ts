@@ -24701,6 +24701,27 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_generation_locks: {
+        Row: {
+          acquired_at: string
+          expires_at: string
+          holder: string
+          lock_key: string
+        }
+        Insert: {
+          acquired_at?: string
+          expires_at: string
+          holder: string
+          lock_key: string
+        }
+        Update: {
+          acquired_at?: string
+          expires_at?: string
+          holder?: string
+          lock_key?: string
+        }
+        Relationships: []
+      }
       seo_goals: {
         Row: {
           active: boolean
@@ -25899,6 +25920,7 @@ export type Database = {
           meta_title: string | null
           needs_refresh: boolean
           noindex: boolean
+          noindex_volontaire: boolean
           og_description: string | null
           og_title: string | null
           priority: number
@@ -25959,6 +25981,7 @@ export type Database = {
           meta_title?: string | null
           needs_refresh?: boolean
           noindex?: boolean
+          noindex_volontaire?: boolean
           og_description?: string | null
           og_title?: string | null
           priority?: number
@@ -26019,6 +26042,7 @@ export type Database = {
           meta_title?: string | null
           needs_refresh?: boolean
           noindex?: boolean
+          noindex_volontaire?: boolean
           og_description?: string | null
           og_title?: string | null
           priority?: number
@@ -34182,6 +34206,14 @@ export type Database = {
           top_queries: Json
         }[]
       }
+      seo_lock_acquire: {
+        Args: { _holder: string; _key: string; _ttl_seconds?: number }
+        Returns: boolean
+      }
+      seo_lock_release: {
+        Args: { _holder: string; _key: string }
+        Returns: undefined
+      }
       seo_manager_cities: { Args: never; Returns: Json }
       seo_opportunity_analysis: { Args: never; Returns: Json }
       seo_optimization_autotune: { Args: { _run_id: string }; Returns: number }
@@ -34264,6 +34296,14 @@ export type Database = {
         }[]
       }
       seo_page_publish: { Args: { _page_id: string }; Returns: Json }
+      seo_page_publish_validated: {
+        Args: {
+          _expected_updated_at: string
+          _page_id: string
+          _remove_noindex: boolean
+        }
+        Returns: Json
+      }
       seo_page_rollback: { Args: { _improvement_id: string }; Returns: Json }
       seo_page_save: { Args: { _page_id: string; _patch: Json }; Returns: Json }
       seo_pipeline_cancel: { Args: { _run_id: string }; Returns: undefined }

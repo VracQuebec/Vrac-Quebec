@@ -5,8 +5,11 @@
 -- 1) Noindex volontaire distinct du noindex de génération (défaut false : rien ne change pour l'existant).
 ALTER TABLE public.seo_pages ADD COLUMN IF NOT EXISTS noindex_volontaire boolean NOT NULL DEFAULT false;
 COMMENT ON COLUMN public.seo_pages.noindex_volontaire IS 'Noindex décidé par un humain : jamais retiré par une publication automatique.';
--- La page publiée déjà noindex (Adstock Remblai) est marquée volontaire pour qu'aucun flux ne la touche.
-UPDATE public.seo_pages SET noindex_volontaire = true WHERE status = 'published' AND noindex = true;
+-- Seule page concernée : remblai-adstock (publiée, noindex). Seul le nouvel indicateur change :
+-- le déclencheur de date est suspendu pour que updated_at, contenu, statut et noindex restent identiques.
+ALTER TABLE public.seo_pages DISABLE TRIGGER trg_seo_pages_updated_at;
+UPDATE public.seo_pages SET noindex_volontaire = true WHERE slug = 'remblai-adstock' AND status = 'published' AND noindex = true;
+ALTER TABLE public.seo_pages ENABLE TRIGGER trg_seo_pages_updated_at;
 
 -- 2) Verrou serveur par combinaison (fiable entre onglets et utilisateurs).
 CREATE TABLE IF NOT EXISTS public.seo_generation_locks (

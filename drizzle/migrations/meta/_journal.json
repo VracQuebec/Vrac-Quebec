@@ -1485,6 +1485,13 @@
       "when": 1791811798639,
       "tag": "0211_seo_catalog_extension",
       "breakpoints": true
+    },
+    {
+      "idx": 212,
+      "version": "7",
+      "when": 1791817984904,
+      "tag": "0212_seo_protections_actions",
+      "breakpoints": true
     }
   ]
 }

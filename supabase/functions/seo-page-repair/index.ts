@@ -5,6 +5,7 @@
 // Chaque tentative est journalisée dans seo_page_tasks (historique conservé).
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { selectRepairTargets, type RepairCandidate } from "../_shared/seo-repair-guard.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -122,30 +123,40 @@ Deno.serve(async (req) => {
     if (slotErr) return json({ error: slotErr.message }, 500);
     const rows = (slotRows ?? []) as Slot[];
 
-    // Régénérer remet la page en brouillon non indexé : une page EN LIGNE n'est
-    // jamais remplacée sans validation explicite (confirm_published).
-    const isPublished = (r: Slot & { pub_state?: string }) => r.pub_state === "published";
-    const confirmPublished = body.confirm_published === true;
-    let targets: Slot[];
-    let skippedPublished = 0;
-    if (allErrors) {
-      // Une page publiée volontairement non indexée n'est pas un échec : régénérer ne la changerait pas.
-      const noindexOnly = (r: Slot & { issues?: string[] | null }) =>
-        r.gen_state === "invalid" && !!r.issues?.length && r.issues.every((i) => i === "Publiée mais noindex");
-      const candidates = rows.filter((r) => (r.gen_state === "error" || r.gen_state === "invalid" || r.gen_state === "missing") && !noindexOnly(r));
-      targets = candidates.filter((r) => !isPublished(r));
-      skippedPublished = candidates.length - targets.length;
-    } else {
+    // Sélection stricte (garde partagée) : brouillons existants en erreur seulement,
+    // jamais une page manquante, publiée ou en noindex volontaire, au plus 3 tentatives.
+    const pageIds = rows.map((r) => r.page_id).filter(Boolean) as string[];
+    const volontaire = new Set<string>();
+    if (pageIds.length) {
+      const { data: pv } = await sb.from("seo_pages").select("id").in("id", pageIds).eq("noindex_volontaire", true);
+      for (const r of (pv ?? []) as Array<{ id: string }>) volontaire.add(r.id);
+    }
+    const { data: tasks } = await sb.from("seo_page_tasks").select("material_slug,service_slug").eq("city_slug", citySlug).eq("kind", "repair");
+    const k = (m: string | null, s: string | null) => `${m ?? ""}|${s ?? ""}`;
+    const tries = new Map<string, number>();
+    for (const t of (tasks ?? []) as Array<{ material_slug: string | null; service_slug: string | null }>) tries.set(k(t.material_slug, t.service_slug), (tries.get(k(t.material_slug, t.service_slug)) ?? 0) + 1);
+    const asCand = (r: Slot & { pub_state?: string; issues?: string[] | null }): RepairCandidate => ({
+      key: k(r.material_slug, r.service_slug), label: r.label, gen_state: r.gen_state, has_page: !!r.page_id,
+      published: r.pub_state === "published", noindex_volontaire: !!r.page_id && volontaire.has(r.page_id),
+      issues: r.issues ?? null, attempts: tries.get(k(r.material_slug, r.service_slug)) ?? 0,
+    });
+    let pool = rows as Array<Slot & { pub_state?: string; issues?: string[] | null }>;
+    if (!allErrors) {
       const m = (body.material_slug ?? null) as string | null;
-      const s = (body.service_slug ?? null) as string | null;
-      targets = rows.filter((r) => (r.material_slug ?? null) === m && (r.service_slug ?? null) === s);
-      if (targets.length === 0) return json({ error: "Page introuvable pour cette ville" }, 404);
-      if (!confirmPublished && targets.some(isPublished)) {
-        return json({ error: "Page en ligne : la régénération la remettrait en brouillon. Validation explicite requise." }, 409);
-      }
+      const sv = (body.service_slug ?? null) as string | null;
+      pool = pool.filter((r) => (r.material_slug ?? null) === m && (r.service_slug ?? null) === sv);
+      if (pool.length === 0) return json({ error: "Page introuvable pour cette ville" }, 404);
+    }
+    const sel = selectRepairTargets(pool.map(asCand));
+    const keep = new Set(sel.targets.map((t) => t.key));
+    const targets: Slot[] = pool.filter((r) => keep.has(k(r.material_slug, r.service_slug)));
+    const skippedPublished = sel.skipped.filter((x) => x.reason.includes("en ligne")).length;
+    if (!allErrors && targets.length === 0) {
+      return json({ error: sel.skipped[0]?.reason ?? "Aucune erreur réelle sur cette page.", skipped: sel.skipped }, 409);
     }
 
-    if (targets.length === 0) return json({ ok: true, queued: 0, skipped_published: skippedPublished, message: skippedPublished ? `Aucun brouillon à régénérer — ${skippedPublished} page(s) en ligne protégée(s), validation requise.` : "Aucune page en erreur." });
+
+    if (targets.length === 0) return json({ ok: true, queued: 0, skipped: sel.skipped, skipped_published: skippedPublished, message: skippedPublished ? `Aucun brouillon à régénérer — ${skippedPublished} page(s) en ligne protégée(s), validation requise.` : "Aucune page en erreur." });
 
     // Traitement séquentiel en arrière-plan : une page en échec n'empêche
     // jamais les suivantes d'être traitées.

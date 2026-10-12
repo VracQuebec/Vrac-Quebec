@@ -3,6 +3,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAIChatCached } from "../_shared/ai-cache.ts";
+import { lockKey } from "../_shared/seo-repair-guard.ts";
 import { shouldBypassGenerationCache } from "./cache-policy.ts";
 import { offerKind, enforceOfferFaq } from "../_shared/seo-faq-offer.ts";
 import { sanitizeContentLinks, candidateSlugs, FIXED_ROUTES } from "../_shared/seo-link-guard.ts";
@@ -234,7 +235,9 @@ async function buildInternalLinks(
   return links.slice(0, 10);
 }
 
-Deno.serve(async (req) => {
+type LockCtx = { release: null | (() => Promise<unknown>) };
+
+async function handle(req: Request, ctx: LockCtx): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
   try {
@@ -355,6 +358,17 @@ Deno.serve(async (req) => {
     // générateur : la nouvelle version est conservée à part (proposition).
     // confirm_published n'a plus aucun effet.
     const isPublished = Boolean(existing?.id && (existing.status === "published" || existing.published_at));
+
+    // Verrou AVANT tout appel IA : une même combinaison ne peut être traitée deux fois en parallèle
+    // (onglets, utilisateurs, pipeline). Refus immédiat, sans crédit consommé.
+    {
+      const lk = lockKey(city.slug, material?.slug ?? null, service?.slug ?? null);
+      const holder = crypto.randomUUID();
+      const { data: got, error: lErr } = await supabase.rpc("seo_lock_acquire", { _key: lk, _holder: holder, _ttl_seconds: 600 });
+      if (lErr) return json({ error: `Verrou indisponible — aucun traitement : ${lErr.message}` }, 503);
+      if (got !== true) return json({ error: "Combinaison déjà en cours de traitement — réessayez plus tard.", locked: true, slug: pageSlug }, 409);
+      ctx.release = async () => await supabase.rpc("seo_lock_release", { _key: lk, _holder: holder });
+    }
 
     // Données vérifiées (lecture seule) : seuls faits locaux permis dans le texte.
     const verified: string[] = [];
@@ -665,4 +679,11 @@ Respecte STRICTEMENT le schéma JSON et les règles content_html du system promp
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
+}
+
+// Verrou serveur par combinaison : libéré en fin de traitement, quel que soit le résultat.
+Deno.serve(async (req) => {
+  const ctx: LockCtx = { release: null };
+  try { return await handle(req, ctx); }
+  finally { if (ctx.release) { try { await ctx.release(); } catch (_e) { /* expiration automatique (10 min) */ } } }
 });
