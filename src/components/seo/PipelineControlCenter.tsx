@@ -159,6 +159,96 @@ export default function PipelineControlCenter() {
   const gen = useCityGeneration();
   const workCity = workSlug ? gen.bySlug.get(workSlug) ?? null : null;
 
+  // ── Poste de travail par ville : une ligne par combinaison, actions manuelles avec résultat par page ──
+  const [wbCity, setWbCity] = useState<{ slug: string; name: string } | null>(null);
+  const availFor = (city: string) => (d: { material_slug?: string | null; service_slug?: string | null }) => {
+    const kind = d.material_slug ? "material" : d.service_slug ? "service" : "hub";
+    const sl = d.material_slug ?? d.service_slug ?? null;
+    if (kind !== "hub" && exclusionsFor(city).has(`${kind}|${sl}`)) return false;
+    const it = (cov.get(city)?.items ?? []).find((x) => x.kind === kind && (x.slug ?? null) === sl);
+    return !!it && availabilityOf(it, decisions.get(decisionKey(city, kind, sl))?.decision) === "confirmee";
+  };
+  const wbRowsFor = (slug: string, name: string): WbRow[] => {
+    const cv0 = cov.get(slug);
+    if (!cv0 || !precheckRaw) return [];
+    const excl = exclusionsFor(slug);
+    const probs = ((state?.problems ?? []) as ControlProblem[]).filter((p) => p.city_slug === slug);
+    return buildWorkbench({
+      cityName: name, items: cv0.items as never, excluded: excl, slugCopies: precheckRaw.copies,
+      cat: withConfirmed(slug, buildCatInput(slug, cv0.items as never, probs as never, excl, { activeRun: !!state?.active_run })),
+      drafts: precheckRaw.drafts.filter((d) => d.city_slug === slug) as never,
+      published: cv0.items.filter((i) => i.page && i.page.status === "published").map((i) => i.page!) as never,
+      problems: probs as never,
+      decisionOf: (k, s) => decisions.get(decisionKey(slug, k, s))?.decision,
+    });
+  };
+  const verifyWb = async () => {
+    await reload();
+    setDecisions(await loadDecisions().catch(() => new Map()));
+    setPrecheckRaw(await loadAllDraftsForPrecheck());
+  };
+  const wbRun = (city: { slug: string; name: string }) => ({
+    generate: async (rows: WbRow[]) => {
+      const out = new Map<string, RowResult>();
+      const row = gen.bySlug.get(city.slug);
+      for (const r of rows) {
+        // Revérifié au moment de l'action : seules les combinaisons à disponibilité confirmée sont générées.
+        const d = { material_slug: r.kind === "material" ? r.slug : null, service_slug: r.kind === "service" ? r.slug : null };
+        if (!availFor(city.slug)(d)) { out.set(r.key, { ok: false, msg: "Disponibilité non confirmée — génération refusée." }); continue; }
+        const m = d.material_slug ? gen.materials.find((x) => x.slug === d.material_slug) : undefined;
+        const s = d.service_slug ? gen.services.find((x) => x.slug === d.service_slug) : undefined;
+        try {
+          const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { created?: boolean; skipped?: boolean; error?: string }>("seo-generate-page", {
+            city: { slug: city.slug, name: city.name, region: row?.region ?? null },
+            material: m ? { slug: m.slug, name: m.name, short_name: m.short_name, description: m.description } : undefined,
+            service: s ? { slug: s.slug, name: s.name, description: s.description } : undefined,
+            publish: false, allow_ai: true, force: false,
+          });
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+          out.set(r.key, data?.skipped ? { ok: false, msg: "Page déjà existante — rien généré." } : { ok: true, msg: "Brouillon créé (noindex, non publié). Prochaine action : vérifier puis publier." });
+        } catch (e) { out.set(r.key, { ok: false, msg: e instanceof Error ? e.message : "Erreur inconnue" }); }
+      }
+      return out;
+    },
+    repair: async (rows: WbRow[]) => {
+      const out = new Map<string, RowResult>();
+      const probs = ((state?.problems ?? []) as ControlProblem[]).filter((p) => p.city_slug === city.slug);
+      for (const r of rows) {
+        const p = probs.find((x) => slotKey(x.kind, x.material_slug, x.service_slug) === slotKey(r.kind, r.kind === "material" ? r.slug : null, r.kind === "service" ? r.slug : null));
+        if (!p) { out.set(r.key, { ok: false, msg: "Aucune erreur serveur pour cette page — rien à régénérer." }); continue; }
+        const o = await repairCity([toRepairSlot(p)]);
+        out.set(r.key, o.done.length ? { ok: true, msg: "Régénéré (sauvegarde faite, reste brouillon noindex)." }
+          : { ok: false, msg: o.failed[0]?.error ?? o.skipped[0]?.reason ?? "Ignoré." });
+      }
+      return out;
+    },
+    autofix: async (rows: WbRow[]) => {
+      const out = new Map<string, RowResult>();
+      for (const r of rows) {
+        if (!r.pageId) { out.set(r.key, { ok: false, msg: "Aucun brouillon." }); continue; }
+        try {
+          const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { fixed?: string[]; error?: string; message?: string; new_score?: number }>("seo-qa-autofix", { page_id: r.pageId, actions: [], allow_ai: false });
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+          const n = data?.fixed?.length ?? 0;
+          out.set(r.key, n ? { ok: true, msg: `${n} correction(s) : ${data!.fixed!.join(", ")} (sauvegarde faite).` } : { ok: false, msg: data?.message ?? "Aucune correction automatique possible — correction manuelle requise." });
+        } catch (e) { out.set(r.key, { ok: false, msg: e instanceof Error ? e.message : "Erreur inconnue" }); }
+      }
+      return out;
+    },
+    publish: async (rows: WbRow[]) => {
+      const bySlug = new Map(rows.filter((r) => r.pageSlug).map((r) => [r.pageSlug!, r.key]));
+      const o = await publishCityDrafts(city.slug, city.name, undefined, { removeGenerationNoindex: true, onlySlugs: [...bySlug.keys()], isAvailable: availFor(city.slug) });
+      const out = new Map<string, RowResult>();
+      for (const s of o.published) out.set(bySlug.get(s)!, { ok: true, msg: "Publiée — statut confirmé dans la base." });
+      for (const b of o.blocked) out.set(bySlug.get(b.slug)!, { ok: false, msg: `Bloquée : ${b.reasons.join(" ")}` });
+      for (const f of o.failed) out.set(bySlug.get(f.slug)!, { ok: false, msg: f.error });
+      for (const [s, k] of bySlug) if (!out.has(k)) out.set(k, { ok: false, msg: `/${s} n'est plus un brouillon — rien publié.` });
+      return out;
+    },
+  });
+
   // ── COUVERTURE SEO — lectures complémentaires (aucune écriture) ──
   // Pages totales / villes historiques : seo_dashboard_stats (même source que le reste du tableau de bord).
   const [stats, setStats] = useState<SeoStats | null>(null);
