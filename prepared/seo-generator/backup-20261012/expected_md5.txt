@@ -1,0 +1,7 @@
+1ce20e0eb4e557028fd2fe56386ce279
+ERROR:  permission denied for function seo_city_slots_expected
+draft|21
+published|2109
+ERROR:  column "content" does not exist
+LINE 1: ...ect md5(string_agg(id::text||status||coalesce(md5(content),'...
+                                                             ^
