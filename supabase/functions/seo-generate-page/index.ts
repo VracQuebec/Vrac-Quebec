@@ -9,6 +9,7 @@ import { offerKind, enforceOfferFaq } from "../_shared/seo-faq-offer.ts";
 import { sanitizeContentLinks, candidateSlugs, FIXED_ROUTES } from "../_shared/seo-link-guard.ts";
 import { findPlaceholders, metaIssues, similarityFlags } from "../_shared/seo-quality.ts";
 import { findUnverifiedClaims, CONTENT_RULES } from "../_shared/seo-claims.ts";
+import { checkAvailability } from "../_shared/seo-availability-guard.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -334,6 +335,13 @@ async function handle(req: Request, ctx: LockCtx): Promise<Response> {
       .rpc("seo_city_is_generable", { _city_slug: city.slug });
     if (eligibilityError) return json({ error: eligibilityError.message }, 500);
     if (!isGenerable) return json({ error: "Cette ville n’est pas une municipalité active du registre CRM" }, 400);
+
+    // Disponibilité relue côté serveur AVANT verrou et IA, pour toutes les voies
+    // (tableau de bord, file, génération globale, réparation).
+    {
+      const av = await checkAvailability((fn, a) => supabase.rpc(fn, a) as any, city.slug, material?.slug ?? null, service?.slug ?? null);
+      if (!av.ok) return json({ error: av.error, availability: av.availability, refused: true }, av.status);
+    }
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) return json({ error: "LOVABLE_API_KEY manquante" }, 500);

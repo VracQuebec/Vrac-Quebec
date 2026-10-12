@@ -34380,6 +34380,14 @@ export type Database = {
         Args: { _page_id?: string }
         Returns: number
       }
+      seo_slot_availability: {
+        Args: {
+          _city_slug: string
+          _material_slug: string
+          _service_slug: string
+        }
+        Returns: string
+      }
       seo_slot_rows: {
         Args: { _city_slug?: string }
         Returns: {

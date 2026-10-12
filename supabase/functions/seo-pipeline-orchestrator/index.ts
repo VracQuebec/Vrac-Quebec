@@ -6,6 +6,7 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedCron } from "../_shared/cron-auth.ts";
 import { pipelinePublishRefusal } from "../_shared/seo-write-guards.ts";
+import { checkAvailability } from "../_shared/seo-availability-guard.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -233,6 +234,15 @@ async function runOneTask(sb: SupabaseClient, run: any, batch: any, task: any) {
   if (refusal) {
     await sb.from("seo_page_tasks").update({
       status: "needs_retry", step: "refusée", last_error: refusal,
+      attempts: task.attempts + 1, finished_at: nowIso(), next_attempt_at: null,
+    }).eq("id", task.id);
+    return;
+  }
+  // Disponibilité relue au moment de l'exécution (pas à la mise en file) : refus définitif, sans IA.
+  const av = await checkAvailability((fn, a) => sb.rpc(fn, a) as any, task.city_slug, task.material_slug ?? null, task.service_slug ?? null);
+  if (!av.ok) {
+    await sb.from("seo_page_tasks").update({
+      status: "needs_retry", step: "refusée", last_error: av.error,
       attempts: task.attempts + 1, finished_at: nowIso(), next_attempt_at: null,
     }).eq("id", task.id);
     return;
