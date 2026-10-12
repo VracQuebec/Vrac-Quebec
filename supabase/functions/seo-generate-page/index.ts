@@ -335,6 +335,13 @@ async function handle(req: Request, ctx: LockCtx): Promise<Response> {
     if (eligibilityError) return json({ error: eligibilityError.message }, 500);
     if (!isGenerable) return json({ error: "Cette ville n’est pas une municipalité active du registre CRM" }, 400);
 
+    // Disponibilité relue côté serveur AVANT verrou et IA, pour toutes les voies
+    // (tableau de bord, file, génération globale, réparation).
+    {
+      const av = await checkAvailability((fn, a) => supabase.rpc(fn, a) as any, city.slug, material?.slug ?? null, service?.slug ?? null);
+      if (!av.ok) return json({ error: av.error, availability: av.availability, refused: true }, av.status);
+    }
+
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) return json({ error: "LOVABLE_API_KEY manquante" }, 500);
 
