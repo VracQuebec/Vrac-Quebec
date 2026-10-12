@@ -226,17 +226,36 @@ export default function PipelineControlCenter() {
       }
       return out;
     },
+    recheck: async (rows: WbRow[]) => {
+      // Rapport de qualité seulement : enforce_draft=false → contenu, statut et noindex inchangés.
+      const out = new Map<string, RowResult>();
+      for (const r of rows) {
+        if (!r.pageId) { out.set(r.key, { ok: false, msg: "Aucun brouillon." }); continue; }
+        try {
+          const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { score?: number; blockers?: string[]; warnings?: string[]; error?: string }>("seo-qa-check", { page_id: r.pageId, enforce_draft: false });
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+          const left = [...(data?.blockers ?? []), ...(data?.warnings ?? [])];
+          out.set(r.key, { ok: typeof data?.score === "number", msg: `Note : ${r.qaScore ?? "absente"} → ${data?.score ?? "?"}/100${(data?.score ?? 0) < 90 ? " (sous 90 : publication refusée)" : ""}.${left.length ? ` Reste : ${left.join(", ")}.` : ""} Contenu non modifié.` });
+        } catch (e) { out.set(r.key, { ok: false, msg: e instanceof Error ? e.message : "Erreur inconnue" }); }
+      }
+      return out;
+    },
     autofix: async (rows: WbRow[]) => {
       const out = new Map<string, RowResult>();
       for (const r of rows) {
         if (!r.pageId) { out.set(r.key, { ok: false, msg: "Aucun brouillon." }); continue; }
         try {
-          const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { fixed?: string[]; error?: string; message?: string; new_score?: number }>("seo-qa-autofix", { page_id: r.pageId, actions: [], allow_ai: false });
+          // expected_updated_at : refus serveur (rien modifié) si la page a changé depuis la vérification.
+          const { data, error } = await invokeWithFreshSession<Record<string, unknown>, { fixed?: string[]; changed_fields?: string[]; error?: string; message?: string; old_score?: number | null; new_score?: number | null; remaining?: string[] }>("seo-qa-autofix", { page_id: r.pageId, actions: [], allow_ai: false, expected_updated_at: r.updatedAt });
           if (error) throw error;
           if (data?.error) throw new Error(data.error);
           const n = data?.fixed?.length ?? 0;
-          out.set(r.key, n ? { ok: true, msg: `${n} correction(s) : ${data!.fixed!.join(", ")} (sauvegarde faite).` } : { ok: false, msg: data?.message ?? "Aucune correction automatique possible — correction manuelle requise." });
-        } catch (e) { out.set(r.key, { ok: false, msg: e instanceof Error ? e.message : "Erreur inconnue" }); }
+          const left = data?.remaining?.length ? ` Reste : ${data.remaining.join(", ")}.` : "";
+          out.set(r.key, n
+            ? { ok: true, msg: `Note ${data?.old_score ?? r.qaScore ?? "absente"} → ${data?.new_score ?? "?"}/100. Modifié : ${(data?.changed_fields ?? data!.fixed!).join(", ")} (version précédente sauvegardée, noindex conservé).${left}` }
+            : { ok: false, msg: `${data?.message ?? "Aucune correction automatique possible"} — rien modifié. Note : ${r.qaScore ?? "absente"}.` });
+        } catch (e) { out.set(r.key, { ok: false, msg: `${e instanceof Error ? e.message : "Erreur inconnue"} — rien modifié.` }); }
       }
       return out;
     },
