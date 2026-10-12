@@ -119,6 +119,18 @@ export default function PipelineControlCenter() {
   const [decisions, setDecisions] = useState<Map<string, DecisionRow>>(new Map());
   const [decTick, setDecTick] = useState(0);
   useEffect(() => { void loadDecisions().then(setDecisions).catch(() => setDecisions(new Map())); }, [decTick]);
+  // Catalogue serveur (28 combinaisons × ville) : disponibilité de RÉFÉRENCE pour les compteurs, les fiches et la fenêtre de ville.
+  const [srvAvail, setSrvAvail] = useState<Map<string, "confirmee" | "exclue" | "inconnue"> | null>(null);
+  useEffect(() => {
+    void supabase.rpc("seo_city_slots_catalog" as never).then(({ data, error }) => {
+      if (error) { setSrvAvail(null); return; }
+      const m = new Map<string, "confirmee" | "exclue" | "inconnue">();
+      for (const r of (data ?? []) as Array<{ city_slug: string; kind: string; material_slug: string | null; service_slug: string | null; availability: string }>)
+        m.set(`${r.city_slug}|${r.kind}|${r.material_slug ?? r.service_slug ?? ""}`, (r.availability as never));
+      setSrvAvail(m);
+    });
+  }, [state?.computed_at, decTick]);
+  const srvOf = (city: string, kind: string, sl: string | null) => srvAvail ? (srvAvail.get(`${city}|${kind}|${sl ?? ""}`) ?? "inconnue") : undefined;
   const exclusionsFor = (city: string) => {
     const s0 = new Set(exclusions);
     for (const d of decisions.values()) if (d.city_slug === city && d.decision === "exclue") s0.add(`${d.kind}|${d.slug}`);
@@ -132,7 +144,7 @@ export default function PipelineControlCenter() {
       const sl = d.material_slug ?? d.service_slug ?? null;
       const it = items.find((x) => x.kind === kind && (x.slug ?? null) === sl);
       if (!it) return "inconnue" as const;
-      return availabilityOf(it, decisions.get(decisionKey(slug, kind, sl))?.decision);
+      return availabilityOf(it, decisions.get(decisionKey(slug, kind, sl))?.decision, srvOf(slug, kind, sl));
     };
     return publishPrecheck(precheckRaw.drafts.filter((d) => d.city_slug === slug), name, precheckRaw.copies, avail);
   };
@@ -144,8 +156,13 @@ export default function PipelineControlCenter() {
     for (const [slug, cv0] of cov) m.set(slug, summarizeCatalog(withConfirmed(slug, buildCatInput(slug, cv0.items as never, (state?.problems ?? []) as never, exclusionsFor(slug), { activeRun: run }))));
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cov, state, exclusions, decisions]);
+  }, [cov, state, exclusions, decisions, srvAvail]);
   function withConfirmed<T extends { queueKeys: Set<string> }>(city: string, inp: T): T {
+    // Même règle partout : « confirmée » = catalogue serveur (preuve réelle) ou décision; la file du Générateur ne prouve rien.
+    if (srvAvail) {
+      inp.queueKeys.clear();
+      for (const [k, v] of srvAvail) if (v === "confirmee" && k.startsWith(`${city}|`)) inp.queueKeys.add(k.slice(city.length + 1));
+    }
     for (const d of decisions.values()) if (d.city_slug === city && d.decision === "confirmee") inp.queueKeys.add(`${d.kind}|${d.slug}`);
     return inp;
   }
@@ -177,7 +194,7 @@ export default function PipelineControlCenter() {
     const sl = d.material_slug ?? d.service_slug ?? null;
     if (kind !== "hub" && exclusionsFor(city).has(`${kind}|${sl}`)) return false;
     const it = (cov.get(city)?.items ?? []).find((x) => x.kind === kind && (x.slug ?? null) === sl);
-    return !!it && availabilityOf(it, decisions.get(decisionKey(city, kind, sl))?.decision) === "confirmee";
+    return !!it && availabilityOf(it, decisions.get(decisionKey(city, kind, sl))?.decision, srvOf(city, kind, sl)) === "confirmee";
   };
   const wbRowsFor = (slug: string, name: string): WbRow[] => {
     const cv0 = cov.get(slug);
@@ -191,6 +208,7 @@ export default function PipelineControlCenter() {
       published: cv0.items.filter((i) => i.page && i.page.status === "published").map((i) => i.page!) as never,
       problems: probs as never,
       decisionOf: (k, s) => decisions.get(decisionKey(slug, k, s))?.decision,
+      serverOf: (k, s) => srvOf(slug, k, s),
     });
   };
   const verifyWb = async () => {
