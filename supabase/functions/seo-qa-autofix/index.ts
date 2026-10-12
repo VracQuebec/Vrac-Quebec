@@ -626,7 +626,9 @@ Deno.serve(async (req) => {
     return json({
       ok: true,
       fixed: fixedActions,
+      changed_fields: changedKeys.filter((k) => k !== "updated_at"),
       preserved,
+      old_score: (fullBefore as { qa_last_score?: number | null } | null)?.qa_last_score ?? null,
       new_score: newScore,
       ai_calls: aiCalls,
       improvement_id: improvementId,
