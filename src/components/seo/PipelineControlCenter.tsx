@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindexOnly } from "@/lib/seo/cityActions";
 import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
+import { buildCatInput, summarizeCatalog, mergeSummaries, CAT_STATE_LABEL, estimateCredits, type CatState, type CatSummary } from "@/lib/seo/catalogStatus";
+import { publishCityDrafts, publishOutcomeMessage } from "@/lib/seo/cityPublish";
 import { coverageLabel, coveragePct, computeCoverage, splitAll, coverageFlags, catalogBreakdown, COVERAGE_BADGE_LABEL, type Coverage, type CoverageAllRaw } from "@/lib/seo/cityCoverage";
 import { useSeoControlCenter, type ControlCityRow, type ControlProblem } from "@/lib/seo/useSeoControlCenter";
 import { useSeoPipelineV2 } from "@/lib/seo/useSeoPipelineV2";
@@ -99,6 +101,17 @@ export default function PipelineControlCenter() {
     void supabase.from("seo_generation_exclusions" as never).select("kind,slug").eq("active", true)
       .then(({ data }) => setExclusions(new Set(((data ?? []) as Array<{ kind: string; slug: string }>).map((x) => `${x.kind}|${x.slug}`))));
   }, []);
+  const [pubReport, setPubReport] = useState<Map<string, Awaited<ReturnType<typeof publishCityDrafts>>>>(new Map());
+  // Couverture réelle du catalogue : une combinaison = un seul état (catalogStatus.ts).
+  const catalogBySlug = useMemo(() => {
+    const m = new Map<string, CatSummary>();
+    const run = !!state?.active_run;
+    for (const [slug, cv0] of cov) m.set(slug, summarizeCatalog(buildCatInput(slug, cv0.items as never, (state?.problems ?? []) as never, exclusions, { activeRun: run })));
+    return m;
+  }, [cov, state, exclusions]);
+  const catalogOf = (slug: string) => catalogBySlug.get(slug) ?? null;
+  const catalogTotal = useMemo(() => catalogBySlug.size ? mergeSummaries([...catalogBySlug.values()]) : null, [catalogBySlug]);
+  const catalogComplete = useMemo(() => [...catalogBySlug.values()].filter((x) => x.complete).length, [catalogBySlug]);
   // Même logique de génération que le Générateur (aucune architecture parallèle).
   const gen = useCityGeneration();
   const workCity = workSlug ? gen.bySlug.get(workSlug) ?? null : null;
@@ -444,6 +457,8 @@ export default function PipelineControlCenter() {
       {cov.size > 0 && (
         <Card className="p-4 md:p-6 space-y-2">
           <h3 className="text-base font-display font-bold">Bilan de couverture — {nf(bilan.cities)} villes actives</h3>
+          {catalogTotal && <CatalogTotals s={catalogTotal} complete={catalogComplete} cities={catalogBySlug.size} />}
+          <div className="text-xs font-semibold pt-1">File du générateur (opportunités pertinentes seulement)</div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             <div><div className="text-lg font-bold">{nf(bilan.planned)}</div>pages attendues (opportunités pertinentes)</div>
             <div><div className="text-lg font-bold">{nf(bilan.published)}</div>publiées</div>
@@ -490,6 +505,8 @@ export default function PipelineControlCenter() {
               coverageState: covState === "ok" && !cv ? "error" : covState,
             });
             const cat = cv ? catalogBreakdown(cv, exclusions) : null;
+            const catSum = catalogOf(c.slug);
+            const queuePct = c.planned > 0 ? Math.round(((c.generated) / c.planned) * 100) : 0;
             const split = { realErrors: plan.invalidDrafts + plan.invalidPublished + plan.failed, noindex: plan.noindex };
             const retryReason = plan.retry.reason;
             const publishReason = plan.publish.reason;
@@ -523,7 +540,13 @@ export default function PipelineControlCenter() {
                     {flags.offCriteria && <Badge variant="outline" className="text-[10px]">{cv!.offCriteria} HORS CRITÈRES</Badge>}
                   </div>
                 )}
-                <Progress value={cv ? coveragePct(cv.plannedCovered, cv.planned) : 0} className="h-2" />
+                <div className="space-y-1 text-[11px]">
+                  <div className="flex justify-between"><span>File du générateur</span><span>{c.generated} / {c.planned} ({queuePct} %)</span></div>
+                  <Progress value={queuePct} className="h-1.5" />
+                  <div className="flex justify-between font-medium"><span>Couverture réelle du catalogue</span><span>{catSum ? `${catSum.published_indexable + catSum.published_noindex} / ${catSum.total - catSum.excluded_missing} (${catSum.coveredPct} %)` : "…"}</span></div>
+                  <Progress value={catSum?.coveredPct ?? 0} className="h-2" />
+                  {catSum && <CatStateLine s={catSum} />}
+                </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-xs">
                   <span>{c.generated} page{c.generated > 1 ? "s" : ""} existante{c.generated > 1 ? "s" : ""}</span>
@@ -562,7 +585,7 @@ export default function PipelineControlCenter() {
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
                     disabled={gen.verifying === c.slug || isRunning}
-                    onClick={() => void gen.verifyCity(genRow ?? ({ slug: c.slug, name: c.name } as never))}>
+                    onClick={() => { void gen.verifyCity(genRow ?? ({ slug: c.slug, name: c.name } as never)); const k = catalogOf(c.slug); if (k) toast({ title: `Catalogue ${c.name} : ${k.complete ? "COMPLET" : "INCOMPLET"}`, description: catalogGaps(k) }); }}>
                     {gen.verifying === c.slug ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />} Vérifier la ville
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
@@ -577,10 +600,11 @@ export default function PipelineControlCenter() {
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
                     title={publishReason ?? undefined}
                     disabled={!!publishReason || busy === `pub-${c.slug}`}
-                    onClick={() => window.confirm(`Publier ${c.unpublished} brouillon(s) admissible(s) de ${c.name} ? Les brouillons qui échouent au contrôle de qualité seront ignorés.`) && act(`pub-${c.slug}`, async () => {
-                      const { data, error } = await supabase.rpc("seo_city_publish_missing" as never, { _city_slug: c.slug } as never);
-                      if (error) throw new Error(error.message);
-                      return publishResultMessage(data as { published?: number; skipped_invalid?: number } | null);
+                    onClick={() => window.confirm(`Publier les brouillons admissibles de ${c.name} ? Chaque brouillon est contrôlé (promesses, noindex, cohérence, liens, slug); les brouillons bloqués restent en brouillon avec leur raison. Aucun noindex n'est retiré.`) && act(`pub-${c.slug}`, async () => {
+                      const o = await publishCityDrafts(c.slug, c.name);
+                      setPubReport((m) => new Map(m).set(c.slug, o));
+                      void reload();
+                      return publishOutcomeMessage(o);
                     }, `Publication — ${c.name}`)}>
                     {busy === `pub-${c.slug}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />} Publier les non publiées
                   </Button>
@@ -588,7 +612,7 @@ export default function PipelineControlCenter() {
                   <Button size="sm" className="h-8 px-2.5 text-xs gap-1"
                     title={plan.generate.reason ?? undefined}
                     disabled={!plan.generate.enabled}
-                    onClick={() => genRow && void gen.generateCity(genRow, { includeStalled: plan.stalled > 0 })}>
+                    onClick={() => genRow && window.confirm(`${plan.generate.count} page(s) admissible(s) (disponibilité confirmée) pour ${c.name}. Coût IA estimé : ${estimateCredits(plan.generate.count)} crédit(s). Les combinaisons inconnues et exclues ne sont pas générées. Continuer ?`) && void gen.generateCity(genRow, { includeStalled: plan.stalled > 0 }).finally(() => void reload())}>
                     {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
                     {c.generated > 0 ? "Reprendre la génération" : "Générer cette ville"}
                     {plan.generate.count > 0 ? ` (${plan.generate.count})` : ""}
@@ -600,6 +624,8 @@ export default function PipelineControlCenter() {
                   {retryReason && <div>Régénérer : {retryReason}</div>}
                   {plan.retry.enabled && plan.invalidPublished > 0 && <div>Régénérer : {plan.invalidDrafts} brouillon(s) visé(s); {plan.invalidPublished} page(s) en ligne protégée(s).</div>}
                   {publishReason && <div>Publier : {publishReason}</div>}
+                  {pubReport.get(c.slug)?.blocked.map((b) => <div key={b.slug} className="text-destructive">Bloquée {b.slug} : {b.reasons.join(" ")}</div>)}
+                  {pubReport.get(c.slug)?.failed.map((b) => <div key={b.slug} className="text-destructive">Échec {b.slug} : {b.error}</div>)}
                   {cv && cv.offCriteria > 0 && <div>Exclues : {cv.offCriteria} page(s) existante(s) hors critères (aucune demande ni service configuré) — conservées, jamais régénérées.</div>}
                 </div>
               </div>
@@ -745,6 +771,27 @@ function Kpi({ label, value, tone, hint }: { label: string; value: string; tone?
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className={`text-2xl font-bold leading-tight ${cls}`}>{value}</div>
       {hint && <div className="text-[10px] text-muted-foreground">{hint}</div>}
+    </div>
+  );
+}
+
+const SHOWN: CatState[] = ["published_indexable", "published_noindex", "draft_ready", "draft_noindex", "draft_error", "missing_confirmed", "missing_unknown", "excluded_missing", "pending", "stalled", "failed"];
+
+function catalogGaps(k: CatSummary): string {
+  return SHOWN.filter((x) => k[x] > 0).map((x) => `${CAT_STATE_LABEL[x]} : ${k[x]}`).join(" · ")
+    + (k.excludedExisting > 0 ? ` · Exclues mais déjà publiées (à décider) : ${k.excludedExisting}` : "");
+}
+
+function CatStateLine({ s }: { s: CatSummary }) {
+  return <div className="text-muted-foreground leading-snug">{catalogGaps(s)}</div>;
+}
+
+export function CatalogTotals({ s, complete, cities }: { s: CatSummary; complete: number; cities: number }) {
+  return (
+    <div className="rounded-lg border border-border p-3 text-xs space-y-1">
+      <div className="font-semibold text-sm">Couverture réelle du catalogue : {s.published_indexable + s.published_noindex} / {s.total - s.excluded_missing} ({s.coveredPct} %) · {complete} / {cities} villes complètes</div>
+      <div className="text-muted-foreground">{s.total} combinaisons théoriques. {catalogGaps(s)}</div>
+      <div className="text-muted-foreground">Prochains lots : {s.missing_confirmed + s.failed + s.stalled} génération(s) admissible(s) ≈ {estimateCredits(s.missing_confirmed + s.failed + s.stalled)} crédit(s); {s.draft_error} brouillon(s) à régénérer ≈ {estimateCredits(s.draft_error)} crédit(s); {s.missing_unknown} combinaison(s) inconnue(s) non générées tant que leur admissibilité n'est pas confirmée.</div>
     </div>
   );
 }
