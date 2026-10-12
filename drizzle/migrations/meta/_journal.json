@@ -1506,6 +1506,13 @@
       "when": 1791825680130,
       "tag": "0214_seo_slot_availability_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 215,
+      "version": "7",
+      "when": 1791826598738,
+      "tag": "0215_seo_quality_publish_gate",
+      "breakpoints": true
     }
   ]
 }

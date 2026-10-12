@@ -26352,6 +26352,7 @@ export type Database = {
           blockers: string[]
           checked_at: string
           checks: Json
+          content_hash: string | null
           id: string
           page_id: string
           score: number
@@ -26362,6 +26363,7 @@ export type Database = {
           blockers?: string[]
           checked_at?: string
           checks?: Json
+          content_hash?: string | null
           id?: string
           page_id: string
           score?: number
@@ -26372,6 +26374,7 @@ export type Database = {
           blockers?: string[]
           checked_at?: string
           checks?: Json
+          content_hash?: string | null
           id?: string
           page_id?: string
           score?: number
@@ -34313,6 +34316,7 @@ export type Database = {
       }
       seo_orchestrator_try_lock: { Args: never; Returns: boolean }
       seo_orchestrator_unlock: { Args: never; Returns: boolean }
+      seo_page_content_hash: { Args: { _page_id: string }; Returns: string }
       seo_page_optim_history: {
         Args: { _limit?: number; _page_id: string }
         Returns: {
@@ -34336,6 +34340,16 @@ export type Database = {
           _remove_noindex: boolean
         }
         Returns: Json
+      }
+      seo_page_quality_state: {
+        Args: { _page_ids: string[] }
+        Returns: {
+          blockers: string[]
+          checked_at: string
+          fresh: boolean
+          page_id: string
+          score: number
+        }[]
       }
       seo_page_rollback: { Args: { _improvement_id: string }; Returns: Json }
       seo_page_save: { Args: { _page_id: string; _patch: Json }; Returns: Json }
@@ -34387,6 +34401,16 @@ export type Database = {
           _service_slug: string
         }
         Returns: string
+      }
+      seo_slot_evidence: {
+        Args: { _city_slug: string }
+        Returns: {
+          evidence: string
+          material_slug: string
+          materials: string[]
+          origin: string
+          submission_number: string
+        }[]
       }
       seo_slot_rows: {
         Args: { _city_slug?: string }
