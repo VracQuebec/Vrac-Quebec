@@ -9,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { repairCity, repairOutcomeMessage, type RepairSlot } from "@/lib/seo/cityRepair";
 import { publishCityDrafts, publishOutcomeMessage } from "@/lib/seo/cityPublish";
-import type { SlotRow } from "@/lib/seo/useSeoCityMatrix";
 
 const toSlot = (city: string, x: SlotRow): RepairSlot => ({
   key: `${city}|${x.material_slug ?? ""}|${x.service_slug ?? ""}`, label: x.label, gen_state: x.gen_state,
