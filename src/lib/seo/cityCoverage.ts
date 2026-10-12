@@ -195,10 +195,36 @@ export function splitAll(all: CoverageAllRaw): CoverageRaw[] {
 
 export type CoverageBadge = "covered" | "to_develop" | "drafts";
 export const COVERAGE_BADGE_LABEL: Record<CoverageBadge, string> = {
-  covered: "COUVERTE",
+  covered: "OPPORTUNITÉS COUVERTES",
   drafts: "PAGES EN BROUILLON",
   to_develop: "OPPORTUNITÉS À DÉVELOPPER",
 };
+
+/**
+ * Catalogue complet d'une ville (potentiel théorique) ventilé sans confusion :
+ * pertinentes (demande/service), exclues temporairement, hors critères (page sans justification)
+ * et disponibilité inconnue sans page. Une ville n'est « catalogue complet » que si
+ * toutes les combinaisons non exclues ont une page publiée.
+ */
+export function catalogBreakdown(c: Coverage, excluded: Set<string>) {
+  const key = (i: CoverageItem) => `${i.kind}|${i.slug ?? ""}`;
+  const isExcl = (i: CoverageItem) => i.kind !== "hub" && excluded.has(key(i));
+  const relevant = c.items.filter((i) => ["covered", "draft", "to_develop"].includes(i.status));
+  const excl = c.items.filter(isExcl);
+  const rest = c.items.filter((i) => !isExcl(i) && !relevant.includes(i));
+  const unknownMissing = rest.filter((i) => !i.page).length;
+  const nonExcluded = c.items.filter((i) => !isExcl(i));
+  return {
+    theoretical: c.items.length,
+    relevant: relevant.length,
+    excluded: excl.length,
+    offCriteriaPages: rest.filter((i) => !!i.page).length,
+    unknownMissing,
+    catalogPublished: nonExcluded.filter((i) => i.published).length,
+    catalogTarget: nonExcluded.length,
+    catalogComplete: nonExcluded.every((i) => i.published),
+  };
+}
 
 /** Statut d'une ville, fondé uniquement sur les opportunités pertinentes (jamais sur la file du Générateur). */
 export function coverageFlags(c: Coverage) {
