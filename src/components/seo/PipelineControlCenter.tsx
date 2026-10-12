@@ -18,7 +18,6 @@ import { toast } from "@/hooks/use-toast";
 import CityPagesDialog from "@/components/seo/CityPagesDialog";
 import { CityDetailDialog } from "@/components/seo/CityGenerator";
 import { useCityGeneration } from "@/lib/seo/useCityGeneration";
-import { repairSeoPages } from "@/lib/seo/useSeoCityMatrix";
 import CityCombinationAudit from "@/components/seo/CityCombinationAudit";
 import DraftAudit from "@/components/seo/DraftAudit";
 import QaControlPanel from "@/components/seo/QaControlPanel";
@@ -113,6 +112,12 @@ export default function PipelineControlCenter() {
   const catalogOf = (slug: string) => catalogBySlug.get(slug) ?? null;
   const catalogTotal = useMemo(() => catalogBySlug.size ? mergeSummaries([...catalogBySlug.values()]) : null, [catalogBySlug]);
   const catalogComplete = useMemo(() => [...catalogBySlug.values()].filter((x) => x.complete).length, [catalogBySlug]);
+  const toRepairSlot = (p: ControlProblem): RepairSlot => ({
+    key: `${p.city_slug}|${p.material_slug ?? ""}|${p.service_slug ?? ""}`, label: p.label, gen_state: p.gen_state,
+    has_page: p.gen_state === "invalid", published: publishedKeysOf(cov.get(p.city_slug) ?? null).has(slotKey(p.kind, p.material_slug, p.service_slug)),
+    noindex_volontaire: isNoindexOnly(p as never), issues: p.issues, attempts: p.task_attempts ?? 0,
+    material_slug: p.material_slug, service_slug: p.service_slug,
+  });
   // Même logique de génération que le Générateur (aucune architecture parallèle).
   const gen = useCityGeneration();
   const workCity = workSlug ? gen.bySlug.get(workSlug) ?? null : null;
@@ -593,12 +598,7 @@ export default function PipelineControlCenter() {
                     title={retryReason ?? undefined}
                     disabled={!!retryReason || busy === `retry-${c.slug}`}
                     onClick={() => window.confirm(`Régénérer ${plan.invalidDrafts} brouillon(s) en erreur de ${c.name} ? Les pages en ligne ne seront pas remplacées.`) && act(`retry-${c.slug}`, async () => {
-                      const slots: RepairSlot[] = ((state?.problems ?? []) as ControlProblem[]).filter((p) => p.city_slug === c.slug).map((p) => ({
-                        key: `${c.slug}|${p.material_slug ?? ""}|${p.service_slug ?? ""}`, label: p.label, gen_state: p.gen_state,
-                        has_page: p.gen_state === "invalid", published: publishedKeysOf(cv).has(slotKey(p.kind, p.material_slug, p.service_slug)),
-                        noindex_volontaire: isNoindexOnly(p as never), issues: p.issues, attempts: p.task_attempts ?? 0,
-                        material_slug: p.material_slug, service_slug: p.service_slug,
-                      }));
+                      const slots = ((state?.problems ?? []) as ControlProblem[]).filter((p) => p.city_slug === c.slug).map(toRepairSlot);
                       const o = await repairCity(slots);
                       void reload();
                       return repairOutcomeMessage(o);
@@ -688,7 +688,10 @@ export default function PipelineControlCenter() {
             {errorProblems.map((problem) => (
               <ProblemRow key={`${problem.city_slug}|${problem.material_slug ?? ""}|${problem.service_slug ?? ""}`} problem={problem} busy={busy}
                 onRepair={() => act(`problem-${problem.city_slug}-${problem.material_slug ?? problem.service_slug ?? "hub"}`, async () => {
-                  await repairSeoPages({ citySlug: problem.city_slug, materialSlug: problem.material_slug, serviceSlug: problem.service_slug });
+                  const o = await repairCity([toRepairSlot(problem)]);
+                  if (o.skipped[0]) throw new Error(o.skipped[0].reason);
+                  if (o.failed[0]) throw new Error(o.failed[0].error);
+                  void reload();
                 }, `Régénération terminée — ${problem.city_name} · ${problem.label}`)} />
             ))}
           </div>
@@ -702,7 +705,10 @@ export default function PipelineControlCenter() {
             {(state?.problems ?? []).map((problem) => (
               <ProblemRow key={`${problem.city_slug}|${problem.material_slug ?? ""}|${problem.service_slug ?? ""}`} problem={problem} busy={busy}
                 onRepair={() => act(`problem-${problem.city_slug}-${problem.material_slug ?? problem.service_slug ?? "hub"}`, async () => {
-                  await repairSeoPages({ citySlug: problem.city_slug, materialSlug: problem.material_slug, serviceSlug: problem.service_slug });
+                  const o = await repairCity([toRepairSlot(problem)]);
+                  if (o.skipped[0]) throw new Error(o.skipped[0].reason);
+                  if (o.failed[0]) throw new Error(o.failed[0].error);
+                  void reload();
                 }, `Régénération terminée — ${problem.city_name} · ${problem.label}`)} />
             ))}
           </div>
