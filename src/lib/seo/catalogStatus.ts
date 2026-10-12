@@ -135,3 +135,25 @@ export function publishGate(p: DraftForGate, ctx: { cityName: string; slugCopies
   if (ctx.slugCopies > 1) r.push("Collision de slug (URL en double).");
   return r;
 }
+
+type Prob = { city_slug: string; kind: string; material_slug: string | null; service_slug: string | null; gen_state: string; issues: string[] | null; task_updated_at?: string | null };
+
+/** Construit l'entrée de classement d'une ville à partir des signalements serveur (même règle pour toutes). */
+export function buildCatInput(
+  citySlug: string, items: CatItem[], problems: Prob[], excluded: Set<string>,
+  opts: { activeRun: boolean; now?: number; staleMs?: number },
+): CatInput {
+  const now = opts.now ?? Date.now(); const stale = opts.staleMs ?? 15 * 60 * 1000;
+  const i: CatInput = { items, queueKeys: new Set(), draftErrorKeys: new Set(), pendingKeys: new Set(), stalledKeys: new Set(), failedKeys: new Set(), excluded };
+  for (const p of problems) {
+    if (p.city_slug !== citySlug) continue;
+    const k = catKey(p.kind, p.kind === "material" ? p.material_slug : p.kind === "service" ? p.service_slug : null);
+    i.queueKeys.add(k);
+    if (p.gen_state === "error") i.failedKeys.add(k);
+    else if (p.gen_state === "pending") {
+      const old = !p.task_updated_at || now - new Date(p.task_updated_at).getTime() > stale;
+      (old && !opts.activeRun ? i.stalledKeys : i.pendingKeys).add(k);
+    } else if (p.gen_state === "invalid" && !(p.issues ?? []).every((x) => x === "Publiée mais noindex")) i.draftErrorKeys.add(k);
+  }
+  return i;
+}
