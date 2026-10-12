@@ -69,6 +69,8 @@ export type CityPlanInput = {
   lockedByOther: boolean;
   globalRunActive: boolean;
   hasGenRow: boolean;
+  /** État de lecture du registre du générateur pour cette ville. */
+  registryState?: "loading" | "error" | "absent" | "ok";
   now?: number;
 };
 
@@ -89,9 +91,14 @@ export function cityPlan(i: CityPlanInput) {
   const invalidDrafts = invalid.length - invalidPublished;
   const noindex = rows.filter(isNoindexOnly).length;
 
+  // « Absente du registre » seulement si le registre est réellement chargé : un chargement
+  // en cours ou en échec n'est jamais présenté comme une municipalité non rattachée.
+  const registry = i.registryState ?? (i.hasGenRow ? "ok" : "absent");
   const lock = i.runningHere ? "Génération en cours pour cette ville."
     : i.lockedByOther ? "Une autre ville est en cours de génération — une seule ville à la fois."
-    : !i.hasGenRow ? "Ville absente du registre du générateur (municipalité inactive ou non rattachée)."
+    : registry === "loading" ? "Registre du générateur en cours de chargement…"
+    : registry === "error" ? "Registre du générateur non chargé (erreur de lecture) — utilisez « Actualiser »."
+    : registry === "absent" ? "Ville absente du registre du générateur (municipalité inactive ou non rattachée)."
     : null;
 
   const genCount = missing + failed + stalled;
