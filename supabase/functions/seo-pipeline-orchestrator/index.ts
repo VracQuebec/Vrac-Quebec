@@ -5,6 +5,7 @@
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedCron } from "../_shared/cron-auth.ts";
+import { pipelinePublishRefusal } from "../_shared/seo-write-guards.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
