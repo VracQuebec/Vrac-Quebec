@@ -13,7 +13,7 @@
 import { offerFaq, offerKind } from "../_shared/seo-faq-offer.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { findUnverifiedClaims } from "../_shared/seo-claims.ts";
-import { autofixAuthorization, guardedReplace } from "../_shared/seo-write-guards.ts";
+import { autofixAuthorization, guardedReplace, staleReadRefusal } from "../_shared/seo-write-guards.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
