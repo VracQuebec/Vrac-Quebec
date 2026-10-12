@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { publishResultMessage, repairResultMessage, cityPlan, slotKey, isNoindexOnly, generateReasonWithCatalog, catalogActionLine } from "@/lib/seo/cityActions";
 import UnknownDecisionDialog from "@/components/seo/UnknownDecisionDialog";
 import PublishConfirmDialog from "@/components/seo/PublishConfirmDialog";
+import CityWorkbenchDialog, { type RowResult } from "@/components/seo/CityWorkbenchDialog";
+import { buildWorkbench, type WbRow } from "@/lib/seo/cityWorkbench";
+import { invokeWithFreshSession } from "@/lib/auth/sessionToken";
 import { loadDecisions, availabilityOf, decisionKey, type DecisionRow } from "@/lib/seo/slotDecisions";
 import CityCoverageDialog from "@/components/seo/CityCoverageDialog";
 import { buildCatInput, classify, summarizeCatalog, mergeSummaries, CAT_STATE_LABEL, estimateCredits, type CatState, type CatSummary } from "@/lib/seo/catalogStatus";
@@ -646,6 +649,7 @@ export default function PipelineControlCenter() {
             const publishReason = precheckErr ? "Lecture des brouillons impossible — publication bloquée; utilisez « Actualiser »." : precheckReason(pre);
             const genReason = generateReasonWithCatalog(plan.generate.reason, catSum);
             const catLine = catalogActionLine(catSum);
+            const wbGen = wbRowsFor(c.slug, c.name).filter((r) => r.action === "generate").length;
             const legacyMeta = STATUS_META[isRunning ? "running" : c.status];
             // Le badge ne dépend plus de la file du Générateur, sauf génération en cours ou erreur.
             const meta = isRunning || c.status === "error" || !flags ? legacyMeta
@@ -721,8 +725,8 @@ export default function PipelineControlCenter() {
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
                     disabled={gen.verifying === c.slug || isRunning}
-                    onClick={() => { void gen.verifyCity(genRow ?? ({ slug: c.slug, name: c.name } as never)); const k = catalogOf(c.slug); if (k) toast({ title: `Catalogue ${c.name} : ${k.complete ? "COMPLET" : "INCOMPLET"}`, description: catalogGaps(k) }); }}>
-                    {gen.verifying === c.slug ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />} Vérifier la ville
+                    onClick={() => { setWbCity({ slug: c.slug, name: c.name }); void verifyWb(); }}>
+                    <CheckCircle2 className="w-3 h-3" /> Vérifier et gérer la ville
                   </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
                     title={retryReason ?? undefined}
@@ -749,16 +753,17 @@ export default function PipelineControlCenter() {
                   )}
                   <Button size="sm" className="h-8 px-2.5 text-xs gap-1"
                     title={genReason ?? undefined}
-                    disabled={!plan.generate.enabled}
-                    onClick={() => genRow && window.confirm(`${plan.generate.count} page(s) admissible(s) (disponibilité confirmée) pour ${c.name}. Coût IA estimé : ${estimateCredits(plan.generate.count)} crédit(s). Les combinaisons inconnues et exclues ne sont pas générées. Continuer ?`) && void gen.generateCity(genRow, { includeStalled: plan.stalled > 0 }).finally(() => void reload())}>
+                    disabled={!plan.generate.enabled && wbGen === 0}
+                    onClick={() => !plan.generate.enabled ? setWbCity({ slug: c.slug, name: c.name }) : genRow && window.confirm(`${plan.generate.count} page(s) admissible(s) (disponibilité confirmée) pour ${c.name}. Coût IA estimé : ${estimateCredits(plan.generate.count)} crédit(s). Les combinaisons inconnues et exclues ne sont pas générées. Continuer ?`) && void gen.generateCity(genRow, { includeStalled: plan.stalled > 0 }).finally(() => void reload())}>
                     {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
                     {c.generated > 0 ? "Reprendre la génération" : "Générer cette ville"}
-                    {plan.generate.count > 0 ? ` (${plan.generate.count})` : ""}
+                    {Math.max(plan.generate.count, wbGen) > 0 ? ` (${Math.max(plan.generate.count, wbGen)})` : ""}
                   </Button>
                 </div>
                 <div className="text-[10px] text-muted-foreground space-y-0.5" onClick={(e) => e.stopPropagation()}>
                   {catLine && <div className="font-medium text-foreground/80">{catLine}</div>}
-                  {genReason && <div>Générer : {genReason}</div>}
+                  {genReason && wbGen === 0 && <div>Générer : {genReason}</div>}
+                  {wbGen > 0 && !plan.generate.enabled && <div>Générer : {wbGen} combinaison(s) confirmée(s) par vos décisions — ouvrez « Vérifier et gérer la ville » pour les sélectionner.</div>}
                   {pre && pre.eligible.length > 0 && <div>Publier : {pre.eligible.length} brouillon(s) admissible(s){pre.blocked.length ? `, ${pre.blocked.length} bloqué(s)` : ""}.</div>}
                   {pre?.blocked.map((b) => <div key={`pre-${b.slug}`}>Bloquée {b.slug} : {b.reasons.join(" ")}</div>)}
                   {plan.stalled > 0 && <div>{plan.stalled} génération(s) interrompue(s) — reprises par « Reprendre la génération ».</div>}
@@ -880,7 +885,7 @@ export default function PipelineControlCenter() {
       <PublishConfirmDialog city={publishCity} pre={publishCity ? precheckFor(publishCity.slug, publishCity.name) : undefined}
         onClose={() => setPublishCity(null)}
         onConfirm={(slugs) => { const pc = publishCity!; setPublishCity(null); void act(`pub-${pc.slug}`, async () => {
-          const o = await publishCityDrafts(pc.slug, pc.name, undefined, { removeGenerationNoindex: true, onlySlugs: slugs });
+          const o = await publishCityDrafts(pc.slug, pc.name, undefined, { removeGenerationNoindex: true, onlySlugs: slugs, isAvailable: availFor(pc.slug) });
           setPubReport((m) => new Map(m).set(pc.slug, o));
           void reload();
           return publishOutcomeMessage(o);
@@ -894,6 +899,10 @@ export default function PipelineControlCenter() {
             .map((it) => ({ kind: it.kind as "material" | "service", slug: it.slug as string, label: it.label }));
         })()} />
 
+      <CityWorkbenchDialog city={wbCity} rows={wbCity ? wbRowsFor(wbCity.slug, wbCity.name) : []}
+        onClose={() => setWbCity(null)} onVerify={verifyWb}
+        onDecide={() => wbCity && setUnknownCity(wbCity)}
+        run={wbCity ? wbRun(wbCity) : {}} />
       <CityPagesDialog
         citySlug={pagesCity?.slug ?? null}
         cityName={pagesCity?.name}
