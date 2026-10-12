@@ -24489,6 +24489,39 @@ export type Database = {
           },
         ]
       }
+      seo_city_slot_decisions: {
+        Row: {
+          city_slug: string
+          decided_at: string
+          decided_by: string
+          decision: string
+          id: string
+          kind: string
+          reason: string
+          slug: string
+        }
+        Insert: {
+          city_slug: string
+          decided_at?: string
+          decided_by: string
+          decision: string
+          id?: string
+          kind: string
+          reason: string
+          slug: string
+        }
+        Update: {
+          city_slug?: string
+          decided_at?: string
+          decided_by?: string
+          decision?: string
+          id?: string
+          kind?: string
+          reason?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       seo_competitor_pages: {
         Row: {
           city_slug: string | null
