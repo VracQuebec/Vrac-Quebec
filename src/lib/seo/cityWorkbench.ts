@@ -42,6 +42,8 @@ export function buildWorkbench(input: {
   drafts: WbDraft[]; published: WbPublished[]; problems: WbProblem[];
   decisionOf: (kind: string, slug: string | null) => Decision | undefined;
   excluded: Set<string>; slugCopies: Map<string, number>;
+  /** Disponibilité du catalogue serveur (référence commune à tout le tableau de bord). */
+  serverOf?: (kind: string, slug: string | null) => "confirmee" | "exclue" | "inconnue" | undefined;
 }): WbRow[] {
   const draftBy = new Map(input.drafts.map((d) => [itemKey(kindOf(d), d.material_slug, d.service_slug), d]));
   const pubBy = new Map(input.published.map((p) => [itemKey(kindOf(p), p.material_slug, p.service_slug), p]));
@@ -54,7 +56,7 @@ export function buildWorkbench(input: {
     const page = draft ? { status: draft.status, noindex: draft.noindex } : pub ? { status: "published", noindex: pub.noindex } : null;
     const state = classify({ kind: it.kind, slug: it.slug, page }, input.cat);
     const excl = it.kind !== "hub" && input.excluded.has(key);
-    const availability: Availability = excl ? "exclue" : availabilityOf(it, input.decisionOf(it.kind, it.slug));
+    const availability: Availability = excl ? "exclue" : availabilityOf(it, input.decisionOf(it.kind, it.slug), input.serverOf?.(it.kind, it.slug));
     const attempts = prob?.task_attempts ?? 0;
     const row: WbRow = {
       key, kind: it.kind, slug: it.slug, label: it.label, state, availability,
