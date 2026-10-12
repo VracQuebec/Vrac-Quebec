@@ -155,11 +155,6 @@ Deno.serve(async (req) => {
       return json({ error: sel.skipped[0]?.reason ?? "Aucune erreur réelle sur cette page.", skipped: sel.skipped }, 409);
     }
 
-    if (targets.length === 0) return json({ error: "Page introuvable pour cette ville" }, 404);
-      if (!confirmPublished && targets.some(isPublished)) {
-        return json({ error: "Page en ligne : la régénération la remettrait en brouillon. Validation explicite requise." }, 409);
-      }
-    }
 
     if (targets.length === 0) return json({ ok: true, queued: 0, skipped: sel.skipped, skipped_published: skippedPublished, message: skippedPublished ? `Aucun brouillon à régénérer — ${skippedPublished} page(s) en ligne protégée(s), validation requise.` : "Aucune page en erreur." });
 
