@@ -5,6 +5,7 @@
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isTrustedCron } from "../_shared/cron-auth.ts";
+import { pipelinePublishRefusal } from "../_shared/seo-write-guards.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -227,6 +228,15 @@ async function loadContext(sb: SupabaseClient, task: any) {
 }
 
 async function runOneTask(sb: SupabaseClient, run: any, batch: any, task: any) {
+  // Le pilote ne publie jamais : refus définitif, sans QA, correction ni écriture de page.
+  const refusal = pipelinePublishRefusal(task.kind);
+  if (refusal) {
+    await sb.from("seo_page_tasks").update({
+      status: "needs_retry", step: "refusée", last_error: refusal,
+      attempts: task.attempts + 1, finished_at: nowIso(), next_attempt_at: null,
+    }).eq("id", task.id);
+    return;
+  }
   const started = Date.now();
   await sb.from("seo_page_tasks").update({
     status: "running", attempts: task.attempts + 1, started_at: nowIso(), step: "génération", last_error: null,

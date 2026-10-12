@@ -13,6 +13,7 @@
 import { offerFaq, offerKind } from "../_shared/seo-faq-offer.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { findUnverifiedClaims } from "../_shared/seo-claims.ts";
+import { autofixAuthorization, guardedReplace } from "../_shared/seo-write-guards.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -236,6 +237,15 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (pErr || !page) return json({ error: pErr?.message || "Page introuvable" }, 404);
     const p = page as Page;
+
+    // Lecture complète (sauvegarde intégrale + état initial) et autorisation AVANT tout calcul ou appel IA.
+    const { data: fullBefore } = await supabase.from("seo_pages").select("*").eq("id", pageId).maybeSingle();
+    const auth = autofixAuthorization({
+      pageId,
+      status: (fullBefore as { status?: string } | null)?.status,
+      confirmPublishedPageId: typeof body?.confirm_published_page_id === "string" ? body.confirm_published_page_id : null,
+    });
+    if (!auth.ok) return json({ error: auth.error, code: auth.code }, auth.status);
 
     // Résout les vrais noms (accentués) du référentiel pour ne jamais générer
     // « Beton à Quebec » à partir d'un slug sans accents.
@@ -572,30 +582,30 @@ Deno.serve(async (req) => {
     // Content protection: snapshot the previous value of every field we are about to
     // change, so any optimisation can be rolled back and stays in the page history.
     const changedKeys = Object.keys(updates);
-    const beforeSnapshot: Record<string, unknown> = {};
-    for (const k of changedKeys) beforeSnapshot[k] = (p as unknown as Record<string, unknown>)[k] ?? null;
 
     updates.updated_at = new Date().toISOString();
-    const { error: uErr } = await supabase.from("seo_pages").update(updates).eq("id", pageId);
-    if (uErr) return json({ error: uErr.message }, 500);
-
-    let improvementId: string | null = null;
-    try {
-      const { data: imp } = await supabase
-        .from("seo_page_improvements")
-        .insert({
-          page_id: pageId,
-          before_snapshot: beforeSnapshot,
-          after_snapshot: updates,
-          applied: true,
-          applied_at: new Date().toISOString(),
-          model: aiCalls > 0 ? "deterministic-v2+ai" : "deterministic-v2",
-          notes: `Corrections: ${fixedActions.join(", ") || "aucune"}${preserved.length ? ` · Conservé: ${preserved.join(", ")}` : ""}`,
-        })
-        .select("id")
-        .maybeSingle();
-      improvementId = imp?.id ?? null;
-    } catch { /* history is best-effort, never blocks the fix */ }
+    const notes = `Corrections: ${fixedActions.join(", ") || "aucune"}${preserved.length ? ` · Conservé: ${preserved.join(", ")}` : ""} · Sauvegarde complète avant remplacement (avant: ${changedKeys.join(", ")})`;
+    const guarded = await guardedReplace(fullBefore as Record<string, unknown> | null, {
+      insertBackup: async (before) => {
+        const { data: imp, error } = await supabase.from("seo_page_improvements").insert({
+          page_id: pageId, before_snapshot: before, after_snapshot: updates, applied: false,
+          model: aiCalls > 0 ? "deterministic-v2+ai" : "deterministic-v2", notes,
+        }).select("id").maybeSingle();
+        return error ? null : (imp?.id ?? null);
+      },
+      conditionalUpdate: async (readAt) => {
+        const { data, error } = await supabase.from("seo_pages").update(updates)
+          .eq("id", pageId).eq("updated_at", readAt).select("id");
+        return error ? -1 : (data?.length ?? 0);
+      },
+      finalizeBackup: async (id, applied, note) => {
+        await supabase.from("seo_page_improvements").update(applied
+          ? { applied: true, applied_at: new Date().toISOString() }
+          : { notes: `${notes} · ${note}` }).eq("id", id);
+      },
+    });
+    if (!guarded.ok) return json({ error: guarded.error, code: guarded.code, ai_calls: aiCalls }, guarded.status);
+    const improvementId: string | null = guarded.backupId;
 
 
     // Re-run QA (deterministic)
