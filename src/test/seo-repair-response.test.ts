@@ -47,8 +47,8 @@ describe("réponse de régénération unitaire", () => {
 describe("pré-contrôle de publication avant le clic", () => {
   const base = { slug: "remblai-x", status: "draft", meta_title: "Remblai à Saint-Georges : guide complet du projet", meta_description: "x".repeat(80),
     h1: "Remblai à Saint-Georges", title: null, content_html: "<p>" + "mot ".repeat(400) + "</p>", word_count: 400, internal_link_count: 3 };
-  it("brouillon en noindex de génération → bloqué, bouton désactivé avec raison", () => {
-    const p = publishPrecheck([{ ...base, noindex: true }], "Saint-Georges", new Map());
+  it("brouillon en noindex volontaire → bloqué, bouton désactivé avec raison", () => {
+    const p = publishPrecheck([{ ...base, noindex: true, noindex_volontaire: true }], "Saint-Georges", new Map());
     expect(p.eligible).toEqual([]);
     expect(precheckReason(p)).toMatch(/aucun admissible/);
   });
