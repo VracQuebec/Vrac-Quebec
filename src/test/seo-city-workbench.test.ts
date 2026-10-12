@@ -93,3 +93,16 @@ describe("publication de plusieurs pages en une confirmation", () => {
     expect(o.failed).toHaveLength(1); expect(o.published).toHaveLength(0);
   });
 });
+
+describe("outils de qualité du poste de travail", () => {
+  const one = (extra: Partial<WbDraft>) => buildWorkbench({
+    cityName: "Berthierville", items, cat: { ...cat, items: [] } as never, excluded: new Set(), slugCopies: new Map(),
+    drafts: [good("sable-berthierville", "sable", extra)], published: [], problems: [],
+    decisionOf: (_k, s) => (s === "sable" ? "confirmee" : undefined),
+  }).find((r) => r.slug === "sable")!;
+  it("note absente : « Recalculer la qualité », jamais publier", () => expect(one({ qa_score: null, qa_fresh: false }).action).toBe("recheck"));
+  it("note périmée : « Recalculer la qualité »", () => expect(one({ qa_score: 95, qa_fresh: false }).action).toBe("recheck"));
+  it("note 80 à jour : « Corriger sans IA », jamais publier", () => expect(one({ qa_score: 80 }).action).toBe("autofix"));
+  it("note 90 à jour : publiable", () => expect(one({ qa_score: 90 }).action).toBe("publish"));
+  it("note 92 à jour : publiable", () => expect(one({ qa_score: 92 }).action).toBe("publish"));
+});
